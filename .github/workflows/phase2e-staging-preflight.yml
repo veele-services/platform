@@ -1,0 +1,109 @@
+name: Phase 2E Staging Promotion Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: "Exact reviewed and green main SHA"
+        required: true
+        type: string
+      expected_staging_sha:
+        description: "Exact current staging SHA and rollback target"
+        required: true
+        type: string
+      confirmation:
+        description: "Type phase2e-staging-only"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Backup, restore and migration rehearsal
+    if: github.ref_name == 'main'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 60
+    environment: staging
+    env:
+      TARGET_ENVIRONMENT: staging
+      APP_ENV: staging
+      PHASE2E_CONFIRM: ${{ inputs.confirmation }}
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      STAGING_BASE_DIR: /var/www/veele/staging
+      GITHUB_TOKEN: ${{ github.token }}
+
+      APP_URL: ${{ vars.APP_URL }}
+      BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
+      PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
+      KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
+      API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
+      BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
+      PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
+      KLANT_PORT: ${{ vars.KLANT_PORT }}
+      API_PORT: ${{ vars.API_PORT }}
+      BACKOFFICE_PUBLIC_LOGIN_URL: ${{ vars.BACKOFFICE_PUBLIC_LOGIN_URL }}
+      PERSONEEL_PUBLIC_HEALTH_URL: ${{ vars.PERSONEEL_PUBLIC_HEALTH_URL }}
+      KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
+      API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
+      API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL || 'https://staging.fieldgrid.nl/rest/v1/' }}
+      PILOT_TENANT_LOGIN_URL: ${{ vars.PILOT_TENANT_LOGIN_URL || 'https://field-demo.fieldgrid.nl/login' }}
+
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+      MOLLIE_WEBHOOK_SECRET: ${{ secrets.MOLLIE_WEBHOOK_SECRET }}
+      ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+      FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
+      FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
+
+    steps:
+      - name: Checkout exact main candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check staging preflight runtime
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+          docker version
+          systemctl --version
+
+      - name: Install locked dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Validate preflight contract
+        run: pnpm fieldgrid:phase2e-staging-preflight:check
+
+      - name: Prove backup, isolated restore, migrations, secrets, routes and rollback target
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:phase2e-staging-preflight --run \
+            --expected-main "$EXPECTED_MAIN_SHA" \
+            --expected-staging "$EXPECTED_STAGING_SHA"
+
+      - name: Upload secret-free preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2e-staging-preflight-${{ github.run_id }}-${{ inputs.expected_main_sha }}
+          path: artifacts/phase2e-staging-preflight/
+          if-no-files-found: warn
+          retention-days: 14

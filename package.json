@@ -22,6 +22,8 @@
     "fieldgrid:sprint7-migration-smoke": "node scripts/fieldgrid-sprint7-migration-smoke.mjs",
     "fieldgrid:sprint7-migration-smoke:check": "node scripts/fieldgrid-sprint7-migration-smoke.mjs --check",
     "fieldgrid:sprint7-migration-smoke:run": "node scripts/fieldgrid-sprint7-migration-smoke.mjs --run --target all",
+    "fieldgrid:phase2e-staging-preflight": "node scripts/fieldgrid-phase2e-staging-preflight.mjs",
+    "fieldgrid:phase2e-staging-preflight:check": "node scripts/fieldgrid-phase2e-staging-preflight.mjs --check",
     "fieldgrid:mvp-sprint2-runtime-proof": "node scripts/fieldgrid-mvp-sprint2-runtime-proof.mjs",
     "fieldgrid:mvp-sprint2-runtime-proof:check": "node scripts/fieldgrid-mvp-sprint2-runtime-proof.mjs --check",
     "fieldgrid:mvp-sprint2-runtime-proof:strict": "node scripts/fieldgrid-mvp-sprint2-runtime-proof.mjs --strict-evidence",

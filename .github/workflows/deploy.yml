@@ -57,6 +57,7 @@ jobs:
       ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
+      FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
       RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
       # GitHub stores the browser key as a secret; Next receives it under the
       # canonical NEXT_PUBLIC name during the build so Maps JS can load it.
@@ -202,6 +203,7 @@ jobs:
             printf 'ADMIN_API_SECRET=%s\n' "$ADMIN_API_SECRET"
             printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
             printf 'FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY=%s\n' "$FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY"
+            printf 'FIELDGRID_CREDENTIAL_RECOVERY_SECRET=%s\n' "$FIELDGRID_CREDENTIAL_RECOVERY_SECRET"
             printf 'RESEND_FROM_EMAIL=%s\n' "$RESEND_FROM_EMAIL"
             printf 'NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY=%s\n' "$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY"
             printf 'GOOGLE_MAPS_SERVER_API_KEY=%s\n' "$GOOGLE_MAPS_SERVER_API_KEY"
