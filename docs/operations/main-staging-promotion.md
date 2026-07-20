@@ -18,7 +18,7 @@ This document is the canonical branch and environment contract for the current F
 3. Run the required review and CI checks.
 4. Merge the approved pull request into `main`.
 5. Select the exact resulting `main` commit SHA for staging promotion.
-6. Move the `staging` ref to that exact SHA using an approved release action or a guarded `--force-with-lease` operation.
+6. Move the `staging` ref to that exact SHA with the guarded fast-forward-only promotion command.
 7. Verify that `main` and `staging` resolve to the same commit SHA before enabling or starting deployment.
 8. Deploy the staging ref and validate migrations, runtime services and public health.
 
@@ -43,25 +43,29 @@ olyfmekyqozxrbrwwszu
 
 Before moving the staging ref:
 
-1. Record the current `main` and `staging` SHAs.
-2. Confirm the selected `main` commit is reviewed and green.
-3. Archive the current staging SHA when it represents a known-good recovery point.
-4. Pause mutating staging workflows during one-off reconciliation work.
-5. Use force-with-lease or an equivalent expected-old-SHA guard.
-6. Confirm after promotion that `main` and `staging` are identical.
+1. Record the approved `main` candidate SHA and the expected current `staging` SHA.
+2. Fetch `main` and `staging` from `origin`.
+3. Confirm current `origin/main` equals the approved candidate SHA.
+4. Confirm current `origin/staging` equals the expected staging SHA.
+5. Confirm the expected staging commit is an ancestor of the approved candidate.
+6. Push the exact approved candidate SHA normally to `refs/heads/staging`.
+7. Fail closed if the remote rejects the update.
+8. Confirm after promotion that `main` and `staging` are identical.
+
+This promotion path accepts only `main` as its source and `staging` as its
+target. It does not use a release branch, create a merge commit on staging or
+touch production.
 
 Example guarded promotion:
 
 ```bash
-git fetch origin --prune
+APPROVED_MAIN_SHA="<exact reviewed and green main SHA>"
+EXPECTED_STAGING_SHA="<exact current staging SHA>"
 
-MAIN_SHA="$(git rev-parse origin/main)"
-EXPECTED_OLD_STAGING_SHA="$(git rev-parse origin/staging)"
-
-git push \
-  --force-with-lease="refs/heads/staging:${EXPECTED_OLD_STAGING_SHA}" \
-  origin \
-  "${MAIN_SHA}:refs/heads/staging"
+pnpm fieldgrid:phase2e-staging-promote --run \
+  --approved-main "${APPROVED_MAIN_SHA}" \
+  --expected-staging "${EXPECTED_STAGING_SHA}" \
+  --confirm phase2e-fast-forward-staging
 ```
 
 ## Deployment behavior
