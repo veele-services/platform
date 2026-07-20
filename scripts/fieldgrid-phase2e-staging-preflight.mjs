@@ -678,6 +678,7 @@ async function startRestoreTarget(tempDir) {
     env: postgresCommandEnv(maintenanceEnv),
   });
   const pgEnv = { ...maintenanceEnv, PGDATABASE: database };
+  await psql(pgEnv, "drop schema public;");
   await psql(pgEnv, restoreRoleSql());
   return { dataDir, database, logPath, pgEnv, port };
 }
