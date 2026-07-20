@@ -141,6 +141,16 @@ test("Phase 2A surfaces use participant progression, positioned actual overlays,
   assert.match(browserJourney, /toContainText\(\x27Werkelijk\x27\)/u);
 });
 
+test("Phase 2A planboard free-state badge keeps WCAG AA text contrast", () => {
+  const freeState = planboard.slice(
+    planboard.indexOf("person.scheduledAssignments.length === 0"),
+    planboard.indexOf("person.scheduledAssignments.map"),
+  );
+
+  assert.match(freeState, /color: "#475569"/u);
+  assert.doesNotMatch(freeState, /color: "#CBD5E1"/u);
+});
+
 test(
   "staffing RPC is tenant-safe, idempotent, versioned, and preserves a lifecycle snapshot",
   { skip: !process.env.DATABASE_URL },
