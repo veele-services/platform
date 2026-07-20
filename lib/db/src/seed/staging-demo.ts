@@ -141,7 +141,14 @@ async function cleanupDemoData(client: PoolClient) {
          or assignment_id in (select id from assignments where notes like $1)`,
     [like],
   );
-  await client.query("delete from assignment_photos where storage_path like 'staging-demo/%'");
+  await client.query(
+    `delete from assignment_photos
+      where storage_path like 'staging-demo/%'
+         or assignment_id in (
+           select id from assignments where notes like $1
+         )`,
+    [like],
+  );
   await client.query(
     `delete from assignment_extra_work
       where description like $1
@@ -1327,13 +1334,20 @@ async function seedDemoData(client: PoolClient) {
   );
   await client.query(
     `insert into assignment_photos (assignment_id, storage_path, uploaded_by, is_approved)
-     values ($1, $2, $3, true), ($1, $4, $3, false)`,
-    [
-      assignments.paid,
-      "staging-demo/photos/binckhorst-lekkage-voor.jpg",
-      actorId(),
-      "staging-demo/photos/binckhorst-lekkage-na.jpg",
-    ],
+     select assignment.id,
+            'tenant/' || assignment.tenant_id::text || '/assignments/' || assignment.id::text || '/binckhorst-lekkage-voor.jpg',
+            $2,
+            true
+       from assignments assignment
+      where assignment.id = $1
+     union all
+     select assignment.id,
+            'tenant/' || assignment.tenant_id::text || '/assignments/' || assignment.id::text || '/binckhorst-lekkage-na.jpg',
+            $2,
+            false
+       from assignments assignment
+      where assignment.id = $1`,
+    [assignments.paid, actorId()],
   );
 
   const openInvoice = await createInvoice(client, assignments.invoiced, customers.staten, "sent", 720, -3);
