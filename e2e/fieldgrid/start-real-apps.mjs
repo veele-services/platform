@@ -155,6 +155,7 @@ function appEnv(port) {
     DB_SSL: "false",
     PGSSLMODE: "disable",
     FIELDGRID_E2E_AUTH_ENABLED: "true",
+    FIELDGRID_E2E_OFFLINE_TRANSIENT_SQLSTATE: "40001",
     FIELDGRID_E2E_JWT_SECRET: localJwtSecret,
     NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:9324",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: localAnonKey,

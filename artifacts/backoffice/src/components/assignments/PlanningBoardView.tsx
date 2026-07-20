@@ -1517,7 +1517,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           style={{ left: `${currentTimePct}%` }}
                         >
                           <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow" style={{ background: "#00B7B3" }} />
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm" style={{ background: "#00B7B3", color: "#FFFFFF" }}>
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm" style={{ background: "#00B7B3", color: "#081D3A" }}>
                             Nu {minutesToTime(currentMinuteOfDay())}
                           </span>
                         </div>

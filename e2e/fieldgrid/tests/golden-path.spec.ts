@@ -387,7 +387,7 @@ test("8. Negative guards", async ({ page }) => {
   await expect(page.locator("body")).not.toContainText("Runtime Assignment B");
 });
 
-test("9. Offline work-order mutation survives refresh and converges after reconnect", async ({
+test("9. Offline work-order mutation chain survives refresh and converges after reconnect", async ({
   page,
   context,
 }) => {
@@ -395,12 +395,22 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   const startedAt = new Date().toISOString();
   await page.addInitScript(() => {
     const observations: unknown[] = [];
+    const queueSnapshots: unknown[] = [];
     Object.defineProperty(window, "__fieldgridOfflineSyncObservations", {
       configurable: true,
       value: observations,
     });
+    Object.defineProperty(window, "__fieldgridOfflineQueueSnapshots", {
+      configurable: true,
+      value: queueSnapshots,
+    });
     window.addEventListener("veele:offline-sync-observation", (event) => {
       observations.push((event as CustomEvent).detail);
+    });
+    window.addEventListener("veele:offline-work-order-queue", () => {
+      queueSnapshots.push(JSON.parse(
+        localStorage.getItem("veele-personeel-offline-work-order-actions-v1") ?? "[]",
+      ));
     });
   });
   await useIdentity(page, "20000000-0000-4000-8000-000000000104");
@@ -416,6 +426,11 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await page.waitForLoadState("networkidle");
 
   await context.setOffline(true);
+  await page.getByRole("button", { name: "Onderweg" }).click();
+  await page.getByRole("button", { name: "Onderweg melden" }).click();
+  await expect(
+    page.getByText(/Onderweg melden is offline opgeslagen/i),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Runtime offline checklist task" })
     .click();
@@ -446,16 +461,27 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     (key) => JSON.parse(localStorage.getItem(key) ?? "[]"),
     queueKey,
   );
-  expect(queued).toHaveLength(1);
+  expect(queued).toHaveLength(2);
   expect(queued[0]).toMatchObject({
+    type: "mark-assignment-en-route",
+    assignmentId: tenantAAssignmentId,
+    status: "pending",
+  });
+  expect(queued[1]).toMatchObject({
     type: "set-task-completion",
     assignmentId: tenantAAssignmentId,
     status: "pending",
   });
   expect(queued[0].idempotencyKey).toEqual(expect.any(String));
+  expect(queued[1].idempotencyKey).toEqual(expect.any(String));
   expect(queued[0].expectedParticipantVersion).toEqual(expect.any(Number));
-  const mutationId = String(queued[0].idempotencyKey);
-  expect(mutationId).toMatch(/^personnel-pwa:[A-Za-z0-9-]{16,128}$/u);
+  expect(queued[1].expectedParticipantVersion).toBe(queued[0].expectedParticipantVersion);
+  expect(queued[1].dependsOnMutationId).toBe(queued[0].idempotencyKey);
+  const initialVersion = Number(queued[0].expectedParticipantVersion);
+  const mutationIds = queued.map((action: { idempotencyKey: unknown }) => String(action.idempotencyKey));
+  for (const mutationId of mutationIds) {
+    expect(mutationId).toMatch(/^personnel-pwa:[A-Za-z0-9-]{16,128}$/u);
+  }
   const passCountBeforeReconnect = await page.evaluate(() => (
     ((window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
       .__fieldgridOfflineSyncObservations ?? []).filter((entry) => (
@@ -478,8 +504,9 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
 
   // The first real server-action request is held behind a deterministic
   // barrier. Reconnect/focus/visibility/service-worker triggers are emitted
-  // while the synchronization pass is provably active, then that transport
-  // attempt fails transiently. The next pass is allowed through.
+  // while the synchronization pass is provably active. The request then
+  // reaches the deterministic E2E database adapter, which returns one
+  // structured 40001 failure before allowing the stable retry through.
   await page.route("**/*", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -497,7 +524,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
       if (clientAttemptCount === 1) {
         markFirstAttemptStarted();
         await firstAttemptRelease;
-        await route.abort("failed");
+        await route.continue();
         return;
       }
       await route.continue();
@@ -508,7 +535,19 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
 
   await context.setOffline(false);
   await firstAttemptStarted;
-  await expect.poll(queuedActionCount).toBe(1);
+  await expect.poll(queuedActionCount).toBe(2);
+  const heldQueue = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key) ?? "[]"),
+    queueKey,
+  );
+  expect(heldQueue[0]).toMatchObject({
+    idempotencyKey: mutationIds[0],
+    status: "syncing",
+  });
+  const firstStillDurable = heldQueue.some((action: { idempotencyKey?: string }) => (
+    action.idempotencyKey === mutationIds[0]
+  ));
+  expect(firstStillDurable).toBe(true);
 
   await page.evaluate(() => {
     window.dispatchEvent(new Event("online"));
@@ -536,10 +575,38 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await expect.poll(queuedActionCount, { timeout: 20_000 }).toBe(0);
   await page.unroute("**/*");
 
-  expect(clientAttemptCount).toBe(2);
+  expect(clientAttemptCount).toBe(3);
   expect(maximumActiveClientAttempts).toBe(1);
-  expect(requestBodies).toHaveLength(2);
-  expect(requestBodies.every((body) => body.includes(mutationId))).toBe(true);
+  expect(requestBodies).toHaveLength(3);
+  expect(requestBodies.filter((body) => body.includes(mutationIds[0])).length).toBe(2);
+  expect(requestBodies.filter((body) => body.includes(mutationIds[1])).length).toBe(1);
+
+  const queueSnapshots = await page.evaluate(() => (
+    (window as Window & { __fieldgridOfflineQueueSnapshots?: unknown[] })
+      .__fieldgridOfflineQueueSnapshots ?? []
+  )) as Array<Array<{
+    attempts?: number;
+    idempotencyKey?: string;
+    lastErrorClassification?: string;
+    lastErrorDiagnosticId?: string;
+    lastErrorRetryable?: boolean;
+    lastErrorSqlState?: string;
+    status?: string;
+  }>>;
+  const transientQueueState = queueSnapshots.flat().find((action) => (
+    action.idempotencyKey === mutationIds[0]
+    && action.status === "retry_wait"
+    && action.lastErrorClassification === "transient"
+  ));
+  expect(transientQueueState).toMatchObject({
+    attempts: 1,
+    idempotencyKey: mutationIds[0],
+    lastErrorClassification: "transient",
+    lastErrorRetryable: true,
+    lastErrorSqlState: "40001",
+    status: "retry_wait",
+  });
+  expect(transientQueueState?.lastErrorDiagnosticId).toMatch(/^offline-[0-9a-f-]{36}$/iu);
 
   const observations = await page.evaluate(() => (
     (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
@@ -561,10 +628,14 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   expect(databaseUrl, "DATABASE_URL is required for canonical offline evidence").toBeTruthy();
   const sql = `
     select json_build_object(
-      'canonicalReceiptCount', count(*) filter (where operation_id = '${mutationId}'),
+      'canonicalReceiptCount', count(*) filter (where operation_id in ('${mutationIds[0]}', '${mutationIds[1]}')),
       'completedCanonicalReceiptCount', count(*) filter (
-        where operation_id = '${mutationId}' and canonical_response is not null and completed_at is not null
+        where operation_id in ('${mutationIds[0]}', '${mutationIds[1]}') and canonical_response is not null and completed_at is not null
       ),
+      'canonicalVersions', coalesce(json_agg(
+        coalesce((canonical_response->>'participantVersion')::bigint, (canonical_response->>'version')::bigint)
+        order by created_at
+      ) filter (where operation_id in ('${mutationIds[0]}', '${mutationIds[1]}')), '[]'::json),
       'taskCompletionRowCount', (
         select count(*) from assignment_tasks
         where id = '${offlineTaskId}' and completed_at is not null
@@ -579,11 +650,13 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   ).trim()) as {
     canonicalReceiptCount: number;
     completedCanonicalReceiptCount: number;
+    canonicalVersions: number[];
     taskCompletionRowCount: number;
   };
   expect(databaseProof).toEqual({
-    canonicalReceiptCount: 1,
-    completedCanonicalReceiptCount: 1,
+    canonicalReceiptCount: 2,
+    completedCanonicalReceiptCount: 2,
+    canonicalVersions: [initialVersion + 1, initialVersion + 1],
     taskCompletionRowCount: 1,
   });
 
@@ -597,7 +670,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     encoding: "utf8",
   }).trim();
   const evidence = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     exactGitHead,
     startedAt,
     finishedAt: new Date().toISOString(),
@@ -606,20 +679,34 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     offlineTransitionObserved: true,
     queueBeforeReconnect: queued.length,
     activeAttemptHeld: true,
+    firstStillDurable,
     triggerDuringActiveSync: triggerWasRecordedDuringActivePass,
     coalescedFollowUpPass: Boolean(coalescedReconnectPass),
     synchronizationPassCount: reconnectPasses.length,
     clientAttemptCount,
     maximumActiveClientAttempts,
     queueAfterReconnect: await queuedActionCount(),
-    mutationIdSha256: createHash("sha256").update(mutationId).digest("hex"),
+    mutationIdSha256: createHash("sha256").update(mutationIds[0]).digest("hex"),
+    sequentialMutationIdSha256: mutationIds.map((mutationId) => createHash("sha256").update(mutationId).digest("hex")),
+    entityStream: String(queued[0].entityStreamKey),
+    initialVersion,
+    canonicalVersions: databaseProof.canonicalVersions,
+    dependencyAdvanced: databaseProof.canonicalVersions[0] === initialVersion + 1,
+    transientFailure: {
+      sqlState: transientQueueState?.lastErrorSqlState,
+      classification: transientQueueState?.lastErrorClassification,
+      retryable: transientQueueState?.lastErrorRetryable,
+      retryAttempt: transientQueueState?.attempts,
+      mutationIdSha256: createHash("sha256").update(String(transientQueueState?.idempotencyKey)).digest("hex"),
+      diagnosticIdSha256: createHash("sha256").update(String(transientQueueState?.lastErrorDiagnosticId)).digest("hex"),
+    },
     canonicalReceiptCount: databaseProof.canonicalReceiptCount,
     completedCanonicalReceiptCount: databaseProof.completedCanonicalReceiptCount,
     serverMutationCount: databaseProof.canonicalReceiptCount,
     taskCompletionRowCount: databaseProof.taskCompletionRowCount,
     reloadConverged: true,
     duplicateExecutionCount: Math.max(databaseProof.taskCompletionRowCount - 1, 0),
-    duplicateReceiptCount: Math.max(databaseProof.canonicalReceiptCount - 1, 0),
+    duplicateReceiptCount: Math.max(databaseProof.canonicalReceiptCount - mutationIds.length, 0),
   };
   const artifactDir = join(process.cwd(), "artifacts", "fieldgrid-playwright");
   await mkdir(artifactDir, { recursive: true });
@@ -627,4 +714,11 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     join(artifactDir, "offline-reconnect-evidence.json"),
     `${JSON.stringify(evidence, null, 2)}\n`,
   );
+
+  // The next serial journey owns the same deterministic assignment fixture.
+  // Restore that fixture only after all offline runtime evidence is captured.
+  execFileSync("node", ["e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs"], {
+    env: process.env,
+    stdio: "pipe",
+  });
 });
