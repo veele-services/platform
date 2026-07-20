@@ -62,15 +62,17 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Set up isolated Docker engine
-        uses: docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877 # v5.3.0
+      - name: Set up pinned unprivileged PostgreSQL 17
+        run: scripts/fieldgrid-setup-postgresql17.sh
 
       - name: Check staging preflight runtime
         run: |
           set -euo pipefail
           node -v
           pnpm -v
-          docker version
+          postgres --version
+          initdb --version
+          pg_restore --version
           systemctl --version
 
       - name: Install locked dependencies

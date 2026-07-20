@@ -12,6 +12,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { createServer } from "node:net";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -316,14 +317,6 @@ async function runCommand(command, args, options = {}) {
   });
 }
 
-async function writeEnvFile(filePath, values) {
-  const content = Object.entries(values)
-    .map(([name, value]) => `${name}=${value}`)
-    .join("\n");
-  await writeFile(filePath, `${content}\n`, { mode: 0o600 });
-  await chmod(filePath, 0o600);
-}
-
 async function githubRefSha(branch, env = process.env) {
   const response = await fetch(
     `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
@@ -457,25 +450,14 @@ async function verifyRollbackTarget(expectedStaging, env = process.env) {
   };
 }
 
-function dockerClientArgs(envFile, command, args = [], extra = []) {
-  return [
-    "run",
-    "--rm",
-    "--network",
-    "host",
-    "--env-file",
-    envFile,
-    ...extra,
-    "postgres:17",
-    command,
-    ...args,
-  ];
+function postgresCommandEnv(pgEnv) {
+  return { ...process.env, ...pgEnv };
 }
 
-async function psql(envFile, sql) {
+async function psql(pgEnv, sql) {
   const result = await runCommand(
-    "docker",
-    dockerClientArgs(envFile, "psql", [
+    "psql",
+    [
       "--no-psqlrc",
       "--tuples-only",
       "--no-align",
@@ -483,24 +465,41 @@ async function psql(envFile, sql) {
       "ON_ERROR_STOP=1",
       "--command",
       sql,
-    ]),
+    ],
+    { env: postgresCommandEnv(pgEnv) },
   );
   return result.stdout.trim();
 }
 
-async function ensurePostgresImage() {
-  const inspect = await runCommand(
-    "docker",
-    ["image", "inspect", "postgres:17"],
-    { allowFailure: true },
-  );
-  if (inspect.code !== 0) await runCommand("docker", ["pull", "postgres:17"]);
+async function ensurePostgresRuntime(env = process.env) {
+  if (!env.FIELDGRID_POSTGRESQL_BINDIR?.trim()) {
+    throw new Error("FIELDGRID_POSTGRESQL_BINDIR is required.");
+  }
+  const commands = [
+    "createdb",
+    "initdb",
+    "pg_ctl",
+    "pg_dump",
+    "pg_restore",
+    "postgres",
+    "psql",
+  ];
+  const versions = {};
+  for (const command of commands) {
+    const result = await runCommand(command, ["--version"]);
+    const version = result.stdout.trim();
+    if (!/PostgreSQL\) 17\./u.test(version)) {
+      throw new Error(`${command} must use pinned PostgreSQL 17 binaries.`);
+    }
+    versions[command] = version;
+  }
+  return versions;
 }
 
-async function listBackupSchemas(envFile) {
+async function listBackupSchemas(pgEnv) {
   const requested = BACKUP_SCHEMAS.map((name) => `'${name}'`).join(",");
   const result = await psql(
-    envFile,
+    pgEnv,
     `select nspname from pg_namespace where nspname in (${requested}) order by nspname;`,
   );
   const schemas = result.split(/\r?\n/u).filter(Boolean);
@@ -511,17 +510,17 @@ async function listBackupSchemas(envFile) {
   return schemas;
 }
 
-async function collectCriticalCounts(envFile) {
+async function collectCriticalCounts(pgEnv) {
   const counts = {};
   for (const relation of CRITICAL_RELATIONS) {
     const exists = await psql(
-      envFile,
+      pgEnv,
       `select to_regclass('${relation}') is not null;`,
     );
     if (exists !== "t")
       throw new Error(`Required staging relation ${relation} is missing.`);
     const count = Number(
-      await psql(envFile, `select count(*) from ${relation};`),
+      await psql(pgEnv, `select count(*) from ${relation};`),
     );
     if (!Number.isSafeInteger(count) || count < 0)
       throw new Error(`Invalid count for ${relation}.`);
@@ -537,7 +536,7 @@ async function sha256File(filePath) {
 }
 
 async function createBackup(
-  sourceEnvFile,
+  sourcePgEnv,
   expectedStaging,
   schemas,
   env = process.env,
@@ -550,50 +549,28 @@ async function createBackup(
   const backupName = `phase2e-staging-${expectedStaging.slice(0, 12)}-${stamp}.dump`;
   const backupPath = join(backupDir, backupName);
   const schemaArgs = schemas.flatMap((schema) => ["--schema", schema]);
-  const uid = typeof process.getuid === "function" ? process.getuid() : 1000;
-  const gid = typeof process.getgid === "function" ? process.getgid() : 1000;
 
   await runCommand(
-    "docker",
-    dockerClientArgs(
-      sourceEnvFile,
-      "pg_dump",
-      [
-        "--format=custom",
-        "--compress=6",
-        "--large-objects",
-        "--no-owner",
-        "--serializable-deferrable",
-        "--strict-names",
-        "--lock-wait-timeout=30s",
-        ...schemaArgs,
-        "--file",
-        `/backup/${backupName}`,
-      ],
-      [
-        "--user",
-        `${uid}:${gid}`,
-        "--env",
-        "HOME=/tmp",
-        "--volume",
-        `${backupDir}:/backup`,
-      ],
-    ),
+    "pg_dump",
+    [
+      "--format=custom",
+      "--compress=6",
+      "--large-objects",
+      "--no-owner",
+      "--serializable-deferrable",
+      "--strict-names",
+      "--lock-wait-timeout=30s",
+      ...schemaArgs,
+      "--file",
+      backupPath,
+    ],
+    { env: postgresCommandEnv(sourcePgEnv) },
   );
   await chmod(backupPath, 0o600);
   const info = await stat(backupPath);
   if (!info.isFile() || info.size === 0)
     throw new Error("Staging backup is empty.");
-  const listing = await runCommand("docker", [
-    "run",
-    "--rm",
-    "--volume",
-    `${backupDir}:/backup:ro`,
-    "postgres:17",
-    "pg_restore",
-    "--list",
-    `/backup/${backupName}`,
-  ]);
+  const listing = await runCommand("pg_restore", ["--list", backupPath]);
   if (!listing.stdout.includes("TABLE DATA"))
     throw new Error("Staging backup contains no table data entries.");
   return {
@@ -606,12 +583,31 @@ async function createBackup(
   };
 }
 
-async function waitForRestoreDatabase(container) {
+async function reserveEphemeralPort() {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const server = createServer();
+    server.once("error", rejectPromise);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close();
+        rejectPromise(new Error("Could not reserve a local PostgreSQL port."));
+        return;
+      }
+      server.close((error) => {
+        if (error) rejectPromise(error);
+        else resolvePromise(address.port);
+      });
+    });
+  });
+}
+
+async function waitForRestoreDatabase(pgEnv) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const ready = await runCommand(
-      "docker",
-      ["exec", container, "pg_isready", "-U", "postgres"],
-      { allowFailure: true },
+      "psql",
+      ["--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--command", "select 1;"],
+      { allowFailure: true, env: postgresCommandEnv(pgEnv) },
     );
     if (ready.code === 0) return;
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_000));
@@ -630,61 +626,87 @@ function restoreRoleSql() {
 }
 
 async function startRestoreTarget(tempDir) {
-  const container = `fieldgrid-phase2e-${process.pid}-${Date.now()}`;
-  const password = randomBytes(32).toString("hex");
   const database = "fieldgrid_phase2e_staging_copy";
-  const containerEnv = join(tempDir, "restore-container.env");
-  await writeEnvFile(containerEnv, {
-    POSTGRES_PASSWORD: password,
-    POSTGRES_DB: database,
-  });
-  await runCommand("docker", [
-    "run",
-    "--detach",
-    "--name",
-    container,
-    "--env-file",
-    containerEnv,
-    "--publish",
-    "127.0.0.1::5432",
-    "postgres:17",
+  const password = randomBytes(32).toString("hex");
+  const passwordFile = join(tempDir, "restore-superuser-password");
+  const dataDir = join(tempDir, "restore-data");
+  const socketDir = join(tempDir, "restore-socket");
+  const logPath = join(tempDir, "restore-postgresql.log");
+  const port = await reserveEphemeralPort();
+  await mkdir(socketDir, { mode: 0o700 });
+  await writeFile(passwordFile, `${password}\n`, { mode: 0o600 });
+  const initdbArgs = [
+    "--pgdata",
+    dataDir,
+    "--username",
+    "postgres",
+    "--auth-local",
+    "trust",
+    "--auth-host",
+    "scram-sha-256",
+    "--encoding",
+    "UTF8",
+    "--no-locale",
+    "--pwfile",
+    passwordFile,
+  ];
+  if (process.env.FIELDGRID_POSTGRESQL_SHAREDIR) {
+    initdbArgs.push("-L", process.env.FIELDGRID_POSTGRESQL_SHAREDIR);
+  }
+  await runCommand("initdb", initdbArgs);
+  await rm(passwordFile, { force: true });
+  await runCommand("pg_ctl", [
+    "--pgdata",
+    dataDir,
+    "--log",
+    logPath,
+    "--wait",
+    "start",
+    "--options",
+    `-h 127.0.0.1 -p ${port} -k ${socketDir} -c fsync=off -c synchronous_commit=off -c full_page_writes=off`,
   ]);
-  await waitForRestoreDatabase(container);
-  const portResult = await runCommand("docker", [
-    "port",
-    container,
-    "5432/tcp",
-  ]);
-  const portMatch = portResult.stdout.trim().match(/127\.0\.0\.1:(\d+)$/u);
-  if (!portMatch)
-    throw new Error("Could not resolve the disposable restore target port.");
-  const envFile = join(tempDir, "restore-client.env");
-  await writeEnvFile(envFile, {
+  const maintenanceEnv = {
     PGHOST: "127.0.0.1",
-    PGPORT: portMatch[1],
+    PGPORT: String(port),
     PGUSER: "postgres",
     PGPASSWORD: password,
-    PGDATABASE: database,
+    PGDATABASE: "postgres",
     PGSSLMODE: "disable",
+  };
+  await waitForRestoreDatabase(maintenanceEnv);
+  await runCommand("createdb", ["--maintenance-db", "postgres", database], {
+    env: postgresCommandEnv(maintenanceEnv),
   });
-  await psql(envFile, restoreRoleSql());
-  return { container, envFile, port: portMatch[1], database, password };
+  const pgEnv = { ...maintenanceEnv, PGDATABASE: database };
+  await psql(pgEnv, restoreRoleSql());
+  return { dataDir, database, logPath, pgEnv, port };
 }
 
 async function restoreBackup(target, backup) {
   await runCommand(
-    "docker",
-    dockerClientArgs(
-      target.envFile,
-      "pg_restore",
-      ["--exit-on-error", "--no-owner", `/backup/${backup.backupName}`],
-      ["--volume", `${backup.backupDir}:/backup:ro`],
-    ),
+    "pg_restore",
+    [
+      "--exit-on-error",
+      "--no-owner",
+      "--dbname",
+      target.database,
+      backup.backupPath,
+    ],
+    { env: postgresCommandEnv(target.pgEnv) },
+  );
+}
+
+async function stopRestoreTarget(target) {
+  if (!target?.dataDir) return;
+  await runCommand(
+    "pg_ctl",
+    ["--pgdata", target.dataDir, "--mode", "fast", "--wait", "stop"],
+    { allowFailure: true },
   );
 }
 
 async function runMigrationRehearsal(target, outDir) {
-  const databaseUrl = `postgresql://postgres:${encodeURIComponent(target.password)}@127.0.0.1:${target.port}/${target.database}`;
+  const databaseUrl = `postgresql://postgres:${encodeURIComponent(target.pgEnv.PGPASSWORD)}@127.0.0.1:${target.port}/${target.database}`;
   const smokeOut = join(outDir, "migration-smoke");
   const result = await runCommand(
     "pnpm",
@@ -720,9 +742,9 @@ async function runMigrationRehearsal(target, outDir) {
   };
 }
 
-async function verifyMigratedRestore(envFile) {
+async function verifyMigratedRestore(pgEnv) {
   const latest = await psql(
-    envFile,
+    pgEnv,
     "select name from drizzle.veele_sql_migrations order by name desc limit 1;",
   );
   if (latest !== LATEST_PHASE2_MIGRATION)
@@ -730,7 +752,7 @@ async function verifyMigratedRestore(envFile) {
   const rlsNames = PHASE2_RLS_RELATIONS.map((name) => `'${name}'`).join(",");
   const rlsCount = Number(
     await psql(
-      envFile,
+      pgEnv,
       `select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in (${rlsNames}) and c.relrowsecurity;`,
     ),
   );
@@ -740,7 +762,7 @@ async function verifyMigratedRestore(envFile) {
     );
   const unsafeAclCount = Number(
     await psql(
-      envFile,
+      pgEnv,
       `select count(*) from (values ${PHASE2_RLS_RELATIONS.map((name) => `('public.${name}')`).join(",")}) as r(rel) where has_table_privilege('anon', rel, 'SELECT') or has_table_privilege('anon', rel, 'INSERT') or has_table_privilege('anon', rel, 'UPDATE') or has_table_privilege('anon', rel, 'DELETE');`,
     ),
   );
@@ -749,7 +771,7 @@ async function verifyMigratedRestore(envFile) {
       "Anonymous privileges exist on a protected Phase 2 relation.",
     );
   const realtime = await psql(
-    envFile,
+    pgEnv,
     "select count(*) from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='portal_realtime_events';",
   );
   if (realtime !== "1")
@@ -785,11 +807,10 @@ export async function runPreflight(options, env = process.env) {
     const refs = await verifyImmutableRefs(options, env);
     const routes = await verifyRoutes(env);
     const rollback = await verifyRollbackTarget(options.expectedStaging, env);
-    await ensurePostgresImage();
-    const sourceEnvFile = join(tempDir, "staging-source.env");
-    await writeEnvFile(sourceEnvFile, parsePostgresEnv(env.DATABASE_URL));
+    const postgresRuntime = await ensurePostgresRuntime(env);
+    const sourcePgEnv = parsePostgresEnv(env.DATABASE_URL);
     const versionNumber = Number(
-      await psql(sourceEnvFile, "show server_version_num;"),
+      await psql(sourcePgEnv, "show server_version_num;"),
     );
     const sourcePostgresMajor = Math.floor(versionNumber / 10_000);
     if (
@@ -801,25 +822,25 @@ export async function runPreflight(options, env = process.env) {
         "Staging source database must run a supported PostgreSQL major version (15 through 17).",
       );
     }
-    const schemas = await listBackupSchemas(sourceEnvFile);
+    const schemas = await listBackupSchemas(sourcePgEnv);
     const backup = await createBackup(
-      sourceEnvFile,
+      sourcePgEnv,
       options.expectedStaging,
       schemas,
       env,
     );
-    const sourceCounts = await collectCriticalCounts(sourceEnvFile);
+    const sourceCounts = await collectCriticalCounts(sourcePgEnv);
     restoreTarget = await startRestoreTarget(tempDir);
     await restoreBackup(restoreTarget, backup);
-    const restoredCounts = await collectCriticalCounts(restoreTarget.envFile);
+    const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
     const migration = await runMigrationRehearsal(
       restoreTarget,
       options.outDir,
     );
-    const migratedCounts = await collectCriticalCounts(restoreTarget.envFile);
+    const migratedCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, migratedCounts);
-    const databaseProof = await verifyMigratedRestore(restoreTarget.envFile);
+    const databaseProof = await verifyMigratedRestore(restoreTarget.pgEnv);
 
     const evidence = {
       version: PHASE2E_PREFLIGHT_VERSION,
@@ -847,7 +868,8 @@ export async function runPreflight(options, env = process.env) {
           uploadedToGitHub: false,
         },
         restore: {
-          engine: "postgres:17",
+          engine: "postgresql:17.10-unprivileged-local",
+          runtime: postgresRuntime,
           isolated: true,
           disposedAfterProof: true,
           criticalRowCounts: restoredCounts,
@@ -861,11 +883,7 @@ export async function runPreflight(options, env = process.env) {
     const evidencePath = await writeEvidence(options.outDir, evidence);
     return { evidence, evidencePath };
   } finally {
-    if (restoreTarget?.container) {
-      await runCommand("docker", ["rm", "--force", restoreTarget.container], {
-        allowFailure: true,
-      });
-    }
+    await stopRestoreTarget(restoreTarget);
     await rm(tempDir, { recursive: true, force: true });
   }
 }

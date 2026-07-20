@@ -168,33 +168,57 @@ test("manual workflow is staging-only and never promotes or uploads the database
       workflow,
       new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
     );
-  const dockerSetup = workflow.indexOf(
-    "docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877",
+  const postgresSetup = workflow.indexOf(
+    "scripts/fieldgrid-setup-postgresql17.sh",
   );
   const runtimeCheck = workflow.indexOf("Check staging preflight runtime");
   const proofStep = workflow.indexOf(
     "Prove backup, isolated restore, migrations, secrets, routes and rollback target",
   );
-  assert.ok(dockerSetup >= 0, "the self-hosted runner must provision Docker");
   assert.ok(
-    dockerSetup < runtimeCheck,
-    "Docker must be available before the preflight runtime check",
+    postgresSetup >= 0,
+    "the self-hosted runner must provision unprivileged PostgreSQL 17",
+  );
+  assert.ok(
+    postgresSetup < runtimeCheck,
+    "PostgreSQL 17 must be available before the preflight runtime check",
   );
   for (const secretName of REQUIRED_SECRET_NAMES) {
     const secretBinding = workflow.indexOf(`secrets.${secretName}`);
     assert.ok(secretBinding > proofStep, `${secretName} must be step-scoped`);
   }
-  assert.doesNotMatch(workflow, /git push|refs\/heads\/staging|\.dump/u);
+  assert.doesNotMatch(
+    workflow,
+    /docker\/setup-docker-action|git push|refs\/heads\/staging|\.dump/u,
+  );
 
   const script = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
   assert.match(script, /pg_dump/u);
   assert.match(script, /pg_restore/u);
   assert.match(script, /--serializable-deferrable/u);
-  assert.match(script, /postgres:17/u);
+  assert.match(script, /postgresql:17\.10-unprivileged-local/u);
+  assert.match(script, /pg_ctl/u);
+  assert.match(script, /"--auth-host",\s*"scram-sha-256"/u);
+  assert.match(script, /randomBytes\(32\)/u);
+  assert.match(
+    script,
+    /async function restoreBackup[\s\S]*?"--dbname",\s*target\.database/u,
+  );
+  assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
   assert.match(script, /promotionPerformed: false/u);
   assert.doesNotMatch(script, /git", \["push"|gh pr merge|production/u);
+});
+
+test("runner setup uses checksum-pinned PostgreSQL 17 packages without host privilege", () => {
+  const setup = read("scripts/fieldgrid-setup-postgresql17.sh");
+  assert.match(setup, /POSTGRES_VERSION="17\.10"/u);
+  assert.match(setup, /postgresql-client-17_/u);
+  assert.match(setup, /postgresql-17_/u);
+  assert.match(setup, /sha256sum --check --status/u);
+  assert.match(setup, /apt\.postgresql\.org/u);
+  assert.doesNotMatch(setup, /\bsudo\b|apt-get install|docker/u);
 });
 
 test("deployment receives the mandatory credential recovery secret", () => {
