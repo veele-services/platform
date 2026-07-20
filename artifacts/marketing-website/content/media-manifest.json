@@ -1,0 +1,36 @@
+{
+  "status": "placeholders_only",
+  "rule": "Replace every placeholder with commissioned or properly licensed photography before production.",
+  "required_shots": [
+    {
+      "id": "home-hero",
+      "subject": "Veele medewerker in donker marine uniform op moderne bedrijfslocatie",
+      "orientation": "landscape 16:10",
+      "priority": "P0"
+    },
+    {
+      "id": "cleaning-hero",
+      "subject": "Professionele schoonmaakmedewerker aan het werk, geloofwaardig en premium",
+      "orientation": "portrait/landscape variants",
+      "priority": "P0"
+    },
+    {
+      "id": "security-hero",
+      "subject": "Beveiliger bij objectentree, representatief, Nederlands zakelijk",
+      "orientation": "landscape 16:10",
+      "priority": "P0"
+    },
+    {
+      "id": "facility-hero",
+      "subject": "Gastvrije receptionist of facilitair host",
+      "orientation": "landscape 16:10",
+      "priority": "P0"
+    },
+    {
+      "id": "den-haag-local",
+      "subject": "Herkenbare zakelijke omgeving Den Haag zonder toeristisch cliché",
+      "orientation": "wide",
+      "priority": "P1"
+    }
+  ]
+}

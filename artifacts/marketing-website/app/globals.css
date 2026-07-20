@@ -1,0 +1,194 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-brand-aqua: var(--aqua);
+  --color-brand-aqua-deep: var(--aqua-deep);
+  --color-brand-ink: var(--ink);
+  --color-brand-navy: var(--navy-950);
+  --color-brand-navy-900: var(--navy-900);
+  --color-brand-slate: var(--slate);
+}
+
+:root {
+  --navy-950: #031426;
+  --navy-900: #06213c;
+  --navy-850: #082945;
+  --navy-800: #0a3154;
+  --aqua: #29d3c2;
+  --aqua-bright: #54e8da;
+  --aqua-deep: #087f79;
+  --aqua-soft: #e0f8f5;
+  --ink: #0b1725;
+  --slate: #586777;
+  --line: #dbe4e9;
+  --cloud: #f3f7f8;
+  --paper: #ffffff;
+  --danger: #b42318;
+  --success: #067647;
+  --shadow-sm: 0 12px 35px rgba(3, 20, 38, 0.08);
+  --shadow-lg: 0 30px 90px rgba(3, 20, 38, 0.14);
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: clip;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--aqua);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--aqua);
+  color: var(--navy-950);
+}
+
+.container-shell {
+  width: min(76rem, calc(100% - clamp(2rem, 6vw, 5rem)));
+  margin-inline: auto;
+}
+
+.section-pad {
+  padding-block: clamp(4.75rem, 9vw, 8rem);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--aqua-deep);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  content: "";
+}
+
+.section-title {
+  max-width: 50rem;
+  margin-top: 1rem;
+  font-size: clamp(2.15rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.section-copy {
+  max-width: 45rem;
+  margin-top: 1.35rem;
+  color: var(--slate);
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  line-height: 1.8;
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(rgba(6, 33, 60, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 33, 60, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.text-gradient {
+  background: linear-gradient(110deg, var(--aqua-bright), #bcfff8);
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 639px) {
+  .container-shell {
+    width: min(100% - 1.5rem, 76rem);
+  }
+
+  .section-pad {
+    padding-block: 4.25rem;
+  }
+
+  .section-title {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
