@@ -53,6 +53,18 @@ jobs:
           command -v psql || true
           command -v pg_dump || true
           command -v initdb || true
+          psql --version || true
+          pg_dump --version || true
+          command -v gcc || true
+          command -v make || true
+          command -v perl || true
+          command -v flex || true
+          command -v bison || true
+          command -v apt-get || true
+          command -v apt-cache || true
+          command -v dpkg-deb || true
+          lsb_release -a || true
+          apt-cache policy postgresql-17 || true
           grep -F "$(id -un):" /etc/subuid || true
           grep -F "$(id -un):" /etc/subgid || true
           if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
