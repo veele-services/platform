@@ -37,7 +37,6 @@ jobs:
       EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
       STAGING_BASE_DIR: /var/www/veele/staging
-      GITHUB_TOKEN: ${{ github.token }}
 
       APP_URL: ${{ vars.APP_URL }}
       BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
@@ -55,18 +54,6 @@ jobs:
       API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL || 'https://staging.fieldgrid.nl/rest/v1/' }}
       PILOT_TENANT_LOGIN_URL: ${{ vars.PILOT_TENANT_LOGIN_URL || 'https://field-demo.fieldgrid.nl/login' }}
 
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
-      MOLLIE_WEBHOOK_SECRET: ${{ secrets.MOLLIE_WEBHOOK_SECRET }}
-      ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
-      FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
-      FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
-
     steps:
       - name: Checkout exact main candidate
         uses: actions/checkout@v4
@@ -74,6 +61,9 @@ jobs:
           ref: ${{ inputs.expected_main_sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Set up isolated Docker engine
+        uses: docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877 # v5.3.0
 
       - name: Check staging preflight runtime
         run: |
@@ -93,6 +83,19 @@ jobs:
         run: pnpm fieldgrid:phase2e-staging-preflight:check
 
       - name: Prove backup, isolated restore, migrations, secrets, routes and rollback target
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+          MOLLIE_WEBHOOK_SECRET: ${{ secrets.MOLLIE_WEBHOOK_SECRET }}
+          ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+          FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
+          FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:phase2e-staging-preflight --run \
