@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { fetchReportPdfImageBuffer } from "@/lib/report-pdf-images";
+import { getSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { db } from "@workspace/db";
 import {
   getTenantBoundAssignmentMediaStoragePath,
@@ -49,16 +50,6 @@ function fmtDateTime(val: string | Date | null | undefined): string {
   });
 }
 
-async function fetchImageBuffer(signedUrl: string): Promise<Buffer | null> {
-  try {
-    const res = await fetch(signedUrl, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    return Buffer.from(await res.arrayBuffer());
-  } catch {
-    return null;
-  }
-}
-
 function drawHeader(doc: PDFKit.PDFDocument, title: string, reference: string, brandName: string) {
   const rawBrandTitle = brandName.trim().toUpperCase() || "FIELDGRID";
   const brandTitle = rawBrandTitle.length > 14 ? `${rawBrandTitle.slice(0, 13)}.` : rawBrandTitle;
@@ -84,15 +75,21 @@ function ensurePage(doc: PDFKit.PDFDocument, y: number, needed = 80): number {
 function drawFooter(doc: PDFKit.PDFDocument, assignmentCode: string, brandName: string) {
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
-    doc.switchToPage(i);
-    doc
-      .font("Helvetica")
-      .fontSize(8)
-      .fillColor(BRAND.slate)
-      .text(`${brandName} - Rapport ${assignmentCode} - Gegenereerd ${fmtDateTime(new Date())}`, 55, 800, {
-        width: 485,
-        align: "center",
-      });
+    doc.switchToPage(range.start + i);
+    const bottomMargin = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+    try {
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .fillColor(BRAND.slate)
+        .text(`${brandName} - Rapport ${assignmentCode} - Gegenereerd ${fmtDateTime(new Date())}`, 55, 800, {
+          width: 485,
+          align: "center",
+        });
+    } finally {
+      doc.page.margins.bottom = bottomMargin;
+    }
   }
 }
 
@@ -109,15 +106,18 @@ export async function GET(
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
   const tenantId = await requireCurrentTenantId();
-  await requireSensitiveRuntimeAccess({
+  const sensitiveAccess = await getSensitiveRuntimeAccess({
     tenantId,
     scope: "reports",
-    accessLevel: "export",
+    // An individual report PDF follows the reports:read product contract.
+    // exportDownload keeps the download audited without requiring bulk-export permission.
+    accessLevel: "full_read",
     resourceType: "reports",
     resourceId: id,
     exportDownload: true,
     metadata: { format: "pdf" },
   });
+  if (!sensitiveAccess.allowed) return new NextResponse("Forbidden", { status: 403 });
   const branding = await getTenantBranding(tenantId);
   const brandName = branding.displayName || "Fieldgrid";
 
@@ -168,19 +168,26 @@ export async function GET(
         { allowLegacyAssignmentRoot: true, allowLegacyPluralTenantRoot: true, allowLegacyTenantRoot: true },
       );
       if (!safeStoragePath) return null;
-      const { data } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(safeStoragePath, 300);
-      return data?.signedUrl ?? null;
+      try {
+        const { data, error } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(safeStoragePath, 300);
+        if (error) return null;
+        return data?.signedUrl ?? null;
+      } catch {
+        return null;
+      }
     }),
   );
-  const photoBuffers = (await Promise.all(signed.map((url) => (url ? fetchImageBuffer(url) : null))))
+  const photoBuffers = (await Promise.all(signed.map((url) => (url ? fetchReportPdfImageBuffer(url) : null))))
     .filter((buffer): buffer is Buffer => Boolean(buffer));
+  const omittedAttachmentCount = rawPhotos.length - photoBuffers.length;
 
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     doc.on("end", resolve);
+    doc.on("error", reject);
 
     drawHeader(doc, "RAPPORTAGE", row.assignmentCode, brandName);
 
@@ -234,12 +241,23 @@ export async function GET(
       y = doc.y + 28;
     }
 
-    if (photoBuffers.length > 0) {
+    if (photoBuffers.length > 0 || omittedAttachmentCount > 0) {
       doc.addPage();
       drawHeader(doc, "BIJLAGEN", row.assignmentCode, brandName);
       y = 148;
       doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(13).text("Goedgekeurde foto's", L, y);
       y += 26;
+
+      if (omittedAttachmentCount > 0) {
+        doc.fillColor(BRAND.slate).font("Helvetica").fontSize(8)
+          .text(
+            `${omittedAttachmentCount} bijlage${omittedAttachmentCount === 1 ? "" : "n"} kon niet als afbeelding worden opgenomen.`,
+            L,
+            y,
+            { width: W },
+          );
+        y += 24;
+      }
 
       const thumbW = 220;
       const thumbH = 156;
@@ -249,7 +267,15 @@ export async function GET(
         if (col === 0) y = ensurePage(doc, y, thumbH + 34);
         const x = col === 0 ? L : L + thumbW + gap;
         doc.roundedRect(x, y, thumbW, thumbH + 22, 10).fill("#FFFFFF").strokeColor(BRAND.border).stroke();
-        doc.image(photoBuffers[i]!, x + 8, y + 8, { fit: [thumbW - 16, thumbH - 16], align: "center", valign: "center" });
+        try {
+          doc.image(photoBuffers[i]!, x + 8, y + 8, { fit: [thumbW - 16, thumbH - 16], align: "center", valign: "center" });
+        } catch {
+          doc.fillColor(BRAND.slate).font("Helvetica").fontSize(8)
+            .text("Afbeelding kon niet worden weergegeven", x + 18, y + 68, {
+              width: thumbW - 36,
+              align: "center",
+            });
+        }
         doc.fillColor(BRAND.slate).font("Helvetica").fontSize(8).text(`Foto ${i + 1}`, x + 8, y + thumbH + 4, { width: thumbW - 16 });
         if (col === 1) y += thumbH + 34;
       }
