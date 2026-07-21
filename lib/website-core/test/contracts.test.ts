@@ -59,7 +59,7 @@ test("publication contract rejects unknown fields and duplicate public paths", (
     schemaVersion: 1,
     siteId: "20000000-0000-4000-8000-000000000001",
     deliveryRevision: 1,
-    canonicalHostname: "voorbeeld.sites.fieldgrid.nl",
+    canonicalHostname: "voorbeeld.fieldgrid.nl",
     defaultLocale: "nl-NL",
     theme: {
       schemaVersion: 1,

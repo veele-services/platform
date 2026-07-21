@@ -41,6 +41,8 @@ Custom Next.js is an enterprise delivery mode, not a sixth template. A site can 
 - Keep custom website secrets out of tenant-editable records and client bundles.
 - Fail closed on unknown hosts, stale revisions, unhealthy targets and tenant/site/domain mismatches.
 - Make every migration additive and compatible with the previous application release.
+- Use the approved shared-host contract: website `/`, backoffice `/admin`, personnel `/personeel` and customer `/klant`.
+- Use `{tenant}.fieldgrid.nl` in production and `{tenant}.staging.fieldgrid.nl` in staging; verified custom domains use the same path contract.
 - Activate no live domain and perform no deployment before the staging gates are satisfied.
 
 ## Phase 0 — discovery and architecture
@@ -55,7 +57,8 @@ Deliverables:
 Acceptance:
 
 - stakeholders agree that `managed_cms` and `custom_nextjs` are separate delivery modes;
-- infrastructure confirms the intended host namespace, TLS ownership and health contract;
+- product confirms the shared-host path contract;
+- infrastructure confirms wildcard DNS/TLS ownership for both production and staging tenant hosts;
 - no code, schema, service or live route changes are included.
 
 ## Phase 1 — secure foundations
@@ -103,7 +106,30 @@ Acceptance:
 - a draft edit cannot alter an active publication;
 - domain reuse and operational-host ambiguity are rejected.
 
-## Phase 2 — public managed runtime and routing spike
+## Phase 2 — shared-host isolation, public managed runtime and routing spike
+
+### Phase 2A — shared-host application isolation
+
+Deliverables:
+
+- move the backoffice to a real Next.js `/admin` base path;
+- keep personnel and customer on their existing `/personeel` and `/klant` base paths;
+- update backoffice links, redirects, route handlers, Server Actions, assets and recovery/invitation URLs for the base path;
+- scope backoffice-only cookies to `/admin` and prove the website root does not receive them;
+- define and test the edge precedence contract for `/admin`, `/personeel`, `/klant`, platform APIs and the website fallback;
+- add production `{tenant}.fieldgrid.nl`, staging `{tenant}.staging.fieldgrid.nl` and verified-custom-domain routing fixtures without activating a live host.
+
+Acceptance:
+
+- all existing backoffice journeys work under `/admin` and no backoffice route remains reachable at the tenant-host root;
+- backoffice assets and Server Actions remain under `/admin` and cannot collide with website assets;
+- application cookies are host-only and path-scoped to their owning application;
+- requests to `/` contain no backoffice, personnel or customer session cookie;
+- route precedence is deterministic on production, staging and custom-domain fixtures;
+- exact-head build, typecheck, security, tenant A/B and Playwright checks pass;
+- no DNS, proxy, staging or production state changes.
+
+### Phase 2B — managed public runtime and renderer
 
 Deliverables:
 
@@ -111,18 +137,34 @@ Deliverables:
 - resolve the trusted host to tenant, site, domain and active publication server-side;
 - render an MVP registry containing Hero, Trust Bar, Services Grid, Feature Grid, Process Steps, Testimonials, FAQ, CTA Banner and Contact Form;
 - implement safe metadata, canonical URL, robots, sitemap, 404 and maintenance behavior;
-- prove in staging how the same verified host resolver selects an allowlisted custom Next.js deployment;
-- register the existing Veele marketing app as a non-live custom deployment candidate without changing its 44-route contract.
+- preserve `/admin`, `/personeel` and `/klant` for their owning applications and let the website runtime own the remaining public paths;
 
 Acceptance:
 
 - unknown, disabled and mismatched hosts return a safe 404/503;
 - draft content never appears on public routes;
 - malformed or unsupported section data cannot execute code or break the entire page;
+- canonical metadata, robots and sitemap use the exact verified public host;
+- public responses are isolated by host, publication and delivery revision;
+- `/admin`, `/personeel` and `/klant` remain owned by their application runtimes;
+- website responses receive no authenticated-application session cookie.
+
+### Phase 2C — custom delivery routing spike
+
+Deliverables:
+
+- prove in isolated runtime fixtures how the same verified host resolver selects an allowlisted custom Next.js deployment;
+- register the existing Veele marketing app as a non-live custom deployment candidate without changing its 44-route contract;
+- prove immutable release, expected-host, TLS/health and explicit no-fallback contracts;
+- document the staging edge change without applying it.
+
+Acceptance:
+
 - custom routing cannot target private, loopback, link-local or tenant-supplied origins;
-- host, TLS, health endpoint and immutable release marker are verified for a custom candidate;
-- no automatic cross-mode fallback occurs;
-- managed and custom routes pass cache, cookie and header-isolation tests.
+- a candidate belongs to the exact tenant, site and verified domain;
+- unhealthy, stale or mismatched candidates fail closed;
+- switching targets remains atomic, audited and platform-controlled;
+- no staging or production route is activated.
 
 Stop rule:
 
@@ -276,9 +318,10 @@ Acceptance:
 
 ## Recommended next coding increment
 
-After review of Phase 1A and Phase 1B, the next increment is the Phase 2 public
-managed-runtime and routing spike. Before that increment can select an actual
-staging host, infrastructure must confirm the managed-site namespace, TLS owner
-and whether host routing is owned by the existing edge proxy or a dedicated
-website delivery service. The spike must not activate a production domain or
-deploy a tenant website.
+After review of Phase 1A and Phase 1B, the next increment is Phase 2A shared-host
+application isolation. The namespace decision is resolved: production uses
+`{tenant}.fieldgrid.nl`, staging uses `{tenant}.staging.fieldgrid.nl`, and the
+website owns `/` while authenticated applications own their fixed prefixes.
+Phase 2A must establish a real `/admin` base path and cookie boundary before a
+public runtime is introduced. Infrastructure still needs to provision and
+prove `*.staging.fieldgrid.nl` DNS/TLS before any later staging activation.

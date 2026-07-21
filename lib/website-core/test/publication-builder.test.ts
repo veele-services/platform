@@ -63,7 +63,7 @@ function sourceFixture(): WebsitePublicationSource {
       socialLinks: [],
       defaultSeo: seo,
     },
-    canonicalHostname: "voorbeeld.sites.fieldgrid.nl",
+    canonicalHostname: "voorbeeld.fieldgrid.nl",
     pages: [
       {
         id: contactId,

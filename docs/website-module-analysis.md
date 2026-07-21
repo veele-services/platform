@@ -177,7 +177,27 @@ This app should be registered later as a `custom_nextjs` deployment for the Veel
 
 ### Public site domain namespace
 
-The current `{tenant}.fieldgrid.nl` namespace is already used for authenticated tenant routing. The managed website MVP should use a separate namespace such as `{tenant}.sites.fieldgrid.nl`, backed by separate wildcard DNS/TLS, plus verified custom domains. This prevents public pages and authenticated tenant hosts from sharing ambiguous paths or cookies.
+The approved product contract intentionally keeps one public host per tenant. In
+production, `{tenant}.fieldgrid.nl` serves the managed or approved custom
+marketing website at `/`, while the authenticated applications remain under
+the non-overlapping `/admin`, `/personeel` and `/klant` prefixes. Staging uses
+the equivalent `{tenant}.staging.fieldgrid.nl` host. A verified custom domain
+uses the same path contract.
+
+This shared-host choice requires path isolation rather than a second website
+subdomain. The personnel and customer applications already have real Next.js
+base paths. The backoffice does not: it currently renders at `/`, and its auth
+cookies are host-only but scoped to `path=/`. Before a public website runtime
+can own `/`, the backoffice must move to a real `/admin` base path, including
+assets, route handlers, redirects and Server Actions, and every backoffice-only
+cookie must be restricted to `/admin`. The public runtime must not receive
+application session cookies. The edge must route prefixed paths before the
+website fallback and preserve each application's full base path.
+
+Staging therefore needs explicit wildcard DNS and TLS ownership for
+`*.staging.fieldgrid.nl`; the existing `staging.fieldgrid.nl` certificate alone
+does not cover tenant staging hosts. No production or staging host is activated
+by the schema foundation in this phase.
 
 ## 4. Current admin UI conventions
 
@@ -325,11 +345,14 @@ For the first implementation phase:
 - perform a short routing spike before choosing a proxy library or Caddy integration;
 - evaluate image transformation only after media delivery requirements are proven.
 
-## 7. Risks and decisions still requiring confirmation
+## 7. Risks and resolved decisions
 
-| Topic                       | Recommended default                                                         | Decision owner          |
+| Topic                       | Approved/default contract                                                   | Decision owner          |
 | --------------------------- | --------------------------------------------------------------------------- | ----------------------- |
-| Public subdomain namespace  | `{tenant}.sites.fieldgrid.nl`                                               | Infrastructure/product  |
+| Public tenant host          | Production `{tenant}.fieldgrid.nl`; staging `{tenant}.staging.fieldgrid.nl` | Product                 |
+| Shared-host route ownership | Website `/`; apps `/admin`, `/personeel`, `/klant`                          | Product/architecture    |
+| Backoffice isolation gate   | Real `/admin` base path and `/admin`-scoped cookies before public routing    | Architecture/security   |
+| Staging wildcard TLS        | Explicit `*.staging.fieldgrid.nl` DNS and certificate required              | Infrastructure          |
 | Custom site hosting         | Dedicated approved deployment per customer, not arbitrary tenant URL        | Platform operations     |
 | Delivery router             | Dedicated host router or atomic Caddy adapter; prove in staging spike       | Architecture/operations |
 | Number of sites per tenant  | Schema supports multiple; MVP UI exposes one primary site                   | Product                 |

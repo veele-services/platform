@@ -5,7 +5,7 @@ Status: proposed information architecture and interaction contract
 
 ## Admin boundary
 
-Website administration belongs in the existing authenticated backoffice and follows its server-component, server-action, tenant-context, module-entitlement and RBAC conventions. Middleware authentication alone is never treated as authorization.
+Website administration belongs in the existing authenticated backoffice and follows its server-component, server-action, tenant-context, module-entitlement and RBAC conventions. Middleware authentication alone is never treated as authorization. The route table below names internal App Router paths; after the shared-host isolation gate their public URLs are prefixed with `/admin` (for example, internal `/website` is public `/admin/website`).
 
 The tenant-facing CMS manages `managed_cms` content. A `custom_nextjs` enterprise site is separate code: tenant users may view its active mode, release and health state, but they cannot edit deployment origins, secrets or routing. Only an authorized platform operator may register/approve a custom deployment or switch delivery mode.
 
@@ -34,9 +34,9 @@ Proposed routes:
 
 Platform-only delivery management should live under the existing platform-admin route group, for example:
 
-- `/admin/website-deployments`;
-- `/admin/website-deployments/[id]`;
-- `/admin/website-sites/[siteId]/delivery`.
+- internal `/platform/website-deployments` (public `/admin/platform/website-deployments`);
+- internal `/platform/website-deployments/[id]`;
+- internal `/platform/website-sites/[siteId]/delivery`.
 
 Do not place platform switching controls in an ordinary tenant settings form.
 
