@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./publication": "./src/publication.ts",
+    "./publication-builder": "./src/publication-builder.ts",
     "./sections": "./src/sections.ts",
     "./site": "./src/site.ts",
     "./templates": "./src/templates.ts"

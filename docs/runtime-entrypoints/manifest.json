@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:c9592f1d6e66f6d4bbb953f2a43dfe2bb349249981e78a03d5f9f56e5852d4d7",
+  "inventoryHash": "sha256:ab765f52a80a9f35a1cc655927c49e002223a06f26d829aaa3e5af36dac2cb3a",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -33,11 +33,11 @@
     "www"
   ],
   "counts": {
-    "total": 774,
-    "uniqueRuntimeNodes": 671,
-    "classifications": 774,
+    "total": 810,
+    "uniqueRuntimeNodes": 705,
+    "classifications": 810,
     "externalEntrypoints": 101,
-    "internalDbCallsites": 576,
+    "internalDbCallsites": 612,
     "providerBoundaries": 74,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -49,15 +49,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 569,
+      "raw-sql-callsite": 605,
       "provider-boundary": 74,
       "storage-signed-url-issuance": 20
     },
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 354,
-      "low": 322,
+      "medium": 362,
+      "low": 350,
       "informational": 74
     }
   },
@@ -70,7 +70,7 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:aaf7ad959fe51ed889d686b6b40d3f423c2dc69656741c8fa3ee9aa43b14115b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:f074e8c5562a7510e655141c6f629133311eb6c28757f222f948ddaaaed943c8",
+    "raw-sql-callsite": "sha256:4ed6b3621645db0bd128f567b54bae4e08342391d84c0bf502ed192e76a959ad",
     "provider-boundary": "sha256:fe87ba189de9bc4eb700c81a148001b412086f88f988a641401c34a27cb667e5",
     "storage-signed-url-issuance": "sha256:646783a9d8b35b2aa301abc083cbc4785ff722581f620d8480f0de20ad129096"
   },

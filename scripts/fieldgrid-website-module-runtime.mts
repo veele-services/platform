@@ -21,10 +21,12 @@ const tenantB = "10000000-0000-4000-8000-000000000002";
 const actorA = "20000000-0000-4000-8000-000000000101";
 const siteId = randomUUID();
 const publicationId = randomUUID();
+const rollbackPublicationId = randomUUID();
 const customDeploymentId = randomUUID();
 const domainId = randomUUID();
 const hostname = `website-${randomUUID()}.runtime.fieldgrid.test`;
 const contentHash = "a".repeat(64);
+const rollbackContentHash = "b".repeat(64);
 
 const theme = {
   schemaVersion: 1,
@@ -152,10 +154,17 @@ try {
     [tenantA, siteId, domainId, hostname, verifiedAt, actorA],
   );
 
+  const authoring = await client.query<{ authoring_revision: number }>(
+    `SELECT authoring_revision FROM public.website_sites WHERE id = $1`,
+    [siteId],
+  );
+  const sourceRevision = Number(authoring.rows[0]?.authoring_revision);
+  assert.equal(sourceRevision, 2);
+
   const snapshot = {
     schemaVersion: 1,
     siteId,
-    deliveryRevision: 1,
+    deliveryRevision: 2,
     canonicalHostname: hostname,
     defaultLocale: "nl-NL",
     theme,
@@ -178,14 +187,16 @@ try {
   await client.query(
     `INSERT INTO public.website_publications (
        id, tenant_id, site_id, sequence, schema_version, source_revision,
-       snapshot, content_hash, status, created_by
-     ) VALUES ($1, $2, $3, 1, 1, 1, $4::jsonb, $5, 'ready', $6)`,
+       target_delivery_revision, snapshot, content_hash, cache_key, status, created_by
+     ) VALUES ($1, $2, $3, 1, 1, $4, 2, $5::jsonb, $6, $7, 'ready', $8)`,
     [
       publicationId,
       tenantA,
       siteId,
+      sourceRevision,
       JSON.stringify(snapshot),
       contentHash,
+      `website-publication:v1:${tenantA}:${siteId}:r2:${contentHash}`,
       actorA,
     ],
   );
@@ -204,12 +215,20 @@ try {
     delivery_mode: string;
   }>(
     `SELECT (activated).* FROM (
-       SELECT public.activate_website_delivery($1, $2, 1, 'managed_cms', $3, $4, 'runtime managed activation') AS activated
+       SELECT public.activate_managed_website_publication($1, $2, $3, $4, 1, $5, 'runtime managed activation') AS activated
      ) result`,
-    [tenantA, siteId, publicationId, actorA],
+    [tenantA, siteId, publicationId, sourceRevision, actorA],
   );
   assert.equal(managed.rows[0]?.delivery_revision, 2);
   assert.equal(managed.rows[0]?.delivery_mode, "managed_cms");
+  await expectSqlFailure(
+    client,
+    `UPDATE public.website_sites
+     SET delivery_revision = 3
+     WHERE tenant_id = $1 AND id = $2`,
+    [tenantA, siteId],
+    /must use activate_website_delivery/u,
+  );
 
   await expectSqlFailure(
     client,
@@ -277,11 +296,29 @@ try {
     /append-only/u,
   );
 
+  const rollbackSnapshot = { ...snapshot, deliveryRevision: 4 };
+  await client.query(
+    `INSERT INTO public.website_publications (
+       id, tenant_id, site_id, sequence, schema_version, source_revision,
+       target_delivery_revision, snapshot, content_hash, cache_key, status, created_by
+     ) VALUES ($1, $2, $3, 2, 1, $4, 4, $5::jsonb, $6, $7, 'ready', $8)`,
+    [
+      rollbackPublicationId,
+      tenantA,
+      siteId,
+      sourceRevision,
+      JSON.stringify(rollbackSnapshot),
+      rollbackContentHash,
+      `website-publication:v1:${tenantA}:${siteId}:r4:${rollbackContentHash}`,
+      actorA,
+    ],
+  );
+
   const restoredManaged = await client.query<{ delivery_revision: number }>(
     `SELECT (activated).* FROM (
-       SELECT public.activate_website_delivery($1, $2, 3, 'managed_cms', $3, $4, 'runtime managed rollback') AS activated
+       SELECT public.activate_managed_website_publication($1, $2, $3, $4, 3, $5, 'runtime managed rollback') AS activated
      ) result`,
-    [tenantA, siteId, publicationId, actorA],
+    [tenantA, siteId, rollbackPublicationId, sourceRevision, actorA],
   );
   assert.equal(restoredManaged.rows[0]?.delivery_revision, 4);
 

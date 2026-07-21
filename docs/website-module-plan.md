@@ -1,15 +1,25 @@
 # Fieldgrid website module — phased implementation plan
 
 Date: 21 July 2026
-Status: Phase 1A foundation implemented locally; later phases remain proposed
+Status: Phase 1A and Phase 1B implemented locally; later phases remain proposed
 
 ## Current implementation status
 
 Phase 1A now includes the disabled-by-default `website` module entitlement, RBAC
 resources, strict website-core contracts, Template 1 configuration, the
 tenant-scoped foundation schema and an audited atomic delivery-mode transition.
-It does not add public routing, a tenant authoring UI, a renderer, a deployment
-or a live domain activation. Those remain gated by the later phases below.
+
+Phase 1B now adds verified primary-domain transitions, database-managed
+authoring revisions, a deterministic publication compiler, exact cache and
+delivery identities, immutable publication creation and atomic activation with
+supersession. Concurrent identical publication requests are idempotent, while
+stale authoring and delivery revisions fail closed. Publication hashes are
+bound to the exact source revision, and website-owned child records cannot be
+moved to another tenant or site after creation.
+
+Neither phase adds public routing, a tenant authoring UI, a renderer, a
+deployment or a live domain activation. Those remain gated by the later phases
+below.
 
 ## Goal and delivery contract
 
@@ -266,4 +276,9 @@ Acceptance:
 
 ## Recommended next coding increment
 
-After review and exact-main reconciliation, implement only Phase 1A in one focused draft pull request. Do not add public routing, a live domain, a deployment or a broad visual page builder in that increment.
+After review of Phase 1A and Phase 1B, the next increment is the Phase 2 public
+managed-runtime and routing spike. Before that increment can select an actual
+staging host, infrastructure must confirm the managed-site namespace, TLS owner
+and whether host routing is owned by the existing edge proxy or a dedicated
+website delivery service. The spike must not activate a production domain or
+deploy a tenant website.

@@ -1,12 +1,17 @@
 # Fieldgrid website module — proposed data model
 
 Date: 21 July 2026
-Status: Phase 1A core schema implemented; later content tables remain proposed
+Status: Phase 1A core schema and Phase 1B publication invariants implemented
 
 The additive Phase 1A migration implements sites, domain bindings, custom
 deployment records, pages, page sections, navigation, immutable publications and
 append-only delivery activations. Blog, form-submission and media tables described
 later in this document are intentionally deferred.
+
+Phase 1B adds database-managed authoring revisions, exact target delivery
+revisions, deterministic cache identities, verified primary-domain transitions
+and atomic managed-publication activation/supersession. No public runtime or
+browser mutation path exists yet.
 
 ## Design principles
 
@@ -127,28 +132,37 @@ The current Veele marketing application can later become the first record after 
 
 Immutable managed-CMS releases.
 
-| Column                                                     | Notes                                            |
-| ---------------------------------------------------------- | ------------------------------------------------ |
-| `id`, `tenant_id`, `site_id`                               | Tenant/site identity.                            |
-| `sequence`                                                 | Monotonic site publication number.               |
-| `schema_version`                                           | Snapshot contract version.                       |
-| `source_revision`                                          | Authoring revision used to build the snapshot.   |
-| `snapshot_json`                                            | Fully validated, bounded public site snapshot.   |
-| `content_hash`                                             | Deterministic hash for integrity/cache identity. |
-| `status`                                                   | Building/ready/active/superseded/failed.         |
-| `validation_json`                                          | Bounded structured diagnostics.                  |
-| `created_at`, `created_by`, `activated_at`, `activated_by` | Audit metadata.                                  |
+| Column                                                     | Notes                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------- |
+| `id`, `tenant_id`, `site_id`                               | Tenant/site identity.                                |
+| `sequence`                                                 | Monotonic site publication number.                   |
+| `schema_version`                                           | Snapshot contract version.                           |
+| `source_revision`                                          | Exact authoring revision used to build the snapshot. |
+| `target_delivery_revision`                                 | Required next delivery revision for activation.      |
+| `snapshot`                                                 | Fully validated, bounded public site snapshot.       |
+| `content_hash`                                             | SHA-256 of deterministic canonical snapshot JSON.    |
+| `cache_key`                                                | Tenant/site/revision/hash-bound cache identity.      |
+| `status`                                                   | Building/ready/active/superseded/failed.             |
+| `validation`                                               | Bounded structured diagnostics.                      |
+| `created_at`, `created_by`, `activated_at`, `activated_by` | Audit metadata.                                      |
 
 Rules:
 
 - publication content is never updated after reaching `ready`;
-- unique `(site_id, sequence)` and preferably `(site_id, content_hash)` for idempotency;
+- unique `(site_id, sequence)`, `(site_id, content_hash)` and `cache_key` for idempotency;
 - one active publication per site;
 - activation and superseding the prior publication are atomic;
-- public cache keys include publication ID/content hash and delivery revision;
+- cache keys include tenant, site, content hash and the exact target delivery revision;
+- authoring child mutations advance the database-managed site authoring revision;
+- child ownership (`tenant_id`, `site_id`) is immutable after creation;
+- the content hash is domain-separated and bound to the exact source revision, so identical output from a newer authoring revision remains publishable as a distinct candidate;
+- activation requires both the exact source revision and exact next delivery revision;
 - failed builds never replace the active publication.
 
-An optional `website_delivery_activations` ledger can make mode switching more explicit. It would store `from_mode`, `from_target_id`, `to_mode`, `to_target_id`, expected/new revision, reason, actor and timestamp. The current active pointers remain on `website_sites` for efficient host resolution; the immutable ledger backs rollback and audit evidence.
+The implemented `website_delivery_activations` ledger stores `from_mode`,
+`from_target_id`, `to_mode`, `to_target_id`, expected/new revision, reason, actor
+and timestamp. Current active pointers remain on `website_sites` for efficient
+future host resolution; the immutable ledger backs rollback and audit evidence.
 
 ## Managed content tables
 

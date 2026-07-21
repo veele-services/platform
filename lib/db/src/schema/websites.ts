@@ -425,8 +425,10 @@ export const websitePublicationsTable = pgTable(
     sequence: integer("sequence").notNull(),
     schemaVersion: integer("schema_version").notNull(),
     sourceRevision: integer("source_revision").notNull(),
+    targetDeliveryRevision: integer("target_delivery_revision").notNull(),
     snapshot: jsonb("snapshot").notNull().$type<WebsitePublicationSnapshot>(),
     contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    cacheKey: varchar("cache_key", { length: 320 }).notNull(),
     status: varchar("status", { length: 20 })
       .notNull()
       .default("building")
@@ -455,6 +457,7 @@ export const websitePublicationsTable = pgTable(
       table.siteId,
       table.contentHash,
     ),
+    uniqueIndex("website_publications_cache_key_idx").on(table.cacheKey),
     uniqueIndex("website_publications_site_active_idx")
       .on(table.siteId)
       .where(sql`${table.status} = 'active'`),
@@ -470,6 +473,18 @@ export const websitePublicationsTable = pgTable(
     check(
       "website_publications_source_revision_check",
       sql`${table.sourceRevision} > 0`,
+    ),
+    check(
+      "website_publications_target_delivery_revision_check",
+      sql`${table.targetDeliveryRevision} > 0`,
+    ),
+    check(
+      "website_publications_snapshot_delivery_revision_check",
+      sql`(${table.snapshot} ->> 'deliveryRevision')::integer = ${table.targetDeliveryRevision}`,
+    ),
+    check(
+      "website_publications_cache_key_check",
+      sql`${table.cacheKey} = concat('website-publication:v1:', ${table.tenantId}::text, ':', ${table.siteId}::text, ':r', ${table.targetDeliveryRevision}::text, ':', ${table.contentHash})`,
     ),
     foreignKey({
       name: "website_publications_tenant_site_fk",
