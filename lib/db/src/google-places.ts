@@ -6,8 +6,9 @@ export const GOOGLE_PLACE_DETAILS_URL_PREFIX =
 
 export const GOOGLE_PLACES_AUTOCOMPLETE_FIELD_MASK = [
   "suggestions.placePrediction.placeId",
-  "suggestions.placePrediction.text",
-  "suggestions.placePrediction.structuredFormat",
+  "suggestions.placePrediction.text.text",
+  "suggestions.placePrediction.structuredFormat.mainText.text",
+  "suggestions.placePrediction.structuredFormat.secondaryText.text",
   "suggestions.placePrediction.types",
 ].join(",");
 
@@ -137,8 +138,13 @@ function normalizeQuery(input: string): string {
   return input.trim().replace(/\s+/g, " ");
 }
 
+function normalizeGoogleRegionCode(value: string, fallback: string): string {
+  const normalized = value.trim().toLowerCase();
+  return /^[a-z]{2}$/u.test(normalized) ? normalized : fallback;
+}
+
 export function normalizeGooglePlacesSessionToken(value: string): string {
-  return value.trim().slice(0, 128);
+  return value.trim().slice(0, 36);
 }
 
 function assertGooglePlacesConfig(apiKey: string): void {
@@ -329,9 +335,9 @@ export async function fetchGooglePlacesAutocomplete(
     );
   }
 
-  const country = (input.country ?? "NL").toUpperCase();
+  const country = normalizeGoogleRegionCode(input.country ?? "NL", "nl");
   const language = input.language ?? "nl";
-  const region = (input.region ?? country).toUpperCase();
+  const region = normalizeGoogleRegionCode(input.region ?? country, country);
   const key = dedupeKey([
     "autocomplete",
     country,
@@ -398,7 +404,7 @@ export async function fetchGooglePlaceDetails(
   }
 
   const language = input.language ?? "nl";
-  const region = (input.region ?? "NL").toUpperCase();
+  const region = normalizeGoogleRegionCode(input.region ?? "NL", "nl");
   const key = dedupeKey(["details", language, region, placeName, sessionToken]);
 
   const { dedupeStatus, value } = await withInFlightDedupe(key, async () => {
@@ -424,4 +430,3 @@ export async function fetchGooglePlaceDetails(
     fieldMask: GOOGLE_PLACE_DETAILS_FIELD_MASK,
   };
 }
-

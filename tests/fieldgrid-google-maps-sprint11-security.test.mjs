@@ -48,7 +48,8 @@ test("Sprint 11 backoffice Places routes require auth, server tenant context, pe
     const route = read(file);
     assert.match(route, /requireCurrentTenantIdFromRequest\(request\)/u, `${file} resolves tenant server-side from the route request`);
     assert.match(route, /supabase\.auth\.getUser\(\)/u, `${file} requires an authenticated user`);
-    assert.match(route, /hasPermissionFromRequest/u, `${file} checks request-scoped permissions`);
+    assert.match(route, /hasAnyPermissionForRequestContext/u, `${file} checks the authenticated request context once`);
+    assert.doesNotMatch(route, /hasPermissionFromRequest/u, `${file} must not repeat auth and tenant resolution per permission`);
     assert.match(route, /\.safeParse\(await request\.json\(\)\)/u, `${file} validates input schema`);
     assert.match(route, /checkGoogleMapsRateLimit/u, `${file} applies rate limiting`);
     assert.match(route, /createSafeGoogleMapsError/u, `${file} returns safe generic errors`);

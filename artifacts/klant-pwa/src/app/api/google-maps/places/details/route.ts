@@ -7,7 +7,7 @@ import { fetchGooglePlaceDetails, GooglePlacesClientError } from "@workspace/db/
 
 const schema = z.object({
   placeId: z.string().min(6).max(255),
-  sessionToken: z.string().min(8).max(128),
+  sessionToken: z.string().min(8).max(36),
 });
 
 async function recordUsage(input: {
