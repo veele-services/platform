@@ -49,11 +49,14 @@ import {
 import {
   compactPlanboardDisplayWindow,
   planboardDisplayWindow,
+  planboardDateKey,
   formatPlanboardTimeRange,
   planboardInterestAsAssignedIndicator,
+  planboardMinuteOfDay,
   planboardStaffingLabel,
   planboardStaffingState,
   planboardStaffingStateLabel,
+  planboardTimestampMinute,
 } from "./planboard-assignment-states";
 
 const DAY_START_MIN = 0;
@@ -152,7 +155,7 @@ function dateKey(d: Date): string {
 }
 
 function todayDateKey(): string {
-  return dateKey(new Date());
+  return planboardDateKey(new Date()) ?? dateKey(new Date());
 }
 
 function formatBoardDate(dateStr: string): string {
@@ -310,20 +313,13 @@ function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment,
 
 function currentMinuteOfDay(): number {
   const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  return planboardMinuteOfDay(now) ?? now.getHours() * 60 + now.getMinutes();
 }
 
 function minuteToTimelinePct(minutes: number): number {
   return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
 }
 
-
-function isoTimeToBoardMinute(value: string | null, boardDate: string): number | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime()) || dateKey(d) !== boardDate) return null;
-  return d.getHours() * 60 + d.getMinutes();
-}
 
 function minuteBlock(startMin: number | null, endMin: number | null): { left: number; width: number } | null {
   if (startMin === null) return null;
@@ -338,8 +334,8 @@ function minuteBlock(startMin: number | null, endMin: number | null): { left: nu
 }
 
 function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate: string): { left: number; width: number } | null {
-  const actualStart = isoTimeToBoardMinute(assignment.actualStartedAt, boardDate);
-  const actualEnd = isoTimeToBoardMinute(assignment.actualCompletedAt, boardDate);
+  const actualStart = planboardTimestampMinute(assignment.actualStartedAt, boardDate);
+  const actualEnd = planboardTimestampMinute(assignment.actualCompletedAt, boardDate);
   if (actualStart !== null) return minuteBlock(actualStart, actualEnd ?? currentMinuteOfDay());
 
   const effectiveStart = parseTimeMin(assignment.effectiveStart);
@@ -379,8 +375,7 @@ function isPlanboardMovableStatus(status: string): boolean {
 
 function isLateAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "scheduledStart" | "scheduledEnd" | "status">, boardDate: string): boolean {
   if (!["scheduled", "seen", "en_route"].includes(String(assignment.status)) || !assignment.scheduledEnd) return false;
-  const now = new Date();
-  if (dateKey(now) !== boardDate) return false;
+  if (todayDateKey() !== boardDate) return false;
   const endMin = parseTimeMin(assignment.scheduledEnd);
   return endMin !== null && currentMinuteOfDay() > endMin;
 }

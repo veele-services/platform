@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import {
+  formatPlanboardActualTime,
+  planboardDateKey,
+  planboardMinuteOfDay,
+  planboardTimestampMinute,
+} from "../../artifacts/backoffice/src/components/assignments/planboard-assignment-states.ts";
 
 const read = (path) => readFileSync(path, "utf8");
 
@@ -151,10 +157,23 @@ test("planboard cards use persisted actual timestamps and stop at the actual com
     planboardStates,
     /formatPlanboardActualTime\(input\.actualStartedAt\)/u,
   );
-  assert.match(planboardStates, /timeZone:\s*"Europe\/Amsterdam"/u);
+  assert.match(planboardStates, /PLANBOARD_TIME_ZONE\s*=\s*"Europe\/Amsterdam"/u);
   assert.match(
     planningBoard,
     /const block = actualBlock \?\? effectiveBlock \?\? plannedBlock/u,
   );
   assert.doesNotMatch(planningBoard, /unionTimeBlocks/u);
+});
+
+test("planboard actual timestamps use Europe/Amsterdam for labels, dates and timeline positions", () => {
+  const summerTimestamp = "2026-07-21T15:30:00.000Z";
+  assert.equal(formatPlanboardActualTime(summerTimestamp), "17:30");
+  assert.equal(planboardDateKey(summerTimestamp), "2026-07-21");
+  assert.equal(planboardMinuteOfDay(summerTimestamp), 17 * 60 + 30);
+  assert.equal(planboardTimestampMinute(summerTimestamp, "2026-07-21"), 17 * 60 + 30);
+
+  const afterMidnightInAmsterdam = "2026-07-21T22:15:00.000Z";
+  assert.equal(planboardDateKey(afterMidnightInAmsterdam), "2026-07-22");
+  assert.equal(planboardTimestampMinute(afterMidnightInAmsterdam, "2026-07-21"), null);
+  assert.equal(planboardTimestampMinute(afterMidnightInAmsterdam, "2026-07-22"), 15);
 });
