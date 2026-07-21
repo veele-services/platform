@@ -63,10 +63,10 @@
       "informational": 79
     }
   },
-  "kindHashes": {
-    "server-action": "sha256:017b38a41cd1f8c2cb94f53567e7bcb28db01092074d901824e1cc67b19b2b75",
-    "route-handler": "sha256:dc7677b5538896b65218902478cb41140077ba5c0a5c030d47b9e4d29cef0390",
-    "middleware": "sha256:d1c24050b9bcb8ff6454a27a6b93d05d673ff731469609d11e3d0c8f746477fb",
+    "kindHashes": {
+      "server-action": "sha256:017b38a41cd1f8c2cb94f53567e7bcb28db01092074d901824e1cc67b19b2b75",
+      "route-handler": "sha256:dc7677b5538896b65218902478cb41140077ba5c0a5c030d47b9e4d29cef0390",
+      "middleware": "sha256:d1c24050b9bcb8ff6454a27a6b93d05d673ff731469609d11e3d0c8f746477fb",
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",

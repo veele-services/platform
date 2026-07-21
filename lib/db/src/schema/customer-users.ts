@@ -40,6 +40,9 @@ export const customerUsersTable = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     firstName: varchar("first_name", { length: 100 }),
     lastName: varchar("last_name", { length: 100 }),
+    function: varchar("function", { length: 120 }),
+    phone: varchar("phone", { length: 50 }),
+    mobile: varchar("mobile", { length: 50 }),
     role: varchar("role", { length: 40 })
       .notNull()
       .default("viewer")

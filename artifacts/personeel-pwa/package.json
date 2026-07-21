@@ -39,6 +39,7 @@
     "pg": "^8.20.0",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-hook-form": "^7.55.0",
     "tailwind-merge": "catalog:",
     "zod": "catalog:",
     "@workspace/shared-ui": "workspace:*"

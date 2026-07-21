@@ -5,6 +5,7 @@ import {
   createSupabaseCookieOptions,
   withHostOnlyCookieOptions,
 } from "@/lib/supabase/session-cookies";
+import { portalOnboardingAccessState } from "@workspace/db/portal-onboarding-client";
 
 const BASE = "/personeel";
 
@@ -33,6 +34,12 @@ export async function middleware(request: NextRequest) {
   const normalizedPathname = routePath(pathname);
   const isLoginPage  = normalizedPathname === "/login";
   const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isRequiredPasswordPage = normalizedPathname === "/wachtwoord-wijzigen";
+  const isOnboardingPage = normalizedPathname === "/onboarding";
+  const isOnboardingHelpPage =
+    normalizedPathname === "/help" ||
+    normalizedPathname.startsWith("/help/") ||
+    normalizedPathname.startsWith("/api/help/");
   const isPwaAsset =
     normalizedPathname === "/manifest.json" ||
     normalizedPathname === "/manifest.webmanifest" ||
@@ -89,6 +96,28 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));
+  }
+
+  if (user) {
+    const access = portalOnboardingAccessState(user.app_metadata, "personnel");
+    if (access.passwordChangeRequired && !isRequiredPasswordPage) {
+      return NextResponse.redirect(proxyAwareUrl(`${BASE}/wachtwoord-wijzigen`, request));
+    }
+    if (!access.passwordChangeRequired && isRequiredPasswordPage) {
+      const destination = access.onboardingRequired ? `${BASE}/onboarding` : BASE;
+      return NextResponse.redirect(proxyAwareUrl(destination, request));
+    }
+    if (
+      !access.passwordChangeRequired &&
+      access.onboardingRequired &&
+      !isOnboardingPage &&
+      !isOnboardingHelpPage
+    ) {
+      return NextResponse.redirect(proxyAwareUrl(`${BASE}/onboarding`, request));
+    }
+    if (!access.onboardingRequired && isOnboardingPage) {
+      return NextResponse.redirect(proxyAwareUrl(BASE, request));
+    }
   }
 
   return supabaseResponse;

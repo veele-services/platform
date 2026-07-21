@@ -167,7 +167,6 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
   const personnelActions = read("artifacts/personeel-pwa/src/actions/auth.ts");
   const personnelMailHelper = read("artifacts/personeel-pwa/src/lib/email.ts");
 
-  assert.doesNotMatch(customerMiddleware, /force_password_change|mustChangePassword|canBypassForcedPasswordChange/u);
   assertContains(customerMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
@@ -177,9 +176,13 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "normalizedPathname.startsWith(\"/api/auth/password-reset\")",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
+    "portalOnboardingAccessState(user.app_metadata, \"customer\")",
+    "access.passwordChangeRequired",
+    "`${BASE}/wachtwoord-wijzigen`",
+    "access.onboardingRequired",
+    "`${BASE}/onboarding`",
   ], "customer portal middleware");
 
-  assert.doesNotMatch(personnelMiddleware, /force_password_change|mustChangePassword/u);
   assertContains(personnelMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
@@ -187,6 +190,11 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "normalizedPathname === \"/wachtwoord-vergeten\"",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
+    "portalOnboardingAccessState(user.app_metadata, \"personnel\")",
+    "access.passwordChangeRequired",
+    "`${BASE}/wachtwoord-wijzigen`",
+    "access.onboardingRequired",
+    "`${BASE}/onboarding`",
   ], "personnel portal middleware");
 
   assertContains(personnelActions, [

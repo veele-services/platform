@@ -1,5 +1,6 @@
 import {
   pgTable,
+  date,
   uuid,
   varchar,
   boolean,
@@ -80,6 +81,22 @@ export const personnelTable = pgTable("personnel", {
   addressGeocodingError:      text("address_geocoding_error"),
   avatarUrl:         text("avatar_url"),
   avatarPath:        text("avatar_path"),
+  preferredName:     varchar("preferred_name", { length: 100 }),
+  birthDate:         date("birth_date"),
+  secondaryPhone:    varchar("secondary_phone", { length: 50 }),
+  personalEmail:     varchar("personal_email", { length: 255 }),
+  emergencyContact:  jsonb("emergency_contact")
+    .$type<{ name?: string; phone?: string; relation?: string }>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  travelPreferences: jsonb("travel_preferences")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  workPreferences:   jsonb("work_preferences")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
 
   /** Primary role used for planning eligibility checks. */
   roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),
