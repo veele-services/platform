@@ -342,12 +342,18 @@ function cardinalityKeys(
   }
 }
 
-function targetMatches(binding: ChecklistBinding, candidate: Candidate): boolean {
+function targetMatches(
+  binding: ChecklistBinding,
+  candidate: Candidate,
+  context: ChecklistResolutionContext,
+): boolean {
   if (binding.id === candidate.binding.id) return false;
-  return Boolean(
+  const targetsTemplate = Boolean(
     (binding.targetTemplateId && binding.targetTemplateId === candidate.template.templateId)
       || (binding.targetFamilyKey && binding.targetFamilyKey === candidate.template.familyKey),
   );
+  if (!targetsTemplate) return false;
+  return cardinalityKeys(binding, candidate.template, context).includes(candidate.cardinalityKey);
 }
 
 export function validateChecklistBinding(binding: ChecklistBinding): string[] {
@@ -513,7 +519,9 @@ export function resolveChecklistComposition(input: {
   const replaced: SuppressedChecklistExplain[] = [];
   for (const controlling of controllingBindings) {
     const controllingRank = rankChecklistBinding(controlling);
-    const targets = candidates.filter((candidate) => active.has(candidate) && targetMatches(controlling, candidate));
+    const targets = candidates.filter((candidate) => (
+      active.has(candidate) && targetMatches(controlling, candidate, input.context)
+    ));
     for (const target of targets) {
       const action = controlling.mode === "replace" ? "vervangen" : "onderdrukken";
       if (controlling.mode === "suppress" && target.template.protected) {

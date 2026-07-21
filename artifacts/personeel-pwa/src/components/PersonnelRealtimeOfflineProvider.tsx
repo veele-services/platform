@@ -276,7 +276,15 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
           }
 
           if (result?.success) {
-            const resultId = "id" in result && typeof result.id === "string" ? result.id : null;
+            const resultId = "answerId" in result && typeof result.answerId === "string"
+              ? result.answerId
+              : "id" in result && typeof result.id === "string"
+                ? result.id
+                : null;
+            const answerRevision = "revision" in result && typeof result.revision === "number"
+              && Number.isInteger(result.revision) && result.revision >= 0
+              ? result.revision
+              : null;
             const participantVersion = Number(result.participantVersion);
             if (!Number.isInteger(participantVersion) || participantVersion < 0) {
               updateOfflineWorkOrderAction(action.id, {
@@ -295,6 +303,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
               mutationId: action.idempotencyKey,
               participantVersion,
               resultId,
+              answerRevision,
             };
             const completion = completeOfflineWorkOrderAction(action.id, receipt);
             window.dispatchEvent(new CustomEvent("veele:offline-mutation-receipt", {

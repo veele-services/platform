@@ -10,6 +10,7 @@ export type OfflineCanonicalReceipt = {
   mutationId: string;
   participantVersion: number;
   resultId?: string | null;
+  answerRevision?: number | null;
 };
 
 type OfflineActionBase = {
@@ -324,6 +325,9 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
               ? action.expectedParticipantVersion
               : 0,
           resultId: typeof receipt.resultId === "string" ? receipt.resultId : null,
+          answerRevision: typeof receipt.answerRevision === "number" && Number.isInteger(receipt.answerRevision)
+            ? receipt.answerRevision
+            : null,
         }
       : null,
     expectedParticipantVersion: typeof action.expectedParticipantVersion === "number" ? action.expectedParticipantVersion : null,
@@ -548,9 +552,22 @@ export function completeOfflineWorkOrderAction(
     if (action.id === id) return [];
     if (action.dependsOnMutationId !== completed.idempotencyKey) return [action];
     dependentMutationIds.push(action.idempotencyKey);
+    const answerRevision = receipt.answerRevision;
+    const advancedAction = completed.type === "set-checklist-answer"
+      && action.type === "set-checklist-answer"
+      && action.checklistId === completed.checklistId
+      && action.itemId === completed.itemId
+      && typeof answerRevision === "number"
+      && Number.isInteger(answerRevision)
+      && answerRevision >= 0
+      ? {
+          ...action,
+          payload: { ...action.payload, expectedRevision: answerRevision },
+        } as OfflineWorkOrderAction
+      : action;
     if (previousDependentMutationId) {
       const rewired = {
-        ...action,
+        ...advancedAction,
         dependsOnMutationId: previousDependentMutationId,
         updatedAt: now,
       } as OfflineWorkOrderAction;
@@ -559,7 +576,7 @@ export function completeOfflineWorkOrderAction(
     }
     previousDependentMutationId = action.idempotencyKey;
     return [{
-      ...action,
+      ...advancedAction,
       chainedFromMutationId: completed.idempotencyKey,
       dependsOnMutationId: null,
       expectedParticipantVersion: receipt.participantVersion,

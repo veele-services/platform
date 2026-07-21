@@ -227,6 +227,41 @@ test("specific suppress hides a non-protected generic addition", () => {
   assert.equal(result.suppressed.length, 1);
 });
 
+test("task-code suppress only hides the matching cardinality key", () => {
+  const generic = template("task-code-suppressible", { cardinality: "per_task_code" });
+  const result = resolve([
+    binding(generic),
+    binding(null, {
+      mode: "suppress",
+      selectors: { taskCodeId: IDS.taskB },
+      targetTemplateId: generic.templateId,
+      reason: "Alleen vloerwerk gebruikt een ander protocol",
+    }),
+  ]);
+  assert.deepEqual(Array.from(result.instances, (item) => item.cardinalityKey), [`task-code:${IDS.taskA}`]);
+  assert.deepEqual(Array.from(result.suppressed, (item) => item.cardinalityKey), [`task-code:${IDS.taskB}`]);
+});
+
+test("task-specific replace preserves unrelated task instances", () => {
+  const generic = template("generic-task-instance", { cardinality: "per_task_instance", familyKey: "task-inspection" });
+  const replacement = template("specific-task-instance", { cardinality: "per_task_instance" });
+  const result = resolve([
+    binding(generic),
+    binding(replacement, {
+      mode: "replace",
+      selectors: { taskCodeId: IDS.taskB },
+      targetFamilyKey: generic.familyKey,
+      reason: "Vloerwerk heeft een eigen controle",
+    }),
+  ]);
+  assert.deepEqual(Array.from(result.instances, (item) => `${item.templateId}:${item.cardinalityKey}`).sort(), [
+    "generic-task-instance:task:task-line-a1",
+    "generic-task-instance:task:task-line-a2",
+    "specific-task-instance:task:task-line-b1",
+  ]);
+  assert.deepEqual(Array.from(result.replaced, (item) => item.cardinalityKey), ["task:task-line-b1"]);
+});
+
 test("protected checklist rejects suppress and stays active", () => {
   const protectedTemplate = template("protected", { protected: true, waivable: false });
   const result = resolve([
