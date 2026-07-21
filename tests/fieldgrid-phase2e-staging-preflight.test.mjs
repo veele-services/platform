@@ -11,6 +11,8 @@ import {
   EXPECTED_STAGING_PROJECT_REF,
   PAYMENT_INTENT_DIAGNOSTIC_QUERY,
   PAYMENT_INTENT_DIAGNOSTIC_VERSION,
+  REALTIME_PUBLICATION,
+  REALTIME_PUBLICATION_METADATA_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
   assertMatchingCounts,
@@ -20,6 +22,7 @@ import {
   parseArgs,
   parsePaymentIntentDiagnostic,
   parsePostgresEnv,
+  parseRealtimePublicationMetadata,
   sanitizePublicUrl,
   validateRuntimeConfig,
 } from "../scripts/fieldgrid-phase2e-staging-preflight.mjs";
@@ -249,6 +252,38 @@ test("payment duplicate diagnostics are read-only, secret-free and shape-checked
   );
 });
 
+test("realtime publication metadata is exact and fail closed", () => {
+  const metadata = {
+    version: REALTIME_PUBLICATION_METADATA_VERSION,
+    ...REALTIME_PUBLICATION,
+    member: true,
+  };
+  assert.deepEqual(
+    parseRealtimePublicationMetadata(JSON.stringify(metadata)),
+    metadata,
+  );
+  assert.deepEqual(
+    parseRealtimePublicationMetadata(
+      JSON.stringify({ ...metadata, member: false }),
+    ),
+    { ...metadata, member: false },
+  );
+  assert.throws(
+    () =>
+      parseRealtimePublicationMetadata(
+        JSON.stringify({ ...metadata, member: "yes" }),
+      ),
+    /invalid shape/iu,
+  );
+  assert.throws(
+    () =>
+      parseRealtimePublicationMetadata(
+        JSON.stringify({ ...metadata, table: "other_table" }),
+      ),
+    /invalid shape/iu,
+  );
+});
+
 test("manual workflow is staging-only and never promotes or uploads the database dump", () => {
   const workflow = read(".github/workflows/phase2e-staging-preflight.yml");
   for (const marker of [
@@ -292,6 +327,12 @@ test("manual workflow is staging-only and never promotes or uploads the database
   const script = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
   assert.match(script, /pg_dump/u);
   assert.match(script, /pg_restore/u);
+  assert.match(script, /\.publication\.json/u);
+  assert.match(script, /Realtime publication metadata hash does not match/u);
+  assert.match(
+    script,
+    /alter publication \$\{REALTIME_PUBLICATION\.publication\} add table/u,
+  );
   assert.match(script, /--serializable-deferrable/u);
   assert.match(script, /postgresql:17\.10-unprivileged-local/u);
   assert.match(script, /pg_ctl/u);
@@ -313,9 +354,18 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
   const diagnosticWrite = script.lastIndexOf("writePaymentIntentDiagnostic(");
+  const sourcePublication = script.lastIndexOf(
+    "collectRealtimePublicationMetadata(sourcePgEnv)",
+  );
+  const backupCreation = script.lastIndexOf(
+    "const backup = await createBackup(",
+  );
   const migrationRehearsal = script.indexOf(
     "runMigrationRehearsal(\n      restoreTarget",
   );
+  assert.ok(sourcePublication >= 0);
+  assert.ok(sourcePublication < backupCreation);
+  assert.ok(backupCreation < migrationRehearsal);
   assert.ok(diagnosticWrite >= 0);
   assert.ok(diagnosticWrite < migrationRehearsal);
   assert.match(script, /providerIdentifiersRecorded: false/u);
