@@ -27,6 +27,8 @@ import {
   transitionAssignmentStaffing,
   transitionAssignmentStatus,
   cancelAssignmentStaffing,
+  finalizeAssignmentChecklists,
+  reconcileAssignmentChecklistsRecoverably,
   type AssignmentStatus,
   type AssignmentPriority,
   type SmartPlanningInterestResponseStatus,
@@ -2753,6 +2755,13 @@ export async function rescheduleAssignment(
       warnings: warningParts.length > 0 ? warningParts : undefined,
     },
   });
+  await reconcileAssignmentChecklistsRecoverably({
+    tenantId,
+    assignmentId: id,
+    trigger: "assignment_scheduled",
+    idempotencyKey: `assignment-rescheduled:${id}:${existing.scheduledDate ?? "unset"}:${newDate}`,
+    actorUserId: user.id,
+  });
 
   if (assignedLinks.length > 0) {
     await notifyAssignmentWorkflow({
@@ -3268,6 +3277,13 @@ export async function createAssignment(
       persist: true,
       actorUserId: user.id,
     });
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId: created!.id,
+      trigger: "assignment_created",
+      idempotencyKey: `assignment-created:${created!.id}`,
+      actorUserId: user.id,
+    });
 
     revalidatePath("/assignments");
     return { success: true, data: { id: created!.id } };
@@ -3339,7 +3355,7 @@ export async function updateAssignment(
       .update(assignmentsTable)
       .set({ ...parsed.data, updatedAt: new Date() })
       .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
-      .returning({ id: assignmentsTable.id });
+      .returning({ id: assignmentsTable.id, updatedAt: assignmentsTable.updatedAt });
 
     if (updatedRows.length === 0) {
       return { success: false, message: "Opdracht niet gevonden binnen deze organisatie." };
@@ -3355,6 +3371,13 @@ export async function updateAssignment(
 
     await calculateAssignmentCapacity(id, {
       persist: true,
+      actorUserId: user.id,
+    });
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId: id,
+      trigger: "assignment_context_changed",
+      idempotencyKey: `assignment-context:${id}:${updatedRows[0]!.updatedAt.toISOString()}`,
       actorUserId: user.id,
     });
 
@@ -3413,12 +3436,19 @@ export async function setAssignmentStatus(
   }
 
   try {
-    await transitionAssignmentStatus({
+    const transition = await transitionAssignmentStatus({
       tenantId,
       assignmentId: id,
       actorUserId: user.id,
       newStatus,
       expectedVersion: current.lifecycleVersion,
+    });
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId: id,
+      trigger: newStatus === "scheduled" ? "assignment_scheduled" : "assignment_context_changed",
+      idempotencyKey: `assignment-status:${id}:${transition.lifecycleVersion}`,
+      actorUserId: user.id,
     });
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : "Statuswijziging mislukt." };
@@ -3492,6 +3522,13 @@ export async function assignPersonnel(
       action: "assign",
     });
     const routeRefreshStatus = staffing.assignmentStatus;
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId,
+      trigger: "assignment_staffing_changed",
+      idempotencyKey: `assignment-staffing:${staffing.assignmentPersonnelId}:${staffing.lifecycleVersion}`,
+      actorUserId: user.id,
+    });
 
 
     // ── Availability warning (non-blocking) ───────────────────────────────
@@ -3651,6 +3688,13 @@ export async function removePersonnel(
       reason: normalizedReason,
       expectedVersion: expectedVersion ?? link.lifecycleVersion,
     });
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId,
+      trigger: "assignment_staffing_changed",
+      idempotencyKey: `assignment-staffing:${staffing.assignmentPersonnelId}:${staffing.lifecycleVersion}`,
+      actorUserId: user.id,
+    });
   } catch (error) {
     return {
       success: false,
@@ -3737,6 +3781,13 @@ export async function addAssignmentTask(
     persist: true,
     actorUserId: user.id,
   });
+  await reconcileAssignmentChecklistsRecoverably({
+    tenantId,
+    assignmentId,
+    trigger: "assignment_task_changed",
+    idempotencyKey: `assignment-task-added:${created!.id}`,
+    actorUserId: user.id,
+  });
 
   revalidatePath(`/assignments/${assignmentId}`);
   return { success: true };
@@ -3781,6 +3832,13 @@ export async function removeAssignmentTask(
 
   await calculateAssignmentCapacity(assignmentId, {
     persist: true,
+    actorUserId: user.id,
+  });
+  await reconcileAssignmentChecklistsRecoverably({
+    tenantId,
+    assignmentId,
+    trigger: "assignment_task_changed",
+    idempotencyKey: `assignment-task-removed:${taskId}`,
     actorUserId: user.id,
   });
 
@@ -3831,6 +3889,13 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
     resourceId: id,
     metadata: { title: current.title, from: "review", to: "plannable" },
   });
+  await reconcileAssignmentChecklistsRecoverably({
+    tenantId,
+    assignmentId: id,
+    trigger: "assignment_context_changed",
+    idempotencyKey: `assignment-direct-approved:${id}`,
+    actorUserId: user.id,
+  });
 
   revalidatePath("/assignments");
   revalidatePath(`/assignments/${id}`);
@@ -3869,6 +3934,12 @@ export async function deleteAssignment(id: string, reason: string): Promise<Acti
       assignmentId: id,
       actorUserId: user.id,
       reason: normalizedReason,
+    });
+    await finalizeAssignmentChecklists({
+      tenantId,
+      assignmentId: id,
+      actorUserId: user.id,
+      outcome: "cancelled",
     });
   } catch (error) {
     return {

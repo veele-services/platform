@@ -31,6 +31,7 @@ export * from "./personnel";
 export * from "./qualifications";
 export * from "./task-codes";
 export * from "./assignments";
+export * from "./checklists";
 export * from "./materials";
 export * from "./inventory";
 export * from "./reports";

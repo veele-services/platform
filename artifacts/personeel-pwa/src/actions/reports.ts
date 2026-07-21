@@ -15,6 +15,7 @@ import {
   tenantsTable,
   beginOfflineOperation,
   completeOfflineOperation,
+  getAssignmentChecklistCompletionIssues,
 } from "@workspace/db";
 import { eq, and, inArray, desc, asc, ne, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -836,6 +837,18 @@ export async function submitMyReport(
     .limit(1);
 
   if (existing) return { success: false, error: "U heeft al een rapport ingediend voor deze opdracht" };
+
+  const checklistIssues = await getAssignmentChecklistCompletionIssues({
+    tenantId: identity.tenantId,
+    assignmentId,
+    blockingMoment: "before_report_submit",
+  });
+  if (checklistIssues.length > 0) {
+    return {
+      success: false,
+      error: checklistIssues.slice(0, 3).map((issue) => issue.message).join(" "),
+    };
+  }
 
   const hoursWorked  = data.hoursWorked.trim() || null;
   const submitterNotes = data.submitterNotes.trim() || null;

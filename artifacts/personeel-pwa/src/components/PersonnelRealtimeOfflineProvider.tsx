@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CloudOff, RefreshCcw, Wifi, X } from "lucide-react";
-import { completeAssignment, markAssignmentEnRoute, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
+import { completeAssignment, markAssignmentEnRoute, notCompleteAssignment, setAssignmentChecklistAnswer, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
 import { addExtraWork } from "@/actions/extra-work";
 import { addInventoryUsage } from "@/actions/inventory";
 import { addMaterialUsage } from "@/actions/materials";
@@ -96,6 +96,13 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "set-task-completion") {
     return setAssignmentTaskCompletion(action.assignmentId, action.taskId, action.payload.completed, {
       expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
+  }
+
+  if (action.type === "set-checklist-answer") {
+    return setAssignmentChecklistAnswer(action.assignmentId, action.checklistId, action.itemId, {
+      ...action.payload,
       clientMutationId: action.idempotencyKey,
     });
   }
@@ -269,7 +276,15 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
           }
 
           if (result?.success) {
-            const resultId = "id" in result && typeof result.id === "string" ? result.id : null;
+            const resultId = "answerId" in result && typeof result.answerId === "string"
+              ? result.answerId
+              : "id" in result && typeof result.id === "string"
+                ? result.id
+                : null;
+            const answerRevision = "revision" in result && typeof result.revision === "number"
+              && Number.isInteger(result.revision) && result.revision >= 0
+              ? result.revision
+              : null;
             const participantVersion = Number(result.participantVersion);
             if (!Number.isInteger(participantVersion) || participantVersion < 0) {
               updateOfflineWorkOrderAction(action.id, {
@@ -288,6 +303,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
               mutationId: action.idempotencyKey,
               participantVersion,
               resultId,
+              answerRevision,
             };
             const completion = completeOfflineWorkOrderAction(action.id, receipt);
             window.dispatchEvent(new CustomEvent("veele:offline-mutation-receipt", {

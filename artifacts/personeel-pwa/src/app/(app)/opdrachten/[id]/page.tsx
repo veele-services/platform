@@ -14,6 +14,7 @@ import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
 import { InventorySummaryCard } from "./InventorySummaryCard";
+import { DynamicChecklistCards } from "./DynamicChecklistCard";
 import {
   CustomerInfoCard,
   CustomerNotes,
@@ -308,6 +309,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
         <WorkbenchSection id="werkzaamheden">
           <div className="space-y-4">
             <TaskChecklistCard assignment={assignment} />
+            <DynamicChecklistCards assignment={assignment} />
             <div className="grid gap-4 xl:grid-cols-2">
               <ExtraWorkSummaryCard assignmentId={assignment.id} items={extraWork} />
               <MaterialSummaryCard assignmentId={assignment.id} items={materialItems} />

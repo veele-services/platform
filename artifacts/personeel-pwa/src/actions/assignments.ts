@@ -7,6 +7,9 @@ import {
   assignmentsTable,
   assignmentTasksTable,
   assignmentParticipantExecutionsTable,
+  assignmentChecklistsTable,
+  assignmentChecklistAnswersTable,
+  assignmentChecklistEvidenceTable,
   customersTable,
   db,
   objectsTable,
@@ -14,6 +17,12 @@ import {
   executeAssignmentParticipantAction,
   beginOfflineOperation,
   completeOfflineOperation,
+  getAssignmentChecklistCompletionIssues,
+  finalizeAssignmentChecklists,
+  prepareAssignmentChecklistsForStart,
+  saveAssignmentChecklistAnswer,
+  type ChecklistTemplateSnapshot,
+  type EffectiveChecklistRules,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
@@ -26,7 +35,7 @@ import {
   personnelWorkOrderIsSigned,
   SIGNED_WORK_ORDER_LOCK_MESSAGE,
 } from "@/lib/work-order-lock";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
@@ -73,6 +82,28 @@ export type MyAssignmentDetail = MyAssignment & {
     completedAt: string | null;
     completedBy: string | null;
   }[];
+  checklists: MyAssignmentChecklist[];
+};
+
+export type MyAssignmentChecklist = {
+  id: string;
+  status: string;
+  displayName: string;
+  templateSnapshot: ChecklistTemplateSnapshot;
+  effectiveRules: EffectiveChecklistRules;
+  answers: Array<{
+    id: string;
+    snapshotItemId: string;
+    value: unknown;
+    isDeviation: boolean;
+    deviationNote: string | null;
+    revision: number;
+  }>;
+  evidence: Array<{
+    id: string;
+    snapshotItemId: string;
+    kind: "photo" | "file" | "signature";
+  }>;
 };
 
 type PersonnelBasic = { id: string; tenantId: string; region: string | null };
@@ -369,6 +400,47 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     .where(eq(assignmentTasksTable.assignmentId, id))
     .orderBy(assignmentTasksTable.sortOrder);
 
+  const checklistRows = await db
+    .select({
+      id: assignmentChecklistsTable.id,
+      status: assignmentChecklistsTable.status,
+      templateSnapshot: assignmentChecklistsTable.templateSnapshot,
+      effectiveRules: assignmentChecklistsTable.effectiveRules,
+    })
+    .from(assignmentChecklistsTable)
+    .where(and(
+      eq(assignmentChecklistsTable.tenantId, personnel.tenantId),
+      eq(assignmentChecklistsTable.assignmentId, id),
+      ne(assignmentChecklistsTable.status, "cancelled"),
+    ))
+    .orderBy(assignmentChecklistsTable.displayOrder, assignmentChecklistsTable.id);
+  const checklistIds = checklistRows.map((checklist) => checklist.id);
+  const [answerRows, evidenceRows] = checklistIds.length > 0
+    ? await Promise.all([
+        db.select({
+          id: assignmentChecklistAnswersTable.id,
+          assignmentChecklistId: assignmentChecklistAnswersTable.assignmentChecklistId,
+          snapshotItemId: assignmentChecklistAnswersTable.snapshotItemId,
+          value: assignmentChecklistAnswersTable.value,
+          isDeviation: assignmentChecklistAnswersTable.isDeviation,
+          deviationNote: assignmentChecklistAnswersTable.deviationNote,
+          revision: assignmentChecklistAnswersTable.revision,
+        }).from(assignmentChecklistAnswersTable).where(and(
+          eq(assignmentChecklistAnswersTable.tenantId, personnel.tenantId),
+          inArray(assignmentChecklistAnswersTable.assignmentChecklistId, checklistIds),
+        )),
+        db.select({
+          id: assignmentChecklistEvidenceTable.id,
+          assignmentChecklistId: assignmentChecklistEvidenceTable.assignmentChecklistId,
+          snapshotItemId: assignmentChecklistEvidenceTable.snapshotItemId,
+          kind: assignmentChecklistEvidenceTable.kind,
+        }).from(assignmentChecklistEvidenceTable).where(and(
+          eq(assignmentChecklistEvidenceTable.tenantId, personnel.tenantId),
+          inArray(assignmentChecklistEvidenceTable.assignmentChecklistId, checklistIds),
+        )),
+      ])
+    : [[], []];
+
   return {
     ...mapAssignmentRow(row as AssignmentDetailRow),
     description: row.description ?? null,
@@ -378,6 +450,26 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
       notes:       task.notes ?? null,
       completedAt: toIsoString(task.completedAt),
       completedBy: task.completedBy ?? null,
+    })),
+    checklists: checklistRows.map((checklist) => ({
+      id: checklist.id,
+      status: checklist.status,
+      displayName: checklist.effectiveRules.displayName,
+      templateSnapshot: checklist.templateSnapshot,
+      effectiveRules: checklist.effectiveRules,
+      answers: answerRows.filter((answer) => answer.assignmentChecklistId === checklist.id).map((answer) => ({
+        id: answer.id,
+        snapshotItemId: answer.snapshotItemId,
+        value: answer.value,
+        isDeviation: answer.isDeviation,
+        deviationNote: answer.deviationNote,
+        revision: answer.revision,
+      })),
+      evidence: evidenceRows.filter((evidence) => evidence.assignmentChecklistId === checklist.id).map((evidence) => ({
+        id: evidence.id,
+        snapshotItemId: evidence.snapshotItemId,
+        kind: evidence.kind,
+      })),
     })),
   };
 }
@@ -527,6 +619,15 @@ async function setAssignmentStatusInternal(
   let executionResult: Awaited<ReturnType<typeof executeAssignmentParticipantAction>>;
   try {
     injectE2eOfflineDatabaseFailureOnce(options.clientMutationId);
+    const operationId = options.clientMutationId?.trim() || randomUUID();
+    if (newStatus === "in_progress") {
+      await prepareAssignmentChecklistsForStart({
+        tenantId: current.tenantId,
+        assignmentId,
+        actorUserId: user.id,
+        idempotencyKey: `${operationId}:checklists`,
+      });
+    }
     executionResult = await executeAssignmentParticipantAction({
       assignmentId,
       personnelId: personnel.id,
@@ -617,6 +718,46 @@ export async function setAssignmentTaskCompletion(
 ): Promise<OfflineActionResult> {
   try {
     return await setAssignmentTaskCompletionInternal(assignmentId, taskId, completed, options);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error);
+  }
+}
+
+export async function setAssignmentChecklistAnswer(
+  assignmentId: string,
+  checklistId: string,
+  itemId: string,
+  input: {
+    value: unknown;
+    isDeviation?: boolean;
+    deviationNote?: string | null;
+    expectedRevision: number | null;
+    clientMutationId?: string | null;
+  },
+): Promise<OfflineActionResult & { answerId?: string; revision?: number }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
+    const personnel = await getPersonnelBasic(supabase, user.id);
+    if (!personnel) return permanentOfflineActionFailure("Personeelsprofiel niet gevonden", "personnel_not_found");
+    const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
+    if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of niet aan jou toegewezen", "assignment_not_available");
+    if (personnelWorkOrderIsSigned(current)) return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+    const result = await saveAssignmentChecklistAnswer({
+      tenantId: personnel.tenantId,
+      assignmentId,
+      assignmentChecklistId: checklistId,
+      snapshotItemId: itemId,
+      value: input.value,
+      isDeviation: input.isDeviation,
+      deviationNote: input.deviationNote,
+      actorUserId: user.id,
+      expectedRevision: input.expectedRevision,
+      operationKey: input.clientMutationId?.trim() || randomUUID(),
+    });
+    revalidateAssignmentPaths(assignmentId);
+    return { success: true, participantVersion: current.participantVersion ?? 1, answerId: result.id, revision: result.revision };
   } catch (error) {
     return normalizeOfflineServerActionError(error);
   }
@@ -739,6 +880,20 @@ async function completeAssignmentInternal(
     return permanentOfflineActionFailure("Handtekening klant is verplicht", "validation_failed");
   }
 
+  const checklistIssues = await getAssignmentChecklistCompletionIssues({
+    tenantId: current.tenantId,
+    assignmentId,
+    // Report submission follows the immutable completed transition in Fieldgrid,
+    // so report-bound requirements must be complete before that lock as well.
+    blockingMoments: ["before_complete", "before_report_submit"],
+  });
+  if (checklistIssues.length > 0) {
+    return permanentOfflineActionFailure(
+      checklistIssues.slice(0, 3).map((issue) => issue.message).join(" "),
+      "validation_failed",
+    );
+  }
+
   const now = new Date();
   let executionResult: Awaited<ReturnType<typeof executeAssignmentParticipantAction>>;
 
@@ -759,6 +914,12 @@ async function completeAssignmentInternal(
       },
     });
     if (executionResult.aggregateCompleted) {
+      await finalizeAssignmentChecklists({
+        tenantId: current.tenantId,
+        assignmentId,
+        actorUserId: user.id,
+        outcome: "completed",
+      });
       await db
         .update(assignmentsTable)
         .set({

@@ -140,6 +140,52 @@ export function isExtraWorkPhotoPath(
   return suffix?.startsWith(`extra-work/${extraWorkId}/`) ?? false;
 }
 
+export function isChecklistEvidencePath(
+  tenantId: string,
+  assignmentId: string,
+  checklistId: string,
+  itemId: string,
+  storagePath: string,
+): boolean {
+  if (!isValidStorageId(tenantId) || !isValidStorageId(assignmentId) || !isValidStorageId(checklistId)) return false;
+  const normalized = normalizeAssignmentMediaStoragePath(storagePath);
+  if (!normalized) return false;
+  const canonicalPrefix = [
+    ASSIGNMENT_MEDIA_TENANT_ROOT,
+    tenantId,
+    ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT,
+    assignmentId,
+    "checklists",
+    checklistId,
+    safeStorageSegment(itemId),
+    "",
+  ].join("/");
+  return normalized.startsWith(canonicalPrefix);
+}
+
+export function buildChecklistEvidencePath(
+  tenantId: string,
+  assignmentId: string,
+  checklistId: string,
+  itemId: string,
+  fileName: string,
+  uniqueId: string,
+): string {
+  if (!isValidStorageId(tenantId) || !isValidStorageId(assignmentId) || !isValidStorageId(checklistId)) {
+    throw new Error("Ongeldige checklist voor uploadpad");
+  }
+  return [
+    ASSIGNMENT_MEDIA_TENANT_ROOT,
+    tenantId,
+    ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT,
+    assignmentId,
+    "checklists",
+    checklistId,
+    safeStorageSegment(itemId),
+    `${safeStorageSegment(uniqueId, "upload")}-${safeStorageFileName(fileName)}`,
+  ].join("/");
+}
+
 export function buildReportNoteAttachmentPath(
   tenantId: string,
   assignmentId: string,

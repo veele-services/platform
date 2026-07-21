@@ -26,6 +26,7 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { prefix: "/quotes",      resource: "quotes",      action: "read" },
   { prefix: "/documents",      resource: "documents", action: "read" },
   { prefix: "/tickets",        resource: "tickets",   action: "read" },
+  { prefix: "/settings/checklists", resource: "checklists", action: "read" },
   { prefix: "/settings",       resource: "settings",  action: "read" },
   { prefix: "/instellingen",   resource: "settings",  action: "read" },
 ];

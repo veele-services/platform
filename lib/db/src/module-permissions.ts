@@ -30,6 +30,12 @@ export const FIELDGRID_PERMISSION_MODULES = {
   assignment_report_notes: "assignments",
   assignment_report_note_attachments: "assignments",
 
+  checklists: "quality",
+  checklist_templates: "quality",
+  checklist_bindings: "quality",
+  assignment_checklists: "quality",
+  checklist_reconciliation: "quality",
+
   planning: "planning",
   smart_planning: "smart_planning",
 

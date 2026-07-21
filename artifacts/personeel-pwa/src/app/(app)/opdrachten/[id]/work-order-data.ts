@@ -32,6 +32,7 @@ export type AssignmentView = Pick<
   | "objectCity"
   | "objectPostalCode"
   | "tasks"
+  | "checklists"
 >;
 
 export type MaterialUsageItem = {

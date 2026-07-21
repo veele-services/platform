@@ -139,6 +139,52 @@ test("canonical receipts advance only declared local dependents and survive relo
   assert.equal(readOfflineWorkOrderQueue().length, 0);
 });
 
+test("canonical checklist receipts advance sequential offline answer revisions", () => {
+  bindOfflineWorkOrderQueueOwner("personnel-a");
+  const first = enqueueOfflineWorkOrderAction({
+    assignmentId: "assignment-a",
+    checklistId: "checklist-a",
+    itemId: "item-a",
+    payload: { expectedRevision: 0, value: "first" },
+    type: "set-checklist-answer",
+  });
+  const second = enqueueOfflineWorkOrderAction({
+    assignmentId: "assignment-a",
+    checklistId: "checklist-a",
+    itemId: "item-a",
+    payload: { expectedRevision: 0, value: "second" },
+    type: "set-checklist-answer",
+  });
+  const third = enqueueOfflineWorkOrderAction({
+    assignmentId: "assignment-a",
+    checklistId: "checklist-a",
+    itemId: "item-a",
+    payload: { expectedRevision: 0, value: "third" },
+    type: "set-checklist-answer",
+  });
+
+  assert.equal(second.dependsOnMutationId, first.idempotencyKey);
+  assert.equal(third.dependsOnMutationId, second.idempotencyKey);
+  completeOfflineWorkOrderAction(first.id, {
+    acknowledgedAt: "2026-07-21T10:00:00.000Z",
+    answerRevision: 1,
+    mutationId: first.idempotencyKey,
+    participantVersion: 4,
+  });
+  assert.equal(readNextEligibleOfflineWorkOrderAction()?.id, second.id);
+  assert.equal(readNextEligibleOfflineWorkOrderAction()?.type, "set-checklist-answer");
+  assert.equal(readNextEligibleOfflineWorkOrderAction()?.payload.expectedRevision, 1);
+
+  completeOfflineWorkOrderAction(second.id, {
+    acknowledgedAt: "2026-07-21T10:00:01.000Z",
+    answerRevision: 2,
+    mutationId: second.idempotencyKey,
+    participantVersion: 4,
+  });
+  assert.equal(readNextEligibleOfflineWorkOrderAction()?.id, third.id);
+  assert.equal(readNextEligibleOfflineWorkOrderAction()?.payload.expectedRevision, 2);
+});
+
 test("identical enqueue cannot replace syncing identity and different intent is deferred", () => {
   const first = enqueueOfflineWorkOrderAction({
     assignmentId: "assignment-a",
