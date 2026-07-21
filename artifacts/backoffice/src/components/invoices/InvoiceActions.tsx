@@ -116,7 +116,10 @@ export function InvoiceActions({
     }
     setCancelOpen(false);
     setCancelReason("");
-    startT(() => router.refresh());
+    // Cancellation changes both the invoice and its assignment atomically.
+    // Reload the server-rendered detail after success so the user cannot remain
+    // on a stale sent-invoice view when an App Router refresh stalls.
+    window.location.reload();
   }
 
   async function handleCreatePaymentLink() {
