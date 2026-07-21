@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:b0c8ae303a0b687968b2471c1617d3e46563a6e22060dc1af4f78f4683ca659d",
+  "inventoryHash": "sha256:2dc35061a0e10ab21b3ece8770098930ee4922f5d6787e7a45b472c4d29ff135",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -63,16 +63,16 @@
   },
   "kindHashes": {
     "server-action": "sha256:1a4cc9538911e9771e2f7a78f1fde94f86051c112fdcbc3ebb2057276e950729",
-    "route-handler": "sha256:3e43bd2de0da156c00fd1190fe82c490419729612cb0e8b3f832fb77be1049f8",
+    "route-handler": "sha256:c272652a8d7a806fd9379c7f37d6ec469bb15d251a6d246813080f9b98779b4f",
     "middleware": "sha256:04251a5d79ac5c2866204fe54a602f64ded57855b03bbfbf0b113c2d58c602d0",
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "database-callsite": "sha256:f23339b33b9635a8a171cca81b860668db8c18a133759d97697464ef498ffbf4",
+    "database-callsite": "sha256:7dddb5bc3e578524d8a752f8931f5ecf6805f706228f5ed8454524a1ee81ae05",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:4d1581fce30897f2d512953fa3cf1a7c38ab42b0dd949038ea0d459b66a7c2d6",
-    "provider-boundary": "sha256:2a74d3436f3290d08fdb06e8a6cd1cd199fe358f4e18ae0e8e28f8eb3c654f52",
-    "storage-signed-url-issuance": "sha256:c912b86f454da543ef0fb617f191bc45655bdfb496b625ae5c302cbaf3de9cc7"
+    "raw-sql-callsite": "sha256:8bad7f08b38002d028d832f0d840d6a04b63dcb6f47312866574088114a7224f",
+    "provider-boundary": "sha256:3cb4f98dac8ce3c32be541fa27ddee2a7731bbfc765ffcfd256cbcab31e47411",
+    "storage-signed-url-issuance": "sha256:84f77045e66fdaaaee73b748b150f46493bd01ee2008f2d7d19001be3394f379"
   },
   "riskDimensions": [
     "tenantSource",
