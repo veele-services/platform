@@ -64,7 +64,7 @@ export default function WachtwoordVergetenPage() {
         return;
       }
 
-      router.push("/reset-wachtwoord");
+      router.push(purpose === "activation" ? "/reset-wachtwoord?doel=activatie" : "/reset-wachtwoord");
       router.refresh();
     });
   }

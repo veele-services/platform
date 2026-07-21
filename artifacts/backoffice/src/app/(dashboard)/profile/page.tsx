@@ -5,7 +5,9 @@ import { Mail, Shield, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRoles } from "@/lib/auth/permissions";
 import { getCurrentTenantId } from "@/lib/auth/tenant";
+import { getBackofficeProfileName } from "@/lib/auth/backoffice-profile";
 import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
+import { BackofficeNameForm } from "@/components/profile/BackofficeNameForm";
 
 export const metadata: Metadata = { title: "Profiel" };
 
@@ -18,13 +20,14 @@ export default async function ProfilePage() {
   const tenantId = await getCurrentTenantId();
   const roles = user && tenantId ? await getUserRoles(user.id, tenantId) : [];
   const email = user?.email ?? "";
-  const initial = (email[0] ?? "U").toUpperCase();
+  const name = user ? getBackofficeProfileName(user) : null;
+  const initial = (name?.[0] ?? email[0] ?? "U").toUpperCase();
 
   return (
     <TenantPageShell size="narrow">
       <TenantPageHeader
         title="Profiel"
-        description="Accountgegevens en toegang voor deze backoffice."
+        description="Beheer uw naam, accountgegevens en toegang voor deze backoffice."
       />
       <section className="rounded-lg border bg-white p-6 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
         <div className="flex items-start gap-4">
@@ -36,10 +39,10 @@ export default async function ProfilePage() {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
-              {email || "Gebruiker"}
+              {name || "Gebruiker"}
             </h2>
             <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-              Accountgegevens voor de backoffice.
+              {email || "Accountgegevens voor de backoffice."}
             </p>
           </div>
         </div>
@@ -47,6 +50,16 @@ export default async function ProfilePage() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <ProfileInfo icon={<Mail className="h-4 w-4" />} label="E-mailadres" value={email || "-"} />
           <ProfileInfo icon={<Shield className="h-4 w-4" />} label="Rol" value={roles[0] ?? "User"} />
+        </div>
+
+        <div className="mt-6 border-t pt-6" style={{ borderColor: "#E2E8F0" }}>
+          <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+            Persoonlijke gegevens
+          </h3>
+          <p className="mb-4 mt-1 text-sm" style={{ color: "#64748B" }}>
+            U kunt uw eigen naam op ieder moment wijzigen.
+          </p>
+          <BackofficeNameForm initialName={name ?? ""} />
         </div>
 
         <div className="mt-6 border-t pt-4" style={{ borderColor: "#E2E8F0" }}>

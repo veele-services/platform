@@ -908,7 +908,7 @@ async function inviteOrFindTenantAuthUser(email: string, tenantId: string, actor
   const loginUrl = await tenantAdminLoginUrl(tenantId);
   const invite = await provisionPortalUserForActivation({
     email,
-    fullName: email,
+    fullName: "",
     portal: "tenant-admin",
     tenantId,
     portalName: "Tenant backoffice",

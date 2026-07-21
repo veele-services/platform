@@ -5,6 +5,7 @@ import {
   createSupabaseCookieOptions,
   withHostOnlyCookieOptions,
 } from "@/lib/supabase/session-cookies";
+import { requiresBackofficeProfileName } from "@/lib/auth/backoffice-profile";
 
 /**
  * Next.js middleware for session handling.
@@ -45,6 +46,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage  = pathname === "/login";
   const isPasswordResetPage = pathname === "/reset-wachtwoord";
+  const isProfileSetupPage = pathname === "/profiel-instellen";
   const isPublicPage =
     isLoginPage ||
     isPasswordResetPage ||
@@ -87,6 +89,14 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await authClient.auth.getUser();
+
+  if (user && requiresBackofficeProfileName(user) && !isProfileSetupPage) {
+    return NextResponse.redirect(proxyAwareUrl("/profiel-instellen", request));
+  }
+
+  if (user && !requiresBackofficeProfileName(user) && isProfileSetupPage) {
+    return NextResponse.redirect(proxyAwareUrl("/", request));
+  }
 
   if (user && isLoginPage) {
     const next = request.nextUrl.searchParams.get("next");

@@ -24,6 +24,7 @@ import {
   getCurrentSupportModeFromRequest,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
+import { requiresBackofficeProfileName } from "@/lib/auth/backoffice-profile";
 
 async function enabledModulesForPermissions(
   permissions: Set<string>,
@@ -206,6 +207,7 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Set();
+  if (requiresBackofficeProfileName(user)) return new Set();
 
   const tenantId = await getCurrentTenantId();
   if (!tenantId) return new Set();
@@ -226,6 +228,7 @@ export async function getCurrentUserPermissionsFromRequest(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Set();
+  if (requiresBackofficeProfileName(user)) return new Set();
 
   const tenantId = await getCurrentTenantIdFromRequest(request);
   if (!tenantId) return new Set();

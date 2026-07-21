@@ -1672,7 +1672,7 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
 
   return authUsers.map((u) => {
     let status: UserRow["status"] = "actief";
-    if (!u.confirmed_at) status = "uitgenodigd";
+    if (u.app_metadata?.credential_activation_pending === true || !u.confirmed_at) status = "uitgenodigd";
     else if (u.banned_until && new Date(u.banned_until) > new Date())
       status = "inactief";
 
@@ -1712,7 +1712,7 @@ export async function inviteUser(data: {
   try {
     const invite = await provisionPortalUserForActivation({
       email,
-      fullName: email,
+      fullName: "",
       portal: "tenant-admin",
       tenantId,
       portalName: "Tenant backoffice",

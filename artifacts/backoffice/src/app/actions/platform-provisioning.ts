@@ -572,7 +572,7 @@ async function inviteOwnerByEmail(input: {
   const host = normalizeHost(input.primaryDomain ?? "") || "admin.fieldgrid.nl";
   const invite = await provisionPortalUserForActivation({
     email: input.email,
-    fullName: input.email,
+    fullName: "",
     portal: "tenant-admin",
     tenantId: input.tenantId,
     portalName: "Tenant backoffice",

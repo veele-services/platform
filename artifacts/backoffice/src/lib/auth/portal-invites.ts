@@ -8,6 +8,11 @@ import {
 } from "@workspace/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildAccountActivationEmail, sendEmailWithResult } from "@/lib/email";
+import {
+  BACKOFFICE_PROFILE_NAME_REQUIRED,
+  getBackofficeProfileName,
+  validateBackofficeProfileName,
+} from "@/lib/auth/backoffice-profile";
 
 export type PortalInviteType = "customer" | "personnel" | "tenant-admin" | "platform-admin";
 function isEmailExistsError(error: { code?: string; message?: string } | null): boolean {
@@ -42,12 +47,21 @@ export async function findAuthUserByEmail(
   return null;
 }
 
-function activationAppMetadata(existing: Record<string, unknown> | null | undefined, portal: PortalInviteType): Record<string, unknown> {
+function activationAppMetadata(
+  existing: Record<string, unknown> | null | undefined,
+  portal: PortalInviteType,
+  profileNameRequired: boolean,
+): Record<string, unknown> {
   const metadata: Record<string, unknown> = {
     ...(existing ?? {}),
     portal,
     credential_activation_pending: true,
   };
+  if (portal === "tenant-admin" && profileNameRequired) {
+    metadata[BACKOFFICE_PROFILE_NAME_REQUIRED] = true;
+  } else {
+    delete metadata[BACKOFFICE_PROFILE_NAME_REQUIRED];
+  }
   delete metadata["force_password_change"];
   delete metadata["temporary_password_issued_at"];
   delete metadata["temporary_password_expires_at"];
@@ -89,12 +103,14 @@ export async function provisionPortalUserForActivation(opts: {
   if ((surface === "platform-admin") !== (opts.tenantId === null)) {
     throw new Error("Ongeldige tenantbinding voor accountactivatie.");
   }
-  const userMetadata = { full_name: opts.fullName, name: opts.fullName };
+  const requestedNameValidation = validateBackofficeProfileName(opts.fullName, email);
+  let profileName = requestedNameValidation.success ? requestedNameValidation.name : null;
+  const userMetadata = profileName ? { full_name: profileName, name: profileName } : {};
   const { data: createdData, error: createError } = await admin.auth.admin.createUser({
     email,
     password: generateInternalAuthPassword(),
     email_confirm: true,
-    app_metadata: activationAppMetadata(null, opts.portal),
+    app_metadata: activationAppMetadata(null, opts.portal, opts.portal === "tenant-admin" && !profileName),
     user_metadata: userMetadata,
   });
 
@@ -120,8 +136,13 @@ export async function provisionPortalUserForActivation(opts: {
     if (!opts.allowExistingActive && hasSignedIn && !activationPending) {
       throw new Error("Er bestaat al een actief account voor dit e-mailadres. Gebruik wachtwoordherstel.");
     }
+    profileName ??= getBackofficeProfileName(existingUser);
     const { data: updatedData, error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, {
-      app_metadata: activationAppMetadata(existingUser.app_metadata, opts.portal),
+      app_metadata: activationAppMetadata(
+        existingUser.app_metadata,
+        opts.portal,
+        opts.portal === "tenant-admin" && !profileName,
+      ),
       user_metadata: { ...(existingUser.user_metadata ?? {}), ...userMetadata },
     });
     if (updateError || !updatedData.user) {
@@ -146,7 +167,7 @@ export async function provisionPortalUserForActivation(opts: {
   }
 
   const { subject, html } = buildAccountActivationEmail({
-    recipientName: opts.fullName || email,
+    recipientName: profileName ?? email,
     portalName: opts.portalName,
     activationUrl: opts.activationUrl,
     code: challenge.code,

@@ -469,7 +469,7 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
     let status: TenantUserRoleRow["status"] = "actief";
     if (tenantUser?.tenantStatus && tenantUser.tenantStatus !== "active") {
       status = "inactief";
-    } else if (!authUser.confirmed_at) {
+    } else if (authUser.app_metadata?.credential_activation_pending === true || !authUser.confirmed_at) {
       status = "uitgenodigd";
     } else if (authUser.banned_until && new Date(authUser.banned_until) > new Date()) {
       status = "inactief";
@@ -585,7 +585,7 @@ export async function inviteTenantUser(input: {
   try {
     const invite = await provisionPortalUserForActivation({
       email,
-      fullName: email,
+      fullName: "",
       portal: "tenant-admin",
       tenantId,
       portalName: "Tenant backoffice",
