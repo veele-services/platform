@@ -187,4 +187,21 @@ test("current invoice UI exposes the expected action entry points", () => {
   assert.match(invoiceActions, /markInvoicePaid\(invoiceId\)/u);
   assert.match(invoiceActions, /emailInvoice\(invoiceId\)/u);
   assert.match(invoiceActions, /cancelInvoice\(invoiceId, reason\)/u);
+
+  const cancelHandlerStart = invoiceActions.indexOf(
+    "async function handleCancelInvoice()",
+  );
+  const cancelHandlerEnd = invoiceActions.indexOf(
+    "async function handleCreatePaymentLink()",
+    cancelHandlerStart,
+  );
+  assert.notEqual(cancelHandlerStart, -1);
+  assert.ok(cancelHandlerEnd > cancelHandlerStart);
+  const cancelHandler = invoiceActions.slice(
+    cancelHandlerStart,
+    cancelHandlerEnd,
+  );
+  assert.match(cancelHandler, /if \(!result\.success\)/u);
+  assert.match(cancelHandler, /window\.location\.reload\(\)/u);
+  assert.doesNotMatch(cancelHandler, /router\.refresh\(\)/u);
 });

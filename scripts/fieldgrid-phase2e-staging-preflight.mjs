@@ -80,6 +80,11 @@ export const CRITICAL_RELATIONS = [
   "public.portal_realtime_events",
 ];
 
+export const TRANSIENT_MIGRATION_RELATIONS = ["public.portal_realtime_events"];
+export const DURABLE_MIGRATION_RELATIONS = CRITICAL_RELATIONS.filter(
+  (relation) => !TRANSIENT_MIGRATION_RELATIONS.includes(relation),
+);
+
 export const PAYMENT_INTENT_DIAGNOSTIC_VERSION =
   "phase2e-payment-intent-diagnostic-v1";
 export const PAYMENT_INTENT_DIAGNOSTIC_QUERY = `
@@ -269,6 +274,64 @@ export function assertMatchingCounts(sourceCounts, restoredCounts) {
     );
   }
   return true;
+}
+
+export function assertMigratedDataIntegrity(
+  restoredCounts,
+  migratedCounts,
+  liveRealtimeEventsBeforeMigration,
+  migratedRealtimeEventIds,
+  rehearsalCompletedAt,
+) {
+  const differences = [];
+  for (const relation of DURABLE_MIGRATION_RELATIONS) {
+    if (!(relation in restoredCounts))
+      differences.push(`${relation}: missing before migration`);
+    else if (!(relation in migratedCounts))
+      differences.push(`${relation}: missing after migration`);
+    else if (restoredCounts[relation] !== migratedCounts[relation]) {
+      differences.push(
+        `${relation}: before=${restoredCounts[relation]} after=${migratedCounts[relation]}`,
+      );
+    }
+  }
+  if (differences.length > 0) {
+    throw new Error(
+      `Migrated durable row counts differ: ${differences.join("; ")}`,
+    );
+  }
+
+  const completedAt = Date.parse(rehearsalCompletedAt);
+  if (!Number.isFinite(completedAt)) {
+    throw new Error("Invalid migration rehearsal completion time.");
+  }
+  const protectedRealtimeEvents = liveRealtimeEventsBeforeMigration.filter(
+    (event) => Date.parse(event.expiresAt) > completedAt,
+  );
+  const migratedIds = new Set(migratedRealtimeEventIds);
+  const missingProtected = protectedRealtimeEvents.filter(
+    (event) => !migratedIds.has(event.id),
+  );
+  if (missingProtected.length > 0) {
+    throw new Error(
+      `Migration removed ${missingProtected.length} realtime event(s) whose retention window extends beyond the rehearsal.`,
+    );
+  }
+
+  return {
+    durableRelationsCount: DURABLE_MIGRATION_RELATIONS.length,
+    durableCountsMatched: true,
+    transientRelations: TRANSIENT_MIGRATION_RELATIONS,
+    realtimeEvents: {
+      totalBeforeMigration: restoredCounts["public.portal_realtime_events"],
+      totalAfterMigration: migratedCounts["public.portal_realtime_events"],
+      liveBeforeMigration: liveRealtimeEventsBeforeMigration.length,
+      protectedAtRehearsalCompletion: protectedRealtimeEvents.length,
+      protectedPreserved: protectedRealtimeEvents.length,
+      expiredRowsMayBePruned: true,
+    },
+    rawIdentifiersRecorded: false,
+  };
 }
 
 export function validateRuntimeConfig(options, env = process.env) {
@@ -605,6 +668,38 @@ async function collectCriticalCounts(pgEnv) {
   return counts;
 }
 
+async function collectLiveRealtimeEvents(pgEnv) {
+  const raw = await psql(
+    pgEnv,
+    `select coalesce(jsonb_agg(jsonb_build_object('id', id::text, 'expiresAt', expires_at) order by id), '[]'::jsonb)::text from public.portal_realtime_events where expires_at > clock_timestamp();`,
+  );
+  const events = JSON.parse(raw);
+  if (
+    !Array.isArray(events) ||
+    events.some(
+      (event) =>
+        typeof event?.id !== "string" ||
+        typeof event?.expiresAt !== "string" ||
+        !Number.isFinite(Date.parse(event.expiresAt)),
+    )
+  ) {
+    throw new Error("Invalid realtime retention snapshot.");
+  }
+  return events;
+}
+
+async function collectRealtimeEventIds(pgEnv) {
+  const raw = await psql(
+    pgEnv,
+    "select coalesce(jsonb_agg(id::text order by id), '[]'::jsonb)::text from public.portal_realtime_events;",
+  );
+  const ids = JSON.parse(raw);
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) {
+    throw new Error("Invalid migrated realtime event snapshot.");
+  }
+  return ids;
+}
+
 async function sha256File(filePath) {
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(filePath)) hash.update(chunk);
@@ -911,6 +1006,9 @@ export async function runPreflight(options, env = process.env) {
     await restoreBackup(restoreTarget, backup);
     const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
+    const liveRealtimeEventsBeforeMigration = await collectLiveRealtimeEvents(
+      restoreTarget.pgEnv,
+    );
     const paymentIntentDiagnostic = await writePaymentIntentDiagnostic(
       restoreTarget.pgEnv,
       options.outDir,
@@ -920,7 +1018,20 @@ export async function runPreflight(options, env = process.env) {
       options.outDir,
     );
     const migratedCounts = await collectCriticalCounts(restoreTarget.pgEnv);
-    assertMatchingCounts(sourceCounts, migratedCounts);
+    const migratedRealtimeEventIds = await collectRealtimeEventIds(
+      restoreTarget.pgEnv,
+    );
+    const rehearsalCompletedAt = await psql(
+      restoreTarget.pgEnv,
+      "select clock_timestamp();",
+    );
+    const migrationDataIntegrity = assertMigratedDataIntegrity(
+      restoredCounts,
+      migratedCounts,
+      liveRealtimeEventsBeforeMigration,
+      migratedRealtimeEventIds,
+      rehearsalCompletedAt,
+    );
     const databaseProof = await verifyMigratedRestore(restoreTarget.pgEnv);
 
     const evidence = {
@@ -965,6 +1076,10 @@ export async function runPreflight(options, env = process.env) {
           checkoutUrlsRecorded: false,
         },
         migration,
+        migrationDataIntegrity: {
+          ...migrationDataIntegrity,
+          criticalRowCountsAfterMigration: migratedCounts,
+        },
         proof: databaseProof,
       },
       promotionPerformed: false,

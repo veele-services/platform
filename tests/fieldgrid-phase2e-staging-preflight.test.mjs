@@ -7,12 +7,14 @@ import {
   CONFIRMATION,
   BACKUP_SCHEMAS,
   CRITICAL_RELATIONS,
+  DURABLE_MIGRATION_RELATIONS,
   EXPECTED_STAGING_PROJECT_REF,
   PAYMENT_INTENT_DIAGNOSTIC_QUERY,
   PAYMENT_INTENT_DIAGNOSTIC_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
   assertMatchingCounts,
+  assertMigratedDataIntegrity,
   isAllowedRouteStatus,
   isFullSha,
   parseArgs,
@@ -152,6 +154,71 @@ test("restored critical data must be exactly count-equal", () => {
     () =>
       assertMatchingCounts(counts, { ...counts, [CRITICAL_RELATIONS[0]]: 999 }),
     /critical row counts differ/u,
+  );
+});
+
+test("post-migration proof permits only expired realtime pruning", () => {
+  const restoredCounts = Object.fromEntries(
+    CRITICAL_RELATIONS.map((relation, index) => [relation, index + 10]),
+  );
+  const migratedCounts = {
+    ...restoredCounts,
+    "public.portal_realtime_events": 2,
+  };
+  const result = assertMigratedDataIntegrity(
+    restoredCounts,
+    migratedCounts,
+    [
+      { id: "live-a", expiresAt: "2026-07-21T03:00:00.000Z" },
+      { id: "just-expired", expiresAt: "2026-07-21T01:59:59.000Z" },
+      { id: "live-b", expiresAt: "2026-07-21T04:00:00.000Z" },
+    ],
+    ["live-a", "live-b", "new-event"],
+    "2026-07-21T02:00:00.000Z",
+  );
+
+  assert.equal(
+    result.durableRelationsCount,
+    DURABLE_MIGRATION_RELATIONS.length,
+  );
+  assert.equal(result.durableCountsMatched, true);
+  assert.deepEqual(result.transientRelations, [
+    "public.portal_realtime_events",
+  ]);
+  assert.deepEqual(result.realtimeEvents, {
+    totalBeforeMigration: restoredCounts["public.portal_realtime_events"],
+    totalAfterMigration: 2,
+    liveBeforeMigration: 3,
+    protectedAtRehearsalCompletion: 2,
+    protectedPreserved: 2,
+    expiredRowsMayBePruned: true,
+  });
+  assert.equal(result.rawIdentifiersRecorded, false);
+
+  assert.throws(
+    () =>
+      assertMigratedDataIntegrity(
+        restoredCounts,
+        { ...migratedCounts, [DURABLE_MIGRATION_RELATIONS[0]]: 999 },
+        [{ id: "live-a", expiresAt: "2026-07-21T03:00:00.000Z" }],
+        ["live-a"],
+        "2026-07-21T02:00:00.000Z",
+      ),
+    /durable row counts differ/iu,
+  );
+  assert.throws(
+    () =>
+      assertMigratedDataIntegrity(
+        restoredCounts,
+        migratedCounts,
+        [
+          { id: "live-a", expiresAt: "2026-07-21T03:00:00.000Z" },
+          { id: "live-b", expiresAt: "2026-07-21T04:00:00.000Z" },
+        ],
+        ["live-a"],
+        "2026-07-21T02:00:00.000Z",
+      ),
+    /retention window extends beyond the rehearsal/iu,
   );
 });
 
