@@ -87,6 +87,13 @@ export const DURABLE_MIGRATION_RELATIONS = CRITICAL_RELATIONS.filter(
 
 export const PAYMENT_INTENT_DIAGNOSTIC_VERSION =
   "phase2e-payment-intent-diagnostic-v1";
+export const REALTIME_PUBLICATION_METADATA_VERSION =
+  "phase2e-realtime-publication-v1";
+export const REALTIME_PUBLICATION = Object.freeze({
+  publication: "supabase_realtime",
+  schema: "public",
+  table: "portal_realtime_events",
+});
 export const PAYMENT_INTENT_DIAGNOSTIC_QUERY = `
 select jsonb_build_object(
   'version', '${PAYMENT_INTENT_DIAGNOSTIC_VERSION}',
@@ -598,6 +605,20 @@ export function parsePaymentIntentDiagnostic(raw) {
   return diagnostic;
 }
 
+export function parseRealtimePublicationMetadata(raw) {
+  const metadata = JSON.parse(raw);
+  if (
+    metadata?.version !== REALTIME_PUBLICATION_METADATA_VERSION ||
+    metadata?.publication !== REALTIME_PUBLICATION.publication ||
+    metadata?.schema !== REALTIME_PUBLICATION.schema ||
+    metadata?.table !== REALTIME_PUBLICATION.table ||
+    typeof metadata?.member !== "boolean"
+  ) {
+    throw new Error("Realtime publication metadata has an invalid shape.");
+  }
+  return metadata;
+}
+
 async function writePaymentIntentDiagnostic(pgEnv, outDir) {
   const diagnostic = parsePaymentIntentDiagnostic(
     await psql(pgEnv, PAYMENT_INTENT_DIAGNOSTIC_QUERY),
@@ -688,6 +709,33 @@ async function collectLiveRealtimeEvents(pgEnv) {
   return events;
 }
 
+async function collectRealtimePublicationMetadata(pgEnv) {
+  const metadata = parseRealtimePublicationMetadata(
+    await psql(
+      pgEnv,
+      `select jsonb_build_object(
+        'version', '${REALTIME_PUBLICATION_METADATA_VERSION}',
+        'publication', '${REALTIME_PUBLICATION.publication}',
+        'schema', '${REALTIME_PUBLICATION.schema}',
+        'table', '${REALTIME_PUBLICATION.table}',
+        'member', exists (
+          select 1
+          from pg_publication_tables
+          where pubname = '${REALTIME_PUBLICATION.publication}'
+            and schemaname = '${REALTIME_PUBLICATION.schema}'
+            and tablename = '${REALTIME_PUBLICATION.table}'
+        )
+      )::text;`,
+    ),
+  );
+  if (!metadata.member) {
+    throw new Error(
+      "The staging realtime projection table is not in supabase_realtime.",
+    );
+  }
+  return metadata;
+}
+
 async function collectRealtimeEventIds(pgEnv) {
   const raw = await psql(
     pgEnv,
@@ -710,6 +758,7 @@ async function createBackup(
   sourcePgEnv,
   expectedStaging,
   schemas,
+  realtimePublicationMetadata,
   env = process.env,
 ) {
   const backupDir =
@@ -744,6 +793,13 @@ async function createBackup(
   const listing = await runCommand("pg_restore", ["--list", backupPath]);
   if (!listing.stdout.includes("TABLE DATA"))
     throw new Error("Staging backup contains no table data entries.");
+  const publicationMetadataPath = `${backupPath}.publication.json`;
+  await writeFile(
+    publicationMetadataPath,
+    `${JSON.stringify(realtimePublicationMetadata, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+  await chmod(publicationMetadataPath, 0o600);
   return {
     backupDir,
     backupName,
@@ -751,6 +807,10 @@ async function createBackup(
     sizeBytes: info.size,
     sha256: await sha256File(backupPath),
     schemas,
+    publicationMetadata: {
+      path: publicationMetadataPath,
+      sha256: await sha256File(publicationMetadataPath),
+    },
   };
 }
 
@@ -866,6 +926,46 @@ async function restoreBackup(target, backup) {
     ],
     { env: postgresCommandEnv(target.pgEnv) },
   );
+  const publicationMetadataRaw = await readFile(
+    backup.publicationMetadata.path,
+    "utf8",
+  );
+  const publicationMetadataHash = createHash("sha256")
+    .update(publicationMetadataRaw)
+    .digest("hex");
+  if (publicationMetadataHash !== backup.publicationMetadata.sha256) {
+    throw new Error("Realtime publication metadata hash does not match.");
+  }
+  const publicationMetadata = parseRealtimePublicationMetadata(
+    publicationMetadataRaw,
+  );
+  if (!publicationMetadata.member) {
+    throw new Error(
+      "Realtime publication backup metadata does not record membership.",
+    );
+  }
+  const restoredMembership = await psql(
+    target.pgEnv,
+    `select count(*) from pg_publication_tables where pubname='${REALTIME_PUBLICATION.publication}' and schemaname='${REALTIME_PUBLICATION.schema}' and tablename='${REALTIME_PUBLICATION.table}';`,
+  );
+  if (restoredMembership === "0") {
+    await psql(
+      target.pgEnv,
+      `alter publication ${REALTIME_PUBLICATION.publication} add table ${REALTIME_PUBLICATION.schema}.${REALTIME_PUBLICATION.table};`,
+    );
+  } else if (restoredMembership !== "1") {
+    throw new Error("Unexpected realtime publication membership count.");
+  }
+  const verifiedMembership = await psql(
+    target.pgEnv,
+    `select count(*) from pg_publication_tables where pubname='${REALTIME_PUBLICATION.publication}' and schemaname='${REALTIME_PUBLICATION.schema}' and tablename='${REALTIME_PUBLICATION.table}';`,
+  );
+  if (verifiedMembership !== "1") {
+    throw new Error(
+      "Realtime publication metadata was not restored on the isolated copy.",
+    );
+  }
+  return { publicationMetadataRestored: true };
 }
 
 async function stopRestoreTarget(target) {
@@ -995,15 +1095,18 @@ export async function runPreflight(options, env = process.env) {
       );
     }
     const schemas = await listBackupSchemas(sourcePgEnv);
+    const realtimePublicationMetadata =
+      await collectRealtimePublicationMetadata(sourcePgEnv);
     const backup = await createBackup(
       sourcePgEnv,
       options.expectedStaging,
       schemas,
+      realtimePublicationMetadata,
       env,
     );
     const sourceCounts = await collectCriticalCounts(sourcePgEnv);
     restoreTarget = await startRestoreTarget(tempDir);
-    await restoreBackup(restoreTarget, backup);
+    const restoreMetadata = await restoreBackup(restoreTarget, backup);
     const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
     const liveRealtimeEventsBeforeMigration = await collectLiveRealtimeEvents(
@@ -1058,6 +1161,13 @@ export async function runPreflight(options, env = process.env) {
           sha256: backup.sha256,
           schemas: backup.schemas,
           uploadedToGitHub: false,
+          publicationMetadata: {
+            name: basename(backup.publicationMetadata.path),
+            sha256: backup.publicationMetadata.sha256,
+            sourceVerified: true,
+            appliedToRestore: restoreMetadata.publicationMetadataRestored,
+            uploadedToGitHub: false,
+          },
         },
         restore: {
           engine: "postgresql:17.10-unprivileged-local",
