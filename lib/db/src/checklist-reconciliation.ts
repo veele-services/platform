@@ -621,9 +621,9 @@ export async function finalizeAssignmentChecklists(input: {
     await lockAssignment(client, input.tenantId, input.assignmentId);
     const result = await client.query(
       `UPDATE public.assignment_checklists
-       SET status = $4,
-           completed_at = CASE WHEN $4 = 'completed' THEN COALESCE(completed_at, now()) ELSE NULL END,
-           cancelled_at = CASE WHEN $4 = 'cancelled' THEN COALESCE(cancelled_at, now()) ELSE NULL END,
+       SET status = $4::varchar,
+           completed_at = CASE WHEN $4::varchar = 'completed' THEN COALESCE(completed_at, now()) ELSE NULL END,
+           cancelled_at = CASE WHEN $4::varchar = 'cancelled' THEN COALESCE(cancelled_at, now()) ELSE NULL END,
            updated_by = $3,
            updated_at = now()
        WHERE tenant_id = $1 AND assignment_id = $2

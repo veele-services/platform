@@ -30,6 +30,11 @@ test("start and completion remain authoritative server-side gates", () => {
   assert.match(personnelActions, /blockingMoments: \["before_complete", "before_report_submit"\]/u);
   assert.match(personnelActions, /checklistIssues\.slice\(0, 3\).*issue\.message/su);
   assert.match(personnelActions, /finalizeAssignmentChecklists[\s\S]*outcome: "completed"/u);
+  assert.match(
+    reconciliation,
+    /SET status = \$4::varchar[\s\S]*CASE WHEN \$4::varchar = 'completed'[\s\S]*CASE WHEN \$4::varchar = 'cancelled'/u,
+    "terminal checklist updates must give the shared outcome parameter one explicit PostgreSQL type",
+  );
   assert.match(reconciliation, /Checklistwijzigingen wachten op beoordeling; starten is geblokkeerd/u);
   assert.match(reconciliation, /blockingMoment: "before_start"/u);
   assert.match(reportActions, /blockingMoment: "before_report_submit"/u);
