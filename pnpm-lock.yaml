@@ -740,6 +740,9 @@ importers:
 
   lib/db:
     dependencies:
+      '@workspace/website-core':
+        specifier: workspace:*
+        version: link:../website-core
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
@@ -784,6 +787,22 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
+  lib/website-core:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.6.2
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
