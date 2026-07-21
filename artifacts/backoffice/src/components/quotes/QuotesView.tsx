@@ -271,7 +271,7 @@ function QuoteRowActions({ row }: { row: QuoteRow }) {
       actions={[
         { id: "open", label: "Open offerte", href: `/quotes/${row.id}`, icon: <FileCheck2 className="h-4 w-4" /> },
         { id: "assignment", label: "Open opdracht", href: `/assignments/${row.assignmentId}`, icon: <TrendingUp className="h-4 w-4" /> },
-        { id: "pdf", label: "Download PDF", href: `/api/quotes/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
+        { id: "pdf", label: "Download PDF", href: `/backoffice-api/quotes/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
       ]}
     />
   );

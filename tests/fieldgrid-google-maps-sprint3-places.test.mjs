@@ -80,7 +80,7 @@ test("Address forms use autocomplete while typing and Place Details only after s
   assert.match(backofficeComponent, /endpointBase = "\/backoffice-api\/google-maps\/places"/u);
   assert.match(backofficeAutocompleteBridge, /@\/app\/api\/google-maps\/places\/autocomplete\/route/u);
   assert.match(backofficeDetailsBridge, /@\/app\/api\/google-maps\/places\/details\/route/u);
-  assert.match(apiBackofficeProxy, /\["\/invoices", "\/google-maps"\]/u);
+  assert.match(apiBackofficeProxy, /\["\/invoices", "\/quotes", "\/reports", "\/google-maps"\]/u);
   assert.match(apiBackofficeProxy, /res\.redirect\(307, target\)/u);
 
   for (const form of [personnelForm, objectForm, customerForm, pwaProfileForm, customerObjectForm]) {
