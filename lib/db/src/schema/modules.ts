@@ -28,6 +28,7 @@ export const FIELDGRID_MODULE_KEYS = [
   "smart_planning",
   "materials",
   "inventory",
+  "quality",
 ] as const;
 
 export const TENANT_MODULE_SOURCES = ["system", "plan", "manual", "trial", "support"] as const;

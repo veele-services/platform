@@ -21,6 +21,7 @@ type OfflineActionBase = {
     | "complete-assignment"
     | "not-complete-assignment"
     | "set-task-completion"
+    | "set-checklist-answer"
     | "add-report-note"
     | "add-extra-work"
     | "add-material-usage"
@@ -75,6 +76,17 @@ export type OfflineWorkOrderAction =
       taskId: string;
       payload: {
         completed: boolean;
+      };
+    })
+  | (OfflineActionBase & {
+      type: "set-checklist-answer";
+      checklistId: string;
+      itemId: string;
+      payload: {
+        value: unknown;
+        isDeviation?: boolean;
+        deviationNote?: string | null;
+        expectedRevision: number | null;
       };
     })
   | (OfflineActionBase & {
@@ -138,6 +150,8 @@ export type OfflineWorkOrderActionInput =
     & Pick<Extract<OfflineWorkOrderAction, { type: "not-complete-assignment" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "set-task-completion" }>, keyof OfflineActionBase>
     & Pick<Extract<OfflineWorkOrderAction, { type: "set-task-completion" }>, "type" | "assignmentId" | "taskId" | "payload"> & OfflineQueueOwnershipInput
+  | Omit<Extract<OfflineWorkOrderAction, { type: "set-checklist-answer" }>, keyof OfflineActionBase>
+    & Pick<Extract<OfflineWorkOrderAction, { type: "set-checklist-answer" }>, "type" | "assignmentId" | "checklistId" | "itemId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-report-note" }>, keyof OfflineActionBase>
     & Pick<Extract<OfflineWorkOrderAction, { type: "add-report-note" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, keyof OfflineActionBase>
@@ -194,6 +208,8 @@ function actionPayload(value: Record<string, unknown>) {
     expectedParticipantVersion: value.expectedParticipantVersion ?? null,
     payload: value.payload ?? null,
     taskId: value.taskId ?? null,
+    checklistId: value.checklistId ?? null,
+    itemId: value.itemId ?? null,
     type: value.type,
   };
 }
@@ -207,6 +223,8 @@ function actionIntent(value: Record<string, unknown>) {
     assignmentId: value.assignmentId,
     payload,
     taskId: value.taskId ?? null,
+    checklistId: value.checklistId ?? null,
+    itemId: value.itemId ?? null,
     type: value.type,
   };
 }
@@ -225,6 +243,9 @@ function dedupeFamily(action: OfflineWorkOrderAction) {
   if (action.type === "set-task-completion") {
     return `${action.assignmentId}:set-task-completion:${action.taskId}`;
   }
+  if (action.type === "set-checklist-answer") {
+    return `${action.assignmentId}:set-checklist-answer:${action.checklistId}:${action.itemId}`;
+  }
   if (action.type === "add-inventory-usage") {
     return `${action.assignmentId}:add-inventory-usage:${action.payload.inventoryItemId}`;
   }
@@ -242,6 +263,7 @@ function isActionType(value: unknown): value is OfflineWorkOrderAction["type"] {
     "complete-assignment",
     "not-complete-assignment",
     "set-task-completion",
+    "set-checklist-answer",
     "add-report-note",
     "add-extra-work",
     "add-material-usage",
@@ -317,8 +339,16 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
     if (typeof base.taskId !== "string" || !payload || typeof payload.completed !== "boolean") return null;
   }
 
+  if (base.type === "set-checklist-answer") {
+    const payload = base.payload && typeof base.payload === "object"
+      ? base.payload as Record<string, unknown>
+      : null;
+    if (typeof base.checklistId !== "string" || typeof base.itemId !== "string" || !payload) return null;
+    if (payload.expectedRevision !== null && typeof payload.expectedRevision !== "number") return null;
+  }
+
   if (
-    ["complete-assignment", "not-complete-assignment", "add-report-note", "add-extra-work", "add-material-usage", "add-inventory-usage"].includes(
+    ["complete-assignment", "not-complete-assignment", "set-checklist-answer", "add-report-note", "add-extra-work", "add-material-usage", "add-inventory-usage"].includes(
       base.type,
     ) && (!base.payload || typeof base.payload !== "object")
   ) {

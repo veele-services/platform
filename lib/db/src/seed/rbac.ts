@@ -41,6 +41,12 @@ const ALL_PERMISSIONS: { resource: string; action: string; description: string }
   { resource: "assignments", action: "delete",  description: "Delete assignments" },
   { resource: "assignments", action: "approve", description: "Approve assignment quotes" },
 
+  { resource: "checklists", action: "read", description: "View checklist templates, bindings and assignment snapshots" },
+  { resource: "checklists", action: "respond", description: "Complete assigned checklist answers and evidence" },
+  { resource: "checklists", action: "write", description: "Create and edit checklist drafts and bindings" },
+  { resource: "checklists", action: "publish", description: "Publish immutable checklist versions" },
+  { resource: "checklists", action: "review", description: "Review reconciliation changes and waivers" },
+
   { resource: "planning",    action: "read",    description: "View planning board" },
   { resource: "planning",    action: "write",   description: "Schedule and re-schedule assignments" },
 
@@ -89,6 +95,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "customers:read", "customers:write", "customers:delete",
     "objects:read", "objects:write", "objects:delete",
     "assignments:read", "assignments:write", "assignments:approve",
+    "checklists:read", "checklists:write", "checklists:publish", "checklists:review",
     "planning:read", "planning:write",
     "personnel:read", "personnel:write",
     "task_codes:read", "task_codes:write",
@@ -105,6 +112,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "customers:read",
     "objects:read",
     "assignments:read", "assignments:write",
+    "checklists:read", "checklists:review",
     "planning:read", "planning:write",
     "personnel:read",
     "task_codes:read",
@@ -115,6 +123,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   "Teamlead": [
     "dashboard:read",
     "assignments:read", "assignments:write",
+    "checklists:read", "checklists:review", "checklists:respond",
     "planning:read",
     "personnel:read",
     "reports:read", "reports:submit",
@@ -124,12 +133,14 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   "Employee": [
     "dashboard:read",
     "assignments:read",
+    "checklists:read", "checklists:respond",
     "reports:read", "reports:submit",
     "documents:read",
   ],
 
   "Flex Employee": [
     "assignments:read",
+    "checklists:read", "checklists:respond",
     "reports:read", "reports:submit",
     "documents:read",
   ],

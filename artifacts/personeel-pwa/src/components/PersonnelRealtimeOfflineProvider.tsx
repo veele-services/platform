@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CloudOff, RefreshCcw, Wifi, X } from "lucide-react";
-import { completeAssignment, markAssignmentEnRoute, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
+import { completeAssignment, markAssignmentEnRoute, notCompleteAssignment, setAssignmentChecklistAnswer, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
 import { addExtraWork } from "@/actions/extra-work";
 import { addInventoryUsage } from "@/actions/inventory";
 import { addMaterialUsage } from "@/actions/materials";
@@ -96,6 +96,13 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "set-task-completion") {
     return setAssignmentTaskCompletion(action.assignmentId, action.taskId, action.payload.completed, {
       expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
+  }
+
+  if (action.type === "set-checklist-answer") {
+    return setAssignmentChecklistAnswer(action.assignmentId, action.checklistId, action.itemId, {
+      ...action.payload,
       clientMutationId: action.idempotencyKey,
     });
   }

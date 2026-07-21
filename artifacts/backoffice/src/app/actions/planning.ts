@@ -25,6 +25,7 @@ import {
   type AssignmentStatus,
   buildAssignmentTimeProjection,
   transitionAssignmentStaffing,
+  reconcileAssignmentChecklistsRecoverably,
 } from "@workspace/db";
 import {
   asc,
@@ -2193,6 +2194,13 @@ export async function unassignPersonnel(
       reason: normalizedReason,
       expectedVersion,
     });
+    await reconcileAssignmentChecklistsRecoverably({
+      tenantId,
+      assignmentId,
+      trigger: "assignment_staffing_changed",
+      idempotencyKey: `assignment-staffing:${staffing.assignmentPersonnelId}:${staffing.lifecycleVersion}`,
+      actorUserId: user.id,
+    });
 
     await safeRefreshPlanningRoutesForAssignment({
       tenantId,
@@ -2271,6 +2279,13 @@ async function rebalancePersonnelDaySchedule(params: {
           actorUserId: params.actorUserId,
           action: "unassign",
           reason: "Automatische herplanning: inzet valt buiten het beschikbaarheidsvenster.",
+        });
+        await reconcileAssignmentChecklistsRecoverably({
+          tenantId: params.tenantId,
+          assignmentId: row.assignmentId,
+          trigger: "assignment_staffing_changed",
+          idempotencyKey: `assignment-staffing:${staffing.assignmentPersonnelId}:${staffing.lifecycleVersion}`,
+          actorUserId: params.actorUserId,
         });
 
         if (staffing.assignedCount === 0) {
@@ -2950,6 +2965,14 @@ export async function scheduleAssignmentOnBoard(
     .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
   nextStatus = (projectedAssignment?.status ?? assignment.status) as AssignmentStatus;
+
+  await reconcileAssignmentChecklistsRecoverably({
+    tenantId,
+    assignmentId,
+    trigger: "assignment_scheduled",
+    idempotencyKey: `planning-board:${assignmentId}:${assignment.updatedAt.toISOString()}`,
+    actorUserId: user.id,
+  });
 
   await safeRefreshPlanningRoutesForAssignment({
     tenantId,
