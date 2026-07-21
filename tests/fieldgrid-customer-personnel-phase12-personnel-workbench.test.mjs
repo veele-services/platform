@@ -6,31 +6,32 @@ function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("phase 12 adds a personnel planning command bar with filters and view modes", () => {
+test("personnel planning keeps the date strip and removes the secondary filter container", () => {
   const planningPage = read("artifacts/personeel-pwa/src/app/(app)/opdrachten/page.tsx");
 
-  for (const marker of [
-    "type PlanningStatusFilter",
-    "type PlanningViewMode",
+  for (const marker of ["PlanningWeekStrip", "buildPlanningHref", "getPlanningDays"]) {
+    assert.match(planningPage, new RegExp(marker, "u"));
+  }
+  for (const removedMarker of [
     "function PlanningCommandBar",
     'name="q"',
-    'name="date"',
     'name="status"',
     'name="view"',
-    "filterAssignments",
-    "buildPlanningHref",
+    "werkbonnen zichtbaar",
   ]) {
-    assert.match(planningPage, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "u"));
+    assert.doesNotMatch(planningPage, new RegExp(removedMarker, "u"));
   }
 });
 
-test("phase 12 keeps planning cards compact and status-led on tablet and desktop", () => {
+test("planning cards show one effective time with the work order number below and status alongside", () => {
   const planningPage = read("artifacts/personeel-pwa/src/app/(app)/opdrachten/page.tsx");
 
-  assert.match(planningPage, /viewMode === "compact"/u);
-  assert.match(planningPage, /md:grid-cols-\[9rem_minmax\(0,1fr\)_8rem\]/u);
+  assert.match(planningPage, /justify-between gap-3/u);
+  assert.match(planningPage, /formatTime\(assignment\.effectiveStart, assignment\.effectiveEnd\)/u);
+  assert.match(planningPage, /assignment\.code \|\| "Werkbon"/u);
   assert.match(planningPage, /md:grid-cols-2 xl:grid-cols-3/u);
   assert.match(planningPage, /StatusPill/u);
+  assert.doesNotMatch(planningPage, /Werkelijk|Gepland/u);
 });
 
 test("phase 12 builds the work order detail as a tablet desktop workbench", () => {

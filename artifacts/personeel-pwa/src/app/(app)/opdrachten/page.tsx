@@ -1,22 +1,17 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { CalendarDays, ChevronRight, LayoutList, Search, SlidersHorizontal } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
 import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWeekStrip";
 import { RealtimeStatusDot } from "@/components/RealtimeStatusDot";
 import { FAILED_FINAL_STATUSES, FINISHED_STATUSES } from "./[id]/work-order-data";
 
 type PlanningStatus = "NIEUW" | "GEZIEN" | "ONDERWEG" | "GESTART" | "AFGEROND" | "NIET AFGEROND";
-type PlanningStatusFilter = "all" | "open" | "en_route" | "in_progress" | "completed" | "not_completed";
-type PlanningViewMode = "cards" | "compact";
 
 type Props = {
   searchParams: Promise<{
     date?: string;
-    q?: string;
-    status?: string;
-    view?: string;
   }>;
 };
 
@@ -33,14 +28,6 @@ const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
 const DAYS_BEFORE_SELECTED = 14;
 const TOTAL_PLANNING_DAYS = 35;
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const STATUS_FILTERS: Array<{ value: PlanningStatusFilter; label: string }> = [
-  { value: "all", label: "Alle statussen" },
-  { value: "open", label: "Open" },
-  { value: "en_route", label: "Onderweg" },
-  { value: "in_progress", label: "Gestart" },
-  { value: "completed", label: "Afgerond" },
-  { value: "not_completed", label: "Niet afgerond" },
-];
 
 function todayKey(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -68,20 +55,11 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function buildPlanningHref(dateKey: string, query: string, status: PlanningStatusFilter, view: PlanningViewMode): string {
-  const params = new URLSearchParams({ date: dateKey });
-  if (query) params.set("q", query);
-  if (status !== "all") params.set("status", status);
-  if (view !== "cards") params.set("view", view);
-  return `/opdrachten?${params.toString()}`;
+function buildPlanningHref(dateKey: string): string {
+  return `/opdrachten?date=${encodeURIComponent(dateKey)}`;
 }
 
-function getPlanningDays(
-  selectedDateKey: string,
-  query: string,
-  status: PlanningStatusFilter,
-  view: PlanningViewMode,
-): PlanningWeekDay[] {
+function getPlanningDays(selectedDateKey: string): PlanningWeekDay[] {
   const selectedDate = parseDateKey(selectedDateKey);
   const firstDate = new Date(selectedDate);
   firstDate.setUTCDate(selectedDate.getUTCDate() - DAYS_BEFORE_SELECTED);
@@ -96,7 +74,7 @@ function getPlanningDays(
       label:    DAY_LABELS[date.getUTCDay()],
       day:      date.getUTCDate(),
       isActive: key === selectedDateKey,
-      href:     buildPlanningHref(key, query, status, view),
+      href:     buildPlanningHref(key),
     };
   });
 }
@@ -121,18 +99,6 @@ function timeValue(value: string | null): string {
   return value?.slice(0, 5) ?? "99:99";
 }
 
-function normalizeQuery(value: string | undefined): string {
-  return value?.trim().slice(0, 80) ?? "";
-}
-
-function normalizeStatusFilter(value: string | undefined): PlanningStatusFilter {
-  return STATUS_FILTERS.some((option) => option.value === value) ? value as PlanningStatusFilter : "all";
-}
-
-function normalizeViewMode(value: string | undefined): PlanningViewMode {
-  return value === "compact" ? "compact" : "cards";
-}
-
 function getPlanningStatus(assignment: MyAssignment): PlanningStatus {
   if (FAILED_FINAL_STATUSES.has(assignment.status)) return "NIET AFGEROND";
   if (FINISHED_STATUSES.has(assignment.status)) return "AFGEROND";
@@ -140,45 +106,6 @@ function getPlanningStatus(assignment: MyAssignment): PlanningStatus {
   if (assignment.status === "en_route") return "ONDERWEG";
   if (assignment.status === "seen" || assignment.seenAt) return "GEZIEN";
   return "NIEUW";
-}
-
-function matchesStatusFilter(assignment: MyAssignment, statusFilter: PlanningStatusFilter): boolean {
-  if (statusFilter === "all") return true;
-  if (statusFilter === "completed") return FINISHED_STATUSES.has(assignment.status);
-  if (statusFilter === "not_completed") return FAILED_FINAL_STATUSES.has(assignment.status);
-  if (statusFilter === "en_route") return assignment.status === "en_route";
-  if (statusFilter === "in_progress") return assignment.status === "in_progress";
-  return !FINISHED_STATUSES.has(assignment.status)
-    && !FAILED_FINAL_STATUSES.has(assignment.status)
-    && assignment.status !== "in_progress";
-}
-
-function matchesSearchQuery(assignment: MyAssignment, query: string): boolean {
-  if (!query) return true;
-  const haystack = [
-    assignment.code,
-    assignment.title,
-    assignment.customerName,
-    assignment.contactName,
-    assignment.objectName,
-    assignment.objectAddress,
-    assignment.objectCity,
-    assignment.objectPostalCode,
-    assignment.phone,
-  ].filter(Boolean).join(" ").toLocaleLowerCase("nl-NL");
-
-  return haystack.includes(query.toLocaleLowerCase("nl-NL"));
-}
-
-function filterAssignments(
-  assignments: MyAssignment[],
-  query: string,
-  statusFilter: PlanningStatusFilter,
-): MyAssignment[] {
-  return assignments.filter((assignment) => (
-    matchesStatusFilter(assignment, statusFilter)
-    && matchesSearchQuery(assignment, query)
-  ));
 }
 
 function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boolean {
@@ -200,7 +127,7 @@ function StatusPill({ status }: { status: PlanningStatus }) {
 
   return (
     <span
-      className="rounded-lg px-2.5 py-1 text-[11px] font-black tracking-wide"
+      className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-black tracking-wide"
       style={{ backgroundColor: style.background, color: style.color }}
     >
       {status}
@@ -208,126 +135,12 @@ function StatusPill({ status }: { status: PlanningStatus }) {
   );
 }
 
-function PlanningCommandBar({
-  selectedDateKey,
-  query,
-  statusFilter,
-  viewMode,
-  filteredCount,
-  totalCount,
-}: {
-  selectedDateKey: string;
-  query:           string;
-  statusFilter:    PlanningStatusFilter;
-  viewMode:        PlanningViewMode;
-  filteredCount:   number;
-  totalCount:      number;
-}) {
-  return (
-    <form
-      action="/opdrachten"
-      className="rounded-[18px] bg-white p-3 shadow-sm xl:grid xl:grid-cols-[1fr_11rem_12rem_10rem_auto] xl:items-end xl:gap-3"
-      style={{ boxShadow: "0 12px 28px rgba(8,29,58,0.06)" }}
-    >
-      <div>
-        <label htmlFor="planning-search" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-          Zoeken
-        </label>
-        <div className="flex items-center gap-2 rounded-2xl border bg-white px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
-          <Search size={16} strokeWidth={2.4} style={{ color: "var(--color-muted-fg)" }} />
-          <input
-            id="planning-search"
-            name="q"
-            defaultValue={query}
-            placeholder="Werkbon, klant, object..."
-            className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-slate-400"
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 xl:mt-0">
-        <label htmlFor="planning-date" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-          Datum
-        </label>
-        <input
-          id="planning-date"
-          name="date"
-          type="date"
-          defaultValue={selectedDateKey}
-          className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-black outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-        />
-      </div>
-
-      <div className="mt-3 xl:mt-0">
-        <label htmlFor="planning-status" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-          Status
-        </label>
-        <select
-          id="planning-status"
-          name="status"
-          defaultValue={statusFilter}
-          className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-black outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-        >
-          {STATUS_FILTERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mt-3 xl:mt-0">
-        <label htmlFor="planning-view" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-          Weergave
-        </label>
-        <select
-          id="planning-view"
-          name="view"
-          defaultValue={viewMode}
-          className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-black outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-        >
-          <option value="cards">Kaarten</option>
-          <option value="compact">Compact</option>
-        </select>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 xl:mt-0">
-        <button
-          type="submit"
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-black text-white xl:flex-none"
-          style={{ backgroundColor: "var(--color-accent)" }}
-        >
-          <SlidersHorizontal size={16} strokeWidth={2.5} />
-          Filter
-        </button>
-        <Link
-          href="/opdrachten"
-          className="inline-flex h-11 items-center justify-center rounded-2xl border px-3 text-[13px] font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
-        >
-          Reset
-        </Link>
-      </div>
-
-      <p className="mt-3 flex items-center gap-2 text-[12px] font-bold xl:col-span-full xl:mt-0" style={{ color: "var(--color-secondary)" }}>
-        <LayoutList size={14} strokeWidth={2.3} />
-        {filteredCount} van {totalCount} werkbonnen zichtbaar
-      </p>
-    </form>
-  );
-}
-
 function PlanningCard({
   assignment,
   selectedDateKey,
-  viewMode,
 }: {
   assignment: MyAssignment;
   selectedDateKey: string;
-  viewMode: PlanningViewMode;
 }) {
   const status = getPlanningStatus(assignment);
   const objectName = assignment.objectName || assignment.title || "Object nog niet bekend";
@@ -335,41 +148,35 @@ function PlanningCard({
   const postalCity = [assignment.objectPostalCode, assignment.objectCity].filter(Boolean).join(" ");
   const address = assignment.objectAddress || "Adres niet bekend";
   const phone = assignment.phone || "Telefoonnummer niet bekend";
-  const isCompact = viewMode === "compact";
-  const hasActualTime = Boolean(assignment.actualStart || assignment.actualEnd);
 
   return (
     <Link
       href={`/opdrachten/${assignment.id}`}
-      className={`relative block rounded-[18px] bg-white px-4 shadow-sm active:scale-[0.99] ${isCompact ? "py-3 md:pr-12" : "py-3.5"}`}
+      className="relative block rounded-[18px] bg-white px-4 py-3 shadow-sm active:scale-[0.99]"
       aria-label={`Bekijk werkbon ${assignment.code || assignment.title}`}
       style={{ boxShadow: "0 10px 24px rgba(8,29,58,0.06)" }}
     >
-      <div className={isCompact ? "md:grid md:grid-cols-[9rem_minmax(0,1fr)_8rem] md:items-center md:gap-4" : ""}>
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[12px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+          <p className="whitespace-nowrap text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
+            {formatTime(assignment.effectiveStart, assignment.effectiveEnd)}
+          </p>
+          <p className="mt-1.5 truncate font-mono text-[12px] font-black leading-tight" style={{ color: "var(--color-secondary)" }}>
             {assignment.code || "Werkbon"}
           </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <p className="text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
-              {hasActualTime ? "Werkelijk " : ""}{formatTime(assignment.effectiveStart, assignment.effectiveEnd)}
-            </p>
-            {hasActualTime ? (
-              <p className="w-full text-[11px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Gepland {formatTime(assignment.scheduledStart, assignment.scheduledEnd)}
-              </p>
-            ) : null}
-            {isAssignmentNow(assignment, selectedDateKey) ? (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase" style={{ color: "var(--color-accent)" }}>
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
-                Nu
-              </span>
-            ) : null}
-          </div>
         </div>
+        <StatusPill status={status} />
+      </div>
 
-        <div className={isCompact ? "mt-2 min-w-0 pr-8 md:mt-0 md:pr-0" : "mt-2 pr-8"}>
-        <h2 className={`${isCompact ? "text-[15px]" : "text-[16px]"} font-black leading-tight`} style={{ color: "var(--color-primary)" }}>
+      {isAssignmentNow(assignment, selectedDateKey) ? (
+        <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-black uppercase" style={{ color: "var(--color-accent)" }}>
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
+          Nu
+        </span>
+      ) : null}
+
+      <div className="mt-2 min-w-0 pr-8">
+        <h2 className="text-[16px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
           {objectName}
         </h2>
         <p className="mt-1 text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
@@ -386,11 +193,6 @@ function PlanningCard({
         <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
           {phone}
         </p>
-        </div>
-
-        <div className={isCompact ? "mt-3 md:mt-0 md:flex md:justify-end" : "absolute right-12 top-3.5"}>
-          <StatusPill status={status} />
-        </div>
       </div>
 
       <ChevronRight
@@ -404,24 +206,17 @@ function PlanningCard({
 }
 
 export default async function OpdrachtenPage({ searchParams }: Props) {
-  const { date, q, status, view } = await searchParams;
+  const { date } = await searchParams;
   const selectedDateKey = isValidDateKey(date) ? date : todayKey();
-  const query = normalizeQuery(q);
-  const statusFilter = normalizeStatusFilter(status);
-  const viewMode = normalizeViewMode(view);
-  const planningDays = getPlanningDays(selectedDateKey, query, statusFilter, viewMode);
+  const planningDays = getPlanningDays(selectedDateKey);
   const assignments = await getMyAssignments();
-  const filteredAssignments = filterAssignments(assignments, query, statusFilter);
-  const selectedAssignments = filteredAssignments
+  const selectedAssignments = assignments
     .filter((assignment) => assignment.scheduledDate === selectedDateKey)
     .sort((a, b) => timeValue(a.effectiveStart).localeCompare(timeValue(b.effectiveStart)));
-  const unscheduledAssignments = filteredAssignments
+  const unscheduledAssignments = assignments
     .filter((assignment) => !assignment.scheduledDate)
     .sort((a, b) => a.code.localeCompare(b.code));
-  const filteredTotal = selectedAssignments.length + unscheduledAssignments.length;
-  const selectedListClassName = viewMode === "compact"
-    ? "space-y-2"
-    : "grid gap-3 md:grid-cols-2 xl:grid-cols-3";
+  const selectedListClassName = "grid gap-3 md:grid-cols-2 xl:grid-cols-3";
 
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
@@ -443,15 +238,6 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
       </section>
 
       <section className="space-y-4 px-3.5 pb-28 pt-3 md:px-5">
-        <PlanningCommandBar
-          selectedDateKey={selectedDateKey}
-          query={query}
-          statusFilter={statusFilter}
-          viewMode={viewMode}
-          filteredCount={filteredTotal}
-          totalCount={assignments.length}
-        />
-
         {selectedAssignments.length > 0 ? (
           <div className={selectedListClassName}>
             {selectedAssignments.map((assignment) => (
@@ -459,7 +245,6 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
                 key={assignment.id}
                 assignment={assignment}
                 selectedDateKey={selectedDateKey}
-                viewMode={viewMode}
               />
             ))}
           </div>
@@ -491,7 +276,6 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
                   key={assignment.id}
                   assignment={assignment}
                   selectedDateKey={selectedDateKey}
-                  viewMode={viewMode}
                 />
               ))}
             </div>

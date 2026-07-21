@@ -31,7 +31,7 @@ test("phase 11 keeps mobile bottom navigation compact and work-floor focused", (
   const bottomNav = read("artifacts/personeel-pwa/src/components/BottomNav.tsx");
   const labels = [...bottomNav.matchAll(/label: "([^"]+)"/gu)].map((match) => match[1]);
 
-  assert.deepEqual(labels, ["Home", "Planning", "Uren", "Berichten", "Meer"]);
+  assert.deepEqual(labels, ["Home", "Uren", "Planning", "Berichten", "Meer"]);
   assert.match(bottomNav, /href: "\/berichten"/u);
   assert.match(bottomNav, /match: \["\/berichten", "\/meldingen"\]/u);
   assert.doesNotMatch(bottomNav, /label: "Nieuws"/u);
