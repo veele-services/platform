@@ -8,12 +8,15 @@ import {
   BACKUP_SCHEMAS,
   CRITICAL_RELATIONS,
   EXPECTED_STAGING_PROJECT_REF,
+  PAYMENT_INTENT_DIAGNOSTIC_QUERY,
+  PAYMENT_INTENT_DIAGNOSTIC_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
   assertMatchingCounts,
   isAllowedRouteStatus,
   isFullSha,
   parseArgs,
+  parsePaymentIntentDiagnostic,
   parsePostgresEnv,
   sanitizePublicUrl,
   validateRuntimeConfig,
@@ -152,6 +155,33 @@ test("restored critical data must be exactly count-equal", () => {
   );
 });
 
+test("payment duplicate diagnostics are read-only, secret-free and shape-checked", () => {
+  assert.match(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /select jsonb_build_object/iu);
+  assert.match(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /recordedPhase2c1Migrations/iu);
+  assert.match(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /duplicateSources/iu);
+  assert.match(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /hasMolliePaymentId/iu);
+  assert.match(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /allocationCount/iu);
+  assert.doesNotMatch(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /'molliePaymentId'/iu);
+  assert.doesNotMatch(PAYMENT_INTENT_DIAGNOSTIC_QUERY, /'checkoutUrl'/iu);
+  assert.doesNotMatch(
+    PAYMENT_INTENT_DIAGNOSTIC_QUERY,
+    /\b(update|delete|insert|alter|drop)\b/iu,
+  );
+
+  const parsed = parsePaymentIntentDiagnostic(
+    JSON.stringify({
+      version: PAYMENT_INTENT_DIAGNOSTIC_VERSION,
+      recordedPhase2c1Migrations: [],
+      duplicateSources: [],
+    }),
+  );
+  assert.deepEqual(parsed.duplicateSources, []);
+  assert.throws(
+    () => parsePaymentIntentDiagnostic('{"version":"wrong"}'),
+    /invalid shape/iu,
+  );
+});
+
 test("manual workflow is staging-only and never promotes or uploads the database dump", () => {
   const workflow = read(".github/workflows/phase2e-staging-preflight.yml");
   for (const marker of [
@@ -215,6 +245,14 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
+  const diagnosticWrite = script.lastIndexOf("writePaymentIntentDiagnostic(");
+  const migrationRehearsal = script.indexOf(
+    "runMigrationRehearsal(\n      restoreTarget",
+  );
+  assert.ok(diagnosticWrite >= 0);
+  assert.ok(diagnosticWrite < migrationRehearsal);
+  assert.match(script, /providerIdentifiersRecorded: false/u);
+  assert.match(script, /checkoutUrlsRecorded: false/u);
   assert.match(script, /promotionPerformed: false/u);
   assert.doesNotMatch(script, /git", \["push"|gh pr merge|production/u);
 });
