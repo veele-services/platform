@@ -20,6 +20,7 @@ export type AssignmentView = Pick<
   | "completionNotes"
   | "customerSignatureRequired"
   | "customerSignatureDataUrl"
+  | "customerSignedAt"
   | "status"
   | "participantStatus"
   | "participantVersion"

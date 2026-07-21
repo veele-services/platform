@@ -27,6 +27,10 @@ import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
 } from "@/lib/auth/tenant";
+import {
+  getBackofficeProfileName,
+  requiresBackofficeProfileName,
+} from "@/lib/auth/backoffice-profile";
 import type { CSSProperties } from "react";
 
 function NoActiveTenantAccess() {
@@ -128,6 +132,9 @@ export default async function DashboardLayout({
   if (!user) {
     redirect("/login");
   }
+  if (requiresBackofficeProfileName(user)) {
+    redirect("/profiel-instellen");
+  }
 
   const [tenantOptions, currentTenantId] = await Promise.all([
     getActiveBackofficeTenantsForUser(user.id),
@@ -162,7 +169,8 @@ export default async function DashboardLayout({
   ]);
 
   const userEmail   = user.email ?? "";
-  const userInitial = (userEmail[0] ?? "U").toUpperCase();
+  const userName    = getBackofficeProfileName(user) ?? userEmail;
+  const userInitial = (userName[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
   const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
   const planningMapEnabled = isPlanningDayMapEnabled();
@@ -196,6 +204,7 @@ export default async function DashboardLayout({
             <div className="flex flex-col flex-1 overflow-hidden min-w-0">
               <DashboardHeader
                 userEmail={userEmail}
+                userName={userName}
                 userInitial={userInitial}
                 userRole={userRole}
                 currentTenantId={tenantId}

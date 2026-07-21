@@ -6,6 +6,7 @@ import { getActiveTaskCodes, getExtraWorkForAssignment } from "@/actions/extra-w
 import { WorkOrderHeader } from "../WorkOrderHeader";
 import { ExtraWorkEditor } from "../ExtraWorkEditor";
 import { type AssignmentView } from "../work-order-data";
+import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -32,7 +33,8 @@ export default async function MeerwerkPage({ params }: Props) {
     getActiveTaskCodes(),
   ]);
 
-  const canEdit = !LOCKED_MEERWERK_STATUSES.has(assignment.status);
+  const canEdit = !personnelWorkOrderIsSigned(assignment)
+    && !LOCKED_MEERWERK_STATUSES.has(assignment.status);
 
   return (
     <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">

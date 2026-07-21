@@ -79,7 +79,7 @@ function backofficeApiRedirectTarget(req: Request): string {
   return req.originalUrl.replace(/^\/api(?=\/)/u, "/backoffice-api");
 }
 
-router.use(["/invoices", "/google-maps"], (req, res): void => {
+router.use(["/invoices", "/quotes", "/reports", "/google-maps"], (req, res): void => {
   const target = backofficeApiRedirectTarget(req);
   req.log.info(
     { target },

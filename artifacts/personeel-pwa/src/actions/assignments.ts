@@ -22,6 +22,10 @@ import {
   normalizeOfflineServerActionError,
   permanentOfflineActionFailure,
 } from "@/lib/offline/offline-action-errors.server";
+import {
+  personnelWorkOrderIsSigned,
+  SIGNED_WORK_ORDER_LOCK_MESSAGE,
+} from "@/lib/work-order-lock";
 import { and, eq, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
@@ -46,6 +50,7 @@ export type MyAssignment = {
   completionNotes:  string | null;
   customerSignatureRequired: boolean;
   customerSignatureDataUrl: string | null;
+  customerSignedAt:  string | null;
   status:           string;
   participantStatus: string | null;
   participantVersion: number | null;
@@ -82,6 +87,8 @@ type LinkedAssignment = {
   actualStartedAt:           Date | null;
   actualCompletedAt:         Date | null;
   customerSignatureRequired: boolean;
+  customerSignatureDataUrl:   string | null;
+  customerSignedAt:            Date | null;
 };
 
 type AssignmentRow = {
@@ -99,6 +106,7 @@ type AssignmentRow = {
   completionNotes: string | null;
   customerSignatureRequired: boolean;
   customerSignatureDataUrl: string | null;
+  customerSignedAt: Date | string | null;
   status: string;
   participantStatus: string | null;
   participantVersion: number | null;
@@ -198,6 +206,7 @@ function mapAssignmentRow(row: AssignmentRow): MyAssignment {
     completionNotes:  row.completionNotes ?? null,
     customerSignatureRequired: Boolean(row.customerSignatureRequired),
     customerSignatureDataUrl: row.customerSignatureDataUrl ?? null,
+    customerSignedAt:  toIsoString(row.customerSignedAt),
     status:           row.status,
     participantStatus: row.participantStatus ?? null,
     participantVersion: row.participantVersion ?? null,
@@ -250,6 +259,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
       completionNotes: assignmentsTable.completionNotes,
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+      customerSignedAt: assignmentsTable.customerSignedAt,
       status: assignmentsTable.status,
       participantStatus: assignmentParticipantExecutionsTable.participantStatus,
       participantVersion: assignmentParticipantExecutionsTable.version,
@@ -310,6 +320,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
       completionNotes: assignmentsTable.completionNotes,
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+      customerSignedAt: assignmentsTable.customerSignedAt,
       status: assignmentsTable.status,
       participantStatus: assignmentParticipantExecutionsTable.participantStatus,
       participantVersion: assignmentParticipantExecutionsTable.version,
@@ -396,6 +407,8 @@ async function getLinkedAssignment(
       actualStartedAt:           assignmentsTable.actualStartedAt,
       actualCompletedAt:         assignmentsTable.actualCompletedAt,
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
+      customerSignatureDataUrl:  assignmentsTable.customerSignatureDataUrl,
+      customerSignedAt:           assignmentsTable.customerSignedAt,
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
@@ -497,6 +510,9 @@ async function setAssignmentStatusInternal(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
+  if (personnelWorkOrderIsSigned(current)) {
+    return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+  }
 
   const currentStatus = current.participantStatus ?? current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
@@ -621,6 +637,9 @@ async function setAssignmentTaskCompletionInternal(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
+  if (personnelWorkOrderIsSigned(current)) {
+    return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+  }
   if (["report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(current.status)) {
     return permanentOfflineActionFailure("Deze werkbon is afgesloten voor wijzigingen", "business_rule_rejected");
   }
@@ -701,6 +720,12 @@ async function completeAssignmentInternal(
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
   const currentStatus = current.participantStatus ?? current.status;
+  if (personnelWorkOrderIsSigned(current)) {
+    if (currentStatus === "completed" && input.clientMutationId) {
+      return { success: true, participantVersion: current.participantVersion ?? 1 };
+    }
+    return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+  }
   if (currentStatus === "completed" && !input.clientMutationId) {
     revalidateAssignmentPaths(assignmentId);
     return { success: true, participantVersion: current.participantVersion ?? 1 };
@@ -795,6 +820,9 @@ async function notCompleteAssignmentInternal(
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
   const currentStatus = current.participantStatus ?? current.status;
+  if (personnelWorkOrderIsSigned(current)) {
+    return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+  }
   if (currentStatus === "not_completed" && !input.clientMutationId) {
     revalidateAssignmentPaths(assignmentId);
     return { success: true, participantVersion: current.participantVersion ?? 1 };

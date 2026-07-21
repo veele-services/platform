@@ -16,6 +16,10 @@ import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
 } from "@/lib/offline/work-order-queue";
+import {
+  personnelWorkOrderIsSigned,
+  SIGNED_WORK_ORDER_LOCK_MESSAGE,
+} from "@/lib/work-order-lock";
 import { InteractiveStatusProgress } from "./WorkOrderStatusProgress";
 import {
   calculateExtraWorkLineTotal,
@@ -269,6 +273,7 @@ export function TaskChecklistCard({
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const isLocked = personnelWorkOrderIsSigned(assignment);
   const completedCount = useMemo(
     () => tasks.filter((task) => Boolean(task.completedAt)).length,
     [tasks],
@@ -290,6 +295,10 @@ export function TaskChecklistCard({
   function toggleTask(taskId: string, completed: boolean) {
     setError(null);
     setNotice(null);
+    if (isLocked) {
+      setError(SIGNED_WORK_ORDER_LOCK_MESSAGE);
+      return;
+    }
     setLocalTask(taskId, completed);
 
     if (isOfflineNow()) {
@@ -341,6 +350,14 @@ export function TaskChecklistCard({
           {completedCount} van {tasks.length} afgerond
         </span>
       </div>
+      {isLocked ? (
+        <p
+          className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold"
+          style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+        >
+          {SIGNED_WORK_ORDER_LOCK_MESSAGE}.
+        </p>
+      ) : null}
       {notice ? (
         <p
           className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold"
@@ -362,7 +379,7 @@ export function TaskChecklistCard({
         {tasks.length > 0 ? (
           tasks.map((task) => {
             const isDone = Boolean(task.completedAt);
-            const disabled = isPending && pendingTaskId === task.id;
+            const disabled = isLocked || (isPending && pendingTaskId === task.id);
 
             return (
               <button

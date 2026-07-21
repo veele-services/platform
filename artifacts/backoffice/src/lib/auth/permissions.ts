@@ -24,6 +24,7 @@ import {
   getCurrentSupportModeFromRequest,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
+import { requiresBackofficeProfileName } from "@/lib/auth/backoffice-profile";
 
 async function enabledModulesForPermissions(
   permissions: Set<string>,
@@ -206,6 +207,7 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Set();
+  if (requiresBackofficeProfileName(user)) return new Set();
 
   const tenantId = await getCurrentTenantId();
   if (!tenantId) return new Set();
@@ -226,6 +228,7 @@ export async function getCurrentUserPermissionsFromRequest(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Set();
+  if (requiresBackofficeProfileName(user)) return new Set();
 
   const tenantId = await getCurrentTenantIdFromRequest(request);
   if (!tenantId) return new Set();
@@ -290,6 +293,59 @@ export async function hasPermissionFromRequest(
     permissions.has(`${resource}:${action}`) &&
     (await hasEnabledPermissionModuleForTenant(resource, tenantId))
   );
+}
+
+export type PermissionRequirement = {
+  resource: string;
+  action: string;
+};
+
+/**
+ * Check several alternative permissions for an already authenticated request.
+ *
+ * Route handlers commonly need to allow one operation from several modules.
+ * Calling `hasPermissionFromRequest` once per alternative repeats Supabase
+ * session validation and tenant resolution for every entry. Autocomplete calls
+ * are especially sensitive to that fan-out because they run while typing.
+ * This helper reuses the authenticated user and tenant context supplied by the
+ * route, loads the permission set once and checks only the relevant modules.
+ */
+export async function hasAnyPermissionForRequestContext(input: {
+  request: Request;
+  userId: string;
+  tenantId: string;
+  requirements: readonly PermissionRequirement[];
+}): Promise<boolean> {
+  const supportMode = await getCurrentSupportModeFromRequest(input.request);
+  const permissions = supportMode?.tenantId === input.tenantId
+    ? getSupportRuntimePermissions({ permissionKeys: supportMode.permissionKeys })
+    : await getUserPermissions(input.userId, input.tenantId);
+
+  const matchingRequirements = input.requirements.filter(({ resource, action }) =>
+    permissions.has(`${resource}:${action}`),
+  );
+  if (matchingRequirements.length === 0) return false;
+
+  const relevantModules = new Set<FieldgridModuleKey>();
+  for (const { resource } of matchingRequirements) {
+    const moduleKey = moduleForPermissionResource(resource);
+    if (moduleKey) relevantModules.add(moduleKey);
+  }
+
+  const enabledByModule = new Map<FieldgridModuleKey, boolean>();
+  await Promise.all(
+    [...relevantModules].map(async (moduleKey) => {
+      enabledByModule.set(
+        moduleKey,
+        await isTenantModuleEnabled(input.tenantId, moduleKey),
+      );
+    }),
+  );
+
+  return matchingRequirements.some(({ resource }) => {
+    const moduleKey = moduleForPermissionResource(resource);
+    return !moduleKey || enabledByModule.get(moduleKey) === true;
+  });
 }
 
 /**

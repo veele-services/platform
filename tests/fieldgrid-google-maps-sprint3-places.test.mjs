@@ -37,7 +37,9 @@ test("Places API New clients use server-side endpoints, minimum field masks and 
     assert.doesNotMatch(runtimeClient, new RegExp(`"${forbidden}"`, "u"));
   }
   assert.match(backofficeAutocomplete, /requireCurrentTenantIdFromRequest\(request\)/);
-  assert.match(backofficeAutocomplete, /hasPermissionFromRequest\(request,\s*"personnel",\s*"read"\)/);
+  assert.match(backofficeAutocomplete, /hasAnyPermissionForRequestContext/u);
+  assert.doesNotMatch(backofficeAutocomplete, /hasPermissionFromRequest/u);
+  assert.match(backofficeAutocomplete, /ADDRESS_SEARCH_PERMISSIONS/u);
   assert.match(backofficeAutocomplete, /z\.object/);
   assert.match(backofficeAutocomplete, /input\.trim\(\)\.length < 3/);
   assert.match(backofficeAutocomplete, /checkGoogleMapsRateLimit/);
@@ -80,7 +82,7 @@ test("Address forms use autocomplete while typing and Place Details only after s
   assert.match(backofficeComponent, /endpointBase = "\/backoffice-api\/google-maps\/places"/u);
   assert.match(backofficeAutocompleteBridge, /@\/app\/api\/google-maps\/places\/autocomplete\/route/u);
   assert.match(backofficeDetailsBridge, /@\/app\/api\/google-maps\/places\/details\/route/u);
-  assert.match(apiBackofficeProxy, /\["\/invoices", "\/google-maps"\]/u);
+  assert.match(apiBackofficeProxy, /\["\/invoices", "\/quotes", "\/reports", "\/google-maps"\]/u);
   assert.match(apiBackofficeProxy, /res\.redirect\(307, target\)/u);
 
   for (const form of [personnelForm, objectForm, customerForm, pwaProfileForm, customerObjectForm]) {

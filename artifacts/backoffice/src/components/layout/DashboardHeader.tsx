@@ -30,6 +30,7 @@ import type { BackofficeTenantOption } from "@/lib/auth/tenant";
 
 type DashboardHeaderProps = {
   userEmail: string;
+  userName: string;
   userInitial: string;
   userRole: string;
   currentTenantId: string;
@@ -110,6 +111,7 @@ function searchTargetForPath(pathname: string): string {
 
 export function DashboardHeader({
   userEmail,
+  userName,
   userInitial,
   userRole,
   currentTenantId,
@@ -208,7 +210,7 @@ export function DashboardHeader({
             </span>
             <span className="hidden min-w-0 text-left lg:block">
               <span className="block max-w-[190px] truncate text-sm font-medium" style={{ color: "#081D3A" }}>
-                {userEmail}
+                {userName}
               </span>
               <span className="block max-w-[190px] truncate text-xs" style={{ color: "#64748B" }}>
                 {userRole}
@@ -219,7 +221,10 @@ export function DashboardHeader({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
           <DropdownMenuLabel>
-            <span className="block truncate text-sm">{userEmail}</span>
+            <span className="block truncate text-sm">{userName}</span>
+            <span className="block truncate text-xs font-normal" style={{ color: "#64748B" }}>
+              {userEmail}
+            </span>
             <span className="block truncate text-xs font-normal" style={{ color: "#64748B" }}>
               {userRole}
             </span>

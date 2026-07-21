@@ -107,9 +107,10 @@ export async function GET() {
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": "inline; filename=\"testfactuur-preview.pdf\"",
+      "Content-Disposition": "attachment; filename=\"testfactuur-preview.pdf\"",
       "Content-Length": String(pdfBuffer.byteLength),
-      "Cache-Control": "no-store",
+      "Cache-Control": "private, no-store, max-age=0",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

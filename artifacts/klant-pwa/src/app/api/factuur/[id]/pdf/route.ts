@@ -319,8 +319,10 @@ export async function GET(
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type":        "application/pdf",
-      "Content-Disposition": `inline; filename="${sanitizePdfFilename(invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
+      "Content-Disposition": `attachment; filename="${sanitizePdfFilename(invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
       "Content-Length":      String(pdfBuffer.byteLength),
+      "Cache-Control":       "private, no-store, max-age=0",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

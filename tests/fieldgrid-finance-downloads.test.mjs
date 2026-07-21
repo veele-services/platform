@@ -19,7 +19,7 @@ test("tenant backoffice finance PDF and CSV downloads are wired", () => {
   assert.match(pdfStyle, /drawPdfHeader/u);
   assert.match(pdfStyle, /drawPdfFooter/u);
   assert.match(pdfStyle, /drawPdfTotalPanel/u);
-  assert.match(invoicePdf, /const brandName = invoice\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u);
+  assert.match(invoicePdf, /const brandName = companyDisplayName\(invoice\)/u);
   assert.match(invoicePdf, /drawPdfHeader\(doc,\s*\{\s*title: "FACTUUR"/u);
   assert.match(invoicePdf, /brandTitle: brandName\.toUpperCase\(\)/u);
   assert.match(quotePdf, /const brandName = quote\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u);
@@ -42,7 +42,7 @@ test("tenant backoffice finance PDF and CSV downloads are wired", () => {
   assert.match(invoiceView, /exportInvoices/u);
   assert.match(quoteView, /CSV downloaden/u);
   assert.match(quoteView, /exportQuotes/u);
-  assert.match(quoteView, /\/api\/quotes\/\$\{row\.id\}\/pdf/u);
+  assert.match(quoteView, /\/backoffice-api\/quotes\/\$\{row\.id\}\/pdf/u);
 });
 
 test("customer portal quote and invoice PDFs use secured enterprise styling", () => {

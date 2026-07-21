@@ -50,7 +50,7 @@ test("current backoffice invoice PDF route is permissioned, tenant sensitive and
   assert.match(backofficePdfBridgeRoute, /@\/app\/api\/invoices\/\[id\]\/pdf\/route/u);
   assert.match(backofficeInvoicesView, /\/backoffice-api\/invoices\/\$\{row\.id\}\/pdf/u);
   assert.doesNotMatch(backofficeInvoicesView, /\/api\/invoices\/\$\{row\.id\}\/pdf/u);
-  assert.match(apiBackofficeProxy, /\["\/invoices", "\/google-maps"\]/u);
+  assert.match(apiBackofficeProxy, /\["\/invoices", "\/quotes", "\/reports", "\/google-maps"\]/u);
   assert.match(apiBackofficeProxy, /replace\(\s*\/\^\\\/api\(\?=\\\/\)\/u,\s*"\/backoffice-api"\s*\)/u);
   assert.match(apiBackofficeProxy, /"\/backoffice-api"/u);
   assert.match(apiBackofficeProxy, /res\.redirect\(307, target\)/u);

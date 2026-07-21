@@ -435,7 +435,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 </p>
               )}
               <Link
-                href={`/api/reports/${report.id}/pdf`}
+                href={`/backoffice-api/reports/${report.id}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"

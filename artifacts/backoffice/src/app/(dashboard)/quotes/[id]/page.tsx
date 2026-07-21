@@ -331,7 +331,7 @@ export default async function QuoteDetailPage({ params }: Props) {
           description="Bedrag, klantreactie en goedkeuringsacties."
         >
           <Link
-            href={`/api/quotes/${quote.id}/pdf`}
+            href={`/backoffice-api/quotes/${quote.id}/pdf`}
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
           >
             <Download className="h-4 w-4" />

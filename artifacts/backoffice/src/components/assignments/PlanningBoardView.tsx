@@ -49,11 +49,14 @@ import {
 import {
   compactPlanboardDisplayWindow,
   planboardDisplayWindow,
+  planboardDateKey,
   formatPlanboardTimeRange,
   planboardInterestAsAssignedIndicator,
+  planboardMinuteOfDay,
   planboardStaffingLabel,
   planboardStaffingState,
   planboardStaffingStateLabel,
+  planboardTimestampMinute,
 } from "./planboard-assignment-states";
 
 const DAY_START_MIN = 0;
@@ -152,7 +155,7 @@ function dateKey(d: Date): string {
 }
 
 function todayDateKey(): string {
-  return dateKey(new Date());
+  return planboardDateKey(new Date()) ?? dateKey(new Date());
 }
 
 function formatBoardDate(dateStr: string): string {
@@ -310,20 +313,13 @@ function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment,
 
 function currentMinuteOfDay(): number {
   const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  return planboardMinuteOfDay(now) ?? now.getHours() * 60 + now.getMinutes();
 }
 
 function minuteToTimelinePct(minutes: number): number {
   return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
 }
 
-
-function isoTimeToBoardMinute(value: string | null, boardDate: string): number | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime()) || dateKey(d) !== boardDate) return null;
-  return d.getHours() * 60 + d.getMinutes();
-}
 
 function minuteBlock(startMin: number | null, endMin: number | null): { left: number; width: number } | null {
   if (startMin === null) return null;
@@ -338,8 +334,8 @@ function minuteBlock(startMin: number | null, endMin: number | null): { left: nu
 }
 
 function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate: string): { left: number; width: number } | null {
-  const actualStart = isoTimeToBoardMinute(assignment.actualStartedAt, boardDate);
-  const actualEnd = isoTimeToBoardMinute(assignment.actualCompletedAt, boardDate);
+  const actualStart = planboardTimestampMinute(assignment.actualStartedAt, boardDate);
+  const actualEnd = planboardTimestampMinute(assignment.actualCompletedAt, boardDate);
   if (actualStart !== null) return minuteBlock(actualStart, actualEnd ?? currentMinuteOfDay());
 
   const effectiveStart = parseTimeMin(assignment.effectiveStart);
@@ -348,14 +344,6 @@ function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate
     return null;
   }
   return minuteBlock(effectiveStart, effectiveEnd);
-}
-
-function unionTimeBlocks(...blocks: Array<{ left: number; width: number } | null>): { left: number; width: number } | null {
-  const available = blocks.filter((block): block is { left: number; width: number } => block !== null);
-  if (available.length === 0) return null;
-  const left = Math.min(...available.map((block) => block.left));
-  const right = Math.max(...available.map((block) => block.left + block.width));
-  return { left, width: right - left };
 }
 
 function relativeTimeBlock(
@@ -387,8 +375,7 @@ function isPlanboardMovableStatus(status: string): boolean {
 
 function isLateAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "scheduledStart" | "scheduledEnd" | "status">, boardDate: string): boolean {
   if (!["scheduled", "seen", "en_route"].includes(String(assignment.status)) || !assignment.scheduledEnd) return false;
-  const now = new Date();
-  if (dateKey(now) !== boardDate) return false;
+  if (todayDateKey() !== boardDate) return false;
   const endMin = parseTimeMin(assignment.scheduledEnd);
   return endMin !== null && currentMinuteOfDay() > endMin;
 }
@@ -1723,8 +1710,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               const late = isLateAppointment(assignment, data.date);
                               const pastel = late ? { bg: "#FFEDD5", border: "#FB923C", text: "#7C2D12", rail: "#F97316" } : pastelForAppointment(assignment);
                               const actualBlock = actualTimeBlock(assignment, data.date);
-                              const block = unionTimeBlocks(plannedBlock, actualBlock ?? effectiveBlock);
-                              const plannedOverlay = block ? relativeTimeBlock(plannedBlock, block) : null;
+                              const block = actualBlock ?? effectiveBlock ?? plannedBlock;
+                              const plannedOverlay = !actualBlock && block ? relativeTimeBlock(plannedBlock, block) : null;
                               const actualOverlay = block ? relativeTimeBlock(actualBlock, block) : null;
                               const isMovable = canWrite && isPlanboardMovableStatus(assignment.status);
                               if (!block) {

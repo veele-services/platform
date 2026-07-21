@@ -10,6 +10,10 @@ import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { COOKIE_NAME } from "@/lib/auth/session-permissions";
 import { findAuthUserByEmail } from "@/lib/auth/portal-invites";
 import {
+  BACKOFFICE_PROFILE_NAME_REQUIRED,
+  validateBackofficeProfileName,
+} from "@/lib/auth/backoffice-profile";
+import {
   backofficeUrl,
   buildPasswordResetCodeEmail,
   personeelPortalUrl,
@@ -271,6 +275,13 @@ export async function completePasswordReset(
   const recovery = parseRecoveryGrant(cookieStore.get(RECOVERY_COOKIE)?.value);
   if (!recovery) return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
 
+  let activationProfileName: string | null = null;
+  if (recovery.purpose === "activation") {
+    const profileName = validateBackofficeProfileName(formData.get("fullName"));
+    if (!profileName.success) return { error: profileName.message };
+    activationProfileName = profileName.name;
+  }
+
   const consumed = await consumeCredentialRecoveryGrant({
     surface: recovery.surface,
     purpose: recovery.purpose,
@@ -323,11 +334,21 @@ export async function completePasswordReset(
   delete appMetadata["temporary_password_expires_at"];
   delete appMetadata["temporary_password_kind"];
   delete appMetadata["credential_activation_pending"];
+  if (activationProfileName) delete appMetadata[BACKOFFICE_PROFILE_NAME_REQUIRED];
   const { error } = providerAlreadyApplied
     ? { error: null }
     : await admin.auth.admin.updateUserById(consumed.subjectUserId, {
         password,
         app_metadata: appMetadata,
+        ...(activationProfileName
+          ? {
+              user_metadata: {
+                ...(current.user?.user_metadata ?? {}),
+                full_name: activationProfileName,
+                name: activationProfileName,
+              },
+            }
+          : {}),
       });
   await recordCredentialRecoveryProviderOutcome({
     challengeId: consumed.challengeId,
@@ -343,7 +364,11 @@ export async function completePasswordReset(
     action: "password_recovery_completed",
     resource: "auth",
     resourceId: consumed.subjectUserId,
-    metadata: { surface: recovery.surface, tenantId: recovery.tenantId },
+    metadata: {
+      surface: recovery.surface,
+      tenantId: recovery.tenantId,
+      profileNameCaptured: Boolean(activationProfileName),
+    },
   });
 
   const supabase = await createClient();

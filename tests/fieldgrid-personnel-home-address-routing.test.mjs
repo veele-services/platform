@@ -38,7 +38,7 @@ test("backoffice and personnel PWA offer secured address autocomplete", () => {
   assert.match(backofficeRoute, /fetchGooglePlacesAutocomplete/);
   assert.match(personnelRoute, /getMyPersonnel\(\)/);
   assert.match(personnelRoute, /fetchGooglePlacesAutocomplete/);
-  assert.match(backofficeAutocomplete, /\/api\/google-maps\/places/);
+  assert.match(backofficeAutocomplete, /\/backoffice-api\/google-maps\/places/);
   assert.match(backofficeAutocomplete, /z-\[80\]/);
   assert.match(personnelAutocomplete, /\/personeel\/api\/google-maps\/places/);
   assert.match(backofficeForm, /AddressAutocomplete/);

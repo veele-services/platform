@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createClientFromRequest } from "@/lib/supabase/server";
-import { hasPermissionFromRequest } from "@/lib/auth/permissions";
+import { hasAnyPermissionForRequestContext } from "@/lib/auth/permissions";
 import { requireCurrentTenantIdFromRequest } from "@/lib/auth/tenant";
 import {
   GooglePlacesClientError,
@@ -15,7 +15,7 @@ import { createSafeGoogleMapsError } from "@/lib/google-maps/errors";
 
 const autocompleteSchema = z.object({
   input: z.string().max(160),
-  sessionToken: z.string().min(8).max(128),
+  sessionToken: z.string().min(8).max(36),
   limit: z.number().int().min(1).max(10).optional(),
 });
 
@@ -36,16 +36,24 @@ function shouldRecordAutocompleteSession(input: {
   return true;
 }
 
-async function canUseAddressSearch(request: Request): Promise<boolean> {
-  const checks = await Promise.all([
-    hasPermissionFromRequest(request, "personnel", "read"),
-    hasPermissionFromRequest(request, "personnel", "write"),
-    hasPermissionFromRequest(request, "objects", "read"),
-    hasPermissionFromRequest(request, "objects", "write"),
-    hasPermissionFromRequest(request, "customers", "read"),
-    hasPermissionFromRequest(request, "customers", "write"),
-  ]);
-  return checks.some(Boolean);
+const ADDRESS_SEARCH_PERMISSIONS = [
+  { resource: "personnel", action: "read" },
+  { resource: "personnel", action: "write" },
+  { resource: "objects", action: "read" },
+  { resource: "objects", action: "write" },
+  { resource: "customers", action: "read" },
+  { resource: "customers", action: "write" },
+] as const;
+
+async function canUseAddressSearch(input: {
+  request: Request;
+  userId: string;
+  tenantId: string;
+}): Promise<boolean> {
+  return hasAnyPermissionForRequestContext({
+    ...input,
+    requirements: ADDRESS_SEARCH_PERMISSIONS,
+  });
 }
 
 export async function POST(request: Request) {
@@ -64,7 +72,7 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-    if (!(await canUseAddressSearch(request))) {
+    if (!(await canUseAddressSearch({ request, userId: user.id, tenantId }))) {
       return NextResponse.json(
         { error: createSafeGoogleMapsError("permission_denied") },
         { status: 403 },
@@ -198,4 +206,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: safeError }, { status });
   }
 }
-

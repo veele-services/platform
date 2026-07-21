@@ -33,6 +33,60 @@ export type PlanboardDisplayWindow = {
   end: string | null;
 };
 
+const PLANBOARD_TIME_ZONE = "Europe/Amsterdam";
+const PLANBOARD_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: PLANBOARD_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+type PlanboardTimestampParts = {
+  date: string;
+  hour: number;
+  minute: number;
+  minuteOfDay: number;
+};
+
+function planboardTimestampParts(value: string | Date): PlanboardTimestampParts | null {
+  const timestamp = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return null;
+
+  const parts = new Map(
+    PLANBOARD_DATE_TIME_FORMATTER.formatToParts(timestamp).map((part) => [part.type, part.value]),
+  );
+  const year = parts.get("year");
+  const month = parts.get("month");
+  const day = parts.get("day");
+  const hour = Number(parts.get("hour"));
+  const minute = Number(parts.get("minute"));
+  if (!year || !month || !day || !Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+
+  return {
+    date: `${year}-${month}-${day}`,
+    hour,
+    minute,
+    minuteOfDay: hour * 60 + minute,
+  };
+}
+
+export function planboardDateKey(value: string | Date): string | null {
+  return planboardTimestampParts(value)?.date ?? null;
+}
+
+export function planboardMinuteOfDay(value: string | Date): number | null {
+  return planboardTimestampParts(value)?.minuteOfDay ?? null;
+}
+
+export function planboardTimestampMinute(value: string | null, boardDate: string): number | null {
+  if (!value) return null;
+  const parts = planboardTimestampParts(value);
+  return parts?.date === boardDate ? parts.minuteOfDay : null;
+}
+
 function normalizeCount(value: number | null | undefined): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.trunc(value ?? 0));
@@ -76,13 +130,24 @@ export function formatPlanboardTimeRange(start: string | null | undefined, end: 
   return "Tijd kiezen";
 }
 
+export function formatPlanboardActualTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+
+  const parts = planboardTimestampParts(value);
+  if (!parts) return null;
+  return `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+}
+
 export function planboardDisplayWindow(input: PlanboardTimeWindowInput): PlanboardDisplayWindow {
   if (input.actualStartedAt || input.actualCompletedAt) {
+    const actualStart = formatPlanboardActualTime(input.actualStartedAt);
+    const actualEnd = formatPlanboardActualTime(input.actualCompletedAt);
     return {
       kind: "actual",
-      start: input.actualStartedAt ?? null,
-      end: input.actualCompletedAt ?? null,
-      label: formatPlanboardTimeRange(input.actualStartedAt, input.actualCompletedAt),
+      start: actualStart,
+      end: actualEnd,
+      label: formatPlanboardTimeRange(actualStart, actualEnd),
     };
   }
 

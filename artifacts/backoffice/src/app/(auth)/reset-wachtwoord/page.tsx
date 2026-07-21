@@ -25,6 +25,8 @@ export default function ResetWachtwoordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [isActivation, setIsActivation] = useState(false);
   const [nextPath, setNextPath] = useState("/");
   const [state, formAction, pending] = useActionState(completePasswordReset, undefined);
 
@@ -36,17 +38,20 @@ export default function ResetWachtwoordPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNextPath(safeNextPath(params.get("next")));
+    setIsActivation(params.get("doel") === "activatie");
   }, []);
 
   useEffect(() => {
     if (state?.success) {
       const params = new URLSearchParams({
-        message: "Wachtwoord succesvol gewijzigd. U kunt nu inloggen.",
+        message: isActivation
+          ? "Account geactiveerd. U kunt nu inloggen."
+          : "Wachtwoord succesvol gewijzigd. U kunt nu inloggen.",
         next: state.next ?? nextPath,
       });
       router.push(`/login?${params.toString()}`);
     }
-  }, [nextPath, router, state?.next, state?.success]);
+  }, [isActivation, nextPath, router, state?.next, state?.success]);
 
   return (
     <div
@@ -92,7 +97,7 @@ export default function ResetWachtwoordPage() {
             letterSpacing: "-0.01em",
           }}
         >
-          Nieuw wachtwoord instellen
+          {isActivation ? "Account activeren" : "Nieuw wachtwoord instellen"}
         </h1>
         <p
           className="mt-1 text-center"
@@ -102,7 +107,9 @@ export default function ResetWachtwoordPage() {
             color: "#64748B",
           }}
         >
-          Kies een sterk wachtwoord van minimaal 8 tekens.
+          {isActivation
+            ? "Vul uw volledige naam in en kies een sterk wachtwoord."
+            : "Kies een sterk wachtwoord van minimaal 8 tekens."}
         </p>
       </div>
 
@@ -132,6 +139,38 @@ export default function ResetWachtwoordPage() {
           </div>
         )}
 
+        {isActivation && (
+          <div className="space-y-1.5">
+            <label
+              htmlFor="full-name"
+              style={{
+                fontFamily: "var(--font-inter), Inter, sans-serif",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#081D3A",
+              }}
+            >
+              Volledige naam
+            </label>
+            <input
+              id="full-name"
+              name="fullName"
+              type="text"
+              autoComplete="name"
+              autoFocus
+              required
+              minLength={2}
+              maxLength={120}
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              disabled={pending}
+              placeholder="Voor- en achternaam"
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none disabled:opacity-60"
+              style={{ borderColor: "#CBD5E1" }}
+            />
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <label
             htmlFor="password"
@@ -150,7 +189,7 @@ export default function ResetWachtwoordPage() {
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              autoFocus
+              autoFocus={!isActivation}
               required
               minLength={8}
               value={password}
@@ -231,24 +270,24 @@ export default function ResetWachtwoordPage() {
 
         <button
           type="submit"
-          disabled={pending || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword}
+          disabled={pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword}
           className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
           style={{
             fontFamily: "var(--font-inter), Inter, sans-serif",
             fontSize: "14px",
             backgroundColor:
-              pending || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
+              pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
                 ? "#94A3B8"
                 : "#00B7B3",
             cursor:
-              pending || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
+              pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
                 ? "not-allowed"
                 : "pointer",
             letterSpacing: "0.01em",
           }}
         >
           {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-          {pending ? "Opslaan..." : "Wachtwoord opslaan"}
+          {pending ? "Opslaan..." : isActivation ? "Account activeren" : "Wachtwoord opslaan"}
         </button>
 
         <Link

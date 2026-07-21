@@ -7,7 +7,7 @@ import { fetchGooglePlacesAutocomplete, GooglePlacesClientError } from "@workspa
 
 const schema = z.object({
   input: z.string().max(160),
-  sessionToken: z.string().min(8).max(128),
+  sessionToken: z.string().min(8).max(36),
   limit: z.number().int().min(1).max(10).optional(),
 });
 

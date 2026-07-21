@@ -21,6 +21,8 @@ test("W01 projection preserves planned values while preferring actual display va
 test("W01 planboard and personnel consume the same canonical time projection", () => {
   assert.match(planningAction, /buildAssignmentTimeProjection/u);
   assert.match(planningAction, /actualStartedAt:\s*assignmentsTable\.actualStartedAt/u);
+  assert.match(planningAction, /actualStartedAt:\s*row\.actualStartedAt\?\.toISOString\(\) \?\? null/u);
+  assert.match(planningAction, /actualCompletedAt:\s*row\.actualCompletedAt\?\.toISOString\(\) \?\? null/u);
   assert.match(planningAction, /effectiveStart:\s*timeProjection\.effectiveStart/u);
   assert.match(personnelAction, /buildAssignmentTimeProjection/u);
   assert.match(personnelAction, /effectiveStart:\s*timeProjection\.effectiveStart/u);

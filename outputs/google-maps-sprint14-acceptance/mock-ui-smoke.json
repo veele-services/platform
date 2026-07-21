@@ -8,7 +8,7 @@
       {
         "type": "autocomplete",
         "inputLength": 15,
-        "sessionToken": "session-0a8eu5aq6cpl",
+        "sessionToken": "session-qqf11hamfkn",
         "fieldMask": [
           "suggestions.placePrediction.placeId",
           "suggestions.placePrediction.text"
@@ -17,7 +17,7 @@
       {
         "type": "details",
         "placeId": "places/mock-den-haag",
-        "sessionToken": "session-0a8eu5aq6cpl",
+        "sessionToken": "session-qqf11hamfkn",
         "fieldMask": [
           "id",
           "formattedAddress",
