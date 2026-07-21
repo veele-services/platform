@@ -80,6 +80,58 @@ export const CRITICAL_RELATIONS = [
   "public.portal_realtime_events",
 ];
 
+export const PAYMENT_INTENT_DIAGNOSTIC_VERSION =
+  "phase2e-payment-intent-diagnostic-v1";
+export const PAYMENT_INTENT_DIAGNOSTIC_QUERY = `
+select jsonb_build_object(
+  'version', '${PAYMENT_INTENT_DIAGNOSTIC_VERSION}',
+  'recordedPhase2c1Migrations', coalesce((
+    select jsonb_agg(history.name order by history.name)
+    from drizzle.veele_sql_migrations history
+    where history.name like '20260719%'
+  ), '[]'::jsonb),
+  'duplicateSources', coalesce((
+    select jsonb_agg(duplicate.summary order by duplicate.tenant_id, duplicate.source_type, duplicate.source_id)
+    from (
+      select
+        payment.tenant_id,
+        payment.source_type,
+        payment.source_id,
+        jsonb_build_object(
+          'tenantId', payment.tenant_id,
+          'sourceType', payment.source_type,
+          'sourceId', payment.source_id,
+          'intentCount', count(*),
+          'intents', jsonb_agg(
+            jsonb_build_object(
+              'status', payment.status::text,
+              'createdAt', payment.created_at,
+              'updatedAt', payment.updated_at,
+              'hasMolliePaymentId', payment.mollie_payment_id is not null,
+              'stagingDemoMollieId', payment.mollie_payment_id like 'tr_staging_demo_%',
+              'hasCheckoutUrl', payment.checkout_url is not null,
+              'stagingDemoCheckoutUrl', payment.checkout_url like 'https://www.mollie.com/checkout/staging-demo/%',
+              'hasPaidAt', payment.paid_at is not null,
+              'allocationCount', (
+                select count(*)
+                from public.payment_allocations allocation
+                where allocation.payment_id = payment.id
+              )
+            )
+            order by payment.created_at, payment.id
+          )
+        ) as summary
+      from public.payments payment
+      where payment.payment_method = 'mollie'
+        and payment.tenant_id is not null
+        and payment.source_id is not null
+      group by payment.tenant_id, payment.source_type, payment.source_id
+      having count(*) > 1
+    ) duplicate
+  ), '[]'::jsonb)
+)::text;
+`;
+
 const PHASE2_RLS_RELATIONS = [
   "assignment_personnel_lifecycle_history",
   "assignment_participant_executions",
@@ -471,6 +523,30 @@ async function psql(pgEnv, sql) {
   return result.stdout.trim();
 }
 
+export function parsePaymentIntentDiagnostic(raw) {
+  const diagnostic = JSON.parse(raw);
+  if (
+    diagnostic?.version !== PAYMENT_INTENT_DIAGNOSTIC_VERSION ||
+    !Array.isArray(diagnostic.recordedPhase2c1Migrations) ||
+    !Array.isArray(diagnostic.duplicateSources)
+  ) {
+    throw new Error("Payment-intent diagnostic has an invalid shape.");
+  }
+  return diagnostic;
+}
+
+async function writePaymentIntentDiagnostic(pgEnv, outDir) {
+  const diagnostic = parsePaymentIntentDiagnostic(
+    await psql(pgEnv, PAYMENT_INTENT_DIAGNOSTIC_QUERY),
+  );
+  await mkdir(outDir, { recursive: true });
+  const path = join(outDir, "payment-intent-duplicate-diagnostic.json");
+  await writeFile(path, `${JSON.stringify(diagnostic, null, 2)}\n`, {
+    mode: 0o640,
+  });
+  return { diagnostic, path };
+}
+
 async function ensurePostgresRuntime(env = process.env) {
   if (!env.FIELDGRID_POSTGRESQL_BINDIR?.trim()) {
     throw new Error("FIELDGRID_POSTGRESQL_BINDIR is required.");
@@ -835,6 +911,10 @@ export async function runPreflight(options, env = process.env) {
     await restoreBackup(restoreTarget, backup);
     const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
+    const paymentIntentDiagnostic = await writePaymentIntentDiagnostic(
+      restoreTarget.pgEnv,
+      options.outDir,
+    );
     const migration = await runMigrationRehearsal(
       restoreTarget,
       options.outDir,
@@ -874,6 +954,15 @@ export async function runPreflight(options, env = process.env) {
           isolated: true,
           disposedAfterProof: true,
           criticalRowCounts: restoredCounts,
+        },
+        paymentIntentDiagnostic: {
+          version: paymentIntentDiagnostic.diagnostic.version,
+          duplicateSourceCount:
+            paymentIntentDiagnostic.diagnostic.duplicateSources.length,
+          evidencePath: relative(repoRoot, paymentIntentDiagnostic.path),
+          secretValuesRecorded: false,
+          providerIdentifiersRecorded: false,
+          checkoutUrlsRecorded: false,
         },
         migration,
         proof: databaseProof,
