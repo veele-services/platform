@@ -16,7 +16,7 @@ import {
   beginOfflineOperation,
   completeOfflineOperation,
 } from "@workspace/db";
-import { eq, and, inArray, desc, asc, ne } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, ne, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -33,6 +33,10 @@ import {
   normalizeOfflineServerActionError,
   permanentOfflineActionFailure,
 } from "@/lib/offline/offline-action-errors.server";
+import {
+  personnelWorkOrderIsSigned,
+  SIGNED_WORK_ORDER_LOCK_MESSAGE,
+} from "@/lib/work-order-lock";
 
 export type ReportNoteAttachment = {
   id:          string;
@@ -281,12 +285,20 @@ export async function prepareReportNoteAttachmentUploads(
   }
 
   const [assignment] = await db
-    .select({ status: assignmentsTable.status, tenantId: assignmentsTable.tenantId })
+    .select({
+      status: assignmentsTable.status,
+      tenantId: assignmentsTable.tenantId,
+      customerSignedAt: assignmentsTable.customerSignedAt,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+    })
     .from(assignmentsTable)
     .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, auth.tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
+  if (personnelWorkOrderIsSigned(assignment)) {
+    return { success: false, error: SIGNED_WORK_ORDER_LOCK_MESSAGE };
+  }
   if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
     return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
   }
@@ -536,6 +548,8 @@ export async function getMyAssignmentsAwaitingReport(): Promise<AssignmentAwaiti
         eq(assignmentPersonnelTable.status, "assigned"),
         eq(assignmentsTable.tenantId, identity.tenantId),
         inArray(assignmentsTable.status, ["completed", "not_completed"]),
+        isNull(assignmentsTable.customerSignedAt),
+        isNull(assignmentsTable.customerSignatureDataUrl),
       ),
     )
     .then((rows) =>
@@ -612,12 +626,19 @@ async function addReportNoteInternal(
   if (!body) return permanentOfflineActionFailure("Notitie is verplicht", "validation_failed");
 
   const [assignment] = await db
-    .select({ status: assignmentsTable.status })
+    .select({
+      status: assignmentsTable.status,
+      customerSignedAt: assignmentsTable.customerSignedAt,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+    })
     .from(assignmentsTable)
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
   if (!assignment) return permanentOfflineActionFailure("Opdracht niet gevonden", "assignment_not_found");
+  if (personnelWorkOrderIsSigned(assignment)) {
+    return permanentOfflineActionFailure(SIGNED_WORK_ORDER_LOCK_MESSAGE, "business_rule_rejected");
+  }
   if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
     return permanentOfflineActionFailure("Deze werkbon is afgesloten voor rapportage", "business_rule_rejected");
   }
@@ -785,12 +806,19 @@ export async function submitMyReport(
 
   // Fetch assignment and check status
   const [assignment] = await db
-    .select({ status: assignmentsTable.status })
+    .select({
+      status: assignmentsTable.status,
+      customerSignedAt: assignmentsTable.customerSignedAt,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+    })
     .from(assignmentsTable)
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
   if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
+  if (personnelWorkOrderIsSigned(assignment)) {
+    return { success: false, error: SIGNED_WORK_ORDER_LOCK_MESSAGE };
+  }
   if (assignment.status !== "completed" && assignment.status !== "not_completed") {
     return { success: false, error: "Rapport indienen is alleen mogelijk na afronding van de opdracht" };
   }

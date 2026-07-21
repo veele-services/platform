@@ -9,6 +9,7 @@ import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
 } from "@/lib/offline/work-order-queue";
+import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 import {
   FAILED_FINAL_STATUSES,
   FINISHED_STATUSES,
@@ -133,6 +134,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const status = assignment.participantStatus ?? assignment.status;
+  const workOrderLocked = personnelWorkOrderIsSigned(assignment);
   // The automatic seen transition owns the rendered participant version until
   // SeenMarker has refreshed the route with its canonical result. Letting a
   // second action race it would turn our own transition into a false conflict.
@@ -141,10 +143,11 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
-  const canMarkEnRoute = !awaitingSeenRefresh
+  const canMarkEnRoute = !workOrderLocked
+    && !awaitingSeenRefresh
     && (status === "assigned" || status === "scheduled" || status === "seen");
-  const canStart = status === "en_route";
-  const canFinish = status === "in_progress";
+  const canStart = !workOrderLocked && status === "en_route";
+  const canFinish = !workOrderLocked && status === "in_progress";
 
   function handleEnRoute() {
     setError(null);

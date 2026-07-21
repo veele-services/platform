@@ -15,6 +15,10 @@ import {
   normalizeOfflineServerActionError,
   permanentOfflineActionFailure,
 } from "@/lib/offline/offline-action-errors.server";
+import {
+  personnelWorkOrderIsSigned,
+  SIGNED_WORK_ORDER_LOCK_MESSAGE,
+} from "@/lib/work-order-lock";
 
 export type InventoryUsageType = "used" | "rented" | "issued" | "returned" | "defect_found";
 
@@ -49,7 +53,12 @@ export type InventoryUsageInput = {
 };
 
 type PersonnelBasic = { userId: string; personnelId: string; tenantId: string };
-type AssignmentAccess = { status: string; objectId: string | null };
+type AssignmentAccess = {
+  status: string;
+  objectId: string | null;
+  customerSignedAt: Date | null;
+  customerSignatureDataUrl: string | null;
+};
 type DbExecutor = { execute: (query: SQL) => Promise<unknown> };
 type SqlResult<T> = { rows?: T[] };
 
@@ -123,7 +132,12 @@ async function getLinkedAssignmentAccess(
   assignmentId: string,
 ): Promise<AssignmentAccess | null> {
   const [row] = await db
-    .select({ status: assignmentsTable.status, objectId: assignmentsTable.objectId })
+    .select({
+      status: assignmentsTable.status,
+      objectId: assignmentsTable.objectId,
+      customerSignedAt: assignmentsTable.customerSignedAt,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+    })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
@@ -146,6 +160,9 @@ async function assertLinkedAndEditable(
 ): Promise<{ ok: true; assignment: AssignmentAccess } | { ok: false; error: string }> {
   const assignment = await getLinkedAssignmentAccess(personnelId, tenantId, assignmentId);
   if (!assignment) return { ok: false, error: "Niet gekoppeld aan deze opdracht" };
+  if (personnelWorkOrderIsSigned(assignment)) {
+    return { ok: false, error: SIGNED_WORK_ORDER_LOCK_MESSAGE };
+  }
   if (LOCKED_STATUSES.has(assignment.status)) {
     return { ok: false, error: "Deze werkbon is afgesloten voor inventarisregistratie" };
   }

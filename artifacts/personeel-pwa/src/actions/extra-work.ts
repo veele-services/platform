@@ -30,6 +30,7 @@ import {
   normalizeOfflineServerActionError,
   permanentOfflineActionFailure,
 } from "@/lib/offline/offline-action-errors.server";
+import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -135,17 +136,20 @@ async function isLinked(personnelId: string, tenantId: string, assignmentId: str
 }
 
 /**
- * Returns false when the assignment status prevents further edits.
- * This is the server-side enforcement of the "locked after report submission" rule.
+ * Returns false when the assignment status or customer signature prevents edits.
  */
 async function isAssignmentEditable(assignmentId: string): Promise<boolean> {
   const [row] = await db
-    .select({ status: assignmentsTable.status })
+    .select({
+      status: assignmentsTable.status,
+      customerSignedAt: assignmentsTable.customerSignedAt,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+    })
     .from(assignmentsTable)
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
   if (!row) return false;
-  return !LOCKED_STATUSES.has(row.status);
+  return !personnelWorkOrderIsSigned(row) && !LOCKED_STATUSES.has(row.status);
 }
 
 async function generateSignedUrl(

@@ -9,6 +9,7 @@ import {
 import { WorkOrderHeader } from "../WorkOrderHeader";
 import { InventoryEditor } from "../InventoryEditor";
 import { type AssignmentView } from "../work-order-data";
+import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -24,7 +25,7 @@ export default async function InventarisPage({ params }: Props) {
     getInventoryUsageForAssignment(id),
     listInventoryCatalogForAssignment(id),
   ]);
-  const canEdit = ![
+  const canEdit = !personnelWorkOrderIsSigned(assignment) && ![
     "report_submitted",
     "report_approved",
     "invoice_ready",

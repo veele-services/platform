@@ -350,14 +350,6 @@ function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate
   return minuteBlock(effectiveStart, effectiveEnd);
 }
 
-function unionTimeBlocks(...blocks: Array<{ left: number; width: number } | null>): { left: number; width: number } | null {
-  const available = blocks.filter((block): block is { left: number; width: number } => block !== null);
-  if (available.length === 0) return null;
-  const left = Math.min(...available.map((block) => block.left));
-  const right = Math.max(...available.map((block) => block.left + block.width));
-  return { left, width: right - left };
-}
-
 function relativeTimeBlock(
   child: { left: number; width: number } | null,
   parent: { left: number; width: number },
@@ -1723,8 +1715,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               const late = isLateAppointment(assignment, data.date);
                               const pastel = late ? { bg: "#FFEDD5", border: "#FB923C", text: "#7C2D12", rail: "#F97316" } : pastelForAppointment(assignment);
                               const actualBlock = actualTimeBlock(assignment, data.date);
-                              const block = unionTimeBlocks(plannedBlock, actualBlock ?? effectiveBlock);
-                              const plannedOverlay = block ? relativeTimeBlock(plannedBlock, block) : null;
+                              const block = actualBlock ?? effectiveBlock ?? plannedBlock;
+                              const plannedOverlay = !actualBlock && block ? relativeTimeBlock(plannedBlock, block) : null;
                               const actualOverlay = block ? relativeTimeBlock(actualBlock, block) : null;
                               const isMovable = canWrite && isPlanboardMovableStatus(assignment.status);
                               if (!block) {

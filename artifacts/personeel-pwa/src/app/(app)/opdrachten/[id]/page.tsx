@@ -10,6 +10,7 @@ import { getExtraWorkForAssignment } from "@/actions/extra-work";
 import { getMaterialUsageForAssignment } from "@/actions/materials";
 import { getInventoryUsageForAssignment } from "@/actions/inventory";
 import { SeenMarker } from "@/components/SeenMarker";
+import { personnelWorkOrderIsSigned } from "@/lib/work-order-lock";
 import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
 import { InventorySummaryCard } from "./InventorySummaryCard";
@@ -266,7 +267,8 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
 
   const isScheduled = assignment.status === "scheduled";
   const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
-  const canAddReportNote = !["invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
+  const canAddReportNote = !personnelWorkOrderIsSigned(assignment)
+    && !["invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
   const rail = (
     <WorkbenchRail
       assignment={assignment}

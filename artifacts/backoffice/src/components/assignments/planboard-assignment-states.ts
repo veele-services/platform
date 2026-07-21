@@ -76,13 +76,30 @@ export function formatPlanboardTimeRange(start: string | null | undefined, end: 
   return "Tijd kiezen";
 }
 
+export function formatPlanboardActualTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return null;
+
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(timestamp);
+}
+
 export function planboardDisplayWindow(input: PlanboardTimeWindowInput): PlanboardDisplayWindow {
   if (input.actualStartedAt || input.actualCompletedAt) {
+    const actualStart = formatPlanboardActualTime(input.actualStartedAt);
+    const actualEnd = formatPlanboardActualTime(input.actualCompletedAt);
     return {
       kind: "actual",
-      start: input.actualStartedAt ?? null,
-      end: input.actualCompletedAt ?? null,
-      label: formatPlanboardTimeRange(input.actualStartedAt, input.actualCompletedAt),
+      start: actualStart,
+      end: actualEnd,
+      label: formatPlanboardTimeRange(actualStart, actualEnd),
     };
   }
 
