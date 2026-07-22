@@ -5,6 +5,7 @@ import {
   activateManagedWebsitePublication,
   createManagedWebsitePublication,
   pool,
+  resolveManagedWebsiteByHost,
   setPrimaryWebsiteDomain,
 } from "../lib/db/src/index.ts";
 
@@ -391,6 +392,23 @@ try {
     1,
   );
 
+  const publicResolution = await resolveManagedWebsiteByHost(hostname);
+  assert.equal(publicResolution.status, "ready");
+  if (publicResolution.status === "ready") {
+    assert.equal(publicResolution.tenantId, tenantA);
+    assert.equal(publicResolution.siteId, siteId);
+    assert.equal(publicResolution.publicationId, candidateThree.id);
+    assert.equal(publicResolution.deliveryRevision, 3);
+    assert.equal(publicResolution.snapshot.pages[0]?.title, "Home versie drie");
+    assert.equal(publicResolution.cacheKey, candidateThree.cacheKey);
+  }
+  assert.deepEqual(
+    await resolveManagedWebsiteByHost(
+      `unknown-${randomUUID()}.runtime.fieldgrid.test`,
+    ),
+    { status: "not_found" },
+  );
+
   await pool.query(
     `UPDATE public.website_pages
      SET title = 'Niet live concept', updated_by = $3, updated_at = now()
@@ -406,6 +424,14 @@ try {
     [candidateThree.id],
   );
   assert.equal(liveSnapshot.rows[0]?.title, "Home versie drie");
+  const publicAfterDraftEdit = await resolveManagedWebsiteByHost(hostname);
+  assert.equal(publicAfterDraftEdit.status, "ready");
+  if (publicAfterDraftEdit.status === "ready") {
+    assert.equal(
+      publicAfterDraftEdit.snapshot.pages[0]?.title,
+      "Home versie drie",
+    );
+  }
 
   const browserClient = await pool.connect();
   try {
@@ -464,7 +490,10 @@ try {
           immutableSnapshot: true,
           previousPublicationSuperseded: true,
           exactlyOneActiveManagedPublication: true,
+          exactHostResolvesActivePublication: true,
+          unknownHostRejected: true,
           draftCannotAlterLiveSnapshot: true,
+          publicResolverCannotReadDraftEdit: true,
           browserExecutionDenied: true,
           auditTrail: true,
         },

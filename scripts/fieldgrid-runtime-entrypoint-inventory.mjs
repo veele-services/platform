@@ -9,6 +9,7 @@ const DEFAULT_RUNTIME_ROOTS = [
   'artifacts/backoffice/src',
   'artifacts/personeel-pwa/src',
   'artifacts/klant-pwa/src',
+  'artifacts/website-runtime/src',
   'artifacts/api-server/src',
   'lib/db/src',
 ];

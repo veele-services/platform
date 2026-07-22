@@ -1,11 +1,12 @@
 # Fieldgrid website module — section registry and content contracts
 
 Date: 21 July 2026
-Status: MVP schemas and registry implemented; editors and renderers remain proposed
+Status: MVP schemas and managed public renderers implemented; editors remain proposed
 
 The pure website-core package now implements strict schemas and defaults for the
-nine Template 1 sections. Backoffice editor components and public render
-components are intentionally not part of Phase 1A.
+nine Template 1 sections. Phase 2B adds their server-rendered public components
+in the isolated website runtime. Backoffice editor components remain a Phase 3
+deliverable.
 
 ## Scope
 
