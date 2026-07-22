@@ -95,15 +95,15 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await goEnRouteAndStart(participantTwo);
 
   await completeParticipant(participantOne);
-  await admin.reload();
+  await admin.reload({ waitUntil: 'domcontentloaded' });
   await eventually(admin.locator('main')).toContainText(/In uitvoering|Werkelijk/);
 
   await completeParticipant(participantTwo);
-  await admin.reload();
+  await admin.reload({ waitUntil: 'domcontentloaded' });
   await eventually(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
   await eventually(admin.locator('main')).toContainText(/Gepland/);
 
-  await customer.goto(customerUrl('/klant/opdrachten'));
+  await customer.goto(customerUrl('/klant/opdrachten'), { waitUntil: 'domcontentloaded' });
   await eventually(customer.locator('main')).toContainText('Runtime Assignment A');
   await eventually(customer.locator('main')).toContainText('Werkelijk');
   await eventually(customer.locator('main')).toContainText('Gepland');
