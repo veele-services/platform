@@ -50,7 +50,9 @@ async function completeParticipant(page: Page) {
   await page.getByRole('button', { name: 'Afronden' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Ja' }).click();
   await eventually(page).toHaveURL(/\/afronden\?result=completed/u);
-  await page.getByRole('button', { name: 'Definitief gereedmelden' }).click();
+  const completeButton = page.getByRole('button', { name: 'Definitief gereedmelden' });
+  await eventually(completeButton).toBeEnabled();
+  await completeButton.click();
   await eventually(page).toHaveURL(new RegExp(`/personeel/opdrachten/${assignmentId}$`, 'u'));
   await eventually(page.locator('main')).toContainText(/Afgerond|Werkelijk/);
 }
