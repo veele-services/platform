@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const workflowPath = ".github/workflows/main-exact-head-validation.yml";
@@ -14,6 +14,10 @@ test("exact-head validation preserves PR coverage and adds main push and dispatc
     workflow,
     /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u,
   );
+});
+test("exact-head validation is the sole Playwright orchestration workflow", () => {
+  assert.equal(existsSync(".github/workflows/fieldgrid-playwright.yml"), false);
+  assert.match(workflow, /fieldgrid-playwright:\n\s+name: Fieldgrid Playwright/u);
 });
 
 test("every validation group checks out and proves the immutable event validation SHA", () => {

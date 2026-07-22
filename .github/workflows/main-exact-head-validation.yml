@@ -387,7 +387,8 @@ jobs:
           touch artifacts/fieldgrid-playwright/runtime-safety-setup-complete
 
       - run: pnpm fieldgrid:runtime-safety:fixtures
-      - run: pnpm fieldgrid:playwright:fixtures
+      - name: Seed Playwright fixtures
+        run: pnpm fieldgrid:playwright:fixtures
 
       - name: Prove Playwright fixture idempotency
         run: pnpm fieldgrid:playwright:fixtures
@@ -423,7 +424,6 @@ jobs:
             exit 1
           fi
 
-      - run: node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs
       - run: node --test tests/fieldgrid-playwright-local-data-path.test.mjs
       - run: pnpm fieldgrid:playwright
       - name: Finalize browser, accessibility and data-path evidence

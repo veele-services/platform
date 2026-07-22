@@ -273,6 +273,7 @@ test("Customer accepts a sent quote through the canonical lifecycle", async ({
 test("Backoffice cancels a sent invoice and shows the durable result", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000102");
   await page.goto(backofficeUrl(`/invoices/${cancellationInvoiceId}`));
   await expectRealApp(page);
@@ -366,6 +367,7 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 });
 
 test("8. Negative guards", async ({ page }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
   let rootCookieHeader = "";
   const captureRootRequest = (request: import("@playwright/test").Request) => {

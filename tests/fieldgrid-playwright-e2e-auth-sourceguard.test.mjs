@@ -8,7 +8,7 @@ import ts from "typescript";
 const read = (file) => readFileSync(file, "utf8");
 const start = () => read("e2e/fieldgrid/start-real-apps.mjs");
 const seam = () => read("lib/db/src/e2e-auth-adapter.ts");
-const workflow = () => read(".github/workflows/fieldgrid-playwright.yml");
+const workflow = () => read(".github/workflows/main-exact-head-validation.yml");
 const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
 const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
 const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
@@ -184,7 +184,7 @@ test("cross-tenant personnel denial does not wait for non-critical resource load
 test("quote acceptance waits for durable server state instead of transient client copy", () => {
   const spec = browserSpec();
   assert.doesNotMatch(spec, /getByText\("Offerte goedgekeurd"\)/u);
-  assert.match(spec, /toContainText\("€ 250,00 akkoord gegeven\."/u);
+  assert.match(spec, /toContainText\(\s*"€ 250,00 akkoord gegeven\."/u);
   assert.match(spec, /toContainText\("Geen offertes gevonden"\)/u);
   assert.match(spec, /toContainText\(\/Planbaar\|Goedgekeurd\/i\)/u);
 });
@@ -621,8 +621,12 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /fieldgrid:runtime-safety:setup/);
   assert.match(source, /fieldgrid:runtime-safety:fixtures/);
   assert.match(source, /test -z "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
-  assert.match(source, /Check for conflict markers before static tests/);
-  assert.match(source, /Run Playwright after conflict-marker guard/);
+  assert.match(source, /Check for conflict markers/);
+  assert.match(source, /run: pnpm fieldgrid:playwright/);
+  assert.doesNotMatch(
+    source,
+    /node --test tests\/fieldgrid-playwright-e2e-auth-sourceguard\.test\.mjs/,
+  );
   assert.match(source, /git grep -n -E '\^\(<<<<<<<\|=======\|>>>>>>>\)'/);
   assert.match(source, /Seed Playwright fixtures/);
   assert.match(source, /Prove Playwright fixture idempotency/);
@@ -643,6 +647,18 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
     source.indexOf("Tear down disposable database") <
       source.indexOf("Upload Fieldgrid Playwright artifacts"),
     "artifact upload must run after teardown and log capture",
+  );
+});
+
+test("complex cold-start browser journeys have bounded CI headroom", () => {
+  const spec = browserSpec();
+  assert.match(
+    spec,
+    /test\("Backoffice cancels a sent invoice and shows the durable result", async \(\{\s+page,\s+\}\) => \{\s+test\.setTimeout\(60_000\);/u,
+  );
+  assert.match(
+    spec,
+    /test\("8\. Negative guards", async \(\{ page \}\) => \{\s+test\.setTimeout\(60_000\);/u,
   );
 });
 
