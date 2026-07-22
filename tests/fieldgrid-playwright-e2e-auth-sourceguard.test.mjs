@@ -10,6 +10,7 @@ const start = () => read("e2e/fieldgrid/start-real-apps.mjs");
 const seam = () => read("lib/db/src/e2e-auth-adapter.ts");
 const workflow = () => read(".github/workflows/fieldgrid-playwright.yml");
 const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
+const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
 const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
 const playwrightConfig = () => read("playwright.config.ts");
 const root = process.cwd();
@@ -174,6 +175,13 @@ test("staffing lifecycle evidence waits for rendered DOM instead of non-critical
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 3);
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
+});
+
+test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
+  const spec = accessibilitySpec();
+  assert.match(spec, /test\.setTimeout\(60_000\)/u);
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 2);
+  assert.match(spec, /backoffice desktop\/mobile serious\/critical axe violations/u);
 });
 
 test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", () => {

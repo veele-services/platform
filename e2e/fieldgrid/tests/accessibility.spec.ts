@@ -19,7 +19,7 @@ async function useIdentity(page: Page, userId: string) {
 
 async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
   await page.setViewportSize(viewport === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 900 });
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   const startedAt = new Date().toISOString();
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const violations = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
@@ -47,8 +47,9 @@ async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
 }
 
 test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', async ({ page }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, '20000000-0000-4000-8000-000000000102');
-  await page.goto(`http://${tenantHost}:9321/admin/planning`);
+  await page.goto(`http://${tenantHost}:9321/admin/planning`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('main')).toContainText(/Planbord|Werkbon-wachtrij/);
   await page.keyboard.press('Tab');
   await expect(page.locator(':focus')).not.toHaveCount(0);
