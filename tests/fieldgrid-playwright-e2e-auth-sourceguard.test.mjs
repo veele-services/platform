@@ -191,8 +191,8 @@ test("quote acceptance waits for durable server state instead of transient clien
 
 test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
   const spec = staffingSpec();
-  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 2);
-  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 1);
+  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 3);
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 0);
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
 });

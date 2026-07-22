@@ -105,7 +105,7 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await eventually(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
   await eventually(admin.locator('main')).toContainText(/Gepland/);
 
-  await customer.goto(customerUrl('/klant/opdrachten'), { waitUntil: 'domcontentloaded' });
+  await customer.goto(customerUrl('/klant/opdrachten'), { waitUntil: 'commit' });
   await eventually(customer.locator('main')).toContainText('Runtime Assignment A');
   await eventually(customer.locator('main')).toContainText('Werkelijk');
   await eventually(customer.locator('main')).toContainText('Gepland');
