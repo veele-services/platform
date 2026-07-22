@@ -191,8 +191,9 @@ test("quote acceptance waits for durable server state instead of transient clien
 
 test("staffing lifecycle evidence binds mutations to durable state before rendered DOM", () => {
   const spec = staffingSpec();
-  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 0);
+  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 1);
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 1);
+  assert.match(spec, /customer\.goto\(customerUrl\('\/klant\/opdrachten'\), evidenceNavigationOptions\)/u);
   assert.match(spec, /timeout: 120_000/u);
   assert.match(spec, /test\.setTimeout\(600_000\)/u);
   assert.match(spec, /public\.assignment_participant_executions/u);

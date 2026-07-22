@@ -10,6 +10,7 @@ const customerUserId = '20000000-0000-4000-8000-000000000105';
 const participantOnePersonnelId = '60000000-0000-4000-8000-000000000001';
 const participantTwoPersonnelId = '60000000-0000-4000-8000-000000000107';
 const navigationOptions = { waitUntil: 'domcontentloaded' as const, timeout: 120_000 };
+const evidenceNavigationOptions = { waitUntil: 'commit' as const, timeout: 120_000 };
 
 const eventually = expect.configure({ timeout: 120_000 });
 
@@ -146,15 +147,15 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await goEnRouteAndStart(participantTwo, participantTwoPersonnelId);
 
   await completeParticipant(participantOne, participantOnePersonnelId);
-  await admin.reload(navigationOptions);
+  await admin.goto(backofficeUrl(`/assignments/${assignmentId}?tab=gegevens`), evidenceNavigationOptions);
   await eventually(admin.locator('main')).toContainText(/In uitvoering|Werkelijk/);
 
   await completeParticipant(participantTwo, participantTwoPersonnelId);
-  await admin.reload(navigationOptions);
+  await admin.goto(backofficeUrl(`/assignments/${assignmentId}?tab=gegevens`), evidenceNavigationOptions);
   await eventually(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
   await eventually(admin.locator('main')).toContainText(/Gepland/);
 
-  await customer.goto(customerUrl('/klant/opdrachten'), navigationOptions);
+  await customer.goto(customerUrl('/klant/opdrachten'), evidenceNavigationOptions);
   await eventually(customer.locator('main')).toContainText('Runtime Assignment A');
   await eventually(customer.locator('main')).toContainText('Werkelijk');
   await eventually(customer.locator('main')).toContainText('Gepland');
