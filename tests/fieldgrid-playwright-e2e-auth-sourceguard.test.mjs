@@ -684,6 +684,11 @@ test("browser scenarios include payment integrity, review remediation, recovery 
   );
   assert.match(spec, /Customer credential recovery/);
   assert.match(spec, /Personnel credential recovery/);
+  const customerRecovery =
+    /test\("5\. Customer credential recovery"[\s\S]+?(?=test\("6\. Personnel credential recovery")/u.exec(
+      spec,
+    )?.[0] ?? "";
+  assert.equal((customerRecovery.match(/timeout: 15_000/gu) ?? []).length, 4);
   assert.match(
     spec,
     /Recovery provider invalidates sessions and never receives a code as password/,

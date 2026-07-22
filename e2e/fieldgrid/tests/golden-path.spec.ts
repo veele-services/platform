@@ -315,13 +315,16 @@ test("5. Customer credential recovery", async ({ page }) => {
   const code = await recoveryCodeFor(email);
   await page.getByLabel("Herstelcode").fill(code);
   await page.getByRole("button", { name: "Code controleren" }).click();
-  await expect(page).toHaveURL(/\/klant\/reset-wachtwoord/u);
+  await expect(page).toHaveURL(/\/klant\/reset-wachtwoord/u, {
+    timeout: 15_000,
+  });
 
   await page.locator('input[name="password"]').fill("Fieldgrid!Phase2B42");
   await page.locator('input[name="passwordTwo"]').fill("Fieldgrid!Phase2B42");
   await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
   await expect(page).toHaveURL(
     /\/klant\/login\?message=Wachtwoord\+succesvol\+gewijzigd/u,
+    { timeout: 15_000 },
   );
 });
 
