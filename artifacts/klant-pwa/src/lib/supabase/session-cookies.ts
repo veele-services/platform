@@ -1,6 +1,7 @@
 import type { CookieOptionsWithName } from "@supabase/ssr";
 
 const SUPABASE_AUTH_COOKIE_PREFIX = "fieldgrid-auth";
+const CUSTOMER_BASE_PATH = "/klant";
 
 export function normalizeCookieHost(host: string | null | undefined): string {
   const firstHost = (host ?? "").split(",")[0]?.trim().toLowerCase() ?? "";
@@ -29,7 +30,7 @@ export function createSupabaseCookieOptions(host: string | null | undefined): Co
   // No domain attribute: host-only cookies isolate admin.fieldgrid.nl from slug.fieldgrid.nl tenants.
   return {
     name: supabaseAuthCookieName(host),
-    path: "/",
+    path: CUSTOMER_BASE_PATH,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   };
@@ -40,7 +41,7 @@ export function withHostOnlyCookieOptions(options: CookieOptionsWithName): Cooki
 
   return {
     ...hostOnlyOptions,
-    path: hostOnlyOptions.path ?? "/",
+    path: CUSTOMER_BASE_PATH,
     sameSite: hostOnlyOptions.sameSite ?? "lax",
     secure: hostOnlyOptions.secure ?? process.env.NODE_ENV === "production",
   };

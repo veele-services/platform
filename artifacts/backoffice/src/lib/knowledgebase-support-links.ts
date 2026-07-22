@@ -1,3 +1,5 @@
+import { BACKOFFICE_BASE_PATH, backofficePath } from "@/lib/backoffice-paths";
+
 const DEFAULT_HELP_BASE_URL = "https://fieldgrid.nl";
 
 function normalizedBaseUrl(value: string | undefined): string {
@@ -27,7 +29,7 @@ export function normalizeKnowledgebaseTenantCode(value: string): string {
 export function knowledgebaseSupportPath(tenantCode: string, articleSlug: string): string {
   const normalizedTenantCode = normalizeKnowledgebaseTenantCode(tenantCode);
   const normalizedArticleSlug = articleSlug.trim();
-  return `/h/${encodeURIComponent(normalizedTenantCode)}/${encodeURIComponent(normalizedArticleSlug)}`;
+  return backofficePath(`/h/${encodeURIComponent(normalizedTenantCode)}/${encodeURIComponent(normalizedArticleSlug)}`);
 }
 
 export function knowledgebaseSupportUrl(tenantCode: string, articleSlug: string): string {
@@ -35,5 +37,5 @@ export function knowledgebaseSupportUrl(tenantCode: string, articleSlug: string)
 }
 
 export function knowledgebaseSupportUrlTemplate(articleSlug: string): string {
-  return `${fieldgridHelpBaseUrl()}/h/{tenant-code}/${encodeURIComponent(articleSlug.trim())}`;
+  return `${fieldgridHelpBaseUrl()}${BACKOFFICE_BASE_PATH}/h/{tenant-code}/${encodeURIComponent(articleSlug.trim())}`;
 }

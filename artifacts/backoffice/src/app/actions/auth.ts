@@ -40,6 +40,7 @@ import {
   type CredentialRecoverySurface,
 } from "@workspace/db";
 import type { ActionResult } from "./customers";
+import { BACKOFFICE_BASE_PATH, backofficePath } from "@/lib/backoffice-paths";
 
 export type AuthFormState = {
   error: string | null;
@@ -147,12 +148,14 @@ function parseRecoveryGrant(value: string | undefined): {
 }
 
 function redirectPathFromFormValue(value: FormDataEntryValue | null): string {
-  if (typeof value !== "string") return "/";
+  if (typeof value !== "string") return BACKOFFICE_BASE_PATH;
 
   const next = value.trim();
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return "/";
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) {
+    return BACKOFFICE_BASE_PATH;
+  }
 
-  return next;
+  return backofficePath(next);
 }
 
 /**
@@ -253,7 +256,7 @@ export async function signOut(): Promise<void> {
   }
 
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect(backofficePath("/login"));
 }
 
 export async function completePasswordReset(
@@ -315,7 +318,9 @@ export async function completePasswordReset(
     },
   });
   if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId || !consumed.claimId) {
-    if (consumed.state !== "processing") cookieStore.delete(RECOVERY_COOKIE);
+    if (consumed.state !== "processing") {
+      cookieStore.delete({ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH });
+    }
     return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
   }
 
@@ -357,7 +362,7 @@ export async function completePasswordReset(
     sessionRevoked: !error,
   });
   if (error) return { error: "Wachtwoord opslaan mislukt. Probeer deze herstelsessie opnieuw." };
-  cookieStore.delete(RECOVERY_COOKIE);
+  cookieStore.delete({ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH });
 
   await db.insert(auditLogTable).values({
     userId: consumed.subjectUserId,
@@ -455,7 +460,7 @@ export async function verifyPasswordResetCode(input: {
     httpOnly: true,
     secure: recoveryOrigin().startsWith("https://"),
     sameSite: "strict",
-    path: "/",
+    path: BACKOFFICE_BASE_PATH,
     expires: result.grantExpiresAt,
   });
   return { success: true, state: "valid" };

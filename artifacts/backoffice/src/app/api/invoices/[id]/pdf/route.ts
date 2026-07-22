@@ -5,6 +5,7 @@ import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
 import { requireCurrentTenantIdFromRequest } from "@/lib/auth/tenant";
 import { requireSensitiveRuntimeAccessFromRequest } from "@/lib/security/sensitive-runtime";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export async function GET(
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 
   const paymentQrUrl = invoice.paymentUrl
-    ? new URL(`/backoffice-api/invoices/${invoice.id}/pay`, request.url).toString()
+    ? new URL(backofficePath(`/backoffice-api/invoices/${invoice.id}/pay`), request.url).toString()
     : null;
   const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });
   const filename = `${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf`;

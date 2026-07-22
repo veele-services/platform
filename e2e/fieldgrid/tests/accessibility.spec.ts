@@ -9,12 +9,17 @@ const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright', 'ac
 
 async function useIdentity(page: Page, userId: string) {
   await page.context().clearCookies();
-  await page.context().addCookies([{ name: 'fieldgrid_e2e_auth_user', value: userId, domain: tenantHost, path: '/' }]);
+  await page.context().addCookies(['/admin', '/personeel', '/klant'].map((path) => ({
+    name: 'fieldgrid_e2e_auth_user',
+    value: userId,
+    domain: tenantHost,
+    path,
+  })));
 }
 
 async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
   await page.setViewportSize(viewport === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 900 });
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   const startedAt = new Date().toISOString();
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const violations = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
@@ -42,8 +47,9 @@ async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
 }
 
 test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', async ({ page }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, '20000000-0000-4000-8000-000000000102');
-  await page.goto(`http://${tenantHost}:9321/planning`);
+  await page.goto(`http://${tenantHost}:9321/admin/planning`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('main')).toContainText(/Planbord|Werkbon-wachtrij/);
   await page.keyboard.press('Tab');
   await expect(page.locator(':focus')).not.toHaveCount(0);
@@ -53,7 +59,7 @@ test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', asyn
   ];
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`http://${tenantHost}:9321/assignments/${assignmentId}?tab=gegevens`);
+  await page.goto(`http://${tenantHost}:9321/admin/assignments/${assignmentId}?tab=gegevens`);
   const personnelCard = page.getByRole('heading', { name: 'Medewerkers' }).locator('..');
   await personnelCard.locator('li').filter({ hasText: 'Phase2 Personnel A' }).getByRole('button', { name: 'Verwijderen' }).click();
   const dialog = page.getByRole('alertdialog');

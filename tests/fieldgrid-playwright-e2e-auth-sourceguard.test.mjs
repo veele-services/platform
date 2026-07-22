@@ -10,6 +10,10 @@ const start = () => read("e2e/fieldgrid/start-real-apps.mjs");
 const seam = () => read("lib/db/src/e2e-auth-adapter.ts");
 const workflow = () => read(".github/workflows/fieldgrid-playwright.yml");
 const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
+const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
+const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
+const completionSummary = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx");
+const workOrderStatusProgress = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx");
 const playwrightConfig = () => read("playwright.config.ts");
 const root = process.cwd();
 const ALLOWLISTED_E2E_USER_ID = "20000000-0000-4000-8000-000000000101";
@@ -166,6 +170,54 @@ test("suspended-tenant navigation is bound to the denial DOM instead of full res
     spec,
     /Runtime Customer A\|Runtime Customer B\|Runtime Assignment A\|Runtime Assignment B/,
   );
+});
+
+test("cross-tenant personnel denial does not wait for non-critical resource load", () => {
+  const spec = browserSpec();
+  assert.match(
+    spec,
+    /personnelUrl\(`\/personeel\/opdrachten\/\$\{tenantBAssignmentId\}`\),\s+\{ waitUntil: "domcontentloaded" \},/u,
+  );
+  assert.match(spec, /not\.toContainText\("Runtime Assignment B"\)/u);
+});
+
+test("quote acceptance waits for durable server state instead of transient client copy", () => {
+  const spec = browserSpec();
+  assert.doesNotMatch(spec, /getByText\("Offerte goedgekeurd"\)/u);
+  assert.match(spec, /toContainText\("€ 250,00 akkoord gegeven\."/u);
+  assert.match(spec, /toContainText\("Geen offertes gevonden"\)/u);
+  assert.match(spec, /toContainText\(\/Planbaar\|Goedgekeurd\/i\)/u);
+});
+
+test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
+  const spec = staffingSpec();
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 3);
+  assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
+  assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
+});
+
+test("completion mutation cannot be clicked before personnel hydration", () => {
+  const component = completionSummary();
+  const spec = staffingSpec();
+  assert.match(component, /const \[isHydrated, setIsHydrated\] = useState\(false\)/u);
+  assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
+  assert.match(component, /disabled=\{!isHydrated \|\| isPending\}/u);
+  assert.match(spec, /eventually\(completeButton\)\.toBeEnabled\(\)/u);
+});
+
+test("completion choice uses native-link fallback instead of client-only router clicks", () => {
+  const component = workOrderStatusProgress();
+  const spec = staffingSpec();
+  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
+  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
+  assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+});
+
+test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
+  const spec = accessibilitySpec();
+  assert.match(spec, /test\.setTimeout\(60_000\)/u);
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 2);
+  assert.match(spec, /backoffice desktop\/mobile serious\/critical axe violations/u);
 });
 
 test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", () => {

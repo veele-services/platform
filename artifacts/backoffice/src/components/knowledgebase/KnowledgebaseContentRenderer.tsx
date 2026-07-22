@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 type KnowledgebaseContentRendererProps = {
   html?: string | null;
@@ -10,7 +11,7 @@ const DEFAULT_EMPTY_HTML = "<p>Geen inhoud beschikbaar.</p>";
 
 function normalizeMediaBasePath(mediaBasePath?: string): string | null {
   if (!mediaBasePath) return null;
-  return mediaBasePath.replace(/\/+$/, "");
+  return backofficePath(mediaBasePath).replace(/\/+$/, "");
 }
 
 function rewriteKnowledgebaseMediaUrls(html: string, mediaBasePath?: string): string {

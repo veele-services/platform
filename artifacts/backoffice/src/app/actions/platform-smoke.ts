@@ -215,7 +215,7 @@ function buildLiveSmokes(
       label: "Host-first platform en tenants",
       status: checkStatus("FG-SMOKE-HOST"),
       host: "staging.fieldgrid.nl",
-      route: "/platform",
+      route: "/admin/platform",
       command:
         `Playwright host-first smoke voor platform, staging en ${STAGING_PILOT_TENANT_SLUG}.`,
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
@@ -231,7 +231,7 @@ function buildLiveSmokes(
           ? "ok"
           : "warning",
       host: STAGING_PILOT_TENANT_HOST,
-      route: "/",
+      route: "/admin",
       command: "Playwright module-off en sector-denial smoke.",
       testIds: [
         "FG-MODULE-001",
@@ -247,7 +247,7 @@ function buildLiveSmokes(
       label: "Regio's",
       status: totals.tenantRegions > 0 ? "warning" : "manual",
       host: STAGING_PILOT_TENANT_HOST,
-      route: "/planning",
+      route: "/admin/planning",
       command: "Playwright regio-filter en planning-overlap smoke.",
       testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
       nextAction:
@@ -289,7 +289,7 @@ function buildLiveSmokes(
           ? "ok"
           : "manual",
       host: STAGING_PILOT_TENANT_HOST,
-      route: "/documents",
+      route: "/admin/documents",
       command: "Playwright signed URL/path guessing en PDF-download smoke.",
       testIds: [
         "FG-STORAGE-001",
@@ -629,11 +629,11 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Platform engineering",
       persona: "owner",
       host: "admin.fieldgrid.nl",
-      route: "/platform",
+      route: "/admin/platform",
       command:
         "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
       evidence:
-        "Screenshots en trace artifacts voor /platform, /platform/security, /platform/users en support-only denials.",
+        "Screenshots en trace artifacts voor /admin/platform, /admin/platform/security, /admin/platform/users en support-only denials.",
       testIds: [
         "FG-PLATFORM-001",
         "FG-PLATFORM-002",
@@ -685,7 +685,7 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Platform engineering",
       persona: "non-enterprise",
       host: "starter/professional tenant",
-      route: "/platform/tenants/:tenantId?tab=domains",
+      route: "/admin/platform/tenants/:tenantId?tab=domains",
       command:
         "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
       evidence:
@@ -719,7 +719,7 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Platform engineering",
       persona: "platform",
       host: "admin.fieldgrid.nl",
-      route: "/platform/tenants/:tenantId",
+      route: "/admin/platform/tenants/:tenantId",
       command:
         `Suspend/reactivate/archive/retry smoke op ${STAGING_PILOT_TENANT_SLUG} met rollback.`,
       evidence: "Mutating smoke run met marker-scoped cleanup en audit-events.",
@@ -735,7 +735,7 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Platform engineering",
       persona: "platform",
       host: "admin.fieldgrid.nl",
-      route: "/platform/subscriptions",
+      route: "/admin/platform/subscriptions",
       command:
         "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
       evidence:
@@ -751,7 +751,7 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Support operations",
       persona: "support",
       host: "admin.fieldgrid.nl",
-      route: "/platform/tickets",
+      route: "/admin/platform/tickets",
       command:
         "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
       evidence: "Ticketdetail screenshot en platform_ticket_* audit-events.",
@@ -767,7 +767,7 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Support operations",
       persona: "admin",
       host: "admin.fieldgrid.nl",
-      route: "/platform/notifications",
+      route: "/admin/platform/notifications",
       command:
         "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
       evidence:
@@ -801,7 +801,7 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "ci",
       host: "admin.fieldgrid.nl",
       route:
-        "/platform, /platform/tenants, tenantdetail, domains, tickets, security",
+        "/admin/platform, /admin/platform/tenants, tenantdetail, domains, tickets, security",
       command: "pnpm fieldgrid:platform-phase13-visual-smoke",
       evidence:
         "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",

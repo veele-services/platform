@@ -634,6 +634,7 @@ async function liveness() {
         "backoffice-login",
         ports.backoffice,
         "tenant-a.runtime.fieldgrid.test",
+        "/admin/login",
       ),
     );
     checks.push(
@@ -673,7 +674,7 @@ async function authenticatedPreflight() {
     {
       name: "tenant-a-admin-backoffice",
       port: ports.backoffice,
-      path: "/customers",
+      path: "/admin/customers",
       host: "tenant-a.runtime.fieldgrid.test",
       userId: localFixtureIdentities.tenantAAdmin.userId,
     },

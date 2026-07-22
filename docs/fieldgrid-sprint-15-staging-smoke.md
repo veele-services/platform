@@ -10,7 +10,7 @@ Sprint 15 maakt staging continu controleerbaar vanuit platformbeheer zonder stag
 
 Geleverd:
 
-- Run history op `/platform/staging-smoke`.
+- Run history op `/admin/platform/staging-smoke`.
 - JSON-artifact ondersteuning voor `artifacts/staging-smoke` en `artifacts/migration-smoke`.
 - Live Playwright-smokes als expliciete targets voor host, login, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning.
 - Migratie-smoke status met de bestaande Sprint 7 runner en targets `empty-database` en `staging-copy`.
@@ -84,6 +84,6 @@ Nog `runtime-proof-open`:
 Rollback is code-only:
 
 - verwijder de extra dashboardvelden uit `platform-smoke.ts`;
-- verwijder de extra secties uit `/platform/staging-smoke`;
+- verwijder de extra secties uit `/admin/platform/staging-smoke`;
 - verwijder het sprint 15 script en package scripts;
 - er is geen database rollback nodig.

@@ -5,6 +5,7 @@ import { getShortcodeKnowledgebaseArticle } from "@/app/actions/knowledgebase-he
 import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
 import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Button } from "@/components/ui/button";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ export default async function KnowledgebaseShortcodeArticlePage({ params }: Prop
   const result = await getShortcodeKnowledgebaseArticle(tenantCode, slug);
 
   if (result.status === "login_required") {
-    redirect(`/login?next=${encodeURIComponent(result.nextPath)}`);
+    redirect(`${backofficePath("/login")}?next=${encodeURIComponent(backofficePath(result.nextPath))}`);
   }
 
   if (result.status === "tenant_not_found") {
@@ -131,7 +132,7 @@ export default async function KnowledgebaseShortcodeArticlePage({ params }: Prop
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <KnowledgebaseContentRenderer
             html={article.contentHtml}
-            mediaBasePath={`/h/${result.tenantCode}/${article.slug}/media`}
+            mediaBasePath={backofficePath(`/h/${result.tenantCode}/${article.slug}/media`)}
           />
         </section>
 

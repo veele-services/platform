@@ -18,7 +18,8 @@ const recoveryOutboxPath = "/tmp/fieldgrid-phase2b-playwright-outbox.jsonl";
 const offlineTaskId = "90000000-0000-4000-8000-000000000006";
 
 function backofficeUrl(path: string, host = tenantAHost) {
-  return `http://${host}:9321${path}`;
+  const suffix = path === "/" ? "" : path;
+  return `http://${host}:9321/admin${suffix}`;
 }
 
 function personnelUrl(path: string, host = tenantAHost) {
@@ -32,12 +33,12 @@ function customerUrl(path: string, host = tenantAHost) {
 async function useIdentity(page: Page, userId: string, host = tenantAHost) {
   await page.context().clearCookies();
   await page.context().addCookies([
-    {
+    ...["/admin", "/personeel", "/klant"].map((path) => ({
       name: "fieldgrid_e2e_auth_user",
       value: userId,
       domain: host,
-      path: "/",
-    },
+      path,
+    })),
   ]);
 }
 
@@ -255,9 +256,10 @@ test("Customer accepts a sent quote through the canonical lifecycle", async ({
   await expect(page.locator("main")).toContainText("RTA-OFF-001");
   await page.getByRole("button", { name: "Goedkeuren" }).first().click();
   await page.getByRole("button", { name: "Ja, goedkeuren" }).first().click();
-  await expect(page.getByText("Offerte goedgekeurd").first()).toBeVisible({
+  await expect(page.locator("main")).toContainText("€ 250,00 akkoord gegeven.", {
     timeout: 15_000,
   });
+  await expect(page.locator("main")).toContainText("Geen offertes gevonden");
 
   await page.goto(
     customerUrl(`/klant/opdrachten/${quoteAcceptanceAssignmentId}`),
@@ -364,8 +366,22 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 });
 
 test("8. Negative guards", async ({ page }) => {
+  await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
+  let rootCookieHeader = "";
+  const captureRootRequest = (request: import("@playwright/test").Request) => {
+    if (request.url() === `http://${tenantAHost}:9321/`) {
+      rootCookieHeader = request.headers()["cookie"] ?? "";
+    }
+  };
+  page.on("request", captureRootRequest);
+  let response = await page.goto(`http://${tenantAHost}:9321/`, { waitUntil: "domcontentloaded" });
+  page.off("request", captureRootRequest);
+  expect(response?.status()).toBe(404);
+  expect(rootCookieHeader).not.toContain("fieldgrid_e2e_auth_user");
+  await expect(page.locator("body")).not.toContainText(/Planbord|Runtime Customer A/u);
+
   await useIdentity(page, "20000000-0000-4000-8000-000000000202", tenantAHost);
-  let response = await page.goto(backofficeUrl("/customers"));
+  response = await page.goto(backofficeUrl("/customers"));
   await expectDeniedOrLogin(page, response);
   await expect(page.locator("body")).not.toContainText("Runtime Customer A");
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", unknownHost);
@@ -379,7 +395,7 @@ test("8. Negative guards", async ({ page }) => {
     "20000000-0000-4000-8000-000000000401",
     suspendedHost,
   );
-  const suspendedAssetPattern = `http://${suspendedHost}:9321/_next/static/chunks/main-app.js*`;
+  const suspendedAssetPattern = `http://${suspendedHost}:9321/admin/_next/static/chunks/main-app.js*`;
   let suspendedAssetIntercepted = false;
   let releaseSuspendedAsset = () => undefined;
   const suspendedAssetRelease = new Promise<void>((resolve) => {
@@ -421,6 +437,7 @@ test("8. Negative guards", async ({ page }) => {
   await useIdentity(page, "20000000-0000-4000-8000-000000000104", tenantAHost);
   response = await page.goto(
     personnelUrl(`/personeel/opdrachten/${tenantBAssignmentId}`),
+    { waitUntil: "domcontentloaded" },
   );
   await expectDeniedOrLogin(page, response);
   await expect(page.locator("body")).not.toContainText("Runtime Assignment B");

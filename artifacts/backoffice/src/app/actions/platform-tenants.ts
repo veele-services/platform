@@ -58,6 +58,7 @@ import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = ["provisioning", "trial", "active", "suspended", "archived"] as const;
@@ -912,7 +913,7 @@ async function inviteOrFindTenantAuthUser(email: string, tenantId: string, actor
     portal: "tenant-admin",
     tenantId,
     portalName: "Tenant backoffice",
-    activationUrl: loginUrl.replace(/\/admin\/login$/u, "/wachtwoord-vergeten?doel=activatie"),
+    activationUrl: loginUrl.replace(/\/admin\/login$/u, "/admin/wachtwoord-vergeten?doel=activatie"),
     actorUserId,
     allowExistingActive: true,
   });
@@ -2096,7 +2097,7 @@ export async function addPlatformTenantAdmin(formData: FormData): Promise<void> 
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(`/platform/tenants/${tenantId}?tab=users`);
+  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function updatePlatformTenantAdmin(formData: FormData): Promise<void> {
@@ -2148,7 +2149,7 @@ export async function updatePlatformTenantAdmin(formData: FormData): Promise<voi
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(`/platform/tenants/${tenantId}?tab=users`);
+  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function deletePlatformTenantAdmin(formData: FormData): Promise<void> {
@@ -2188,7 +2189,7 @@ export async function deletePlatformTenantAdmin(formData: FormData): Promise<voi
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(`/platform/tenants/${tenantId}?tab=users`);
+  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function sendPlatformTenantAdminPasswordReset(formData: FormData): Promise<void> {
@@ -2210,7 +2211,7 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
   if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
 
   const email = data.user.email;
-  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/admin\/login$/u, "/wachtwoord-vergeten");
+  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/admin\/login$/u, "/admin/wachtwoord-vergeten");
   const configuredOrigin = new URL(resetUrl).origin;
   const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
     .split(",").map((value) => value.trim()).filter(Boolean);
@@ -2257,7 +2258,7 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(`/platform/tenants/${tenantId}?tab=users`);
+  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function updatePlatformTenantOwnerInvite(formData: FormData): Promise<void> {
@@ -2382,7 +2383,7 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
 
   revalidatePlatformTenant(tenantId);
   revalidatePath("/platform/onboarding");
-  redirect(`/platform/tenants/${tenantId}?tab=users`);
+  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function listPlatformTenantRegions(tenantId: string): Promise<PlatformTenantRegionRow[]> {
@@ -2631,7 +2632,7 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   });
 
   revalidatePlatformTenant(created.id);
-  redirect(`/platform/tenants/${created.id}`);
+  redirect(backofficePath(`/platform/tenants/${created.id}`));
 }
 
 export async function updatePlatformTenantLifecycle(formData: FormData): Promise<ActionResult> {

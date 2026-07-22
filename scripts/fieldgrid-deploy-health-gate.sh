@@ -227,7 +227,7 @@ default_public_endpoints() {
   if [ -n "${BACKOFFICE_PUBLIC_LOGIN_URL:-}" ]; then
     append_endpoint "public-backoffice" "$BACKOFFICE_PUBLIC_LOGIN_URL" "login"
   elif [ -n "${BACKOFFICE_PUBLIC_URL:-${APP_URL:-}}" ]; then
-    append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/login")" "login"
+    append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/admin/login")" "login"
   fi
   if [ -n "${PERSONEEL_PUBLIC_HEALTH_URL:-}" ]; then
     append_endpoint "public-personnel" "$PERSONEEL_PUBLIC_HEALTH_URL" "exact-200"

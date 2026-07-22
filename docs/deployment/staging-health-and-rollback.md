@@ -40,7 +40,7 @@ Default local probes are exactly four service endpoints:
 
 | Surface | Local probe |
 | --- | --- |
-| Backoffice | `http://127.0.0.1:${BACKOFFICE_PORT}/login` |
+| Backoffice | `http://127.0.0.1:${BACKOFFICE_PORT}/admin/login` |
 | Personnel PWA | `http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz` |
 | Customer PWA | `http://127.0.0.1:${KLANT_PORT}/klant/healthz` |
 | API | `http://127.0.0.1:${API_PORT}/api/healthz` |

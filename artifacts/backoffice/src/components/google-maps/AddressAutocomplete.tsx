@@ -5,6 +5,7 @@ import type { KeyboardEvent } from "react";
 import { Loader2, MapPin, Search } from "lucide-react";
 import type { GooglePlaceAddress, GooglePlacesSuggestion } from "@workspace/db/google-places";
 import { Input } from "@/components/ui/input";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export type AddressAutocompleteSelection = {
   suggestion: GooglePlacesSuggestion;
@@ -63,7 +64,7 @@ export function AddressAutocomplete({
     const timeout = window.setTimeout(async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${endpointBase}/autocomplete`, {
+        const response = await fetch(`${backofficePath(endpointBase)}/autocomplete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input: trimmed, sessionToken, limit }),
@@ -99,7 +100,7 @@ export function AddressAutocomplete({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${endpointBase}/details`, {
+      const response = await fetch(`${backofficePath(endpointBase)}/details`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ placeId: suggestion.placeId, sessionToken }),

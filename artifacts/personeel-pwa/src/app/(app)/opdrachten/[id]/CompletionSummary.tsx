@@ -423,6 +423,7 @@ function CostOverview({ extraTotal, materialTotal }: { extraTotal: number; mater
 
 export function CompletionSummary({ assignment, mode, extraWork, materials, reportNotes }: Props) {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
@@ -435,6 +436,10 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
   const extraTotal = useMemo(() => extraWork.reduce((sum, item) => sum + calculateExtraWorkLineTotal(item), 0), [extraWork]);
   const materialTotal = useMemo(() => materials.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0), [materials]);
   const canSubmit = assignment.status === "in_progress";
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   function handleSubmit() {
     setError(null);
@@ -574,7 +579,7 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
         type="button"
         className="flex w-full items-center justify-center gap-2 rounded-[18px] px-5 py-4 text-[15px] font-black text-white shadow-lg transition-opacity disabled:opacity-60"
         style={{ backgroundColor: mode === "completed" ? "var(--color-accent)" : "#DC2626" }}
-        disabled={isPending}
+        disabled={!isHydrated || isPending}
         onClick={handleSubmit}
       >
         <PenLine size={18} strokeWidth={2.4} />

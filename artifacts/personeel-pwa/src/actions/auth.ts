@@ -220,7 +220,9 @@ export async function completePasswordReset(
     },
   });
   if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId || !consumed.claimId) {
-    if (consumed.state !== "processing") cookieStore.delete(RECOVERY_COOKIE);
+    if (consumed.state !== "processing") {
+      cookieStore.delete({ name: RECOVERY_COOKIE, path: "/personeel" });
+    }
     return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
   }
 
@@ -252,7 +254,7 @@ export async function completePasswordReset(
     sessionRevoked: !error,
   });
   if (error) return { error: "Wachtwoord opslaan mislukt. Probeer deze herstelsessie opnieuw." };
-  cookieStore.delete(RECOVERY_COOKIE);
+  cookieStore.delete({ name: RECOVERY_COOKIE, path: "/personeel" });
 
   const supabase = await createClient();
   await supabase.auth.signOut();

@@ -105,7 +105,7 @@ test("platform onboarding actions return to run history after failed provisionin
     action,
     [
       "catch {",
-      "redirect(\"/platform/onboarding#provisioning-runs\")",
+      "redirect(backofficePath(\"/platform/onboarding#provisioning-runs\"))",
       "retryPlatformTenantProvisioning",
       "createPlatformTenant",
     ],

@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 type HexColor = `#${string}`;
 
@@ -310,7 +311,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {
     periodKey: previewNumber.periodKey,
     sequenceValue: previewNumber.sequenceValue,
     dueDateDays: companySettings.defaultPaymentTermDays,
-    testPdfUrl: "/backoffice-api/invoices/test-pdf",
+    testPdfUrl: backofficePath("/backoffice-api/invoices/test-pdf"),
     warnings: invoiceSettingsWarnings({
       company: companySettings,
       template: templateSettings,

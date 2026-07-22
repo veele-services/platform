@@ -194,10 +194,11 @@ cookie must be restricted to `/admin`. The public runtime must not receive
 application session cookies. The edge must route prefixed paths before the
 website fallback and preserve each application's full base path.
 
-Staging therefore needs explicit wildcard DNS and TLS ownership for
-`*.staging.fieldgrid.nl`; the existing `staging.fieldgrid.nl` certificate alone
-does not cover tenant staging hosts. No production or staging host is activated
-by the schema foundation in this phase.
+Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as provisioned.
+Wildcard TLS coverage and exact host resolution still require runtime proof;
+the existing `staging.fieldgrid.nl` certificate alone does not prove coverage
+for tenant staging hosts. No production or staging host is activated by the
+schema foundation or Phase 2A code.
 
 ## 4. Current admin UI conventions
 
@@ -352,7 +353,7 @@ For the first implementation phase:
 | Public tenant host          | Production `{tenant}.fieldgrid.nl`; staging `{tenant}.staging.fieldgrid.nl` | Product                 |
 | Shared-host route ownership | Website `/`; apps `/admin`, `/personeel`, `/klant`                          | Product/architecture    |
 | Backoffice isolation gate   | Real `/admin` base path and `/admin`-scoped cookies before public routing    | Architecture/security   |
-| Staging wildcard TLS        | Explicit `*.staging.fieldgrid.nl` DNS and certificate required              | Infrastructure          |
+| Staging wildcard DNS/TLS    | DNS provisioned; certificate and host resolution require staging proof      | Infrastructure          |
 | Custom site hosting         | Dedicated approved deployment per customer, not arbitrary tenant URL        | Platform operations     |
 | Delivery router             | Dedicated host router or atomic Caddy adapter; prove in staging spike       | Architecture/operations |
 | Number of sites per tenant  | Schema supports multiple; MVP UI exposes one primary site                   | Product                 |
@@ -363,16 +364,16 @@ For the first implementation phase:
 
 ## 8. Safest first implementation phase
 
-After these documents are reviewed and the branch is reconciled with exact current main, the safest first coding increment is Phase 1A:
+Phase 1A and Phase 1B were merged in PR #353. The active safe increment is
+Phase 2A shared-host application isolation:
 
-- add the `website` module key and RBAC resources;
-- add core site, domain-binding, page, section, navigation, publication and custom-deployment schemas;
-- add pure Zod contracts and the registry foundation without React renderers;
-- seed Template 1 configuration only;
-- add migration-order, schema, tenant-isolation, RLS and delivery-mode invariant tests;
-- do not route a public domain, deploy a new service or expose an admin UI yet.
+- move the backoffice to the real `/admin` base path;
+- path-scope application session and auxiliary cookies;
+- prove deterministic shared-host route precedence and host classification;
+- keep DNS, proxy, staging and production state unchanged.
 
-This increment creates the security and data boundaries required by both managed and custom websites without changing live routing.
+This increment creates the application-isolation boundary required before the
+managed or custom website runtime can own `/`, without changing live routing.
 
 ## 9. Validation commands for later phases
 

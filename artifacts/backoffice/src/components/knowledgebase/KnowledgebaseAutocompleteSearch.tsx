@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Search, Tags } from "lucide-react";
 import type { KnowledgebaseSearchSuggestion } from "@workspace/db";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 type KnowledgebaseAutocompleteSearchProps = {
   defaultValue?: string | null;
@@ -52,7 +53,7 @@ export function KnowledgebaseAutocompleteSearch({
       }
 
       try {
-        const response = await fetch(`${endpoint}?q=${encodeURIComponent(trimmedQuery)}`, {
+        const response = await fetch(`${backofficePath(endpoint)}?q=${encodeURIComponent(trimmedQuery)}`, {
           signal: controller.signal,
           headers: { Accept: "application/json" },
         });
@@ -95,7 +96,7 @@ export function KnowledgebaseAutocompleteSearch({
   }
 
   return (
-    <form ref={rootRef} className={`relative flex gap-2 ${className}`} action={action}>
+    <form ref={rootRef} className={`relative flex gap-2 ${className}`} action={backofficePath(action)}>
       <div className="relative min-w-0 flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input

@@ -133,7 +133,7 @@ test("ADR distinguishes current cookie facts from target HttpOnly requirement", 
   assert.match(adr, /HttpOnly` is not currently proven or configured/);
   assert.match(adr, /Target requirement: move toward a server-only\/`HttpOnly` session boundary/);
   assert.doesNotMatch(adr, /`Secure`, `HttpOnly`, and `SameSite=Lax` by default/);
-  assert.match(migrationPlan, /Current cookie behavior is host-only, `path=\/`, `SameSite=Lax`, production-`Secure`/);
+  assert.match(migrationPlan, /Current cookie behavior is host-only, scoped to the owning `\/admin`, `\/personeel` or `\/klant` path, `SameSite=Lax`, production-`Secure`/);
 });
 
 test("ADR distinguishes revocation target from current repository capability", () => {

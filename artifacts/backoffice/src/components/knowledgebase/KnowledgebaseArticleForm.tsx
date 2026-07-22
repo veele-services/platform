@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TipTapKnowledgebaseEditor } from "@/components/knowledgebase/TipTapKnowledgebaseEditor";
+import { backofficePath } from "@/lib/backoffice-paths";
 import type { FieldgridContentAudience, FieldgridContentStatus, KnowledgebaseArticleSummary } from "@workspace/db";
 
 type KnowledgebaseArticleFormProps = {
@@ -407,7 +408,7 @@ export function KnowledgebaseArticleForm({
             ) : article?.media.map((item) => (
               <a
                 key={item.id}
-                href={`${mediaBasePath}/${item.id}`}
+                href={`${backofficePath(mediaBasePath)}/${item.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"

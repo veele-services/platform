@@ -17,7 +17,7 @@ function pilotTenantSlug(env = process.env) {
 }
 
 function pilotTenantHost(env = process.env) {
-  return `${pilotTenantSlug(env)}.fieldgrid.nl`;
+  return `${pilotTenantSlug(env)}.staging.fieldgrid.nl`;
 }
 
 function mutatingSmokeConfirmValue(env = process.env) {
@@ -33,7 +33,7 @@ export function buildLiveSmokeTargets(env = process.env) {
     label: "Host-first platform en tenants",
     runner: "Playwright",
     host: "staging.fieldgrid.nl",
-    route: "/platform",
+    route: "/admin/platform",
     testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
   },
   {
@@ -41,7 +41,7 @@ export function buildLiveSmokeTargets(env = process.env) {
     label: "Modules en sectoren",
     runner: "Playwright",
     host,
-    route: "/",
+    route: "/admin",
     testIds: ["FG-MODULE-001", "FG-MODULE-003", "FG-SECTOR-001", "FG-SECTOR-006"],
   },
   {
@@ -49,7 +49,7 @@ export function buildLiveSmokeTargets(env = process.env) {
     label: "Regio planning",
     runner: "Playwright",
     host,
-    route: "/planning",
+    route: "/admin/planning",
     testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
   },
   {
@@ -73,7 +73,7 @@ export function buildLiveSmokeTargets(env = process.env) {
     label: "Storage en PDF/downloads",
     runner: "Playwright",
     host,
-    route: "/documents",
+    route: "/admin/documents",
     testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-DATA-004", "FG-AUDIT-001"],
   },
   ];
@@ -171,7 +171,7 @@ export function buildSprint15StagingSmokePlan(env = process.env) {
     pilotTenantSlug: pilotTenantSlug(env),
     destructive: false,
     mutatesExistingTenants: false,
-    dashboardRoute: "/platform/staging-smoke",
+    dashboardRoute: "/admin/platform/staging-smoke",
     smokeApiRoute: "/api/platform/staging-smoke",
     runHistoryDirectories: ["artifacts/staging-smoke", "artifacts/migration-smoke"],
     readOnlySnapshot: {

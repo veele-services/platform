@@ -6,10 +6,24 @@ import {
 } from "@workspace/db/email-templates";
 import { sendTransactionalEmail } from "@workspace/db/email-service";
 
+function backofficeBaseUrl(value: string): string {
+  const url = new URL(value);
+  const pathname = url.pathname.replace(/\/+$/u, "") || "/";
+  if (pathname === "/") url.pathname = "/admin";
+  else if (pathname !== "/admin") throw new Error("Backoffice URL must use /admin as its only path.");
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/u, "");
+}
+
 function backofficeUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
-  if (domains) return `https://${domains.split(",")[0]!.trim()}`;
-  return process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ?? process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://admin.fieldgrid.nl";
+  if (domains) return backofficeBaseUrl(`https://${domains.split(",")[0]!.trim()}`);
+  return backofficeBaseUrl(
+    process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ??
+      process.env["NEXT_PUBLIC_SITE_URL"] ??
+      "https://admin.fieldgrid.nl",
+  );
 }
 
 export function klantPortalUrl(): string {
@@ -77,6 +91,6 @@ export function buildQuoteDecisionEmail(opts: {
     quoteNumber: opts.quoteNumber,
     decision: opts.decision,
     reason: opts.reason ?? "",
-    quotesUrl: `${backofficeUrl().replace(/\/$/, "")}/quotes`,
+    quotesUrl: `${backofficeUrl()}/quotes`,
   });
 }

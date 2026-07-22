@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Navigation, Play, X } from "lucide-react";
 import { markAssignmentEnRoute, startAssignment } from "@/actions/assignments";
@@ -93,22 +94,20 @@ function FinishChoiceDialog({
         </p>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="rounded-2xl border px-4 py-3 text-[14px] font-black active:scale-[0.98]"
+          <Link
+            href={`/opdrachten/${assignmentId}/afronden?result=not_completed`}
+            className="rounded-2xl border px-4 py-3 text-center text-[14px] font-black active:scale-[0.98]"
             style={{ borderColor: "#FCA5A5", backgroundColor: "#FEF2F2", color: "#DC2626" }}
-            onClick={() => router.push(`/opdrachten/${assignmentId}/afronden?result=not_completed`)}
           >
             Nee
-          </button>
-          <button
-            type="button"
-            className="rounded-2xl px-4 py-3 text-[14px] font-black text-white active:scale-[0.98]"
+          </Link>
+          <Link
+            href={`/opdrachten/${assignmentId}/afronden?result=completed`}
+            className="rounded-2xl px-4 py-3 text-center text-[14px] font-black text-white active:scale-[0.98]"
             style={{ backgroundColor: "var(--color-accent)" }}
-            onClick={() => router.push(`/opdrachten/${assignmentId}/afronden?result=completed`)}
           >
             Ja
-          </button>
+          </Link>
         </div>
 
         <button

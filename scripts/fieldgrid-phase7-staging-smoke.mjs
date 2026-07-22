@@ -13,7 +13,7 @@ export function buildPhase7StagingSmokePlan() {
     marker: "fieldgrid-phase-7-staging-smoke",
     destructive: false,
     mutatesExistingTenants: false,
-    dashboardRoute: "/platform/staging-smoke",
+    dashboardRoute: "/admin/platform/staging-smoke",
     smokeApiRoute: "/api/platform/staging-smoke",
     recommendedStagingUrl: "https://staging.fieldgrid.nl/platform/staging-smoke",
     requiredTenants: ["field-demo"],

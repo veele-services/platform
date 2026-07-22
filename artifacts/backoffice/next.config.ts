@@ -23,6 +23,7 @@ const replitDevOrigins: string[] = process.env.REPLIT_DOMAINS
   : [];
 
 const nextConfig: NextConfig = {
+  basePath: "/admin",
   poweredByHeader: false,
   compress: true,
   experimental: {

@@ -10,7 +10,8 @@ const customerUserId = '20000000-0000-4000-8000-000000000105';
 const eventually = expect.configure({ timeout: 45_000 });
 
 function backofficeUrl(path: string) {
-  return `http://${tenantHost}:9321${path}`;
+  const suffix = path === '/' ? '' : path;
+  return `http://${tenantHost}:9321/admin${suffix}`;
 }
 
 function personnelUrl(path: string) {
@@ -23,7 +24,12 @@ function customerUrl(path: string) {
 
 async function identityContext(browser: Browser, userId: string): Promise<BrowserContext> {
   const context = await browser.newContext();
-  await context.addCookies([{ name: 'fieldgrid_e2e_auth_user', value: userId, domain: tenantHost, path: '/' }]);
+  await context.addCookies(['/admin', '/personeel', '/klant'].map((path) => ({
+    name: 'fieldgrid_e2e_auth_user',
+    value: userId,
+    domain: tenantHost,
+    path,
+  })));
   return context;
 }
 
@@ -42,9 +48,11 @@ async function goEnRouteAndStart(page: Page) {
 
 async function completeParticipant(page: Page) {
   await page.getByRole('button', { name: 'Afronden' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Ja' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'Ja' }).click();
   await eventually(page).toHaveURL(/\/afronden\?result=completed/u);
-  await page.getByRole('button', { name: 'Definitief gereedmelden' }).click();
+  const completeButton = page.getByRole('button', { name: 'Definitief gereedmelden' });
+  await eventually(completeButton).toBeEnabled();
+  await completeButton.click();
   await eventually(page).toHaveURL(new RegExp(`/personeel/opdrachten/${assignmentId}$`, 'u'));
   await eventually(page.locator('main')).toContainText(/Afgerond|Werkelijk/);
 }
@@ -89,15 +97,15 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await goEnRouteAndStart(participantTwo);
 
   await completeParticipant(participantOne);
-  await admin.reload();
+  await admin.reload({ waitUntil: 'domcontentloaded' });
   await eventually(admin.locator('main')).toContainText(/In uitvoering|Werkelijk/);
 
   await completeParticipant(participantTwo);
-  await admin.reload();
+  await admin.reload({ waitUntil: 'domcontentloaded' });
   await eventually(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
   await eventually(admin.locator('main')).toContainText(/Gepland/);
 
-  await customer.goto(customerUrl('/klant/opdrachten'));
+  await customer.goto(customerUrl('/klant/opdrachten'), { waitUntil: 'domcontentloaded' });
   await eventually(customer.locator('main')).toContainText('Runtime Assignment A');
   await eventually(customer.locator('main')).toContainText('Werkelijk');
   await eventually(customer.locator('main')).toContainText('Gepland');

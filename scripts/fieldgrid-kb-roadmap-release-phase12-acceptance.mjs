@@ -412,12 +412,12 @@ function buildRoleConfigs(env) {
         "FIELDGRID_PHASE12_PLATFORM_COOKIE or FIELDGRID_PHASE12_PLATFORM_STORAGE_STATE",
       ],
       targets: [
-        { id: "knowledgebase", path: "/platform/knowledgebase", label: "Platform knowledgebase", expectations: ["autocomplete", "tooltip"] },
-        { id: "knowledgebase-new", path: "/platform/knowledgebase/articles/new", label: "TipTap article editor", expectations: ["tiptap", "media"] },
-        { id: "tooltips", path: "/platform/knowledgebase/tooltips", label: "Tooltip management", expectations: ["tooltip"] },
-        { id: "releases", path: "/platform/releases", label: "Release management", expectations: ["release"] },
-        { id: "release-categories", path: "/platform/releases/categories", label: "Release categories", expectations: ["release"] },
-        { id: "roadmap", path: "/platform/roadmap", label: "Roadmap Kanban", expectations: ["roadmap", "tooltip"] },
+        { id: "knowledgebase", path: "/admin/platform/knowledgebase", label: "Platform knowledgebase", expectations: ["autocomplete", "tooltip"] },
+        { id: "knowledgebase-new", path: "/admin/platform/knowledgebase/articles/new", label: "TipTap article editor", expectations: ["tiptap", "media"] },
+        { id: "tooltips", path: "/admin/platform/knowledgebase/tooltips", label: "Tooltip management", expectations: ["tooltip"] },
+        { id: "releases", path: "/admin/platform/releases", label: "Release management", expectations: ["release"] },
+        { id: "release-categories", path: "/admin/platform/releases/categories", label: "Release categories", expectations: ["release"] },
+        { id: "roadmap", path: "/admin/platform/roadmap", label: "Roadmap Kanban", expectations: ["roadmap", "tooltip"] },
       ],
     },
     {

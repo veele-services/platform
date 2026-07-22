@@ -76,7 +76,7 @@ function setResponseHeaders(res: Response, headers: Headers): void {
 }
 
 function backofficeApiRedirectTarget(req: Request): string {
-  return req.originalUrl.replace(/^\/api(?=\/)/u, "/backoffice-api");
+  return req.originalUrl.replace(/^\/api(?=\/)/u, "/admin/backoffice-api");
 }
 
 router.use(["/invoices", "/quotes", "/reports", "/google-maps"], (req, res): void => {
@@ -102,7 +102,7 @@ router.use("/platform", async (req, res): Promise<void> => {
     return;
   }
 
-  const upstreamUrl = new URL(req.originalUrl, `${origin}/`);
+  const upstreamUrl = new URL(`/admin${req.originalUrl}`, `${origin}/`);
 
   try {
     const upstream = await fetch(upstreamUrl, {

@@ -20,12 +20,12 @@ export const visualRegressionTargetGroups = [
     storageStateEnv: "FIELDGRID_BACKOFFICE_STORAGE_STATE",
     cookieEnv: "FIELDGRID_BACKOFFICE_COOKIE",
     routes: [
-      "/platform",
-      "/platform/accelerators",
-      "/platform/tenants",
-      "/platform/notifications",
-      "/platform/security",
-      "/platform/staging-smoke",
+      "/admin/platform",
+      "/admin/platform/accelerators",
+      "/admin/platform/tenants",
+      "/admin/platform/notifications",
+      "/admin/platform/security",
+      "/admin/platform/staging-smoke",
     ],
   },
   {
@@ -34,7 +34,7 @@ export const visualRegressionTargetGroups = [
     baseUrlEnv: "FIELDGRID_TENANT_BACKOFFICE_BASE_URL",
     storageStateEnv: "FIELDGRID_TENANT_BACKOFFICE_STORAGE_STATE",
     cookieEnv: "FIELDGRID_TENANT_BACKOFFICE_COOKIE",
-    routes: ["/dashboard", "/customers", "/objects", "/assignments", "/documents"],
+    routes: ["/admin", "/admin/customers", "/admin/objects", "/admin/assignments", "/admin/documents"],
   },
   {
     id: "customer-portal",

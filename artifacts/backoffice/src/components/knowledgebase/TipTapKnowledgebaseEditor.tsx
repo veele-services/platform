@@ -28,6 +28,7 @@ import {
 import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { backofficePath } from "@/lib/backoffice-paths";
 import type { KnowledgebaseArticleMediaSummary } from "@workspace/db";
 
 type TipTapKnowledgebaseEditorProps = {
@@ -330,7 +331,7 @@ function buildTableContent() {
 }
 
 function mediaUrl(mediaBasePath: string, mediaId: string): string {
-  return `${mediaBasePath.replace(/\/+$/, "")}/${mediaId}`;
+  return `${backofficePath(mediaBasePath).replace(/\/+$/, "")}/${mediaId}`;
 }
 
 export function TipTapKnowledgebaseEditor({
