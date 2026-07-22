@@ -191,7 +191,7 @@ default_local_endpoints() {
   fi
 
   if [ -n "${BACKOFFICE_PORT:-${PORT:-}}" ]; then
-    append_endpoint "local-backoffice" "http://127.0.0.1:${BACKOFFICE_PORT:-$PORT}/login" "login"
+    append_endpoint "local-backoffice" "http://127.0.0.1:${BACKOFFICE_PORT:-$PORT}/admin/login" "login"
   fi
   if [ -n "${PERSONEEL_PORT:-}" ]; then
     append_endpoint "local-personnel" "http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz" "exact-200"

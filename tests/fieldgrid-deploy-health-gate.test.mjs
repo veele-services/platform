@@ -908,6 +908,22 @@ test("public API root is checked only in the API-root endpoint group", async () 
   assert.doesNotMatch(publicBlock, /public-api-root/);
 });
 
+test("default backoffice health probes follow the shared-host admin base path", async () => {
+  const script = await readFile(healthScript, "utf8");
+  const localBlock = script.slice(
+    script.indexOf("default_local_endpoints()"),
+    script.indexOf("default_api_root_endpoints()"),
+  );
+  const publicBlock = script.slice(
+    script.indexOf("default_public_endpoints()"),
+    script.indexOf("http_status()"),
+  );
+
+  assert.match(localBlock, /\$\{BACKOFFICE_PORT:-\$PORT\}\/admin\/login/u);
+  assert.doesNotMatch(localBlock, /\$\{BACKOFFICE_PORT:-\$PORT\}\/login/u);
+  assert.match(publicBlock, /"\/admin\/login"/u);
+});
+
 test("service reads do not use sudo while restart and reload do", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
