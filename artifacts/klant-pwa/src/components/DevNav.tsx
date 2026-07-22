@@ -1,5 +1,5 @@
 const APPS = [
-  { id: "backoffice", label: "Backoffice",  href: "/" },
+  { id: "backoffice", label: "Backoffice",  href: "/admin" },
   { id: "personeel",  label: "Personeel",   href: "/personeel/" },
   { id: "klant",      label: "Klant",       href: "/klant/" },
 ] as const;

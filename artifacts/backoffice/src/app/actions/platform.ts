@@ -39,6 +39,7 @@ import {
 } from "@/lib/auth/platform";
 import { withHostOnlyCookieOptions } from "@/lib/supabase/session-cookies";
 import type { ActionResult } from "./customers";
+import { BACKOFFICE_BASE_PATH } from "@/lib/backoffice-paths";
 
 export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
@@ -987,7 +988,7 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      path: "/",
+      path: BACKOFFICE_BASE_PATH,
       expires: grant.expiresAt,
     }),
   );
@@ -1006,7 +1007,7 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
     },
   });
 
-  redirect("/");
+  redirect(BACKOFFICE_BASE_PATH);
 }
 
 export async function exitSupportMode(): Promise<void> {
@@ -1029,7 +1030,7 @@ export async function exitSupportMode(): Promise<void> {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      path: "/",
+      path: BACKOFFICE_BASE_PATH,
       maxAge: 0,
     }),
   );

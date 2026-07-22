@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { backofficePath } from "@/lib/backoffice-paths";
 import type { FieldgridContentAudience, ReleaseImpactLevel, ReleaseStatus, ReleaseSummary } from "@workspace/db";
 
 type ReleaseFormProps = {
@@ -217,7 +218,7 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
             <TipTapKnowledgebaseEditor
               initialHtml={contentHtml}
               media={release?.media ?? []}
-              mediaBasePath="/platform/releases/media"
+              mediaBasePath={backofficePath("/platform/releases/media")}
               placeholder="Schrijf de release note met duidelijke impact, modules, verbeteringen en eventuele actie voor gebruikers..."
               onChange={(html) => setContentHtml(html)}
             />
@@ -296,13 +297,13 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
             {(release?.media ?? []).map((item) => (
               <a
                 key={item.id}
-                href={`/platform/releases/media/${item.id}`}
+                href={backofficePath(`/platform/releases/media/${item.id}`)}
                 target="_blank"
                 rel="noreferrer"
                 className="group overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-sm hover:border-cyan-200 hover:bg-white"
               >
                 {item.mediaType === "image" ? (
-                  <img src={`/platform/releases/media/${item.id}`} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
+                  <img src={backofficePath(`/platform/releases/media/${item.id}`)} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
                 ) : (
                   <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">
                     {item.mediaType === "video" ? "Video preview" : "Bijlage"}

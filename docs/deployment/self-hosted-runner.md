@@ -273,31 +273,38 @@ Example Caddy routing:
 staging.veele.dgwebservices.nl {
   encode zstd gzip
 
-  handle /personeel* {
+  @backoffice path /admin /admin/*
+  handle @backoffice {
+    reverse_proxy 127.0.0.1:3301
+  }
+
+  @personnel path /personeel /personeel/*
+  handle @personnel {
     reverse_proxy 127.0.0.1:3302
   }
 
-  handle /klant* {
+  @customer path /klant /klant/*
+  handle @customer {
     reverse_proxy 127.0.0.1:3303
   }
 
-  handle /api/platform/* {
-    reverse_proxy 127.0.0.1:3301
-  }
-
-  handle /api/* {
+  @platform_api path /api /api/*
+  handle @platform_api {
     reverse_proxy 127.0.0.1:3304
   }
 
+  # Phase 2A deliberately has no public website upstream. Add the final
+  # website fallback only after the managed/custom runtime staging gate.
   handle {
-    reverse_proxy 127.0.0.1:3301
+    respond "Not found" 404
   }
 }
 ```
 
-Use `handle`, not `handle_path`, for the PWAs. Both Next apps are built with a
-`basePath` (`/personeel` and `/klant`), so the upstream app must receive the
-full prefixed path.
+Use `handle`, not `handle_path`, for the applications. Backoffice, personnel
+and customer are built with `/admin`, `/personeel` and `/klant` base paths, so
+every upstream must receive the full prefixed path. The eventual website
+fallback comes last and must not receive application session cookies.
 
 After changing Caddy:
 
@@ -311,6 +318,8 @@ Smoke checks:
 ```bash
 curl -I http://127.0.0.1:3302/personeel
 curl -I http://127.0.0.1:3303/klant
+curl -I http://127.0.0.1:3301/admin/login
+curl -I https://staging.veele.dgwebservices.nl/admin/login
 curl -I https://staging.veele.dgwebservices.nl/personeel
 curl -I https://staging.veele.dgwebservices.nl/klant
 ```

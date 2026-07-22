@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getShortcodeKnowledgebaseMedia } from "@/app/actions/knowledgebase-help";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function GET(
 
   if (result.status === "login_required") {
     const requestUrl = new URL(request.url);
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL(backofficePath("/login"), request.url);
     loginUrl.searchParams.set("next", `${requestUrl.pathname}${requestUrl.search}`);
     return NextResponse.redirect(loginUrl, 307);
   }

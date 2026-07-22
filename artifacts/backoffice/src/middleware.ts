@@ -6,6 +6,11 @@ import {
   withHostOnlyCookieOptions,
 } from "@/lib/supabase/session-cookies";
 import { requiresBackofficeProfileName } from "@/lib/auth/backoffice-profile";
+import {
+  BACKOFFICE_BASE_PATH,
+  backofficePath,
+  stripBackofficeBasePath,
+} from "@/lib/backoffice-paths";
 
 /**
  * Next.js middleware for session handling.
@@ -34,9 +39,16 @@ function nextPathFromRequest(request: NextRequest): string {
 }
 
 function loginUrlWithNext(request: NextRequest): URL {
-  const url = proxyAwareUrl("/login", request);
+  const url = proxyAwareUrl(backofficePath("/login"), request);
   url.searchParams.set("next", nextPathFromRequest(request));
   return url;
+}
+
+function safeBackofficeDestination(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return BACKOFFICE_BASE_PATH;
+  }
+  return backofficePath(value);
 }
 
 export async function middleware(request: NextRequest) {
@@ -44,14 +56,15 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const { pathname } = request.nextUrl;
-  const isLoginPage  = pathname === "/login";
-  const isPasswordResetPage = pathname === "/reset-wachtwoord";
-  const isProfileSetupPage = pathname === "/profiel-instellen";
+  const normalizedPathname = stripBackofficeBasePath(pathname);
+  const isLoginPage  = normalizedPathname === "/login";
+  const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isProfileSetupPage = normalizedPathname === "/profiel-instellen";
   const isPublicPage =
     isLoginPage ||
     isPasswordResetPage ||
-    pathname === "/wachtwoord-vergeten" ||
-    pathname.startsWith("/auth/confirm");
+    normalizedPathname === "/wachtwoord-vergeten" ||
+    normalizedPathname.startsWith("/auth/confirm");
 
   if (!url || !key) {
     if (isPublicPage) return NextResponse.next();
@@ -91,16 +104,16 @@ export async function middleware(request: NextRequest) {
   } = await authClient.auth.getUser();
 
   if (user && requiresBackofficeProfileName(user) && !isProfileSetupPage) {
-    return NextResponse.redirect(proxyAwareUrl("/profiel-instellen", request));
+    return NextResponse.redirect(proxyAwareUrl(backofficePath("/profiel-instellen"), request));
   }
 
   if (user && !requiresBackofficeProfileName(user) && isProfileSetupPage) {
-    return NextResponse.redirect(proxyAwareUrl("/", request));
+    return NextResponse.redirect(proxyAwareUrl(BACKOFFICE_BASE_PATH, request));
   }
 
   if (user && isLoginPage) {
     const next = request.nextUrl.searchParams.get("next");
-    const nextPath = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/";
+    const nextPath = safeBackofficeDestination(next);
     return NextResponse.redirect(proxyAwareUrl(nextPath, request));
   }
 

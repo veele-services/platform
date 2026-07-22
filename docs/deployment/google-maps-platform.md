@@ -387,7 +387,7 @@ Voor deploy:
 
 Na deploy:
 
-- [ ] open `/planning?view=map`;
+- [ ] open `/admin/planning?view=map`;
 - [ ] controleer dat Maps JS laadt zonder serverkey in browser;
 - [ ] test adresautocomplete vanaf 3 tekens;
 - [ ] selecteer een adres en controleer opgeslagen Fieldgrid-adresvelden;
@@ -464,4 +464,4 @@ $env:FIELDGRID_GOOGLE_MAPS_STAGING_STORAGE_STATE="outputs/google-maps-sprint14-a
 pnpm fieldgrid:google-maps-sprint14:staging-live
 ```
 
-De live smoke is bewust opt-in. Zonder `FIELDGRID_GOOGLE_MAPS_LIVE_SMOKE=1` schrijft de smoke een `skipped` rapport en voert hij geen betaalde live check uit. De live variant opent alleen `/planning?view=map`; Places-selecties en Routes-berekeningen worden niet automatisch getriggerd.
+De live smoke is bewust opt-in. Zonder `FIELDGRID_GOOGLE_MAPS_LIVE_SMOKE=1` schrijft de smoke een `skipped` rapport en voert hij geen betaalde live check uit. De live variant opent alleen `/admin/planning?view=map`; Places-selecties en Routes-berekeningen worden niet automatisch getriggerd.

@@ -46,10 +46,10 @@ test("incomplete invited profiles are fail-closed until onboarding is completed"
   const onboarding = read("artifacts/backoffice/src/app/(auth)/profiel-instellen/page.tsx");
 
   assert.match(middleware, /requiresBackofficeProfileName\(user\) && !isProfileSetupPage/u);
-  assert.match(middleware, /proxyAwareUrl\("\/profiel-instellen", request\)/u);
+  assert.match(middleware, /proxyAwareUrl\(backofficePath\("\/profiel-instellen"\), request\)/u);
   assert.match(permissions, /if \(requiresBackofficeProfileName\(user\)\) return new Set\(\)/u);
-  assert.match(layout, /if \(requiresBackofficeProfileName\(user\)\) \{\s*redirect\("\/profiel-instellen"\)/u);
-  assert.match(onboarding, /if \(!requiresBackofficeProfileName\(user\)\) redirect\("\/"\)/u);
+  assert.match(layout, /if \(requiresBackofficeProfileName\(user\)\) \{\s*redirect\(backofficePath\("\/profiel-instellen"\)\)/u);
+  assert.match(onboarding, /if \(!requiresBackofficeProfileName\(user\)\) redirect\(BACKOFFICE_BASE_PATH\)/u);
   assert.match(onboarding, /BackofficeNameForm[^>]+onboarding/u);
 });
 

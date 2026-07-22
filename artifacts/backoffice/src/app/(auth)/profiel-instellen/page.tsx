@@ -7,6 +7,7 @@ import {
   getBackofficeProfileName,
   requiresBackofficeProfileName,
 } from "@/lib/auth/backoffice-profile";
+import { BACKOFFICE_BASE_PATH, backofficePath } from "@/lib/backoffice-paths";
 
 export const metadata: Metadata = { title: "Profiel afronden" };
 
@@ -16,8 +17,8 @@ export default async function BackofficeProfileOnboardingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login?next=/profiel-instellen");
-  if (!requiresBackofficeProfileName(user)) redirect("/");
+  if (!user) redirect(`${backofficePath("/login")}?next=${encodeURIComponent(backofficePath("/profiel-instellen"))}`);
+  if (!requiresBackofficeProfileName(user)) redirect(BACKOFFICE_BASE_PATH);
 
   return (
     <main className="mx-4 w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-xl">

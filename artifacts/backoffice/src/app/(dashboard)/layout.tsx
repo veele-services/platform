@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { backofficePath } from "@/lib/backoffice-paths";
 import type { ReleaseHighlightSummary } from "@workspace/db";
 import {
   getTenantBranding,
@@ -130,10 +131,10 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect(backofficePath("/login"));
   }
   if (requiresBackofficeProfileName(user)) {
-    redirect("/profiel-instellen");
+    redirect(backofficePath("/profiel-instellen"));
   }
 
   const [tenantOptions, currentTenantId] = await Promise.all([

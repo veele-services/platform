@@ -12,13 +12,13 @@ const outputDir =
 const routes = [
   {
     id: "invoices-list",
-    path: "/invoices",
+    path: "/admin/invoices",
     label: "Facturenlijst",
     expectations: ["invoice-list", "payment"],
   },
   {
     id: "invoice-settings",
-    path: "/instellingen/facturen",
+    path: "/admin/instellingen/facturen",
     label: "Factuurinstellingen",
     expectations: ["settings", "preview"],
   },

@@ -24,7 +24,8 @@ const pdfRoutes = [
 
 test("backoffice quote and report PDF links bypass the shared /api service", () => {
   assert.match(apiProxy, /\["\/invoices", "\/quotes", "\/reports", "\/google-maps"\]/u);
-  assert.match(apiProxy, /replace\(\/\^\\\/api\(\?=\\\/\)\/u, "\/backoffice-api"\)/u);
+  assert.match(apiProxy, /replace\(\/\^\\\/api\(\?=\\\/\)\/u, "\/admin\/backoffice-api"\)/u);
+  assert.match(apiProxy, /new URL\(`\/admin\$\{req\.originalUrl\}`/u);
   assert.match(quoteBridge, /@\/app\/api\/quotes\/\[id\]\/pdf\/route/u);
   assert.match(reportBridge, /@\/app\/api\/reports\/\[id\]\/pdf\/route/u);
 

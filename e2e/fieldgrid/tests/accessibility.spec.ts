@@ -9,7 +9,12 @@ const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright', 'ac
 
 async function useIdentity(page: Page, userId: string) {
   await page.context().clearCookies();
-  await page.context().addCookies([{ name: 'fieldgrid_e2e_auth_user', value: userId, domain: tenantHost, path: '/' }]);
+  await page.context().addCookies(['/admin', '/personeel', '/klant'].map((path) => ({
+    name: 'fieldgrid_e2e_auth_user',
+    value: userId,
+    domain: tenantHost,
+    path,
+  })));
 }
 
 async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
@@ -43,7 +48,7 @@ async function scan(page: Page, id: string, viewport: 'desktop' | 'mobile') {
 
 test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', async ({ page }) => {
   await useIdentity(page, '20000000-0000-4000-8000-000000000102');
-  await page.goto(`http://${tenantHost}:9321/planning`);
+  await page.goto(`http://${tenantHost}:9321/admin/planning`);
   await expect(page.locator('main')).toContainText(/Planbord|Werkbon-wachtrij/);
   await page.keyboard.press('Tab');
   await expect(page.locator(':focus')).not.toHaveCount(0);
@@ -53,7 +58,7 @@ test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', asyn
   ];
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`http://${tenantHost}:9321/assignments/${assignmentId}?tab=gegevens`);
+  await page.goto(`http://${tenantHost}:9321/admin/assignments/${assignmentId}?tab=gegevens`);
   const personnelCard = page.getByRole('heading', { name: 'Medewerkers' }).locator('..');
   await personnelCard.locator('li').filter({ hasText: 'Phase2 Personnel A' }).getByRole('button', { name: 'Verwijderen' }).click();
   const dialog = page.getByRole('alertdialog');

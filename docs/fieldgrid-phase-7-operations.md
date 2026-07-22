@@ -26,8 +26,8 @@ Deze fase levert:
 Gebouwd:
 
 - `getPlatformStagingSmokeDashboard()` in `artifacts/backoffice/src/app/actions/platform-smoke.ts`.
-- Platformpagina `/platform/staging-smoke`.
-- JSON endpoint `/api/platform/staging-smoke`.
+- Platformpagina `/admin/platform/staging-smoke`.
+- Publiek JSON endpoint `/api/platform/staging-smoke` via de API-runtime.
 - `pnpm fieldgrid:phase7-smoke` als plan-only script.
 - `pnpm fieldgrid:sprint15-staging-smoke:check` als sprint 15 dashboard/history/live-smoke contract.
 - `pnpm fieldgrid:sprint16-final-gate:check` als sprint 16 final-gate contract.
@@ -113,9 +113,9 @@ Het script is geschikt als lichte CI-guardrail naast `pnpm test`.
 
 1. Merge fase 7 naar `main` na groene typecheck/test/build.
 2. Sync `main` naar staging.
-3. Open `/platform/staging-smoke` als platform owner/admin.
+3. Open `/admin/platform/staging-smoke` als platform owner/admin.
 4. Controleer minimum green.
-5. Open `/platform/security` voor download/support/auditcontext.
+5. Open `/admin/platform/security` voor download/support/auditcontext.
 6. Draai `pnpm fieldgrid:phase7-smoke --check` in CI of releaseomgeving.
 7. Leg handmatige bevindingen vast voordat een eerste externe tenant wordt geprovisioned.
 
@@ -132,8 +132,8 @@ Het script is geschikt als lichte CI-guardrail naast `pnpm test`.
 
 Fase 7 is functioneel klaar wanneer:
 
-- `/platform/staging-smoke` opent voor platform-admins;
-- `/api/platform/staging-smoke` dezelfde read-only status kan leveren;
+- `/admin/platform/staging-smoke` opent voor platform-admins;
+- `/api/platform/staging-smoke` dezelfde read-only status via de API-runtime kan leveren;
 - `pnpm fieldgrid:phase7-smoke --check` slaagt;
 - backup/restore/rollback playbook bestaat;
 - eerste externe tenant checklist bestaat;
@@ -143,7 +143,7 @@ Fase 7 is functioneel klaar wanneer:
 
 Sprint 15 levert:
 
-- run history op `/platform/staging-smoke`;
+- run history op `/admin/platform/staging-smoke`;
 - JSON-artifact discovery voor `artifacts/staging-smoke` en `artifacts/migration-smoke`;
 - read-only snapshot script `pnpm fieldgrid:sprint15-staging-smoke:run-read-only`;
 - live Playwright-smoke targets;
@@ -153,7 +153,7 @@ Sprint 15 levert:
 
 Sprint 16 levert:
 
-- `Finale externe tenant gate` in `/platform/staging-smoke`;
+- `Finale externe tenant gate` in `/admin/platform/staging-smoke`;
 - `post-launch-accepted` register met owner, bewijsdoel en go/no-go moment;
 - performance review op tenantqueries als verplicht artifact;
 - service-role security review;

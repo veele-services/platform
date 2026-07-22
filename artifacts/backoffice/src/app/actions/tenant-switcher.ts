@@ -9,6 +9,7 @@ import {
   userHasActiveTenant,
 } from "@/lib/auth/tenant";
 import { withHostOnlyCookieOptions } from "@/lib/supabase/session-cookies";
+import { BACKOFFICE_BASE_PATH } from "@/lib/backoffice-paths";
 
 const switchTenantSchema = z.object({
   tenantId: z.string().uuid(),
@@ -41,7 +42,7 @@ export async function switchBackofficeTenant(formData: FormData) {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      path: "/",
+      path: BACKOFFICE_BASE_PATH,
       maxAge: 60 * 60 * 24 * 365,
     }),
   );

@@ -87,7 +87,7 @@ test("phase 5 visual regression plan covers backoffice and portals", () => {
 
   assert.deepEqual(plan.errors, []);
   assert.equal(plan.groups.length, 4);
-  assert.ok(plan.groups.find((group) => group.id === "platform-backoffice")?.routes.includes("/platform/accelerators"));
+  assert.ok(plan.groups.find((group) => group.id === "platform-backoffice")?.routes.includes("/admin/platform/accelerators"));
 });
 
 test("phase 5 scripts and docs publish the accelerator contract", () => {

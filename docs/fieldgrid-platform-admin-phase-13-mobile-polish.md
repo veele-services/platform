@@ -9,12 +9,12 @@ Fase 13 maakt de bestaande platform-admin oppervlakken consequenter bruikbaar op
 
 Gecontroleerde oppervlakken:
 
-- `/platform`;
-- `/platform/tenants`;
-- `/platform/tenants/:tenantId`;
-- `/platform/tenants/:tenantId?tab=domains`;
-- `/platform/tickets`;
-- `/platform/security`;
+- `/admin/platform`;
+- `/admin/platform/tenants`;
+- `/admin/platform/tenants/:tenantId`;
+- `/admin/platform/tenants/:tenantId?tab=domains`;
+- `/admin/platform/tickets`;
+- `/admin/platform/security`;
 - aanvullende routes via dezelfde shell: operations, staging smoke, subscriptions, notifications, users, settings en onboarding.
 
 ## UI-aanpassingen
@@ -46,7 +46,7 @@ Belangrijke environmentvariabelen:
 ```text
 FIELDGRID_PLATFORM_PHASE13_BASE_URL=https://admin.fieldgrid.nl
 FIELDGRID_PLATFORM_PHASE13_COOKIE=<ingelogde platform-admin cookie>
-FIELDGRID_PLATFORM_PHASE13_TENANT_DETAIL_PATH=/platform/tenants/<tenant-id>
+FIELDGRID_PLATFORM_PHASE13_TENANT_DETAIL_PATH=/admin/platform/tenants/<tenant-id>
 FIELDGRID_PLATFORM_PHASE13_OUT_DIR=artifacts/platform-mobile-polish
 ```
 

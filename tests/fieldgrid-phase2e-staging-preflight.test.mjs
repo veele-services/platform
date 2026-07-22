@@ -50,13 +50,13 @@ function validEnvironment() {
     env[name] ||= `${name.toLowerCase()}-configured`;
   Object.assign(env, {
     APP_URL: "https://staging.fieldgrid.nl/",
-    BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/login",
+    BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login",
     PERSONEEL_PUBLIC_HEALTH_URL:
       "https://staging.fieldgrid.nl/personeel/healthz",
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
     API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/",
-    PILOT_TENANT_LOGIN_URL: "https://field-demo.fieldgrid.nl/login",
+    PILOT_TENANT_LOGIN_URL: "https://field-demo.fieldgrid.nl/admin/login",
   });
   return env;
 }
@@ -137,8 +137,8 @@ test("database URL parsing creates libpq fields without retaining a URL", () => 
 
 test("routing policies accept only explicit healthy outcomes", () => {
   assert.equal(
-    sanitizePublicUrl("https://staging.fieldgrid.nl/login?token=ignored"),
-    "https://staging.fieldgrid.nl/login",
+    sanitizePublicUrl("https://staging.fieldgrid.nl/admin/login?token=ignored"),
+    "https://staging.fieldgrid.nl/admin/login",
   );
   assert.equal(isAllowedRouteStatus("exact-200", 200), true);
   assert.equal(isAllowedRouteStatus("exact-200", 302), false);

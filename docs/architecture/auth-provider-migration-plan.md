@@ -2,7 +2,7 @@
 
 ## Current decision
 
-Supabase Auth remains the credential and session backend for now. Fieldgrid keeps tenant identity, recovery, reset grants, rate limits, audit, e-mail delivery, portal cookie isolation, support/admin policy, and post-login profile resolution outside the provider. Current cookie behavior is host-only, `path=/`, `SameSite=Lax`, production-`Secure`, and no shared parent-domain cookie; `HttpOnly` is not proven or configured under the current `@supabase/ssr` browser/session behavior.
+Supabase Auth remains the credential and session backend for now. Fieldgrid keeps tenant identity, recovery, reset grants, rate limits, audit, e-mail delivery, portal cookie isolation, support/admin policy, and post-login profile resolution outside the provider. Current cookie behavior is host-only, scoped to the owning `/admin`, `/personeel` or `/klant` path, `SameSite=Lax`, production-`Secure`, and no shared parent-domain cookie; `HttpOnly` is not proven or configured under the current `@supabase/ssr` browser/session behavior.
 
 ## Provider abstraction contract
 

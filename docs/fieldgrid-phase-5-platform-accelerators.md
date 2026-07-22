@@ -4,7 +4,7 @@ Datum: 2026-07-07
 
 ## Doel
 
-Fase 5 maakt platformbeheer sneller, veiliger en minder afhankelijk van handmatige checks. De oplevering zit in `/platform/accelerators` en bundelt demo-tenant resetrequests, notificatiepreview, tenant health, visual regression snapshot-contracten en exports.
+Fase 5 maakt platformbeheer sneller, veiliger en minder afhankelijk van handmatige checks. De oplevering zit in `/admin/platform/accelerators` en bundelt demo-tenant resetrequests, notificatiepreview, tenant health, visual regression snapshot-contracten en exports.
 
 ## Opgeleverd
 
@@ -17,7 +17,7 @@ Fase 5 maakt platformbeheer sneller, veiliger en minder afhankelijk van handmati
 
 ## Routes
 
-- Platform UI: `/platform/accelerators`
+- Platform UI: `/admin/platform/accelerators`
 - Tenant/platform CSV: `/api/platform/exports/tenants`
 - Audit/security CSV: `/api/platform/security/export`
 - Billing CSV: `/api/platform/billing/export`
@@ -34,7 +34,7 @@ Run-modus schrijft artifacts naar `artifacts/visual-regression/`. De artifactmap
 
 | Target | Base URL env | Routes |
 | --- | --- | --- |
-| `platform-backoffice` | `FIELDGRID_BACKOFFICE_BASE_URL` | `/platform`, `/platform/accelerators`, `/platform/tenants`, `/platform/notifications`, `/platform/security`, `/platform/staging-smoke` |
+| `platform-backoffice` | `FIELDGRID_BACKOFFICE_BASE_URL` | `/admin/platform`, `/admin/platform/accelerators`, `/admin/platform/tenants`, `/admin/platform/notifications`, `/admin/platform/security`, `/admin/platform/staging-smoke` |
 | `tenant-backoffice` | `FIELDGRID_TENANT_BACKOFFICE_BASE_URL` | `/dashboard`, `/customers`, `/objects`, `/assignments`, `/documents` |
 | `customer-portal` | `FIELDGRID_CUSTOMER_PORTAL_BASE_URL` | `/`, `/dashboard`, `/documenten`, `/facturen` |
 | `personnel-portal` | `FIELDGRID_PERSONNEL_PORTAL_BASE_URL` | `/`, `/planning`, `/berichten`, `/documenten` |

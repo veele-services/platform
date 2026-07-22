@@ -9,6 +9,7 @@ import {
   type FieldgridMarkerStatus,
 } from "@/lib/google-maps/marker-status";
 import { cn } from "@/lib/utils";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 type GoogleMapsApi = {
   maps: {
@@ -451,7 +452,7 @@ export function GoogleMapCanvas({
   useEffect(() => {
     if (state !== "ready" || usageRecordedRef.current) return;
     usageRecordedRef.current = true;
-    void fetch("/backoffice-api/google-maps/usage", {
+    void fetch(backofficePath("/backoffice-api/google-maps/usage"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

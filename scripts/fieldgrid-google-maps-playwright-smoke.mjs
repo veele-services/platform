@@ -159,7 +159,7 @@ async function runStagingLiveSmoke() {
     options.storageState ? { storageState: options.storageState } : undefined,
   );
   const page = await context.newPage();
-  const url = new URL("/planning?view=map", options.baseUrl).toString();
+  const url = new URL("/admin/planning?view=map", options.baseUrl).toString();
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.screenshot({ path: join(outputDir, "staging-live-planning-map.png"), fullPage: true });
 

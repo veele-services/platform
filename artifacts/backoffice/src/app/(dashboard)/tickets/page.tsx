@@ -17,6 +17,7 @@ import {
   TenantWorkbenchPanel,
 } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
+import { backofficePath } from "@/lib/backoffice-paths";
 import {
   TICKET_KIND_OPTIONS,
   TICKET_STATUS_OPTIONS,
@@ -103,7 +104,7 @@ export default async function TicketsPage({ searchParams }: Props) {
         title="Ticketinbox"
         description="Zoek direct in onderwerpen, aanvragers en berichtpreview; uitgebreide filters staan in de drawer."
         search={
-          <form id="ticket-search-form" className="flex min-w-0 flex-1 gap-2" action="/tickets">
+          <form id="ticket-search-form" className="flex min-w-0 flex-1 gap-2" action={backofficePath("/tickets")}>
             <TenantToolbarSearch
               name="search"
               defaultValue={search}
@@ -202,7 +203,7 @@ function TicketFilterDrawer({
         </>
       }
     >
-      <form id="ticket-filter-form" action="/tickets" className="space-y-4">
+      <form id="ticket-filter-form" action={backofficePath("/tickets")} className="space-y-4">
         {search && <input type="hidden" name="search" value={search} />}
         <label className="grid gap-1.5 text-sm font-medium">
           Bron

@@ -145,7 +145,7 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
   );
 });
 
-test("sprint 15 API server passes platform API routes to backoffice before tenant auth", () => {
+test("sprint 15 API server prefixes platform pass-through with the backoffice base path", () => {
   const apiRoutes = read("artifacts/api-server/src/routes/index.ts");
   const platformProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
   const docs = read("docs/deployment/self-hosted-runner.md");
@@ -162,6 +162,8 @@ test("sprint 15 API server passes platform API routes to backoffice before tenan
       "BACKOFFICE_INTERNAL_URL",
       "BACKOFFICE_PORT",
       "req.originalUrl",
+      "`/admin${req.originalUrl}`",
+      '"/admin/backoffice-api"',
       "x-forwarded-host",
       "fetch(upstreamUrl",
       "GET, HEAD",
@@ -171,9 +173,8 @@ test("sprint 15 API server passes platform API routes to backoffice before tenan
   assertContains(
     docs,
     [
-      "handle /api/platform/*",
-      "reverse_proxy 127.0.0.1:3301",
-      "handle /api/*",
+      "@platform_api path /api /api/*",
+      "reverse_proxy 127.0.0.1:3304",
     ],
     "deployment routing docs",
   );

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { TenantWorkbenchPanel } from "@/components/tenant-ui";
 import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 type Props = {
   candidates: CollectiveInvoiceCandidate[];
@@ -262,7 +263,7 @@ export function CollectiveInvoicePanel({ candidates, batches, canWrite }: Props)
                   {batch.objectName ? ` - ${batch.objectName}` : ""}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <a href={`/backoffice-api/invoices/batches/${batch.id}/pdf`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
+                  <a href={backofficePath(`/backoffice-api/invoices/batches/${batch.id}/pdf`)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
                     PDF controleren <Download className="h-3 w-3" />
                   </a>
                   {batch.checkoutUrl && batch.status === "open" && (

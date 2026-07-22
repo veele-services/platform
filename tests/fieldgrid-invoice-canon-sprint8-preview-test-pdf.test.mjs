@@ -24,7 +24,7 @@ test("Sprint 8 invoice settings preview reads the next sequence without claiming
   assert.match(actions, /invoiceNumberSequencesTable/u);
   assert.match(actions, /previewInvoiceNumber/u);
   assert.match(getSettings, /sequence\?\.nextNumber \?\? numberingSettings\.defaultStartNumber/u);
-  assert.match(getSettings, /testPdfUrl:\s+"\/backoffice-api\/invoices\/test-pdf"/u);
+  assert.match(getSettings, /testPdfUrl:\s+backofficePath\("\/backoffice-api\/invoices\/test-pdf"\)/u);
   assert.match(getSettings, /warnings:\s+invoiceSettingsWarnings/u);
   assert.doesNotMatch(actions, /claimOfficialInvoiceNumber/u);
   assert.doesNotMatch(actions, /claimOfficialInvoiceNumberInTransaction/u);

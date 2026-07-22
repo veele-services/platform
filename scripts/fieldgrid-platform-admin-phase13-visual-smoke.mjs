@@ -14,16 +14,16 @@ const outputDir = process.env.FIELDGRID_PLATFORM_PHASE13_OUT_DIR || join(process
 const authCookie = process.env.FIELDGRID_PLATFORM_PHASE13_COOKIE || "";
 
 const targets = [
-  { id: "dashboard", path: "/platform", label: "Platform dashboard" },
-  { id: "tenants", path: "/platform/tenants", label: "Tenantlijst" },
+  { id: "dashboard", path: "/admin/platform", label: "Platform dashboard" },
+  { id: "tenants", path: "/admin/platform/tenants", label: "Tenantlijst" },
   ...(tenantDetailPath
     ? [
         { id: "tenant-detail", path: tenantDetailPath, label: "Tenantdetail" },
         { id: "tenant-domains", path: `${tenantDetailPath}${tenantDetailPath.includes("?") ? "&" : "?"}tab=domains`, label: "Tenantdetail domeinen" },
       ]
     : []),
-  { id: "tickets", path: "/platform/tickets", label: "Tickets" },
-  { id: "security", path: "/platform/security", label: "Security en audit" },
+  { id: "tickets", path: "/admin/platform/tickets", label: "Tickets" },
+  { id: "security", path: "/admin/platform/security", label: "Security en audit" },
 ];
 
 async function loadPlaywright() {

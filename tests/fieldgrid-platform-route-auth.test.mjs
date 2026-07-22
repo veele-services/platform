@@ -11,7 +11,8 @@ test("platform layout handles missing platform role without server error", () =>
 
   assert.ok(layout.includes("getCurrentPlatformUser"));
   assert.ok(layout.includes("NoPlatformAccess"));
-  assert.ok(layout.includes("redirect(\"/login?next=/platform\")"));
+  assert.ok(layout.includes('backofficePath("/login")'));
+  assert.ok(layout.includes('backofficePath("/platform")'));
   assert.ok(layout.includes("Geen platformtoegang"));
   assert.ok(!layout.includes("requirePlatformSupportUser"));
 });

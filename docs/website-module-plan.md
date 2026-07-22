@@ -1,15 +1,15 @@
 # Fieldgrid website module — phased implementation plan
 
-Date: 21 July 2026
-Status: Phase 1A and Phase 1B implemented locally; later phases remain proposed
+Date: 22 July 2026
+Status: Phase 1A and Phase 1B merged in PR #353; Phase 2A implementation in progress
 
 ## Current implementation status
 
-Phase 1A now includes the disabled-by-default `website` module entitlement, RBAC
+Merged Phase 1A includes the disabled-by-default `website` module entitlement, RBAC
 resources, strict website-core contracts, Template 1 configuration, the
 tenant-scoped foundation schema and an audited atomic delivery-mode transition.
 
-Phase 1B now adds verified primary-domain transitions, database-managed
+Merged Phase 1B adds verified primary-domain transitions, database-managed
 authoring revisions, a deterministic publication compiler, exact cache and
 delivery identities, immutable publication creation and atomic activation with
 supersession. Concurrent identical publication requests are idempotent, while
@@ -17,7 +17,7 @@ stale authoring and delivery revisions fail closed. Publication hashes are
 bound to the exact source revision, and website-owned child records cannot be
 moved to another tenant or site after creation.
 
-Neither phase adds public routing, a tenant authoring UI, a renderer, a
+Neither merged foundation phase adds public routing, a tenant authoring UI, a renderer, a
 deployment or a live domain activation. Those remain gated by the later phases
 below.
 
@@ -323,5 +323,6 @@ application isolation. The namespace decision is resolved: production uses
 `{tenant}.fieldgrid.nl`, staging uses `{tenant}.staging.fieldgrid.nl`, and the
 website owns `/` while authenticated applications own their fixed prefixes.
 Phase 2A must establish a real `/admin` base path and cookie boundary before a
-public runtime is introduced. Infrastructure still needs to provision and
-prove `*.staging.fieldgrid.nl` DNS/TLS before any later staging activation.
+public runtime is introduced. Wildcard DNS for `*.staging.fieldgrid.nl` is
+operator-confirmed as provisioned. TLS coverage and exact host resolution still
+require runtime proof before any later staging activation.

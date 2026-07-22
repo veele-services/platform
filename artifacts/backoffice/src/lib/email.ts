@@ -6,6 +6,20 @@ import {
   type RenderedEmail,
 } from "@workspace/db/email-templates";
 import { sendTransactionalEmail } from "@workspace/db/email-service";
+import { BACKOFFICE_BASE_PATH } from "@/lib/backoffice-paths";
+
+function backofficeBaseUrl(value: string): string {
+  const url = new URL(value);
+  const pathname = url.pathname.replace(/\/+$/u, "") || "/";
+  if (pathname === "/") {
+    url.pathname = BACKOFFICE_BASE_PATH;
+  } else if (pathname !== BACKOFFICE_BASE_PATH) {
+    throw new Error(`Backoffice URL must use ${BACKOFFICE_BASE_PATH} as its only path.`);
+  }
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/u, "");
+}
 
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
@@ -18,10 +32,10 @@ export function backofficeUrl(): string {
     process.env["BACKOFFICE_URL"] ??
     process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ??
     process.env["NEXT_PUBLIC_SITE_URL"];
-  if (explicit) return explicit.replace(/\/$/, "");
+  if (explicit) return backofficeBaseUrl(explicit);
   const domains = process.env["REPLIT_DOMAINS"];
-  if (domains) return `https://${domains.split(",")[0]!.trim()}`;
-  return "https://admin.fieldgrid.nl";
+  if (domains) return backofficeBaseUrl(`https://${domains.split(",")[0]!.trim()}`);
+  return "https://admin.fieldgrid.nl/admin";
 }
 
 export function platformAdminUrl(): string {
@@ -30,7 +44,7 @@ export function platformAdminUrl(): string {
     process.env["NEXT_PUBLIC_PLATFORM_ADMIN_URL"] ??
     process.env["BACKOFFICE_URL"] ??
     process.env["NEXT_PUBLIC_BACKOFFICE_URL"];
-  return (explicit ?? "https://admin.fieldgrid.nl").replace(/\/$/, "");
+  return backofficeBaseUrl(explicit ?? "https://admin.fieldgrid.nl");
 }
 
 export async function sendEmail(opts: {
@@ -167,7 +181,7 @@ export function buildReportSubmittedEmail(opts: {
     assignmentId: opts.assignmentId,
     reportId: opts.reportId,
     reporterName: "Een gebruiker",
-    reportUrl: `${siteUrl()}/reports/${opts.reportId}`,
+    reportUrl: `${backofficeUrl()}/reports/${opts.reportId}`,
   });
 }
 
@@ -185,7 +199,7 @@ export function buildLeaveRequestedEmail(opts: {
     leaveType: opts.leaveType,
     reason: opts.reason ?? "",
     period: formatPeriod(opts.startDate, opts.endDate),
-    leaveUrl: `${siteUrl()}/personnel/verlof`,
+    leaveUrl: `${backofficeUrl()}/personnel/verlof`,
   });
 }
 
@@ -297,7 +311,7 @@ export function buildQuoteDecisionEmail(opts: {
     quoteNumber: opts.quoteNumber,
     decision: opts.decision,
     reason: opts.reason ?? "",
-    quotesUrl: `${siteUrl()}/quotes`,
+    quotesUrl: `${backofficeUrl()}/quotes`,
   });
 }
 

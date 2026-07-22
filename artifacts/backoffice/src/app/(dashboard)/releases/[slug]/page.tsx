@@ -5,6 +5,7 @@ import { getTenantRelease, recordTenantReleaseRead } from "@/app/actions/release
 import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export const metadata = {
   title: "Release note",
@@ -46,7 +47,7 @@ export default async function TenantReleaseDetailPage({ params }: Props) {
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           {release.contentHtml ? (
-            <KnowledgebaseContentRenderer html={release.contentHtml} mediaBasePath="/releases/media" />
+            <KnowledgebaseContentRenderer html={release.contentHtml} mediaBasePath={backofficePath("/releases/media")} />
           ) : (
             <p className="text-sm leading-7 text-slate-600">{release.contentText ?? release.summary}</p>
           )}
@@ -59,13 +60,13 @@ export default async function TenantReleaseDetailPage({ params }: Props) {
               {release.media.map((item) => (
                 <a
                   key={item.id}
-                  href={`/releases/media/${item.id}`}
+                  href={backofficePath(`/releases/media/${item.id}`)}
                   target="_blank"
                   rel="noreferrer"
                   className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-sm hover:border-cyan-200 hover:bg-white"
                 >
                   {item.mediaType === "image" ? (
-                    <img src={`/releases/media/${item.id}`} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
+                    <img src={backofficePath(`/releases/media/${item.id}`)} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
                   ) : (
                     <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">
                       <FileText className="mr-2 h-4 w-4" />

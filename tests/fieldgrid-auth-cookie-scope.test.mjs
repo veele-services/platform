@@ -7,18 +7,20 @@ function read(path) {
 }
 
 const apps = [
-  "artifacts/backoffice",
-  "artifacts/klant-pwa",
-  "artifacts/personeel-pwa",
+  ["artifacts/backoffice", "/admin"],
+  ["artifacts/klant-pwa", "/klant"],
+  ["artifacts/personeel-pwa", "/personeel"],
 ];
 
 test("Supabase auth cookies are host-keyed and host-only per Fieldgrid app", () => {
-  for (const app of apps) {
+  for (const [app, expectedPath] of apps) {
     const helper = read(`${app}/src/lib/supabase/session-cookies.ts`);
     assert.match(helper, /SUPABASE_AUTH_COOKIE_PREFIX = "fieldgrid-auth"/u, `${app} should use Fieldgrid auth cookie prefix`);
     assert.match(helper, /supabaseAuthCookieName\(host/u, `${app} should derive cookie name from host`);
     assert.match(helper, /const \{ domain: _domain, \.\.\.hostOnlyOptions \} = options;/u, `${app} should strip cookie domain`);
     assert.doesNotMatch(helper, /domain:\s*["'`]/u, `${app} should not configure a shared cookie domain`);
+    assert.match(helper, new RegExp(`path: ${expectedPath === "/admin" ? "BACKOFFICE_BASE_PATH" : expectedPath === "/klant" ? "CUSTOMER_BASE_PATH" : "PERSONNEL_BASE_PATH"}`, "u"), `${app} should scope auth cookies to ${expectedPath}`);
+    assert.doesNotMatch(helper, /path:\s*["'`]\/["'`]/u, `${app} must not expose auth cookies to the website root`);
 
     const browserClient = read(`${app}/src/lib/supabase/client.ts`);
     assert.match(browserClient, /window\.location\.host/u, `${app} browser client should key cookies by current host`);
@@ -49,4 +51,6 @@ test("Backoffice tenant selection cookies are host-only", () => {
   assert.match(platformActions, /withHostOnlyCookieOptions\(\{/u);
   assert.doesNotMatch(tenantSwitcher, /domain:\s*["'`]/u);
   assert.doesNotMatch(platformActions, /domain:\s*["'`]/u);
+  assert.match(tenantSwitcher, /path: BACKOFFICE_BASE_PATH/u);
+  assert.match(platformActions, /path: BACKOFFICE_BASE_PATH/u);
 });

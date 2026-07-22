@@ -10,7 +10,8 @@ const customerUserId = '20000000-0000-4000-8000-000000000105';
 const eventually = expect.configure({ timeout: 45_000 });
 
 function backofficeUrl(path: string) {
-  return `http://${tenantHost}:9321${path}`;
+  const suffix = path === '/' ? '' : path;
+  return `http://${tenantHost}:9321/admin${suffix}`;
 }
 
 function personnelUrl(path: string) {
@@ -23,7 +24,12 @@ function customerUrl(path: string) {
 
 async function identityContext(browser: Browser, userId: string): Promise<BrowserContext> {
   const context = await browser.newContext();
-  await context.addCookies([{ name: 'fieldgrid_e2e_auth_user', value: userId, domain: tenantHost, path: '/' }]);
+  await context.addCookies(['/admin', '/personeel', '/klant'].map((path) => ({
+    name: 'fieldgrid_e2e_auth_user',
+    value: userId,
+    domain: tenantHost,
+    path,
+  })));
   return context;
 }
 

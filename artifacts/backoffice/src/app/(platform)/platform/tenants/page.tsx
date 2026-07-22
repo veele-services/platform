@@ -14,6 +14,7 @@ import {
   type PlatformTenantListRow,
 } from "@/app/actions/platform-tenants";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 export const metadata = {
   title: "Tenants",
@@ -353,7 +354,7 @@ export default async function PlatformTenantsPage({ searchParams }: Props) {
           </div>
         </header>
 
-        <form action="/platform/tenants" className="rounded border border-slate-200 bg-white p-4">
+        <form action={backofficePath("/platform/tenants")} className="rounded border border-slate-200 bg-white p-4">
           <div className="grid gap-3 xl:grid-cols-[minmax(240px,1.2fr)_repeat(4,minmax(150px,0.7fr))]">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Zoeken

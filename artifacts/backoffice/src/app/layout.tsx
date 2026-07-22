@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     template: "%s - Fieldgrid",
   },
   description: "Fieldgrid managementplatform voor operations, planning en rapportage.",
+  icons: { icon: "/admin/favicon.svg" },
   robots: { index: false, follow: false },
 };
 
