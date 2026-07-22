@@ -1,7 +1,21 @@
 # Fieldgrid website module — backoffice administration design
 
 Date: 21 July 2026
-Status: proposed information architecture and interaction contract
+Status: Phase 3A implemented; typed section editing, preview and publication review remain pending
+
+## Implementation status
+
+Phase 3A implements the permission- and entitlement-gated `/website` overview,
+managed-site initialization, controlled site settings, page listing, page
+creation and page metadata editing. Every mutation requires the exact current
+site revision; page updates also require the exact page revision. Reads and
+writes carry explicit tenant predicates and custom-delivery infrastructure
+values remain outside tenant-facing responses.
+
+This increment intentionally does not activate a publication, switch delivery
+mode, bind a domain or change deployment infrastructure. The next Phase 3
+increment adds typed section forms, accessible ordering, draft validation,
+preview and the separate review/publish operation.
 
 ## Admin boundary
 

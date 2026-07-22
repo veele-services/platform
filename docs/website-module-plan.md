@@ -320,11 +320,14 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Finish Phase 2C through one reviewed PR: validate the code-owned custom-route
-allowlist, shared exact-host delivery resolver, immutable release/host/TLS
-health evidence, explicit no-fallback behavior and non-live Veele 44-route
-candidate. Once that PR is merged and exact-main CI is green, the next product
-increment is Phase 3, the managed-CMS admin shell and permissions. Neither
-increment may alter DNS, Caddy, staging, production or live domains. Wildcard
-DNS for `*.staging.fieldgrid.nl` is operator-confirmed as provisioned; wildcard
-TLS and exact external host resolution remain Phase 9 activation evidence.
+Phase 3A supplies the managed-CMS admin shell, managed-site initialization,
+controlled settings and revision-guarded page metadata management. The next
+reviewed increment is Phase 3B: schema-owned section forms, accessible ordering,
+draft validation, preview and an explicit immutable publication review. It must
+reuse the existing publication compiler and exact-revision activation contract;
+it may not switch delivery mode as a side effect.
+
+DNS, Caddy, staging, production and live domains remain unchanged through Phase
+3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
+provisioned; wildcard TLS and exact external host resolution remain Phase 9
+activation evidence.
