@@ -580,7 +580,7 @@ test("runtime safety setup grants embedded personnel profile lookup tables to au
   assert.match(source, /PostgREST embedded personnel profile lookups/);
 });
 
-test("liveness is unauthenticated and authenticated acceptance runs exactly once before browser execution", () => {
+test("liveness is unauthenticated and authenticated acceptance precedes every isolated browser phase", () => {
   const stack = start();
   const runner = read("e2e/fieldgrid/run-playwright.mjs");
   const livenessBlock = stack.slice(
@@ -606,12 +606,8 @@ test("liveness is unauthenticated and authenticated acceptance runs exactly once
     stack,
     /error: redact\(error instanceof Error \? error\.message : String\(error\)\)/,
   );
-  assert.match(runner, /await runAuthenticatedPreflight\(\);/);
-  assert.ok(
-    runner.indexOf("await runAuthenticatedPreflight()") <
-      runner.indexOf("await runPlaywright()"),
-    "browser execution must follow preflight",
-  );
+  assert.match(runner, /async function startStack\(\)[\s\S]*await runAuthenticatedPreflight\(\);/);
+  assert.match(runner, /async function runBrowserPhase\(phase\)[\s\S]*await startStack\(\);[\s\S]*await runPlaywright\(phase\)/);
 });
 
 test("E2E source files are conflict-marker free", () => {
@@ -767,8 +763,13 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
     pkg.scripts["fieldgrid:playwright"],
     "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
   );
-  assert.match(runner, /pnpm', \['exec', 'playwright', 'test'\]/);
+  assert.match(runner, /'pnpm', \['exec', 'playwright', 'test', \.\.\.phase\.files\]/);
   assert.doesNotMatch(runner, /fieldgrid:playwright/);
   assert.match(runner, /startupTimeoutMs = 180_000/);
   assert.match(runner, /orchestrator\.stderr\.log/);
+  assert.match(runner, /name: 'staffing'[\s\S]*staffing-lifecycle\.spec\.ts/);
+  assert.match(runner, /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/);
+  assert.match(runner, /resetFixturesBetweenPhases/);
+  assert.match(runner, /mergePhaseReports\(completedPhases\)/);
+  assert.match(runner, /PLAYWRIGHT_JSON_OUTPUT_FILE/);
 });
