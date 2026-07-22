@@ -61,7 +61,9 @@ test('FG-P2D-A11Y-BO backoffice planboard axe, keyboard, focus and dialog', asyn
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`http://${tenantHost}:9321/admin/assignments/${assignmentId}?tab=gegevens`);
   const personnelCard = page.getByRole('heading', { name: 'Medewerkers' }).locator('..');
-  await personnelCard.locator('li').filter({ hasText: 'Phase2 Personnel A' }).getByRole('button', { name: 'Verwijderen' }).click();
+  const removeParticipantButton = personnelCard.locator('li').filter({ hasText: 'Phase2 Personnel A' }).getByRole('button', { name: 'Verwijderen' });
+  await expect(removeParticipantButton).toBeEnabled({ timeout: 30_000 });
+  await removeParticipantButton.click();
   const dialog = page.getByRole('alertdialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('textbox', { name: 'Reden voor ontkoppelen' })).toBeFocused();

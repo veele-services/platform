@@ -124,9 +124,13 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await admin.goto(backofficeUrl(`/assignments/${assignmentId}?tab=gegevens`), navigationOptions);
   const personnelCard = admin.getByRole('heading', { name: 'Medewerkers' }).locator('..');
   const secondParticipantRow = personnelCard.locator('li').filter({ hasText: 'Phase2 Personnel A' });
-  await secondParticipantRow.getByRole('button', { name: 'Verwijderen' }).click();
-  await admin.getByRole('textbox', { name: 'Reden voor ontkoppelen' }).fill('E2E: planning tijdelijk gewijzigd');
-  await admin.getByRole('alertdialog').getByRole('button', { name: 'Ontkoppelen' }).click();
+  const removeParticipantButton = secondParticipantRow.getByRole('button', { name: 'Verwijderen' });
+  await eventually(removeParticipantButton).toBeEnabled();
+  await removeParticipantButton.click();
+  const unassignmentDialog = admin.getByRole('alertdialog');
+  await eventually(unassignmentDialog).toBeVisible();
+  await unassignmentDialog.getByRole('textbox', { name: 'Reden voor ontkoppelen' }).fill('E2E: planning tijdelijk gewijzigd');
+  await unassignmentDialog.getByRole('button', { name: 'Ontkoppelen' }).click();
   await eventually(personnelCard).not.toContainText('Phase2 Personnel A');
 
   const deniedAfterUnassignment = await participantTwo.goto(
