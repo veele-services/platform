@@ -83,6 +83,29 @@ test("managed activation is exact-revision and supersedes only after switching",
   assert.match(publication, /Section action references an unpublished page/u);
 });
 
+test("custom delivery atomically demotes the preserved managed publication", () => {
+  const activation = migration.match(
+    /CREATE OR REPLACE FUNCTION public\.activate_website_delivery\([\s\S]*?\n\$\$;/u,
+  )?.[0];
+  assert.ok(activation, "activate_website_delivery definition is missing");
+  assert.match(
+    activation,
+    /current_site\.delivery_mode = 'managed_cms'[\s\S]*p_to_mode = 'custom_nextjs'/u,
+  );
+  assert.match(
+    activation,
+    /previous_managed_publication_id[\s\S]*SET status = 'ready'/u,
+  );
+  assert.match(
+    activation,
+    /UPDATE public\.website_sites[\s\S]*SET status = 'superseded'/u,
+  );
+  assert.match(
+    activation,
+    /managed website publication preservation failed/u,
+  );
+});
+
 test("runtime proof covers all Phase 1B acceptance boundaries", () => {
   for (const assertion of [
     "verifiedPrimaryDomainOnly",

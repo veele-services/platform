@@ -104,6 +104,10 @@ test("delivery changes are exact-revision, atomic and append-only", () => {
   );
   assert.match(migration, /website delivery revision conflict/u);
   assert.match(migration, /delivery_revision = delivery_revision \+ 1/u);
+  assert.match(
+    migration,
+    /previous_managed_publication_id[\s\S]*SET status = 'superseded'/u,
+  );
   assert.match(migration, /INSERT INTO public\.website_delivery_activations/u);
   assert.match(migration, /INSERT INTO public\.audit_log/u);
   assert.match(

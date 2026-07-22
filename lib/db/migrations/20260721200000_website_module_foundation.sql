@@ -695,6 +695,7 @@ DECLARE
   current_site public.website_sites%ROWTYPE;
   updated_site public.website_sites%ROWTYPE;
   from_target_id uuid;
+  previous_managed_publication_id uuid;
 BEGIN
   IF p_to_mode NOT IN ('managed_cms', 'custom_nextjs') THEN
     RAISE EXCEPTION 'unsupported website delivery mode';
@@ -730,6 +731,26 @@ BEGIN
     RAISE EXCEPTION 'website delivery transition is a no-op';
   END IF;
 
+  previous_managed_publication_id := CASE
+    WHEN current_site.delivery_mode = 'managed_cms'
+      AND p_to_mode = 'custom_nextjs'
+    THEN current_site.active_publication_id
+    ELSE NULL
+  END;
+
+  IF previous_managed_publication_id IS NOT NULL THEN
+    UPDATE public.website_publications
+    SET status = 'ready'
+    WHERE tenant_id = p_tenant_id
+      AND site_id = p_site_id
+      AND id = previous_managed_publication_id
+      AND status IN ('ready', 'active');
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'active managed website publication is not preservable';
+    END IF;
+  END IF;
+
   PERFORM set_config('fieldgrid.website_delivery_transition', 'allowed', true);
 
   UPDATE public.website_sites
@@ -749,6 +770,19 @@ BEGIN
     updated_at = now()
   WHERE tenant_id = p_tenant_id AND id = p_site_id
   RETURNING * INTO updated_site;
+
+  IF previous_managed_publication_id IS NOT NULL THEN
+    UPDATE public.website_publications
+    SET status = 'superseded'
+    WHERE tenant_id = p_tenant_id
+      AND site_id = p_site_id
+      AND id = previous_managed_publication_id
+      AND status = 'ready';
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'managed website publication preservation failed';
+    END IF;
+  END IF;
 
   INSERT INTO public.website_delivery_activations (
     tenant_id,

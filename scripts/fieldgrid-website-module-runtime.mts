@@ -277,6 +277,14 @@ try {
   assert.equal(custom.rows[0]?.delivery_mode, "custom_nextjs");
   assert.equal(custom.rows[0]?.active_publication_id, publicationId);
 
+  const preservedManagedPublication = await client.query<{ status: string }>(
+    `SELECT status
+     FROM public.website_publications
+     WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+    [tenantA, siteId, publicationId],
+  );
+  assert.equal(preservedManagedPublication.rows[0]?.status, "superseded");
+
   await expectSqlFailure(
     client,
     `UPDATE public.website_custom_deployments SET route_key = 'rewritten_route' WHERE id = $1`,
@@ -380,6 +388,7 @@ try {
           arbitraryUpstreamRejected: true,
           managedActivation: true,
           customActivation: true,
+          managedPublicationDemotedInCustomMode: true,
           managedRollback: true,
           exactRevision: true,
           enterpriseCustomGate: true,
