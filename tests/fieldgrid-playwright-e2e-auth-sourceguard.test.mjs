@@ -12,6 +12,7 @@ const workflow = () => read(".github/workflows/main-exact-head-validation.yml");
 const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
 const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
 const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
+const assignmentDetailActions = () => read("artifacts/backoffice/src/components/assignments/AssignmentDetailActions.tsx");
 const completionSummary = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx");
 const workOrderStatusProgress = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx");
 const playwrightConfig = () => read("playwright.config.ts");
@@ -213,6 +214,18 @@ test("completion mutation cannot be clicked before personnel hydration", () => {
   assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
   assert.match(component, /disabled=\{!isHydrated \|\| isPending\}/u);
   assert.match(spec, /eventually\(completeButton\)\.toBeEnabled\(\)/u);
+});
+
+test("backoffice unassignment waits for hydration and bounded dialog evidence", () => {
+  const component = assignmentDetailActions();
+  const staffing = staffingSpec();
+  const accessibility = accessibilitySpec();
+  assert.match(component, /const \[isHydrated, setIsHydrated\] = useState\(false\)/u);
+  assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
+  assert.match(component, /disabled=\{!isHydrated \|\| \(pending && removingPersonnel === p\.id\)\}/u);
+  assert.match(staffing, /eventually\(removeParticipantButton\)\.toBeEnabled\(\)/u);
+  assert.match(staffing, /eventually\(unassignmentDialog\)\.toBeVisible\(\)/u);
+  assert.match(accessibility, /expect\(removeParticipantButton\)\.toBeEnabled\(\{ timeout: 30_000 \}\)/u);
 });
 
 test("completion choice uses native-link fallback instead of client-only router clicks", () => {

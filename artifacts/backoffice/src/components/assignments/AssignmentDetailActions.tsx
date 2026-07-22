@@ -98,6 +98,7 @@ export function AssignmentDetailActions({
   const [removingPersonnel, setRemovingPersonnel] = useState<string | null>(null);
   const [unassignTarget, setUnassignTarget] = useState<{ linkId: string; personnelId: string; name: string; lifecycleVersion: number } | null>(null);
   const [unassignmentReason, setUnassignmentReason] = useState("");
+  const [isHydrated, setIsHydrated] = useState(false);
   const [pending,           startTransition]      = useTransition();
 
   const nextStatuses = ASSIGNMENT_STATUS_TRANSITIONS[status] ?? [];
@@ -105,6 +106,10 @@ export function AssignmentDetailActions({
   useEffect(() => {
     setOptimisticAssignedPersonnelIds(new Set(personnel.map((p) => p.personnelId)));
   }, [personnel]);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   function handleStatusChange() {
     if (selectedStatus === status) return;
@@ -260,7 +265,7 @@ export function AssignmentDetailActions({
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0"
-                    disabled={pending && removingPersonnel === p.id}
+                    disabled={!isHydrated || (pending && removingPersonnel === p.id)}
                     onClick={() =>
                       handleRemovePersonnel(p.id, p.personnelId, `${p.firstName} ${p.lastName}`, p.lifecycleVersion)
                     }
