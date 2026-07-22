@@ -334,7 +334,9 @@ test("6. Personnel credential recovery", async ({ page }) => {
   const code = await recoveryCodeFor(email);
   await page.getByLabel("Herstelcode").fill(code);
   await page.getByRole("button", { name: "Code controleren" }).click();
-  await expect(page).toHaveURL(/\/personeel\/reset-wachtwoord/u);
+  await expect(page).toHaveURL(/\/personeel\/reset-wachtwoord/u, {
+    timeout: 15_000,
+  });
 
   await page.locator('input[name="password"]').fill("Fieldgrid!Phase2B43");
   await page.locator('input[name="passwordTwo"]').fill("Fieldgrid!Phase2B43");

@@ -1,0 +1,26 @@
+{
+  "name": "@workspace/website-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./publication": "./src/publication.ts",
+    "./publication-builder": "./src/publication-builder.ts",
+    "./sections": "./src/sections.ts",
+    "./site": "./src/site.ts",
+    "./templates": "./src/templates.ts"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "~5.9.3"
+  }
+}
