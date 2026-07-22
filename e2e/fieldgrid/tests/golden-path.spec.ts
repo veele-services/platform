@@ -436,6 +436,7 @@ test("8. Negative guards", async ({ page }) => {
   await useIdentity(page, "20000000-0000-4000-8000-000000000104", tenantAHost);
   response = await page.goto(
     personnelUrl(`/personeel/opdrachten/${tenantBAssignmentId}`),
+    { waitUntil: "domcontentloaded" },
   );
   await expectDeniedOrLogin(page, response);
   await expect(page.locator("body")).not.toContainText("Runtime Assignment B");

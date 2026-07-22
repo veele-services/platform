@@ -171,6 +171,15 @@ test("suspended-tenant navigation is bound to the denial DOM instead of full res
   );
 });
 
+test("cross-tenant personnel denial does not wait for non-critical resource load", () => {
+  const spec = browserSpec();
+  assert.match(
+    spec,
+    /personnelUrl\(`\/personeel\/opdrachten\/\$\{tenantBAssignmentId\}`\),\s+\{ waitUntil: "domcontentloaded" \},/u,
+  );
+  assert.match(spec, /not\.toContainText\("Runtime Assignment B"\)/u);
+});
+
 test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
   const spec = staffingSpec();
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 3);
