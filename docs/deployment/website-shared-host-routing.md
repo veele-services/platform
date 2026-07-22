@@ -1,12 +1,16 @@
 # Website shared-host routing contract
 
-Status: Phase 2A code and fixture contract; not a live proxy change.
+Status: Phase 2A isolation and Phase 2B managed-runtime code contract; not a live proxy change.
 
 The public tenant host is shared by the marketing website and three
 authenticated applications. Production uses `{tenant}.fieldgrid.nl`, staging
 uses `{tenant}.staging.fieldgrid.nl`, and a custom domain is accepted only
 after the existing trusted domain resolver marks it verified for the exact
 tenant and site.
+
+`artifacts/website-runtime` now implements the managed fallback target. It is a
+buildable service candidate only: no service unit, port, Caddy route, DNS record,
+staging ref or production ref is changed in Phase 2B.
 
 ## Precedence
 

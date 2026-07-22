@@ -2,11 +2,12 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:2b0f148a577a730fbf9c45c90d8ea1ce2d4d60709b0f3a8b544e90c7c231911e",
+  "inventoryHash": "sha256:342ee02e8e8d6f1e471453e2b2572677622f656bf85d1285daf2bb1992ffc566",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
     "artifacts/klant-pwa/src",
+    "artifacts/website-runtime/src",
     "artifacts/api-server/src",
     "lib/db/src"
   ],
@@ -33,17 +34,17 @@
     "www"
   ],
   "counts": {
-    "total": 810,
-    "uniqueRuntimeNodes": 705,
-    "classifications": 810,
-    "externalEntrypoints": 101,
+    "total": 813,
+    "uniqueRuntimeNodes": 708,
+    "classifications": 813,
+    "externalEntrypoints": 104,
     "internalDbCallsites": 612,
     "providerBoundaries": 74,
     "signedUrlCallsites": 20,
     "byKind": {
       "server-action": 38,
-      "route-handler": 59,
-      "middleware": 3,
+      "route-handler": 61,
+      "middleware": 4,
       "webhook-handler": 1,
       "worker-entrypoint": 3,
       "scheduled-entrypoint": 0,
@@ -56,15 +57,15 @@
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 362,
-      "low": 350,
+      "medium": 363,
+      "low": 352,
       "informational": 74
     }
   },
   "kindHashes": {
     "server-action": "sha256:b89bbec28b758c3448f2698c030b60f32dda2095cfbbe194620ff8f0ebb71d18",
-    "route-handler": "sha256:85f1360dd099dab01df1c33dba80b5c6278413051c3c14081cdd8d9ef814b7ae",
-    "middleware": "sha256:04251a5d79ac5c2866204fe54a602f64ded57855b03bbfbf0b113c2d58c602d0",
+    "route-handler": "sha256:876b7659dd72469f1e3bb05e30da008165545fd4c0c06297a23962258297924e",
+    "middleware": "sha256:d1c24050b9bcb8ff6454a27a6b93d05d673ff731469609d11e3d0c8f746477fb",
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",

@@ -1,5 +1,6 @@
 export * from "./publication";
 export * from "./publication-builder";
+export * from "./runtime-publication";
 export * from "./sections";
 export * from "./shared-host-routing";
 export * from "./site";

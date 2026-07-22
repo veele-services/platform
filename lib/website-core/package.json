@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./publication": "./src/publication.ts",
     "./publication-builder": "./src/publication-builder.ts",
+    "./runtime-publication": "./src/runtime-publication.ts",
     "./sections": "./src/sections.ts",
     "./shared-host-routing": "./src/shared-host-routing.ts",
     "./site": "./src/site.ts",

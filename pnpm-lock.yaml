@@ -720,6 +720,37 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
 
+  artifacts/website-runtime:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      '@workspace/website-core':
+        specifier: workspace:*
+        version: link:../../lib/website-core
+      next:
+        specifier: ^15.5.0
+        version: 15.5.18(@playwright/test@1.51.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.1.0(react@19.1.0)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.6.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.14)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
   lib/api-client-react:
     dependencies:
       '@tanstack/react-query':

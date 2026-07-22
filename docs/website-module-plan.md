@@ -1,7 +1,7 @@
 # Fieldgrid website module — phased implementation plan
 
 Date: 22 July 2026
-Status: Phase 1A and Phase 1B merged in PR #353; Phase 2A implementation in progress
+Status: Phase 1A/1B merged in PR #353, Phase 2A merged in PR #354; Phase 2B implementation in progress
 
 ## Current implementation status
 
@@ -17,9 +17,11 @@ stale authoring and delivery revisions fail closed. Publication hashes are
 bound to the exact source revision, and website-owned child records cannot be
 moved to another tenant or site after creation.
 
-Neither merged foundation phase adds public routing, a tenant authoring UI, a renderer, a
-deployment or a live domain activation. Those remain gated by the later phases
-below.
+Merged Phase 2A moves the authenticated applications behind their fixed shared-host
+prefixes and path-scopes their cookies. Phase 2B now adds the isolated managed
+public runtime, but still performs no proxy change, deployment or live-domain
+activation. Tenant authoring UI, custom delivery, forms and activation remain
+gated by later phases below.
 
 ## Goal and delivery contract
 
@@ -318,11 +320,10 @@ Acceptance:
 
 ## Recommended next coding increment
 
-After review of Phase 1A and Phase 1B, the next increment is Phase 2A shared-host
-application isolation. The namespace decision is resolved: production uses
-`{tenant}.fieldgrid.nl`, staging uses `{tenant}.staging.fieldgrid.nl`, and the
-website owns `/` while authenticated applications own their fixed prefixes.
-Phase 2A must establish a real `/admin` base path and cookie boundary before a
-public runtime is introduced. Wildcard DNS for `*.staging.fieldgrid.nl` is
-operator-confirmed as provisioned. TLS coverage and exact host resolution still
-require runtime proof before any later staging activation.
+Finish Phase 2B through one reviewed PR: validate the separate public runtime,
+exact-host active-publication resolver, nine-section renderer, metadata, robots,
+sitemap and fail-closed behavior on exact-head CI. The next product increment
+after that is Phase 2C, an isolated custom-delivery routing spike. Neither phase
+may alter DNS, Caddy, staging, production or live domains. Wildcard DNS for
+`*.staging.fieldgrid.nl` is operator-confirmed as provisioned; wildcard TLS and
+exact external host resolution remain Phase 9 activation evidence.

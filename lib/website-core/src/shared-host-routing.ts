@@ -60,6 +60,33 @@ export function normalizeSharedHost(host: string): string {
   return hostname.replace(/\.$/u, "");
 }
 
+/**
+ * Strict Host-header normalization for the public website runtime. Unlike the
+ * general proxy helper this rejects forwarded lists, protocols, credentials,
+ * paths and malformed ports before consulting the trusted database binding.
+ */
+export function normalizeWebsiteRequestHost(host: string): string {
+  const value = host.trim();
+  if (
+    !value ||
+    value.includes(",") ||
+    value.includes("//") ||
+    /[\s/@\\?#]/u.test(value)
+  ) {
+    return "";
+  }
+
+  const match = /^([a-z0-9.-]+)(?::([0-9]{1,5}))?$/iu.exec(value);
+  if (!match?.[1]) return "";
+  if (match[2] && Number(match[2]) > 65_535) return "";
+
+  const normalized = normalizeSharedHost(match[1]);
+  if (!normalized || normalized.length > 253) return "";
+  return classifySharedHost(normalized, [normalized]) === "unsupported"
+    ? ""
+    : normalized;
+}
+
 function isTenantLabel(value: string): boolean {
   return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(value);
 }

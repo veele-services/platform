@@ -20,7 +20,8 @@
     "./planning-intelligence": "./src/planning-intelligence.ts",
     "./interest-selection-staffing": "./src/interest-selection-staffing.ts",
     "./staffing-lifecycle": "./src/staffing-lifecycle.ts",
-    "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts"
+    "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts",
+    "./website-public-runtime": "./src/website-public-runtime.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

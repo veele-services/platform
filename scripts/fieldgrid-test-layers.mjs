@@ -28,7 +28,7 @@ export const fieldgridTestLayers = [
     owner: "Platform engineering",
     purpose:
       "Pure domein- en contractregels draaien zonder database, browser of provider.",
-    ciCommand: "pnpm fieldgrid:test:domain-recursive",
+    ciCommand: "pnpm fieldgrid:test:domain-recursive && pnpm fieldgrid:test:website-runtime-unit",
     requiredTestFiles: ["tests/domain/tenantless-write-invariants-classification.test.mjs"],
     requiredSignals: ["FG-DOMAIN-CLASSIFICATION"],
   },
@@ -252,7 +252,8 @@ export async function buildFieldgridTestLayersPlan() {
       "fieldgrid:test:contract-static": fieldgridTestLayers.find(
         (layer) => layer.id === "contract-static",
       )?.ciCommand,
-      "fieldgrid:test:unit-domain": "pnpm fieldgrid:test:domain-recursive",
+      "fieldgrid:test:unit-domain": "pnpm fieldgrid:test:domain-recursive && pnpm fieldgrid:test:website-runtime-unit",
+      "fieldgrid:test:website-runtime-unit": "pnpm --filter @workspace/website-core test && pnpm --filter @workspace/website-runtime test",
       "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
       "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup",
       "fieldgrid:test:db-integration-tenant-ab": fieldgridTestLayers.find(

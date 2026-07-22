@@ -1,0 +1,25 @@
+{
+  "name": "@workspace/website-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p $PORT",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p $PORT",
+    "test": "tsx --test test/*.test.ts test/*.test.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/website-core": "workspace:*",
+    "next": "^15.5.0",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tsx": "catalog:"
+  }
+}

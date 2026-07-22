@@ -5,6 +5,7 @@ import {
   FIELDGRID_SHARED_HOST_PATHS,
   classifySharedHost,
   filterWebsiteCookieHeader,
+  normalizeWebsiteRequestHost,
   resolveSharedHostRoute,
 } from "../src/shared-host-routing";
 
@@ -18,6 +19,25 @@ test("shared tenant hosts are explicit and unknown or operational hosts fail clo
   assert.equal(classifySharedHost("staging.fieldgrid.nl", ["staging.fieldgrid.nl"]), "unsupported");
   assert.equal(classifySharedHost("127.0.0.1", ["127.0.0.1"]), "unsupported");
   assert.equal(classifySharedHost("unknown.example"), "unsupported");
+});
+
+test("public website Host headers are normalized only from unambiguous authorities", () => {
+  assert.equal(normalizeWebsiteRequestHost("ACME.fieldgrid.nl:443"), "acme.fieldgrid.nl");
+  assert.equal(normalizeWebsiteRequestHost("acme.staging.fieldgrid.nl"), "acme.staging.fieldgrid.nl");
+  assert.equal(normalizeWebsiteRequestHost("website.acme.nl."), "website.acme.nl");
+
+  for (const host of [
+    "platform.fieldgrid.nl",
+    "acme.fieldgrid.nl,evil.example",
+    "https://acme.fieldgrid.nl",
+    "user@acme.fieldgrid.nl",
+    "acme.fieldgrid.nl/path",
+    "127.0.0.1",
+    "localhost",
+    "acme.fieldgrid.nl:99999",
+  ]) {
+    assert.equal(normalizeWebsiteRequestHost(host), "", host);
+  }
 });
 
 test("route precedence preserves every application base path before website fallback", () => {
