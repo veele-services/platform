@@ -256,9 +256,10 @@ test("Customer accepts a sent quote through the canonical lifecycle", async ({
   await expect(page.locator("main")).toContainText("RTA-OFF-001");
   await page.getByRole("button", { name: "Goedkeuren" }).first().click();
   await page.getByRole("button", { name: "Ja, goedkeuren" }).first().click();
-  await expect(page.getByText("Offerte goedgekeurd").first()).toBeVisible({
+  await expect(page.locator("main")).toContainText("€ 250,00 akkoord gegeven.", {
     timeout: 15_000,
   });
+  await expect(page.locator("main")).toContainText("Geen offertes gevonden");
 
   await page.goto(
     customerUrl(`/klant/opdrachten/${quoteAcceptanceAssignmentId}`),

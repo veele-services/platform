@@ -180,6 +180,14 @@ test("cross-tenant personnel denial does not wait for non-critical resource load
   assert.match(spec, /not\.toContainText\("Runtime Assignment B"\)/u);
 });
 
+test("quote acceptance waits for durable server state instead of transient client copy", () => {
+  const spec = browserSpec();
+  assert.doesNotMatch(spec, /getByText\("Offerte goedgekeurd"\)/u);
+  assert.match(spec, /toContainText\("€ 250,00 akkoord gegeven\."/u);
+  assert.match(spec, /toContainText\("Geen offertes gevonden"\)/u);
+  assert.match(spec, /toContainText\(\/Planbaar\|Goedgekeurd\/i\)/u);
+});
+
 test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
   const spec = staffingSpec();
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 3);
