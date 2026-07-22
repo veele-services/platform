@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./custom-delivery": "./src/custom-delivery.ts",
     "./publication": "./src/publication.ts",
     "./publication-builder": "./src/publication-builder.ts",
     "./runtime-publication": "./src/runtime-publication.ts",

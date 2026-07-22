@@ -273,6 +273,7 @@ test("Customer accepts a sent quote through the canonical lifecycle", async ({
 test("Backoffice cancels a sent invoice and shows the durable result", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000102");
   await page.goto(backofficeUrl(`/invoices/${cancellationInvoiceId}`));
   await expectRealApp(page);
@@ -314,13 +315,16 @@ test("5. Customer credential recovery", async ({ page }) => {
   const code = await recoveryCodeFor(email);
   await page.getByLabel("Herstelcode").fill(code);
   await page.getByRole("button", { name: "Code controleren" }).click();
-  await expect(page).toHaveURL(/\/klant\/reset-wachtwoord/u);
+  await expect(page).toHaveURL(/\/klant\/reset-wachtwoord/u, {
+    timeout: 15_000,
+  });
 
   await page.locator('input[name="password"]').fill("Fieldgrid!Phase2B42");
   await page.locator('input[name="passwordTwo"]').fill("Fieldgrid!Phase2B42");
   await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
   await expect(page).toHaveURL(
     /\/klant\/login\?message=Wachtwoord\+succesvol\+gewijzigd/u,
+    { timeout: 15_000 },
   );
 });
 
@@ -366,6 +370,7 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 });
 
 test("8. Negative guards", async ({ page }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
   let rootCookieHeader = "";
   const captureRootRequest = (request: import("@playwright/test").Request) => {

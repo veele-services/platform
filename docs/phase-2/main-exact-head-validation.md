@@ -33,6 +33,12 @@ test baseline, has no environment, receives no repository secrets and invokes
 no release, DNS, application, staging, production or migration-deployment
 operation.
 
+This is also the sole CI orchestration layer for Fieldgrid Playwright. The
+former pull-request-only duplicate workflow was removed after equivalent
+exact-head checkout, PostgreSQL 17, PostgREST, browser, W11 evidence, cleanup
+and artifact contracts were verified here. Browser coverage remains unchanged;
+each pull request now executes the expensive suite once instead of twice.
+
 The always-emitted final context is:
 
 `Main Exact Head Validation / Main exact-head gate`

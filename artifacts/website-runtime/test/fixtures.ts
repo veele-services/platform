@@ -14,6 +14,7 @@ export const TEST_IDS = {
   site: "20000000-0000-4000-8000-000000000002",
   publication: "20000000-0000-4000-8000-000000000003",
   page: "20000000-0000-4000-8000-000000000004",
+  customDeployment: "20000000-0000-4000-8000-000000000005",
 };
 
 export const TEST_HASH = "a".repeat(64);
@@ -106,12 +107,14 @@ export function databaseRow(
     tenant_id: TEST_IDS.tenant,
     tenant_is_active: true,
     tenant_status: "active",
+    tenant_plan_key: "enterprise",
     module_enabled: true,
     site_id: TEST_IDS.site,
     site_status: "active",
     delivery_mode: "managed_cms",
     delivery_revision: 3,
     active_publication_id: TEST_IDS.publication,
+    active_custom_deployment_id: null,
     canonical_hostname: "alpha.fieldgrid.nl",
     canonical_binding_status: "active",
     canonical_binding_verified_at: "2026-07-22T00:00:00.000Z",
@@ -127,6 +130,17 @@ export function databaseRow(
     publication_snapshot: snapshot,
     publication_content_hash: TEST_HASH,
     publication_cache_key: identity.cacheKey,
+    custom_deployment_id: null,
+    custom_deployment_status: null,
+    custom_provider_key: null,
+    custom_route_key: null,
+    custom_release_id: null,
+    custom_expected_host: null,
+    custom_health_path: null,
+    custom_approved_at: null,
+    custom_approved_by: null,
+    custom_last_checked_at: null,
+    custom_last_health: null,
     ...overrides,
   };
 }

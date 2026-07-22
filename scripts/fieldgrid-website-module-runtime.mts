@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { pool } from "../lib/db/src/index.ts";
+import {
+  pool,
+  resolveWebsiteDeliveryByHost,
+  type WebsiteRuntimeQuery,
+} from "../lib/db/src/index.ts";
+import { createCustomWebsiteRouteRegistry } from "../lib/website-core/src/index.ts";
 
 const databaseUrl = process.env.DATABASE_URL;
 assert.ok(databaseUrl, "DATABASE_URL is required");
@@ -258,9 +263,25 @@ try {
        health_path, status, approved_at, approved_by, last_checked_at, last_health, created_by
      ) VALUES (
        $1, $2, $3, 'fieldgrid_vps', 'veele_marketing_primary', 'runtime-release-1', $4,
-       '/api/health', 'ready', now(), $5, now(), '{"ok":true}'::jsonb, $5
+       '/api/health', 'ready', now(), $5, now(), $6::jsonb, $5
      )`,
-    [customDeploymentId, tenantA, siteId, hostname, actorA],
+    [
+      customDeploymentId,
+      tenantA,
+      siteId,
+      hostname,
+      actorA,
+      JSON.stringify({
+        schemaVersion: 1,
+        status: "healthy",
+        providerKey: "fieldgrid_vps",
+        routeKey: "veele_marketing_primary",
+        releaseId: "runtime-release-1",
+        expectedHost: hostname,
+        tls: { valid: true },
+        network: { publicAddressesOnly: true },
+      }),
+    ],
   );
 
   const custom = await client.query<{
@@ -276,6 +297,53 @@ try {
   assert.equal(custom.rows[0]?.delivery_revision, 3);
   assert.equal(custom.rows[0]?.delivery_mode, "custom_nextjs");
   assert.equal(custom.rows[0]?.active_publication_id, publicationId);
+
+  const runtimeRoutes = createCustomWebsiteRouteRegistry([
+    {
+      providerKey: "fieldgrid_vps",
+      routeKey: "veele_marketing_primary",
+      releaseId: "runtime-release-1",
+      expectedHosts: [hostname],
+      healthPath: "/api/health",
+      status: "routable",
+      upstreamOrigin: "https://custom-runtime.fieldgrid.nl",
+    },
+  ]);
+  const transactionQuery: WebsiteRuntimeQuery = async (text, values) => {
+    const result = await client.query(text, [...values]);
+    return { rows: result.rows };
+  };
+  const customResolution = await resolveWebsiteDeliveryByHost(hostname, {
+    query: transactionQuery,
+    customRoutes: runtimeRoutes,
+    now: new Date(),
+  });
+  assert.equal(customResolution.status, "ready");
+  if (customResolution.status === "ready") {
+    assert.equal(customResolution.deliveryMode, "custom_nextjs");
+  }
+
+  await client.query(
+    `UPDATE public.website_custom_deployments
+     SET last_checked_at = now() - interval '10 minutes'
+     WHERE tenant_id = $1 AND id = $2`,
+    [tenantA, customDeploymentId],
+  );
+  const staleCustomResolution = await resolveWebsiteDeliveryByHost(hostname, {
+    query: transactionQuery,
+    customRoutes: runtimeRoutes,
+    now: new Date(),
+  });
+  assert.deepEqual(staleCustomResolution, {
+    status: "unavailable",
+    reason: "custom_health_stale",
+  });
+  await client.query(
+    `UPDATE public.website_custom_deployments
+     SET last_checked_at = now()
+     WHERE tenant_id = $1 AND id = $2`,
+    [tenantA, customDeploymentId],
+  );
 
   const preservedManagedPublication = await client.query<{ status: string }>(
     `SELECT status
@@ -388,6 +456,8 @@ try {
           arbitraryUpstreamRejected: true,
           managedActivation: true,
           customActivation: true,
+          allowlistedCustomResolution: true,
+          staleCustomHealthFailsClosed: true,
           managedPublicationDemotedInCustomMode: true,
           managedRollback: true,
           exactRevision: true,

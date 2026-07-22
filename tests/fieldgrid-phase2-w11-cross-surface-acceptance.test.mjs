@@ -18,10 +18,6 @@ const workflow = readFileSync(
   ".github/workflows/main-exact-head-validation.yml",
   "utf8",
 );
-const playwrightWorkflow = readFileSync(
-  ".github/workflows/fieldgrid-playwright.yml",
-  "utf8",
-);
 const schema = JSON.parse(
   readFileSync("schemas/fieldgrid-phase2-runtime-evidence.schema.json", "utf8"),
 );
@@ -128,17 +124,15 @@ test("evidence schema binds journeys to exact head, run, runtime timestamps and 
   }
 });
 
-test("authoritative and PR workflows collect runtime sources and upload only generated artifacts", () => {
-  for (const content of [workflow, playwrightWorkflow]) {
-    assert.match(content, /pnpm fieldgrid:phase2-w11/u);
-    assert.match(content, /pnpm fieldgrid:phase2-w11:check/u);
-    assert.match(content, /artifacts\/fieldgrid-phase2-runtime\/\*\*/u);
-    assert.match(content, /FIELDGRID_EXACT_HEAD/u);
-    assert.doesNotMatch(content, /artifacts\/fieldgrid-phase2-w11/u);
-  }
+test("authoritative exact-head workflow collects runtime sources and uploads only generated artifacts", () => {
+  assert.match(workflow, /pnpm fieldgrid:phase2-w11/u);
+  assert.match(workflow, /pnpm fieldgrid:phase2-w11:check/u);
+  assert.match(workflow, /artifacts\/fieldgrid-phase2-runtime\/\*\*/u);
+  assert.match(workflow, /FIELDGRID_EXACT_HEAD/u);
+  assert.doesNotMatch(workflow, /artifacts\/fieldgrid-phase2-w11/u);
   assert.match(workflow, /actions\/download-artifact@v4/u);
   assert.match(workflow, /lane: credential-recovery-runtime/u);
-  assert.match(playwrightWorkflow, /fieldgrid:phase2d:runtime-journeys/u);
+  assert.match(workflow, /lane: phase2d-runtime-journeys/u);
 });
 
 test("pull-request validation checks out and binds evidence to the immutable PR head", () => {
@@ -150,13 +144,5 @@ test("pull-request validation checks out and binds evidence to the immutable PR 
   assert.match(
     workflow,
     /EXPECTED_HEAD_SHA: \$\{\{ env\.FIELDGRID_VALIDATION_SHA \}\}/u,
-  );
-  assert.match(
-    playwrightWorkflow,
-    /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/u,
-  );
-  assert.match(
-    playwrightWorkflow,
-    /EXPECTED_HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/u,
   );
 });
