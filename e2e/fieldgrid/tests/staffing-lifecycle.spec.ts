@@ -48,7 +48,7 @@ async function goEnRouteAndStart(page: Page) {
 
 async function completeParticipant(page: Page) {
   await page.getByRole('button', { name: 'Afronden' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Ja' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'Ja' }).click();
   await eventually(page).toHaveURL(/\/afronden\?result=completed/u);
   const completeButton = page.getByRole('button', { name: 'Definitief gereedmelden' });
   await eventually(completeButton).toBeEnabled();

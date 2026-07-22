@@ -13,6 +13,7 @@ const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
 const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
 const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
 const completionSummary = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx");
+const workOrderStatusProgress = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx");
 const playwrightConfig = () => read("playwright.config.ts");
 const root = process.cwd();
 const ALLOWLISTED_E2E_USER_ID = "20000000-0000-4000-8000-000000000101";
@@ -202,6 +203,14 @@ test("completion mutation cannot be clicked before personnel hydration", () => {
   assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
   assert.match(component, /disabled=\{!isHydrated \|\| isPending\}/u);
   assert.match(spec, /eventually\(completeButton\)\.toBeEnabled\(\)/u);
+});
+
+test("completion choice uses native-link fallback instead of client-only router clicks", () => {
+  const component = workOrderStatusProgress();
+  const spec = staffingSpec();
+  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
+  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
+  assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
 });
 
 test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
