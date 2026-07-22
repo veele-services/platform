@@ -189,10 +189,19 @@ test("quote acceptance waits for durable server state instead of transient clien
   assert.match(spec, /toContainText\(\/Planbaar\|Goedgekeurd\/i\)/u);
 });
 
-test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
+test("staffing lifecycle evidence binds mutations to durable state before rendered DOM", () => {
   const spec = staffingSpec();
-  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 3);
-  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 0);
+  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 1);
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 1);
+  assert.match(spec, /customer\.goto\(customerUrl\('\/klant\/opdrachten'\), evidenceNavigationOptions\)/u);
+  assert.match(spec, /timeout: 120_000/u);
+  assert.match(spec, /test\.setTimeout\(600_000\)/u);
+  assert.match(spec, /public\.assignment_participant_executions/u);
+  assert.match(spec, /participant_status <> 'removed'/u);
+  assert.match(spec, /ORDER BY created_at DESC, id DESC/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'en_route'\)/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'in_progress'\)/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'completed'\)/u);
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
 });
@@ -212,6 +221,8 @@ test("completion choice uses native-link fallback instead of client-only router 
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
   assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+  assert.match(spec, /getAttribute\('href'\)/u);
+  assert.match(spec, /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u);
 });
 
 test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
@@ -569,7 +580,7 @@ test("runtime safety setup grants embedded personnel profile lookup tables to au
   assert.match(source, /PostgREST embedded personnel profile lookups/);
 });
 
-test("liveness is unauthenticated and authenticated acceptance runs exactly once before browser execution", () => {
+test("liveness is unauthenticated and authenticated acceptance precedes every isolated browser phase", () => {
   const stack = start();
   const runner = read("e2e/fieldgrid/run-playwright.mjs");
   const livenessBlock = stack.slice(
@@ -595,12 +606,8 @@ test("liveness is unauthenticated and authenticated acceptance runs exactly once
     stack,
     /error: redact\(error instanceof Error \? error\.message : String\(error\)\)/,
   );
-  assert.match(runner, /await runAuthenticatedPreflight\(\);/);
-  assert.ok(
-    runner.indexOf("await runAuthenticatedPreflight()") <
-      runner.indexOf("await runPlaywright()"),
-    "browser execution must follow preflight",
-  );
+  assert.match(runner, /async function startStack\(\)[\s\S]*await runAuthenticatedPreflight\(\);/);
+  assert.match(runner, /async function runBrowserPhase\(phase\)[\s\S]*await startStack\(\);[\s\S]*await runPlaywright\(phase\)/);
 });
 
 test("E2E source files are conflict-marker free", () => {
@@ -756,8 +763,13 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
     pkg.scripts["fieldgrid:playwright"],
     "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
   );
-  assert.match(runner, /pnpm', \['exec', 'playwright', 'test'\]/);
+  assert.match(runner, /'pnpm', \['exec', 'playwright', 'test', \.\.\.phase\.files\]/);
   assert.doesNotMatch(runner, /fieldgrid:playwright/);
   assert.match(runner, /startupTimeoutMs = 180_000/);
   assert.match(runner, /orchestrator\.stderr\.log/);
+  assert.match(runner, /name: 'staffing'[\s\S]*staffing-lifecycle\.spec\.ts/);
+  assert.match(runner, /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/);
+  assert.match(runner, /resetFixturesBetweenPhases/);
+  assert.match(runner, /mergePhaseReports\(completedPhases\)/);
+  assert.match(runner, /PLAYWRIGHT_JSON_OUTPUT_FILE/);
 });

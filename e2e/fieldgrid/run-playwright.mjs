@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { createWriteStream, existsSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright');
@@ -11,7 +11,24 @@ const preflightPath = join(artifactDir, 'preflight.json');
 const startupTimeoutMs = 180_000;
 const pollIntervalMs = 2_000;
 const stack = { process: undefined };
-let shuttingDown = false;
+let terminationPromise;
+const phases = [
+  {
+    name: 'staffing',
+    files: ['e2e/fieldgrid/tests/staffing-lifecycle.spec.ts'],
+  },
+  {
+    name: 'core',
+    files: [
+      'e2e/fieldgrid/tests/accessibility.spec.ts',
+      'e2e/fieldgrid/tests/golden-path.spec.ts',
+    ],
+  },
+];
+
+function phaseResultPath(name) {
+  return join(artifactDir, `playwright-results-${name}.json`);
+}
 
 async function ensureDirs() {
   await mkdir(logsDir, { recursive: true });
@@ -96,32 +113,115 @@ async function runAuthenticatedPreflight() {
 }
 
 async function terminateStack() {
-  if (shuttingDown) return;
-  shuttingDown = true;
+  if (terminationPromise) return terminationPromise;
   const child = stack.process;
-  if (!child || child.exitCode !== null) return;
-  child.kill('SIGTERM');
-  await Promise.race([
-    new Promise((resolve) => child.once('exit', resolve)),
-    sleep(15_000).then(() => child.kill('SIGKILL')),
-  ]);
+  if (!child || child.exitCode !== null) {
+    stack.process = undefined;
+    return;
+  }
+  terminationPromise = (async () => {
+    child.kill('SIGTERM');
+    await Promise.race([
+      new Promise((resolve) => child.once('exit', resolve)),
+      sleep(15_000),
+    ]);
+    if (child.exitCode === null) {
+      child.kill('SIGKILL');
+      await Promise.race([
+        new Promise((resolve) => child.once('exit', resolve)),
+        sleep(5_000),
+      ]);
+    }
+    if (stack.process === child) stack.process = undefined;
+  })();
+  try {
+    await terminationPromise;
+  } finally {
+    terminationPromise = undefined;
+  }
 }
 
-async function runPlaywright() {
-  const child = spawn('pnpm', ['exec', 'playwright', 'test'], { stdio: 'inherit', shell: process.platform === 'win32' });
+async function startStack() {
+  if (stack.process?.exitCode === null) throw new Error('Fieldgrid Playwright stack is already running.');
+  stack.process = spawnLogged('orchestrator', 'node', ['e2e/fieldgrid/start-real-apps.mjs'], { env: process.env });
+  await waitForHealth();
+  await runAuthenticatedPreflight();
+}
+
+async function runCommand(command, args, options = {}) {
+  const child = spawn(command, args, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    ...options,
+  });
   return await new Promise((resolve) => child.once('exit', (code, signal) => resolve(signal ? 1 : code ?? 1)));
+}
+
+async function runPlaywright(phase) {
+  return runCommand('pnpm', ['exec', 'playwright', 'test', ...phase.files], {
+    env: {
+      ...process.env,
+      PLAYWRIGHT_JSON_OUTPUT_FILE: phaseResultPath(phase.name),
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: join(artifactDir, 'junit', `results-${phase.name}.xml`),
+      PLAYWRIGHT_HTML_OUTPUT_DIR: join(artifactDir, `playwright-report-${phase.name}`),
+    },
+  });
+}
+
+async function runBrowserPhase(phase) {
+  await startStack();
+  try {
+    return await runPlaywright(phase);
+  } finally {
+    await terminateStack();
+  }
+}
+
+async function resetFixturesBetweenPhases() {
+  const exitCode = await runCommand('node', ['e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs'], {
+    env: process.env,
+  });
+  if (exitCode !== 0) throw new Error('Fieldgrid Playwright fixture reset between isolated phases failed.');
+}
+
+async function mergePhaseReports(completedPhases) {
+  const reports = await Promise.all(completedPhases.map(async (phase) => (
+    JSON.parse(await readFile(phaseResultPath(phase.name), 'utf8'))
+  )));
+  if (reports.length === 0) throw new Error('No isolated Playwright phase produced a JSON report.');
+  const starts = reports.map((report) => new Date(report.stats.startTime).getTime());
+  const merged = {
+    ...reports.at(-1),
+    suites: reports.flatMap((report) => report.suites ?? []),
+    errors: reports.flatMap((report) => report.errors ?? []),
+    stats: {
+      startTime: new Date(Math.min(...starts)).toISOString(),
+      duration: reports.reduce((total, report) => total + Number(report.stats.duration ?? 0), 0),
+      expected: reports.reduce((total, report) => total + Number(report.stats.expected ?? 0), 0),
+      skipped: reports.reduce((total, report) => total + Number(report.stats.skipped ?? 0), 0),
+      unexpected: reports.reduce((total, report) => total + Number(report.stats.unexpected ?? 0), 0),
+      flaky: reports.reduce((total, report) => total + Number(report.stats.flaky ?? 0), 0),
+    },
+  };
+  await writeFile(join(artifactDir, 'playwright-results.json'), `${JSON.stringify(merged, null, 2)}\n`);
 }
 
 async function main() {
   await ensureDirs();
-  stack.process = spawnLogged('orchestrator', 'node', ['e2e/fieldgrid/start-real-apps.mjs'], { env: process.env });
-  try {
-    await waitForHealth();
-    await runAuthenticatedPreflight();
-    process.exitCode = await runPlaywright();
-  } finally {
-    await terminateStack();
+  await Promise.all([
+    rm(join(artifactDir, 'playwright-results.json'), { force: true }),
+    ...phases.map((phase) => rm(phaseResultPath(phase.name), { force: true })),
+  ]);
+  const completedPhases = [];
+  let exitCode = 0;
+  for (const [index, phase] of phases.entries()) {
+    exitCode = await runBrowserPhase(phase);
+    completedPhases.push(phase);
+    if (exitCode !== 0) break;
+    if (index < phases.length - 1) await resetFixturesBetweenPhases();
   }
+  await mergePhaseReports(completedPhases);
+  process.exitCode = exitCode;
 }
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

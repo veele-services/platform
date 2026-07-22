@@ -135,8 +135,8 @@ test("Phase 2A surfaces use participant progression, positioned actual overlays,
   assert.doesNotMatch(planboard, /unionTimeBlocks/u);
   assert.match(planboard, /relativeTimeBlock\(actualBlock, block\)/u);
   assert.match(browserJourney, /E2E: planning tijdelijk gewijzigd/u);
-  assert.match(browserJourney, /goEnRouteAndStart\(participantOne\)/u);
-  assert.match(browserJourney, /goEnRouteAndStart\(participantTwo\)/u);
+  assert.match(browserJourney, /goEnRouteAndStart\(participantOne, participantOnePersonnelId\)/u);
+  assert.match(browserJourney, /goEnRouteAndStart\(participantTwo, participantTwoPersonnelId\)/u);
   assert.match(e2eAuth, /20000000-0000-4000-8000-000000000107[\s\S]*phase2-personnel@tenant-a\.runtime\.fieldgrid\.test/u);
   assert.match(browserJourney, /Definitief gereedmelden/u);
   assert.match(browserJourney, /toContainText\(\x27Werkelijk\x27\)/u);
