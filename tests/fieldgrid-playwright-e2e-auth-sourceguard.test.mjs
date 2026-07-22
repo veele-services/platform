@@ -189,10 +189,18 @@ test("quote acceptance waits for durable server state instead of transient clien
   assert.match(spec, /toContainText\(\/Planbaar\|Goedgekeurd\/i\)/u);
 });
 
-test("staffing lifecycle evidence waits for rendered DOM instead of non-critical resource load", () => {
+test("staffing lifecycle evidence binds mutations to durable state before rendered DOM", () => {
   const spec = staffingSpec();
-  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 3);
-  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 0);
+  assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 0);
+  assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 1);
+  assert.match(spec, /timeout: 120_000/u);
+  assert.match(spec, /test\.setTimeout\(600_000\)/u);
+  assert.match(spec, /public\.assignment_participant_executions/u);
+  assert.match(spec, /participant_status <> 'removed'/u);
+  assert.match(spec, /ORDER BY created_at DESC, id DESC/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'en_route'\)/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'in_progress'\)/u);
+  assert.match(spec, /waitForParticipantStatus\(personnelId, 'completed'\)/u);
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
 });
@@ -212,6 +220,8 @@ test("completion choice uses native-link fallback instead of client-only router 
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
   assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+  assert.match(spec, /getAttribute\('href'\)/u);
+  assert.match(spec, /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u);
 });
 
 test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
