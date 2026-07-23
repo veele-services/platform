@@ -470,7 +470,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: exact-head-fieldgrid-playwright
+          # Keep this outside `exact-head-*`: the database evidence download
+          # above runs again during failed-job reruns and must not ingest a
+          # previous Playwright artifact into its own evidence tree.
+          name: fieldgrid-playwright-exact-head
           path: |
             artifacts/fieldgrid-playwright/**
             artifacts/fieldgrid-phase2-runtime/**

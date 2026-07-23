@@ -2,17 +2,23 @@ import type { PoolClient } from "pg";
 import { z } from "zod/v4";
 import {
   WEBSITE_PAGE_TYPES,
+  websiteSectionSchema,
   websiteSeoSchema,
   websiteSiteSettingsSchema,
   type WebsitePageType,
   type WebsiteSeo,
+  type WebsiteSection,
   type WebsiteSiteSettings,
 } from "@workspace/website-core";
 import { pool } from "./connection";
 
 export type {
+  WebsiteAction,
+  WebsiteEditorSectionKey,
   WebsitePageType,
+  WebsiteRichTextDocument,
   WebsiteSeo,
+  WebsiteSection,
   WebsiteSiteSettings,
 } from "@workspace/website-core";
 
@@ -98,6 +104,33 @@ const updateWebsitePageInputSchema = siteCommandContextSchema.extend({
   page: websitePageDraftSchema,
 });
 
+const sectionCommandContextSchema = siteCommandContextSchema.extend({
+  pageId: z.string().uuid(),
+  expectedPageRevision: z.number().int().positive(),
+});
+
+const createWebsiteSectionInputSchema = sectionCommandContextSchema.extend({
+  section: websiteSectionSchema,
+});
+
+const updateWebsiteSectionInputSchema = sectionCommandContextSchema.extend({
+  expectedSectionRevision: z.number().int().positive(),
+  section: websiteSectionSchema,
+});
+
+const reorderWebsiteSectionsInputSchema = sectionCommandContextSchema.extend({
+  sectionIds: z
+    .array(z.string().uuid())
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, "Dubbele sectie-ID"),
+});
+
+const deleteWebsiteSectionInputSchema = sectionCommandContextSchema.extend({
+  sectionId: z.string().uuid(),
+  expectedSectionRevision: z.number().int().positive(),
+});
+
 export type InitializeWebsiteInput = z.input<
   typeof initializeWebsiteInputSchema
 >;
@@ -110,6 +143,18 @@ export type CreateWebsitePageInput = z.input<
 >;
 export type UpdateWebsitePageInput = z.input<
   typeof updateWebsitePageInputSchema
+>;
+export type CreateWebsiteSectionInput = z.input<
+  typeof createWebsiteSectionInputSchema
+>;
+export type UpdateWebsiteSectionInput = z.input<
+  typeof updateWebsiteSectionInputSchema
+>;
+export type ReorderWebsiteSectionsInput = z.input<
+  typeof reorderWebsiteSectionsInputSchema
+>;
+export type DeleteWebsiteSectionInput = z.input<
+  typeof deleteWebsiteSectionInputSchema
 >;
 
 export type WebsiteAdminOverview = {
@@ -170,14 +215,12 @@ export type WebsitePageDetail = WebsitePageListItem & {
   locale: string;
   slug: string;
   seo: WebsiteSeo;
-  sections: Array<{
-    id: string;
-    sectionKey: string;
-    variantKey: string;
-    position: number;
-    isVisible: boolean;
-    authoringRevision: number;
-  }>;
+  sections: Array<
+    WebsiteSection & {
+      position: number;
+      authoringRevision: number;
+    }
+  >;
 };
 
 type SiteIdentityRow = {
@@ -256,6 +299,98 @@ async function lockSite(
     throw new Error("Website is intussen gewijzigd. Laad de pagina opnieuw.");
   }
   return site;
+}
+
+async function beginSectionMutation(
+  client: PoolClient,
+  input: {
+    tenantId: string;
+    siteId: string;
+    pageId: string;
+    actorUserId: string;
+    expectedAuthoringRevision: number;
+    expectedPageRevision: number;
+  },
+): Promise<void> {
+  await lockSite(client, input);
+  const pageResult = await client.query<{ authoring_revision: number }>(
+    `SELECT authoring_revision
+     FROM public.website_pages
+     WHERE tenant_id = $1 AND site_id = $2 AND id = $3
+       AND status <> 'archived'
+     FOR UPDATE`,
+    [input.tenantId, input.siteId, input.pageId],
+  );
+  const page = requireOne(pageResult.rows, "Pagina niet gevonden");
+  if (Number(page.authoring_revision) !== input.expectedPageRevision) {
+    throw new Error("Pagina is intussen gewijzigd. Laad de pagina opnieuw.");
+  }
+  await client.query(
+    `SELECT set_config('fieldgrid.website_child_authoring_touch', 'suppressed', true)`,
+  );
+}
+
+async function finishSectionMutation(
+  client: PoolClient,
+  input: {
+    tenantId: string;
+    siteId: string;
+    pageId: string;
+    actorUserId: string;
+    expectedAuthoringRevision: number;
+    expectedPageRevision: number;
+  },
+): Promise<{
+  pageAuthoringRevision: number;
+  siteAuthoringRevision: number;
+}> {
+  const pageResult = await client.query<{ authoring_revision: number }>(
+    `UPDATE public.website_pages
+     SET authoring_revision = authoring_revision + 1,
+         updated_by = $5,
+         updated_at = now()
+     WHERE tenant_id = $1 AND site_id = $2 AND id = $3
+       AND authoring_revision = $4
+       AND status <> 'archived'
+     RETURNING authoring_revision`,
+    [
+      input.tenantId,
+      input.siteId,
+      input.pageId,
+      input.expectedPageRevision,
+      input.actorUserId,
+    ],
+  );
+  const page = requireOne(
+    pageResult.rows,
+    "Pagina is intussen gewijzigd. Laad de pagina opnieuw.",
+  );
+
+  await client.query(
+    `SELECT set_config('fieldgrid.website_authoring_touch', 'allowed', true)`,
+  );
+  const siteResult = await client.query<{ authoring_revision: number }>(
+    `UPDATE public.website_sites
+     SET authoring_revision = authoring_revision + 1,
+         updated_by = $4,
+         updated_at = now()
+     WHERE tenant_id = $1 AND id = $2 AND authoring_revision = $3
+     RETURNING authoring_revision`,
+    [
+      input.tenantId,
+      input.siteId,
+      input.expectedAuthoringRevision,
+      input.actorUserId,
+    ],
+  );
+  const site = requireOne(
+    siteResult.rows,
+    "Website is intussen gewijzigd. Laad de pagina opnieuw.",
+  );
+  return {
+    pageAuthoringRevision: Number(page.authoring_revision),
+    siteAuthoringRevision: Number(site.authoring_revision),
+  };
 }
 
 export async function getWebsiteAdminOverview(
@@ -507,13 +642,15 @@ export async function getWebsitePage(
   const sectionsResult = await pool.query<{
     id: string;
     section_key: string;
+    schema_version: number;
     variant_key: string;
     position: number;
+    content: unknown;
     is_visible: boolean;
     authoring_revision: number;
   }>(
-    `SELECT id, section_key, variant_key, position, is_visible,
-            authoring_revision
+    `SELECT id, section_key, schema_version, variant_key, position, content,
+            is_visible, authoring_revision
      FROM public.website_page_sections
      WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3
      ORDER BY position, id`,
@@ -539,11 +676,15 @@ export async function getWebsitePage(
     sectionCount: sectionsResult.rows.length,
     updatedAt: asIsoString(page.updated_at),
     sections: sectionsResult.rows.map((section) => ({
-      id: section.id,
-      sectionKey: section.section_key,
-      variantKey: section.variant_key,
+      ...websiteSectionSchema.parse({
+        id: section.id,
+        type: section.section_key,
+        schemaVersion: Number(section.schema_version),
+        variant: section.variant_key,
+        visible: section.is_visible,
+        content: section.content,
+      }),
       position: Number(section.position),
-      isVisible: section.is_visible,
       authoringRevision: Number(section.authoring_revision),
     })),
   };
@@ -829,5 +970,274 @@ export async function updateWebsitePage(
       pageAuthoringRevision: Number(updated.authoring_revision),
       siteAuthoringRevision: Number(revision.authoring_revision),
     };
+  });
+}
+
+type WebsiteSectionMutationResult = {
+  sectionId: string;
+  sectionAuthoringRevision?: number;
+  pageAuthoringRevision: number;
+  siteAuthoringRevision: number;
+};
+
+export async function createWebsiteSection(
+  rawInput: CreateWebsiteSectionInput,
+): Promise<WebsiteSectionMutationResult> {
+  const input = createWebsiteSectionInputSchema.parse(rawInput);
+  return inTransaction(async (client) => {
+    await beginSectionMutation(client, input);
+    const countResult = await client.query<{ count: number; position: number }>(
+      `SELECT count(*)::integer AS count,
+              COALESCE(max(position), -1)::integer + 1 AS position
+       FROM public.website_page_sections
+       WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3`,
+      [input.tenantId, input.siteId, input.pageId],
+    );
+    const sectionCount = requireOne(countResult.rows, "Pagina niet gevonden");
+    if (Number(sectionCount.count) >= 100) {
+      throw new Error("Een pagina mag maximaal 100 secties bevatten");
+    }
+
+    const section = input.section;
+    const createdResult = await client.query<{
+      id: string;
+      authoring_revision: number;
+    }>(
+      `INSERT INTO public.website_page_sections (
+         id, tenant_id, site_id, page_id, section_key, schema_version,
+         variant_key, position, content, is_visible, created_by, updated_by
+       ) VALUES (
+         $4, $1, $2, $3, $5, $6, $7, $8, $9::jsonb, $10, $11, $11
+       )
+       RETURNING id, authoring_revision`,
+      [
+        input.tenantId,
+        input.siteId,
+        input.pageId,
+        section.id,
+        section.type,
+        section.schemaVersion,
+        section.variant,
+        Number(sectionCount.position),
+        JSON.stringify(section.content),
+        section.visible,
+        input.actorUserId,
+      ],
+    );
+    const created = requireOne(
+      createdResult.rows,
+      "Sectie kon niet worden aangemaakt",
+    );
+    const revisions = await finishSectionMutation(client, input);
+    await client.query(
+      `INSERT INTO public.audit_log (
+         tenant_id, user_id, action, resource, resource_id, metadata
+       ) VALUES ($1, $2, 'website_section_created', 'website_page_section', $3,
+                 jsonb_build_object('siteId', $4::text,
+                                    'pageId', $5::text,
+                                    'sectionType', $6::text))`,
+      [
+        input.tenantId,
+        input.actorUserId,
+        created.id,
+        input.siteId,
+        input.pageId,
+        section.type,
+      ],
+    );
+    return {
+      sectionId: created.id,
+      sectionAuthoringRevision: Number(created.authoring_revision),
+      ...revisions,
+    };
+  });
+}
+
+export async function updateWebsiteSection(
+  rawInput: UpdateWebsiteSectionInput,
+): Promise<WebsiteSectionMutationResult> {
+  const input = updateWebsiteSectionInputSchema.parse(rawInput);
+  return inTransaction(async (client) => {
+    await beginSectionMutation(client, input);
+    const section = input.section;
+    const updatedResult = await client.query<{
+      id: string;
+      authoring_revision: number;
+    }>(
+      `UPDATE public.website_page_sections
+       SET variant_key = $8,
+           content = $9::jsonb,
+           is_visible = $10,
+           authoring_revision = authoring_revision + 1,
+           updated_by = $11,
+           updated_at = now()
+       WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3 AND id = $4
+         AND authoring_revision = $5
+         AND section_key = $6 AND schema_version = $7
+       RETURNING id, authoring_revision`,
+      [
+        input.tenantId,
+        input.siteId,
+        input.pageId,
+        section.id,
+        input.expectedSectionRevision,
+        section.type,
+        section.schemaVersion,
+        section.variant,
+        JSON.stringify(section.content),
+        section.visible,
+        input.actorUserId,
+      ],
+    );
+    const updated = requireOne(
+      updatedResult.rows,
+      "Sectie is intussen gewijzigd. Laad de pagina opnieuw.",
+    );
+    const revisions = await finishSectionMutation(client, input);
+    await client.query(
+      `INSERT INTO public.audit_log (
+         tenant_id, user_id, action, resource, resource_id, metadata
+       ) VALUES ($1, $2, 'website_section_updated', 'website_page_section', $3,
+                 jsonb_build_object(
+                   'siteId', $4::text,
+                   'pageId', $5::text,
+                   'fromSectionRevision', $6::integer,
+                   'toSectionRevision', $7::integer
+                 ))`,
+      [
+        input.tenantId,
+        input.actorUserId,
+        updated.id,
+        input.siteId,
+        input.pageId,
+        input.expectedSectionRevision,
+        Number(updated.authoring_revision),
+      ],
+    );
+    return {
+      sectionId: updated.id,
+      sectionAuthoringRevision: Number(updated.authoring_revision),
+      ...revisions,
+    };
+  });
+}
+
+export async function reorderWebsiteSections(
+  rawInput: ReorderWebsiteSectionsInput,
+): Promise<Omit<WebsiteSectionMutationResult, "sectionId">> {
+  const input = reorderWebsiteSectionsInputSchema.parse(rawInput);
+  return inTransaction(async (client) => {
+    await beginSectionMutation(client, input);
+    const currentResult = await client.query<{ id: string; position: number }>(
+      `SELECT id, position
+       FROM public.website_page_sections
+       WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3
+       ORDER BY position, id
+       FOR UPDATE`,
+      [input.tenantId, input.siteId, input.pageId],
+    );
+    const currentIds = new Set(currentResult.rows.map((section) => section.id));
+    if (
+      currentIds.size !== input.sectionIds.length ||
+      input.sectionIds.some((id) => !currentIds.has(id))
+    ) {
+      throw new Error(
+        "De sectielijst is intussen gewijzigd. Laad de pagina opnieuw.",
+      );
+    }
+    const offset =
+      Math.max(-1, ...currentResult.rows.map((section) => section.position)) +
+      currentResult.rows.length +
+      1;
+    await client.query(
+      `UPDATE public.website_page_sections
+       SET position = position + $4,
+           updated_by = $5,
+           updated_at = now()
+       WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3`,
+      [input.tenantId, input.siteId, input.pageId, offset, input.actorUserId],
+    );
+    const reorderedResult = await client.query(
+      `UPDATE public.website_page_sections AS section
+       SET position = (ordering.ordinal - 1)::integer,
+           authoring_revision = authoring_revision + 1,
+           updated_by = $5,
+           updated_at = now()
+       FROM unnest($4::uuid[]) WITH ORDINALITY AS ordering(id, ordinal)
+       WHERE section.tenant_id = $1 AND section.site_id = $2
+         AND section.page_id = $3 AND section.id = ordering.id`,
+      [
+        input.tenantId,
+        input.siteId,
+        input.pageId,
+        input.sectionIds,
+        input.actorUserId,
+      ],
+    );
+    if (reorderedResult.rowCount !== input.sectionIds.length) {
+      throw new Error(
+        "De sectielijst is intussen gewijzigd. Laad de pagina opnieuw.",
+      );
+    }
+    const revisions = await finishSectionMutation(client, input);
+    await client.query(
+      `INSERT INTO public.audit_log (
+         tenant_id, user_id, action, resource, resource_id, metadata
+       ) VALUES ($1, $2, 'website_sections_reordered', 'website_page', $3,
+                 jsonb_build_object('siteId', $4::text,
+                                    'sectionCount', $5::integer))`,
+      [
+        input.tenantId,
+        input.actorUserId,
+        input.pageId,
+        input.siteId,
+        input.sectionIds.length,
+      ],
+    );
+    return revisions;
+  });
+}
+
+export async function deleteWebsiteSection(
+  rawInput: DeleteWebsiteSectionInput,
+): Promise<WebsiteSectionMutationResult> {
+  const input = deleteWebsiteSectionInputSchema.parse(rawInput);
+  return inTransaction(async (client) => {
+    await beginSectionMutation(client, input);
+    const deletedResult = await client.query<{ id: string }>(
+      `DELETE FROM public.website_page_sections
+       WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3 AND id = $4
+         AND authoring_revision = $5
+       RETURNING id`,
+      [
+        input.tenantId,
+        input.siteId,
+        input.pageId,
+        input.sectionId,
+        input.expectedSectionRevision,
+      ],
+    );
+    const deleted = requireOne(
+      deletedResult.rows,
+      "Sectie is intussen gewijzigd. Laad de pagina opnieuw.",
+    );
+    const revisions = await finishSectionMutation(client, input);
+    await client.query(
+      `INSERT INTO public.audit_log (
+         tenant_id, user_id, action, resource, resource_id, metadata
+       ) VALUES ($1, $2, 'website_section_deleted', 'website_page_section', $3,
+                 jsonb_build_object('siteId', $4::text,
+                                    'pageId', $5::text,
+                                    'sectionRevision', $6::integer))`,
+      [
+        input.tenantId,
+        input.actorUserId,
+        deleted.id,
+        input.siteId,
+        input.pageId,
+        input.expectedSectionRevision,
+      ],
+    );
+    return { sectionId: deleted.id, ...revisions };
   });
 }

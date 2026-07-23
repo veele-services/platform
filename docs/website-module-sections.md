@@ -1,12 +1,12 @@
 # Fieldgrid website module — section registry and content contracts
 
-Date: 21 July 2026
-Status: MVP schemas and managed public renderers implemented; editors remain proposed
+Date: 23 July 2026
+Status: Initial schemas, public renderers and backoffice section editor implemented
 
 The pure website-core package now implements strict schemas and defaults for the
 nine Template 1 sections. Phase 2B adds their server-rendered public components
-in the isolated website runtime. Backoffice editor components remain a Phase 3
-deliverable.
+in the isolated website runtime. Phase 3B adds `rich_text`, the TipTap v2 JSON
+contract, its node-by-node public renderer and schema-owned backoffice controls.
 
 ## Scope
 
@@ -67,6 +67,7 @@ Publication fails on invalid required content or an unsupported schema version. 
 | `faq`           | `accordion`, `list`                                 | heading, subtitle, 1–20 question/allowlisted-rich-text answer pairs, schema-eligibility flag derived at publication        | Keyboard-operable disclosure, correct `aria-expanded`, answers in server HTML; structured data only for eligible visible content.          |
 | `cta_banner`    | `solid`, `split`                                    | heading, summary, 1–2 CTAs, optional safe contact action                                                                   | Contrast and focus state pass; phone/email use typed fields.                                                                               |
 | `contact_form`  | `card`, `split_contact`                             | heading, subtitle, active same-site form reference, optional contact details/opening hours and policy-approved map setting | Labels and errors are programmatic; consent is not preselected; success/failure preserves context; no map until provider/privacy approval. |
+| `rich_text`     | `default`, `narrow`                                 | optional section title and versioned allowlisted TipTap document                                                           | No stored HTML; semantic node renderer; safe links only; backwards-compatible v1 reader.                                                   |
 
 ### MVP content examples
 
@@ -108,16 +109,15 @@ Actual schemas should use stable referenced IDs and validated rich-text nodes ra
 
 The architecture defines these contracts now, but they are feature-gated and are not Phase 1/MVP implementation commitments:
 
-| Section            | Variants                                               | Fields and bounds                                                                                            | Gate before implementation                                                                                                |
-| ------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `emergency_hero`   | `mobile_first`, `phone_focused`, `area_focused`        | eyebrow, heading, subtitle, validated phone, primary CTA, emergency notice, 0–5 trust badges, optional image | Availability, response-time and after-hours claims need source/freshness policy; sticky phone UI must pass accessibility. |
-| `service_area`     | `list`, `grouped`, `map_split`                         | heading, subtitle, 1–100 normalized areas, primary area, nearby areas, optional map flag                     | Duplicate/thin-page controls plus privacy-safe map/provider and performance review.                                       |
-| `project_showcase` | `grid`, `featured`, `editorial`                        | heading, subtitle, 1–12 projects with title, description, media, location and safe link                      | Customer consent, image rights, location privacy and responsive media pipeline.                                           |
-| `blog_preview`     | `cards`, `featured`, `compact`                         | heading, subtitle, optional same-site category filter, limit 1–12, CTA                                       | Blog publication exists; deterministic publication-time query and empty state are defined.                                |
-| `rich_text`        | `narrow`, `standard`, `wide` with controlled alignment | allowlisted versioned TipTap document, semantic heading policy and optional section label                    | Dedicated public node renderer completed and security-reviewed; no raw HTML/max-width/class input.                        |
-| `stats`            | `inline`, `cards`                                      | 2–8 items with value, label and description                                                                  | Quantified claims require source, owner and freshness workflow.                                                           |
-| `team`             | `cards`, `compact`                                     | heading, subtitle, 1–12 members with name, role, approved image and bounded bio                              | Employee consent, withdrawal/removal and media-retention workflow.                                                        |
-| `logo_wall`        | `logos`, `certifications`                              | heading, 2–16 items with name, approved media and description                                                | Brand-use/certification permission, expiry and accessible alternatives.                                                   |
+| Section            | Variants                                        | Fields and bounds                                                                                            | Gate before implementation                                                                                                |
+| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `emergency_hero`   | `mobile_first`, `phone_focused`, `area_focused` | eyebrow, heading, subtitle, validated phone, primary CTA, emergency notice, 0–5 trust badges, optional image | Availability, response-time and after-hours claims need source/freshness policy; sticky phone UI must pass accessibility. |
+| `service_area`     | `list`, `grouped`, `map_split`                  | heading, subtitle, 1–100 normalized areas, primary area, nearby areas, optional map flag                     | Duplicate/thin-page controls plus privacy-safe map/provider and performance review.                                       |
+| `project_showcase` | `grid`, `featured`, `editorial`                 | heading, subtitle, 1–12 projects with title, description, media, location and safe link                      | Customer consent, image rights, location privacy and responsive media pipeline.                                           |
+| `blog_preview`     | `cards`, `featured`, `compact`                  | heading, subtitle, optional same-site category filter, limit 1–12, CTA                                       | Blog publication exists; deterministic publication-time query and empty state are defined.                                |
+| `stats`            | `inline`, `cards`                               | 2–8 items with value, label and description                                                                  | Quantified claims require source, owner and freshness workflow.                                                           |
+| `team`             | `cards`, `compact`                              | heading, subtitle, 1–12 members with name, role, approved image and bounded bio                              | Employee consent, withdrawal/removal and media-retention workflow.                                                        |
+| `logo_wall`        | `logos`, `certifications`                       | heading, 2–16 items with name, approved media and description                                                | Brand-use/certification permission, expiry and accessible alternatives.                                                   |
 
 ## Rich-text contract
 
@@ -127,18 +127,17 @@ Canonical rich text is a versioned JSON document, not stored HTML. The first pub
 - heading levels permitted by the containing section;
 - bullet and ordered lists with list items;
 - bold, italic and safe link marks;
-- hard break where semantically justified.
+- blockquote, horizontal rule and hard break where semantically justified.
 
-Later nodes such as blockquote, table, code, image or embed require separate schema, renderer, accessibility and security review.
+Later nodes such as table, code, image or embed require separate schema, renderer, accessibility and security review.
 
 Link rendering rules:
 
-- resolve internal page IDs during publication;
-- normalize relative paths;
+- normalize allowlisted relative paths;
 - permit `https:` externally;
 - add appropriate `rel` values to external targets;
 - reject `javascript:`, `data:`, protocol-relative and malformed URLs;
-- do not let content control arbitrary `target`, `rel`, event handlers or classes.
+- normalize `target` and `rel` in the public renderer and reject event handlers or classes.
 
 The existing authenticated knowledgebase HTML renderer must not be reused for public website content because it inserts stored HTML. A dedicated node-by-node renderer is required.
 
@@ -160,7 +159,7 @@ No section accepts raw CSS, CSS variables, Tailwind classes, remote font code, s
 
 - Render schema-specific controls rather than a raw JSON editor.
 - Show field limits and inline server-validation errors.
-- Start ordering with accessible Move up/Move down actions and server-side optimistic revisions.
+- Provide pointer drag handles plus equivalent Move up/Move down actions and server-side optimistic revisions.
 - Duplicate by creating a new ID after revalidation; never clone audit/revision metadata.
 - Deleting a section requires confirmation and remains a draft change until publication.
 - Unsupported legacy sections display a blocking diagnostic with export/recovery context.

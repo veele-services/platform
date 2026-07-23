@@ -4,12 +4,15 @@ import { test } from "node:test";
 import {
   TRUST_CONVERSION_TEMPLATE_V1,
   WEBSITE_DELIVERY_MODES,
+  WEBSITE_EDITOR_SECTION_KEYS,
   WEBSITE_MVP_SECTION_KEYS,
   WEBSITE_SECTION_KEYS,
   WEBSITE_SECTION_REGISTRY,
   WEBSITE_TEMPLATE_KEYS,
   heroContentSchema,
   websiteActionSchema,
+  websiteRichTextDocumentSchema,
+  websiteSectionSchema,
   websitePublicationSnapshotSchema,
   websiteTemplateSchema,
 } from "../src/index";
@@ -34,9 +37,9 @@ test("custom Next.js is a delivery mode and never a template or section", () => 
   assert.ok(!WEBSITE_SECTION_KEYS.includes("custom_nextjs" as never));
 });
 
-test("registry contains every MVP section and rejects arbitrary presentation input", () => {
+test("registry contains every authorable section and rejects arbitrary presentation input", () => {
   assert.deepEqual(Object.keys(WEBSITE_SECTION_REGISTRY), [
-    ...WEBSITE_MVP_SECTION_KEYS,
+    ...WEBSITE_EDITOR_SECTION_KEYS,
   ]);
   assert.throws(() =>
     heroContentSchema.parse({
@@ -51,6 +54,105 @@ test("registry contains every MVP section and rejects arbitrary presentation inp
       label: "Onveilig",
       href: "javascript:alert(1)",
     }),
+  );
+});
+
+test("TipTap rich text is versioned, allowlisted and backwards compatible", () => {
+  assert.ok(
+    websiteRichTextDocumentSchema.safeParse({
+      type: "doc",
+      schemaVersion: 1,
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Bestaand", marks: ["bold"] }],
+        },
+      ],
+    }).success,
+  );
+
+  const tipTapDocument = {
+    type: "doc",
+    schemaVersion: 2,
+    content: [
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "Veilige content" }],
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Lees meer",
+            marks: [
+              {
+                type: "link",
+                attrs: { href: "https://example.test", target: "_blank" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as const;
+  assert.ok(websiteRichTextDocumentSchema.safeParse(tipTapDocument).success);
+  assert.ok(
+    websiteSectionSchema.safeParse({
+      id: "20000000-0000-4000-8000-000000000099",
+      type: "rich_text",
+      schemaVersion: 1,
+      variant: "narrow",
+      visible: true,
+      content: { title: "Redactioneel", body: tipTapDocument },
+    }).success,
+  );
+  assert.ok(
+    !websiteRichTextDocumentSchema.safeParse({
+      ...tipTapDocument,
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Onveilig",
+              marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }],
+            },
+          ],
+        },
+      ],
+    }).success,
+  );
+  for (const href of [
+    "//evil.example",
+    "/\\evil.example",
+    "data:text/html,x",
+  ]) {
+    assert.ok(
+      !websiteRichTextDocumentSchema.safeParse({
+        ...tipTapDocument,
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Onveilig",
+                marks: [{ type: "link", attrs: { href } }],
+              },
+            ],
+          },
+        ],
+      }).success,
+    );
+  }
+  assert.ok(
+    !websiteRichTextDocumentSchema.safeParse({
+      ...tipTapDocument,
+      content: [{ type: "script", content: [] }],
+    }).success,
   );
 });
 

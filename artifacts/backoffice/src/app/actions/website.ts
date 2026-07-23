@@ -1,15 +1,20 @@
 "use server";
 
 import {
+  createWebsiteSection,
   createWebsitePage,
+  deleteWebsiteSection,
   getWebsiteAdminOverview,
   getWebsitePage,
   getWebsiteSettings,
   initializeManagedWebsite,
   listWebsitePages,
+  reorderWebsiteSections,
+  updateWebsiteSection,
   updateWebsitePage,
   updateWebsiteSettings,
   type WebsitePageDraft,
+  type WebsiteSection,
   type WebsiteSiteSettings,
 } from "@workspace/db";
 import { revalidatePath } from "next/cache";
@@ -192,6 +197,121 @@ export async function updateWebsitePageAction(input: {
         siteAuthoringRevision: result.siteAuthoringRevision,
       },
     };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+type SectionMutationResult = ActionResult<{
+  sectionId?: string;
+  sectionAuthoringRevision?: number;
+  pageAuthoringRevision: number;
+  siteAuthoringRevision: number;
+}>;
+
+function revalidateWebsitePage(pageId: string) {
+  revalidatePath("/website");
+  revalidatePath("/website/pages");
+  revalidatePath(`/website/pages/${pageId}`);
+}
+
+export async function createWebsiteSectionAction(input: {
+  siteId: string;
+  pageId: string;
+  expectedAuthoringRevision: number;
+  expectedPageRevision: number;
+  section: WebsiteSection;
+}): Promise<SectionMutationResult> {
+  try {
+    await requirePermission("website_pages", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await createWebsiteSection({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidateWebsitePage(input.pageId);
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function updateWebsiteSectionAction(input: {
+  siteId: string;
+  pageId: string;
+  expectedAuthoringRevision: number;
+  expectedPageRevision: number;
+  expectedSectionRevision: number;
+  section: WebsiteSection;
+}): Promise<SectionMutationResult> {
+  try {
+    await requirePermission("website_pages", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await updateWebsiteSection({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidateWebsitePage(input.pageId);
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function reorderWebsiteSectionsAction(input: {
+  siteId: string;
+  pageId: string;
+  expectedAuthoringRevision: number;
+  expectedPageRevision: number;
+  sectionIds: string[];
+}): Promise<SectionMutationResult> {
+  try {
+    await requirePermission("website_pages", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await reorderWebsiteSections({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidateWebsitePage(input.pageId);
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function deleteWebsiteSectionAction(input: {
+  siteId: string;
+  pageId: string;
+  expectedAuthoringRevision: number;
+  expectedPageRevision: number;
+  sectionId: string;
+  expectedSectionRevision: number;
+}): Promise<SectionMutationResult> {
+  try {
+    await requirePermission("website_pages", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await deleteWebsiteSection({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidateWebsitePage(input.pageId);
+    return { success: true, data };
   } catch (error) {
     return actionError(error);
   }

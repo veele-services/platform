@@ -1,7 +1,7 @@
 # Fieldgrid website module — phased implementation plan
 
-Date: 22 July 2026
-Status: Phase 1A/1B merged in PR #353, Phase 2A merged in PR #354; Phase 2B implementation in progress
+Date: 23 July 2026
+Status: Phases 1–2 and Phase 3A merged; Phase 3B section editor implemented in the current increment
 
 ## Current implementation status
 
@@ -17,11 +17,13 @@ stale authoring and delivery revisions fail closed. Publication hashes are
 bound to the exact source revision, and website-owned child records cannot be
 moved to another tenant or site after creation.
 
-Merged Phase 2A moves the authenticated applications behind their fixed shared-host
-prefixes and path-scopes their cookies. Phase 2B now adds the isolated managed
-public runtime, but still performs no proxy change, deployment or live-domain
-activation. Tenant authoring UI, custom delivery, forms and activation remain
-gated by later phases below.
+Merged Phase 2 moves the authenticated applications behind their fixed
+shared-host prefixes, adds the isolated managed runtime and proves allowlisted
+custom delivery routing without live activation. Merged Phase 3A adds the
+permission-gated website administration shell, settings and page metadata.
+The current Phase 3B increment adds revision-guarded section authoring and the
+versioned TipTap JSON/public renderer contract, still without deployment or
+live-domain activation.
 
 ## Goal and delivery contract
 
@@ -320,14 +322,13 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Phase 3A supplies the managed-CMS admin shell, managed-site initialization,
-controlled settings and revision-guarded page metadata management. The next
-reviewed increment is Phase 3B: schema-owned section forms, accessible ordering,
-draft validation, preview and an explicit immutable publication review. It must
-reuse the existing publication compiler and exact-revision activation contract;
-it may not switch delivery mode as a side effect.
+Phase 3B supplies schema-owned section forms, visually flat fields, TipTap v2
+prose, explicit saves and accessible drag/reorder controls. The next reviewed
+increment is Phase 3C: draft-wide diagnostics, signed preview and an explicit
+immutable publication review. It must reuse the existing publication compiler
+and exact-revision activation contract; it may not switch delivery mode as a
+side effect.
 
-DNS, Caddy, staging, production and live domains remain unchanged through Phase
-3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
+DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9
 activation evidence.
