@@ -58,6 +58,7 @@ test("runtime and deployment controls are staging-only and production-safe", () 
     /custom website upstreams must be staging-only/u,
   );
   assert.match(deploy, /github\.ref_name == 'staging' && vars\.WEBSITE_SERVICE_NAME/u);
+  assert.match(deploy, /github\.ref_name == 'staging' && vars\.MARKETING_SERVICE_NAME/u);
   assert.match(deploy, /github\.ref_name == 'staging' && vars\.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON/u);
   assert.match(acceptance, /productionChanged: false/u);
   assert.match(acceptance, /deploymentPerformed: false/u);

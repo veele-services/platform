@@ -24,6 +24,14 @@ test("Veele custom health is exact, staging-only and fail-closed", () => {
   assert.doesNotMatch(route, /process\.env/u);
 });
 
+test("Veele process health is independent from activation identity", () => {
+  const route = read("artifacts/marketing-website/app/healthz/route.ts");
+
+  assert.match(route, /status: "ok"/u);
+  assert.match(route, /service: "fieldgrid-marketing-website"/u);
+  assert.doesNotMatch(route, /process\.env/u);
+});
+
 test("Veele forms use only the durable Fieldgrid public endpoint", () => {
   const form = read(
     "artifacts/marketing-website/components/marketing/lead-form.tsx",
@@ -59,6 +67,8 @@ test("custom candidate build identity is injected only for staging", () => {
     "FIELDGRID_WEBSITE_FORM_ID",
     "FIELDGRID_CUSTOM_ROUTE_KEY",
     "FIELDGRID_CUSTOM_EXPECTED_HOST",
+    "MARKETING_SERVICE_NAME",
+    "MARKETING_PORT",
   ]) {
     assert.match(
       deploy,
