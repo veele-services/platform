@@ -37,11 +37,14 @@ jobs:
       PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
       KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
       API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
+      WEBSITE_SERVICE_NAME: ${{ github.ref_name == 'staging' && vars.WEBSITE_SERVICE_NAME || '' }}
 
       BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
       PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
       KLANT_PORT: ${{ vars.KLANT_PORT }}
       API_PORT: ${{ vars.API_PORT }}
+      WEBSITE_PORT: ${{ github.ref_name == 'staging' && vars.WEBSITE_PORT || '' }}
+      FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON || '' }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -108,6 +111,7 @@ jobs:
           echo "Personeel service: ${PERSONEEL_SERVICE_NAME:-<not configured>}"
           echo "Klant service: ${KLANT_SERVICE_NAME:-<not configured>}"
           echo "API service: ${API_SERVICE_NAME:-<not configured>}"
+          echo "Website service: ${WEBSITE_SERVICE_NAME:-<not configured>}"
 
       - name: Validate service configuration
         run: |
@@ -133,13 +137,14 @@ jobs:
           require_pair "PERSONEEL_SERVICE_NAME" "${PERSONEEL_SERVICE_NAME:-}" "PERSONEEL_PORT" "${PERSONEEL_PORT:-}"
           require_pair "KLANT_SERVICE_NAME" "${KLANT_SERVICE_NAME:-}" "KLANT_PORT" "${KLANT_PORT:-}"
           require_pair "API_SERVICE_NAME" "${API_SERVICE_NAME:-}" "API_PORT" "${API_PORT:-}"
+          require_pair "WEBSITE_SERVICE_NAME" "${WEBSITE_SERVICE_NAME:-}" "WEBSITE_PORT" "${WEBSITE_PORT:-}"
 
           if [ -z "${BACKOFFICE_PORT:-}" ]; then
             echo "::error::PORT or BACKOFFICE_PORT must be configured for the backoffice service."
             exit 1
           fi
 
-          for value in "${BACKOFFICE_PORT:-}" "${PERSONEEL_PORT:-}" "${KLANT_PORT:-}" "${API_PORT:-}"; do
+          for value in "${BACKOFFICE_PORT:-}" "${PERSONEEL_PORT:-}" "${KLANT_PORT:-}" "${API_PORT:-}" "${WEBSITE_PORT:-}"; do
             if [ -n "$value" ] && ! [[ "$value" =~ ^[0-9]+$ ]]; then
               echo "::error::Configured ports must be numeric. Invalid value: $value"
               exit 1
@@ -190,6 +195,8 @@ jobs:
             printf 'PERSONEEL_PORT=%s\n' "$PERSONEEL_PORT"
             printf 'KLANT_PORT=%s\n' "$KLANT_PORT"
             printf 'API_PORT=%s\n' "$API_PORT"
+            printf 'WEBSITE_PORT=%s\n' "$WEBSITE_PORT"
+            printf 'FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=%s\n' "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
@@ -331,11 +338,13 @@ jobs:
           PERSONEEL_PUBLIC_HEALTH_URL: ${{ vars.PERSONEEL_PUBLIC_HEALTH_URL }}
           KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
           API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
+          WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
           API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL }}
           BACKOFFICE_PUBLIC_URL: ${{ vars.BACKOFFICE_PUBLIC_URL || vars.APP_URL }}
           PERSONEEL_PUBLIC_URL: ${{ vars.PERSONEEL_PUBLIC_URL }}
           KLANT_PUBLIC_URL: ${{ vars.KLANT_PUBLIC_URL }}
           API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
+          WEBSITE_PUBLIC_URL: ${{ vars.WEBSITE_PUBLIC_URL }}
           FIELDGRID_DEPLOY_EVIDENCE_GROUP: veele-deploy
           FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_ATTEMPTS || '12' }}
           FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS || '5' }}

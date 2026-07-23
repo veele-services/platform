@@ -467,7 +467,7 @@ try {
       hostname,
       actorA,
       JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: 3,
         status: "healthy",
         providerKey: "fieldgrid_vps",
         routeKey: "veele_marketing_primary",
@@ -481,6 +481,8 @@ try {
           sitemap: true,
           structuredData: true,
         },
+        assets: { healthy: true },
+        forms: { platformEndpoint: true },
       }),
     ],
   );
@@ -616,6 +618,53 @@ try {
     /revision conflict/u,
   );
 
+  const deliveryOperationId = randomUUID();
+  await client.query(
+    `INSERT INTO public.website_delivery_operations (
+       id, tenant_id, site_id, operation_type, environment, status,
+       from_mode, from_target_id, to_mode, to_target_id,
+       expected_revision, new_revision, change_reference, reason,
+       preflight_evidence, actor_user_id
+     ) VALUES (
+       $1, $2, $3, 'activate', 'staging', 'succeeded',
+       'managed_cms', $4, 'custom_nextjs', $5,
+       2, 3, 'FG-WEB-9/runtime', 'Runtime append-only operation evidence.',
+       '{"schemaVersion":1,"status":"ready","productionEnabled":false}'::jsonb,
+       $6
+     )`,
+    [
+      deliveryOperationId,
+      tenantA,
+      siteId,
+      publicationId,
+      customDeploymentId,
+      actorA,
+    ],
+  );
+  await expectSqlFailure(
+    client,
+    `UPDATE public.website_delivery_operations
+     SET reason = 'rewritten'
+     WHERE id = $1`,
+    [deliveryOperationId],
+    /append-only/u,
+  );
+  await expectSqlFailure(
+    client,
+    `INSERT INTO public.website_delivery_operations (
+       tenant_id, site_id, operation_type, environment, status,
+       from_mode, to_mode, to_target_id, expected_revision, new_revision,
+       change_reference, reason, preflight_evidence, actor_user_id
+     ) VALUES (
+       $1, $2, 'activate', 'production', 'failed',
+       'managed_cms', 'custom_nextjs', $3, 1, NULL,
+       'FG-WEB-9/production', 'Production must be rejected.',
+       '{"schemaVersion":1,"status":"blocked"}'::jsonb, $4
+     )`,
+    [tenantA, siteId, customDeploymentId, actorA],
+    "23514",
+  );
+
   const roleSavepoint = `website_role_${randomUUID().replaceAll("-", "")}`;
   await client.query(`SAVEPOINT ${roleSavepoint}`);
   await client.query("SET LOCAL ROLE authenticated");
@@ -666,6 +715,8 @@ try {
           immutablePublication: true,
           immutableApprovedDeployment: true,
           appendOnlyActivationHistory: true,
+          appendOnlyOperationEvidence: true,
+          productionOperationRejected: true,
           auditTrail: true,
         },
       },

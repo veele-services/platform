@@ -25,7 +25,7 @@ export const PHASE2E_PREFLIGHT_VERSION = "phase2e-staging-preflight-v1";
 export const CONFIRMATION = "phase2e-staging-only";
 export const EXPECTED_STAGING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
 export const LATEST_PHASE2_MIGRATION =
-  "20260719130000_payment_webhook_integrity.sql";
+  "20260721290000_website_enterprise_activation.sql";
 export const BACKUP_SCHEMAS = [
   "public",
   "auth",
@@ -55,16 +55,20 @@ export const REQUIRED_VARIABLE_NAMES = [
   "PERSONEEL_SERVICE_NAME",
   "KLANT_SERVICE_NAME",
   "API_SERVICE_NAME",
+  "WEBSITE_SERVICE_NAME",
   "BACKOFFICE_PORT",
   "PERSONEEL_PORT",
   "KLANT_PORT",
   "API_PORT",
+  "WEBSITE_PORT",
   "BACKOFFICE_PUBLIC_LOGIN_URL",
   "PERSONEEL_PUBLIC_HEALTH_URL",
   "KLANT_PUBLIC_HEALTH_URL",
   "API_PUBLIC_HEALTH_URL",
+  "WEBSITE_PUBLIC_HEALTH_URL",
   "API_PUBLIC_ROOT_URL",
   "PILOT_TENANT_LOGIN_URL",
+  "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON",
 ];
 
 export const CRITICAL_RELATIONS = [
@@ -79,6 +83,11 @@ export const CRITICAL_RELATIONS = [
   "public.payments",
   "public.customer_payment_batches",
   "public.portal_realtime_events",
+  "public.website_sites",
+  "public.website_domain_bindings",
+  "public.website_custom_deployments",
+  "public.website_publications",
+  "public.website_delivery_activations",
 ];
 
 export const TRANSIENT_MIGRATION_RELATIONS = ["public.portal_realtime_events"];
@@ -488,6 +497,7 @@ async function verifyRoutes(env = process.env) {
     ["personnel-health", env.PERSONEEL_PUBLIC_HEALTH_URL, "exact-200"],
     ["customer-health", env.KLANT_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-health", env.API_PUBLIC_HEALTH_URL, "exact-200"],
+    ["website-health", env.WEBSITE_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-root", env.API_PUBLIC_ROOT_URL, "api-root"],
     ["pilot-tenant-login", env.PILOT_TENANT_LOGIN_URL, "login"],
   ];
@@ -555,6 +565,7 @@ async function verifyRollbackTarget(expectedStaging, env = process.env) {
     env.PERSONEEL_SERVICE_NAME,
     env.KLANT_SERVICE_NAME,
     env.API_SERVICE_NAME,
+    env.WEBSITE_SERVICE_NAME,
   ];
   for (const service of services) {
     const statusResult = await runCommand("systemctl", ["is-active", service], {

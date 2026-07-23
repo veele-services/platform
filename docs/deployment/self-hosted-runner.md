@@ -126,10 +126,14 @@ Optional multi-service deploy variables:
 - `PERSONEEL_SERVICE_NAME`: systemd service for `@workspace/personeel-pwa`; if omitted, not restarted by deploy.
 - `KLANT_SERVICE_NAME`: systemd service for `@workspace/klant-pwa`; if omitted, not restarted by deploy.
 - `API_SERVICE_NAME`: systemd service for `@workspace/api-server`; if omitted, not restarted by deploy.
+- `WEBSITE_SERVICE_NAME`: staging-only systemd service for
+  `@workspace/website-runtime`; configure together with `WEBSITE_PORT`.
 - `BACKOFFICE_PORT`: runtime port for backoffice. Defaults to `PORT`.
 - `PERSONEEL_PORT`: runtime port for personnel PWA.
 - `KLANT_PORT`: runtime port for customer PWA.
 - `API_PORT`: runtime port for API server.
+- `WEBSITE_PORT`: staging-only runtime port for the managed/custom website
+  router.
 
 The deploy job writes all configured secrets and variables into the shared
 environment file at `/var/www/veele/<environment>/shared/.env`. For multi-service
@@ -138,7 +142,7 @@ deploys, each systemd unit should set its own `PORT` from the matching
 
 The deploy workflow validates the multi-service variables as pairs. If
 `PERSONEEL_SERVICE_NAME` is configured, `PERSONEEL_PORT` must also be configured,
-and the same rule applies to `KLANT_*` and `API_*`. This prevents a green deploy
+and the same rule applies to `KLANT_*`, `API_*` and staging `WEBSITE_*`. This prevents a green deploy
 where a PWA is built but never restarted or exposed.
 
 ## Database Autofix workflow
@@ -172,8 +176,8 @@ secret name is:
 
 ## Multi-service staging routing
 
-The backoffice, personnel PWA, customer PWA, and API server are separate runtime
-processes. A successful workspace build does not automatically expose
+The backoffice, personnel PWA, customer PWA, API server and optional staging
+website runtime are separate processes. A successful workspace build does not automatically expose
 `/personeel` or `/klant`; the matching systemd services and Caddy routes must
 exist on the self-hosted runner host.
 
@@ -189,6 +193,8 @@ KLANT_SERVICE_NAME=veele-staging-klant
 KLANT_PORT=3303
 API_SERVICE_NAME=veele-staging-api
 API_PORT=3304
+WEBSITE_SERVICE_NAME=veele-staging-website
+WEBSITE_PORT=3305
 ```
 
 Example personnel systemd unit:
@@ -264,8 +270,8 @@ Enable or refresh the services after adding the units:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now veele-staging-personeel veele-staging-klant veele-staging-api
-sudo systemctl restart veele-staging veele-staging-personeel veele-staging-klant veele-staging-api
+sudo systemctl enable --now veele-staging-personeel veele-staging-klant veele-staging-api veele-staging-website
+sudo systemctl restart veele-staging veele-staging-personeel veele-staging-klant veele-staging-api veele-staging-website
 ```
 
 Example Caddy routing:
@@ -294,18 +300,18 @@ staging.veele.dgwebservices.nl {
     reverse_proxy 127.0.0.1:3304
   }
 
-  # Phase 2A deliberately has no public website upstream. Add the final
-  # website fallback only after the managed/custom runtime staging gate.
   handle {
-    respond "Not found" 404
+    reverse_proxy 127.0.0.1:3305
   }
 }
 ```
 
 Use `handle`, not `handle_path`, for the applications. Backoffice, personnel
 and customer are built with `/admin`, `/personeel` and `/klant` base paths, so
-every upstream must receive the full prefixed path. The eventual website
-fallback comes last and must not receive application session cookies.
+every upstream must receive the full prefixed path. The website fallback comes
+last. The website runtime strips application authorization, application
+cookies and caller-controlled forwarding headers before an approved custom
+upstream rewrite.
 
 After changing Caddy:
 

@@ -1,19 +1,48 @@
 import { filterWebsiteCookieHeader } from "@workspace/website-core/shared-host-routing";
+import { resolveWebsiteDeliveryByHost } from "@workspace/db/website-public-runtime";
 import { type NextRequest, NextResponse } from "next/server";
 import { managedWebsiteRedirectResponse } from "./lib/public-responses";
+import { buildCustomWebsiteRewrite } from "./lib/custom-proxy";
+import { neutralErrorResponse } from "./lib/http";
 import { requestPathOwner } from "./lib/request";
 
 /** Defense in depth: the edge owns path-scoped application cookies, and this
  * runtime additionally removes legacy application cookies before rendering. */
 export async function middleware(request: NextRequest) {
-  if (
-    requestPathOwner(
-      request.headers.get("host") ?? "",
-      request.nextUrl.pathname,
-    ) === "website"
-  ) {
+  const host = request.headers.get("host") ?? "";
+  if (request.nextUrl.pathname === "/healthz") {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    return response;
+  }
+  let managedDelivery = false;
+  const ownsWebsitePath =
+    requestPathOwner(host, request.nextUrl.pathname) === "website";
+  if (ownsWebsitePath) {
+    const delivery = await resolveWebsiteDeliveryByHost(host);
+    if (delivery.status === "not_found") return neutralErrorResponse(404);
+    if (delivery.status === "unavailable") return neutralErrorResponse(503);
+    if (delivery.deliveryMode === "custom_nextjs") {
+      const rewrite = buildCustomWebsiteRewrite(
+        request.nextUrl,
+        request.headers,
+        delivery.website,
+      );
+      const response = NextResponse.rewrite(rewrite.destination, {
+        request: { headers: rewrite.requestHeaders },
+      });
+      response.headers.set("Vary", "Host");
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      response.headers.set("X-Fieldgrid-Website-Delivery", "custom_nextjs");
+      return response;
+    }
+    managedDelivery = true;
     const redirect = await managedWebsiteRedirectResponse(request);
-    if (redirect) return redirect;
+    if (redirect) {
+      redirect.headers.set("X-Fieldgrid-Website-Delivery", "managed_cms");
+      return redirect;
+    }
   }
 
   const requestHeaders = new Headers(request.headers);
@@ -44,10 +73,13 @@ export async function middleware(request: NextRequest) {
   response.headers.set("Vary", "Host");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
+  if (managedDelivery) {
+    response.headers.set("X-Fieldgrid-Website-Delivery", "managed_cms");
+  }
   return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/:path*"],
   runtime: "nodejs",
 };

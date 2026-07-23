@@ -430,6 +430,51 @@ test("health gate requires exactly four services, ports, and local endpoints", a
   assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
 });
 
+test("health gate accepts an explicitly configured fifth website runtime", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      MOCK_LISTEN_PORTS: "3100 3200 3300 3400 3500",
+      WEBSITE_SERVICE_NAME: "website",
+      WEBSITE_PORT: "3500",
+      FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website",
+      FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500",
+      FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: ["local-backoffice|http://127.0.0.1:3100/login|login", "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200", "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200", "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200", "local-website-health|http://127.0.0.1:3500/healthz|exact-200"].join("\n"),
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: ["public-backoffice|https://platform-staging.example.test/login|login", "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200", "public-customer|https://customer-staging.example.test/klant/healthz|exact-200", "public-api-health|https://api-staging.example.test/api/healthz|exact-200", "public-website-health|https://website.staging.fieldgrid.nl/healthz|exact-200"].join("\n"),
+    },
+  });
+
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "pass");
+  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "pass");
+  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "pass");
+  assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "pass");
+  assert.equal(evidence.checks.find((check) => check.name === "endpoint:local-website-health")?.status, "pass");
+});
+
+test("health gate rejects a partial website runtime configuration", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  const result = await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      WEBSITE_SERVICE_NAME: "website",
+      WEBSITE_PORT: "",
+    },
+    allowFailure: true,
+  });
+
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "fail");
+  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "fail");
+  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
+});
+
 test("HTTP 404 is rejected for exact-200 endpoints", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });

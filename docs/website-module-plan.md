@@ -286,6 +286,11 @@ Acceptance:
 
 ## Phase 9 — enterprise operations and activation
 
+Status: implemented in the current Phase 9 increment; merge, staging
+configuration and live staging acceptance remain subject to exact-head CI,
+human review and the staging-only runbook. Production activation is not part of
+this increment.
+
 Deliverables:
 
 - platform-operator custom-deployment registration, approval and switch workflow;
@@ -329,14 +334,14 @@ Acceptance:
 | Admin                  | server authorization, optimistic concurrency, preview token, keyboard, axe, mobile                    |
 | Deployment             | service health, no side effects in validation, staging backup/restore, rollback target                |
 
-## Recommended next coding increment
+## Recommended next action
 
-After review and exact-head merge of Phase 8, the next increment is Phase 9:
-enterprise operations and staging activation. It must add platform-controlled
-custom-deployment registration and switching, backup/restore and migration
-rehearsal evidence, route health and explicit rollback without changing
-production.
+After review and exact-head merge of Phase 9, follow
+`docs/website-module-enterprise-activation.md`: configure the fifth staging
+service and reviewed custom route registry, rehearse backup/restore and
+migrations, promote through the existing guarded staging contract, and collect
+managed/custom staging acceptance plus rollback evidence.
 
-DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
-provisioned; wildcard TLS and exact external host resolution remain Phase 9
-activation evidence.
+Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as provisioned.
+Wildcard TLS and exact external host resolution remain required live Phase 9
+acceptance evidence. Production remains a separate human go/no.

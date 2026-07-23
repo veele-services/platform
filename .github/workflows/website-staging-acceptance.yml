@@ -1,0 +1,72 @@
+name: Website Staging Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_staging_sha:
+        description: "Exact deployed staging SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "Type website-staging-read-only"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-staging-acceptance
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: Managed and custom read-only evidence
+    if: >-
+      github.ref_name == 'staging' &&
+      inputs.confirmation == 'website-staging-read-only'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 20
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      STAGING_BASE_DIR: /var/www/veele/staging
+      WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
+      WEBSITE_MANAGED_ACCEPTANCE_URL: ${{ vars.WEBSITE_MANAGED_ACCEPTANCE_URL }}
+      WEBSITE_CUSTOM_ACCEPTANCE_URL: ${{ vars.WEBSITE_CUSTOM_ACCEPTANCE_URL }}
+
+    steps:
+      - name: Checkout exact staging release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_staging_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install locked dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Validate acceptance contract
+        run: pnpm fieldgrid:website-staging-acceptance:check
+
+      - name: Collect read-only managed and custom evidence
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:website-staging-acceptance --run \
+            --expected-staging "${{ inputs.expected_staging_sha }}" \
+            --website-health "$WEBSITE_PUBLIC_HEALTH_URL" \
+            --managed-url "$WEBSITE_MANAGED_ACCEPTANCE_URL" \
+            --custom-url "$WEBSITE_CUSTOM_ACCEPTANCE_URL"
+
+      - name: Upload secret-free acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-staging-acceptance-${{ github.run_id }}-${{ inputs.expected_staging_sha }}
+          path: artifacts/website-staging-acceptance/
+          if-no-files-found: warn
+          retention-days: 14

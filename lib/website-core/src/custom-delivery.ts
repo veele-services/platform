@@ -16,8 +16,9 @@ const BLOCKED_ORIGIN_SUFFIXES = [
   ".test",
 ] as const;
 
-export const CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 2 as const;
+export const CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 3 as const;
 export const CUSTOM_WEBSITE_MAX_HEALTH_AGE_MS = 5 * 60 * 1_000;
+export const CUSTOM_WEBSITE_ROUTE_CONFIG_MAX_BYTES = 64 * 1_024;
 
 export type CustomWebsiteRouteIdentity = {
   providerKey: string;
@@ -82,6 +83,16 @@ const customWebsiteHealthEvidenceSchema = z
         robots: z.literal(true),
         sitemap: z.literal(true),
         structuredData: z.literal(true),
+      })
+      .strict(),
+    assets: z
+      .object({
+        healthy: z.literal(true),
+      })
+      .strict(),
+    forms: z
+      .object({
+        platformEndpoint: z.literal(true),
       })
       .strict(),
   })
@@ -247,6 +258,67 @@ export function createCustomWebsiteRouteRegistry(
       }
     },
   });
+}
+
+const stagingRouteConfigurationSchema = z
+  .array(
+    z
+      .object({
+        providerKey: z.string().regex(PROVIDER_KEY_PATTERN),
+        routeKey: z.string().regex(ROUTE_KEY_PATTERN),
+        releaseId: z.string().regex(RELEASE_ID_PATTERN),
+        expectedHosts: z.array(z.string().min(1).max(253)).min(1).max(20),
+        healthPath: z.string().min(1).max(500),
+        status: z.literal("routable"),
+        upstreamOrigin: z.string().url().max(2_048),
+      })
+      .strict(),
+  )
+  .max(100);
+
+/**
+ * Parses operator-owned staging configuration into the same strict registry
+ * used by the public resolver. Tenant-authored data never supplies an origin.
+ */
+export function createStagingCustomWebsiteRouteRegistry(
+  serializedConfiguration: string,
+): CustomWebsiteRouteRegistry {
+  if (
+    new TextEncoder().encode(serializedConfiguration).byteLength >
+    CUSTOM_WEBSITE_ROUTE_CONFIG_MAX_BYTES
+  ) {
+    throw new Error("Custom website route configuration is too large");
+  }
+
+  let input: unknown;
+  try {
+    input = JSON.parse(serializedConfiguration);
+  } catch {
+    throw new Error("Custom website route configuration is not valid JSON");
+  }
+
+  const registrations = stagingRouteConfigurationSchema.parse(input);
+  for (const registration of registrations) {
+    const upstreamHostname = new URL(
+      registration.upstreamOrigin,
+    ).hostname.toLowerCase();
+    if (
+      registration.expectedHosts.some(
+        (hostname) =>
+          !normalizedExpectedHost(hostname).endsWith(".staging.fieldgrid.nl"),
+      )
+    ) {
+      throw new Error(
+        "Phase 9 custom website routes may target staging hosts only",
+      );
+    }
+    if (!upstreamHostname.endsWith(".staging.fieldgrid.nl")) {
+      throw new Error(
+        "Phase 9 custom website upstreams must be staging-only",
+      );
+    }
+  }
+  return createCustomWebsiteRouteRegistry(registrations);
 }
 
 export function customWebsiteHealthEvidenceMatches(

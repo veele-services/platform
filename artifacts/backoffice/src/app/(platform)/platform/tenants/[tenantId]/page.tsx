@@ -14,6 +14,7 @@ import {
   Globe2,
   LifeBuoy,
   Megaphone,
+  Rocket,
   ShieldCheck,
   Ticket,
   UserCog,
@@ -57,6 +58,15 @@ import {
   type PlatformSecurityEventRow,
   type SupportAccessGrantRow,
 } from "@/app/actions/platform";
+import {
+  activatePlatformWebsiteDeploymentAction,
+  approvePlatformWebsiteDeploymentAction,
+  checkPlatformWebsiteDeploymentHealthAction,
+  getPlatformWebsiteDeliveryAction,
+  registerPlatformWebsiteDeploymentAction,
+  rollbackPlatformWebsiteDeliveryAction,
+} from "@/app/actions/platform-websites";
+import type { PlatformWebsiteDeliveryView } from "@workspace/db";
 
 export const metadata = {
   title: "Tenantbeheer",
@@ -83,6 +93,7 @@ const TENANT_TABS = [
   { id: "notifications", label: "Meldingen", icon: Bell },
   { id: "audit", label: "Audit", icon: ShieldCheck },
   { id: "provisioning", label: "Provisioning", icon: Megaphone },
+  { id: "website-delivery", label: "Website delivery", icon: Rocket },
 ] as const;
 
 type TenantTabId = (typeof TENANT_TABS)[number]["id"];
@@ -532,6 +543,183 @@ function ReadinessColumn({ tenant }: { tenant: PlatformTenantDetail }) {
     </aside>
   );
 }
+
+function WebsiteDeliveryTab({ tenantId, delivery }: { tenantId: string; delivery: PlatformWebsiteDeliveryView }) {
+  if (!delivery.site) {
+    return (
+      <Section title="Website delivery" helper="Initialiseer eerst de managed website voor deze tenant.">
+        <p className="text-sm text-slate-500">Er bestaat nog geen primaire website-site. Custom deploymentbeheer blijft daarom geblokkeerd.</p>
+      </Section>
+    );
+  }
+
+  const { site } = delivery;
+  const routeTone = delivery.routeConfiguration === "ready" ? "good" : delivery.routeConfiguration === "invalid" ? "danger" : "warning";
+
+  return (
+    <div className="grid gap-5">
+      <Section title="Enterprise website delivery" helper="Staging-only registratie, health, goedkeuring, exact-revision activatie en expliciete rollback. Production is hier technisch uitgeschakeld.">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <Stat label="Mode" value={site.deliveryMode} />
+          <Stat label="Delivery revision" value={site.deliveryRevision} />
+          <Stat label="Routeconfig" value={delivery.routeConfiguration} detail={delivery.routeConfigurationError ?? undefined} />
+          <Stat label="Canonical host" value={site.canonicalHostname ?? "ontbreekt"} detail={site.canonicalDomainActive ? "actief en verified" : "niet actief"} />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(routeTone)}`}>{delivery.routeConfiguration === "ready" ? "Routable stagingconfig" : "Fail-closed"}</span>
+          <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">Active target {site.activeTargetId ?? "geen"}</span>
+          <span className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">Production disabled</span>
+        </div>
+      </Section>
+
+      <Section title="Code-owned kandidaten" helper="Origins komen uitsluitend uit operator-owned stagingconfiguratie. Tenantvelden kunnen nooit een origin of secret aanleveren.">
+        <div className="grid gap-3">
+          {delivery.candidates.map((candidate) => {
+            const matchingHost = site.canonicalHostname && candidate.expectedHosts.includes(site.canonicalHostname);
+            return (
+              <div key={`${candidate.providerKey}:${candidate.routeKey}:${candidate.releaseId}`} className="rounded border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-950">{candidate.routeKey}</p>
+                    <p className="mt-1 break-all text-xs text-slate-500">
+                      {candidate.providerKey} · {candidate.releaseId}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">{candidate.expectedHosts.join(", ")}</p>
+                  </div>
+                  <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(candidate.status === "routable" ? "good" : "warning")}`}>{candidate.status}</span>
+                </div>
+                {candidate.blockers.length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-800">
+                    {candidate.blockers.map((blocker) => (
+                      <li key={blocker}>{blocker}</li>
+                    ))}
+                  </ul>
+                )}
+                {matchingHost && (
+                  <form action={registerPlatformWebsiteDeploymentAction} className="mt-4 flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="tenantId" value={tenantId} />
+                    <input type="hidden" name="siteId" value={site.id} />
+                    <input type="hidden" name="providerKey" value={candidate.providerKey} />
+                    <input type="hidden" name="routeKey" value={candidate.routeKey} />
+                    <input type="hidden" name="releaseId" value={candidate.releaseId} />
+                    <input type="hidden" name="expectedHost" value={site.canonicalHostname ?? ""} />
+                    <input type="hidden" name="healthPath" value={candidate.healthPath} />
+                    <label className="grid min-w-64 flex-1 gap-1 text-sm">
+                      <span className="font-medium text-slate-700">Change reference</span>
+                      <input required name="changeReference" placeholder="FG-WEB-9/register" className="rounded border border-slate-300 px-3 py-2" />
+                    </label>
+                    <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+                      Registreer exact candidate
+                    </button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+          {delivery.candidates.length === 0 && <p className="text-sm text-slate-500">Geen operator-owned stagingkandidaten geconfigureerd.</p>}
+        </div>
+      </Section>
+
+      <Section title="Geregistreerde deployments" helper="Volgorde: health uitvoeren, exact bewijs goedkeuren en daarna pas met de actuele revision activeren.">
+        <div className="grid gap-4">
+          {delivery.deployments.map((deployment) => (
+            <div key={deployment.id} className="rounded border border-slate-200 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-slate-950">{deployment.routeKey}</p>
+                  <p className="mt-1 break-all text-xs text-slate-500">{deployment.releaseId}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {deployment.expectedHost} · health {deployment.lastCheckedAt ?? "niet uitgevoerd"}
+                  </p>
+                </div>
+                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(deployment.status === "active" || deployment.status === "ready" ? "good" : deployment.status === "failed" ? "danger" : "warning")}`}>
+                  {deployment.status} · {deployment.healthStatus}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                <form action={checkPlatformWebsiteDeploymentHealthAction} className="grid gap-2 rounded bg-slate-50 p-3">
+                  <input type="hidden" name="tenantId" value={tenantId} />
+                  <input type="hidden" name="siteId" value={site.id} />
+                  <input type="hidden" name="deploymentId" value={deployment.id} />
+                  <input required name="changeReference" placeholder="FG-WEB-9/health" className="rounded border border-slate-300 px-3 py-2 text-sm" />
+                  <button type="submit" className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+                    Run strict health
+                  </button>
+                </form>
+                <form action={approvePlatformWebsiteDeploymentAction} className="grid gap-2 rounded bg-slate-50 p-3">
+                  <input type="hidden" name="tenantId" value={tenantId} />
+                  <input type="hidden" name="siteId" value={site.id} />
+                  <input type="hidden" name="deploymentId" value={deployment.id} />
+                  <input required name="changeReference" placeholder="FG-WEB-9/approve" className="rounded border border-slate-300 px-3 py-2 text-sm" />
+                  <button type="submit" className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+                    Approve exact evidence
+                  </button>
+                </form>
+                <form action={activatePlatformWebsiteDeploymentAction} className="grid gap-2 rounded border border-emerald-200 bg-emerald-50 p-3">
+                  <input type="hidden" name="tenantId" value={tenantId} />
+                  <input type="hidden" name="siteId" value={site.id} />
+                  <input type="hidden" name="deploymentId" value={deployment.id} />
+                  <input type="hidden" name="expectedDeliveryRevision" value={site.deliveryRevision} />
+                  <input type="hidden" name="expectedMode" value={site.deliveryMode} />
+                  <input type="hidden" name="expectedTargetId" value={site.activeTargetId ?? ""} />
+                  <input required name="changeReference" placeholder="FG-WEB-9/activate" className="rounded border border-emerald-300 bg-white px-3 py-2 text-sm" />
+                  <textarea required minLength={10} name="reason" placeholder="Waarom deze exacte stagingrelease activeren?" className="min-h-20 rounded border border-emerald-300 bg-white px-3 py-2 text-sm" />
+                  <button type="submit" className="rounded bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">
+                    Activeer exact op staging
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {delivery.deployments.length === 0 && <p className="text-sm text-slate-500">Nog geen deployments geregistreerd.</p>}
+        </div>
+      </Section>
+
+      <Section title="Expliciete rollback" helper="Rollback leest het vorige target uit de append-only activatiehistorie en weigert stale mode, target of revision.">
+        <form action={rollbackPlatformWebsiteDeliveryAction} className="grid gap-3 rounded border border-amber-200 bg-amber-50 p-4 md:grid-cols-2">
+          <input type="hidden" name="tenantId" value={tenantId} />
+          <input type="hidden" name="siteId" value={site.id} />
+          <input type="hidden" name="expectedDeliveryRevision" value={site.deliveryRevision} />
+          <input type="hidden" name="expectedMode" value={site.deliveryMode} />
+          <input type="hidden" name="expectedTargetId" value={site.activeTargetId ?? ""} />
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-amber-950">Change reference</span>
+            <input required name="changeReference" placeholder="FG-WEB-9/rollback" className="rounded border border-amber-300 bg-white px-3 py-2" />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-amber-950">Reden</span>
+            <textarea required minLength={10} name="reason" placeholder="Waarom terug naar het exact vorige target?" className="min-h-20 rounded border border-amber-300 bg-white px-3 py-2" />
+          </label>
+          <button type="submit" className="rounded bg-amber-800 px-4 py-2 text-sm font-semibold text-white md:col-span-2">
+            Rollback naar vorige activatie
+          </button>
+        </form>
+      </Section>
+
+      <Section title="Operationele historie" helper="Append-only, secretvrije activatie- en rollbackevidence.">
+        <div className="grid gap-2">
+          {delivery.operations.map((operation) => (
+            <div key={operation.id} className="rounded border border-slate-200 px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium text-slate-950">
+                  {operation.operationType} · {operation.fromMode} → {operation.toMode}
+                </p>
+                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(operation.status === "succeeded" ? "good" : "danger")}`}>{operation.status}</span>
+              </div>
+              <p className="mt-1 break-all text-xs text-slate-500">
+                revision {operation.expectedRevision} → {operation.newRevision ?? "blocked"} · {operation.changeReference} · {formatDate(operation.createdAt)}
+              </p>
+              {operation.errorCode && <p className="mt-1 text-xs text-rose-700">{operation.errorCode}</p>}
+            </div>
+          ))}
+          {delivery.operations.length === 0 && <p className="text-sm text-slate-500">Nog geen delivery-operaties.</p>}
+        </div>
+      </Section>
+    </div>
+  );
+}
+
 
 function SubscriptionTab({
   tenant,
@@ -1388,6 +1576,7 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
     supportGrants,
     securityDashboard,
     provisioningRuns,
+    websiteDelivery,
   ] = await Promise.all([
     getPlatformTenantDetail(tenantId),
     listPlatformTenantDomains(tenantId),
@@ -1401,6 +1590,9 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
     listSupportAccessGrants(),
     listPlatformSecurityDashboard({ tenantId, limit: 120 }),
     listTenantProvisioningRuns(50),
+    activeTab === "website-delivery"
+      ? getPlatformWebsiteDeliveryAction(tenantId)
+      : Promise.resolve(null),
   ]);
 
   if (!tenant) notFound();
@@ -1452,6 +1644,9 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
         )}
         {activeTab === "audit" && <AuditTab events={securityDashboard.events} />}
         {activeTab === "provisioning" && <ProvisioningTab runs={tenantProvisioningRuns} />}
+        {activeTab === "website-delivery" && websiteDelivery && (
+          <WebsiteDeliveryTab tenantId={tenant.id} delivery={websiteDelivery} />
+        )}
       </div>
     </main>
   );

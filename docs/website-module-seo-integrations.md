@@ -64,7 +64,7 @@ the fixed Plausible endpoint in addition to the same origin.
 
 Custom sites own their rendered metadata, canonical, robots, sitemap and
 structured data. They do not receive tenant secrets or an injection API.
-Custom health evidence schema version 2 must affirm all four SEO capabilities
+Custom health evidence schema version 3 must affirm all four SEO capabilities
 alongside the immutable release, exact host, TLS and public-address evidence.
 Missing, stale, mismatched or schema-invalid evidence fails closed.
 

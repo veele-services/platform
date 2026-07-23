@@ -1,5 +1,6 @@
 export * from "./blog";
 export * from "./custom-delivery";
+export * from "./enterprise-activation";
 export * from "./forms";
 export * from "./navigation";
 export * from "./publication";

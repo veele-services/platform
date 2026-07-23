@@ -76,6 +76,7 @@ test("route precedence and browser evidence keep website root separate from auth
   const stack = read("e2e/fieldgrid/start-real-apps.mjs");
   const docs = read("docs/deployment/website-shared-host-routing.md");
   const runnerDocs = read("docs/deployment/self-hosted-runner.md");
+  const websiteMiddleware = read("artifacts/website-runtime/src/middleware.ts");
   const apiProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
   assert.ok(routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.backoffice") < routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.personnel"));
   assert.ok(routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.personnel") < routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.customer"));
@@ -86,7 +87,12 @@ test("route precedence and browser evidence keep website root separate from auth
   assert.match(golden, /rootCookieHeader.*not\.toContain\("fieldgrid_e2e_auth_user"\)/su);
   assert.match(stack, /"\/admin\/login"/u);
   assert.match(stack, /path: "\/admin\/customers"/u);
-  assert.match(docs, /not a live proxy change/u);
+  assert.match(
+    docs,
+    /Phase 9 staging activation contract implemented; live configuration/u,
+  );
+  assert.match(websiteMiddleware, /resolveWebsiteDeliveryByHost/u);
+  assert.match(websiteMiddleware, /X-Fieldgrid-Website-Delivery/u);
   assert.match(runnerDocs, /@backoffice path \/admin \/admin\/\*/u);
   assert.match(runnerDocs, /@platform_api path \/api \/api\/\*/u);
   assert.doesNotMatch(runnerDocs, /^\s*handle_path|^\s*handle \/admin\*/mu);

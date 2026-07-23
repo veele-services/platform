@@ -1,6 +1,7 @@
 # Website shared-host routing contract
 
-Status: Phase 2A isolation and Phase 2B managed-runtime code contract; not a live proxy change.
+Status: Phase 9 staging activation contract implemented; live configuration
+still requires the guarded operator runbook.
 
 The public tenant host is shared by the marketing website and three
 authenticated applications. Production uses `{tenant}.fieldgrid.nl`, staging
@@ -8,9 +9,11 @@ uses `{tenant}.staging.fieldgrid.nl`, and a custom domain is accepted only
 after the existing trusted domain resolver marks it verified for the exact
 tenant and site.
 
-`artifacts/website-runtime` now implements the managed fallback target. It is a
-buildable service candidate only: no service unit, port, Caddy route, DNS record,
-staging ref or production ref is changed in Phase 2B.
+`artifacts/website-runtime` implements the managed renderer and the
+operator-allowlisted custom proxy. The deploy health gate accepts it as an
+explicit fifth service only when `WEBSITE_SERVICE_NAME` and `WEBSITE_PORT` are
+both configured. No service unit, Caddy route, staging ref or production ref is
+changed merely by merging this code.
 
 ## Precedence
 
@@ -39,7 +42,7 @@ New Fieldgrid/Supabase cookies are host-only and use the exact owning path:
 - customer: `/klant`.
 
 Recovery, tenant-selection and support-mode cookies use the same owning path.
-The future website edge adapter must additionally apply
+The website runtime additionally applies
 `filterWebsiteCookieHeader` from `@workspace/website-core/shared-host-routing`
 before forwarding a public website request. That defense removes legacy
 application cookies while retaining unrelated website cookies. It must never
@@ -47,8 +50,7 @@ log the incoming or filtered cookie value.
 
 ## Activation gate
 
-Phase 2A does not change DNS, Caddy, staging, production or deployments. Before
-later staging activation, operations must:
+Before staging activation, operations must:
 
 - treat wildcard DNS as provisioned based on the operator confirmation, while
   still proving exact host resolution from the staging runner;
@@ -59,3 +61,6 @@ later staging activation, operations must:
 - configure the public website fallback last;
 - prove root requests contain no forwarded application cookie;
 - retain the exact prior proxy configuration as rollback target.
+
+The exact service, route, health and rollback procedure is in
+`docs/website-module-enterprise-activation.md`. Production remains excluded.
