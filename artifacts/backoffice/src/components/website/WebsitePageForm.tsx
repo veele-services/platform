@@ -71,7 +71,13 @@ function pageFromForm(
     seo: {
       title: String(formData.get("seoTitle") ?? "").trim(),
       description: String(formData.get("seoDescription") ?? "").trim(),
+      canonicalPath:
+        String(formData.get("canonicalPath") ?? "")
+          .trim()
+          .toLowerCase() || null,
       socialImageMediaId: previousSeo?.socialImageMediaId ?? null,
+      socialImageUrl:
+        String(formData.get("socialImageUrl") ?? "").trim() || null,
       indexable: formData.get("indexable") === "on",
     },
   };
@@ -324,6 +330,39 @@ export function WebsitePageForm({
             className="veele-input w-full resize-y"
           />
         </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Canonical pad"
+            htmlFor="website-page-canonical"
+            hint="Leeg gebruikt het eigen publieke pad. Alleen een bestaand gepubliceerd pad in dezelfde taal is toegestaan."
+          >
+            <input
+              id="website-page-canonical"
+              name="canonicalPath"
+              defaultValue={page?.seo.canonicalPath ?? ""}
+              maxLength={500}
+              pattern="/(?:[a-z0-9_-]+(?:/[a-z0-9_-]+)*)?"
+              disabled={disabled}
+              className="veele-input w-full"
+              placeholder="/"
+            />
+          </Field>
+          <Field
+            label="Social-afbeelding"
+            htmlFor="website-page-social-image"
+            hint="Volledige HTTPS-afbeeldings-URL; leeg gebruikt de websitebrede standaard."
+          >
+            <input
+              id="website-page-social-image"
+              name="socialImageUrl"
+              type="url"
+              defaultValue={page?.seo.socialImageUrl ?? ""}
+              disabled={disabled}
+              className="veele-input w-full"
+              placeholder="https://cdn.voorbeeld.nl/social/pagina.jpg"
+            />
+          </Field>
+        </div>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input
             type="checkbox"

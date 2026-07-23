@@ -17,6 +17,7 @@ import type {
   WebsitePublicationStatus,
   WebsiteRedirectStatusCode,
   WebsiteSeo,
+  WebsiteSeoSettings,
   WebsiteSiteStatus,
   WebsiteSocialLink,
   WebsiteTemplateKey,
@@ -80,6 +81,12 @@ export const websiteSitesTable = pgTable(
       .notNull()
       .default(sql`'{"provider":"none"}'::jsonb`)
       .$type<WebsiteAnalytics>(),
+    seoSettings: jsonb("seo_settings")
+      .notNull()
+      .default(
+        sql`'{"schemaVersion":1,"structuredData":{"enabled":true,"organizationType":"organization"},"webmasterVerification":{"google":null,"bing":null}}'::jsonb`,
+      )
+      .$type<WebsiteSeoSettings>(),
     authoringRevision: integer("authoring_revision").notNull().default(1),
     createdBy: uuid("created_by").notNull(),
     updatedBy: uuid("updated_by").notNull(),

@@ -272,7 +272,7 @@ try {
       hostname,
       actorA,
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         status: "healthy",
         providerKey: "fieldgrid_vps",
         routeKey: "veele_marketing_primary",
@@ -280,6 +280,12 @@ try {
         expectedHost: hostname,
         tls: { valid: true },
         network: { publicAddressesOnly: true },
+        seo: {
+          canonical: true,
+          robots: true,
+          sitemap: true,
+          structuredData: true,
+        },
       }),
     ],
   );

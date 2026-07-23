@@ -119,7 +119,7 @@ test("route registration rejects URL-shaped keys and unsafe origins", () => {
 
 test("health evidence is strict and bound to route, release, host and TLS", () => {
   const evidence = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "healthy",
     providerKey: identity.providerKey,
     routeKey: identity.routeKey,
@@ -127,6 +127,12 @@ test("health evidence is strict and bound to route, release, host and TLS", () =
     expectedHost: identity.expectedHost,
     tls: { valid: true },
     network: { publicAddressesOnly: true },
+    seo: {
+      canonical: true,
+      robots: true,
+      sitemap: true,
+      structuredData: true,
+    },
   };
   assert.equal(customWebsiteHealthEvidenceMatches(evidence, identity), true);
   assert.equal(
@@ -153,6 +159,13 @@ test("health evidence is strict and bound to route, release, host and TLS", () =
   assert.equal(
     customWebsiteHealthEvidenceMatches(
       { ...evidence, network: { publicAddressesOnly: false } },
+      identity,
+    ),
+    false,
+  );
+  assert.equal(
+    customWebsiteHealthEvidenceMatches(
+      { ...evidence, seo: { ...evidence.seo, sitemap: false } },
       identity,
     ),
     false,

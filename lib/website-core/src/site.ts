@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { websiteCanonicalPathSchema } from "./redirects";
 
 export const WEBSITE_DELIVERY_MODES = ["managed_cms", "custom_nextjs"] as const;
 export const WEBSITE_SITE_STATUSES = ["draft", "active", "disabled"] as const;
@@ -47,11 +48,42 @@ const nullablePublicText = (maximum: number) =>
 const hexColorSchema = z.string().regex(/^#[0-9a-f]{6}$/iu);
 const httpsUrlSchema = z
   .string()
+  .trim()
   .url()
   .max(2_048)
-  .refine(
-    (value) => new URL(value).protocol === "https:",
-    "Only HTTPS URLs are allowed",
+  .superRefine((value, context) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      return;
+    }
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) {
+      context.addIssue({
+        code: "custom",
+        message: "Only HTTPS URLs without credentials are allowed",
+      });
+    }
+  });
+
+const plausiblePublicSiteIdSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(253)
+  .regex(
+    /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/u,
+    "Plausible site-ID must be one public hostname",
+  );
+
+const webmasterVerificationTokenSchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(180)
+  .regex(
+    /^[A-Za-z0-9_-]+$/u,
+    "Verification tokens may contain letters, numbers, hyphens and underscores only",
   );
 
 export const websiteThemeSchema = z
@@ -107,7 +139,9 @@ export const websiteSeoSchema = z
   .object({
     title: publicText(70),
     description: publicText(170),
-    socialImageMediaId: z.string().uuid().nullable(),
+    canonicalPath: websiteCanonicalPathSchema.nullable().default(null),
+    socialImageMediaId: z.string().uuid().nullable().default(null),
+    socialImageUrl: httpsUrlSchema.nullable().default(null),
     indexable: z.boolean().default(true),
   })
   .strict();
@@ -118,11 +152,45 @@ export const websiteAnalyticsSchema = z
     z
       .object({
         provider: z.literal("plausible"),
-        publicSiteId: z.string().trim().min(1).max(160),
+        publicSiteId: plausiblePublicSiteIdSchema,
       })
       .strict(),
   ])
   .default({ provider: "none" });
+
+export const websiteSeoSettingsSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    structuredData: z
+      .object({
+        enabled: z.boolean(),
+        organizationType: z.enum([
+          "organization",
+          "local_business",
+          "home_and_construction_business",
+          "professional_service",
+        ]),
+      })
+      .strict(),
+    webmasterVerification: z
+      .object({
+        google: webmasterVerificationTokenSchema.nullable().default(null),
+        bing: webmasterVerificationTokenSchema.nullable().default(null),
+      })
+      .strict(),
+  })
+  .strict()
+  .default({
+    schemaVersion: 1,
+    structuredData: {
+      enabled: true,
+      organizationType: "organization",
+    },
+    webmasterVerification: {
+      google: null,
+      bing: null,
+    },
+  });
 
 export const websiteSiteSettingsSchema = z
   .object({
@@ -134,6 +202,7 @@ export const websiteSiteSettingsSchema = z
     socialLinks: z.array(websiteSocialLinkSchema).max(8),
     defaultSeo: websiteSeoSchema,
     analytics: websiteAnalyticsSchema,
+    seoSettings: websiteSeoSettingsSchema,
   })
   .strict();
 
@@ -154,4 +223,5 @@ export type WebsiteContact = z.infer<typeof websiteContactSchema>;
 export type WebsiteSocialLink = z.infer<typeof websiteSocialLinkSchema>;
 export type WebsiteSeo = z.infer<typeof websiteSeoSchema>;
 export type WebsiteAnalytics = z.infer<typeof websiteAnalyticsSchema>;
+export type WebsiteSeoSettings = z.infer<typeof websiteSeoSettingsSchema>;
 export type WebsiteSiteSettings = z.infer<typeof websiteSiteSettingsSchema>;

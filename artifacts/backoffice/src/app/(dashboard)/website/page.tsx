@@ -61,10 +61,23 @@ function initialSettings(name: string): WebsiteSiteSettings {
           0,
           170,
         ),
+      canonicalPath: null,
       socialImageMediaId: null,
+      socialImageUrl: null,
       indexable: true,
     },
     analytics: { provider: "none" },
+    seoSettings: {
+      schemaVersion: 1,
+      structuredData: {
+        enabled: true,
+        organizationType: "organization",
+      },
+      webmasterVerification: {
+        google: null,
+        bing: null,
+      },
+    },
   };
 }
 

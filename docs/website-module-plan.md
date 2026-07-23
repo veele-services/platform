@@ -1,7 +1,7 @@
 # Fieldgrid website module — phased implementation plan
 
 Date: 23 July 2026
-Status: Phases 1–2 and Phase 3A merged; Phase 3B section editor implemented in the current increment
+Status: Phases 1–6 merged; Phase 7 SEO and controlled integrations implemented in the current increment
 
 ## Current implementation status
 
@@ -249,6 +249,9 @@ Acceptance:
 
 ## Phase 7 — SEO and controlled integrations
 
+Status: implemented in the current Phase 7 increment; merge remains subject to
+exact-head CI and human review.
+
 Deliverables:
 
 - global and per-page title, description, canonical, social image and indexing controls;
@@ -325,14 +328,12 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Phase 5 is complete on top of the reviewed Phase 4A/4B increments. It supplies
-tenant-scoped post/category/tag authoring, explicit post publication, strict
-TipTap v2 rendering, signed draft preview, immutable whole-site snapshots,
-metadata, RSS and sitemap delivery, cross-route collision checks and
-PostgreSQL/runtime privacy proof. The next reviewed increment is Phase 6:
-forms, durable submissions and explicit lead conversion. Phase 6 may not expose
-database credentials to managed or custom public websites and may not couple
-notification success to durable submission persistence.
+After review and exact-head merge of Phase 7, the next increment is Phase 8:
+Templates 2–5 and controlled visual expansion. It must reuse the existing
+section registry and immutable publication compiler. A template may initialize
+editable records, but may not create a renderer fork or silently mutate an
+existing live site. Media focal/crop work remains conditional on the selected
+template requirements.
 
 DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9

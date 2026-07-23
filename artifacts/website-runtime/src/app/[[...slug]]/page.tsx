@@ -7,6 +7,11 @@ import {
   loadManagedWebsiteRouteContext,
   pathnameFromSlug,
 } from "@/lib/runtime-context";
+import {
+  WebsiteStructuredData,
+  websiteCanonicalUrl,
+  websiteSocialImageUrl,
+} from "@/lib/seo";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -40,7 +45,15 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const { resolution } = context;
   if (context.kind === "page") {
-    const canonical = `https://${resolution.canonicalHostname}${context.page.path}`;
+    const canonical = websiteCanonicalUrl(
+      resolution.snapshot,
+      context.page.seo,
+      context.page.path,
+    );
+    const socialImage = websiteSocialImageUrl(
+      resolution.snapshot,
+      context.page.seo,
+    );
     const indexable =
       resolution.snapshot.defaultSeo.indexable && context.page.seo.indexable;
     return {
@@ -53,11 +66,28 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
         title: context.page.seo.title,
         description: context.page.seo.description,
         url: canonical,
+        images: socialImage
+          ? [{ url: socialImage, alt: context.page.seo.title }]
+          : undefined,
+      },
+      twitter: {
+        card: socialImage ? "summary_large_image" : "summary",
+        title: context.page.seo.title,
+        description: context.page.seo.description,
+        images: socialImage ? [socialImage] : undefined,
       },
     };
   }
   if (context.kind === "blog_post") {
-    const canonical = `https://${resolution.canonicalHostname}${context.post.path}`;
+    const canonical = websiteCanonicalUrl(
+      resolution.snapshot,
+      context.post.seo,
+      context.post.path,
+    );
+    const socialImage = websiteSocialImageUrl(
+      resolution.snapshot,
+      context.post.seo,
+    );
     const indexable =
       resolution.snapshot.defaultSeo.indexable && context.post.seo.indexable;
     return {
@@ -71,6 +101,16 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
         description: context.post.seo.description,
         url: canonical,
         publishedTime: context.post.publishedAt ?? undefined,
+        modifiedTime: context.post.updatedAt,
+        images: socialImage
+          ? [{ url: socialImage, alt: context.post.seo.title }]
+          : undefined,
+      },
+      twitter: {
+        card: socialImage ? "summary_large_image" : "summary",
+        title: context.post.seo.title,
+        description: context.post.seo.description,
+        images: socialImage ? [socialImage] : undefined,
       },
     };
   }
@@ -87,18 +127,35 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
         `Blogberichten in de categorie ${context.category.name}.`)
       : `Blogberichten met de tag ${context.tag.name}.`;
   const indexable = resolution.snapshot.defaultSeo.indexable;
+  const socialImage = websiteSocialImageUrl(resolution.snapshot, null);
   return {
     title,
     description,
     alternates: { canonical },
     robots: { index: indexable, follow: indexable },
-    openGraph: { type: "website", title, description, url: canonical },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: canonical,
+      images: socialImage ? [{ url: socialImage, alt: title }] : undefined,
+    },
+    twitter: {
+      card: socialImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: socialImage ? [socialImage] : undefined,
+    },
   };
 }
 
 export default async function ManagedWebsitePage(props: PageProps) {
-  const context = await contextForRequest(props);
+  const [context, requestHeaders] = await Promise.all([
+    contextForRequest(props),
+    headers(),
+  ]);
   if (!context) notFound();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
   if (context.kind === "page") {
     const query = props.searchParams ? await props.searchParams : {};
     const rawFormState = Array.isArray(query.formulier)
@@ -111,41 +168,77 @@ export default async function ManagedWebsitePage(props: PageProps) {
         ? rawFormState
         : undefined;
     return (
-      <ManagedWebsiteView
-        snapshot={context.resolution.snapshot}
-        page={context.page}
-        deliveryRevision={context.resolution.deliveryRevision}
-        formState={formState}
-        submissionId={randomUUID()}
-      />
+      <>
+        <WebsiteStructuredData
+          snapshot={context.resolution.snapshot}
+          route={{ kind: "page", page: context.page }}
+          nonce={nonce}
+        />
+        <ManagedWebsiteView
+          snapshot={context.resolution.snapshot}
+          page={context.page}
+          deliveryRevision={context.resolution.deliveryRevision}
+          formState={formState}
+          submissionId={randomUUID()}
+        />
+      </>
     );
   }
   if (context.kind === "blog_post") {
     return (
-      <ManagedWebsiteBlogPostView
-        snapshot={context.resolution.snapshot}
-        post={context.post}
-        deliveryRevision={context.resolution.deliveryRevision}
-      />
+      <>
+        <WebsiteStructuredData
+          snapshot={context.resolution.snapshot}
+          route={{ kind: "blog_post", post: context.post }}
+          nonce={nonce}
+        />
+        <ManagedWebsiteBlogPostView
+          snapshot={context.resolution.snapshot}
+          post={context.post}
+          deliveryRevision={context.resolution.deliveryRevision}
+        />
+      </>
     );
   }
   if (context.kind === "blog_category") {
     return (
-      <ManagedWebsiteBlogArchiveView
-        snapshot={context.resolution.snapshot}
-        title={context.category.name}
-        description={context.category.description}
-        posts={context.posts}
-        deliveryRevision={context.resolution.deliveryRevision}
-      />
+      <>
+        <WebsiteStructuredData
+          snapshot={context.resolution.snapshot}
+          route={{
+            kind: "blog_category",
+            path: context.category.path,
+            title: context.category.name,
+          }}
+          nonce={nonce}
+        />
+        <ManagedWebsiteBlogArchiveView
+          snapshot={context.resolution.snapshot}
+          title={context.category.name}
+          description={context.category.description}
+          posts={context.posts}
+          deliveryRevision={context.resolution.deliveryRevision}
+        />
+      </>
     );
   }
   return (
-    <ManagedWebsiteBlogArchiveView
-      snapshot={context.resolution.snapshot}
-      title={`Tag: ${context.tag.name}`}
-      posts={context.posts}
-      deliveryRevision={context.resolution.deliveryRevision}
-    />
+    <>
+      <WebsiteStructuredData
+        snapshot={context.resolution.snapshot}
+        route={{
+          kind: "blog_tag",
+          path: context.tag.path,
+          title: `Tag: ${context.tag.name}`,
+        }}
+        nonce={nonce}
+      />
+      <ManagedWebsiteBlogArchiveView
+        snapshot={context.resolution.snapshot}
+        title={`Tag: ${context.tag.name}`}
+        posts={context.posts}
+        deliveryRevision={context.resolution.deliveryRevision}
+      />
+    </>
   );
 }

@@ -107,7 +107,13 @@ export function WebsiteBlogPostEditor({
       seo: {
         title: String(formData.get("seoTitle") ?? ""),
         description: String(formData.get("seoDescription") ?? ""),
-        socialImageMediaId: null,
+        canonicalPath:
+          String(formData.get("canonicalPath") ?? "")
+            .trim()
+            .toLowerCase() || null,
+        socialImageMediaId: post?.seo.socialImageMediaId ?? null,
+        socialImageUrl:
+          String(formData.get("socialImageUrl") ?? "").trim() || null,
         indexable: formData.get("indexable") === "on",
       },
     };
@@ -338,6 +344,29 @@ export function WebsiteBlogPostEditor({
             maxLength={170}
             defaultValue={post?.seo.description ?? post?.excerpt ?? ""}
             disabled={!canWrite || isPending}
+            className="border-0 border-b border-slate-200 bg-transparent px-1 py-2 outline-none focus:border-cyan-600"
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Canonical pad
+          <input
+            name="canonicalPath"
+            maxLength={500}
+            pattern="/(?:[a-z0-9_-]+(?:/[a-z0-9_-]+)*)?"
+            defaultValue={post?.seo.canonicalPath ?? ""}
+            disabled={!canWrite || isPending}
+            placeholder="/blog/ander-bericht"
+            className="border-0 border-b border-slate-200 bg-transparent px-1 py-2 outline-none focus:border-cyan-600"
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Social-afbeelding
+          <input
+            name="socialImageUrl"
+            type="url"
+            defaultValue={post?.seo.socialImageUrl ?? ""}
+            disabled={!canWrite || isPending}
+            placeholder="https://cdn.voorbeeld.nl/social/blog.jpg"
             className="border-0 border-b border-slate-200 bg-transparent px-1 py-2 outline-none focus:border-cyan-600"
           />
         </label>

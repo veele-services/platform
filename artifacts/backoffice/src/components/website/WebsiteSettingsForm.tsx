@@ -32,6 +32,7 @@ function settingsFromForm(
   formData: FormData,
   previous: WebsiteSiteSettings,
 ): WebsiteSiteSettings {
+  const analyticsProvider = String(formData.get("analyticsProvider") ?? "none");
   const socialLinks = (
     ["facebook", "instagram", "linkedin", "youtube"] as const
   ).flatMap((provider) => {
@@ -88,10 +89,33 @@ function settingsFromForm(
     defaultSeo: {
       title: String(formData.get("seoTitle") ?? "").trim(),
       description: String(formData.get("seoDescription") ?? "").trim(),
+      canonicalPath: null,
       socialImageMediaId: previous.defaultSeo.socialImageMediaId,
+      socialImageUrl: optionalValue(formData, "socialImageUrl"),
       indexable: formData.get("indexable") === "on",
     },
-    analytics: previous.analytics,
+    analytics:
+      analyticsProvider === "plausible"
+        ? {
+            provider: "plausible",
+            publicSiteId: String(formData.get("plausiblePublicSiteId") ?? "")
+              .trim()
+              .toLowerCase(),
+          }
+        : { provider: "none" },
+    seoSettings: {
+      schemaVersion: 1,
+      structuredData: {
+        enabled: formData.get("structuredDataEnabled") === "on",
+        organizationType: String(
+          formData.get("organizationType") ?? "organization",
+        ) as WebsiteSiteSettings["seoSettings"]["structuredData"]["organizationType"],
+      },
+      webmasterVerification: {
+        google: optionalValue(formData, "googleVerification"),
+        bing: optionalValue(formData, "bingVerification"),
+      },
+    },
   };
 }
 
@@ -421,6 +445,133 @@ export function WebsiteSettingsForm({
             />
             Zoekmachines mogen de website indexeren zodra deze live staat
           </label>
+          <Field
+            label="Standaard social-afbeelding"
+            htmlFor="website-social-image"
+            hint="Een volledige HTTPS-afbeeldings-URL voor Open Graph. Pagina's en blogs kunnen deze overschrijven."
+          >
+            <input
+              id="website-social-image"
+              name="socialImageUrl"
+              type="url"
+              defaultValue={initialSettings.defaultSeo.socialImageUrl ?? ""}
+              disabled={disabled}
+              className="veele-input w-full"
+              placeholder="https://cdn.voorbeeld.nl/social/website.jpg"
+            />
+          </Field>
+        </div>
+      </WebsiteFormSection>
+
+      <WebsiteFormSection
+        title="Gestructureerde data en verificatie"
+        description="Fieldgrid genereert vaste schema.org- en webmastermetadata uit gevalideerde velden; vrije markup is niet mogelijk."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            id="website-organization-type"
+            name="organizationType"
+            label="Organisatietype"
+            value={initialSettings.seoSettings.structuredData.organizationType}
+            disabled={disabled}
+            options={[
+              ["organization", "Organisatie"],
+              ["local_business", "Lokaal bedrijf"],
+              ["home_and_construction_business", "Bouw- of onderhoudsbedrijf"],
+              ["professional_service", "Zakelijke dienstverlener"],
+            ]}
+          />
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                name="structuredDataEnabled"
+                defaultChecked={
+                  initialSettings.seoSettings.structuredData.enabled
+                }
+                disabled={disabled}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Gevalideerde schema.org-data publiceren
+            </label>
+          </div>
+          <Field
+            label="Google-verificatietoken"
+            htmlFor="website-google-verification"
+            hint="Alleen de tokenwaarde, zonder meta-tag of HTML."
+          >
+            <input
+              id="website-google-verification"
+              name="googleVerification"
+              defaultValue={
+                initialSettings.seoSettings.webmasterVerification.google ?? ""
+              }
+              minLength={8}
+              maxLength={180}
+              pattern="[A-Za-z0-9_-]+"
+              disabled={disabled}
+              className="veele-input w-full"
+              autoComplete="off"
+            />
+          </Field>
+          <Field
+            label="Bing-verificatietoken"
+            htmlFor="website-bing-verification"
+            hint="Alleen de msvalidate.01-tokenwaarde."
+          >
+            <input
+              id="website-bing-verification"
+              name="bingVerification"
+              defaultValue={
+                initialSettings.seoSettings.webmasterVerification.bing ?? ""
+              }
+              minLength={8}
+              maxLength={180}
+              pattern="[A-Za-z0-9_-]+"
+              disabled={disabled}
+              className="veele-input w-full"
+              autoComplete="off"
+            />
+          </Field>
+        </div>
+      </WebsiteFormSection>
+
+      <WebsiteFormSection
+        title="Privacyvriendelijke analytics"
+        description="Analytics wordt alleen na expliciete bezoekerstoestemming geladen. Eigen scripts of trackingcode zijn niet toegestaan."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            id="website-analytics-provider"
+            name="analyticsProvider"
+            label="Provider"
+            value={initialSettings.analytics.provider}
+            disabled={disabled}
+            options={[
+              ["none", "Geen analytics"],
+              ["plausible", "Plausible"],
+            ]}
+          />
+          <Field
+            label="Plausible site-ID"
+            htmlFor="website-plausible-site-id"
+            hint="Eén publieke hostname, bijvoorbeeld bedrijf.nl."
+          >
+            <input
+              id="website-plausible-site-id"
+              name="plausiblePublicSiteId"
+              defaultValue={
+                initialSettings.analytics.provider === "plausible"
+                  ? initialSettings.analytics.publicSiteId
+                  : ""
+              }
+              maxLength={253}
+              pattern="(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}"
+              disabled={disabled}
+              className="veele-input w-full lowercase"
+              placeholder="bedrijf.nl"
+            />
+          </Field>
         </div>
       </WebsiteFormSection>
 
