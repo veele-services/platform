@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:6f2298801893dbb9538ee2ba9c570f3f5e628eb9e35ece74df165788d650a5f0",
+  "inventoryHash": "sha256:18e4d7aec407e83a977c5ff47095d2d2a95fdfe2e18c14393d9b80502ed067ff",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -71,7 +71,7 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:aaf7ad959fe51ed889d686b6b40d3f423c2dc69656741c8fa3ee9aa43b14115b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:f820f27b28a843baf90437361a6e164dc92fad491d8ad497b2bcabba2c21334a",
+    "raw-sql-callsite": "sha256:77e2bd0101954169d0d3747822996a4ddba435c8140b0b06e4194d26bd531109",
     "provider-boundary": "sha256:228fa77566da54701181e1a0d7d4d9ec49435e272a86e51d08bfe388a91df6f3",
     "storage-signed-url-issuance": "sha256:be890e7d8fda055164b850442dfd03dd6529095ade8ebbee28041c673bb72a73"
   },
