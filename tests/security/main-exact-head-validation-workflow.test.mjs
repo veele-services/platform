@@ -78,3 +78,9 @@ test("aggregate is fail-closed and workflow cannot deploy", () => {
     /fieldgrid-atomic-release-activate|fieldgrid-deploy-health-gate\.sh\s+(?:staging|production)|db:migrate/u,
   );
 });
+
+test("Playwright reruns cannot ingest a previous Playwright artifact", () => {
+  assert.match(workflow, /pattern: exact-head-\*/u);
+  assert.match(workflow, /name: fieldgrid-playwright-exact-head/u);
+  assert.doesNotMatch(workflow, /name: exact-head-fieldgrid-playwright/u);
+});
