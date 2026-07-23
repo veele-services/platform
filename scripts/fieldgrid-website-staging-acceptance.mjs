@@ -12,6 +12,8 @@ const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const MAX_ASSETS = 8;
 const REQUEST_TIMEOUT_MS = 10_000;
 const PERFORMANCE_BUDGET_MS = 4_000;
+const FORM_ENDPOINT_PATTERN =
+  /^\/api\/website-forms\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/submissions$/iu;
 
 function isFullSha(value) {
   return /^[a-f0-9]{40}$/u.test(value ?? "");
@@ -29,6 +31,7 @@ export function safeStagingUrl(value, label) {
     !url.hostname.endsWith(".staging.fieldgrid.nl") ||
     url.username ||
     url.password ||
+    url.port ||
     url.search ||
     url.hash
   ) {
@@ -62,6 +65,17 @@ export function validateWebsiteStagingAcceptanceConfig(
     errors.push(error.message);
   }
 
+  try {
+    const marketingHealth = safeStagingUrl(
+      input.marketingHealthUrl,
+      "marketing health",
+    );
+    if (marketingHealth.pathname !== "/healthz")
+      errors.push("marketing health URL must end at /healthz");
+  } catch (error) {
+    errors.push(error.message);
+  }
+
   let managed;
   let custom;
   try {
@@ -76,6 +90,19 @@ export function validateWebsiteStagingAcceptanceConfig(
   }
   if (managed && custom && managed.hostname === custom.hostname)
     errors.push("managed and custom acceptance hosts must differ");
+  if (
+    custom &&
+    env.FIELDGRID_CUSTOM_EXPECTED_HOST !== custom.hostname
+  ) {
+    errors.push("custom acceptance host differs from the expected custom host");
+  }
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{1,239}$/u.test(
+      env.FIELDGRID_CUSTOM_ROUTE_KEY ?? "",
+    )
+  ) {
+    errors.push("custom route key is missing or invalid");
+  }
   return errors;
 }
 
@@ -84,6 +111,7 @@ function parseArgs(argv) {
     run: false,
     expectedStagingSha: "",
     websiteHealthUrl: process.env.WEBSITE_PUBLIC_HEALTH_URL ?? "",
+    marketingHealthUrl: process.env.MARKETING_PUBLIC_HEALTH_URL ?? "",
     managedUrl: process.env.WEBSITE_MANAGED_ACCEPTANCE_URL ?? "",
     customUrl: process.env.WEBSITE_CUSTOM_ACCEPTANCE_URL ?? "",
     evidenceDir: join(repoRoot, "artifacts", "website-staging-acceptance"),
@@ -96,6 +124,8 @@ function parseArgs(argv) {
       options.expectedStagingSha = argv[++index] ?? "";
     else if (argument === "--website-health")
       options.websiteHealthUrl = argv[++index] ?? "";
+    else if (argument === "--marketing-health")
+      options.marketingHealthUrl = argv[++index] ?? "";
     else if (argument === "--managed-url")
       options.managedUrl = argv[++index] ?? "";
     else if (argument === "--custom-url")
@@ -252,6 +282,10 @@ async function runAcceptance(options, env = process.env) {
   if (errors.length > 0) throw new Error(errors.join("; "));
 
   const healthUrl = safeStagingUrl(options.websiteHealthUrl, "website health");
+  const marketingHealthUrl = safeStagingUrl(
+    options.marketingHealthUrl,
+    "marketing health",
+  );
   const managedUrl = safeStagingUrl(options.managedUrl, "managed acceptance");
   const customUrl = safeStagingUrl(options.customUrl, "custom acceptance");
   const health = await fetchBounded(healthUrl, {
@@ -271,6 +305,66 @@ async function runAcceptance(options, env = process.env) {
     throw new Error("website runtime health contract failed.");
   }
 
+  const marketingHealth = await fetchBounded(marketingHealthUrl, {
+    accept: "application/json",
+  });
+  assertStatus(marketingHealth, "marketing process health");
+  let marketingHealthPayload;
+  try {
+    marketingHealthPayload = JSON.parse(marketingHealth.body);
+  } catch {
+    throw new Error("marketing process health did not return JSON.");
+  }
+  if (
+    marketingHealthPayload?.status !== "ok" ||
+    marketingHealthPayload?.service !== "fieldgrid-marketing-website"
+  ) {
+    throw new Error("marketing process health contract failed.");
+  }
+
+  const candidateHealthUrl = pathUrl(marketingHealthUrl, "/api/health");
+  const candidateHealth = await fetchBounded(candidateHealthUrl, {
+    accept: "application/json",
+  });
+  assertStatus(candidateHealth, "custom candidate health");
+  let candidateHealthPayload;
+  try {
+    candidateHealthPayload = JSON.parse(candidateHealth.body);
+  } catch {
+    throw new Error("custom candidate health did not return JSON.");
+  }
+  if (
+    candidateHealthPayload?.schemaVersion !== 3 ||
+    candidateHealthPayload?.status !== "healthy" ||
+    candidateHealthPayload?.providerKey !== "fieldgrid_vps" ||
+    candidateHealthPayload?.routeKey !== env.FIELDGRID_CUSTOM_ROUTE_KEY ||
+    candidateHealthPayload?.releaseId !==
+      `git-commit:${options.expectedStagingSha}` ||
+    candidateHealthPayload?.expectedHost !==
+      env.FIELDGRID_CUSTOM_EXPECTED_HOST ||
+    candidateHealthPayload?.forms?.platformEndpoint !== true
+  ) {
+    throw new Error("custom candidate identity or readiness differs.");
+  }
+
+  const formConfig = await fetchBounded(
+    pathUrl(customUrl, "/fieldgrid-runtime/form-config"),
+    { accept: "application/json" },
+  );
+  assertStatus(formConfig, "custom form configuration");
+  let formConfigPayload;
+  try {
+    formConfigPayload = JSON.parse(formConfig.body);
+  } catch {
+    throw new Error("custom form configuration did not return JSON.");
+  }
+  if (
+    formConfigPayload?.enabled !== true ||
+    !FORM_ENDPOINT_PATTERN.test(formConfigPayload?.endpoint ?? "")
+  ) {
+    throw new Error("custom form endpoint is not configured.");
+  }
+
   const release = await verifyReleaseMarker(options.expectedStagingSha, env);
   const [managed, custom] = await Promise.all([
     verifyWebsiteMode(managedUrl, "managed_cms"),
@@ -284,6 +378,12 @@ async function runAcceptance(options, env = process.env) {
     websiteRuntime: {
       host: healthUrl.hostname,
       status: health.response.status,
+    },
+    marketingRuntime: {
+      status: marketingHealth.response.status,
+      candidateIdentityMatched: true,
+      formEndpointConfigured: true,
+      endpointRecorded: false,
     },
     managed,
     custom,
