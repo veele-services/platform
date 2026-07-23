@@ -97,6 +97,7 @@ test("runtime keeps pre-Phase-5 schema-v1 snapshots compatible", () => {
   >;
   delete previousRelease.redirects;
   delete previousRelease.blog;
+  delete previousRelease.forms;
   const result = parseWebsitePublicationForRuntime(previousRelease);
   assert.equal(result.success, true);
   if (result.success) {
@@ -106,6 +107,7 @@ test("runtime keeps pre-Phase-5 schema-v1 snapshots compatible", () => {
       tags: [],
       posts: [],
     });
+    assert.deepEqual(result.snapshot.forms, []);
   }
 });
 

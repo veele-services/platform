@@ -20,6 +20,7 @@ import {
   websiteRouteKey,
 } from "./redirects";
 import { WEBSITE_PAGE_TYPES } from "./templates";
+import { resolvePublicationForm, websitePublicationFormsSchema } from "./forms";
 
 export const WEBSITE_PUBLICATION_SCHEMA_VERSION = 1 as const;
 
@@ -148,6 +149,7 @@ export const websitePublicationSnapshotSchema = z
     navigation: z.array(publicationNavigationItemSchema).max(500),
     redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
     blog: websitePublicationBlogSchema.default(EMPTY_WEBSITE_PUBLICATION_BLOG),
+    forms: websitePublicationFormsSchema,
   })
   .strict()
   .superRefine((snapshot, context) => {
@@ -388,6 +390,30 @@ export const websitePublicationSnapshotSchema = z
     const pageActionReferences: string[] = [];
     for (const page of snapshot.pages) {
       collectPageActionReferences(page.sections, pageActionReferences);
+      for (const section of page.sections) {
+        if (
+          section.type === "contact_form" &&
+          snapshot.forms.length > 0 &&
+          !resolvePublicationForm(snapshot.forms, {
+            formId: section.content.formId,
+            locale: page.locale,
+          })
+        ) {
+          context.addIssue({
+            code: "custom",
+            path: [
+              "pages",
+              page.id,
+              "sections",
+              section.id,
+              "content",
+              "formId",
+            ],
+            message:
+              "Een zichtbaar contactformulier moet naar een gepubliceerd formulier in dezelfde taal verwijzen",
+          });
+        }
+      }
     }
     for (const pageId of pageActionReferences) {
       if (!pageIds.has(pageId)) {

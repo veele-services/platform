@@ -10,12 +10,16 @@ import {
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { randomUUID } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-type PageProps = { params: Promise<{ slug?: string[] }> };
+type PageProps = {
+  params: Promise<{ slug?: string[] }>;
+  searchParams?: Promise<{ formulier?: string | string[] }>;
+};
 
 async function contextForRequest(props: PageProps) {
   const [requestHeaders, params] = await Promise.all([headers(), props.params]);
@@ -96,11 +100,23 @@ export default async function ManagedWebsitePage(props: PageProps) {
   const context = await contextForRequest(props);
   if (!context) notFound();
   if (context.kind === "page") {
+    const query = props.searchParams ? await props.searchParams : {};
+    const rawFormState = Array.isArray(query.formulier)
+      ? query.formulier[0]
+      : query.formulier;
+    const formState =
+      rawFormState === "verzonden" ||
+      rawFormState === "fout" ||
+      rawFormState === "later"
+        ? rawFormState
+        : undefined;
     return (
       <ManagedWebsiteView
         snapshot={context.resolution.snapshot}
         page={context.page}
         deliveryRevision={context.resolution.deliveryRevision}
+        formState={formState}
+        submissionId={randomUUID()}
       />
     );
   }

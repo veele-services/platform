@@ -20,6 +20,11 @@ function captureRawBody(_req: Request, _res: Response, buf: Buffer): void {
 
 const app: Express = express();
 
+// Honor forwarded client addresses only when the immediate reverse proxy is on
+// a private/local network. Public form throttling must not collapse all users
+// into the proxy address or trust attacker-supplied forwarding headers.
+app.set("trust proxy", ["loopback", "linklocal", "uniquelocal"]);
+
 app.use(
   pinoHttp({
     logger,

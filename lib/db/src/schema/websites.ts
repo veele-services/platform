@@ -6,6 +6,12 @@ import type {
   WebsiteCustomDeploymentStatus,
   WebsiteDeliveryMode,
   WebsiteDomainBindingStatus,
+  WebsiteFormField,
+  WebsiteFormKind,
+  WebsiteFormNotificationStatus,
+  WebsiteFormStatus,
+  WebsiteFormSubmissionData,
+  WebsiteFormSubmissionStatus,
   WebsitePageType,
   WebsitePublicationSnapshot,
   WebsitePublicationStatus,
@@ -25,6 +31,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -33,6 +40,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { tenantDomainsTable } from "./tenant-domains";
 import { tenantsTable } from "./tenants";
+import { customersTable } from "./customers";
 
 export const websiteSitesTable = pgTable(
   "website_sites",
@@ -707,6 +715,227 @@ export const websiteBlogPostTagsTable = pgTable(
         websiteBlogTagsTable.id,
       ],
     }).onDelete("restrict"),
+  ],
+);
+
+export const websiteFormsTable = pgTable(
+  "website_forms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    key: varchar("key", { length: 80 }).notNull(),
+    locale: varchar("locale", { length: 20 }).notNull().default("nl-NL"),
+    kind: varchar("kind", { length: 20 }).notNull().$type<WebsiteFormKind>(),
+    name: varchar("name", { length: 160 }).notNull(),
+    fields: jsonb("fields").notNull().$type<WebsiteFormField[]>(),
+    submitLabel: varchar("submit_label", { length: 80 }).notNull(),
+    successMessage: varchar("success_message", { length: 500 }).notNull(),
+    notificationEmail: varchar("notification_email", { length: 254 }),
+    status: varchar("status", { length: 20 })
+      .notNull()
+      .default("draft")
+      .$type<WebsiteFormStatus>(),
+    authoringRevision: integer("authoring_revision").notNull().default(1),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_forms_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_forms_site_locale_key_idx")
+      .on(table.tenantId, table.siteId, table.locale, table.key)
+      .where(sql`${table.status} <> 'archived'`),
+    index("website_forms_tenant_site_status_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.status,
+    ),
+    foreignKey({
+      name: "website_forms_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteFormSubmissionsTable = pgTable(
+  "website_form_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    formId: uuid("form_id").notNull(),
+    status: varchar("status", { length: 20 })
+      .notNull()
+      .default("new")
+      .$type<WebsiteFormSubmissionStatus>(),
+    payload: jsonb("payload").notNull().$type<WebsiteFormSubmissionData>(),
+    payloadHash: varchar("payload_hash", { length: 64 }).notNull(),
+    idempotencyHash: varchar("idempotency_hash", { length: 64 }).notNull(),
+    requestFingerprint: varchar("request_fingerprint", {
+      length: 64,
+    }).notNull(),
+    sourceHostname: varchar("source_hostname", { length: 253 }).notNull(),
+    contactName: varchar("contact_name", { length: 160 }),
+    contactEmail: varchar("contact_email", { length: 254 }),
+    contactPhone: varchar("contact_phone", { length: 50 }),
+    notificationStatus: varchar("notification_status", { length: 20 })
+      .notNull()
+      .default("pending")
+      .$type<WebsiteFormNotificationStatus>(),
+    notificationAttemptedAt: timestamp("notification_attempted_at", {
+      withTimezone: true,
+    }),
+    notificationError: varchar("notification_error", { length: 500 }),
+    customerId: uuid("customer_id").references(() => customersTable.id, {
+      onDelete: "restrict",
+    }),
+    convertedAt: timestamp("converted_at", { withTimezone: true }),
+    convertedBy: uuid("converted_by"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    readBy: uuid("read_by"),
+    retentionUntil: timestamp("retention_until", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '365 days'`),
+    isRedacted: boolean("is_redacted").notNull().default(false),
+    redactedAt: timestamp("redacted_at", { withTimezone: true }),
+    redactedBy: uuid("redacted_by"),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_form_submissions_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_form_submissions_idempotency_idx").on(
+      table.tenantId,
+      table.formId,
+      table.idempotencyHash,
+    ),
+    index("website_form_submissions_inbox_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.status,
+      table.receivedAt.desc(),
+    ),
+    index("website_form_submissions_retention_idx")
+      .on(table.tenantId, table.retentionUntil)
+      .where(sql`${table.isRedacted} = false`),
+    index("website_form_submissions_customer_idx")
+      .on(table.tenantId, table.customerId)
+      .where(sql`${table.customerId} IS NOT NULL`),
+    foreignKey({
+      name: "website_form_submissions_form_fk",
+      columns: [table.tenantId, table.siteId, table.formId],
+      foreignColumns: [
+        websiteFormsTable.tenantId,
+        websiteFormsTable.siteId,
+        websiteFormsTable.id,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteFormSubmissionEventsTable = pgTable(
+  "website_form_submission_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    submissionId: uuid("submission_id").notNull(),
+    eventType: varchar("event_type", { length: 40 }).notNull(),
+    actorUserId: uuid("actor_user_id"),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`)
+      .$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("website_form_submission_events_timeline_idx").on(
+      table.tenantId,
+      table.submissionId,
+      table.createdAt,
+      table.id,
+    ),
+    foreignKey({
+      name: "website_form_submission_events_submission_fk",
+      columns: [table.tenantId, table.siteId, table.submissionId],
+      foreignColumns: [
+        websiteFormSubmissionsTable.tenantId,
+        websiteFormSubmissionsTable.siteId,
+        websiteFormSubmissionsTable.id,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteFormRateLimitsTable = pgTable(
+  "website_form_rate_limits",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    formId: uuid("form_id").notNull(),
+    requestFingerprint: varchar("request_fingerprint", {
+      length: 64,
+    }).notNull(),
+    windowStartedAt: timestamp("window_started_at", {
+      withTimezone: true,
+    }).notNull(),
+    requestCount: integer("request_count").notNull().default(1),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "website_form_rate_limits_pkey",
+      columns: [
+        table.tenantId,
+        table.formId,
+        table.requestFingerprint,
+        table.windowStartedAt,
+      ],
+    }),
+    index("website_form_rate_limits_expiry_idx").on(table.expiresAt),
+    foreignKey({
+      name: "website_form_rate_limits_form_fk",
+      columns: [table.tenantId, table.siteId, table.formId],
+      foreignColumns: [
+        websiteFormsTable.tenantId,
+        websiteFormsTable.siteId,
+        websiteFormsTable.id,
+      ],
+    }).onDelete("cascade"),
   ],
 );
 

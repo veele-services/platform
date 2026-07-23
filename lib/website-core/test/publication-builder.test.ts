@@ -16,6 +16,7 @@ const contactId = "30000000-0000-4000-8000-000000000002";
 const draftId = "30000000-0000-4000-8000-000000000003";
 const heroId = "40000000-0000-4000-8000-000000000001";
 const hiddenId = "40000000-0000-4000-8000-000000000002";
+const contactFormSectionId = "40000000-0000-4000-8000-000000000003";
 const homeNavId = "50000000-0000-4000-8000-000000000001";
 const contactNavId = "50000000-0000-4000-8000-000000000002";
 const externalNavId = "50000000-0000-4000-8000-000000000003";
@@ -183,6 +184,7 @@ function sourceFixture(): WebsitePublicationSource {
       },
     ],
     blog: { categories: [], tags: [], posts: [] },
+    forms: [],
   };
 }
 
@@ -492,6 +494,33 @@ test("compiler rejects navigation and section actions to unpublished pages", () 
   assert.ok(
     diagnosticsFor(() => buildWebsitePublicationSnapshot(actionSource)).some(
       (entry) => entry.message.includes("unpublished page"),
+    ),
+  );
+});
+
+test("compiler rejects a visible contact section without a published form", () => {
+  const source = sourceFixture();
+  const contactPage = source.pages.find((page) => page.id === contactId);
+  assert.ok(contactPage);
+  contactPage.sections.push({
+    id: contactFormSectionId,
+    sectionKey: "contact_form",
+    schemaVersion: 1,
+    variantKey: "split_contact",
+    position: 0,
+    content: {
+      title: "Neem contact op",
+      formId: null,
+      showContactDetails: true,
+      showOpeningHours: false,
+      showMap: false,
+    },
+    isVisible: true,
+  });
+
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(source)).some(
+      (entry) => entry.code === "missing_published_form",
     ),
   );
 });

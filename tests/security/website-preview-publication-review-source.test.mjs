@@ -77,7 +77,9 @@ test("preview consumption binds exact tenant, actor, site revision and expiry", 
   assert.match(service, /buildWebsiteDraftPreviewSnapshot/u);
   assert.match(service, /website_preview_created/u);
   assert.match(service, /section_media_resolution_pending/u);
-  assert.match(service, /form_processing_inactive/u);
+  assert.match(service, /loadWebsiteFormSource/u);
+  assert.match(service, /draft_form_excluded/u);
+  assert.doesNotMatch(service, /form_processing_inactive/u);
 });
 
 test("preview route repeats live auth, RBAC and signed-token verification", () => {

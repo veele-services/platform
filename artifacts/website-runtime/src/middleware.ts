@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
     "base-uri 'none'",
     "connect-src 'self'",
     "font-src 'self'",
-    "form-action 'none'",
+    "form-action 'self'",
     "frame-ancestors 'none'",
     "img-src 'self' data: https:",
     `script-src 'nonce-${nonce}' 'strict-dynamic'`,

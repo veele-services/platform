@@ -18,6 +18,7 @@ import {
   EMPTY_WEBSITE_PUBLICATION_BLOG,
   websitePublicationBlogSchema,
 } from "./blog";
+import { websitePublicationFormsSchema } from "./forms";
 
 const publicPathSchema = websiteCanonicalPathSchema;
 
@@ -77,6 +78,7 @@ const runtimePublicationEnvelopeSchema = z
     navigation: z.array(runtimeNavigationItemSchema).max(500),
     redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
     blog: websitePublicationBlogSchema.default(EMPTY_WEBSITE_PUBLICATION_BLOG),
+    forms: websitePublicationFormsSchema,
   })
   .strict();
 
