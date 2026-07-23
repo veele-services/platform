@@ -20,10 +20,10 @@ test("preview token is opaque, signed and stored through a deterministic digest"
 test("preview token fails closed for tampering, wrong secrets and malformed input", () => {
   const token = createWebsitePreviewToken(secret);
   const [version, nonce, tokenSignature] = token.split(".");
-  const tamperedNonce = `${nonce!.slice(0, -1)}${nonce!.endsWith("A") ? "B" : "A"}`;
-  const tamperedSignature = `${tokenSignature!.slice(0, -1)}${
-    tokenSignature!.endsWith("A") ? "B" : "A"
-  }`;
+  const tamperedNonce = `${nonce!.startsWith("A") ? "B" : "A"}${nonce!.slice(1)}`;
+  const tamperedSignature = `${
+    tokenSignature!.startsWith("A") ? "B" : "A"
+  }${tokenSignature!.slice(1)}`;
 
   assert.equal(
     verifyWebsitePreviewToken(
