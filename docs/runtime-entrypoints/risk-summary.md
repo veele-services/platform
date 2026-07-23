@@ -2,13 +2,13 @@
 
 Full inventory is uploaded as CI artifact `fieldgrid-runtime-entrypoint-inventory-full`.
 
-- Runtime entrypoints and callsites: 848
-- External entrypoints: 109
+- Runtime entrypoints and callsites: 849
+- External entrypoints: 110
 - Internal DB callsites: 642
 - Review required: 20
 - High: 4
 - Medium: 373
-- Low: 377
+- Low: 378
 - Informational: 74
 
 ## Runtime roots
@@ -44,7 +44,7 @@ Full inventory is uploaded as CI artifact `fieldgrid-runtime-entrypoint-inventor
 
 ## Counts by kind
 - server-action: 38
-- route-handler: 66
+- route-handler: 67
 - middleware: 4
 - webhook-handler: 1
 - worker-entrypoint: 3
