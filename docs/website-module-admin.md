@@ -1,7 +1,7 @@
 # Fieldgrid website module — backoffice administration design
 
 Date: 23 July 2026
-Status: Phase 3B section authoring implemented; preview and publication review remain pending
+Status: Phase 3C preview and immutable publication review implemented
 
 ## Implementation status
 
@@ -18,10 +18,12 @@ revision-guarded create/update/delete/reorder mutations, pointer drag ordering
 and equivalent Move up/Move down controls. TipTap persists only allowlisted JSON;
 legacy rich-text v1 remains readable and no stored HTML is rendered.
 
-This increment intentionally does not activate a publication, switch delivery
-mode, bind a domain or change deployment infrastructure. Preview, draft-wide
-validation and the separate review/publish operation remain the next Phase 3
-increment.
+Phase 3C adds server-derived draft diagnostics, a ten-minute opaque signed
+preview bound to the exact tenant/site/user/revision, one shared public/preview
+renderer and an explicit two-step immutable prepare/activate flow. A tenant can
+activate only while the site is already in `managed_cms`; custom delivery cannot
+be switched by this flow. No domain, proxy, staging or production configuration
+is changed by the implementation.
 
 ## Admin boundary
 
@@ -45,6 +47,8 @@ Proposed routes:
 | `/website/settings`    | Identity, contact, theme, domain and SEO defaults          | settings read/write split      |
 | `/website/pages`       | Page list, draft/published state and validation            | pages read                     |
 | `/website/pages/[id]`  | Page metadata and section editor                           | pages write for mutation       |
+| `/website/review`      | Draft diagnostics, preview and immutable publication       | pages read/publish split       |
+| `/website-preview/*`   | Authenticated, short-lived whole-site draft preview        | pages read + bound token       |
 | `/website/navigation`  | Header/footer navigation                                   | navigation read/write          |
 | `/website/blog`        | Posts, categories and tags                                 | blog read                      |
 | `/website/blog/[id]`   | Post editor and preview                                    | blog write/publish             |
@@ -206,6 +210,11 @@ CSV export, bulk actions and automation are out of the MVP unless separately pri
 - Do not put sensitive content, tenant identity or raw draft payload in the URL token.
 - Reject expired, reused where policy disallows reuse, wrong-user, wrong-site and stale-revision tokens.
 
+The implemented policy permits reuse by the same authenticated user until the
+ten-minute expiry so navigation can load multiple preview pages. Any authoring
+revision change invalidates the entire preview immediately. Only a SHA-256 token
+digest is stored; the URL token contains no tenant, site, user or draft payload.
+
 ### Publish review
 
 Before activation, show a server-derived checklist:
@@ -219,6 +228,12 @@ Before activation, show a server-derived checklist:
 - current live publication and expected authoring revision.
 
 The publish action creates and validates an immutable snapshot. It does not change delivery mode. If custom mode is active, a managed publication may become ready for future switching but must not be represented as live.
+
+Activation is a separate confirmed action and repeats current mode, source
+revision, delivery revision, candidate identity and target-revision checks. It
+is available only when delivery is already `managed_cms`. Preparing a candidate
+while custom delivery is active preserves it as `ready` and never changes the
+live custom target.
 
 ## Custom Next.js delivery management
 

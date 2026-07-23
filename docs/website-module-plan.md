@@ -322,12 +322,13 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Phase 3B supplies schema-owned section forms, visually flat fields, TipTap v2
-prose, explicit saves and accessible drag/reorder controls. The next reviewed
-increment is Phase 3C: draft-wide diagnostics, signed preview and an explicit
-immutable publication review. It must reuse the existing publication compiler
-and exact-revision activation contract; it may not switch delivery mode as a
-side effect.
+Phase 3C now supplies draft-wide diagnostics, an authenticated signed preview,
+one shared renderer and an explicit immutable prepare/activate review. The next
+reviewed increment is Phase 4A: tenant-scoped header/footer navigation
+authoring, safe internal/external destinations and deterministic ordering.
+Redirect persistence and publication-time loop/collision checks follow in Phase
+4B. Neither increment may change custom delivery infrastructure or a live
+domain as a side effect.
 
 DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9

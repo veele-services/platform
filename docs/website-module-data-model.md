@@ -1,7 +1,7 @@
 # Fieldgrid website module — proposed data model
 
-Date: 21 July 2026
-Status: Phase 1A core schema and Phase 1B publication invariants implemented
+Date: 23 July 2026
+Status: Phase 1 publication invariants plus Phase 3C preview sessions implemented
 
 The additive Phase 1A migration implements sites, domain bindings, custom
 deployment records, pages, page sections, navigation, immutable publications and
@@ -12,6 +12,13 @@ Phase 1B adds database-managed authoring revisions, exact target delivery
 revisions, deterministic cache identities, verified primary-domain transitions
 and atomic managed-publication activation/supersession. No public runtime or
 browser mutation path exists yet.
+
+Phase 3C adds `website_preview_sessions`. It stores only a SHA-256 digest of an
+opaque signed token plus the exact tenant, site, actor, source revision,
+immutable preview snapshot and a maximum fifteen-minute database expiry (the
+application issues ten-minute sessions). RLS is enabled and direct anon or
+authenticated table access is revoked. The live preview loader additionally
+requires an active tenant/module and exact current authoring revision.
 
 ## Design principles
 

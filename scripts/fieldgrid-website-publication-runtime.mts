@@ -4,6 +4,9 @@ import { randomUUID } from "node:crypto";
 import {
   activateManagedWebsitePublication,
   createManagedWebsitePublication,
+  createWebsitePreviewSession,
+  includeWebsitePageInPublication,
+  loadWebsitePreviewSession,
   pool,
   resolveManagedWebsiteByHost,
   setPrimaryWebsiteDomain,
@@ -30,6 +33,7 @@ const domainId = randomUUID();
 const hostname = `publication-${randomUUID()}.runtime.fieldgrid.test`;
 const homePageId = randomUUID();
 const contactPageId = randomUUID();
+const previewDraftPageId = randomUUID();
 const heroSectionId = randomUUID();
 const homeNavigationId = randomUUID();
 const contactNavigationId = randomUUID();
@@ -433,17 +437,111 @@ try {
     );
   }
 
+  await pool.query(
+    `INSERT INTO public.website_pages (
+       id, tenant_id, site_id, locale, title, slug, path, page_type,
+       status, is_homepage, seo, created_by, updated_by
+     ) VALUES (
+       $1, $2, $3, 'nl-NL', 'Previewconcept', 'previewconcept',
+       '/previewconcept', 'standard', 'draft', false, $4::jsonb, $5, $5
+     )`,
+    [previewDraftPageId, tenantA, siteId, JSON.stringify(seo), actorA],
+  );
+  const previewRevision = await currentAuthoringRevision();
+  const previewTokenHash = "a".repeat(64);
+  const previewSession = await createWebsitePreviewSession({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    tokenHash: previewTokenHash,
+    expectedAuthoringRevision: previewRevision,
+  });
+  assert.ok(
+    previewSession.snapshot.pages.some(
+      (page) => page.id === previewDraftPageId,
+    ),
+  );
+  assert.ok(
+    await loadWebsitePreviewSession({
+      tenantId: tenantA,
+      actorUserId: actorA,
+      tokenHash: previewTokenHash,
+    }),
+  );
+  assert.equal(
+    await loadWebsitePreviewSession({
+      tenantId: tenantA,
+      actorUserId: randomUUID(),
+      tokenHash: previewTokenHash,
+    }),
+    null,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_preview_sessions
+       SET last_used_at = NULL
+       WHERE tenant_id = $1 AND token_hash = $2`,
+      [tenantA, previewTokenHash],
+    ),
+    (error: unknown) =>
+      Boolean(
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P0001",
+      ),
+  );
+
+  const includedPage = await includeWebsitePageInPublication({
+    tenantId: tenantA,
+    siteId,
+    pageId: previewDraftPageId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: previewRevision,
+    expectedPageRevision: 1,
+  });
+  assert.equal(includedPage.pageAuthoringRevision, 2);
+  assert.equal(includedPage.siteAuthoringRevision, previewRevision + 1);
+  assert.equal(
+    await loadWebsitePreviewSession({
+      tenantId: tenantA,
+      actorUserId: actorA,
+      tokenHash: previewTokenHash,
+    }),
+    null,
+    "an authoring change must invalidate an existing preview",
+  );
+
   const browserClient = await pool.connect();
   try {
     await browserClient.query("BEGIN");
     await browserClient.query("SET LOCAL ROLE authenticated");
     await browserClient.query("SET LOCAL row_security = on");
+    await browserClient.query("SAVEPOINT forbidden_activation_probe");
     await assert.rejects(
       browserClient.query(
         `SELECT public.activate_managed_website_publication(
            $1, $2, $3, $4, $5, $6, 'forbidden browser activation'
          )`,
         [tenantA, siteId, candidateThree.id, revisionThree, 3, actorA],
+      ),
+      (error: unknown) =>
+        Boolean(
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "42501",
+        ),
+    );
+    await browserClient.query(
+      "ROLLBACK TO SAVEPOINT forbidden_activation_probe",
+    );
+    await assert.rejects(
+      browserClient.query(
+        `SELECT snapshot
+         FROM public.website_preview_sessions
+         WHERE tenant_id = $1`,
+        [tenantA],
       ),
       (error: unknown) =>
         Boolean(
@@ -494,6 +592,12 @@ try {
           unknownHostRejected: true,
           draftCannotAlterLiveSnapshot: true,
           publicResolverCannotReadDraftEdit: true,
+          previewIncludesDraftPage: true,
+          previewBoundToActor: true,
+          previewUsageMonotonic: true,
+          stalePreviewRevisionRejected: true,
+          explicitPageInclusion: true,
+          browserPreviewReadDenied: true,
           browserExecutionDenied: true,
           auditTrail: true,
         },

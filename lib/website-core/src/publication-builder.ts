@@ -148,8 +148,11 @@ function assertUniquePositions(
   }
 }
 
-export function buildWebsitePublicationSnapshot(
+function buildWebsiteSnapshot(
   input: WebsitePublicationSource,
+  includePage: (
+    status: WebsitePublicationSource["pages"][number]["status"],
+  ) => boolean,
 ): WebsitePublicationSnapshot {
   const parsed = websitePublicationSourceSchema.safeParse(input);
   if (!parsed.success) {
@@ -159,7 +162,7 @@ export function buildWebsitePublicationSnapshot(
   const source = parsed.data;
   const diagnostics: WebsitePublicationDiagnostic[] = [];
   const publishedPages = source.pages
-    .filter((page) => page.status === "published")
+    .filter((page) => includePage(page.status))
     .sort(
       (left, right) =>
         compareText(left.locale, right.locale) ||
@@ -328,6 +331,18 @@ export function buildWebsitePublicationSnapshot(
     throw new WebsitePublicationValidationError(zodDiagnostics(snapshot.error));
   }
   return snapshot.data;
+}
+
+export function buildWebsitePublicationSnapshot(
+  input: WebsitePublicationSource,
+): WebsitePublicationSnapshot {
+  return buildWebsiteSnapshot(input, (status) => status === "published");
+}
+
+export function buildWebsiteDraftPreviewSnapshot(
+  input: WebsitePublicationSource,
+): WebsitePublicationSnapshot {
+  return buildWebsiteSnapshot(input, (status) => status !== "archived");
 }
 
 function stableJsonValue(value: unknown): string {

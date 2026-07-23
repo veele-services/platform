@@ -52,6 +52,10 @@ export default async function ManagedWebsitePage(props: PageProps) {
   const context = await contextForRequest(props);
   if (!context) notFound();
   return (
-    <ManagedWebsiteView resolution={context.resolution} page={context.page} />
+    <ManagedWebsiteView
+      snapshot={context.resolution.snapshot}
+      page={context.page}
+      deliveryRevision={context.resolution.deliveryRevision}
+    />
   );
 }

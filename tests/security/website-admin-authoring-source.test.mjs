@@ -158,14 +158,17 @@ test("route components repeat read authorization and expose no custom infrastruc
   );
 });
 
-test("Phase 3A does not activate a publication or delivery target", () => {
-  const phase3a = `${service}\n${actions}`;
+test("ordinary Phase 3 authoring mutations do not activate a publication or delivery target", () => {
   assert.doesNotMatch(
-    phase3a,
+    service,
     /activateManagedWebsitePublication|activate_website_delivery|active_publication_id\s*=/u,
   );
   assert.doesNotMatch(
-    phase3a,
+    service,
     /INSERT INTO public\.website_custom_deployments|UPDATE public\.website_custom_deployments|production|staging/u,
+  );
+  assert.match(
+    actions,
+    /activateWebsitePublicationAction[\s\S]*requirePermission\("website_pages", "publish"\)/u,
   );
 });

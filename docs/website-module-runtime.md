@@ -1,15 +1,16 @@
 # Fieldgrid managed website runtime
 
-Date: 22 July 2026
-Status: Phase 2B implementation; not deployed or routed live
+Date: 23 July 2026
+Status: Phase 2B public runtime plus Phase 3C shared preview renderer; not deployed or routed live
 
 ## Runtime boundary
 
 `artifacts/website-runtime` is a separate Next.js App Router application. It has
-no Supabase browser/server client, no authenticated application shell and no
-shared-UI dependency. The runtime receives a Host header, normalizes one exact
-authority and asks the server-only database resolver for one active immutable
-managed publication.
+no Supabase browser/server client and no authenticated application shell. The
+pure React website renderer now lives under `@workspace/shared-ui/website-renderer`
+so the authenticated backoffice preview and public runtime cannot drift. The
+public runtime receives a Host header, normalizes one exact authority and asks
+the server-only database resolver for one active immutable managed publication.
 
 The resolver joins only:
 
@@ -55,13 +56,26 @@ The middleware removes legacy backoffice, personnel and customer cookies before
 server rendering. A per-request CSP nonce protects framework scripts; no tenant
 content can add script, HTML, CSS classes or executable URLs.
 
+## Authenticated draft preview
+
+Phase 3C does not expose drafts through the public runtime. The backoffice
+creates an opaque HMAC-signed token, stores only its digest with a compiled
+snapshot and serves preview pages under `/admin/website-preview/*`. The route
+repeats authentication, live tenant resolution and `website_pages:read`,
+requires the exact issuing user and authoring revision, and returns no-store,
+noindex and no-referrer headers. Internal links are rewritten inside the same
+opaque preview boundary. Tokens are reusable by that user for ten minutes so a
+whole-site preview can be navigated; expiry, revocation or any authoring change
+fails closed.
+
 ## Validation and activation boundary
 
 Phase 2B adds the runtime to workspace build/typecheck, unit-domain tests,
 security-source tests and the runtime-entrypoint inventory. The PostgreSQL
 publication harness proves that the exact verified hostname resolves the active
 snapshot, an unknown host is rejected and later draft edits do not change the
-public result.
+public result. Phase 3C extends that harness with actor-bound preview loading,
+stale-preview rejection, explicit page inclusion and direct-browser ACL denial.
 
 This phase intentionally does not add deployment service definitions, proxy
 configuration, live health routing or domain activation. Those require the

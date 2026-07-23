@@ -308,6 +308,9 @@ importers:
       '@workspace/shared-ui':
         specifier: workspace:*
         version: link:../../lib/shared-ui
+      '@workspace/website-core':
+        specifier: workspace:*
+        version: link:../../lib/website-core
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -725,6 +728,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/shared-ui':
+        specifier: workspace:*
+        version: link:../../lib/shared-ui
       '@workspace/website-core':
         specifier: workspace:*
         version: link:../../lib/website-core
@@ -805,6 +811,9 @@ importers:
 
   lib/shared-ui:
     dependencies:
+      '@workspace/website-core':
+        specifier: workspace:*
+        version: link:../website-core
       clsx:
         specifier: 'catalog:'
         version: 2.1.1

@@ -26,6 +26,19 @@ const nextConfig: NextConfig = {
   basePath: "/admin",
   poweredByHeader: false,
   compress: true,
+  async headers() {
+    return [
+      {
+        source: "/website-preview/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "8mb",
