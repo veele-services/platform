@@ -1,0 +1,37 @@
+website-runtime.staging.fieldgrid.nl {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:3305
+}
+
+veele-origin.staging.fieldgrid.nl {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:3306
+}
+
+managed.staging.fieldgrid.nl, veele.staging.fieldgrid.nl {
+  encode zstd gzip
+
+  @backoffice path /admin /admin/*
+  handle @backoffice {
+    reverse_proxy 127.0.0.1:3301
+  }
+
+  @personnel path /personeel /personeel/*
+  handle @personnel {
+    reverse_proxy 127.0.0.1:3302
+  }
+
+  @customer path /klant /klant/*
+  handle @customer {
+    reverse_proxy 127.0.0.1:3303
+  }
+
+  @platform_api path /api /api/*
+  handle @platform_api {
+    reverse_proxy 127.0.0.1:3304
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:3305
+  }
+}

@@ -1,0 +1,88 @@
+name: Website Staging Stack Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_staging_sha:
+        description: "Exact reviewed and deployed staging SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "Type website-staging-stack-only"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy website runtimes and exact staging routes
+    if: >-
+      github.ref_name == 'staging' &&
+      inputs.confirmation == 'website-staging-stack-only'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 60
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      NODE_ENV: production
+      WEBSITE_STACK_BASE_DIR: /var/www/veele/website-stack-staging
+      WEBSITE_SERVICE_NAME: ${{ vars.WEBSITE_SERVICE_NAME }}
+      WEBSITE_PORT: ${{ vars.WEBSITE_PORT }}
+      WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
+      MARKETING_SERVICE_NAME: ${{ vars.MARKETING_SERVICE_NAME }}
+      MARKETING_PORT: ${{ vars.MARKETING_PORT }}
+      MARKETING_PUBLIC_HEALTH_URL: ${{ vars.MARKETING_PUBLIC_HEALTH_URL }}
+      NEXT_PUBLIC_MARKETING_SITE_URL: ${{ vars.NEXT_PUBLIC_MARKETING_SITE_URL }}
+      FIELDGRID_WEBSITE_FORM_ID: ${{ vars.FIELDGRID_WEBSITE_FORM_ID }}
+      FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
+      FIELDGRID_CUSTOM_RELEASE_ID: git-commit:${{ inputs.expected_staging_sha }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout exact staging release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_staging_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable staging ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          expected="${{ inputs.expected_staging_sha }}"
+          checkout="$(git rev-parse HEAD)"
+          remote="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/staging" --jq .object.sha)"
+          test "$checkout" = "$expected"
+          test "$remote" = "$expected"
+
+      - name: Validate staging stack contract
+        run: bash scripts/fieldgrid-website-staging-stack-deploy.sh --check
+
+      - name: Deploy staging website stack
+        run: |
+          set -euo pipefail
+          bash scripts/fieldgrid-website-staging-stack-deploy.sh \
+            --run \
+            --source-dir "$GITHUB_WORKSPACE" \
+            --expected-sha "${{ inputs.expected_staging_sha }}" \
+            --evidence-file "$GITHUB_WORKSPACE/artifacts/website-staging-stack/deploy.json"
+
+      - name: Upload secret-free deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-staging-stack-${{ github.run_id }}-${{ inputs.expected_staging_sha }}
+          path: artifacts/website-staging-stack/
+          if-no-files-found: warn
+          retention-days: 14
