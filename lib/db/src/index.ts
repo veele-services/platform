@@ -43,6 +43,7 @@ export * from "./checklist-reconciliation";
 export * from "./website-publication-service";
 export * from "./website-public-runtime";
 export * from "./website-authoring-service";
+export * from "./website-blog-service";
 export * from "./website-navigation-service";
 export * from "./website-redirect-service";
 export * from "./website-preview-service";

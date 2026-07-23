@@ -94,6 +94,23 @@ export const websitePageDraftSchema = z
         path: ["path"],
       });
     }
+    if (
+      page.pageType === "blog_index" &&
+      (page.path !== "/blog" || page.slug !== "blog")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Het blogoverzicht gebruikt vast pad /blog en slug blog",
+        path: ["path"],
+      });
+    }
+    if (page.pageType !== "blog_index" && page.path === "/blog") {
+      context.addIssue({
+        code: "custom",
+        message: "Pad /blog is gereserveerd voor het blogoverzicht",
+        path: ["path"],
+      });
+    }
   });
 
 const createWebsitePageInputSchema = siteCommandContextSchema.extend({

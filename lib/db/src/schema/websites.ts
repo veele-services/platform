@@ -1,4 +1,5 @@
 import type {
+  WebsiteRichTextDocument,
   WebsiteAnalytics,
   WebsiteContact,
   WebsiteContentStatus,
@@ -490,6 +491,225 @@ export const websiteRedirectsTable = pgTable(
   ],
 );
 
+export const websiteBlogCategoriesTable = pgTable(
+  "website_blog_categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    locale: varchar("locale", { length: 20 }).notNull().default("nl-NL"),
+    name: varchar("name", { length: 120 }).notNull(),
+    slug: varchar("slug", { length: 180 }).notNull(),
+    path: varchar("path", { length: 500 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_blog_categories_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_blog_categories_route_idx")
+      .on(table.tenantId, table.siteId, table.locale, table.path)
+      .where(sql`${table.isActive} = true`),
+    index("website_blog_categories_tenant_site_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.isActive,
+    ),
+    check(
+      "website_blog_categories_locale_check",
+      sql`${table.locale} ~ '^[a-z]{2}-[A-Z]{2}$'`,
+    ),
+    foreignKey({
+      name: "website_blog_categories_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteBlogTagsTable = pgTable(
+  "website_blog_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    locale: varchar("locale", { length: 20 }).notNull().default("nl-NL"),
+    name: varchar("name", { length: 80 }).notNull(),
+    slug: varchar("slug", { length: 180 }).notNull(),
+    path: varchar("path", { length: 500 }).notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_blog_tags_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_blog_tags_route_idx")
+      .on(table.tenantId, table.siteId, table.locale, table.path)
+      .where(sql`${table.isActive} = true`),
+    index("website_blog_tags_tenant_site_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.isActive,
+    ),
+    check(
+      "website_blog_tags_locale_check",
+      sql`${table.locale} ~ '^[a-z]{2}-[A-Z]{2}$'`,
+    ),
+    foreignKey({
+      name: "website_blog_tags_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteBlogPostsTable = pgTable(
+  "website_blog_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    locale: varchar("locale", { length: 20 }).notNull().default("nl-NL"),
+    title: varchar("title", { length: 180 }).notNull(),
+    slug: varchar("slug", { length: 180 }).notNull(),
+    path: varchar("path", { length: 500 }).notNull(),
+    excerpt: varchar("excerpt", { length: 500 }).notNull(),
+    body: jsonb("body").notNull().$type<WebsiteRichTextDocument>(),
+    categoryId: uuid("category_id"),
+    seo: jsonb("seo").notNull().$type<WebsiteSeo>(),
+    status: varchar("status", { length: 20 })
+      .notNull()
+      .default("draft")
+      .$type<WebsiteContentStatus>(),
+    authoringRevision: integer("authoring_revision").notNull().default(1),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_blog_posts_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_blog_posts_route_idx")
+      .on(table.tenantId, table.siteId, table.locale, table.path)
+      .where(sql`${table.status} <> 'archived'`),
+    index("website_blog_posts_tenant_site_status_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.status,
+    ),
+    check(
+      "website_blog_posts_authoring_revision_check",
+      sql`${table.authoringRevision} > 0`,
+    ),
+    check(
+      "website_blog_posts_locale_check",
+      sql`${table.locale} ~ '^[a-z]{2}-[A-Z]{2}$'`,
+    ),
+    foreignKey({
+      name: "website_blog_posts_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "website_blog_posts_category_fk",
+      columns: [table.tenantId, table.siteId, table.categoryId],
+      foreignColumns: [
+        websiteBlogCategoriesTable.tenantId,
+        websiteBlogCategoriesTable.siteId,
+        websiteBlogCategoriesTable.id,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+
+export const websiteBlogPostTagsTable = pgTable(
+  "website_blog_post_tags",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    postId: uuid("post_id").notNull(),
+    tagId: uuid("tag_id").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("website_blog_post_tags_identity_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.postId,
+      table.tagId,
+    ),
+    index("website_blog_post_tags_tag_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.tagId,
+    ),
+    foreignKey({
+      name: "website_blog_post_tags_post_fk",
+      columns: [table.tenantId, table.siteId, table.postId],
+      foreignColumns: [
+        websiteBlogPostsTable.tenantId,
+        websiteBlogPostsTable.siteId,
+        websiteBlogPostsTable.id,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "website_blog_post_tags_tag_fk",
+      columns: [table.tenantId, table.siteId, table.tagId],
+      foreignColumns: [
+        websiteBlogTagsTable.tenantId,
+        websiteBlogTagsTable.siteId,
+        websiteBlogTagsTable.id,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+
 export const websitePublicationsTable = pgTable(
   "website_publications",
   {
@@ -627,6 +847,11 @@ export type WebsitePageSection = typeof websitePageSectionsTable.$inferSelect;
 export type WebsiteNavigationItem =
   typeof websiteNavigationItemsTable.$inferSelect;
 export type WebsiteRedirect = typeof websiteRedirectsTable.$inferSelect;
+export type WebsiteBlogCategory =
+  typeof websiteBlogCategoriesTable.$inferSelect;
+export type WebsiteBlogTag = typeof websiteBlogTagsTable.$inferSelect;
+export type WebsiteBlogPost = typeof websiteBlogPostsTable.$inferSelect;
+export type WebsiteBlogPostTag = typeof websiteBlogPostTagsTable.$inferSelect;
 export type WebsitePublication = typeof websitePublicationsTable.$inferSelect;
 export type WebsiteDeliveryActivation =
   typeof websiteDeliveryActivationsTable.$inferSelect;

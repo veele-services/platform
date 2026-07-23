@@ -2,11 +2,15 @@
 
 import {
   createWebsiteSection,
+  createWebsiteBlogPost,
   createWebsitePage,
   createManagedWebsitePublication,
   createWebsitePreviewSession,
   activateManagedWebsitePublication,
   deleteWebsiteSection,
+  archiveWebsiteBlogPost,
+  getWebsiteBlog,
+  getWebsiteBlogPost,
   getWebsiteAdminOverview,
   getWebsiteNavigation,
   getWebsitePage,
@@ -19,10 +23,15 @@ import {
   reorderWebsiteSections,
   replaceWebsiteNavigation,
   replaceWebsiteRedirects,
+  replaceWebsiteBlogTaxonomy,
+  publishWebsiteBlogPost,
   updateWebsiteSection,
+  updateWebsiteBlogPost,
   updateWebsitePage,
   updateWebsiteSettings,
   type WebsitePageDraft,
+  type WebsiteBlogPostDraft,
+  type WebsiteBlogTaxonomyDraft,
   type WebsiteNavigationDraftItem,
   type WebsitePathChangeDecision,
   type WebsiteRedirectDraftItem,
@@ -111,6 +120,166 @@ export async function getWebsiteRedirectsAction() {
   await requirePermission("website_navigation", "read");
   const tenantId = await requireCurrentTenantId();
   return getWebsiteRedirects(tenantId);
+}
+
+export async function getWebsiteBlogAction() {
+  await requirePermission("website_blog", "read");
+  const tenantId = await requireCurrentTenantId();
+  return getWebsiteBlog(tenantId);
+}
+
+export async function getWebsiteBlogPostAction(postId: string) {
+  await requirePermission("website_blog", "read");
+  const tenantId = await requireCurrentTenantId();
+  return getWebsiteBlogPost(tenantId, postId);
+}
+
+export async function replaceWebsiteBlogTaxonomyAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  taxonomy: WebsiteBlogTaxonomyDraft;
+}): Promise<ActionResult<{ authoringRevision: number; changed: boolean }>> {
+  try {
+    await requirePermission("website_blog", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await replaceWebsiteBlogTaxonomy({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/blog");
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function createWebsiteBlogPostAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  post: WebsiteBlogPostDraft;
+}): Promise<ActionResult<{ id: string; authoringRevision: number }>> {
+  try {
+    await requirePermission("website_blog", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await createWebsiteBlogPost({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/blog");
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function updateWebsiteBlogPostAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  postId: string;
+  expectedPostRevision: number;
+  post: WebsiteBlogPostDraft;
+}): Promise<
+  ActionResult<{
+    authoringRevision: number;
+    postAuthoringRevision: number;
+    changed: boolean;
+  }>
+> {
+  try {
+    await requirePermission("website_blog", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await updateWebsiteBlogPost({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/blog");
+    revalidatePath(`/website/blog/${input.postId}`);
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function publishWebsiteBlogPostAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  postId: string;
+  expectedPostRevision: number;
+}): Promise<
+  ActionResult<{
+    authoringRevision: number;
+    postAuthoringRevision: number;
+  }>
+> {
+  try {
+    await requirePermission("website_blog", "publish");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await publishWebsiteBlogPost({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/blog");
+    revalidatePath(`/website/blog/${input.postId}`);
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function archiveWebsiteBlogPostAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  postId: string;
+  expectedPostRevision: number;
+}): Promise<
+  ActionResult<{
+    authoringRevision: number;
+    postAuthoringRevision: number;
+  }>
+> {
+  try {
+    await requirePermission("website_blog", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await archiveWebsiteBlogPost({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/blog");
+    revalidatePath(`/website/blog/${input.postId}`);
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 export async function replaceWebsiteRedirectsAction(input: {
@@ -305,7 +474,10 @@ function requirePreviewSigningSecret(): string {
 }
 
 export async function getWebsitePublicationReviewAction(siteId: string) {
-  await requirePermission("website_pages", "read");
+  await Promise.all([
+    requirePermission("website_pages", "read"),
+    requirePermission("website_blog", "read"),
+  ]);
   const tenantId = await requireCurrentTenantId();
   return getWebsitePublicationReview({ tenantId, siteId });
 }
@@ -321,7 +493,10 @@ export async function createWebsitePreviewAction(input: {
   }>
 > {
   try {
-    await requirePermission("website_pages", "read");
+    await Promise.all([
+      requirePermission("website_pages", "read"),
+      requirePermission("website_blog", "read"),
+    ]);
     const [tenantId, actorUserId] = await Promise.all([
       requireCurrentTenantId(),
       requireActorId(),
@@ -359,7 +534,10 @@ export async function includeWebsitePageInPublicationAction(input: {
   }>
 > {
   try {
-    await requirePermission("website_pages", "publish");
+    await Promise.all([
+      requirePermission("website_pages", "publish"),
+      requirePermission("website_blog", "publish"),
+    ]);
     const [tenantId, actorUserId] = await Promise.all([
       requireCurrentTenantId(),
       requireActorId(),
@@ -390,7 +568,10 @@ export async function prepareWebsitePublicationAction(input: {
   }>
 > {
   try {
-    await requirePermission("website_pages", "publish");
+    await Promise.all([
+      requirePermission("website_pages", "publish"),
+      requirePermission("website_blog", "publish"),
+    ]);
     const [tenantId, actorUserId] = await Promise.all([
       requireCurrentTenantId(),
       requireActorId(),
@@ -446,7 +627,10 @@ export async function activateWebsitePublicationAction(input: {
   }>
 > {
   try {
-    await requirePermission("website_pages", "publish");
+    await Promise.all([
+      requirePermission("website_pages", "publish"),
+      requirePermission("website_blog", "publish"),
+    ]);
     if (input.confirmation !== "PUBLICEREN") {
       throw new Error("Expliciete publicatiebevestiging ontbreekt");
     }

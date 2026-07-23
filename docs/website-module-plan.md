@@ -212,6 +212,9 @@ Acceptance:
 
 ## Phase 5 — blog
 
+Status: implemented on the reviewed Phase 5 increment; merge remains subject to
+exact-head CI and human review.
+
 Deliverables:
 
 - posts, categories, tags, archive, post detail, metadata and feed/sitemap integration;
@@ -322,13 +325,14 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Phase 4 is complete across the reviewed 4A and 4B increments. It supplies
-tenant-scoped Header/Footer/Legal authoring, canonical locale-ready route keys,
-atomic managed redirects, guarded page-path changes, exact 301/302/308 runtime
-delivery and publication-time link/loop/collision diagnostics. The next
-reviewed increment is Phase 5: blog authoring on the existing TipTap v2 and
-immutable-publication contracts. Phase 5 may not introduce raw HTML, a second
-rich-text format, implicit scheduling or delivery-infrastructure changes.
+Phase 5 is complete on top of the reviewed Phase 4A/4B increments. It supplies
+tenant-scoped post/category/tag authoring, explicit post publication, strict
+TipTap v2 rendering, signed draft preview, immutable whole-site snapshots,
+metadata, RSS and sitemap delivery, cross-route collision checks and
+PostgreSQL/runtime privacy proof. The next reviewed increment is Phase 6:
+forms, durable submissions and explicit lead conversion. Phase 6 may not expose
+database credentials to managed or custom public websites and may not couple
+notification success to durable submission persistence.
 
 DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9

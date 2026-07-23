@@ -1,6 +1,10 @@
-import { ManagedWebsiteView } from "@/lib/render-document";
 import {
-  loadManagedWebsitePageContext,
+  ManagedWebsiteBlogArchiveView,
+  ManagedWebsiteBlogPostView,
+  ManagedWebsiteView,
+} from "@/lib/render-document";
+import {
+  loadManagedWebsiteRouteContext,
   pathnameFromSlug,
 } from "@/lib/runtime-context";
 import type { Metadata } from "next";
@@ -15,7 +19,7 @@ type PageProps = { params: Promise<{ slug?: string[] }> };
 
 async function contextForRequest(props: PageProps) {
   const [requestHeaders, params] = await Promise.all([headers(), props.params]);
-  return loadManagedWebsitePageContext(
+  return loadManagedWebsiteRouteContext(
     requestHeaders.get("host") ?? "",
     pathnameFromSlug(params.slug),
   );
@@ -30,31 +34,101 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     };
   }
 
-  const { page, resolution } = context;
-  const canonical = `https://${resolution.canonicalHostname}${page.path}`;
-  const indexable =
-    resolution.snapshot.defaultSeo.indexable && page.seo.indexable;
+  const { resolution } = context;
+  if (context.kind === "page") {
+    const canonical = `https://${resolution.canonicalHostname}${context.page.path}`;
+    const indexable =
+      resolution.snapshot.defaultSeo.indexable && context.page.seo.indexable;
+    return {
+      title: context.page.seo.title,
+      description: context.page.seo.description,
+      alternates: { canonical },
+      robots: { index: indexable, follow: indexable },
+      openGraph: {
+        type: "website",
+        title: context.page.seo.title,
+        description: context.page.seo.description,
+        url: canonical,
+      },
+    };
+  }
+  if (context.kind === "blog_post") {
+    const canonical = `https://${resolution.canonicalHostname}${context.post.path}`;
+    const indexable =
+      resolution.snapshot.defaultSeo.indexable && context.post.seo.indexable;
+    return {
+      title: context.post.seo.title,
+      description: context.post.seo.description,
+      alternates: { canonical },
+      robots: { index: indexable, follow: indexable },
+      openGraph: {
+        type: "article",
+        title: context.post.seo.title,
+        description: context.post.seo.description,
+        url: canonical,
+        publishedTime: context.post.publishedAt ?? undefined,
+      },
+    };
+  }
+  const archive =
+    context.kind === "blog_category" ? context.category : context.tag;
+  const canonical = `https://${resolution.canonicalHostname}${archive.path}`;
+  const title =
+    context.kind === "blog_category"
+      ? `${context.category.name} | Blog`
+      : `Tag: ${context.tag.name} | Blog`;
+  const description =
+    context.kind === "blog_category"
+      ? (context.category.description ??
+        `Blogberichten in de categorie ${context.category.name}.`)
+      : `Blogberichten met de tag ${context.tag.name}.`;
+  const indexable = resolution.snapshot.defaultSeo.indexable;
   return {
-    title: page.seo.title,
-    description: page.seo.description,
+    title,
+    description,
     alternates: { canonical },
     robots: { index: indexable, follow: indexable },
-    openGraph: {
-      type: "website",
-      title: page.seo.title,
-      description: page.seo.description,
-      url: canonical,
-    },
+    openGraph: { type: "website", title, description, url: canonical },
   };
 }
 
 export default async function ManagedWebsitePage(props: PageProps) {
   const context = await contextForRequest(props);
   if (!context) notFound();
+  if (context.kind === "page") {
+    return (
+      <ManagedWebsiteView
+        snapshot={context.resolution.snapshot}
+        page={context.page}
+        deliveryRevision={context.resolution.deliveryRevision}
+      />
+    );
+  }
+  if (context.kind === "blog_post") {
+    return (
+      <ManagedWebsiteBlogPostView
+        snapshot={context.resolution.snapshot}
+        post={context.post}
+        deliveryRevision={context.resolution.deliveryRevision}
+      />
+    );
+  }
+  if (context.kind === "blog_category") {
+    return (
+      <ManagedWebsiteBlogArchiveView
+        snapshot={context.resolution.snapshot}
+        title={context.category.name}
+        description={context.category.description}
+        posts={context.posts}
+        deliveryRevision={context.resolution.deliveryRevision}
+      />
+    );
+  }
   return (
-    <ManagedWebsiteView
+    <ManagedWebsiteBlogArchiveView
       snapshot={context.resolution.snapshot}
-      page={context.page}
+      title={`Tag: ${context.tag.name}`}
+      posts={context.posts}
       deliveryRevision={context.resolution.deliveryRevision}
     />
   );

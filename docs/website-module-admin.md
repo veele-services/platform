@@ -54,10 +54,11 @@ Proposed routes:
 | `/website/settings`    | Identity, contact, theme, domain and SEO defaults          | settings read/write split      |
 | `/website/pages`       | Page list, draft/published state and validation            | pages read                     |
 | `/website/pages/[id]`  | Page metadata and section editor                           | pages write for mutation       |
-| `/website/review`      | Draft diagnostics, preview and immutable publication       | pages read/publish split       |
-| `/website-preview/*`   | Authenticated, short-lived whole-site draft preview        | pages read + bound token       |
+| `/website/review`      | Draft diagnostics, preview and immutable publication       | pages + blog read/publish      |
+| `/website-preview/*`   | Authenticated, short-lived whole-site draft preview        | pages + blog read, bound token |
 | `/website/navigation`  | Header/footer navigation                                   | navigation read/write          |
 | `/website/blog`        | Posts, categories and tags                                 | blog read                      |
+| `/website/blog/new`    | New private post draft                                     | blog write                     |
 | `/website/blog/[id]`   | Post editor and preview                                    | blog write/publish             |
 | `/website/forms`       | Form definitions and notification policy                   | forms read/write               |
 | `/website/submissions` | Submission inbox and lead conversion                       | submissions read/write         |

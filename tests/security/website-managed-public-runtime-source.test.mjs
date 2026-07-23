@@ -45,8 +45,10 @@ test("FG-WEBSITE-PUBLIC-RUNTIME fails closed and never serves application prefix
   assert.match(page, /notFound\(\)/u);
   assert.match(
     page,
-    /https:\/\/\$\{resolution\.canonicalHostname\}\$\{page\.path\}/u,
+    /https:\/\/\$\{resolution\.canonicalHostname\}\$\{context\.page\.path\}/u,
   );
+  assert.match(page, /context\.kind === "blog_post"/u);
+  assert.match(page, /context\.kind === "blog_category"/u);
   assert.match(page, /alternates: \{ canonical \}/u);
   assert.match(page, /robots: \{ index: indexable, follow: indexable \}/u);
   assert.match(responses, /neutralErrorResponse\(404\)/u);

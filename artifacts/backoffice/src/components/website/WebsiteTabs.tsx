@@ -6,6 +6,7 @@ const WEBSITE_TABS = [
   { href: "/website/pages", label: "Pagina's" },
   { href: "/website/navigation", label: "Navigatie" },
   { href: "/website/redirects", label: "Redirects" },
+  { href: "/website/blog", label: "Blog" },
   { href: "/website/review", label: "Preview & publiceren" },
 ] as const;
 

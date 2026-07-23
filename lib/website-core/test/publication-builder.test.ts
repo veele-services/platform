@@ -20,6 +20,11 @@ const homeNavId = "50000000-0000-4000-8000-000000000001";
 const contactNavId = "50000000-0000-4000-8000-000000000002";
 const externalNavId = "50000000-0000-4000-8000-000000000003";
 const redirectId = "60000000-0000-4000-8000-000000000001";
+const blogIndexId = "70000000-0000-4000-8000-000000000001";
+const blogCategoryId = "70000000-0000-4000-8000-000000000002";
+const blogTagId = "70000000-0000-4000-8000-000000000003";
+const publishedPostId = "70000000-0000-4000-8000-000000000004";
+const draftPostId = "70000000-0000-4000-8000-000000000005";
 
 const seo = {
   title: "Voorbeeldbedrijf",
@@ -177,6 +182,7 @@ function sourceFixture(): WebsitePublicationSource {
         isActive: true,
       },
     ],
+    blog: { categories: [], tags: [], posts: [] },
   };
 }
 
@@ -191,6 +197,89 @@ function diagnosticsFor(action: () => unknown) {
     return (error as WebsitePublicationValidationError).diagnostics;
   }
   return [];
+}
+
+function addBlog(source: WebsitePublicationSource) {
+  source.pages.push({
+    id: blogIndexId,
+    locale: "nl-NL",
+    path: "/blog",
+    pageType: "blog_index",
+    title: "Blog",
+    seo,
+    status: "published",
+    isHomepage: false,
+    sections: [],
+  });
+  source.blog = {
+    categories: [
+      {
+        id: blogCategoryId,
+        locale: "nl-NL",
+        name: "Advies",
+        slug: "advies",
+        description: "Praktische adviezen.",
+        isActive: true,
+      },
+    ],
+    tags: [
+      {
+        id: blogTagId,
+        locale: "nl-NL",
+        name: "Veiligheid",
+        slug: "veiligheid",
+        isActive: true,
+      },
+    ],
+    posts: [
+      {
+        id: publishedPostId,
+        locale: "nl-NL",
+        title: "Veilig werken",
+        slug: "veilig-werken",
+        excerpt: "Praktische uitleg over veilig werken.",
+        body: {
+          type: "doc",
+          schemaVersion: 2,
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Gepubliceerde inhoud." }],
+            },
+          ],
+        },
+        categoryId: blogCategoryId,
+        tagIds: [blogTagId],
+        seo,
+        status: "published",
+        publishedAt: "2026-01-10T09:00:00.000Z",
+        updatedAt: "2026-01-10T09:00:00.000Z",
+      },
+      {
+        id: draftPostId,
+        locale: "nl-NL",
+        title: "Conceptadvies",
+        slug: "conceptadvies",
+        excerpt: "Dit bericht blijft privé tot expliciete publicatie.",
+        body: {
+          type: "doc",
+          schemaVersion: 2,
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Privéconcept." }],
+            },
+          ],
+        },
+        categoryId: blogCategoryId,
+        tagIds: [],
+        seo,
+        status: "draft",
+        publishedAt: null,
+        updatedAt: "2026-01-11T09:00:00.000Z",
+      },
+    ],
+  };
 }
 
 test("compiler creates a deterministic next-revision snapshot from published content", () => {
@@ -230,6 +319,95 @@ test("compiler creates a deterministic next-revision snapshot from published con
   assert.equal(
     serializeWebsitePublication(snapshot),
     serializeWebsitePublication(buildWebsitePublicationSnapshot(source)),
+  );
+});
+
+test("blog compiler keeps drafts private and includes them only in signed preview snapshots", () => {
+  const source = sourceFixture();
+  addBlog(source);
+  const draftCategoryId = "70000000-0000-4000-8000-000000000007";
+  const draftTagId = "70000000-0000-4000-8000-000000000008";
+  source.blog.categories.push({
+    id: draftCategoryId,
+    locale: "nl-NL",
+    name: "Nog privé",
+    slug: "nog-prive",
+    description: "Taxonomie voor een privéconcept.",
+    isActive: true,
+  });
+  source.blog.tags.push({
+    id: draftTagId,
+    locale: "nl-NL",
+    name: "Concept",
+    slug: "concept",
+    isActive: true,
+  });
+  source.blog.posts[1]!.categoryId = draftCategoryId;
+  source.blog.posts[1]!.tagIds = [draftTagId];
+  const published = buildWebsitePublicationSnapshot(source);
+  const preview = buildWebsiteDraftPreviewSnapshot(source);
+  assert.deepEqual(
+    published.blog.posts.map((post) => [post.path, post.visibility]),
+    [["/blog/veilig-werken", "published"]],
+  );
+  assert.deepEqual(
+    preview.blog.posts
+      .map((post) => [post.path, post.visibility])
+      .sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ["/blog/conceptadvies", "preview"],
+      ["/blog/veilig-werken", "published"],
+    ],
+  );
+  assert.equal(published.blog.categories[0]?.path, "/blog/categorie/advies");
+  assert.equal(published.blog.tags[0]?.path, "/blog/tag/veiligheid");
+  assert.ok(
+    !published.blog.categories.some(
+      (category) => category.id === draftCategoryId,
+    ),
+  );
+  assert.ok(!published.blog.tags.some((tag) => tag.id === draftTagId));
+  assert.ok(
+    preview.blog.categories.some((category) => category.id === draftCategoryId),
+  );
+  assert.ok(preview.blog.tags.some((tag) => tag.id === draftTagId));
+});
+
+test("published blog routes participate in redirect and page collision validation", () => {
+  const source = sourceFixture();
+  addBlog(source);
+  source.redirects[0]!.destination = "/blog/veilig-werken";
+  assert.equal(
+    buildWebsitePublicationSnapshot(source).redirects[0]?.destination,
+    "/blog/veilig-werken",
+  );
+
+  source.pages.push({
+    id: "70000000-0000-4000-8000-000000000006",
+    locale: "nl-NL",
+    path: "/blog/veilig-werken",
+    pageType: "standard",
+    title: "Botsing",
+    seo,
+    status: "published",
+    isHomepage: false,
+    sections: [],
+  });
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(source)).some(
+      (entry) => entry.code === "blog_page_collision",
+    ),
+  );
+});
+
+test("future blog timestamps fail closed because scheduling is unsupported", () => {
+  const source = sourceFixture();
+  addBlog(source);
+  source.blog!.posts[0]!.publishedAt = "2999-01-01T00:00:00.000Z";
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(source)).some(
+      (entry) => entry.code === "future_blog_post",
+    ),
   );
 });
 

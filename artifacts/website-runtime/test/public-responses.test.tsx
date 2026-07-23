@@ -4,17 +4,128 @@ import { websitePublicationSnapshotSchema } from "@workspace/website-core";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  managedWebsiteFeedResponse,
   managedWebsiteRobotsResponse,
   managedWebsiteRedirectResponse,
   managedWebsiteSitemapResponse,
 } from "../src/lib/public-responses";
-import { ManagedWebsiteView } from "../src/lib/render-document";
+import {
+  ManagedWebsiteBlogPostView,
+  ManagedWebsiteView,
+} from "../src/lib/render-document";
 import { requestPathOwner } from "../src/lib/request";
 import {
   publicationSnapshot,
   readyResolution,
   websiteRequest,
 } from "./fixtures";
+
+function blogSnapshot() {
+  const snapshot = publicationSnapshot();
+  snapshot.pages.push({
+    id: "20000000-0000-4000-8000-000000000021",
+    locale: "nl-NL",
+    path: "/blog",
+    pageType: "blog_index",
+    title: "Blog",
+    seo: {
+      title: "Blog | Alpha Service",
+      description: "Nieuws en praktische uitleg.",
+      socialImageMediaId: null,
+      indexable: true,
+    },
+    sections: [],
+  });
+  snapshot.blog = {
+    categories: [
+      {
+        id: "20000000-0000-4000-8000-000000000022",
+        locale: "nl-NL",
+        name: "Advies",
+        slug: "advies",
+        path: "/blog/categorie/advies",
+        description: "Praktische adviezen.",
+      },
+    ],
+    tags: [
+      {
+        id: "20000000-0000-4000-8000-000000000023",
+        locale: "nl-NL",
+        name: "Veiligheid",
+        slug: "veiligheid",
+        path: "/blog/tag/veiligheid",
+      },
+    ],
+    posts: [
+      {
+        id: "20000000-0000-4000-8000-000000000024",
+        locale: "nl-NL",
+        title: "Veilig <werken>",
+        slug: "veilig-werken",
+        path: "/blog/veilig-werken",
+        excerpt: "Praktische uitleg & advies.",
+        body: {
+          type: "doc",
+          schemaVersion: 2,
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "<script>alert(1)</script> " },
+                {
+                  type: "text",
+                  text: "Contact",
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: { href: "/contact" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        categoryId: "20000000-0000-4000-8000-000000000022",
+        tagIds: ["20000000-0000-4000-8000-000000000023"],
+        seo: {
+          title: "Veilig werken",
+          description: "Praktische uitleg over veilig werken.",
+          socialImageMediaId: null,
+          indexable: true,
+        },
+        visibility: "published",
+        publishedAt: "2026-01-10T09:00:00.000Z",
+        updatedAt: "2026-01-10T09:00:00.000Z",
+      },
+      {
+        id: "20000000-0000-4000-8000-000000000025",
+        locale: "nl-NL",
+        title: "Privéconcept",
+        slug: "priveconcept",
+        path: "/blog/priveconcept",
+        excerpt: "Niet voor publieke bezoekers.",
+        body: {
+          type: "doc",
+          schemaVersion: 2,
+          content: [{ type: "paragraph", content: [] }],
+        },
+        categoryId: null,
+        tagIds: [],
+        seo: {
+          title: "Privéconcept",
+          description: "Niet voor publieke bezoekers.",
+          socialImageMediaId: null,
+          indexable: false,
+        },
+        visibility: "preview",
+        publishedAt: null,
+        updatedAt: "2026-01-11T09:00:00.000Z",
+      },
+    ],
+  };
+  return websitePublicationSnapshotSchema.parse(snapshot);
+}
 
 test("managed page renders all MVP sections as escaped server markup", () => {
   const snapshot = structuredClone(publicationSnapshot());
@@ -117,6 +228,47 @@ test("managed page renders allowlisted TipTap JSON without an HTML escape hatch"
     /href="https:\/\/example\.test\/uitleg" rel="noopener noreferrer" target="_blank"/u,
   );
   assert.doesNotMatch(html, /dangerouslySetInnerHTML|javascript:/u);
+});
+
+test("blog index and detail render only allowlisted immutable content", () => {
+  const snapshot = blogSnapshot();
+  const index = snapshot.pages.find((page) => page.pageType === "blog_index")!;
+  const indexHtml = renderToStaticMarkup(
+    <ManagedWebsiteView
+      snapshot={snapshot}
+      page={index}
+      deliveryRevision={snapshot.deliveryRevision}
+    />,
+  );
+  assert.match(indexHtml, /Veilig &lt;werken&gt;/u);
+  assert.doesNotMatch(indexHtml, /Privéconcept/u);
+
+  const postHtml = renderToStaticMarkup(
+    <ManagedWebsiteBlogPostView
+      snapshot={snapshot}
+      post={snapshot.blog.posts[0]!}
+      deliveryRevision={snapshot.deliveryRevision}
+    />,
+  );
+  assert.match(postHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
+  assert.doesNotMatch(postHtml, /<script>alert/u);
+  assert.match(postHtml, /href="\/blog\/tag\/veiligheid"/u);
+  assert.match(postHtml, /href="\/contact">Contact<\/a>/u);
+
+  const previewPrefix = "/admin/website-preview/fgwp1.opaque.signature";
+  const previewPostHtml = renderToStaticMarkup(
+    <ManagedWebsiteBlogPostView
+      snapshot={snapshot}
+      post={snapshot.blog.posts[0]!}
+      deliveryRevision={snapshot.deliveryRevision}
+      internalPathPrefix={previewPrefix}
+    />,
+  );
+  assert.match(
+    previewPostHtml,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact">Contact<\/a>/u,
+  );
+  assert.doesNotMatch(previewPostHtml, /href="\/contact"/u);
 });
 
 test("shared renderer keeps every internal preview navigation inside its opaque boundary", () => {
@@ -223,6 +375,32 @@ test("robots ETag revalidation is bound to the active publication revision", asy
   );
   assert.equal(response.status, 304);
   assert.equal(await response.text(), "");
+});
+
+test("feed and sitemap expose published blog routes without preview content", async () => {
+  const ready = readyResolution(blogSnapshot());
+  const [feed, sitemap] = await Promise.all([
+    managedWebsiteFeedResponse(websiteRequest("/feed.xml"), async () => ready),
+    managedWebsiteSitemapResponse(
+      websiteRequest("/sitemap.xml"),
+      async () => ready,
+    ),
+  ]);
+  assert.equal(feed.status, 200);
+  assert.equal(
+    feed.headers.get("content-type"),
+    "application/rss+xml; charset=utf-8",
+  );
+  const feedBody = await feed.text();
+  assert.match(feedBody, /Veilig &lt;werken&gt;/u);
+  assert.match(feedBody, /Praktische uitleg &amp; advies/u);
+  assert.doesNotMatch(feedBody, /Privéconcept/u);
+
+  const sitemapBody = await sitemap.text();
+  assert.match(sitemapBody, /\/blog\/veilig-werken/u);
+  assert.match(sitemapBody, /\/blog\/categorie\/advies/u);
+  assert.match(sitemapBody, /\/blog\/tag\/veiligheid/u);
+  assert.doesNotMatch(sitemapBody, /priveconcept/u);
 });
 
 test("robots and sitemap use the exact canonical publication host", async () => {
