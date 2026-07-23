@@ -811,7 +811,10 @@ export function ManagedWebsiteBlogPostView({
               <span className="preview-label">Conceptpreview</span>
             )}
             <div className="rich-text-content blog-body">
-              <RichText document={post.body} />
+              <RichText
+                document={post.body}
+                context={{ snapshot, internalPathPrefix }}
+              />
             </div>
             {tags.length ? (
               <ul className="blog-tags" aria-label="Tags">

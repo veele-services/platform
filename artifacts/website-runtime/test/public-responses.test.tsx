@@ -70,7 +70,19 @@ function blogSnapshot() {
           content: [
             {
               type: "paragraph",
-              content: [{ type: "text", text: "<script>alert(1)</script>" }],
+              content: [
+                { type: "text", text: "<script>alert(1)</script> " },
+                {
+                  type: "text",
+                  text: "Contact",
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: { href: "/contact" },
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -241,6 +253,22 @@ test("blog index and detail render only allowlisted immutable content", () => {
   assert.match(postHtml, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/u);
   assert.doesNotMatch(postHtml, /<script>alert/u);
   assert.match(postHtml, /href="\/blog\/tag\/veiligheid"/u);
+  assert.match(postHtml, /href="\/contact">Contact<\/a>/u);
+
+  const previewPrefix = "/admin/website-preview/fgwp1.opaque.signature";
+  const previewPostHtml = renderToStaticMarkup(
+    <ManagedWebsiteBlogPostView
+      snapshot={snapshot}
+      post={snapshot.blog.posts[0]!}
+      deliveryRevision={snapshot.deliveryRevision}
+      internalPathPrefix={previewPrefix}
+    />,
+  );
+  assert.match(
+    previewPostHtml,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact">Contact<\/a>/u,
+  );
+  assert.doesNotMatch(previewPostHtml, /href="\/contact"/u);
 });
 
 test("shared renderer keeps every internal preview navigation inside its opaque boundary", () => {
