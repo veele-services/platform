@@ -82,13 +82,22 @@ test("preview consumption binds exact tenant, actor, site revision and expiry", 
 
 test("preview route repeats live auth, RBAC and signed-token verification", () => {
   assert.match(previewRoute, /getCurrentBackofficeUser\(\)/u);
-  assert.match(previewRoute, /requireCurrentTenantId\(\)/u);
+  assert.match(previewRoute, /getCurrentTenantId\(\)/u);
+  assert.doesNotMatch(previewRoute, /requireCurrentTenantId\(\)/u);
   assert.match(previewRoute, /hasPermission\("website_pages", "read"\)/u);
   assert.match(previewRoute, /verifyWebsitePreviewToken/u);
   assert.match(previewRoute, /hashWebsitePreviewToken/u);
   assert.match(previewRoute, /loadWebsitePreviewSession/u);
   assert.match(previewRoute, /notFound\(\)/u);
   assert.match(previewRoute, /Conceptpreview/u);
+  assert.ok(
+    previewRoute.indexOf("verifyWebsitePreviewToken") <
+      previewRoute.indexOf("getCurrentTenantId()"),
+  );
+  assert.ok(
+    previewRoute.indexOf("if (!tenantId) notFound()") <
+      previewRoute.indexOf('hasPermission("website_pages", "read")'),
+  );
 });
 
 test("preview responses cannot be cached, indexed or leak their token as a referrer", () => {

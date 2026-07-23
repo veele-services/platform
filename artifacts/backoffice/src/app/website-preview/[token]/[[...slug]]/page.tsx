@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   getCurrentBackofficeUser,
-  requireCurrentTenantId,
+  getCurrentTenantId,
 } from "@/lib/auth/tenant";
 import { backofficePath } from "@/lib/backoffice-paths";
 
@@ -37,19 +37,19 @@ function previewSigningSecret(): string {
 }
 
 export default async function WebsitePreviewPage({ params }: Props) {
-  const [{ token, slug }, user, tenantId, canRead] = await Promise.all([
+  const [{ token, slug }, user] = await Promise.all([
     params,
     getCurrentBackofficeUser(),
-    requireCurrentTenantId(),
-    hasPermission("website_pages", "read"),
   ]);
-  if (
-    !user ||
-    !canRead ||
-    !verifyWebsitePreviewToken(token, previewSigningSecret())
-  ) {
+  if (!user || !verifyWebsitePreviewToken(token, previewSigningSecret())) {
     notFound();
   }
+
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) notFound();
+
+  const canRead = await hasPermission("website_pages", "read");
+  if (!canRead) notFound();
 
   const preview = await loadWebsitePreviewSession({
     tenantId,

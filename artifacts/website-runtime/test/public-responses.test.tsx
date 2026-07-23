@@ -121,6 +121,37 @@ test("managed page renders allowlisted TipTap JSON without an HTML escape hatch"
 
 test("shared renderer keeps every internal preview navigation inside its opaque boundary", () => {
   const snapshot = publicationSnapshot();
+  snapshot.pages[0]!.sections.push({
+    id: "20000000-0000-4000-8000-000000000096",
+    type: "rich_text",
+    schemaVersion: 1,
+    variant: "narrow",
+    visible: true,
+    content: {
+      title: "Previewlinks",
+      body: {
+        type: "doc",
+        schemaVersion: 2,
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Contactinhoud",
+                marks: [
+                  {
+                    type: "link",
+                    attrs: { href: "/contact" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
   const ready = readyResolution(snapshot);
   const prefix = "/admin/website-preview/fgwp1.opaque.signature";
   const html = renderToStaticMarkup(
@@ -139,6 +170,10 @@ test("shared renderer keeps every internal preview navigation inside its opaque 
   assert.match(
     html,
     /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact"/u,
+  );
+  assert.match(
+    html,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact">Contactinhoud<\/a>/u,
   );
   assert.doesNotMatch(html, /href="\/contact"/u);
 });

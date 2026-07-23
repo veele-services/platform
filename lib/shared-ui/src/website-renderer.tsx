@@ -27,21 +27,23 @@ const RADIUS = {
 } as const;
 const SPACING = { compact: "0.85", comfortable: "1", spacious: "1.2" } as const;
 
+function internalHref(path: string, context: RenderLinkContext): string {
+  return `${context.internalPathPrefix}${path === "/" ? "" : path}` || "/";
+}
+
 function actionHref(
   action: WebsiteAction,
   context: RenderLinkContext,
 ): string | null {
-  const prefixPath = (path: string) =>
-    `${context.internalPathPrefix}${path === "/" ? "" : path}` || "/";
   switch (action.kind) {
     case "page": {
       const path =
         context.snapshot.pages.find((page) => page.id === action.pageId)
           ?.path ?? null;
-      return path ? prefixPath(path) : null;
+      return path ? internalHref(path, context) : null;
     }
     case "path":
-      return prefixPath(action.path);
+      return internalHref(action.path, context);
     case "external":
       return action.href;
     case "phone":
@@ -80,7 +82,11 @@ type RichTextNode = Extract<
   { schemaVersion: 2 }
 >["content"][number];
 
-function renderRichTextNode(node: RichTextNode, key: string): ReactNode {
+function renderRichTextNode(
+  node: RichTextNode,
+  key: string,
+  context: RenderLinkContext,
+): ReactNode {
   if (node.type === "text") {
     let value: ReactNode = node.text;
     for (const mark of node.marks ?? []) {
@@ -88,9 +94,12 @@ function renderRichTextNode(node: RichTextNode, key: string): ReactNode {
       if (mark.type === "bold") value = <strong>{value}</strong>;
       if (mark.type === "link") {
         const external = mark.attrs.href.startsWith("https://");
+        const href = mark.attrs.href.startsWith("/")
+          ? internalHref(mark.attrs.href, context)
+          : mark.attrs.href;
         value = (
           <a
-            href={mark.attrs.href}
+            href={href}
             rel={external ? "noopener noreferrer" : undefined}
             target={external ? "_blank" : undefined}
           >
@@ -105,7 +114,7 @@ function renderRichTextNode(node: RichTextNode, key: string): ReactNode {
   if (node.type === "horizontalRule") return <hr key={key} />;
 
   const children = node.content.map((child, index) =>
-    renderRichTextNode(child, `${key}-${index}`),
+    renderRichTextNode(child, `${key}-${index}`, context),
   );
   switch (node.type) {
     case "paragraph":
@@ -127,7 +136,13 @@ function renderRichTextNode(node: RichTextNode, key: string): ReactNode {
   }
 }
 
-function RichText({ document }: { document: WebsiteRichTextDocument }) {
+function RichText({
+  document,
+  context,
+}: {
+  document: WebsiteRichTextDocument;
+  context: RenderLinkContext;
+}) {
   if (document.schemaVersion === 1) {
     return document.content.map((paragraph, paragraphIndex) => (
       <p key={`legacy-rich-text-${paragraphIndex}`}>
@@ -141,7 +156,7 @@ function RichText({ document }: { document: WebsiteRichTextDocument }) {
     ));
   }
   return document.content.map((node, index) =>
-    renderRichTextNode(node, `rich-text-${index}`),
+    renderRichTextNode(node, `rich-text-${index}`, context),
   );
 }
 
@@ -372,7 +387,7 @@ function renderSection(
                     {typeof item.answer === "string" ? (
                       <p>{item.answer}</p>
                     ) : (
-                      <RichText document={item.answer} />
+                      <RichText document={item.answer} context={context} />
                     )}
                   </div>
                 </details>
@@ -472,7 +487,7 @@ function renderSection(
           >
             {section.content.title ? <h2>{section.content.title}</h2> : null}
             <div className="rich-text-content">
-              <RichText document={section.content.body} />
+              <RichText document={section.content.body} context={context} />
             </div>
           </div>
         </section>
@@ -524,8 +539,7 @@ function Navigation({
     const href =
       external || !item.href.startsWith("/")
         ? item.href
-        : `${context.internalPathPrefix}${item.href === "/" ? "" : item.href}` ||
-          "/";
+        : internalHref(item.href, context);
     return (
       <a
         href={href}
