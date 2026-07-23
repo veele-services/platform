@@ -121,6 +121,7 @@ type SectionRow = {
   position: number;
   content: unknown;
   is_visible: boolean;
+  requires_review: boolean;
 };
 
 type NavigationRow = {
@@ -283,7 +284,8 @@ export async function createManagedWebsitePublication(
          section.variant_key,
          section.position,
          section.content,
-         section.is_visible
+         section.is_visible,
+         section.requires_review
        FROM public.website_page_sections section
        WHERE section.tenant_id = $1 AND section.site_id = $2
        ORDER BY section.page_id, section.position, section.id`,
@@ -363,6 +365,7 @@ export async function createManagedWebsitePublication(
             position: Number(section.position),
             content: section.content,
             isVisible: section.is_visible,
+            requiresReview: section.requires_review,
           })),
         })),
         navigation: navigationResult.rows.map((item) => ({

@@ -1,10 +1,12 @@
 # Fieldgrid website module — managed template definitions
 
-Date: 21 July 2026
-Status: Template 1 configuration implemented; Templates 2–5 remain proposed
+Date: 23 July 2026
+Status: Templates 1–5 implemented as versioned managed-CMS presets
 
-Template 1 is implemented as validated initialization data in website-core. No
-public renderer or tenant-facing template picker is included in Phase 1A.
+All five templates are implemented as validated initialization data in
+website-core and are selectable only while creating a managed site. The shared
+public renderer and tenant-facing picker use the same section registry; no
+template owns a renderer fork.
 
 ## Template boundary
 
@@ -12,7 +14,7 @@ Templates are versioned initialization presets for the `managed_cms` engine. The
 
 `custom_nextjs` is deliberately absent from the template catalogue. It is an enterprise delivery mode for a separately built and approved Next.js application. The existing Veele marketing application is a candidate for that mode and must retain its own route, design, claims, performance and deployment contracts.
 
-## Proposed template contract
+## Template contract
 
 ```ts
 type WebsiteTemplateDefinition = {
@@ -102,7 +104,10 @@ Default pages:
 - Blog;
 - Contact.
 
-Release dependency: public media rights/derivatives, Project Showcase and safe Rich Text must be production-ready before this preset is selectable.
+Implemented with Project Showcase, safe Rich Text, a publication-review gate
+and optional media references. The preset contains no default third-party
+media; focal-point/crop infrastructure is therefore not required by this
+version.
 
 ## Template 3 — Fast Service & Emergency
 
@@ -131,7 +136,9 @@ Default pages:
 - Reviews;
 - Contact.
 
-Release dependency: emergency availability and response-time claims need a source/freshness policy. Phone and sticky CTA behavior must not obscure content or misrepresent availability.
+Implemented with a required availability notice and without a default 24/7 or
+response-time claim. The renderer uses normal responsive actions rather than an
+obscuring sticky control.
 
 ## Template 4 — Multi-Service Company
 
@@ -161,7 +168,9 @@ Default pages:
 - Blog;
 - Contact.
 
-Release dependency: Project Showcase, Team consent/removal, blog and scalable nested navigation must be complete.
+Implemented with Project Showcase, blog preview and an initially hidden Team
+section. Team records require explicit consent confirmation before they are
+accepted.
 
 ## Template 5 — Content & SEO Growth
 
@@ -190,7 +199,10 @@ Default pages:
 - Knowledge base;
 - Contact.
 
-Release dependency: page hierarchy, canonical/redirect rules, blog, safe rich text, Service Area and duplicate/thin-content quality checks must be complete. Templates never create unreviewed location doorway pages automatically.
+Implemented on the existing canonical/redirect, blog and safe Rich Text
+contracts. Service Area creates one editable list and never generates location
+pages. All generated section content requires explicit review before
+publication.
 
 ## Preset rules
 

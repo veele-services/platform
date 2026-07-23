@@ -15,6 +15,7 @@ export const EMPTY_RICH_TEXT_DOCUMENT: Extract<
 
 export const WEBSITE_SECTION_LABELS: Record<WebsiteEditorSectionKey, string> = {
   hero: "Intro / hero",
+  emergency_hero: "Spoedhero",
   trust_bar: "Vertrouwen",
   services_grid: "Diensten",
   feature_grid: "Kenmerken",
@@ -23,14 +24,26 @@ export const WEBSITE_SECTION_LABELS: Record<WebsiteEditorSectionKey, string> = {
   faq: "Veelgestelde vragen",
   cta_banner: "Actieblok",
   contact_form: "Contactformulier",
+  service_area: "Werkgebied",
+  project_showcase: "Projecten",
+  blog_preview: "Blogpreview",
   rich_text: "Vrije tekst",
+  stats: "Kengetallen",
+  team: "Team",
+  logo_wall: "Logo's en certificeringen",
 };
 
 export function createDefaultWebsiteSection(
   type: WebsiteEditorSectionKey,
   id: string,
 ): WebsiteSection {
-  const identity = { id, type, schemaVersion: 1 as const, visible: true };
+  const identity = {
+    id,
+    type,
+    schemaVersion: 1 as const,
+    visible: true,
+    requiresReview: true,
+  };
   switch (type) {
     case "hero":
       return {
@@ -41,6 +54,24 @@ export function createDefaultWebsiteSection(
           title: "Een heldere titel",
           subtitle: "Vertel kort wat uw organisatie voor de klant betekent.",
           badges: [],
+        },
+      };
+    case "emergency_hero":
+      return {
+        ...identity,
+        type,
+        variant: "urgent",
+        content: {
+          title: "Direct contact bij een storing",
+          subtitle: "Beschrijf waarvoor en wanneer klanten kunnen bellen.",
+          phoneAction: {
+            kind: "phone",
+            label: "Bel de storingsdienst",
+            phone: "+31100000000",
+          },
+          badges: [],
+          availabilityNotice:
+            "Vul de actuele bereikbaarheid in voordat u deze sectie publiceert.",
         },
       };
     case "trust_bar":
@@ -162,12 +193,97 @@ export function createDefaultWebsiteSection(
           showMap: false,
         },
       };
+    case "service_area":
+      return {
+        ...identity,
+        type,
+        variant: "grid",
+        content: {
+          title: "Ons werkgebied",
+          areas: ["Plaats of regio"],
+        },
+      };
+    case "project_showcase":
+      return {
+        ...identity,
+        type,
+        variant: "editorial",
+        content: {
+          title: "Projecten",
+          projects: [
+            {
+              title: "Nieuw project",
+              description:
+                "Beschrijf uitsluitend een project dat gepubliceerd mag worden.",
+            },
+          ],
+        },
+      };
+    case "blog_preview":
+      return {
+        ...identity,
+        type,
+        variant: "cards",
+        content: {
+          title: "Kennis en nieuws",
+          limit: 3,
+          action: {
+            kind: "path",
+            label: "Bekijk alle berichten",
+            path: "/blog",
+          },
+        },
+      };
     case "rich_text":
       return {
         ...identity,
         type,
         variant: "default",
         content: { body: EMPTY_RICH_TEXT_DOCUMENT },
+      };
+    case "stats":
+      return {
+        ...identity,
+        type,
+        variant: "inline",
+        content: {
+          items: [
+            {
+              value: "Waarde",
+              label: "Controleerbaar kengetal",
+              sourceNote: "Noteer de interne of openbare bron en peildatum.",
+            },
+          ],
+        },
+      };
+    case "team":
+      return {
+        ...identity,
+        type,
+        variant: "cards",
+        visible: false,
+        content: {
+          title: "Ons team",
+          subtitle:
+            "Voeg alleen teamleden toe die publicatietoestemming hebben gegeven.",
+          members: [],
+        },
+      };
+    case "logo_wall":
+      return {
+        ...identity,
+        type,
+        variant: "logos",
+        content: {
+          title: "Partners en certificeringen",
+          items: [
+            {
+              name: "Naam toevoegen",
+              description:
+                "Controleer toestemming, geldigheid en publicatierecht.",
+            },
+          ],
+        },
       };
   }
 }

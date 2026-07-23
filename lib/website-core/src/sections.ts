@@ -33,8 +33,23 @@ export const WEBSITE_MVP_SECTION_KEYS = [
 ] as const;
 
 export const WEBSITE_EDITOR_SECTION_KEYS = [
-  ...WEBSITE_MVP_SECTION_KEYS,
+  "hero",
+  "emergency_hero",
+  "trust_bar",
+  "services_grid",
+  "feature_grid",
+  "process_steps",
+  "testimonials",
+  "faq",
+  "cta_banner",
+  "contact_form",
+  "service_area",
+  "project_showcase",
+  "blog_preview",
   "rich_text",
+  "stats",
+  "team",
+  "logo_wall",
 ] as const;
 
 export type WebsiteSectionKey = (typeof WEBSITE_SECTION_KEYS)[number];
@@ -268,6 +283,21 @@ export const heroContentSchema = z
   })
   .strict();
 
+export const emergencyHeroContentSchema = z
+  .object({
+    eyebrow: shortText.optional(),
+    title: shortText,
+    subtitle: optionalBodyText,
+    phoneAction: websiteActionSchema.refine(
+      (action) => action.kind === "phone",
+      "Een spoedhero vereist een telefoonactie",
+    ),
+    secondaryAction: websiteActionSchema.optional(),
+    badges: z.array(shortText).max(5).default([]),
+    availabilityNotice: z.string().trim().min(1).max(240),
+  })
+  .strict();
+
 const trustItemSchema = z
   .object({
     name: shortText,
@@ -391,6 +421,91 @@ export const contactFormContentSchema = z
   })
   .strict();
 
+export const serviceAreaContentSchema = z
+  .object({
+    title: shortText,
+    subtitle: optionalBodyText,
+    areas: z.array(shortText).min(1).max(40),
+    action: websiteActionSchema.optional(),
+  })
+  .strict();
+
+const projectShowcaseItemSchema = z
+  .object({
+    title: shortText,
+    description: bodyText,
+    location: z.string().trim().max(180).optional(),
+    imageId: z.string().uuid().optional(),
+    action: websiteActionSchema.optional(),
+  })
+  .strict();
+
+export const projectShowcaseContentSchema = z
+  .object({
+    title: shortText,
+    subtitle: optionalBodyText,
+    projects: z.array(projectShowcaseItemSchema).min(1).max(12),
+  })
+  .strict();
+
+export const blogPreviewContentSchema = z
+  .object({
+    title: shortText,
+    subtitle: optionalBodyText,
+    limit: z.number().int().min(1).max(9).default(3),
+    action: websiteActionSchema.optional(),
+  })
+  .strict();
+
+const statItemSchema = z
+  .object({
+    value: shortText,
+    label: shortText,
+    sourceNote: z.string().trim().min(1).max(500),
+  })
+  .strict();
+
+export const statsContentSchema = z
+  .object({
+    title: shortText.optional(),
+    items: z.array(statItemSchema).min(1).max(8),
+  })
+  .strict();
+
+const teamMemberSchema = z
+  .object({
+    name: shortText,
+    role: shortText,
+    bio: z.string().trim().max(1_000).optional(),
+    imageId: z.string().uuid().optional(),
+    consentConfirmed: z.boolean().default(false),
+  })
+  .strict();
+
+export const teamContentSchema = z
+  .object({
+    title: shortText,
+    subtitle: optionalBodyText,
+    members: z.array(teamMemberSchema).max(24),
+  })
+  .strict();
+
+const logoWallItemSchema = z
+  .object({
+    name: shortText,
+    description: z.string().trim().max(500).optional(),
+    mediaId: z.string().uuid().optional(),
+    validUntil: z.string().date().optional(),
+  })
+  .strict();
+
+export const logoWallContentSchema = z
+  .object({
+    title: shortText.optional(),
+    items: z.array(logoWallItemSchema).min(1).max(24),
+  })
+  .strict();
+
 export const WEBSITE_SECTION_REGISTRY = {
   hero: {
     key: "hero",
@@ -398,6 +513,13 @@ export const WEBSITE_SECTION_REGISTRY = {
     variants: ["centered", "split", "visual", "service", "minimal"] as const,
     defaultVariant: "split",
     contentSchema: heroContentSchema,
+  },
+  emergency_hero: {
+    key: "emergency_hero",
+    schemaVersion: 1,
+    variants: ["urgent", "compact"] as const,
+    defaultVariant: "urgent",
+    contentSchema: emergencyHeroContentSchema,
   },
   trust_bar: {
     key: "trust_bar",
@@ -455,12 +577,54 @@ export const WEBSITE_SECTION_REGISTRY = {
     defaultVariant: "split_contact",
     contentSchema: contactFormContentSchema,
   },
+  service_area: {
+    key: "service_area",
+    schemaVersion: 1,
+    variants: ["list", "grid"] as const,
+    defaultVariant: "grid",
+    contentSchema: serviceAreaContentSchema,
+  },
+  project_showcase: {
+    key: "project_showcase",
+    schemaVersion: 1,
+    variants: ["editorial", "cards"] as const,
+    defaultVariant: "editorial",
+    contentSchema: projectShowcaseContentSchema,
+  },
+  blog_preview: {
+    key: "blog_preview",
+    schemaVersion: 1,
+    variants: ["cards", "editorial"] as const,
+    defaultVariant: "cards",
+    contentSchema: blogPreviewContentSchema,
+  },
   rich_text: {
     key: "rich_text",
     schemaVersion: 1,
     variants: ["default", "narrow"] as const,
     defaultVariant: "default",
     contentSchema: richTextContentSchema,
+  },
+  stats: {
+    key: "stats",
+    schemaVersion: 1,
+    variants: ["inline", "cards"] as const,
+    defaultVariant: "inline",
+    contentSchema: statsContentSchema,
+  },
+  team: {
+    key: "team",
+    schemaVersion: 1,
+    variants: ["cards", "compact"] as const,
+    defaultVariant: "cards",
+    contentSchema: teamContentSchema,
+  },
+  logo_wall: {
+    key: "logo_wall",
+    schemaVersion: 1,
+    variants: ["logos", "certifications"] as const,
+    defaultVariant: "logos",
+    contentSchema: logoWallContentSchema,
   },
 } as const satisfies Record<
   WebsiteEditorSectionKey,
@@ -477,6 +641,7 @@ const sectionIdentitySchema = {
   id: z.string().uuid(),
   schemaVersion: z.literal(1),
   visible: z.boolean().default(true),
+  requiresReview: z.boolean().optional(),
 };
 
 export const websiteSectionSchema = z.discriminatedUnion("type", [
@@ -486,6 +651,14 @@ export const websiteSectionSchema = z.discriminatedUnion("type", [
       type: z.literal("hero"),
       variant: z.enum(WEBSITE_SECTION_REGISTRY.hero.variants),
       content: heroContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("emergency_hero"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.emergency_hero.variants),
+      content: emergencyHeroContentSchema,
     })
     .strict(),
   z
@@ -555,9 +728,57 @@ export const websiteSectionSchema = z.discriminatedUnion("type", [
   z
     .object({
       ...sectionIdentitySchema,
+      type: z.literal("service_area"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.service_area.variants),
+      content: serviceAreaContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("project_showcase"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.project_showcase.variants),
+      content: projectShowcaseContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("blog_preview"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.blog_preview.variants),
+      content: blogPreviewContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
       type: z.literal("rich_text"),
       variant: z.enum(WEBSITE_SECTION_REGISTRY.rich_text.variants),
       content: richTextContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("stats"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.stats.variants),
+      content: statsContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("team"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.team.variants),
+      content: teamContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("logo_wall"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.logo_wall.variants),
+      content: logoWallContentSchema,
     })
     .strict(),
 ]);

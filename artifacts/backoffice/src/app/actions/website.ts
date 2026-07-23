@@ -37,6 +37,7 @@ import {
   type WebsiteRedirectDraftItem,
   type WebsiteSection,
   type WebsiteSiteSettings,
+  type WebsiteTemplateKey,
 } from "@workspace/db";
 import {
   createWebsitePreviewToken,
@@ -339,9 +340,10 @@ export async function getWebsitePageAction(pageId: string) {
   return getWebsitePage(tenantId, pageId);
 }
 
-export async function initializeWebsiteAction(
-  settings: WebsiteSiteSettings,
-): Promise<ActionResult<{ siteId: string }>> {
+export async function initializeWebsiteAction(input: {
+  templateKey: WebsiteTemplateKey;
+  settings: WebsiteSiteSettings;
+}): Promise<ActionResult<{ siteId: string }>> {
   try {
     await requirePermission("website_settings", "write");
     const [tenantId, actorUserId] = await Promise.all([
@@ -351,7 +353,7 @@ export async function initializeWebsiteAction(
     const result = await initializeManagedWebsite({
       tenantId,
       actorUserId,
-      settings,
+      ...input,
     });
     revalidatePath("/website");
     revalidatePath("/website/settings");

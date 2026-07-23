@@ -34,6 +34,11 @@ const RADIUS = {
   large: "1.4rem",
 } as const;
 const SPACING = { compact: "0.85", comfortable: "1", spacious: "1.2" } as const;
+const CONTENT_WIDTH = {
+  compact: "960px",
+  standard: "1120px",
+  wide: "1280px",
+} as const;
 
 function internalHref(path: string, context: RenderLinkContext): string {
   return `${context.internalPathPrefix}${path === "/" ? "" : path}` || "/";
@@ -232,6 +237,49 @@ function renderSection(
             {section.content.imageId ? (
               <div className="visual-placeholder" aria-hidden="true" />
             ) : null}
+          </div>
+        </section>
+      );
+    }
+    case "emergency_hero": {
+      const Heading = firstHero ? "h1" : "h2";
+      return (
+        <section
+          className={`section emergency-hero emergency-hero-${section.variant}`}
+        >
+          <div className="container emergency-hero-inner">
+            <div>
+              {section.content.eyebrow ? (
+                <p className="eyebrow">{section.content.eyebrow}</p>
+              ) : null}
+              <Heading>{section.content.title}</Heading>
+              {section.content.subtitle ? (
+                <p className="lead">{section.content.subtitle}</p>
+              ) : null}
+              <div className="actions">
+                <ActionLink
+                  action={section.content.phoneAction}
+                  context={context}
+                />
+                {section.content.secondaryAction ? (
+                  <ActionLink
+                    action={section.content.secondaryAction}
+                    context={context}
+                    secondary
+                  />
+                ) : null}
+              </div>
+              <p className="availability-notice">
+                {section.content.availabilityNotice}
+              </p>
+              {section.content.badges.length ? (
+                <ul className="inline-list" aria-label="Kenmerken">
+                  {section.content.badges.map((badge) => (
+                    <li key={badge}>{badge}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           </div>
         </section>
       );
@@ -534,6 +582,98 @@ function renderSection(
         </section>
       );
     }
+    case "service_area":
+      return (
+        <section
+          className={`section service-area service-area-${section.variant}`}
+        >
+          <div className="container">
+            <SectionHeading
+              title={section.content.title}
+              subtitle={section.content.subtitle}
+            />
+            <ul className="area-list">
+              {section.content.areas.map((area) => (
+                <li key={area}>{area}</li>
+              ))}
+            </ul>
+            {section.content.action ? (
+              <div className="actions">
+                <ActionLink action={section.content.action} context={context} />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      );
+    case "project_showcase":
+      return (
+        <section className={`section projects projects-${section.variant}`}>
+          <div className="container">
+            <SectionHeading
+              title={section.content.title}
+              subtitle={section.content.subtitle}
+            />
+            <div className="project-grid">
+              {section.content.projects.map((project, index) => (
+                <article
+                  className="card project-card"
+                  key={`${project.title}-${index}`}
+                >
+                  {project.imageId ? (
+                    <div className="project-visual" aria-hidden="true" />
+                  ) : null}
+                  {project.location ? (
+                    <p className="eyebrow">{project.location}</p>
+                  ) : null}
+                  <h3>{project.title}</h3>
+                  <p>{project.description}</p>
+                  {project.action ? (
+                    <ActionLink
+                      action={project.action}
+                      context={context}
+                      secondary
+                    />
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    case "blog_preview": {
+      const locale =
+        context.currentPage?.locale ?? context.snapshot.defaultLocale;
+      const posts = visibleBlogPosts(context.snapshot, locale, true).slice(
+        0,
+        section.content.limit,
+      );
+      return (
+        <section
+          className={`section blog-preview blog-preview-${section.variant}`}
+        >
+          <div className="container">
+            <SectionHeading
+              title={section.content.title}
+              subtitle={section.content.subtitle}
+            />
+            <BlogCards
+              snapshot={context.snapshot}
+              posts={posts}
+              internalPathPrefix={context.internalPathPrefix}
+            />
+            {section.content.action ? (
+              <div className="actions">
+                <ActionLink
+                  action={section.content.action}
+                  context={context}
+                  secondary
+                />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      );
+    }
     case "rich_text":
       return (
         <section className={`section rich-text rich-text-${section.variant}`}>
@@ -546,6 +686,69 @@ function renderSection(
             <div className="rich-text-content">
               <RichText document={section.content.body} context={context} />
             </div>
+          </div>
+        </section>
+      );
+    case "stats":
+      return (
+        <section className={`section stats stats-${section.variant}`}>
+          <div className="container">
+            {section.content.title ? <h2>{section.content.title}</h2> : null}
+            <dl className="stats-list">
+              {section.content.items.map((item, index) => (
+                <div key={`${item.label}-${index}`}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                  <small>{item.sourceNote}</small>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+      );
+    case "team":
+      return (
+        <section className={`section team team-${section.variant}`}>
+          <div className="container">
+            <SectionHeading
+              title={section.content.title}
+              subtitle={section.content.subtitle}
+            />
+            <div className="team-grid">
+              {section.content.members
+                .filter((member) => member.consentConfirmed)
+                .map((member, index) => (
+                  <article className="card" key={`${member.name}-${index}`}>
+                    {member.imageId ? (
+                      <div className="team-portrait" aria-hidden="true" />
+                    ) : null}
+                    <h3>{member.name}</h3>
+                    <p className="eyebrow">{member.role}</p>
+                    {member.bio ? <p>{member.bio}</p> : null}
+                  </article>
+                ))}
+            </div>
+          </div>
+        </section>
+      );
+    case "logo_wall":
+      return (
+        <section
+          className={`section section-accent logo-wall logo-wall-${section.variant}`}
+        >
+          <div className="container">
+            {section.content.title ? <h2>{section.content.title}</h2> : null}
+            <ul className="logo-list">
+              {section.content.items.map((item, index) => (
+                <li key={`${item.name}-${index}`}>
+                  <strong>{item.name}</strong>
+                  {item.description ? <span>{item.description}</span> : null}
+                  {item.validUntil ? (
+                    <small>Geldig tot {item.validUntil}</small>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       );
@@ -788,11 +991,14 @@ function WebsiteShell({
     "--body-font": FONT_STACKS[snapshot.theme.bodyFont],
     "--radius": RADIUS[snapshot.theme.radius],
     "--spacing-factor": SPACING[snapshot.theme.spacing],
+    "--content-width": CONTENT_WIDTH[snapshot.theme.contentWidth ?? "standard"],
   } as CSSProperties;
   return (
     <div
       className="website-shell"
       data-delivery-revision={deliveryRevision}
+      data-button-style={snapshot.theme.buttonStyle ?? "solid"}
+      data-surface-style={snapshot.theme.surfaceStyle ?? "bordered"}
       style={style}
     >
       <style>{PUBLIC_STYLES}</style>
@@ -849,7 +1055,9 @@ export function ManagedWebsiteView({
     formState,
     submissionId,
   };
-  const hasHero = page.sections.some((section) => section.type === "hero");
+  const hasHero = page.sections.some(
+    (section) => section.type === "hero" || section.type === "emergency_hero",
+  );
   let heroRendered = false;
 
   return (
@@ -865,8 +1073,10 @@ export function ManagedWebsiteView({
           </div>
         ) : null}
         {page.sections.map((section) => {
-          const firstHero = section.type === "hero" && !heroRendered;
-          if (section.type === "hero") heroRendered = true;
+          const isHero =
+            section.type === "hero" || section.type === "emergency_hero";
+          const firstHero = isHero && !heroRendered;
+          if (isHero) heroRendered = true;
           return (
             <React.Fragment key={section.id}>
               {renderSection(section, context, firstHero)}
@@ -1002,5 +1212,5 @@ export function ManagedWebsiteBlogArchiveView({
 
 const PUBLIC_STYLES = `
 .website-shell{min-height:100vh;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}a{color:inherit;text-underline-offset:.18em}h1,h2,h3{font-family:var(--heading-font);line-height:1.12;margin:0 0 .6em}h1{font-size:clamp(2.3rem,7vw,4.8rem);max-width:18ch}h2{font-size:clamp(1.8rem,4vw,3rem)}h3{font-size:1.25rem}p{margin:.35rem 0 1rem}.container{width:min(1120px,calc(100% - 2rem));margin-inline:auto}.narrow{max-width:780px}.section{padding:calc(4.5rem * var(--spacing-factor)) 0}.section-accent{background:var(--accent);color:var(--accent-foreground)}.section-heading{max-width:720px;margin-bottom:2rem}.section-heading>p,.lead{font-size:1.15rem;max-width:62ch}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-weight:750;color:var(--primary)}.muted{opacity:.72}.skip-link{position:absolute;left:-9999px;top:.5rem;background:var(--foreground);color:var(--background);padding:.7rem 1rem;z-index:10}.skip-link:focus{left:.5rem}.site-header{border-bottom:1px solid color-mix(in srgb,var(--foreground) 15%,transparent);position:relative;background:var(--background)}.header-inner{min-height:4.7rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}.brand{font-family:var(--heading-font);font-weight:800;text-decoration:none;font-size:1.15rem}.site-header nav>ul,.site-footer nav>ul{display:flex;list-style:none;gap:1.2rem;padding:0;margin:0;flex-wrap:wrap}.site-header nav li{position:relative}.site-header nav li ul{display:none;position:absolute;top:100%;left:0;min-width:13rem;padding:.7rem;list-style:none;background:var(--background);border:1px solid currentColor;border-radius:var(--radius)}.site-header nav li:focus-within ul,.site-header nav li:hover ul{display:grid;gap:.5rem}.hero{padding:calc(6rem * var(--spacing-factor)) 0}.hero-inner{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:3rem;align-items:center}.hero-centered .hero-inner,.hero-minimal .hero-inner{display:block;text-align:center}.hero-centered h1,.hero-centered h2,.hero-minimal h1,.hero-minimal h2{margin-inline:auto}.hero-centered .lead,.hero-minimal .lead{margin-inline:auto}.actions{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.5rem 0}.button{display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:var(--primary-foreground);border:2px solid var(--primary);border-radius:var(--radius);padding:.75rem 1.1rem;text-decoration:none;font-weight:750}.button-secondary{background:transparent;color:var(--foreground)}.inline-list,.trust-list{display:flex;gap:.75rem 1.5rem;list-style:none;padding:0;flex-wrap:wrap}.inline-list li:before{content:'✓ ';color:var(--primary);font-weight:800}.visual-placeholder{min-height:320px;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),var(--primary));opacity:.85}.trust-list{justify-content:space-between}.trust-list li{display:grid;min-width:10rem}.trust-list span{font-size:.92rem}.card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem}.card{margin:0;padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius);background:var(--background);color:var(--foreground)}.card figcaption{display:grid;gap:.2rem;margin-top:1rem}.icon{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.feature{display:flex;align-items:flex-start;gap:1rem}.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem}.steps li{display:flex;gap:1rem}.step-number{flex:0 0 auto;display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.faq-list{display:grid;gap:.75rem}.faq-list details{border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent);border-radius:var(--radius);padding:1rem 1.2rem}.faq-list summary{cursor:pointer;font-weight:750}.faq-answer{padding-top:.7rem}.rich-text-content{max-width:76ch}.rich-text-content blockquote{margin:1.5rem 0;border-left:.25rem solid var(--primary);padding-left:1.25rem}.rich-text-content hr{border:0;border-top:1px solid color-mix(in srgb,var(--foreground) 20%,transparent);margin:2rem 0}.cta{background:var(--primary);color:var(--primary-foreground)}.cta-inner{display:flex;align-items:center;justify-content:space-between;gap:2rem}.cta .button{background:var(--primary-foreground);color:var(--primary);border-color:var(--primary-foreground)}.cta .button-secondary{background:transparent;color:var(--primary-foreground)}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem}.contact-details{display:grid;font-style:normal;gap:.25rem}.contact-form{display:grid;gap:1rem}.contact-form label{display:grid;gap:.35rem;font-weight:650}.contact-form input,.contact-form textarea{width:100%;border:1px solid color-mix(in srgb,var(--foreground) 30%,transparent);border-radius:var(--radius);padding:.7rem;background:var(--background);color:var(--foreground)}.contact-form button{padding:.8rem;border:0;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-weight:750}.contact-form :disabled{cursor:not-allowed;opacity:.62}.form-honeypot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}.form-status-success{font-weight:700;color:#166534}.page-title{padding:3rem 0 0}.blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem}.blog-card{padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius)}.blog-card h2{font-size:1.45rem;margin-top:.6rem}.blog-card h2 a{text-decoration:none}.blog-card time,.preview-label{font-size:.9rem;opacity:.72}.blog-body{margin-top:2.5rem}.blog-tags{display:flex;flex-wrap:wrap;gap:.6rem;list-style:none;padding:2rem 0 0}.blog-tags a{display:block;border:1px solid currentColor;border-radius:999px;padding:.3rem .75rem;text-decoration:none}.site-footer{padding:3rem 0;background:var(--foreground);color:var(--background)}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem}.site-footer nav>ul{display:grid}.site-footer nav ul{list-style:none;padding:0;margin:0}.site-footer nav li ul{padding-left:1rem}@media(max-width:800px){.header-inner{align-items:flex-start;flex-direction:column;padding-block:1rem}.hero-inner,.contact-grid,.footer-grid{grid-template-columns:1fr}.card-grid,.steps,.blog-grid{grid-template-columns:1fr}.cta-inner{align-items:flex-start;flex-direction:column}.section{padding:calc(3.2rem * var(--spacing-factor)) 0}.site-header nav li ul{position:static;display:grid;border:0;padding:.4rem 0 .4rem 1rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}a{color:inherit;text-underline-offset:.18em}h1,h2,h3{font-family:var(--heading-font);line-height:1.12;margin:0 0 .6em}h1{font-size:clamp(2.3rem,7vw,4.8rem);max-width:18ch}h2{font-size:clamp(1.8rem,4vw,3rem)}h3{font-size:1.25rem}p{margin:.35rem 0 1rem}.container{width:min(var(--content-width),calc(100% - 2rem));margin-inline:auto}.narrow{max-width:780px}.section{padding:calc(4.5rem * var(--spacing-factor)) 0}.section-accent{background:var(--accent);color:var(--accent-foreground)}.section-heading{max-width:720px;margin-bottom:2rem}.section-heading>p,.lead{font-size:1.15rem;max-width:62ch}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-weight:750;color:var(--primary)}.muted{opacity:.72}.skip-link{position:absolute;left:-9999px;top:.5rem;background:var(--foreground);color:var(--background);padding:.7rem 1rem;z-index:10}.skip-link:focus{left:.5rem}.site-header{border-bottom:1px solid color-mix(in srgb,var(--foreground) 15%,transparent);position:relative;background:var(--background)}.header-inner{min-height:4.7rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}.brand{font-family:var(--heading-font);font-weight:800;text-decoration:none;font-size:1.15rem}.site-header nav>ul,.site-footer nav>ul{display:flex;list-style:none;gap:1.2rem;padding:0;margin:0;flex-wrap:wrap}.site-header nav li{position:relative}.site-header nav li ul{display:none;position:absolute;top:100%;left:0;min-width:13rem;padding:.7rem;list-style:none;background:var(--background);border:1px solid currentColor;border-radius:var(--radius)}.site-header nav li:focus-within ul,.site-header nav li:hover ul{display:grid;gap:.5rem}.hero,.emergency-hero{padding:calc(6rem * var(--spacing-factor)) 0}.emergency-hero{background:var(--accent);color:var(--accent-foreground)}.emergency-hero-inner{max-width:900px}.availability-notice{font-weight:700;max-width:70ch}.hero-inner{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:3rem;align-items:center}.hero-centered .hero-inner,.hero-minimal .hero-inner{display:block;text-align:center}.hero-centered h1,.hero-centered h2,.hero-minimal h1,.hero-minimal h2{margin-inline:auto}.hero-centered .lead,.hero-minimal .lead{margin-inline:auto}.actions{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.5rem 0}.button{display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:var(--primary-foreground);border:2px solid var(--primary);border-radius:var(--radius);padding:.75rem 1.1rem;text-decoration:none;font-weight:750}.button-secondary{background:transparent;color:var(--foreground)}.website-shell[data-button-style=outline] .button{background:transparent;color:var(--primary)}.website-shell[data-button-style=soft] .button{background:var(--accent);color:var(--accent-foreground);border-color:var(--accent)}.inline-list,.trust-list{display:flex;gap:.75rem 1.5rem;list-style:none;padding:0;flex-wrap:wrap}.inline-list li:before{content:'✓ ';color:var(--primary);font-weight:800}.visual-placeholder{min-height:320px;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),var(--primary));opacity:.85}.trust-list{justify-content:space-between}.trust-list li{display:grid;min-width:10rem}.trust-list span{font-size:.92rem}.card-grid,.project-grid,.team-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem}.card{margin:0;padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius);background:var(--background);color:var(--foreground)}.website-shell[data-surface-style=flat] .card,.website-shell[data-surface-style=flat] .blog-card{border-color:transparent;padding-inline:0}.website-shell[data-surface-style=elevated] .card,.website-shell[data-surface-style=elevated] .blog-card{border-color:transparent;box-shadow:0 12px 35px color-mix(in srgb,var(--foreground) 14%,transparent)}.card figcaption{display:grid;gap:.2rem;margin-top:1rem}.project-visual,.team-portrait{min-height:220px;margin:-1.5rem -1.5rem 1.2rem;border-radius:var(--radius) var(--radius) 0 0;background:linear-gradient(135deg,var(--accent),var(--primary));opacity:.8}.team-portrait{min-height:260px}.icon{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.feature{display:flex;align-items:flex-start;gap:1rem}.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem}.steps li{display:flex;gap:1rem}.step-number{flex:0 0 auto;display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.area-list,.logo-list{display:flex;gap:.75rem;list-style:none;padding:0;flex-wrap:wrap}.area-list li{border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent);border-radius:999px;padding:.55rem .9rem}.logo-list li{display:grid;gap:.2rem;min-width:13rem;max-width:22rem;padding:1rem}.stats-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}.stats-list>div{display:grid;gap:.2rem;padding:1.25rem;border-left:.25rem solid var(--primary)}.stats-list dt{font-weight:700}.stats-list dd{order:-1;margin:0;font-family:var(--heading-font);font-size:2rem;font-weight:800}.stats-list small,.logo-list small{opacity:.72}.faq-list{display:grid;gap:.75rem}.faq-list details{border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent);border-radius:var(--radius);padding:1rem 1.2rem}.faq-list summary{cursor:pointer;font-weight:750}.faq-answer{padding-top:.7rem}.rich-text-content{max-width:76ch}.rich-text-content blockquote{margin:1.5rem 0;border-left:.25rem solid var(--primary);padding-left:1.25rem}.rich-text-content hr{border:0;border-top:1px solid color-mix(in srgb,var(--foreground) 20%,transparent);margin:2rem 0}.cta{background:var(--primary);color:var(--primary-foreground)}.cta-inner{display:flex;align-items:center;justify-content:space-between;gap:2rem}.cta .button{background:var(--primary-foreground);color:var(--primary);border-color:var(--primary-foreground)}.cta .button-secondary{background:transparent;color:var(--primary-foreground)}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem}.contact-details{display:grid;font-style:normal;gap:.25rem}.contact-form{display:grid;gap:1rem}.contact-form label{display:grid;gap:.35rem;font-weight:650}.contact-form input,.contact-form textarea{width:100%;border:1px solid color-mix(in srgb,var(--foreground) 30%,transparent);border-radius:var(--radius);padding:.7rem;background:var(--background);color:var(--foreground)}.contact-form button{padding:.8rem;border:0;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-weight:750}.contact-form :disabled{cursor:not-allowed;opacity:.62}.form-honeypot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}.form-status-success{font-weight:700;color:#166534}.page-title{padding:3rem 0 0}.blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem}.blog-card{padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius)}.blog-card h2{font-size:1.45rem;margin-top:.6rem}.blog-card h2 a{text-decoration:none}.blog-card time,.preview-label{font-size:.9rem;opacity:.72}.blog-body{margin-top:2.5rem}.blog-tags{display:flex;flex-wrap:wrap;gap:.6rem;list-style:none;padding:2rem 0 0}.blog-tags a{display:block;border:1px solid currentColor;border-radius:999px;padding:.3rem .75rem;text-decoration:none}.site-footer{padding:3rem 0;background:var(--foreground);color:var(--background)}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem}.site-footer nav>ul{display:grid}.site-footer nav ul{list-style:none;padding:0;margin:0}.site-footer nav li ul{padding-left:1rem}@media(max-width:800px){.header-inner{align-items:flex-start;flex-direction:column;padding-block:1rem}.hero-inner,.contact-grid,.footer-grid{grid-template-columns:1fr}.card-grid,.project-grid,.team-grid,.steps,.stats-list,.blog-grid{grid-template-columns:1fr}.cta-inner{align-items:flex-start;flex-direction:column}.section{padding:calc(3.2rem * var(--spacing-factor)) 0}.site-header nav li ul{position:static;display:grid;border:0;padding:.4rem 0 .4rem 1rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 `;

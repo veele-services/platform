@@ -318,6 +318,7 @@ export const websitePageSectionsTable = pgTable(
     position: integer("position").notNull(),
     content: jsonb("content").notNull().$type<Record<string, unknown>>(),
     isVisible: boolean("is_visible").notNull().default(true),
+    requiresReview: boolean("requires_review").notNull().default(false),
     authoringRevision: integer("authoring_revision").notNull().default(1),
     createdBy: uuid("created_by").notNull(),
     updatedBy: uuid("updated_by").notNull(),
