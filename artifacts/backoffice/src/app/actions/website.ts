@@ -627,7 +627,10 @@ export async function activateWebsitePublicationAction(input: {
   }>
 > {
   try {
-    await requirePermission("website_pages", "publish");
+    await Promise.all([
+      requirePermission("website_pages", "publish"),
+      requirePermission("website_blog", "publish"),
+    ]);
     if (input.confirmation !== "PUBLICEREN") {
       throw new Error("Expliciete publicatiebevestiging ontbreekt");
     }

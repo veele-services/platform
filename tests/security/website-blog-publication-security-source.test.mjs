@@ -130,6 +130,21 @@ test("preview and whole-site publication require both page and blog ACLs", () =>
   assert.match(preview, /hasPermission\("website_blog", "read"\)/u);
   assert.match(preview, /verifyWebsitePreviewToken/u);
   assert.match(preview, /loadWebsitePreviewSession/u);
+  assert.match(
+    actions,
+    /activateWebsitePublicationAction[\s\S]*?Promise\.all\(\[[\s\S]*?requirePermission\("website_pages", "publish"\),[\s\S]*?requirePermission\("website_blog", "publish"\),[\s\S]*?\]\)/u,
+  );
+});
+
+test("blog index readiness requires a published page in the site locale", () => {
+  assert.match(
+    service,
+    /page\.locale = site\.default_locale[\s\S]*page\.page_type = 'blog_index'[\s\S]*page\.path = '\/blog'[\s\S]*page\.status = 'published'/u,
+  );
+  assert.doesNotMatch(
+    service,
+    /page\.page_type = 'blog_index'[\s\S]*page\.status <> 'archived'/u,
+  );
 });
 
 test("public runtime reads immutable snapshots and filters preview posts", () => {

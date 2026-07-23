@@ -136,7 +136,7 @@ test("publication review is read-derived and activation remains explicit exact-h
   );
   assert.match(
     actions,
-    /activateWebsitePublicationAction[\s\S]*review\.deliveryMode !== "managed_cms"/u,
+    /activateWebsitePublicationAction[\s\S]*?requirePermission\("website_pages", "publish"\)[\s\S]*?requirePermission\("website_blog", "publish"\)[\s\S]*?review\.deliveryMode !== "managed_cms"/u,
   );
   assert.match(
     actions,

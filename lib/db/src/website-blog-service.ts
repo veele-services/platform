@@ -418,9 +418,10 @@ export async function getWebsiteBlog(
               SELECT 1 FROM public.website_pages page
               WHERE page.tenant_id = site.tenant_id
                 AND page.site_id = site.id
+                AND page.locale = site.default_locale
                 AND page.page_type = 'blog_index'
                 AND page.path = '/blog'
-                AND page.status <> 'archived'
+                AND page.status = 'published'
             ) AS has_blog_index
      FROM public.website_sites site
      JOIN public.tenants tenant ON tenant.id = site.tenant_id
