@@ -12,6 +12,7 @@ const navigation = read("lib/website-core/src/navigation.ts");
 const builder = read("lib/website-core/src/publication-builder.ts");
 const publication = read("lib/website-core/src/publication.ts");
 const service = read("lib/db/src/website-navigation-service.ts");
+const schema = read("lib/db/src/schema/websites.ts");
 const actions = read("artifacts/backoffice/src/app/actions/website.ts");
 const route = read(
   "artifacts/backoffice/src/app/(dashboard)/website/navigation/page.tsx",
@@ -23,7 +24,19 @@ const editor = read(
 test("database navigation hierarchy is bounded and deterministically ordered", () => {
   assert.match(
     migration,
+    /DROP INDEX IF EXISTS public\.website_navigation_items_position_idx/u,
+  );
+  assert.match(
+    migration,
     /UNIQUE \(tenant_id, site_id, location, position\)[\s\S]*DEFERRABLE INITIALLY IMMEDIATE/u,
+  );
+  assert.doesNotMatch(
+    schema,
+    /uniqueIndex\("website_navigation_items_position_idx"\)/u,
+  );
+  assert.match(
+    schema,
+    /Position uniqueness is migration-owned[\s\S]*DEFERRABLE constraint/u,
   );
   assert.match(migration, /position >= 0 AND position < 500/u);
   assert.match(migration, /website_guard_navigation_hierarchy/u);
