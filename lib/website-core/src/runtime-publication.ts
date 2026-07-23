@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import {
   WEBSITE_PUBLICATION_SCHEMA_VERSION,
+  websitePublicationRedirectSchema,
   websitePublicationSnapshotSchema,
   type WebsitePublicationSnapshot,
 } from "./publication";
@@ -12,11 +13,9 @@ import {
   websiteThemeSchema,
 } from "./site";
 import { WEBSITE_PAGE_TYPES } from "./templates";
+import { websiteCanonicalPathSchema } from "./redirects";
 
-const publicPathSchema = z
-  .string()
-  .regex(/^\/(?!\/)[a-z0-9/_-]*$/u)
-  .max(500);
+const publicPathSchema = websiteCanonicalPathSchema;
 
 const externalHttpsUrlSchema = z
   .string()
@@ -72,6 +71,7 @@ const runtimePublicationEnvelopeSchema = z
     defaultSeo: websiteSeoSchema,
     pages: z.array(runtimePageSchema).min(1).max(1_000),
     navigation: z.array(runtimeNavigationItemSchema).max(500),
+    redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
   })
   .strict();
 

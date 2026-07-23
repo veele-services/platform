@@ -6,14 +6,19 @@ import {
   websiteSocialLinkSchema,
   websiteThemeSchema,
 } from "./site";
+import {
+  websiteCanonicalPathSchema,
+  websiteLocaleSchema,
+  websiteRedirectExternalUrlSchema,
+  websiteRedirectSourcePathSchema,
+  websiteRedirectStatusCodeSchema,
+  websiteRouteKey,
+} from "./redirects";
 import { WEBSITE_PAGE_TYPES } from "./templates";
 
 export const WEBSITE_PUBLICATION_SCHEMA_VERSION = 1 as const;
 
-const publicPathSchema = z
-  .string()
-  .regex(/^\/(?!\/)[a-z0-9/_-]*$/u)
-  .max(500);
+const publicPathSchema = websiteCanonicalPathSchema;
 
 const externalHttpsUrlSchema = z
   .string()
@@ -65,6 +70,42 @@ const publicationNavigationItemSchema = z
   })
   .strict();
 
+export const websitePublicationRedirectSchema = z
+  .object({
+    id: z.string().uuid(),
+    locale: websiteLocaleSchema,
+    sourcePath: websiteRedirectSourcePathSchema,
+    destinationType: z.enum(["path", "external"]),
+    destination: z.string().trim().min(1).max(2_048),
+    statusCode: websiteRedirectStatusCodeSchema,
+  })
+  .strict()
+  .superRefine((redirect, context) => {
+    const destination =
+      redirect.destinationType === "path"
+        ? websiteCanonicalPathSchema.safeParse(redirect.destination)
+        : websiteRedirectExternalUrlSchema.safeParse(redirect.destination);
+    if (!destination.success) {
+      for (const issue of destination.error.issues) {
+        context.addIssue({
+          code: "custom",
+          path: ["destination", ...issue.path],
+          message: issue.message,
+        });
+      }
+    }
+    if (
+      redirect.destinationType === "path" &&
+      redirect.destination === redirect.sourcePath
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["destination"],
+        message: "Publication redirects cannot point to themselves",
+      });
+    }
+  });
+
 function collectPageActionReferences(value: unknown, references: string[]) {
   if (Array.isArray(value)) {
     for (const item of value) collectPageActionReferences(item, references);
@@ -100,6 +141,7 @@ export const websitePublicationSnapshotSchema = z
     defaultSeo: websiteSeoSchema,
     pages: z.array(publicationPageSchema).min(1).max(1_000),
     navigation: z.array(publicationNavigationItemSchema).max(500),
+    redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
   })
   .strict()
   .superRefine((snapshot, context) => {
@@ -108,6 +150,7 @@ export const websitePublicationSnapshotSchema = z
     const navigationById = new Map(
       snapshot.navigation.map((item) => [item.id, item]),
     );
+    const pageRoutes = new Set<string>();
 
     for (const page of snapshot.pages) {
       if (pageIds.has(page.id) || paths.has(`${page.locale}:${page.path}`)) {
@@ -119,12 +162,57 @@ export const websitePublicationSnapshotSchema = z
       }
       pageIds.add(page.id);
       paths.add(`${page.locale}:${page.path}`);
+      pageRoutes.add(websiteRouteKey(page.locale, page.path));
 
       if (page.sections.some((section) => !section.visible)) {
         context.addIssue({
           code: "custom",
           path: ["pages", page.id, "sections"],
           message: "Publication snapshots may contain visible sections only",
+        });
+      }
+    }
+
+    const redirectIds = new Set<string>();
+    const redirectSources = new Set<string>();
+    for (const redirect of snapshot.redirects) {
+      const sourceKey = websiteRouteKey(redirect.locale, redirect.sourcePath);
+      if (redirectIds.has(redirect.id) || redirectSources.has(sourceKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["redirects", redirect.id],
+          message:
+            "Publication redirects must have unique identities and sources",
+        });
+      }
+      redirectIds.add(redirect.id);
+      redirectSources.add(sourceKey);
+      if (pageRoutes.has(sourceKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["redirects", redirect.id, "sourcePath"],
+          message: "A redirect source cannot collide with a published page",
+        });
+      }
+    }
+    for (const redirect of snapshot.redirects) {
+      if (redirect.destinationType !== "path") continue;
+      const destinationKey = websiteRouteKey(
+        redirect.locale,
+        redirect.destination,
+      );
+      if (redirectSources.has(destinationKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["redirects", redirect.id, "destination"],
+          message: "Publication redirects cannot form loops or chains",
+        });
+      }
+      if (!pageRoutes.has(destinationKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["redirects", redirect.id, "destination"],
+          message: "Internal redirects must resolve to a published page",
         });
       }
     }

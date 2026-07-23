@@ -11,17 +11,21 @@ import {
   getWebsiteNavigation,
   getWebsitePage,
   getWebsitePublicationReview,
+  getWebsiteRedirects,
   getWebsiteSettings,
   includeWebsitePageInPublication,
   initializeManagedWebsite,
   listWebsitePages,
   reorderWebsiteSections,
   replaceWebsiteNavigation,
+  replaceWebsiteRedirects,
   updateWebsiteSection,
   updateWebsitePage,
   updateWebsiteSettings,
   type WebsitePageDraft,
   type WebsiteNavigationDraftItem,
+  type WebsitePathChangeDecision,
+  type WebsiteRedirectDraftItem,
   type WebsiteSection,
   type WebsiteSiteSettings,
 } from "@workspace/db";
@@ -101,6 +105,38 @@ export async function getWebsiteNavigationAction() {
   await requirePermission("website_navigation", "read");
   const tenantId = await requireCurrentTenantId();
   return getWebsiteNavigation(tenantId);
+}
+
+export async function getWebsiteRedirectsAction() {
+  await requirePermission("website_navigation", "read");
+  const tenantId = await requireCurrentTenantId();
+  return getWebsiteRedirects(tenantId);
+}
+
+export async function replaceWebsiteRedirectsAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  redirects: WebsiteRedirectDraftItem[];
+}): Promise<ActionResult<{ authoringRevision: number; changed: boolean }>> {
+  try {
+    await requirePermission("website_navigation", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await replaceWebsiteRedirects({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/pages");
+    revalidatePath("/website/redirects");
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 export async function replaceWebsiteNavigationAction(input: {
@@ -213,6 +249,7 @@ export async function updateWebsitePageAction(input: {
   pageId: string;
   expectedAuthoringRevision: number;
   expectedPageRevision: number;
+  pathChangeDecision: WebsitePathChangeDecision;
   page: WebsitePageDraft;
 }): Promise<
   ActionResult<{
@@ -234,6 +271,8 @@ export async function updateWebsitePageAction(input: {
     revalidatePath("/website");
     revalidatePath("/website/pages");
     revalidatePath(`/website/pages/${input.pageId}`);
+    revalidatePath("/website/redirects");
+    revalidatePath("/website/review");
     return {
       success: true,
       data: {

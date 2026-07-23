@@ -5,6 +5,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   managedWebsiteRobotsResponse,
+  managedWebsiteRedirectResponse,
   managedWebsiteSitemapResponse,
 } from "../src/lib/public-responses";
 import { ManagedWebsiteView } from "../src/lib/render-document";
@@ -220,4 +221,59 @@ test("robots and sitemap use the exact canonical publication host", async () => 
   const sitemapText = await sitemap.text();
   assert.match(sitemapText, /<loc>https:\/\/alpha\.fieldgrid\.nl\/<\/loc>/u);
   assert.doesNotMatch(sitemapText, /intern/u);
+});
+
+test("managed redirects preserve exact status and canonicalize internal targets", async () => {
+  for (const statusCode of [301, 302, 308] as const) {
+    const value = structuredClone(publicationSnapshot());
+    value.redirects = [
+      {
+        id: `20000000-0000-4000-8000-000000000${statusCode === 301 ? "301" : statusCode === 302 ? "302" : "308"}`,
+        locale: "nl-NL",
+        sourcePath: `/oud-${statusCode}`,
+        destinationType: "path",
+        destination: "/",
+        statusCode,
+      },
+    ];
+    const snapshot = websitePublicationSnapshotSchema.parse(value);
+    const response = await managedWebsiteRedirectResponse(
+      websiteRequest(`/oud-${statusCode}?bron=boekmerk`),
+      async () => readyResolution(snapshot),
+    );
+    assert.equal(response?.status, statusCode);
+    assert.equal(
+      response?.headers.get("location"),
+      "https://alpha.fieldgrid.nl/?bron=boekmerk",
+    );
+  }
+});
+
+test("external managed redirects require the immutable snapshot and do not leak query parameters", async () => {
+  const value = structuredClone(publicationSnapshot());
+  value.redirects = [
+    {
+      id: "20000000-0000-4000-8000-000000000309",
+      locale: "nl-NL",
+      sourcePath: "/partner",
+      destinationType: "external",
+      destination: "https://partner.example/landing",
+      statusCode: 302,
+    },
+  ];
+  const response = await managedWebsiteRedirectResponse(
+    websiteRequest("/partner?private=value"),
+    async () => readyResolution(websitePublicationSnapshotSchema.parse(value)),
+  );
+  assert.equal(response?.status, 302);
+  assert.equal(
+    response?.headers.get("location"),
+    "https://partner.example/landing",
+  );
+  assert.equal(
+    await managedWebsiteRedirectResponse(websiteRequest("/unknown"), async () =>
+      readyResolution(websitePublicationSnapshotSchema.parse(value)),
+    ),
+    null,
+  );
 });

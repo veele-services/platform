@@ -2,10 +2,12 @@ import type { PoolClient } from "pg";
 import { z } from "zod/v4";
 import {
   WEBSITE_PAGE_TYPES,
+  websitePathChangeDecisionSchema,
   websiteSectionSchema,
   websiteSeoSchema,
   websiteSiteSettingsSchema,
   type WebsitePageType,
+  type WebsitePathChangeDecision,
   type WebsiteSeo,
   type WebsiteSection,
   type WebsiteSiteSettings,
@@ -101,6 +103,7 @@ const createWebsitePageInputSchema = siteCommandContextSchema.extend({
 const updateWebsitePageInputSchema = siteCommandContextSchema.extend({
   pageId: z.string().uuid(),
   expectedPageRevision: z.number().int().positive(),
+  pathChangeDecision: websitePathChangeDecisionSchema,
   page: websitePageDraftSchema,
 });
 
@@ -144,6 +147,7 @@ export type CreateWebsitePageInput = z.input<
 export type UpdateWebsitePageInput = z.input<
   typeof updateWebsitePageInputSchema
 >;
+export type { WebsitePathChangeDecision };
 export type CreateWebsiteSectionInput = z.input<
   typeof createWebsiteSectionInputSchema
 >;
@@ -900,6 +904,54 @@ export async function updateWebsitePage(
   return inTransaction(async (client) => {
     await lockSite(client, input);
     const page = input.page;
+    const currentResult = await client.query<{
+      id: string;
+      locale: string;
+      path: string;
+      status: "draft" | "published" | "archived";
+      is_homepage: boolean;
+      authoring_revision: number;
+    }>(
+      `SELECT id, locale, path, status, is_homepage, authoring_revision
+       FROM public.website_pages
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3
+       FOR UPDATE`,
+      [input.tenantId, input.siteId, input.pageId],
+    );
+    const current = requireOne(currentResult.rows, "Pagina niet gevonden");
+    if (Number(current.authoring_revision) !== input.expectedPageRevision) {
+      throw new Error("Pagina is intussen gewijzigd. Laad de pagina opnieuw.");
+    }
+    if (current.status === "archived") {
+      throw new Error("Een gearchiveerde pagina kan niet worden gewijzigd.");
+    }
+    const routeChanged =
+      current.locale !== page.locale || current.path !== page.path;
+    if (
+      current.is_homepage &&
+      (current.locale !== page.locale || page.path !== "/")
+    ) {
+      throw new Error("De route van de homepage kan niet worden gewijzigd.");
+    }
+    if (
+      routeChanged &&
+      current.locale !== page.locale &&
+      input.pathChangeDecision === "create_redirect"
+    ) {
+      throw new Error(
+        "Een automatische redirect kan niet tussen talen worden gemaakt. Kies expliciet voor wijzigen zonder redirect.",
+      );
+    }
+
+    await client.query(
+      `SELECT set_config('fieldgrid.website_child_authoring_touch', 'suppressed', true)`,
+    );
+    await client.query(
+      `SET CONSTRAINTS
+         trg_website_redirect_integrity,
+         trg_website_page_route_integrity
+       DEFERRED`,
+    );
     const result = await client.query<{
       id: string;
       authoring_revision: number;
@@ -939,12 +991,69 @@ export async function updateWebsitePage(
       result.rows,
       "Pagina is intussen gewijzigd. Laad de pagina opnieuw.",
     );
-    const revisionResult = await client.query<{ authoring_revision: number }>(
-      `SELECT authoring_revision FROM public.website_sites
-       WHERE tenant_id = $1 AND id = $2`,
-      [input.tenantId, input.siteId],
+
+    let retargetedRedirectCount = 0;
+    if (routeChanged && input.pathChangeDecision === "create_redirect") {
+      const retargeted = await client.query(
+        `UPDATE public.website_redirects
+         SET destination = $5,
+             updated_by = $4,
+             updated_at = now()
+         WHERE tenant_id = $1
+           AND site_id = $2
+           AND locale = $3
+           AND destination_type = 'path'
+           AND destination = $6
+           AND is_active = true`,
+        [
+          input.tenantId,
+          input.siteId,
+          current.locale,
+          input.actorUserId,
+          page.path,
+          current.path,
+        ],
+      );
+      retargetedRedirectCount = retargeted.rowCount ?? 0;
+      await client.query(
+        `INSERT INTO public.website_redirects (
+           tenant_id, site_id, locale, source_path, destination_type,
+           destination, status_code, is_active, created_by, updated_by
+         ) VALUES (
+           $1, $2, $3, $4, 'path', $5, 308, true, $6, $6
+         )`,
+        [
+          input.tenantId,
+          input.siteId,
+          current.locale,
+          current.path,
+          page.path,
+          input.actorUserId,
+        ],
+      );
+    }
+
+    await client.query(
+      `SELECT set_config('fieldgrid.website_authoring_touch', 'allowed', true)`,
     );
-    const revision = requireOne(revisionResult.rows, "Website niet gevonden");
+    const revisionResult = await client.query<{ authoring_revision: number }>(
+      `UPDATE public.website_sites
+       SET authoring_revision = authoring_revision + 1,
+           updated_by = $4,
+           updated_at = now()
+       WHERE tenant_id = $1 AND id = $2 AND authoring_revision = $3
+       RETURNING authoring_revision`,
+      [
+        input.tenantId,
+        input.siteId,
+        input.expectedAuthoringRevision,
+        input.actorUserId,
+      ],
+    );
+    const revision = requireOne(
+      revisionResult.rows,
+      "Website is intussen gewijzigd. Laad de pagina opnieuw.",
+    );
     await client.query(
       `INSERT INTO public.audit_log (
          tenant_id, user_id, action, resource, resource_id, metadata
@@ -953,7 +1062,10 @@ export async function updateWebsitePage(
                    'siteId', $4::text,
                    'fromPageRevision', $5::integer,
                    'toPageRevision', $6::integer,
-                   'path', $7::text
+                   'fromRoute', $7::text,
+                   'toRoute', $8::text,
+                   'pathChangeDecision', $9::text,
+                   'retargetedRedirectCount', $10::integer
                  ))`,
       [
         input.tenantId,
@@ -962,7 +1074,10 @@ export async function updateWebsitePage(
         input.siteId,
         input.expectedPageRevision,
         Number(updated.authoring_revision),
-        page.path,
+        `${current.locale}:${current.path}`,
+        `${page.locale}:${page.path}`,
+        routeChanged ? input.pathChangeDecision : "unchanged",
+        retargetedRedirectCount,
       ],
     );
     return {

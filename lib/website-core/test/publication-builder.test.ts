@@ -19,6 +19,7 @@ const hiddenId = "40000000-0000-4000-8000-000000000002";
 const homeNavId = "50000000-0000-4000-8000-000000000001";
 const contactNavId = "50000000-0000-4000-8000-000000000002";
 const externalNavId = "50000000-0000-4000-8000-000000000003";
+const redirectId = "60000000-0000-4000-8000-000000000001";
 
 const seo = {
   title: "Voorbeeldbedrijf",
@@ -165,6 +166,17 @@ function sourceFixture(): WebsitePublicationSource {
         isVisible: true,
       },
     ],
+    redirects: [
+      {
+        id: redirectId,
+        locale: "nl-NL",
+        sourcePath: "/neem-contact-op",
+        destinationType: "path",
+        destination: "/contact",
+        statusCode: 308,
+        isActive: true,
+      },
+    ],
   };
 }
 
@@ -189,6 +201,16 @@ test("compiler creates a deterministic next-revision snapshot from published con
     snapshot.pages.map((page) => page.path),
     ["/", "/contact"],
   );
+  assert.deepEqual(snapshot.redirects, [
+    {
+      id: redirectId,
+      locale: "nl-NL",
+      sourcePath: "/neem-contact-op",
+      destinationType: "path",
+      destination: "/contact",
+      statusCode: 308,
+    },
+  ]);
   assert.deepEqual(
     snapshot.pages[0]?.sections.map((section) => section.id),
     [heroId],
@@ -208,6 +230,41 @@ test("compiler creates a deterministic next-revision snapshot from published con
   assert.equal(
     serializeWebsitePublication(snapshot),
     serializeWebsitePublication(buildWebsitePublicationSnapshot(source)),
+  );
+});
+
+test("compiler blocks redirect collisions, chains and unpublished destinations", () => {
+  const collision = sourceFixture();
+  collision.redirects![0]!.sourcePath = "/contact";
+  collision.redirects![0]!.destination = "/";
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(collision)).some(
+      (entry) => entry.code === "redirect_page_collision",
+    ),
+  );
+
+  const unpublished = sourceFixture();
+  unpublished.redirects![0]!.destination = "/concept";
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(unpublished)).some(
+      (entry) => entry.code === "unpublished_redirect_destination",
+    ),
+  );
+
+  const chain = sourceFixture();
+  chain.redirects!.push({
+    id: "60000000-0000-4000-8000-000000000002",
+    locale: "nl-NL",
+    sourcePath: "/contact-v1",
+    destinationType: "path",
+    destination: "/neem-contact-op",
+    statusCode: 301,
+    isActive: true,
+  });
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(chain)).some((entry) =>
+      entry.message.includes("Redirectketens"),
+    ),
   );
 });
 

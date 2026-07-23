@@ -2,6 +2,7 @@ export * from "./custom-delivery";
 export * from "./navigation";
 export * from "./publication";
 export * from "./publication-builder";
+export * from "./redirects";
 export * from "./runtime-publication";
 export * from "./sections";
 export * from "./shared-host-routing";

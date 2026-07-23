@@ -322,12 +322,13 @@ Acceptance:
 
 ## Recommended next coding increment
 
-Phase 4A now supplies tenant-scoped Header/Footer/Legal authoring, safe
-internal/external destinations, bounded hierarchy, deterministic ordering and
-an atomic exact-revision save. The next reviewed increment is Phase 4B:
-redirect persistence, guarded page-path changes and publication-time
-loop/collision diagnostics. Phase 4B may not change custom delivery
-infrastructure or a live domain as a side effect.
+Phase 4 is complete across the reviewed 4A and 4B increments. It supplies
+tenant-scoped Header/Footer/Legal authoring, canonical locale-ready route keys,
+atomic managed redirects, guarded page-path changes, exact 301/302/308 runtime
+delivery and publication-time link/loop/collision diagnostics. The next
+reviewed increment is Phase 5: blog authoring on the existing TipTap v2 and
+immutable-publication contracts. Phase 5 may not introduce raw HTML, a second
+rich-text format, implicit scheduling or delivery-infrastructure changes.
 
 DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9

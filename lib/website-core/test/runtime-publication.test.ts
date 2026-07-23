@@ -90,6 +90,17 @@ test("runtime publication accepts an exact immutable snapshot", () => {
   }
 });
 
+test("runtime keeps pre-Phase-4B schema-v1 snapshots compatible", () => {
+  const previousRelease = structuredClone(snapshot()) as Record<
+    string,
+    unknown
+  >;
+  delete previousRelease.redirects;
+  const result = parseWebsitePublicationForRuntime(previousRelease);
+  assert.equal(result.success, true);
+  if (result.success) assert.deepEqual(result.snapshot.redirects, []);
+});
+
 test("runtime publication omits an unsupported section without losing the page", () => {
   const value = structuredClone(snapshot()) as Record<string, any>;
   value.pages[0].sections.push({
