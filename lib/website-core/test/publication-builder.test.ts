@@ -30,7 +30,9 @@ const draftPostId = "70000000-0000-4000-8000-000000000005";
 const seo = {
   title: "Voorbeeldbedrijf",
   description: "Een geldige beschrijving voor de openbare voorbeeldwebsite.",
+  canonicalPath: null,
   socialImageMediaId: null,
+  socialImageUrl: null,
   indexable: true,
 } as const;
 
@@ -70,6 +72,15 @@ function sourceFixture(): WebsitePublicationSource {
       },
       socialLinks: [],
       defaultSeo: seo,
+      analytics: { provider: "none" },
+      seoSettings: {
+        schemaVersion: 1,
+        structuredData: {
+          enabled: true,
+          organizationType: "organization",
+        },
+        webmasterVerification: { google: null, bing: null },
+      },
     },
     canonicalHostname: "voorbeeld.fieldgrid.nl",
     pages: [
@@ -521,6 +532,30 @@ test("compiler rejects a visible contact section without a published form", () =
   assert.ok(
     diagnosticsFor(() => buildWebsitePublicationSnapshot(source)).some(
       (entry) => entry.code === "missing_published_form",
+    ),
+  );
+});
+
+test("compiler accepts same-locale canonical targets and rejects missing ones", () => {
+  const valid = sourceFixture();
+  valid.pages.find((page) => page.id === contactId)!.seo = {
+    ...seo,
+    canonicalPath: "/",
+  };
+  const snapshot = buildWebsitePublicationSnapshot(valid);
+  assert.equal(
+    snapshot.pages.find((page) => page.id === contactId)?.seo.canonicalPath,
+    "/",
+  );
+
+  const invalid = sourceFixture();
+  invalid.pages.find((page) => page.id === contactId)!.seo = {
+    ...seo,
+    canonicalPath: "/niet-gepubliceerd",
+  };
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(invalid)).some(
+      (entry) => entry.code === "missing_canonical_target",
     ),
   );
 });

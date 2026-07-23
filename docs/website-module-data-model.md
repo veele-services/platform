@@ -1,12 +1,12 @@
 # Fieldgrid website module — proposed data model
 
 Date: 23 July 2026
-Status: Phase 4A navigation invariants implemented
+Status: Phase 7 SEO and controlled integration fields implemented
 
 The additive Phase 1A migration implements sites, domain bindings, custom
 deployment records, pages, page sections, navigation, immutable publications and
-append-only delivery activations. Blog, form-submission and media tables described
-later in this document are intentionally deferred.
+append-only delivery activations. Blog and form-submission tables are now
+implemented; the dedicated media table described later remains deferred.
 
 Phase 1B adds database-managed authoring revisions, exact target delivery
 revisions, deterministic cache identities, verified primary-domain transitions
@@ -75,6 +75,7 @@ One logical website and its authoring settings.
 | `contact_json` / `social_json`      | Validated public contact/social data.                                                       |
 | `seo_defaults_json`                 | Validated default title/description/social settings.                                        |
 | `analytics_json`                    | Optional consent-aware provider enum plus validated public identifier; no script or secret. |
+| `seo_settings_json`                 | Versioned structured-data type and controlled Google/Bing verification tokens.              |
 | `created_at`, `updated_at`          | Standard timestamps.                                                                        |
 | `created_by`, `updated_by`          | Auth user/audit actors.                                                                     |
 

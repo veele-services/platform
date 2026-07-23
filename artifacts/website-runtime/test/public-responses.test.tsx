@@ -32,7 +32,9 @@ function blogSnapshot() {
     seo: {
       title: "Blog | Alpha Service",
       description: "Nieuws en praktische uitleg.",
+      canonicalPath: null,
       socialImageMediaId: null,
+      socialImageUrl: null,
       indexable: true,
     },
     sections: [],
@@ -92,7 +94,9 @@ function blogSnapshot() {
         seo: {
           title: "Veilig werken",
           description: "Praktische uitleg over veilig werken.",
+          canonicalPath: null,
           socialImageMediaId: null,
+          socialImageUrl: null,
           indexable: true,
         },
         visibility: "published",
@@ -116,7 +120,9 @@ function blogSnapshot() {
         seo: {
           title: "Privéconcept",
           description: "Niet voor publieke bezoekers.",
+          canonicalPath: null,
           socialImageMediaId: null,
+          socialImageUrl: null,
           indexable: false,
         },
         visibility: "preview",
@@ -461,6 +467,29 @@ test("robots and sitemap use the exact canonical publication host", async () => 
   const sitemapText = await sitemap.text();
   assert.match(sitemapText, /<loc>https:\/\/alpha\.fieldgrid\.nl\/<\/loc>/u);
   assert.doesNotMatch(sitemapText, /intern/u);
+});
+
+test("sitemap excludes duplicate routes whose canonical points elsewhere", async () => {
+  const value = structuredClone(publicationSnapshot());
+  value.pages.push({
+    ...value.pages[0]!,
+    id: "20000000-0000-4000-8000-000000000097",
+    path: "/dubbel",
+    title: "Dubbele landingspagina",
+    seo: {
+      ...value.pages[0]!.seo,
+      canonicalPath: "/",
+    },
+    sections: [],
+  });
+  const ready = readyResolution(websitePublicationSnapshotSchema.parse(value));
+  const sitemap = await managedWebsiteSitemapResponse(
+    websiteRequest("/sitemap.xml"),
+    async () => ready,
+  );
+  const sitemapText = await sitemap.text();
+  assert.match(sitemapText, /<loc>https:\/\/alpha\.fieldgrid\.nl\/<\/loc>/u);
+  assert.doesNotMatch(sitemapText, /\/dubbel/u);
 });
 
 test("managed redirects preserve exact status and canonicalize internal targets", async () => {

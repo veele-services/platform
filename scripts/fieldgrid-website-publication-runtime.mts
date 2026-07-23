@@ -10,6 +10,7 @@ import {
   getWebsiteBlogPost,
   getWebsiteNavigation,
   getWebsiteRedirects,
+  getWebsiteSettings,
   includeWebsitePageInPublication,
   loadWebsitePreviewSession,
   pool,
@@ -21,6 +22,7 @@ import {
   setPrimaryWebsiteDomain,
   updateWebsiteBlogPost,
   updateWebsitePage,
+  updateWebsiteSettings,
   type WebsiteNavigationDraftItem,
   type WebsiteRedirectDraftItem,
 } from "../lib/db/src/index.ts";
@@ -161,6 +163,48 @@ try {
   });
   assert.equal(domain.hostname, hostname);
   assert.equal(domain.authoringRevision, 2);
+
+  const initialSettings = await getWebsiteSettings(tenantA);
+  assert.ok(initialSettings);
+  const seoSettingsUpdate = await updateWebsiteSettings({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: domain.authoringRevision,
+    settings: {
+      ...initialSettings.settings,
+      defaultSeo: {
+        ...initialSettings.settings.defaultSeo,
+        canonicalPath: null,
+        socialImageUrl: "https://cdn.example.test/social/website.jpg",
+      },
+      analytics: {
+        provider: "plausible",
+        publicSiteId: hostname,
+      },
+      seoSettings: {
+        schemaVersion: 1,
+        structuredData: {
+          enabled: true,
+          organizationType: "local_business",
+        },
+        webmasterVerification: {
+          google: "google_runtime_token",
+          bing: "bing_runtime_token",
+        },
+      },
+    },
+  });
+  assert.equal(
+    seoSettingsUpdate.authoringRevision,
+    domain.authoringRevision + 1,
+  );
+  const storedSettings = await getWebsiteSettings(tenantA);
+  assert.equal(storedSettings?.settings.analytics.provider, "plausible");
+  assert.equal(
+    storedSettings?.settings.seoSettings.structuredData.organizationType,
+    "local_business",
+  );
 
   await assert.rejects(
     setPrimaryWebsiteDomain({
@@ -799,6 +843,25 @@ try {
     ],
   );
   assert.equal(candidateOne.snapshot.pages[0]?.title, "Home versie één");
+  assert.deepEqual(candidateOne.snapshot.analytics, {
+    provider: "plausible",
+    publicSiteId: hostname,
+  });
+  assert.deepEqual(candidateOne.snapshot.seoSettings, {
+    schemaVersion: 1,
+    structuredData: {
+      enabled: true,
+      organizationType: "local_business",
+    },
+    webmasterVerification: {
+      google: "google_runtime_token",
+      bing: "bing_runtime_token",
+    },
+  });
+  assert.equal(
+    candidateOne.snapshot.defaultSeo.socialImageUrl,
+    "https://cdn.example.test/social/website.jpg",
+  );
   assert.deepEqual(
     candidateOne.snapshot.blog.posts.map((post) => [
       post.id,
@@ -1298,6 +1361,8 @@ try {
           explicitPageInclusion: true,
           browserPreviewReadDenied: true,
           browserExecutionDenied: true,
+          seoSettingsAdvanceRevision: true,
+          seoSettingsCompiledIntoPublication: true,
           auditTrail: true,
         },
       },

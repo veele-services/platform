@@ -522,11 +522,12 @@ export async function getWebsiteSettings(
     social_links: unknown;
     default_seo: unknown;
     analytics: unknown;
+    seo_settings: unknown;
     authoring_revision: number;
   }>(
     `SELECT id, name, status, delivery_mode, delivery_revision,
             default_locale, theme, contact, social_links, default_seo,
-            analytics, authoring_revision
+            analytics, seo_settings, authoring_revision
      FROM public.website_sites
      WHERE tenant_id = $1 AND is_primary = true AND status <> 'disabled'
      LIMIT 1`,
@@ -550,6 +551,7 @@ export async function getWebsiteSettings(
       socialLinks: site.social_links,
       defaultSeo: site.default_seo,
       analytics: site.analytics,
+      seoSettings: site.seo_settings,
     }),
   };
 }
@@ -761,10 +763,10 @@ export async function initializeManagedWebsite(
       `INSERT INTO public.website_sites (
          tenant_id, name, status, is_primary, delivery_mode,
          default_locale, theme, contact, social_links, default_seo,
-         analytics, created_by, updated_by
+         analytics, seo_settings, created_by, updated_by
        ) VALUES (
          $1, $2, 'draft', true, 'managed_cms', $3, $4::jsonb, $5::jsonb,
-         $6::jsonb, $7::jsonb, $8::jsonb, $9, $9
+         $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10, $10
        )
        RETURNING id, authoring_revision`,
       [
@@ -776,6 +778,7 @@ export async function initializeManagedWebsite(
         JSON.stringify(settings.socialLinks),
         JSON.stringify(settings.defaultSeo),
         JSON.stringify(settings.analytics),
+        JSON.stringify(settings.seoSettings),
         input.actorUserId,
       ],
     );
@@ -835,7 +838,8 @@ export async function updateWebsiteSettings(
            social_links = $8::jsonb,
            default_seo = $9::jsonb,
            analytics = $10::jsonb,
-           updated_by = $11,
+           seo_settings = $11::jsonb,
+           updated_by = $12,
            updated_at = now()
        WHERE tenant_id = $1 AND id = $2 AND authoring_revision = $3
        RETURNING id, authoring_revision`,
@@ -850,6 +854,7 @@ export async function updateWebsiteSettings(
         JSON.stringify(settings.socialLinks),
         JSON.stringify(settings.defaultSeo),
         JSON.stringify(settings.analytics),
+        JSON.stringify(settings.seoSettings),
         input.actorUserId,
       ],
     );

@@ -16,7 +16,7 @@ const BLOCKED_ORIGIN_SUFFIXES = [
   ".test",
 ] as const;
 
-export const CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 1 as const;
+export const CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 2 as const;
 export const CUSTOM_WEBSITE_MAX_HEALTH_AGE_MS = 5 * 60 * 1_000;
 
 export type CustomWebsiteRouteIdentity = {
@@ -74,6 +74,14 @@ const customWebsiteHealthEvidenceSchema = z
     network: z
       .object({
         publicAddressesOnly: z.literal(true),
+      })
+      .strict(),
+    seo: z
+      .object({
+        canonical: z.literal(true),
+        robots: z.literal(true),
+        sitemap: z.literal(true),
+        structuredData: z.literal(true),
       })
       .strict(),
   })

@@ -117,6 +117,8 @@ type SourceSiteRow = {
   contact: unknown;
   social_links: unknown;
   default_seo: unknown;
+  analytics: unknown;
+  seo_settings: unknown;
   canonical_hostname: string | null;
   tenant_is_active: boolean;
   tenant_status: string;
@@ -216,6 +218,8 @@ async function loadWebsiteSource(
        site.contact,
        site.social_links,
        site.default_seo,
+       site.analytics,
+       site.seo_settings,
        domain.hostname AS canonical_hostname,
        tenant.is_active AS tenant_is_active,
        tenant.status AS tenant_status,
@@ -306,6 +310,8 @@ async function loadWebsiteSource(
       contact: site.contact,
       socialLinks: site.social_links,
       defaultSeo: site.default_seo,
+      analytics: site.analytics,
+      seoSettings: site.seo_settings,
     },
     canonicalHostname: site.canonical_hostname ?? "preview.invalid",
     pages: pageResult.rows.map((page) => ({

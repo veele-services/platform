@@ -39,13 +39,15 @@ test("FG-WEBSITE-PUBLIC-RUNTIME fails closed and never serves application prefix
   const context = read("artifacts/website-runtime/src/lib/runtime-context.ts");
   const middleware = read("artifacts/website-runtime/src/middleware.ts");
   const page = read("artifacts/website-runtime/src/app/[[...slug]]/page.tsx");
+  const seo = read("artifacts/website-runtime/src/lib/seo.tsx");
   const http = read("artifacts/website-runtime/src/lib/http.ts");
   const renderer = read("lib/shared-ui/src/website-renderer.tsx");
   assert.match(context, /requestPathOwner\(host, pathname\) !== "website"/u);
   assert.match(page, /notFound\(\)/u);
+  assert.match(page, /websiteCanonicalUrl\(/u);
   assert.match(
-    page,
-    /https:\/\/\$\{resolution\.canonicalHostname\}\$\{context\.page\.path\}/u,
+    seo,
+    /https:\/\/\$\{snapshot\.canonicalHostname\}\$\{seo\?\.canonicalPath \?\? routePath\}/u,
   );
   assert.match(page, /context\.kind === "blog_post"/u);
   assert.match(page, /context\.kind === "blog_category"/u);

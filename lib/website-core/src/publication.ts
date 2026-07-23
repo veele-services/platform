@@ -6,7 +6,9 @@ import {
 } from "./blog";
 import { websiteSectionSchema } from "./sections";
 import {
+  websiteAnalyticsSchema,
   websiteContactSchema,
+  websiteSeoSettingsSchema,
   websiteSeoSchema,
   websiteSocialLinkSchema,
   websiteThemeSchema,
@@ -145,6 +147,8 @@ export const websitePublicationSnapshotSchema = z
     contact: websiteContactSchema,
     socialLinks: z.array(websiteSocialLinkSchema).max(8),
     defaultSeo: websiteSeoSchema,
+    analytics: websiteAnalyticsSchema,
+    seoSettings: websiteSeoSettingsSchema,
     pages: z.array(publicationPageSchema).min(1).max(1_000),
     navigation: z.array(publicationNavigationItemSchema).max(500),
     redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),

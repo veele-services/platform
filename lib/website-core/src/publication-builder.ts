@@ -13,8 +13,10 @@ import {
 } from "./publication";
 import { websiteSectionSchema } from "./sections";
 import {
+  websiteAnalyticsSchema,
   websiteContactSchema,
   websiteContentStatusSchema,
+  websiteSeoSettingsSchema,
   websiteSeoSchema,
   websiteSocialLinkSchema,
   websiteThemeSchema,
@@ -94,6 +96,8 @@ export const websitePublicationSourceSchema = z
         contact: websiteContactSchema,
         socialLinks: z.array(websiteSocialLinkSchema).max(8),
         defaultSeo: websiteSeoSchema,
+        analytics: websiteAnalyticsSchema,
+        seoSettings: websiteSeoSettingsSchema,
       })
       .strict(),
     canonicalHostname: hostnameSchema,
@@ -569,6 +573,39 @@ function buildWebsiteSnapshot(
     ...tags.map((tag) => websiteRouteKey(tag.locale, tag.path)),
     ...blogPosts.map((post) => websiteRouteKey(post.locale, post.path)),
   ]);
+  const publishedRouteKeys = new Set([...pageByRoute.keys(), ...blogRouteKeys]);
+  for (const page of pages) {
+    if (
+      page.seo.canonicalPath &&
+      !publishedRouteKeys.has(
+        websiteRouteKey(page.locale, page.seo.canonicalPath),
+      )
+    ) {
+      diagnostics.push(
+        diagnostic(
+          "missing_canonical_target",
+          `pages.${page.id}.seo.canonicalPath`,
+          "Een canonical pad moet naar gepubliceerde inhoud in dezelfde taal verwijzen",
+        ),
+      );
+    }
+  }
+  for (const post of blogPosts) {
+    if (
+      post.seo.canonicalPath &&
+      !publishedRouteKeys.has(
+        websiteRouteKey(post.locale, post.seo.canonicalPath),
+      )
+    ) {
+      diagnostics.push(
+        diagnostic(
+          "missing_canonical_target",
+          `blog.posts.${post.id}.seo.canonicalPath`,
+          "Een canonical pad moet naar gepubliceerde inhoud in dezelfde taal verwijzen",
+        ),
+      );
+    }
+  }
   for (const category of categories) {
     if (pageByRoute.has(websiteRouteKey(category.locale, category.path))) {
       diagnostics.push(
@@ -691,6 +728,8 @@ function buildWebsiteSnapshot(
     contact: source.site.contact,
     socialLinks: source.site.socialLinks,
     defaultSeo: source.site.defaultSeo,
+    analytics: source.site.analytics,
+    seoSettings: source.site.seoSettings,
     pages,
     navigation,
     redirects,

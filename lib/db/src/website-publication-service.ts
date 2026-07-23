@@ -94,6 +94,8 @@ type SiteRow = {
   contact: unknown;
   social_links: unknown;
   default_seo: unknown;
+  analytics: unknown;
+  seo_settings: unknown;
   tenant_is_active: boolean;
   tenant_status: string;
   module_enabled: boolean;
@@ -214,6 +216,8 @@ export async function createManagedWebsitePublication(
          site.contact,
          site.social_links,
          site.default_seo,
+         site.analytics,
+         site.seo_settings,
          tenant.is_active AS tenant_is_active,
          tenant.status AS tenant_status,
          EXISTS (
@@ -338,6 +342,8 @@ export async function createManagedWebsitePublication(
           contact: site.contact,
           socialLinks: site.social_links,
           defaultSeo: site.default_seo,
+          analytics: site.analytics,
+          seoSettings: site.seo_settings,
         },
         canonicalHostname: domainResult.rows[0]!.hostname,
         pages: pageResult.rows.map((page) => ({

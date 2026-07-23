@@ -40,18 +40,25 @@ A custom decision is routable only when all of these facts agree:
 - strict health evidence reports the same provider, route, release and host,
   plus successful TLS validation.
 
-Health evidence schema version 1 is deliberately closed:
+Health evidence schema version 2 is deliberately closed and includes the
+rendered SEO contract:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "healthy",
   "providerKey": "fieldgrid_vps",
   "routeKey": "opaque_code_owned_route",
   "releaseId": "immutable-release-id",
   "expectedHost": "tenant.staging.fieldgrid.nl",
   "tls": { "valid": true },
-  "network": { "publicAddressesOnly": true }
+  "network": { "publicAddressesOnly": true },
+  "seo": {
+    "canonical": true,
+    "robots": true,
+    "sitemap": true,
+    "structuredData": true
+  }
 }
 ```
 

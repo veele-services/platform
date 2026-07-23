@@ -87,7 +87,8 @@ export async function managedWebsiteSitemapResponse(
       (page) =>
         page.locale === resolution.snapshot.defaultLocale &&
         resolution.snapshot.defaultSeo.indexable &&
-        page.seo.indexable,
+        page.seo.indexable &&
+        (!page.seo.canonicalPath || page.seo.canonicalPath === page.path),
     )
     .map((page) => `https://${resolution.canonicalHostname}${page.path}`);
   const publishedPosts = resolution.snapshot.blog.posts.filter(
@@ -95,7 +96,8 @@ export async function managedWebsiteSitemapResponse(
       post.locale === resolution.snapshot.defaultLocale &&
       post.visibility === "published" &&
       resolution.snapshot.defaultSeo.indexable &&
-      post.seo.indexable,
+      post.seo.indexable &&
+      (!post.seo.canonicalPath || post.seo.canonicalPath === post.path),
   );
   const usedCategoryIds = new Set(
     publishedPosts.flatMap((post) =>
@@ -153,7 +155,8 @@ export async function managedWebsiteFeedResponse(
       (post) =>
         post.locale === resolution.snapshot.defaultLocale &&
         post.visibility === "published" &&
-        post.publishedAt,
+        post.publishedAt &&
+        (!post.seo.canonicalPath || post.seo.canonicalPath === post.path),
     )
     .sort((left, right) =>
       (right.publishedAt ?? "").localeCompare(left.publishedAt ?? ""),

@@ -21,12 +21,12 @@ export async function middleware(request: NextRequest) {
   const contentSecurityPolicy = [
     "default-src 'none'",
     "base-uri 'none'",
-    "connect-src 'self'",
+    "connect-src 'self' https://plausible.io",
     "font-src 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
     "img-src 'self' data: https:",
-    `script-src 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'nonce-${nonce}' 'strict-dynamic' https://plausible.io`,
     "style-src 'self' 'unsafe-inline'",
   ].join("; ");
   const filteredCookies = filterWebsiteCookieHeader(
