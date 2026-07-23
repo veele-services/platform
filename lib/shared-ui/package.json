@@ -5,12 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.tsx",
-    "./styles": "./src/styles.css"
+    "./styles": "./src/styles.css",
+    "./website-renderer": "./src/website-renderer.tsx"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@workspace/website-core": "workspace:*",
     "clsx": "catalog:",
     "tailwind-merge": "catalog:"
   },

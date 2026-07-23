@@ -202,7 +202,12 @@ export default async function WebsiteOverviewPage() {
         <ActionCard
           href="/website/pages"
           title="Pagina's"
-          description="Maak pagina's en beheer metadata. Secties en publicatie-review worden in de volgende increment toegevoegd."
+          description="Maak pagina's, beheer metadata en bewerk schema-gedreven contentsecties."
+        />
+        <ActionCard
+          href="/website/review"
+          title="Preview en publiceren"
+          description="Bekijk de volledige draft, los diagnostiek op en activeer alleen een exact gereviewde immutable publicatie."
         />
       </div>
     </TenantPageShell>

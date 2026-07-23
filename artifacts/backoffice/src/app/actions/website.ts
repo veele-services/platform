@@ -3,10 +3,15 @@
 import {
   createWebsiteSection,
   createWebsitePage,
+  createManagedWebsitePublication,
+  createWebsitePreviewSession,
+  activateManagedWebsitePublication,
   deleteWebsiteSection,
   getWebsiteAdminOverview,
   getWebsitePage,
+  getWebsitePublicationReview,
   getWebsiteSettings,
+  includeWebsitePageInPublication,
   initializeManagedWebsite,
   listWebsitePages,
   reorderWebsiteSections,
@@ -17,6 +22,10 @@ import {
   type WebsiteSection,
   type WebsiteSiteSettings,
 } from "@workspace/db";
+import {
+  createWebsitePreviewToken,
+  hashWebsitePreviewToken,
+} from "@workspace/website-core/preview-token";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -24,6 +33,7 @@ import {
   getCurrentBackofficeUser,
   requireCurrentTenantId,
 } from "@/lib/auth/tenant";
+import { backofficePath } from "@/lib/backoffice-paths";
 import type { ActionResult } from "./customers";
 
 async function requireActorId(): Promise<string> {
@@ -213,6 +223,206 @@ function revalidateWebsitePage(pageId: string) {
   revalidatePath("/website");
   revalidatePath("/website/pages");
   revalidatePath(`/website/pages/${pageId}`);
+}
+
+function requirePreviewSigningSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is niet ingesteld");
+  return secret;
+}
+
+export async function getWebsitePublicationReviewAction(siteId: string) {
+  await requirePermission("website_pages", "read");
+  const tenantId = await requireCurrentTenantId();
+  return getWebsitePublicationReview({ tenantId, siteId });
+}
+
+export async function createWebsitePreviewAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+}): Promise<
+  ActionResult<{
+    url: string;
+    expiresAt: string;
+    sourceRevision: number;
+  }>
+> {
+  try {
+    await requirePermission("website_pages", "read");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const token = createWebsitePreviewToken(requirePreviewSigningSecret());
+    const preview = await createWebsitePreviewSession({
+      tenantId,
+      actorUserId,
+      siteId: input.siteId,
+      expectedAuthoringRevision: input.expectedAuthoringRevision,
+      tokenHash: hashWebsitePreviewToken(token),
+    });
+    return {
+      success: true,
+      data: {
+        url: backofficePath(`/website-preview/${token}`),
+        expiresAt: preview.expiresAt,
+        sourceRevision: preview.sourceRevision,
+      },
+    };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function includeWebsitePageInPublicationAction(input: {
+  siteId: string;
+  pageId: string;
+  expectedAuthoringRevision: number;
+  expectedPageRevision: number;
+}): Promise<
+  ActionResult<{
+    pageAuthoringRevision: number;
+    siteAuthoringRevision: number;
+  }>
+> {
+  try {
+    await requirePermission("website_pages", "publish");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await includeWebsitePageInPublication({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidateWebsitePage(input.pageId);
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function prepareWebsitePublicationAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+}): Promise<
+  ActionResult<{
+    publicationId: string;
+    sequence: number;
+    sourceRevision: number;
+    targetDeliveryRevision: number;
+    contentHash: string;
+  }>
+> {
+  try {
+    await requirePermission("website_pages", "publish");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const review = await getWebsitePublicationReview({
+      tenantId,
+      siteId: input.siteId,
+    });
+    if (
+      review.authoringRevision !== input.expectedAuthoringRevision ||
+      !review.canPreparePublication
+    ) {
+      throw new Error(
+        "De review is verouderd of bevat blokkerende diagnostiek. Laad opnieuw.",
+      );
+    }
+    const candidate = await createManagedWebsitePublication({
+      tenantId,
+      actorUserId,
+      siteId: input.siteId,
+      expectedAuthoringRevision: input.expectedAuthoringRevision,
+      reason: "Backoffice Phase 3C immutable publicatiereview",
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/review");
+    return {
+      success: true,
+      data: {
+        publicationId: candidate.id,
+        sequence: candidate.sequence,
+        sourceRevision: candidate.sourceRevision,
+        targetDeliveryRevision: candidate.targetDeliveryRevision,
+        contentHash: candidate.contentHash,
+      },
+    };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function activateWebsitePublicationAction(input: {
+  siteId: string;
+  publicationId: string;
+  expectedAuthoringRevision: number;
+  expectedDeliveryRevision: number;
+  confirmation: "PUBLICEREN";
+}): Promise<
+  ActionResult<{
+    publicationId: string;
+    deliveryRevision: number;
+    deliveryMode: "managed_cms";
+    status: string;
+  }>
+> {
+  try {
+    await requirePermission("website_pages", "publish");
+    if (input.confirmation !== "PUBLICEREN") {
+      throw new Error("Expliciete publicatiebevestiging ontbreekt");
+    }
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const review = await getWebsitePublicationReview({
+      tenantId,
+      siteId: input.siteId,
+    });
+    const candidate = review.readyPublication;
+    if (
+      review.deliveryMode !== "managed_cms" ||
+      review.authoringRevision !== input.expectedAuthoringRevision ||
+      review.deliveryRevision !== input.expectedDeliveryRevision ||
+      !candidate ||
+      candidate.id !== input.publicationId ||
+      candidate.sourceRevision !== input.expectedAuthoringRevision ||
+      candidate.targetDeliveryRevision !== input.expectedDeliveryRevision + 1
+    ) {
+      throw new Error(
+        "De publicatiekandidaat is niet meer exact actueel. Review opnieuw.",
+      );
+    }
+    const activation = await activateManagedWebsitePublication({
+      tenantId,
+      actorUserId,
+      siteId: input.siteId,
+      publicationId: input.publicationId,
+      expectedAuthoringRevision: input.expectedAuthoringRevision,
+      expectedDeliveryRevision: input.expectedDeliveryRevision,
+      reason: "Backoffice Phase 3C expliciet gereviewde publicatie",
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/review");
+    revalidatePath("/website/pages");
+    return {
+      success: true,
+      data: {
+        publicationId: activation.publicationId,
+        deliveryRevision: activation.deliveryRevision,
+        deliveryMode: activation.deliveryMode,
+        status: activation.status,
+      },
+    };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 export async function createWebsiteSectionAction(input: {

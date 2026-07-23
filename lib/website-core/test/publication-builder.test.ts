@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   WebsitePublicationValidationError,
+  buildWebsiteDraftPreviewSnapshot,
   buildWebsitePublicationSnapshot,
   serializeWebsitePublication,
   websitePublicationCacheIdentity,
@@ -207,6 +208,21 @@ test("compiler creates a deterministic next-revision snapshot from published con
   assert.equal(
     serializeWebsitePublication(snapshot),
     serializeWebsitePublication(buildWebsitePublicationSnapshot(source)),
+  );
+});
+
+test("draft preview compiler includes drafts without changing publication semantics", () => {
+  const source = sourceFixture();
+  const preview = buildWebsiteDraftPreviewSnapshot(source);
+  const publication = buildWebsitePublicationSnapshot(source);
+
+  assert.deepEqual(
+    preview.pages.map((page) => page.path),
+    ["/", "/concept", "/contact"],
+  );
+  assert.deepEqual(
+    publication.pages.map((page) => page.path),
+    ["/", "/contact"],
   );
 });
 

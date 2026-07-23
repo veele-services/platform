@@ -100,10 +100,7 @@ test("custom delivery atomically demotes the preserved managed publication", () 
     activation,
     /UPDATE public\.website_sites[\s\S]*SET status = 'superseded'/u,
   );
-  assert.match(
-    activation,
-    /managed website publication preservation failed/u,
-  );
+  assert.match(activation, /managed website publication preservation failed/u);
 });
 
 test("runtime proof covers all Phase 1B acceptance boundaries", () => {
@@ -119,6 +116,11 @@ test("runtime proof covers all Phase 1B acceptance boundaries", () => {
     "previousPublicationSuperseded",
     "exactlyOneActiveManagedPublication",
     "draftCannotAlterLiveSnapshot",
+    "previewIncludesDraftPage",
+    "previewBoundToActor",
+    "stalePreviewRevisionRejected",
+    "explicitPageInclusion",
+    "browserPreviewReadDenied",
     "browserExecutionDenied",
   ]) {
     assert.match(runtime, new RegExp(`${assertion}: true`, "u"));

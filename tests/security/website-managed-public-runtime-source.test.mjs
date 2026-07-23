@@ -25,7 +25,8 @@ test("FG-WEBSITE-PUBLIC-RUNTIME resolver is exact-host and active-publication on
 test("FG-WEBSITE-PUBLIC-RUNTIME has no session client and strips application cookies", () => {
   const packageJson = read("artifacts/website-runtime/package.json");
   const middleware = read("artifacts/website-runtime/src/middleware.ts");
-  assert.doesNotMatch(packageJson, /supabase|@workspace\/shared-ui/u);
+  assert.doesNotMatch(packageJson, /supabase/u);
+  assert.match(packageJson, /@workspace\/shared-ui/u);
   assert.match(middleware, /filterWebsiteCookieHeader/u);
   assert.match(middleware, /requestHeaders\.delete\("cookie"\)/u);
   assert.doesNotMatch(middleware, /console\.|cookie.*log/iu);
@@ -39,9 +40,7 @@ test("FG-WEBSITE-PUBLIC-RUNTIME fails closed and never serves application prefix
   const middleware = read("artifacts/website-runtime/src/middleware.ts");
   const page = read("artifacts/website-runtime/src/app/[[...slug]]/page.tsx");
   const http = read("artifacts/website-runtime/src/lib/http.ts");
-  const renderer = read(
-    "artifacts/website-runtime/src/lib/render-document.tsx",
-  );
+  const renderer = read("lib/shared-ui/src/website-renderer.tsx");
   assert.match(context, /requestPathOwner\(host, pathname\) !== "website"/u);
   assert.match(page, /notFound\(\)/u);
   assert.match(

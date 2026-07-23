@@ -32,7 +32,11 @@ test("managed page renders all MVP sections as escaped server markup", () => {
   });
   const ready = readyResolution(snapshot);
   const html = renderToStaticMarkup(
-    <ManagedWebsiteView resolution={ready} page={snapshot.pages[0]!} />,
+    <ManagedWebsiteView
+      snapshot={ready.snapshot}
+      page={snapshot.pages[0]!}
+      deliveryRevision={ready.deliveryRevision}
+    />,
   );
   assert.match(html, /data-delivery-revision="3"/u);
   for (const className of [
@@ -100,8 +104,9 @@ test("managed page renders allowlisted TipTap JSON without an HTML escape hatch"
   const snapshot = websitePublicationSnapshotSchema.parse(source);
   const html = renderToStaticMarkup(
     <ManagedWebsiteView
-      resolution={readyResolution(snapshot)}
+      snapshot={snapshot}
       page={snapshot.pages[0]!}
+      deliveryRevision={readyResolution(snapshot).deliveryRevision}
     />,
   );
   assert.match(html, /rich-text-narrow/u);
@@ -111,6 +116,65 @@ test("managed page renders allowlisted TipTap JSON without an HTML escape hatch"
     /href="https:\/\/example\.test\/uitleg" rel="noopener noreferrer" target="_blank"/u,
   );
   assert.doesNotMatch(html, /dangerouslySetInnerHTML|javascript:/u);
+});
+
+test("shared renderer keeps every internal preview navigation inside its opaque boundary", () => {
+  const snapshot = publicationSnapshot();
+  snapshot.pages[0]!.sections.push({
+    id: "20000000-0000-4000-8000-000000000096",
+    type: "rich_text",
+    schemaVersion: 1,
+    variant: "narrow",
+    visible: true,
+    content: {
+      title: "Previewlinks",
+      body: {
+        type: "doc",
+        schemaVersion: 2,
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Contactinhoud",
+                marks: [
+                  {
+                    type: "link",
+                    attrs: { href: "/contact" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  const ready = readyResolution(snapshot);
+  const prefix = "/admin/website-preview/fgwp1.opaque.signature";
+  const html = renderToStaticMarkup(
+    <ManagedWebsiteView
+      snapshot={snapshot}
+      page={snapshot.pages[0]!}
+      deliveryRevision={ready.deliveryRevision}
+      internalPathPrefix={prefix}
+    />,
+  );
+
+  assert.match(
+    html,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/"/u,
+  );
+  assert.match(
+    html,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact"/u,
+  );
+  assert.match(
+    html,
+    /href="\/admin\/website-preview\/fgwp1\.opaque\.signature\/contact">Contactinhoud<\/a>/u,
+  );
+  assert.doesNotMatch(html, /href="\/contact"/u);
 });
 
 test("application prefixes never fall through to the website renderer", () => {

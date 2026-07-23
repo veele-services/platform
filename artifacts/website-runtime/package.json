@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
+    "@workspace/shared-ui": "workspace:*",
     "@workspace/website-core": "workspace:*",
     "next": "^15.5.0",
     "react": "catalog:",

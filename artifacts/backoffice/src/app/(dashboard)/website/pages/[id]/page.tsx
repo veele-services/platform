@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getWebsitePageAction } from "@/app/actions/website";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { WebsitePageForm } from "@/components/website/WebsitePageForm";
 import { WebsiteSectionCanvas } from "@/components/website/WebsiteSectionCanvas";
 import { WebsiteTabs } from "@/components/website/WebsiteTabs";
 import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
+import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -57,6 +60,14 @@ export default async function WebsitePageEditor({ params }: Props) {
             </Badge>
             <Badge variant="outline">Revisie {page.authoringRevision}</Badge>
           </>
+        }
+        actions={
+          <Link
+            href="/website/review"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Preview &amp; publiceren
+          </Link>
         }
       />
       <WebsiteTabs />
