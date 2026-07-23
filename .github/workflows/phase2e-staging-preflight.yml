@@ -57,6 +57,9 @@ jobs:
       API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL || 'https://staging.fieldgrid.nl/rest/v1/' }}
       PILOT_TENANT_LOGIN_URL: ${{ vars.PILOT_TENANT_LOGIN_URL || 'https://field-demo.fieldgrid.nl/login' }}
       FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
+      NEXT_PUBLIC_MARKETING_SITE_URL: ${{ vars.NEXT_PUBLIC_MARKETING_SITE_URL }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
 
     steps:
       - name: Checkout exact main candidate

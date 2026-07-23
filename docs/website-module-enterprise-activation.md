@@ -48,6 +48,10 @@ values to production:
 | `WEBSITE_MANAGED_ACCEPTANCE_URL`       | Exact active managed proof site on `*.staging.fieldgrid.nl`.                 |
 | `WEBSITE_CUSTOM_ACCEPTANCE_URL`        | Exact active custom proof site on a different `*.staging.fieldgrid.nl` host. |
 | `FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON` | Reviewed JSON array described below.                                         |
+| `NEXT_PUBLIC_MARKETING_SITE_URL`       | Exact canonical custom proof origin on `*.staging.fieldgrid.nl`.             |
+| `FIELDGRID_CUSTOM_ROUTE_KEY`           | Exact opaque route key in the reviewed route registry.                       |
+| `FIELDGRID_CUSTOM_EXPECTED_HOST`       | Hostname equal to the canonical custom proof host.                           |
+| `FIELDGRID_WEBSITE_FORM_ID`            | Published form UUID; configure after staging site provisioning.              |
 
 The route JSON is operator-owned configuration. It is not tenant input and is
 never persisted as an origin:

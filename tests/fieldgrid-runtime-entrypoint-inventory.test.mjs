@@ -99,7 +99,7 @@ test('runtime entrypoint manifest stays compact and separates runtime concepts',
   assert.equal(manifest.counts.total, manifest.counts.classifications);
   assert.ok(manifest.counts.uniqueRuntimeNodes <= manifest.counts.classifications);
   assert.ok(Buffer.byteLength(JSON.stringify(manifest, null, 2)) < 30000);
-  for (const root of ['artifacts/backoffice/src', 'artifacts/personeel-pwa/src', 'artifacts/klant-pwa/src', 'artifacts/website-runtime/src', 'artifacts/api-server/src', 'lib/db/src']) {
+  for (const root of ['artifacts/backoffice/src', 'artifacts/personeel-pwa/src', 'artifacts/klant-pwa/src', 'artifacts/website-runtime/src', 'artifacts/marketing-website', 'artifacts/api-server/src', 'lib/db/src']) {
     assert.ok(manifest.runtimeRoots.includes(root), `missing runtime root ${root}`);
   }
 });

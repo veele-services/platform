@@ -31,6 +31,8 @@ jobs:
       BASE_PATH: ${{ vars.BASE_PATH }}
       SITE_URL: ${{ vars.SITE_URL || vars.APP_URL }}
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
+      NEXT_PUBLIC_MARKETING_SITE_URL: ${{ github.ref_name == 'staging' && vars.NEXT_PUBLIC_MARKETING_SITE_URL || '' }}
+      FIELDGRID_WEBSITE_FORM_ID: ${{ github.ref_name == 'staging' && vars.FIELDGRID_WEBSITE_FORM_ID || '' }}
       LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
 
       BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
@@ -45,6 +47,9 @@ jobs:
       API_PORT: ${{ vars.API_PORT }}
       WEBSITE_PORT: ${{ github.ref_name == 'staging' && vars.WEBSITE_PORT || '' }}
       FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON || '' }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_ROUTE_KEY || '' }}
+      FIELDGRID_CUSTOM_RELEASE_ID: ${{ github.ref_name == 'staging' && format('git-commit:{0}', github.sha) || '' }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_EXPECTED_HOST || '' }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -189,6 +194,8 @@ jobs:
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
             printf 'SITE_URL=%s\n' "$SITE_URL"
             printf 'NEXT_PUBLIC_SITE_URL=%s\n' "$NEXT_PUBLIC_SITE_URL"
+            printf 'NEXT_PUBLIC_MARKETING_SITE_URL=%s\n' "$NEXT_PUBLIC_MARKETING_SITE_URL"
+            printf 'FIELDGRID_WEBSITE_FORM_ID=%s\n' "$FIELDGRID_WEBSITE_FORM_ID"
             printf 'BASE_PATH=%s\n' "$BASE_PATH"
             printf 'LOG_LEVEL=%s\n' "$LOG_LEVEL"
             printf 'BACKOFFICE_PORT=%s\n' "$BACKOFFICE_PORT"
@@ -197,6 +204,9 @@ jobs:
             printf 'API_PORT=%s\n' "$API_PORT"
             printf 'WEBSITE_PORT=%s\n' "$WEBSITE_PORT"
             printf 'FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=%s\n' "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
+            printf 'FIELDGRID_CUSTOM_ROUTE_KEY=%s\n' "$FIELDGRID_CUSTOM_ROUTE_KEY"
+            printf 'FIELDGRID_CUSTOM_RELEASE_ID=%s\n' "$FIELDGRID_CUSTOM_RELEASE_ID"
+            printf 'FIELDGRID_CUSTOM_EXPECTED_HOST=%s\n' "$FIELDGRID_CUSTOM_EXPECTED_HOST"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
