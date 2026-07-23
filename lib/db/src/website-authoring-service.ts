@@ -13,6 +13,7 @@ import {
   type WebsiteSiteSettings,
 } from "@workspace/website-core";
 import { pool } from "./connection";
+import { createDefaultWebsiteContactForm } from "./website-form-service";
 
 export type {
   WebsiteAction,
@@ -782,6 +783,25 @@ export async function initializeManagedWebsite(
       siteResult.rows,
       "Website kon niet worden aangemaakt",
     );
+    await createDefaultWebsiteContactForm(client, {
+      tenantId: input.tenantId,
+      siteId: site.id,
+      locale: settings.defaultLocale,
+      notificationEmail: settings.contact.email,
+      actorUserId: input.actorUserId,
+    });
+    const initializedRevisionResult = await client.query<{
+      authoring_revision: number;
+    }>(
+      `SELECT authoring_revision
+       FROM public.website_sites
+       WHERE tenant_id = $1 AND id = $2`,
+      [input.tenantId, site.id],
+    );
+    const initializedRevision = requireOne(
+      initializedRevisionResult.rows,
+      "Website-revisie kon niet worden gelezen",
+    );
     await client.query(
       `INSERT INTO public.audit_log (
          tenant_id, user_id, action, resource, resource_id, metadata
@@ -791,7 +811,7 @@ export async function initializeManagedWebsite(
     );
     return {
       siteId: site.id,
-      authoringRevision: Number(site.authoring_revision),
+      authoringRevision: Number(initializedRevision.authoring_revision),
     };
   });
 }

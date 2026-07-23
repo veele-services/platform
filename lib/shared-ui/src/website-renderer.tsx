@@ -4,6 +4,10 @@ import type {
   WebsiteRichTextDocument,
   WebsiteSection,
 } from "@workspace/website-core";
+import {
+  resolvePublicationForm,
+  type WebsiteFormField,
+} from "@workspace/website-core/forms";
 import type { CSSProperties, ReactNode } from "react";
 import React from "react";
 
@@ -12,6 +16,9 @@ type PublicationBlogPost = WebsitePublicationSnapshot["blog"]["posts"][number];
 type RenderLinkContext = {
   snapshot: WebsitePublicationSnapshot;
   internalPathPrefix: string;
+  currentPage?: PublicationPage;
+  formState?: "verzonden" | "fout" | "later";
+  submissionId?: string;
 };
 
 const FONT_STACKS = {
@@ -425,6 +432,16 @@ function renderSection(
       );
     case "contact_form": {
       const contact = snapshot.contact;
+      const form = context.currentPage
+        ? resolvePublicationForm(snapshot.forms, {
+            formId: section.content.formId,
+            locale: context.currentPage.locale,
+          })
+        : null;
+      const formEnabled = Boolean(
+        form && context.submissionId && !context.internalPathPrefix,
+      );
+      const statusId = `form-status-${section.id}`;
       return (
         <section className={`section contact contact-${section.variant}`}>
           <div className="container contact-grid">
@@ -447,31 +464,70 @@ function renderSection(
             </div>
             <form
               className="contact-form"
-              aria-describedby={`form-status-${section.id}`}
+              aria-describedby={statusId}
+              action={
+                formEnabled
+                  ? `/api/website-forms/${form!.id}/submissions`
+                  : undefined
+              }
+              method={formEnabled ? "post" : undefined}
             >
-              <label>
-                Naam
-                <input name="name" autoComplete="name" disabled />
-              </label>
-              <label>
-                E-mailadres
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  disabled
+              {form?.fields.map((field) => (
+                <WebsiteFormFieldControl
+                  key={field.key}
+                  field={field}
+                  disabled={!formEnabled}
                 />
-              </label>
-              <label>
-                Bericht
-                <textarea name="message" rows={5} disabled />
-              </label>
-              <button type="button" disabled>
-                Versturen
+              ))}
+              {formEnabled ? (
+                <>
+                  <input
+                    type="hidden"
+                    name="_submissionId"
+                    value={context.submissionId}
+                  />
+                  <input
+                    type="hidden"
+                    name="_returnPath"
+                    value={context.currentPage!.path}
+                  />
+                  <label className="form-honeypot" aria-hidden="true">
+                    Bedrijfswebsite
+                    <input
+                      name="_companyWebsite"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
+                  </label>
+                </>
+              ) : null}
+              <button type="submit" disabled={!formEnabled}>
+                {form?.submitLabel ?? "Versturen"}
               </button>
-              <p id={`form-status-${section.id}`} className="muted">
-                Het online formulier wordt beschikbaar zodra veilige
-                formulierverwerking is geactiveerd.
+              <p
+                id={statusId}
+                className={
+                  context.formState === "verzonden"
+                    ? "form-status form-status-success"
+                    : "form-status muted"
+                }
+                role={
+                  context.formState === "fout" || context.formState === "later"
+                    ? "alert"
+                    : "status"
+                }
+              >
+                {context.formState === "verzonden"
+                  ? (form?.successMessage ??
+                    "Bedankt. Uw bericht is ontvangen.")
+                  : context.formState === "later"
+                    ? "Er zijn te veel verzoeken verstuurd. Probeer het later opnieuw."
+                    : context.formState === "fout"
+                      ? "Verzenden is niet gelukt. Controleer de velden en probeer het opnieuw."
+                      : formEnabled
+                        ? "Uw gegevens worden alleen gebruikt om op uw aanvraag te reageren."
+                        : "Dit formulier is in deze weergave niet beschikbaar."}
               </p>
             </form>
           </div>
@@ -494,6 +550,66 @@ function renderSection(
         </section>
       );
   }
+}
+
+const FORM_FIELD_AUTOCOMPLETE: Partial<
+  Record<WebsiteFormField["key"], string>
+> = {
+  name: "name",
+  email: "email",
+  phone: "tel",
+  company: "organization",
+  postalCode: "postal-code",
+};
+
+const FORM_FIELD_MAX_LENGTH: Record<WebsiteFormField["key"], number> = {
+  name: 160,
+  email: 254,
+  phone: 50,
+  company: 160,
+  postalCode: 20,
+  subject: 180,
+  preferredDate: 40,
+  message: 5_000,
+};
+
+function WebsiteFormFieldControl({
+  field,
+  disabled,
+}: {
+  field: WebsiteFormField;
+  disabled: boolean;
+}) {
+  const common = {
+    name: field.key,
+    required: field.required,
+    disabled,
+    placeholder: field.placeholder ?? undefined,
+    maxLength: FORM_FIELD_MAX_LENGTH[field.key],
+    autoComplete: FORM_FIELD_AUTOCOMPLETE[field.key],
+  };
+  return (
+    <label>
+      {field.label}
+      {field.required ? <span aria-hidden="true"> *</span> : null}
+      {field.key === "message" ? (
+        <textarea {...common} rows={5} />
+      ) : (
+        <input
+          {...common}
+          type={
+            field.key === "email"
+              ? "email"
+              : field.key === "phone"
+                ? "tel"
+                : field.key === "preferredDate"
+                  ? "date"
+                  : "text"
+          }
+        />
+      )}
+    </label>
+  );
 }
 
 function ContactDetails({
@@ -715,14 +831,24 @@ export function ManagedWebsiteView({
   deliveryRevision,
   internalPathPrefix = "",
   includePreviewBlogPosts = false,
+  formState,
+  submissionId,
 }: {
   snapshot: WebsitePublicationSnapshot;
   page: PublicationPage;
   deliveryRevision: number;
   internalPathPrefix?: string;
   includePreviewBlogPosts?: boolean;
+  formState?: "verzonden" | "fout" | "later";
+  submissionId?: string;
 }) {
-  const context = { snapshot, internalPathPrefix };
+  const context = {
+    snapshot,
+    internalPathPrefix,
+    currentPage: page,
+    formState,
+    submissionId,
+  };
   const hasHero = page.sections.some((section) => section.type === "hero");
   let heroRendered = false;
 
@@ -876,5 +1002,5 @@ export function ManagedWebsiteBlogArchiveView({
 
 const PUBLIC_STYLES = `
 .website-shell{min-height:100vh;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}a{color:inherit;text-underline-offset:.18em}h1,h2,h3{font-family:var(--heading-font);line-height:1.12;margin:0 0 .6em}h1{font-size:clamp(2.3rem,7vw,4.8rem);max-width:18ch}h2{font-size:clamp(1.8rem,4vw,3rem)}h3{font-size:1.25rem}p{margin:.35rem 0 1rem}.container{width:min(1120px,calc(100% - 2rem));margin-inline:auto}.narrow{max-width:780px}.section{padding:calc(4.5rem * var(--spacing-factor)) 0}.section-accent{background:var(--accent);color:var(--accent-foreground)}.section-heading{max-width:720px;margin-bottom:2rem}.section-heading>p,.lead{font-size:1.15rem;max-width:62ch}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-weight:750;color:var(--primary)}.muted{opacity:.72}.skip-link{position:absolute;left:-9999px;top:.5rem;background:var(--foreground);color:var(--background);padding:.7rem 1rem;z-index:10}.skip-link:focus{left:.5rem}.site-header{border-bottom:1px solid color-mix(in srgb,var(--foreground) 15%,transparent);position:relative;background:var(--background)}.header-inner{min-height:4.7rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}.brand{font-family:var(--heading-font);font-weight:800;text-decoration:none;font-size:1.15rem}.site-header nav>ul,.site-footer nav>ul{display:flex;list-style:none;gap:1.2rem;padding:0;margin:0;flex-wrap:wrap}.site-header nav li{position:relative}.site-header nav li ul{display:none;position:absolute;top:100%;left:0;min-width:13rem;padding:.7rem;list-style:none;background:var(--background);border:1px solid currentColor;border-radius:var(--radius)}.site-header nav li:focus-within ul,.site-header nav li:hover ul{display:grid;gap:.5rem}.hero{padding:calc(6rem * var(--spacing-factor)) 0}.hero-inner{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:3rem;align-items:center}.hero-centered .hero-inner,.hero-minimal .hero-inner{display:block;text-align:center}.hero-centered h1,.hero-centered h2,.hero-minimal h1,.hero-minimal h2{margin-inline:auto}.hero-centered .lead,.hero-minimal .lead{margin-inline:auto}.actions{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.5rem 0}.button{display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:var(--primary-foreground);border:2px solid var(--primary);border-radius:var(--radius);padding:.75rem 1.1rem;text-decoration:none;font-weight:750}.button-secondary{background:transparent;color:var(--foreground)}.inline-list,.trust-list{display:flex;gap:.75rem 1.5rem;list-style:none;padding:0;flex-wrap:wrap}.inline-list li:before{content:'✓ ';color:var(--primary);font-weight:800}.visual-placeholder{min-height:320px;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),var(--primary));opacity:.85}.trust-list{justify-content:space-between}.trust-list li{display:grid;min-width:10rem}.trust-list span{font-size:.92rem}.card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem}.card{margin:0;padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius);background:var(--background);color:var(--foreground)}.card figcaption{display:grid;gap:.2rem;margin-top:1rem}.icon{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.feature{display:flex;align-items:flex-start;gap:1rem}.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem}.steps li{display:flex;gap:1rem}.step-number{flex:0 0 auto;display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.faq-list{display:grid;gap:.75rem}.faq-list details{border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent);border-radius:var(--radius);padding:1rem 1.2rem}.faq-list summary{cursor:pointer;font-weight:750}.faq-answer{padding-top:.7rem}.rich-text-content{max-width:76ch}.rich-text-content blockquote{margin:1.5rem 0;border-left:.25rem solid var(--primary);padding-left:1.25rem}.rich-text-content hr{border:0;border-top:1px solid color-mix(in srgb,var(--foreground) 20%,transparent);margin:2rem 0}.cta{background:var(--primary);color:var(--primary-foreground)}.cta-inner{display:flex;align-items:center;justify-content:space-between;gap:2rem}.cta .button{background:var(--primary-foreground);color:var(--primary);border-color:var(--primary-foreground)}.cta .button-secondary{background:transparent;color:var(--primary-foreground)}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem}.contact-details{display:grid;font-style:normal;gap:.25rem}.contact-form{display:grid;gap:1rem}.contact-form label{display:grid;gap:.35rem;font-weight:650}.contact-form input,.contact-form textarea{width:100%;border:1px solid color-mix(in srgb,var(--foreground) 30%,transparent);border-radius:var(--radius);padding:.7rem;background:var(--background);color:var(--foreground)}.contact-form button{padding:.8rem;border:0;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-weight:750}.contact-form :disabled{cursor:not-allowed;opacity:.62}.page-title{padding:3rem 0 0}.blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem}.blog-card{padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius)}.blog-card h2{font-size:1.45rem;margin-top:.6rem}.blog-card h2 a{text-decoration:none}.blog-card time,.preview-label{font-size:.9rem;opacity:.72}.blog-body{margin-top:2.5rem}.blog-tags{display:flex;flex-wrap:wrap;gap:.6rem;list-style:none;padding:2rem 0 0}.blog-tags a{display:block;border:1px solid currentColor;border-radius:999px;padding:.3rem .75rem;text-decoration:none}.site-footer{padding:3rem 0;background:var(--foreground);color:var(--background)}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem}.site-footer nav>ul{display:grid}.site-footer nav ul{list-style:none;padding:0;margin:0}.site-footer nav li ul{padding-left:1rem}@media(max-width:800px){.header-inner{align-items:flex-start;flex-direction:column;padding-block:1rem}.hero-inner,.contact-grid,.footer-grid{grid-template-columns:1fr}.card-grid,.steps,.blog-grid{grid-template-columns:1fr}.cta-inner{align-items:flex-start;flex-direction:column}.section{padding:calc(3.2rem * var(--spacing-factor)) 0}.site-header nav li ul{position:static;display:grid;border:0;padding:.4rem 0 .4rem 1rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--body-font);font-size:1rem;line-height:1.65}a{color:inherit;text-underline-offset:.18em}h1,h2,h3{font-family:var(--heading-font);line-height:1.12;margin:0 0 .6em}h1{font-size:clamp(2.3rem,7vw,4.8rem);max-width:18ch}h2{font-size:clamp(1.8rem,4vw,3rem)}h3{font-size:1.25rem}p{margin:.35rem 0 1rem}.container{width:min(1120px,calc(100% - 2rem));margin-inline:auto}.narrow{max-width:780px}.section{padding:calc(4.5rem * var(--spacing-factor)) 0}.section-accent{background:var(--accent);color:var(--accent-foreground)}.section-heading{max-width:720px;margin-bottom:2rem}.section-heading>p,.lead{font-size:1.15rem;max-width:62ch}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-weight:750;color:var(--primary)}.muted{opacity:.72}.skip-link{position:absolute;left:-9999px;top:.5rem;background:var(--foreground);color:var(--background);padding:.7rem 1rem;z-index:10}.skip-link:focus{left:.5rem}.site-header{border-bottom:1px solid color-mix(in srgb,var(--foreground) 15%,transparent);position:relative;background:var(--background)}.header-inner{min-height:4.7rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}.brand{font-family:var(--heading-font);font-weight:800;text-decoration:none;font-size:1.15rem}.site-header nav>ul,.site-footer nav>ul{display:flex;list-style:none;gap:1.2rem;padding:0;margin:0;flex-wrap:wrap}.site-header nav li{position:relative}.site-header nav li ul{display:none;position:absolute;top:100%;left:0;min-width:13rem;padding:.7rem;list-style:none;background:var(--background);border:1px solid currentColor;border-radius:var(--radius)}.site-header nav li:focus-within ul,.site-header nav li:hover ul{display:grid;gap:.5rem}.hero{padding:calc(6rem * var(--spacing-factor)) 0}.hero-inner{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:3rem;align-items:center}.hero-centered .hero-inner,.hero-minimal .hero-inner{display:block;text-align:center}.hero-centered h1,.hero-centered h2,.hero-minimal h1,.hero-minimal h2{margin-inline:auto}.hero-centered .lead,.hero-minimal .lead{margin-inline:auto}.actions{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.5rem 0}.button{display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:var(--primary-foreground);border:2px solid var(--primary);border-radius:var(--radius);padding:.75rem 1.1rem;text-decoration:none;font-weight:750}.button-secondary{background:transparent;color:var(--foreground)}.inline-list,.trust-list{display:flex;gap:.75rem 1.5rem;list-style:none;padding:0;flex-wrap:wrap}.inline-list li:before{content:'✓ ';color:var(--primary);font-weight:800}.visual-placeholder{min-height:320px;border-radius:var(--radius);background:linear-gradient(135deg,var(--accent),var(--primary));opacity:.85}.trust-list{justify-content:space-between}.trust-list li{display:grid;min-width:10rem}.trust-list span{font-size:.92rem}.card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem}.card{margin:0;padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius);background:var(--background);color:var(--foreground)}.card figcaption{display:grid;gap:.2rem;margin-top:1rem}.icon{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.feature{display:flex;align-items:flex-start;gap:1rem}.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem}.steps li{display:flex;gap:1rem}.step-number{flex:0 0 auto;display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-weight:800}.faq-list{display:grid;gap:.75rem}.faq-list details{border:1px solid color-mix(in srgb,var(--foreground) 18%,transparent);border-radius:var(--radius);padding:1rem 1.2rem}.faq-list summary{cursor:pointer;font-weight:750}.faq-answer{padding-top:.7rem}.rich-text-content{max-width:76ch}.rich-text-content blockquote{margin:1.5rem 0;border-left:.25rem solid var(--primary);padding-left:1.25rem}.rich-text-content hr{border:0;border-top:1px solid color-mix(in srgb,var(--foreground) 20%,transparent);margin:2rem 0}.cta{background:var(--primary);color:var(--primary-foreground)}.cta-inner{display:flex;align-items:center;justify-content:space-between;gap:2rem}.cta .button{background:var(--primary-foreground);color:var(--primary);border-color:var(--primary-foreground)}.cta .button-secondary{background:transparent;color:var(--primary-foreground)}.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem}.contact-details{display:grid;font-style:normal;gap:.25rem}.contact-form{display:grid;gap:1rem}.contact-form label{display:grid;gap:.35rem;font-weight:650}.contact-form input,.contact-form textarea{width:100%;border:1px solid color-mix(in srgb,var(--foreground) 30%,transparent);border-radius:var(--radius);padding:.7rem;background:var(--background);color:var(--foreground)}.contact-form button{padding:.8rem;border:0;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-weight:750}.contact-form :disabled{cursor:not-allowed;opacity:.62}.form-honeypot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}.form-status-success{font-weight:700;color:#166534}.page-title{padding:3rem 0 0}.blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem}.blog-card{padding:1.5rem;border:1px solid color-mix(in srgb,var(--foreground) 16%,transparent);border-radius:var(--radius)}.blog-card h2{font-size:1.45rem;margin-top:.6rem}.blog-card h2 a{text-decoration:none}.blog-card time,.preview-label{font-size:.9rem;opacity:.72}.blog-body{margin-top:2.5rem}.blog-tags{display:flex;flex-wrap:wrap;gap:.6rem;list-style:none;padding:2rem 0 0}.blog-tags a{display:block;border:1px solid currentColor;border-radius:999px;padding:.3rem .75rem;text-decoration:none}.site-footer{padding:3rem 0;background:var(--foreground);color:var(--background)}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem}.site-footer nav>ul{display:grid}.site-footer nav ul{list-style:none;padding:0;margin:0}.site-footer nav li ul{padding-left:1rem}@media(max-width:800px){.header-inner{align-items:flex-start;flex-direction:column;padding-block:1rem}.hero-inner,.contact-grid,.footer-grid{grid-template-columns:1fr}.card-grid,.steps,.blog-grid{grid-template-columns:1fr}.cta-inner{align-items:flex-start;flex-direction:column}.section{padding:calc(3.2rem * var(--spacing-factor)) 0}.site-header nav li ul{position:static;display:grid;border:0;padding:.4rem 0 .4rem 1rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 `;

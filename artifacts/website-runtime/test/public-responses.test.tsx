@@ -17,6 +17,7 @@ import { requestPathOwner } from "../src/lib/request";
 import {
   publicationSnapshot,
   readyResolution,
+  TEST_IDS,
   websiteRequest,
 } from "./fixtures";
 
@@ -169,6 +170,32 @@ test("managed page renders all MVP sections as escaped server markup", () => {
   assert.match(html, /<form[^>]*contact-form/u);
   assert.match(html, /<button[^>]*disabled/u);
   assert.match(html, /href="\/" target="_blank" rel="noopener noreferrer"/u);
+});
+
+test("managed live page renders a same-origin, idempotent public form", () => {
+  const snapshot = publicationSnapshot();
+  const html = renderToStaticMarkup(
+    <ManagedWebsiteView
+      snapshot={snapshot}
+      page={snapshot.pages[0]!}
+      deliveryRevision={snapshot.deliveryRevision}
+      submissionId="30000000-0000-4000-8000-000000000099"
+      formState="verzonden"
+    />,
+  );
+  assert.match(
+    html,
+    new RegExp(`action="/api/website-forms/${TEST_IDS.form}/submissions"`, "u"),
+  );
+  assert.match(html, /method="post"/u);
+  assert.match(
+    html,
+    /name="_submissionId" value="30000000-0000-4000-8000-000000000099"/u,
+  );
+  assert.match(html, /name="_companyWebsite"/u);
+  assert.match(html, /required=""/u);
+  assert.match(html, /Uw aanvraag is ontvangen\./u);
+  assert.doesNotMatch(html, /notificationEmail/u);
 });
 
 test("managed page renders allowlisted TipTap JSON without an HTML escape hatch", () => {

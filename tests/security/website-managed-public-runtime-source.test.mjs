@@ -57,7 +57,8 @@ test("FG-WEBSITE-PUBLIC-RUNTIME fails closed and never serves application prefix
   assert.match(http, /form-action 'none'/u);
   assert.match(http, /Vary/u);
   assert.match(middleware, /script-src 'nonce-\$\{nonce\}' 'strict-dynamic'/u);
+  assert.match(middleware, /form-action 'self'/u);
   assert.match(middleware, /private, no-store/u);
   assert.doesNotMatch(renderer, /dangerouslySetInnerHTML/u);
-  assert.match(renderer, /<button type="button" disabled>/u);
+  assert.match(renderer, /<button type="submit" disabled=\{!formEnabled\}>/u);
 });

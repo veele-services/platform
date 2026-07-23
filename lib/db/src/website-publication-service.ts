@@ -11,6 +11,7 @@ import {
 } from "@workspace/website-core";
 import { pool } from "./connection";
 import { loadWebsiteBlogSource } from "./website-blog-service";
+import { loadWebsiteFormSource } from "./website-form-service";
 
 const commandContextSchema = z
   .object({
@@ -314,6 +315,11 @@ export async function createManagedWebsitePublication(
         input.tenantId,
         input.siteId,
       );
+      const forms = await loadWebsiteFormSource(
+        client,
+        input.tenantId,
+        input.siteId,
+      );
 
       const sectionsByPage = new Map<string, SectionRow[]>();
       for (const section of sectionResult.rows) {
@@ -375,6 +381,7 @@ export async function createManagedWebsitePublication(
           isActive: redirect.is_active,
         })),
         blog,
+        forms,
       });
       const snapshot = buildWebsitePublicationSnapshot(source);
       const canonicalSnapshot = serializeWebsitePublication(snapshot);

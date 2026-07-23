@@ -13,6 +13,7 @@ import {
 } from "@workspace/website-core";
 import { pool } from "./connection";
 import { loadWebsiteBlogSource } from "./website-blog-service";
+import { loadWebsiteFormSource } from "./website-form-service";
 
 const uuidSchema = z.string().uuid();
 const tokenHashSchema = z.string().regex(/^[0-9a-f]{64}$/u);
@@ -85,6 +86,7 @@ export type WebsitePublicationReview = {
     navigation: boolean;
     redirects: boolean;
     blog: boolean;
+    forms: boolean;
     pages: Array<{
       id: string;
       title: string;
@@ -285,6 +287,7 @@ async function loadWebsiteSource(
     [tenantId, siteId],
   );
   const blog = await loadWebsiteBlogSource(query, tenantId, siteId);
+  const forms = await loadWebsiteFormSource(query, tenantId, siteId);
 
   const sectionsByPage = new Map<string, SourceSectionRow[]>();
   for (const section of sectionResult.rows) {
@@ -346,6 +349,7 @@ async function loadWebsiteSource(
       isActive: redirect.is_active,
     })),
     blog,
+    forms,
   });
 
   return {
@@ -399,6 +403,7 @@ function publicationChanges(
       navigation: false,
       redirects: false,
       blog: false,
+      forms: false,
       pages: [],
     };
   }
@@ -460,6 +465,9 @@ function publicationChanges(
     blog:
       !active ||
       stableSnapshotPart(active.blog) !== stableSnapshotPart(current.blog),
+    forms:
+      !active ||
+      stableSnapshotPart(active.forms) !== stableSnapshotPart(current.forms),
     pages: pages.sort((left, right) => left.path.localeCompare(right.path)),
   };
 }
@@ -506,14 +514,6 @@ function draftCapabilityWarnings(
           code: "section_media_resolution_pending",
           path: `pages.${page.id}.sections.${section.id}`,
           message: `${page.title} bevat sectiemedia die voorlopig als veilige placeholder wordt weergegeven; media en alt-tekst blijven een volgende fase.`,
-        });
-      }
-      if (section.sectionKey === "contact_form" && section.isVisible) {
-        warnings.push({
-          severity: "warning",
-          code: "form_processing_inactive",
-          path: `pages.${page.id}.sections.${section.id}`,
-          message: `${page.title} bevat een contactformulier waarvan verzending bewust uitgeschakeld blijft tot de beveiligde formulierfase.`,
         });
       }
     }
@@ -599,6 +599,14 @@ export async function getWebsitePublicationReview(
         code: "draft_blog_post_excluded",
         path: `blog.posts.${post.id}.status`,
         message: `${post.title} staat nog op concept en wordt niet opgenomen in de publieke blog.`,
+      })),
+    ...loaded.source.forms
+      .filter((form) => form.status === "draft")
+      .map((form) => ({
+        severity: "warning" as const,
+        code: "draft_form_excluded",
+        path: `forms.${form.id}.status`,
+        message: `${form.name} staat nog op concept en wordt niet opgenomen in de publieke formulierdefinities.`,
       })),
     ...draftCapabilityWarnings(loaded),
   ];

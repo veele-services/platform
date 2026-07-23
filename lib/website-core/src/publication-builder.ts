@@ -25,6 +25,11 @@ import {
   websiteRedirectDraftSchema,
   websiteRouteKey,
 } from "./redirects";
+import {
+  resolvePublicationForm,
+  websiteFormSourceSchema,
+  type WebsitePublicationForm,
+} from "./forms";
 
 const uuidSchema = z.string().uuid();
 const pathSchema = websiteCanonicalPathSchema;
@@ -96,6 +101,7 @@ export const websitePublicationSourceSchema = z
     navigation: z.array(sourceNavigationItemSchema).max(500),
     redirects: websiteRedirectDraftSchema.default([]),
     blog: websiteBlogSourceSchema,
+    forms: z.array(websiteFormSourceSchema).max(100).default([]),
   })
   .strict();
 
@@ -641,6 +647,36 @@ function buildWebsiteSnapshot(
       };
     });
 
+  const forms: WebsitePublicationForm[] = source.forms
+    .filter((form) => includePage(form.status))
+    .sort(
+      (left, right) =>
+        compareText(left.locale, right.locale) ||
+        compareText(left.key, right.key) ||
+        compareText(left.id, right.id),
+    )
+    .map(({ status: _status, ...form }) => form);
+
+  for (const page of pages) {
+    for (const section of page.sections) {
+      if (
+        section.type === "contact_form" &&
+        !resolvePublicationForm(forms, {
+          formId: section.content.formId,
+          locale: page.locale,
+        })
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "missing_published_form",
+            `pages.${page.id}.sections.${section.id}.content.formId`,
+            "Een zichtbaar contactformulier moet naar een gepubliceerd formulier in dezelfde taal verwijzen",
+          ),
+        );
+      }
+    }
+  }
+
   if (diagnostics.length > 0) {
     throw new WebsitePublicationValidationError(diagnostics);
   }
@@ -663,6 +699,7 @@ function buildWebsiteSnapshot(
       tags,
       posts: blogPosts,
     },
+    forms,
   });
   if (!snapshot.success) {
     throw new WebsitePublicationValidationError(zodDiagnostics(snapshot.error));

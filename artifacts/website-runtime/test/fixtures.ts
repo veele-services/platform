@@ -15,6 +15,7 @@ export const TEST_IDS = {
   publication: "20000000-0000-4000-8000-000000000003",
   page: "20000000-0000-4000-8000-000000000004",
   customDeployment: "20000000-0000-4000-8000-000000000005",
+  form: "20000000-0000-4000-8000-000000000006",
 };
 
 export const TEST_HASH = "a".repeat(64);
@@ -82,6 +83,37 @@ export function publicationSnapshot(
       },
     ],
     navigation: [],
+    forms: [
+      {
+        id: TEST_IDS.form,
+        key: "contact",
+        locale: "nl-NL",
+        kind: "contact",
+        name: "Contactformulier",
+        fields: [
+          {
+            key: "name",
+            label: "Naam",
+            required: true,
+            placeholder: null,
+          },
+          {
+            key: "email",
+            label: "E-mailadres",
+            required: true,
+            placeholder: null,
+          },
+          {
+            key: "message",
+            label: "Bericht",
+            required: true,
+            placeholder: null,
+          },
+        ],
+        submitLabel: "Versturen",
+        successMessage: "Uw aanvraag is ontvangen.",
+      },
+    ],
   });
 }
 

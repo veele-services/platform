@@ -210,6 +210,16 @@ export default async function WebsiteOverviewPage() {
           description="Orden header-, footer- en juridische menu's met veilige interne en externe bestemmingen."
         />
         <ActionCard
+          href="/website/forms"
+          title="Formulieren"
+          description="Configureer publieke contact-, offerte-, terugbel- en spoedformulieren met veilige verwerking."
+        />
+        <ActionCard
+          href="/website/submissions"
+          title="Inzendingen"
+          description="Verwerk aanvragen, bewaak notificaties en converteer expliciet en idempotent naar leads."
+        />
+        <ActionCard
           href="/website/review"
           title="Preview en publiceren"
           description="Bekijk de volledige draft, los diagnostiek op en activeer alleen een exact gereviewde immutable publicatie."
