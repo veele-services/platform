@@ -377,11 +377,8 @@ export const websiteNavigationItemsTable = pgTable(
       table.siteId,
       table.id,
     ),
-    uniqueIndex("website_navigation_items_position_idx").on(
-      table.siteId,
-      table.location,
-      table.position,
-    ),
+    // Position uniqueness is migration-owned because Drizzle cannot model its
+    // DEFERRABLE constraint. An immediate uniqueIndex here breaks atomic reorders.
     index("website_navigation_items_tenant_site_idx").on(
       table.tenantId,
       table.siteId,
