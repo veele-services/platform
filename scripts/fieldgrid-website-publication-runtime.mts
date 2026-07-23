@@ -554,7 +554,7 @@ try {
        WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
       [tenantA, siteId, contactPageId, actorA],
     ),
-    /internal redirect destination must resolve to an active page/u,
+    /internal redirect destination must resolve to active website content/u,
   );
   await assert.rejects(
     pool.query(
