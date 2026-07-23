@@ -2,6 +2,8 @@ import type { PoolClient } from "pg";
 import { z } from "zod/v4";
 import {
   WEBSITE_PAGE_TYPES,
+  WEBSITE_TEMPLATE_KEYS,
+  WEBSITE_TEMPLATE_REGISTRY,
   websitePathChangeDecisionSchema,
   websiteSectionSchema,
   websiteSeoSchema,
@@ -11,6 +13,7 @@ import {
   type WebsiteSeo,
   type WebsiteSection,
   type WebsiteSiteSettings,
+  type WebsiteTemplateKey,
 } from "@workspace/website-core";
 import { pool } from "./connection";
 import { createDefaultWebsiteContactForm } from "./website-form-service";
@@ -23,6 +26,7 @@ export type {
   WebsiteSeo,
   WebsiteSection,
   WebsiteSiteSettings,
+  WebsiteTemplateKey,
 } from "@workspace/website-core";
 
 const commandContextSchema = z
@@ -38,6 +42,7 @@ const siteCommandContextSchema = commandContextSchema.extend({
 });
 
 const initializeWebsiteInputSchema = commandContextSchema.extend({
+  templateKey: z.enum(WEBSITE_TEMPLATE_KEYS),
   settings: websiteSiteSettingsSchema,
 });
 
@@ -671,10 +676,11 @@ export async function getWebsitePage(
     position: number;
     content: unknown;
     is_visible: boolean;
+    requires_review: boolean;
     authoring_revision: number;
   }>(
     `SELECT id, section_key, schema_version, variant_key, position, content,
-            is_visible, authoring_revision
+            is_visible, requires_review, authoring_revision
      FROM public.website_page_sections
      WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3
      ORDER BY position, id`,
@@ -706,6 +712,7 @@ export async function getWebsitePage(
         schemaVersion: Number(section.schema_version),
         variant: section.variant_key,
         visible: section.is_visible,
+        requiresReview: section.requires_review,
         content: section.content,
       }),
       position: Number(section.position),
@@ -756,22 +763,26 @@ export async function initializeManagedWebsite(
     if (existing.rowCount) throw new Error("Er bestaat al een website");
 
     const settings = input.settings;
+    const template = WEBSITE_TEMPLATE_REGISTRY[input.templateKey];
     const siteResult = await client.query<{
       id: string;
       authoring_revision: number;
     }>(
       `INSERT INTO public.website_sites (
          tenant_id, name, status, is_primary, delivery_mode,
+         template_key, template_version,
          default_locale, theme, contact, social_links, default_seo,
          analytics, seo_settings, created_by, updated_by
        ) VALUES (
-         $1, $2, 'draft', true, 'managed_cms', $3, $4::jsonb, $5::jsonb,
-         $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10, $10
+         $1, $2, 'draft', true, 'managed_cms', $3, $4, $5, $6::jsonb,
+         $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $12
        )
        RETURNING id, authoring_revision`,
       [
         input.tenantId,
         settings.name,
+        template.key,
+        template.version,
         settings.defaultLocale,
         JSON.stringify(settings.theme),
         JSON.stringify(settings.contact),
@@ -786,6 +797,109 @@ export async function initializeManagedWebsite(
       siteResult.rows,
       "Website kon niet worden aangemaakt",
     );
+    await client.query(
+      `SELECT set_config('fieldgrid.website_child_authoring_touch', 'suppressed', true)`,
+    );
+
+    const pageIdByKey = new Map<string, string>();
+    let sectionCount = 0;
+    for (const page of template.pages) {
+      const pageSeo = {
+        ...settings.defaultSeo,
+        title: `${page.title} | ${settings.name}`.slice(0, 70),
+        description:
+          page.path === "/"
+            ? settings.defaultSeo.description
+            : `${page.title} van ${settings.name}. ${settings.defaultSeo.description}`.slice(
+                0,
+                170,
+              ),
+        canonicalPath: null,
+      };
+      const pageResult = await client.query<{ id: string }>(
+        `INSERT INTO public.website_pages (
+           tenant_id, site_id, locale, title, navigation_label, slug, path,
+           page_type, status, is_homepage, seo, created_by, updated_by
+         ) VALUES (
+           $1, $2, $3, $4, $4, $5, $6, $7, 'draft', $8, $9::jsonb, $10, $10
+         )
+         RETURNING id`,
+        [
+          input.tenantId,
+          site.id,
+          settings.defaultLocale,
+          page.title,
+          page.path === "/"
+            ? ""
+            : (page.path.split("/").filter(Boolean).at(-1) ?? ""),
+          page.path,
+          page.pageType,
+          page.path === "/",
+          JSON.stringify(pageSeo),
+          input.actorUserId,
+        ],
+      );
+      const createdPage = requireOne(
+        pageResult.rows,
+        "Templatepagina kon niet worden aangemaakt",
+      );
+      pageIdByKey.set(page.key, createdPage.id);
+
+      for (const [position, section] of page.sections.entries()) {
+        await client.query(
+          `INSERT INTO public.website_page_sections (
+             tenant_id, site_id, page_id, section_key, schema_version,
+             variant_key, position, content, is_visible, requires_review,
+             created_by, updated_by
+           ) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, true, $10, $10
+           )`,
+          [
+            input.tenantId,
+            site.id,
+            createdPage.id,
+            section.type,
+            section.schemaVersion,
+            section.variant,
+            position,
+            JSON.stringify(section.content),
+            section.visible,
+            input.actorUserId,
+          ],
+        );
+        sectionCount += 1;
+      }
+    }
+
+    const navigationPositions = new Map<string, number>();
+    for (const item of template.navigation) {
+      const pageId = pageIdByKey.get(item.pageKey);
+      if (!pageId) {
+        throw new Error(
+          `Template verwijst naar onbekende pagina: ${item.pageKey}`,
+        );
+      }
+      const position = navigationPositions.get(item.location) ?? 0;
+      await client.query(
+        `INSERT INTO public.website_navigation_items (
+           tenant_id, site_id, page_id, location, label, link_type, target,
+           position, is_visible, created_by, updated_by
+         ) VALUES (
+           $1, $2, $3, $4, $5, 'page', 'self', $6, true, $7, $7
+         )`,
+        [
+          input.tenantId,
+          site.id,
+          pageId,
+          item.location,
+          item.label,
+          position,
+          input.actorUserId,
+        ],
+      );
+      navigationPositions.set(item.location, position + 1);
+    }
+
     await createDefaultWebsiteContactForm(client, {
       tenantId: input.tenantId,
       siteId: site.id,
@@ -809,8 +923,22 @@ export async function initializeManagedWebsite(
       `INSERT INTO public.audit_log (
          tenant_id, user_id, action, resource, resource_id, metadata
        ) VALUES ($1, $2, 'website_initialized', 'website', $3,
-                 jsonb_build_object('deliveryMode', 'managed_cms'))`,
-      [input.tenantId, input.actorUserId, site.id],
+                 jsonb_build_object(
+                   'deliveryMode', 'managed_cms',
+                   'templateKey', $4::text,
+                   'templateVersion', $5::integer,
+                   'pageCount', $6::integer,
+                   'sectionCount', $7::integer
+                 ))`,
+      [
+        input.tenantId,
+        input.actorUserId,
+        site.id,
+        template.key,
+        template.version,
+        template.pages.length,
+        sectionCount,
+      ],
     );
     return {
       siteId: site.id,
@@ -1162,9 +1290,10 @@ export async function createWebsiteSection(
     }>(
       `INSERT INTO public.website_page_sections (
          id, tenant_id, site_id, page_id, section_key, schema_version,
-         variant_key, position, content, is_visible, created_by, updated_by
+         variant_key, position, content, is_visible, requires_review,
+         created_by, updated_by
        ) VALUES (
-         $4, $1, $2, $3, $5, $6, $7, $8, $9::jsonb, $10, $11, $11
+         $4, $1, $2, $3, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $12
        )
        RETURNING id, authoring_revision`,
       [
@@ -1178,6 +1307,7 @@ export async function createWebsiteSection(
         Number(sectionCount.position),
         JSON.stringify(section.content),
         section.visible,
+        section.requiresReview ?? false,
         input.actorUserId,
       ],
     );
@@ -1192,7 +1322,8 @@ export async function createWebsiteSection(
        ) VALUES ($1, $2, 'website_section_created', 'website_page_section', $3,
                  jsonb_build_object('siteId', $4::text,
                                     'pageId', $5::text,
-                                    'sectionType', $6::text))`,
+                                    'sectionType', $6::text,
+                                    'requiresReview', $7::boolean))`,
       [
         input.tenantId,
         input.actorUserId,
@@ -1200,6 +1331,7 @@ export async function createWebsiteSection(
         input.siteId,
         input.pageId,
         section.type,
+        section.requiresReview ?? false,
       ],
     );
     return {
@@ -1225,8 +1357,9 @@ export async function updateWebsiteSection(
        SET variant_key = $8,
            content = $9::jsonb,
            is_visible = $10,
+           requires_review = $11,
            authoring_revision = authoring_revision + 1,
-           updated_by = $11,
+           updated_by = $12,
            updated_at = now()
        WHERE tenant_id = $1 AND site_id = $2 AND page_id = $3 AND id = $4
          AND authoring_revision = $5
@@ -1243,6 +1376,7 @@ export async function updateWebsiteSection(
         section.variant,
         JSON.stringify(section.content),
         section.visible,
+        section.requiresReview ?? false,
         input.actorUserId,
       ],
     );
@@ -1259,7 +1393,8 @@ export async function updateWebsiteSection(
                    'siteId', $4::text,
                    'pageId', $5::text,
                    'fromSectionRevision', $6::integer,
-                   'toSectionRevision', $7::integer
+                   'toSectionRevision', $7::integer,
+                   'requiresReview', $8::boolean
                  ))`,
       [
         input.tenantId,
@@ -1269,6 +1404,7 @@ export async function updateWebsiteSection(
         input.pageId,
         input.expectedSectionRevision,
         Number(updated.authoring_revision),
+        section.requiresReview ?? false,
       ],
     );
     return {

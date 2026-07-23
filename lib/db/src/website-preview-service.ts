@@ -146,6 +146,7 @@ type SourceSectionRow = {
   position: number;
   content: unknown;
   is_visible: boolean;
+  requires_review: boolean;
 };
 
 type SourceNavigationRow = {
@@ -268,7 +269,7 @@ async function loadWebsiteSource(
   );
   const sectionResult = await query.query<SourceSectionRow>(
     `SELECT id, page_id, section_key, schema_version, variant_key, position,
-            content, is_visible
+            content, is_visible, requires_review
      FROM public.website_page_sections
      WHERE tenant_id = $1 AND site_id = $2
      ORDER BY page_id, position, id`,
@@ -331,6 +332,7 @@ async function loadWebsiteSource(
         position: Number(section.position),
         content: section.content,
         isVisible: section.is_visible,
+        requiresReview: section.requires_review,
       })),
     })),
     navigation: navigationResult.rows.map((item) => ({

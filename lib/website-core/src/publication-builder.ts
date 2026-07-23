@@ -52,6 +52,7 @@ const sourceSectionSchema = z
     position: z.number().int().nonnegative(),
     content: z.unknown(),
     isVisible: z.boolean(),
+    requiresReview: z.boolean().default(false),
   })
   .strict();
 
@@ -175,6 +176,7 @@ function buildWebsiteSnapshot(
     status: WebsitePublicationSource["pages"][number]["status"],
   ) => boolean,
   includeBlogPost: (status: "draft" | "published" | "archived") => boolean,
+  blockUnreviewedSections: boolean,
 ): WebsitePublicationSnapshot {
   const parsed = websitePublicationSourceSchema.safeParse(input);
   if (!parsed.success) {
@@ -222,6 +224,19 @@ function buildWebsiteSnapshot(
       `pages.${page.id}.sections`,
       diagnostics,
     );
+    if (blockUnreviewedSections) {
+      for (const section of page.sections.filter(
+        (candidate) => candidate.isVisible && candidate.requiresReview,
+      )) {
+        diagnostics.push(
+          diagnostic(
+            "template_content_requires_review",
+            `pages.${page.id}.sections.${section.id}.requiresReview`,
+            "Templatevoorbeeld moet expliciet als gecontroleerd worden gemarkeerd vóór publicatie",
+          ),
+        );
+      }
+    }
   }
 
   const pageById = new Map(publishedPages.map((page) => [page.id, page]));
@@ -262,7 +277,24 @@ function buildWebsiteSnapshot(
           visible: true,
           content: section.content,
         });
-        if (result.success) return [result.data];
+        if (result.success) {
+          if (
+            blockUnreviewedSections &&
+            result.data.type === "team" &&
+            result.data.content.members.some(
+              (member) => !member.consentConfirmed,
+            )
+          ) {
+            diagnostics.push(
+              diagnostic(
+                "team_consent_required",
+                `pages.${page.id}.sections.${section.id}.content.members`,
+                "Elk gepubliceerd teamlid vereist bevestigde publicatietoestemming",
+              ),
+            );
+          }
+          return [result.data];
+        }
         diagnostics.push(
           ...zodDiagnostics(result.error).map((entry) => ({
             ...entry,
@@ -753,6 +785,7 @@ export function buildWebsitePublicationSnapshot(
     input,
     (status) => status === "published",
     (status) => status === "published",
+    true,
   );
 }
 
@@ -763,6 +796,7 @@ export function buildWebsiteDraftPreviewSnapshot(
     input,
     (status) => status !== "archived",
     (status) => status !== "archived",
+    false,
   );
 }
 

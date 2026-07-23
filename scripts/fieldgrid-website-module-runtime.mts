@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import {
+  initializeManagedWebsite,
   pool,
   resolveWebsiteDeliveryByHost,
   type WebsiteRuntimeQuery,
 } from "../lib/db/src/index.ts";
-import { createCustomWebsiteRouteRegistry } from "../lib/website-core/src/index.ts";
+import {
+  MULTI_SERVICE_COMPANY_TEMPLATE_V1,
+  createCustomWebsiteRouteRegistry,
+} from "../lib/website-core/src/index.ts";
 
 const databaseUrl = process.env.DATABASE_URL;
 assert.ok(databaseUrl, "DATABASE_URL is required");
@@ -68,6 +72,196 @@ const seo = {
   indexable: true,
 };
 
+async function verifyTemplateInitialization(): Promise<void> {
+  const tenantId = randomUUID();
+  const actorId = randomUUID();
+  const slug = `website-template-${tenantId.slice(0, 8)}`;
+  let siteId: string | null = null;
+  try {
+    await pool.query(
+      `INSERT INTO public.tenants (id, slug, name, is_active, status, plan_key)
+       VALUES ($1, $2, 'Website template runtime', true, 'active', 'enterprise')`,
+      [tenantId, slug],
+    );
+    await pool.query(
+      `INSERT INTO public.tenant_modules (
+         tenant_id, module_id, is_enabled, source, enabled_at
+       )
+       SELECT $1, id, true, 'manual', now()
+       FROM public.modules
+       WHERE key = 'website'`,
+      [tenantId],
+    );
+
+    const initialized = await initializeManagedWebsite({
+      tenantId,
+      actorUserId: actorId,
+      templateKey: "multi_service_company",
+      settings: {
+        schemaVersion: 1,
+        name: "Website template runtime",
+        defaultLocale: "nl-NL",
+        theme: MULTI_SERVICE_COMPANY_TEMPLATE_V1.defaultTheme,
+        contact,
+        socialLinks: [],
+        defaultSeo: {
+          ...seo,
+          canonicalPath: null,
+          socialImageUrl: null,
+        },
+        analytics: { provider: "none" },
+        seoSettings: {
+          schemaVersion: 1,
+          structuredData: {
+            enabled: true,
+            organizationType: "organization",
+          },
+          webmasterVerification: { google: null, bing: null },
+        },
+      },
+    });
+    siteId = initialized.siteId;
+    assert.equal(initialized.authoringRevision, 1);
+
+    const proof = await pool.query<{
+      template_key: string;
+      template_version: number;
+      authoring_revision: number;
+      page_count: number;
+      section_count: number;
+      navigation_count: number;
+      all_sections_require_review: boolean;
+      copied_fixture_ids: number;
+    }>(
+      `SELECT
+         site.template_key,
+         site.template_version,
+         site.authoring_revision,
+         (SELECT count(*)::integer
+            FROM public.website_pages page
+           WHERE page.tenant_id = site.tenant_id AND page.site_id = site.id
+         ) AS page_count,
+         (SELECT count(*)::integer
+            FROM public.website_page_sections section
+           WHERE section.tenant_id = site.tenant_id AND section.site_id = site.id
+         ) AS section_count,
+         (SELECT count(*)::integer
+            FROM public.website_navigation_items item
+           WHERE item.tenant_id = site.tenant_id AND item.site_id = site.id
+         ) AS navigation_count,
+         (SELECT bool_and(section.requires_review)
+            FROM public.website_page_sections section
+           WHERE section.tenant_id = site.tenant_id AND section.site_id = site.id
+         ) AS all_sections_require_review,
+         (SELECT count(*)::integer
+            FROM public.website_page_sections section
+           WHERE section.tenant_id = site.tenant_id
+             AND section.site_id = site.id
+             AND section.id = ANY($3::uuid[])
+         ) AS copied_fixture_ids
+       FROM public.website_sites site
+       WHERE site.tenant_id = $1 AND site.id = $2`,
+      [
+        tenantId,
+        siteId,
+        MULTI_SERVICE_COMPANY_TEMPLATE_V1.pages.flatMap((page) =>
+          page.sections.map((section) => section.id),
+        ),
+      ],
+    );
+    const row = proof.rows[0];
+    assert.ok(row);
+    assert.equal(row.template_key, "multi_service_company");
+    assert.equal(Number(row.template_version), 1);
+    assert.equal(Number(row.authoring_revision), 1);
+    assert.equal(
+      Number(row.page_count),
+      MULTI_SERVICE_COMPANY_TEMPLATE_V1.pages.length,
+    );
+    assert.equal(
+      Number(row.section_count),
+      MULTI_SERVICE_COMPANY_TEMPLATE_V1.pages.reduce(
+        (total, page) => total + page.sections.length,
+        0,
+      ),
+    );
+    assert.equal(
+      Number(row.navigation_count),
+      MULTI_SERVICE_COMPANY_TEMPLATE_V1.navigation.length,
+    );
+    assert.equal(row.all_sections_require_review, true);
+    assert.equal(Number(row.copied_fixture_ids), 0);
+
+    await assert.rejects(
+      initializeManagedWebsite({
+        tenantId,
+        actorUserId: actorId,
+        templateKey: "trust_conversion",
+        settings: {
+          schemaVersion: 1,
+          name: "Mag niet overschrijven",
+          defaultLocale: "nl-NL",
+          theme: MULTI_SERVICE_COMPANY_TEMPLATE_V1.defaultTheme,
+          contact,
+          socialLinks: [],
+          defaultSeo: {
+            ...seo,
+            canonicalPath: null,
+            socialImageUrl: null,
+          },
+          analytics: { provider: "none" },
+          seoSettings: {
+            schemaVersion: 1,
+            structuredData: {
+              enabled: true,
+              organizationType: "organization",
+            },
+            webmasterVerification: { google: null, bing: null },
+          },
+        },
+      }),
+      /Er bestaat al een website/u,
+    );
+    const siteCount = await pool.query<{ count: number }>(
+      `SELECT count(*)::integer AS count
+       FROM public.website_sites
+       WHERE tenant_id = $1`,
+      [tenantId],
+    );
+    assert.equal(Number(siteCount.rows[0]?.count), 1);
+  } finally {
+    if (siteId) {
+      await pool.query(
+        `DELETE FROM public.website_forms WHERE tenant_id = $1 AND site_id = $2`,
+        [tenantId, siteId],
+      );
+      await pool.query(
+        `DELETE FROM public.website_navigation_items WHERE tenant_id = $1 AND site_id = $2`,
+        [tenantId, siteId],
+      );
+      await pool.query(
+        `DELETE FROM public.website_page_sections WHERE tenant_id = $1 AND site_id = $2`,
+        [tenantId, siteId],
+      );
+      await pool.query(
+        `DELETE FROM public.website_pages WHERE tenant_id = $1 AND site_id = $2`,
+        [tenantId, siteId],
+      );
+      await pool.query(
+        `DELETE FROM public.website_sites WHERE tenant_id = $1 AND id = $2`,
+        [tenantId, siteId],
+      );
+    }
+    await pool.query(`DELETE FROM public.audit_log WHERE tenant_id = $1`, [
+      tenantId,
+    ]);
+    await pool.query(`DELETE FROM public.tenant_modules WHERE tenant_id = $1`, [
+      tenantId,
+    ]);
+    await pool.query(`DELETE FROM public.tenants WHERE id = $1`, [tenantId]);
+  }
+}
+
 type SqlError = Error & { code?: string };
 
 async function expectSqlFailure(
@@ -97,6 +291,7 @@ async function expectSqlFailure(
 
 const client = await pool.connect();
 try {
+  await verifyTemplateInitialization();
   await client.query("BEGIN");
 
   const catalog = await client.query<{

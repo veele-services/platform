@@ -474,6 +474,66 @@ test("draft preview compiler includes drafts without changing publication semant
   );
 });
 
+test("publication blocks unreviewed template content while draft preview remains available", () => {
+  const source = sourceFixture();
+  source.pages.find((page) => page.id === homeId)!.sections[1]!.requiresReview =
+    true;
+
+  const preview = buildWebsiteDraftPreviewSnapshot(source);
+  assert.equal(preview.pages[0]?.sections[0]?.type, "hero");
+
+  const diagnostics = diagnosticsFor(() =>
+    buildWebsitePublicationSnapshot(source),
+  );
+  assert.ok(
+    diagnostics.some(
+      (entry) => entry.code === "template_content_requires_review",
+    ),
+  );
+
+  source.pages.find((page) => page.id === homeId)!.sections[1]!.requiresReview =
+    false;
+  assert.doesNotThrow(() => buildWebsitePublicationSnapshot(source));
+});
+
+test("publication blocks team members without confirmed public consent", () => {
+  const source = sourceFixture();
+  const home = source.pages.find((page) => page.id === homeId)!;
+  home.sections.push({
+    id: "40000000-0000-4000-8000-000000000099",
+    sectionKey: "team",
+    schemaVersion: 1,
+    variantKey: "cards",
+    position: 2,
+    content: {
+      title: "Team",
+      members: [
+        {
+          name: "Voorbeeldpersoon",
+          role: "Specialist",
+          consentConfirmed: false,
+        },
+      ],
+    },
+    isVisible: true,
+    requiresReview: false,
+  });
+
+  const diagnostics = diagnosticsFor(() =>
+    buildWebsitePublicationSnapshot(source),
+  );
+  assert.ok(
+    diagnostics.some((entry) => entry.code === "team_consent_required"),
+  );
+
+  (
+    home.sections[2]!.content as {
+      members: Array<{ consentConfirmed: boolean }>;
+    }
+  ).members[0]!.consentConfirmed = true;
+  assert.doesNotThrow(() => buildWebsitePublicationSnapshot(source));
+});
+
 test("compiler rejects navigation and section actions to unpublished pages", () => {
   const navigationSource = sourceFixture();
   navigationSource.navigation[0] = {

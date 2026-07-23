@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { websitePublicationSnapshotSchema } from "@workspace/website-core";
+import {
+  WEBSITE_TEMPLATE_REGISTRY,
+  websitePublicationSnapshotSchema,
+  type WebsiteSection,
+  type WebsiteTemplateDefinition,
+} from "@workspace/website-core";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -176,6 +181,71 @@ test("managed page renders all MVP sections as escaped server markup", () => {
   assert.match(html, /<form[^>]*contact-form/u);
   assert.match(html, /<button[^>]*disabled/u);
   assert.match(html, /href="\/" target="_blank" rel="noopener noreferrer"/u);
+});
+
+test("managed page renders every Phase 8 section and bounded visual token", () => {
+  const snapshot = blogSnapshot();
+  const byType = (type: WebsiteSection["type"]) => {
+    const templates = Object.values(
+      WEBSITE_TEMPLATE_REGISTRY,
+    ) as WebsiteTemplateDefinition[];
+    const section = templates
+      .flatMap((template) => template.pages)
+      .flatMap((page) => page.sections)
+      .find((candidate) => candidate.type === type);
+    assert.ok(section, `Template fixture for ${type}`);
+    return structuredClone(section) as WebsiteSection;
+  };
+  snapshot.pages[0]!.sections = [
+    byType("emergency_hero"),
+    byType("service_area"),
+    byType("project_showcase"),
+    byType("blog_preview"),
+    { ...byType("team"), visible: true },
+    byType("logo_wall"),
+    {
+      id: "20000000-0000-4000-8000-000000000096",
+      type: "stats",
+      schemaVersion: 1,
+      variant: "inline",
+      visible: true,
+      content: {
+        title: "Aantoonbare cijfers",
+        items: [
+          {
+            value: "10",
+            label: "Projecten",
+            sourceNote: "Interne projectregistratie, 2026-07-23",
+          },
+        ],
+      },
+    },
+  ];
+  snapshot.theme = WEBSITE_TEMPLATE_REGISTRY.multi_service_company.defaultTheme;
+
+  const html = renderToStaticMarkup(
+    <ManagedWebsiteView
+      snapshot={snapshot}
+      page={snapshot.pages[0]!}
+      deliveryRevision={snapshot.deliveryRevision}
+    />,
+  );
+
+  for (const className of [
+    "emergency-hero",
+    "service-area",
+    "projects",
+    "blog-preview",
+    "team",
+    "logo-wall",
+    "stats",
+  ]) {
+    assert.match(html, new RegExp(`class="[^"]*${className}`, "u"));
+  }
+  assert.match(html, /data-button-style="solid"/u);
+  assert.match(html, /data-surface-style="bordered"/u);
+  assert.match(html, /--content-width:1280px/u);
+  assert.match(html, /Interne projectregistratie, 2026-07-23/u);
 });
 
 test("managed live page renders a same-origin, idempotent public form", () => {

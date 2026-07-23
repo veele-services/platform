@@ -267,6 +267,9 @@ Acceptance:
 
 ## Phase 8 — templates and controlled visual expansion
 
+Status: implemented in the current Phase 8 increment; merge remains subject to
+exact-head CI and human review.
+
 Deliverables:
 
 - ship Templates 2–5 as versioned managed-CMS presets;
@@ -328,12 +331,11 @@ Acceptance:
 
 ## Recommended next coding increment
 
-After review and exact-head merge of Phase 7, the next increment is Phase 8:
-Templates 2–5 and controlled visual expansion. It must reuse the existing
-section registry and immutable publication compiler. A template may initialize
-editable records, but may not create a renderer fork or silently mutate an
-existing live site. Media focal/crop work remains conditional on the selected
-template requirements.
+After review and exact-head merge of Phase 8, the next increment is Phase 9:
+enterprise operations and staging activation. It must add platform-controlled
+custom-deployment registration and switching, backup/restore and migration
+rehearsal evidence, route health and explicit rollback without changing
+production.
 
 DNS, Caddy, staging, production and live domains remain unchanged through Phase 3. Wildcard DNS for `*.staging.fieldgrid.nl` is operator-confirmed as
 provisioned; wildcard TLS and exact external host resolution remain Phase 9

@@ -1,6 +1,11 @@
 "use client";
 
 import type { WebsiteSiteSettings } from "@workspace/db";
+import {
+  WEBSITE_TEMPLATE_KEYS,
+  WEBSITE_TEMPLATE_REGISTRY,
+  type WebsiteTemplateKey,
+} from "@workspace/website-core";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -70,6 +75,15 @@ function settingsFromForm(
       spacing: String(
         formData.get("spacing") ?? "comfortable",
       ) as WebsiteSiteSettings["theme"]["spacing"],
+      contentWidth: String(
+        formData.get("contentWidth") ?? "standard",
+      ) as WebsiteSiteSettings["theme"]["contentWidth"],
+      buttonStyle: String(
+        formData.get("buttonStyle") ?? "solid",
+      ) as WebsiteSiteSettings["theme"]["buttonStyle"],
+      surfaceStyle: String(
+        formData.get("surfaceStyle") ?? "bordered",
+      ) as WebsiteSiteSettings["theme"]["surfaceStyle"],
       logoMediaId: previous.theme.logoMediaId,
       faviconMediaId: previous.theme.faviconMediaId,
     },
@@ -129,6 +143,8 @@ export function WebsiteSettingsForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [revision, setRevision] = useState(authoringRevision ?? 1);
+  const [templateKey, setTemplateKey] =
+    useState<WebsiteTemplateKey>("trust_conversion");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,7 +159,10 @@ export function WebsiteSettingsForm({
 
     startTransition(async () => {
       if (initialize) {
-        const result = await initializeWebsiteAction(settings);
+        const result = await initializeWebsiteAction({
+          templateKey,
+          settings,
+        });
         if (!result.success) {
           setError(result.message);
           return;
@@ -175,9 +194,60 @@ export function WebsiteSettingsForm({
     initialSettings.socialLinks.map((item) => [item.provider, item.url]),
   );
   const disabled = !canWrite || isPending;
+  const theme = initialize
+    ? WEBSITE_TEMPLATE_REGISTRY[templateKey].defaultTheme
+    : initialSettings.theme;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {initialize && (
+        <WebsiteFormSection
+          title="Kies een starttemplate"
+          description="De template maakt één bewerkbaar concept met pagina's, secties en navigatie. Er wordt niets gepubliceerd en later wisselen overschrijft nooit bestaande inhoud."
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {WEBSITE_TEMPLATE_KEYS.map((key) => {
+              const template = WEBSITE_TEMPLATE_REGISTRY[key];
+              const selected = templateKey === key;
+              return (
+                <label
+                  key={key}
+                  className={`cursor-pointer rounded-xl border p-4 transition ${
+                    selected
+                      ? "border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500"
+                      : "border-slate-200 bg-white hover:border-cyan-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="templateKey"
+                    value={key}
+                    checked={selected}
+                    disabled={disabled}
+                    onChange={() => setTemplateKey(key)}
+                    className="sr-only"
+                  />
+                  <span className="block text-sm font-semibold text-slate-950">
+                    {template.label}
+                  </span>
+                  <span className="mt-1 block text-sm text-slate-600">
+                    {template.description}
+                  </span>
+                  <span className="mt-3 block text-xs font-medium text-cyan-800">
+                    {template.pages.length} startpagina&apos;s · versie{" "}
+                    {template.version}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500">
+            Custom Next.js is een afzonderlijke enterprise-deliverymodus en is
+            daarom geen templateoptie.
+          </p>
+        </WebsiteFormSection>
+      )}
+
       <WebsiteFormSection
         title="Algemeen"
         description="De publieke naam en standaardtaal van de website."
@@ -307,6 +377,7 @@ export function WebsiteSettingsForm({
       </WebsiteFormSection>
 
       <WebsiteFormSection
+        key={initialize ? templateKey : "existing-theme"}
         title="Huisstijl"
         description="Beheer alleen gecontroleerde design-tokens; vrije CSS is niet toegestaan."
       >
@@ -326,7 +397,7 @@ export function WebsiteSettingsForm({
                 <input
                   aria-label={`${label} kiezen`}
                   type="color"
-                  defaultValue={initialSettings.theme.colors[key]}
+                  defaultValue={theme.colors[key]}
                   disabled={disabled}
                   onChange={(event) => {
                     const textInput = event.currentTarget.nextElementSibling;
@@ -339,7 +410,7 @@ export function WebsiteSettingsForm({
                 <input
                   id={`website-color-${key}`}
                   name={`color_${key.replace(/[A-Z]/gu, (letter) => `_${letter.toLowerCase()}`)}`}
-                  defaultValue={initialSettings.theme.colors[key]}
+                  defaultValue={theme.colors[key]}
                   pattern="#[0-9A-Fa-f]{6}"
                   required
                   disabled={disabled}
@@ -354,7 +425,7 @@ export function WebsiteSettingsForm({
             id="website-heading-font"
             name="headingFont"
             label="Koplettertype"
-            value={initialSettings.theme.headingFont}
+            value={theme.headingFont}
             disabled={disabled}
             options={[
               ["inter", "Inter"],
@@ -366,7 +437,7 @@ export function WebsiteSettingsForm({
             id="website-body-font"
             name="bodyFont"
             label="Broodtekstlettertype"
-            value={initialSettings.theme.bodyFont}
+            value={theme.bodyFont}
             disabled={disabled}
             options={[
               ["inter", "Inter"],
@@ -377,7 +448,7 @@ export function WebsiteSettingsForm({
             id="website-radius"
             name="radius"
             label="Afronding"
-            value={initialSettings.theme.radius}
+            value={theme.radius}
             disabled={disabled}
             options={[
               ["none", "Geen"],
@@ -390,12 +461,48 @@ export function WebsiteSettingsForm({
             id="website-spacing"
             name="spacing"
             label="Ruimte"
-            value={initialSettings.theme.spacing}
+            value={theme.spacing}
             disabled={disabled}
             options={[
               ["compact", "Compact"],
               ["comfortable", "Comfortabel"],
               ["spacious", "Ruim"],
+            ]}
+          />
+          <SelectField
+            id="website-content-width"
+            name="contentWidth"
+            label="Inhoudsbreedte"
+            value={theme.contentWidth}
+            disabled={disabled}
+            options={[
+              ["compact", "Compact"],
+              ["standard", "Standaard"],
+              ["wide", "Breed"],
+            ]}
+          />
+          <SelectField
+            id="website-button-style"
+            name="buttonStyle"
+            label="Knoppen"
+            value={theme.buttonStyle}
+            disabled={disabled}
+            options={[
+              ["solid", "Vol"],
+              ["soft", "Zacht"],
+              ["outline", "Omlijnd"],
+            ]}
+          />
+          <SelectField
+            id="website-surface-style"
+            name="surfaceStyle"
+            label="Contentvlakken"
+            value={theme.surfaceStyle}
+            disabled={disabled}
+            options={[
+              ["flat", "Vlak"],
+              ["bordered", "Omlijnd"],
+              ["elevated", "Verhoogd"],
             ]}
           />
         </div>

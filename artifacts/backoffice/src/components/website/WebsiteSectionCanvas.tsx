@@ -67,6 +67,7 @@ const SECTION_TYPES = Object.entries(WEBSITE_SECTION_LABELS) as Array<
 
 const SECTION_VARIANTS: Record<WebsiteEditorSectionKey, string[]> = {
   hero: ["centered", "split", "visual", "service", "minimal"],
+  emergency_hero: ["urgent", "compact"],
   trust_bar: ["logos", "reviews", "short_points"],
   services_grid: ["cards", "icons", "editorial", "compact"],
   feature_grid: ["two_column", "three_column"],
@@ -75,7 +76,13 @@ const SECTION_VARIANTS: Record<WebsiteEditorSectionKey, string[]> = {
   faq: ["accordion", "list"],
   cta_banner: ["solid", "split"],
   contact_form: ["card", "split_contact"],
+  service_area: ["list", "grid"],
+  project_showcase: ["editorial", "cards"],
+  blog_preview: ["cards", "editorial"],
   rich_text: ["default", "narrow"],
+  stats: ["inline", "cards"],
+  team: ["cards", "compact"],
+  logo_wall: ["logos", "certifications"],
 };
 
 const VARIANT_LABELS: Record<string, string> = {
@@ -103,6 +110,10 @@ const VARIANT_LABELS: Record<string, string> = {
   split_contact: "Contact verdeeld",
   default: "Standaard",
   narrow: "Smalle leeskolom",
+  urgent: "Urgent",
+  grid: "Raster",
+  inline: "Op één regel",
+  certifications: "Certificeringen",
 };
 
 const FLAT_INPUT =
@@ -628,6 +639,17 @@ function WebsiteSectionCard({
             <span className="text-xs text-slate-400">
               Revisie {section.authoringRevision}
             </span>
+            <Toggle
+              label="Inhoud gecontroleerd"
+              checked={!draft.requiresReview}
+              disabled={disabled}
+              onChange={(checked) =>
+                setDraft({
+                  ...draft,
+                  requiresReview: !checked,
+                } as WebsiteSection)
+              }
+            />
           </div>
 
           <SectionContentEditor
@@ -706,6 +728,17 @@ const SCALAR_FIELDS: Record<WebsiteEditorSectionKey, ScalarField[]> = {
     { key: "subtitle", label: "Inleiding", kind: "textarea" },
     { key: "trustText", label: "Vertrouwenstekst" },
   ],
+  emergency_hero: [
+    { key: "eyebrow", label: "Bovenregel" },
+    { key: "title", label: "Titel", required: true },
+    { key: "subtitle", label: "Inleiding", kind: "textarea" },
+    {
+      key: "availabilityNotice",
+      label: "Actuele bereikbaarheidsmelding",
+      kind: "textarea",
+      required: true,
+    },
+  ],
   trust_bar: [
     { key: "title", label: "Titel" },
     { key: "reviewScore", label: "Beoordeling", kind: "number" },
@@ -739,7 +772,26 @@ const SCALAR_FIELDS: Record<WebsiteEditorSectionKey, ScalarField[]> = {
     { key: "title", label: "Titel", required: true },
     { key: "subtitle", label: "Inleiding", kind: "textarea" },
   ],
+  service_area: [
+    { key: "title", label: "Titel", required: true },
+    { key: "subtitle", label: "Inleiding", kind: "textarea" },
+  ],
+  project_showcase: [
+    { key: "title", label: "Titel", required: true },
+    { key: "subtitle", label: "Inleiding", kind: "textarea" },
+  ],
+  blog_preview: [
+    { key: "title", label: "Titel", required: true },
+    { key: "subtitle", label: "Inleiding", kind: "textarea" },
+    { key: "limit", label: "Aantal berichten", kind: "number", required: true },
+  ],
   rich_text: [{ key: "title", label: "Optionele titel" }],
+  stats: [{ key: "title", label: "Optionele titel" }],
+  team: [
+    { key: "title", label: "Titel", required: true },
+    { key: "subtitle", label: "Inleiding", kind: "textarea" },
+  ],
+  logo_wall: [{ key: "title", label: "Optionele titel" }],
 };
 
 function SectionContentEditor({
@@ -789,8 +841,20 @@ function SectionContentEditor({
                 required={field.required}
                 maxLength={field.kind === "number" ? undefined : 2_000}
                 step={field.key === "reviewScore" ? "0.1" : undefined}
-                min={field.key === "reviewScore" ? 0 : undefined}
-                max={field.key === "reviewScore" ? 5 : undefined}
+                min={
+                  field.key === "reviewScore"
+                    ? 0
+                    : field.key === "limit"
+                      ? 1
+                      : undefined
+                }
+                max={
+                  field.key === "reviewScore"
+                    ? 5
+                    : field.key === "limit"
+                      ? 9
+                      : undefined
+                }
                 placeholder={field.placeholder}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -814,23 +878,25 @@ function SectionContentEditor({
         ))}
       </div>
 
-      {(section.type === "hero" || section.type === "trust_bar") && (
+      {(["hero", "emergency_hero", "trust_bar"] as const).includes(
+        section.type as "hero" | "emergency_hero" | "trust_bar",
+      ) && (
         <FlatField
-          label={section.type === "hero" ? "Badges" : "Kernpunten"}
+          label={section.type === "trust_bar" ? "Kernpunten" : "Badges"}
           hint="Eén item per regel"
         >
           <textarea
             rows={3}
             disabled={disabled}
             value={
-              (section.type === "hero"
+              (section.type === "hero" || section.type === "emergency_hero"
                 ? (content.badges as string[] | undefined)
                 : (content.shortClaims as string[] | undefined)
               )?.join("\n") ?? ""
             }
             onChange={(event) =>
               patch({
-                [section.type === "hero" ? "badges" : "shortClaims"]:
+                [section.type === "trust_bar" ? "shortClaims" : "badges"]:
                   event.target.value
                     .split("\n")
                     .map((item) => item.trim())
@@ -871,13 +937,14 @@ function SectionContentEditor({
         </div>
       )}
 
-      {section.type === "cta_banner" && (
+      {section.type === "emergency_hero" && (
         <div className="grid gap-4 md:grid-cols-2">
           <ActionEditor
-            label="Primaire actie"
-            action={content.primaryAction as WebsiteAction | undefined}
+            label="Telefoonactie"
+            action={content.phoneAction as WebsiteAction | undefined}
             disabled={disabled}
-            onChange={(primaryAction) => patch({ primaryAction })}
+            allowedKinds={["phone"]}
+            onChange={(phoneAction) => patch({ phoneAction })}
           />
           <ActionEditor
             label="Secundaire actie"
@@ -887,6 +954,58 @@ function SectionContentEditor({
             onChange={(secondaryAction) => patch({ secondaryAction })}
           />
         </div>
+      )}
+
+      {(section.type === "cta_banner" ||
+        section.type === "service_area" ||
+        section.type === "blog_preview") && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <ActionEditor
+            label={section.type === "cta_banner" ? "Primaire actie" : "Actie"}
+            action={
+              content[
+                section.type === "cta_banner" ? "primaryAction" : "action"
+              ] as WebsiteAction | undefined
+            }
+            optional={section.type !== "cta_banner"}
+            disabled={disabled}
+            onChange={(action) =>
+              patch(
+                section.type === "cta_banner"
+                  ? { primaryAction: action }
+                  : { action },
+              )
+            }
+          />
+          {section.type === "cta_banner" && (
+            <ActionEditor
+              label="Secundaire actie"
+              action={content.secondaryAction as WebsiteAction | undefined}
+              optional
+              disabled={disabled}
+              onChange={(secondaryAction) => patch({ secondaryAction })}
+            />
+          )}
+        </div>
+      )}
+
+      {section.type === "service_area" && (
+        <FlatField label="Plaatsen en regio's" hint="Eén item per regel">
+          <textarea
+            rows={5}
+            disabled={disabled}
+            value={(content.areas as string[] | undefined)?.join("\n") ?? ""}
+            onChange={(event) =>
+              patch({
+                areas: event.target.value
+                  .split("\n")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              })
+            }
+            className={cn(FLAT_INPUT, "resize-y")}
+          />
+        </FlatField>
       )}
 
       {section.type === "contact_form" && (
@@ -925,7 +1044,7 @@ type CollectionDefinition = {
   fields: Array<{
     key: string;
     label: string;
-    kind?: "text" | "textarea" | "number" | "icon";
+    kind?: "text" | "textarea" | "number" | "icon" | "date" | "boolean";
   }>;
 };
 
@@ -1012,6 +1131,78 @@ const COLLECTIONS: Partial<
       answer: EMPTY_RICH_TEXT_DOCUMENT,
     }),
     fields: [{ key: "question", label: "Vraag" }],
+  },
+  project_showcase: {
+    key: "projects",
+    label: "Projecten",
+    itemLabel: "Project",
+    min: 1,
+    max: 12,
+    create: () => ({
+      title: "Nieuw project",
+      description:
+        "Beschrijf uitsluitend een project dat gepubliceerd mag worden.",
+    }),
+    fields: [
+      { key: "title", label: "Titel" },
+      { key: "description", label: "Beschrijving", kind: "textarea" },
+      { key: "location", label: "Plaats" },
+    ],
+  },
+  stats: {
+    key: "items",
+    label: "Kengetallen",
+    itemLabel: "Kengetal",
+    min: 1,
+    max: 8,
+    create: () => ({
+      value: "Waarde",
+      label: "Omschrijving",
+      sourceNote: "Noteer bron en peildatum.",
+    }),
+    fields: [
+      { key: "value", label: "Waarde" },
+      { key: "label", label: "Omschrijving" },
+      { key: "sourceNote", label: "Bron en peildatum", kind: "textarea" },
+    ],
+  },
+  team: {
+    key: "members",
+    label: "Teamleden met bevestigde publicatietoestemming",
+    itemLabel: "Teamlid",
+    min: 0,
+    max: 24,
+    create: () => ({
+      name: "Naam teamlid",
+      role: "Functie",
+      consentConfirmed: false,
+    }),
+    fields: [
+      { key: "name", label: "Naam" },
+      { key: "role", label: "Functie" },
+      { key: "bio", label: "Korte introductie", kind: "textarea" },
+      {
+        key: "consentConfirmed",
+        label: "Publicatietoestemming bevestigd",
+        kind: "boolean",
+      },
+    ],
+  },
+  logo_wall: {
+    key: "items",
+    label: "Logo's en certificeringen",
+    itemLabel: "Vermelding",
+    min: 1,
+    max: 24,
+    create: () => ({
+      name: "Naam",
+      description: "Controleer publicatierecht en geldigheid.",
+    }),
+    fields: [
+      { key: "name", label: "Naam" },
+      { key: "description", label: "Toelichting", kind: "textarea" },
+      { key: "validUntil", label: "Geldig tot", kind: "date" },
+    ],
   },
 };
 
@@ -1129,9 +1320,30 @@ function SectionCollectionEditor({
                       </option>
                     ))}
                   </select>
+                ) : field.kind === "boolean" ? (
+                  <Toggle
+                    label={field.label}
+                    checked={item[field.key] === true}
+                    disabled={disabled}
+                    onChange={(checked) =>
+                      update(
+                        items.map((candidate, index) =>
+                          index === itemIndex
+                            ? { ...candidate, [field.key]: checked }
+                            : candidate,
+                        ),
+                      )
+                    }
+                  />
                 ) : (
                   <input
-                    type={field.kind === "number" ? "number" : "text"}
+                    type={
+                      field.kind === "number"
+                        ? "number"
+                        : field.kind === "date"
+                          ? "date"
+                          : "text"
+                    }
                     value={
                       field.kind === "number"
                         ? numberValue(item[field.key])
@@ -1199,6 +1411,23 @@ function SectionCollectionEditor({
                 }
               />
             )}
+            {section.type === "project_showcase" && (
+              <ActionEditor
+                label="Actie"
+                action={item.action as WebsiteAction | undefined}
+                optional
+                disabled={disabled}
+                onChange={(action) =>
+                  update(
+                    items.map((candidate, index) =>
+                      index === itemIndex
+                        ? { ...candidate, action }
+                        : candidate,
+                    ),
+                  )
+                }
+              />
+            )}
           </div>
         </div>
       ))}
@@ -1226,12 +1455,14 @@ function ActionEditor({
   action,
   optional = false,
   disabled,
+  allowedKinds = ["path", "external", "phone", "email"],
   onChange,
 }: {
   label: string;
   action?: WebsiteAction;
   optional?: boolean;
   disabled: boolean;
+  allowedKinds?: WebsiteAction["kind"][];
   onChange: (action: WebsiteAction | undefined) => void;
 }) {
   if (!action) {
@@ -1239,7 +1470,7 @@ function ActionEditor({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onChange(defaultAction("path"))}
+        onClick={() => onChange(defaultAction(allowedKinds[0] ?? "path"))}
         className="flex min-h-20 items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 text-xs font-medium text-slate-500 hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-40"
       >
         <Plus className="h-3.5 w-3.5" />
@@ -1282,10 +1513,18 @@ function ActionEditor({
           }
           className={FLAT_INPUT}
         >
-          <option value="path">Intern pad</option>
-          <option value="external">Externe HTTPS-link</option>
-          <option value="phone">Telefoonnummer</option>
-          <option value="email">E-mailadres</option>
+          {allowedKinds.includes("path") && (
+            <option value="path">Intern pad</option>
+          )}
+          {allowedKinds.includes("external") && (
+            <option value="external">Externe HTTPS-link</option>
+          )}
+          {allowedKinds.includes("phone") && (
+            <option value="phone">Telefoonnummer</option>
+          )}
+          {allowedKinds.includes("email") && (
+            <option value="email">E-mailadres</option>
+          )}
           {action.kind === "page" && <option value="page">Pagina-ID</option>}
         </select>
         <input

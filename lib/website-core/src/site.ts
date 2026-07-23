@@ -103,6 +103,9 @@ export const websiteThemeSchema = z
     bodyFont: z.enum(["inter", "source_sans_3"]),
     radius: z.enum(["none", "small", "medium", "large"]),
     spacing: z.enum(["compact", "comfortable", "spacious"]),
+    contentWidth: z.enum(["compact", "standard", "wide"]).default("standard"),
+    buttonStyle: z.enum(["solid", "soft", "outline"]).default("solid"),
+    surfaceStyle: z.enum(["flat", "bordered", "elevated"]).default("bordered"),
     logoMediaId: z.string().uuid().nullable(),
     faviconMediaId: z.string().uuid().nullable(),
   })
