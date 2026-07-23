@@ -80,3 +80,16 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /productionChanged": false/u);
   assert.doesNotMatch(script, /\/var\/www\/veele\/production/u);
 });
+
+test("Phase 9 close-out defers high-impact choices and excludes production", () => {
+  const closeout = read("docs/website-module-phase9-closeout.md");
+  const runbook = read("docs/website-module-enterprise-activation.md");
+
+  assert.match(closeout, /initial four-service staging deploy/u);
+  assert.match(closeout, /six-service gate/u);
+  assert.match(closeout, /Deferred high-impact decisions/u);
+  assert.match(closeout, /Production ready: false/u);
+  assert.match(closeout, /Production changed: false/u);
+  assert.match(runbook, /website-staging-stack-only/u);
+  assert.match(runbook, /FIELDGRID_WEBSITE_FORM_ID/u);
+});

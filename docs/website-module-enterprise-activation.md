@@ -44,6 +44,9 @@ values to production:
 | `WEBSITE_SERVICE_NAME`                 | Exact systemd unit for `@workspace/website-runtime`.                         |
 | `WEBSITE_PORT`                         | Unique localhost-only numeric port.                                          |
 | `WEBSITE_PUBLIC_HEALTH_URL`            | HTTPS URL ending `/healthz` on a `*.staging.fieldgrid.nl` host.              |
+| `MARKETING_SERVICE_NAME`               | Exact independent systemd unit for the reviewed custom application.          |
+| `MARKETING_PORT`                       | Unique localhost-only numeric port for the custom application.               |
+| `MARKETING_PUBLIC_HEALTH_URL`          | Exact custom-origin process health URL ending in `/healthz`.                 |
 | `WEBSITE_PUBLIC_URL`                   | Optional public base used by the deploy health gate.                         |
 | `WEBSITE_MANAGED_ACCEPTANCE_URL`       | Exact active managed proof site on `*.staging.fieldgrid.nl`.                 |
 | `WEBSITE_CUSTOM_ACCEPTANCE_URL`        | Exact active custom proof site on a different `*.staging.fieldgrid.nl` host. |
@@ -53,19 +56,22 @@ values to production:
 | `FIELDGRID_CUSTOM_EXPECTED_HOST`       | Hostname equal to the canonical custom proof host.                           |
 | `FIELDGRID_WEBSITE_FORM_ID`            | Published form UUID; configure after staging site provisioning.              |
 
-The route JSON is operator-owned configuration. It is not tenant input and is
-never persisted as an origin:
+Configure `WEBSITE_*` and `MARKETING_*` only after the first application
+promotion has completed on the existing four-service gate. Adding them before
+that promotion would require services that do not exist yet.
+
+The route JSON is operator-owned configuration. It is not tenant input:
 
 ```json
 [
   {
     "providerKey": "fieldgrid_vps",
     "routeKey": "reviewed_opaque_route_key",
-    "releaseId": "git-tree:reviewed-immutable-tree",
-    "expectedHosts": ["customer.staging.fieldgrid.nl"],
+    "releaseId": "git-commit:exact-staging-sha",
+    "expectedHosts": ["veele.staging.fieldgrid.nl"],
     "healthPath": "/api/health",
     "status": "routable",
-    "upstreamOrigin": "https://reviewed-origin.staging.fieldgrid.nl"
+    "upstreamOrigin": "https://veele-origin.staging.fieldgrid.nl"
   }
 ]
 ```
@@ -75,9 +81,10 @@ paths, queries, fragments, IP literals, internal hostnames, non-staging public
 hosts and configurations above 64 KiB. An absent or invalid variable is
 fail-closed.
 
-Configure the staging systemd unit to start the workspace package from the
-atomic current release, use the shared environment file and bind only to
-`127.0.0.1:${WEBSITE_PORT}`. Validate that the unit is enabled and active.
+The website router and marketing application use the separate immutable
+release root `/var/www/veele/website-stack-staging`. They have separate
+environment files: only the website router receives the database URL. The
+marketing process never receives platform database credentials.
 
 Configure and validate Caddy so that:
 
@@ -111,8 +118,8 @@ HTTPS health endpoint returning exact schema version 3:
   "status": "healthy",
   "providerKey": "fieldgrid_vps",
   "routeKey": "reviewed_opaque_route_key",
-  "releaseId": "git-tree:reviewed-immutable-tree",
-  "expectedHost": "customer.staging.fieldgrid.nl",
+  "releaseId": "git-commit:exact-staging-sha",
+  "expectedHost": "veele.staging.fieldgrid.nl",
   "tls": { "valid": true },
   "network": { "publicAddressesOnly": true },
   "seo": {
@@ -147,9 +154,9 @@ From the exact main SHA, dispatch **Phase 2E Staging Promotion Preflight** with:
 - `expected_staging_sha`: current exact staging SHA and rollback target;
 - `confirmation`: `phase2e-staging-only`.
 
-The workflow verifies immutable refs, required secrets and website runtime
-variables, backs up staging, restores an isolated copy, compares tenant and
-website row counts, applies through
+The workflow verifies immutable refs, required secrets and the four existing
+rollback services, backs up staging, restores an isolated copy, compares tenant
+and website row counts, applies through
 `20260721290000_website_enterprise_activation.sql`, checks routes and proves
 the previous staging release marker. It does not move a ref or deploy.
 
@@ -162,14 +169,44 @@ Use the existing normal, non-force, fast-forward main-to-staging promotion.
 The staging deploy must:
 
 - migrate successfully;
-- start five exact services and five exact ports;
-- return HTTP 200 from the local and public website health endpoint;
+- keep the existing four services and four ports green;
 - retain the previous release;
 - pass the atomic deploy health gate or restore the previous release.
 
 Do not manually bypass a failed deployment.
 
-### 4. Register, health-check and approve
+### 4. Deploy the exact website stack
+
+After the four-service promotion is green:
+
+1. configure the reviewed staging-only website and marketing variables;
+2. bind the route registry release ID to the exact deployed staging SHA;
+3. dispatch **Website Staging Stack Deploy** from that exact staging ref with
+   confirmation `website-staging-stack-only`;
+4. require local and public HTTP 200 from both `/healthz` endpoints;
+5. verify the immutable website-stack release, systemd units, Caddy validation
+   and secret-free evidence;
+6. dispatch **Deploy VEELE** again from the same exact staging SHA and require
+   the six-service health gate to pass.
+
+The stack workflow owns only the exact staging systemd units and imported
+`fieldgrid-website-staging.caddy` snippet. On failure it restores both the prior
+website-stack symlink and prior Caddy state. It never moves a Git ref.
+
+### 5. Provision the proof sites and form
+
+Create or select two staging proof sites:
+
+- one managed site bound to `managed.staging.fieldgrid.nl`;
+- the Veele custom site bound to `veele.staging.fieldgrid.nl`.
+
+Create and publish the real Veele lead form, set its UUID as
+`FIELDGRID_WEBSITE_FORM_ID`, then rerun **Website Staging Stack Deploy** against
+the same exact staging SHA. `/healthz` proves process readiness independently;
+`/api/health` remains fail-closed until the form UUID and complete activation
+identity are present.
+
+### 6. Register, health-check and approve
 
 As a platform admin:
 
@@ -187,7 +224,7 @@ As a platform admin:
 Registration, health and approval each require server-side platform-admin
 authorization and append a tenant-scoped audit event.
 
-### 5. Activate exact revision
+### 7. Activate exact revision
 
 In the same tab, re-read the current mode, target and delivery revision. Enter a
 change reference and reason, then activate. The server atomically verifies all
@@ -205,7 +242,7 @@ The resulting operation row is append-only and records:
 If another writer changed the state, activation is blocked without moving the
 delivery revision.
 
-### 6. Collect read-only staging evidence
+### 8. Collect read-only staging evidence
 
 After one managed and one custom proof host are active and healthy, dispatch
 **Website Staging Acceptance** from the exact staging ref:
@@ -213,11 +250,13 @@ After one managed and one custom proof host are active and healthy, dispatch
 - `expected_staging_sha`: exact deployed staging SHA;
 - `confirmation`: `website-staging-read-only`.
 
-The workflow verifies the active release marker, runtime health, explicit
-managed/custom route markers, security headers, HTML language/viewport/main/H1,
-canonical and structured data, robots, sitemap, up to eight same-origin assets
-and a four-second root-response budget. It records no body, route origin or
-secret and performs no deployment.
+The workflow verifies the active release marker, both process-health endpoints,
+the exact schema-v3 custom candidate identity, configured form endpoint,
+explicit managed/custom route markers, security headers, HTML
+language/viewport/main/H1, canonical and structured data, robots, sitemap, up
+to eight same-origin assets and a four-second root-response budget. It records
+no form UUID, endpoint, body, route origin or secret and performs no deployment
+or form submission.
 
 ## Explicit rollback
 
