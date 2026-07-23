@@ -1,7 +1,7 @@
 # Fieldgrid website module — backoffice administration design
 
-Date: 21 July 2026
-Status: Phase 3A implemented; typed section editing, preview and publication review remain pending
+Date: 23 July 2026
+Status: Phase 3B section authoring implemented; preview and publication review remain pending
 
 ## Implementation status
 
@@ -12,10 +12,16 @@ site revision; page updates also require the exact page revision. Reads and
 writes carry explicit tenant predicates and custom-delivery infrastructure
 values remain outside tenant-facing responses.
 
+Phase 3B adds schema-owned content fields for all initial sections, a reusable
+TipTap v2 editor for rich-text sections and FAQ answers, explicit section saves,
+revision-guarded create/update/delete/reorder mutations, pointer drag ordering
+and equivalent Move up/Move down controls. TipTap persists only allowlisted JSON;
+legacy rich-text v1 remains readable and no stored HTML is rendered.
+
 This increment intentionally does not activate a publication, switch delivery
-mode, bind a domain or change deployment infrastructure. The next Phase 3
-increment adds typed section forms, accessible ordering, draft validation,
-preview and the separate review/publish operation.
+mode, bind a domain or change deployment infrastructure. Preview, draft-wide
+validation and the separate review/publish operation remain the next Phase 3
+increment.
 
 ## Admin boundary
 
@@ -112,7 +118,7 @@ Creating a page starts from an approved page type/layout and validates reserved/
 
 ## Page and section editor
 
-Recommended desktop layout:
+Implemented responsive layout:
 
 ```text
 Page header: title, status, Preview, Review changes
@@ -135,7 +141,10 @@ Editor rules:
 - reject stale edits with a useful reload/review message;
 - validate through the shared section schema server-side;
 - expose typed fields, not raw JSON;
-- use accessible Move up/Move down controls initially;
+- show visually flat, schema-owned text fields instead of form-heavy cards;
+- use TipTap only for allowlisted prose, never short labels, URLs or raw HTML;
+- provide a contextual plus action for adding allowed section types;
+- support drag handles and equivalent accessible Move up/Move down controls;
 - preserve focus after add, reorder, duplicate and delete;
 - autosave only if conflict and failure semantics are proven; explicit Save is the safer MVP;
 - show unresolved links/media/forms near the affected section;
@@ -151,7 +160,9 @@ Editor rules:
 
 ## Blog administration
 
-Follow the existing knowledge/news editor conventions where useful, but use canonical TipTap JSON and the public allowlist renderer.
+Reuse the website TipTap v2 document contract and node-by-node public renderer.
+Blog bodies remain a later data-model phase; they must not introduce a parallel
+HTML content format or copy the authenticated knowledgebase HTML renderer.
 
 The list and editor cover:
 

@@ -25,6 +25,12 @@ const settingsForm = read(
 const pageForm = read(
   "artifacts/backoffice/src/components/website/WebsitePageForm.tsx",
 );
+const sectionCanvas = read(
+  "artifacts/backoffice/src/components/website/WebsiteSectionCanvas.tsx",
+);
+const richTextEditor = read(
+  "artifacts/backoffice/src/components/website/WebsiteRichTextEditor.tsx",
+);
 const sidebar = read("artifacts/backoffice/src/components/layout/Sidebar.tsx");
 
 test("website admin reads and writes stay explicitly tenant scoped", () => {
@@ -93,6 +99,46 @@ test("page and settings payloads use strict shared schemas and reserved-path che
   assert.match(service, /De homepage moet pad \/ en een lege slug gebruiken/u);
   assert.doesNotMatch(settingsForm, /dangerouslySetInnerHTML|contentEditable/u);
   assert.doesNotMatch(pageForm, /dangerouslySetInnerHTML|contentEditable/u);
+  assert.doesNotMatch(
+    `${sectionCanvas}\n${richTextEditor}`,
+    /dangerouslySetInnerHTML|innerHTML\s*=/u,
+  );
+});
+
+test("section authoring validates shared schemas and scopes every mutation", () => {
+  assert.match(service, /section: websiteSectionSchema/u);
+  assert.match(
+    service,
+    /WHERE tenant_id = \$1 AND site_id = \$2 AND page_id = \$3 AND id = \$4/u,
+  );
+  assert.match(service, /expectedSectionRevision/u);
+  assert.match(
+    service,
+    /website_page_sections[\s\S]*authoring_revision = \$5/u,
+  );
+  assert.match(
+    service,
+    /fieldgrid\.website_child_authoring_touch', 'suppressed'/u,
+  );
+  assert.match(service, /website_sections_reordered/u);
+  assert.match(service, /FROM unnest\(\$4::uuid\[\]\) WITH ORDINALITY/u);
+  assert.match(actions, /createWebsiteSectionAction/u);
+  assert.match(actions, /updateWebsiteSectionAction/u);
+  assert.match(actions, /reorderWebsiteSectionsAction/u);
+  assert.match(actions, /deleteWebsiteSectionAction/u);
+});
+
+test("section canvas remains schema driven and provides accessible ordering", () => {
+  assert.match(sectionCanvas, /createDefaultWebsiteSection/u);
+  assert.match(sectionCanvas, /WebsiteRichTextEditor/u);
+  assert.match(sectionCanvas, /aria-label=\{`\$\{WEBSITE_SECTION_LABELS/u);
+  assert.match(sectionCanvas, /label="Omhoog"/u);
+  assert.match(sectionCanvas, /label="Omlaag"/u);
+  assert.match(sectionCanvas, /draggable=\{canWrite/u);
+  assert.doesNotMatch(
+    sectionCanvas,
+    /JSON\.stringify\([^)]*content[^)]*\).*textarea/u,
+  );
 });
 
 test("route components repeat read authorization and expose no custom infrastructure", () => {

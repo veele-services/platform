@@ -32,8 +32,15 @@ export const WEBSITE_MVP_SECTION_KEYS = [
   "contact_form",
 ] as const;
 
+export const WEBSITE_EDITOR_SECTION_KEYS = [
+  ...WEBSITE_MVP_SECTION_KEYS,
+  "rich_text",
+] as const;
+
 export type WebsiteSectionKey = (typeof WEBSITE_SECTION_KEYS)[number];
 export type WebsiteMvpSectionKey = (typeof WEBSITE_MVP_SECTION_KEYS)[number];
+export type WebsiteEditorSectionKey =
+  (typeof WEBSITE_EDITOR_SECTION_KEYS)[number];
 
 const shortText = z.string().trim().min(1).max(180);
 const bodyText = z.string().trim().min(1).max(2_000);
@@ -101,29 +108,150 @@ export const websiteActionSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
-const richTextTextNodeSchema = z
-  .object({
-    type: z.literal("text"),
-    text: z.string().max(4_000),
-    marks: z
-      .array(z.enum(["bold", "italic"]))
-      .max(2)
-      .optional(),
-  })
-  .strict();
+const richTextHrefSchema = z
+  .string()
+  .trim()
+  .max(2_048)
+  .refine((value) => {
+    if (/^\/(?!\/)[a-z0-9/_-]*$/u.test(value)) return true;
+    if (/^#[a-z][a-z0-9_-]*$/iu.test(value)) return true;
+    if (/^mailto:[^@\s]+@[^@\s]+\.[^@\s]+$/iu.test(value)) return true;
+    if (/^tel:\+[1-9][0-9]{7,14}$/u.test(value)) return true;
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Alleen interne, HTTPS-, e-mail- en telefoonlinks zijn toegestaan");
 
-const richTextParagraphNodeSchema = z
-  .object({
-    type: z.literal("paragraph"),
-    content: z.array(richTextTextNodeSchema).max(100),
-  })
-  .strict();
+const richTextMarkSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("bold") }).strict(),
+  z.object({ type: z.literal("italic") }).strict(),
+  z
+    .object({
+      type: z.literal("link"),
+      attrs: z
+        .object({
+          href: richTextHrefSchema,
+          target: z.enum(["_blank"]).nullable().optional(),
+          rel: z.string().max(120).nullable().optional(),
+          class: z.null().optional(),
+        })
+        .strict(),
+    })
+    .strict(),
+]);
 
-export const websiteRichTextDocumentSchema = z
+type WebsiteRichTextNode =
+  | {
+      type: "text";
+      text: string;
+      marks?: Array<z.infer<typeof richTextMarkSchema>>;
+    }
+  | { type: "hardBreak" }
+  | { type: "horizontalRule" }
+  | {
+      type:
+        | "paragraph"
+        | "blockquote"
+        | "bulletList"
+        | "orderedList"
+        | "listItem";
+      content: WebsiteRichTextNode[];
+    }
+  | {
+      type: "heading";
+      attrs: { level: 2 | 3 };
+      content: WebsiteRichTextNode[];
+    };
+
+const richTextNodeSchema: z.ZodType<WebsiteRichTextNode> = z.lazy(() =>
+  z.discriminatedUnion("type", [
+    z
+      .object({
+        type: z.literal("text"),
+        text: z.string().max(4_000),
+        marks: z.array(richTextMarkSchema).max(3).optional(),
+      })
+      .strict(),
+    z.object({ type: z.literal("hardBreak") }).strict(),
+    z.object({ type: z.literal("horizontalRule") }).strict(),
+    ...(
+      [
+        "paragraph",
+        "blockquote",
+        "bulletList",
+        "orderedList",
+        "listItem",
+      ] as const
+    ).map((type) =>
+      z
+        .object({
+          type: z.literal(type),
+          content: z.array(richTextNodeSchema).max(200).default([]),
+        })
+        .strict(),
+    ),
+    z
+      .object({
+        type: z.literal("heading"),
+        attrs: z
+          .object({ level: z.union([z.literal(2), z.literal(3)]) })
+          .strict(),
+        content: z.array(richTextNodeSchema).max(100),
+      })
+      .strict(),
+  ]),
+);
+
+export const websiteRichTextDocumentSchema = z.discriminatedUnion(
+  "schemaVersion",
+  [
+    z
+      .object({
+        type: z.literal("doc"),
+        schemaVersion: z.literal(1),
+        content: z
+          .array(
+            z
+              .object({
+                type: z.literal("paragraph"),
+                content: z
+                  .array(
+                    z
+                      .object({
+                        type: z.literal("text"),
+                        text: z.string().max(4_000),
+                        marks: z
+                          .array(z.enum(["bold", "italic"]))
+                          .max(2)
+                          .optional(),
+                      })
+                      .strict(),
+                  )
+                  .max(100)
+                  .default([]),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(100),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("doc"),
+        schemaVersion: z.literal(2),
+        content: z.array(richTextNodeSchema).min(1).max(300),
+      })
+      .strict(),
+  ],
+);
+
+export const richTextContentSchema = z
   .object({
-    type: z.literal("doc"),
-    schemaVersion: z.literal(1),
-    content: z.array(richTextParagraphNodeSchema).min(1).max(100),
+    title: shortText.optional(),
+    body: websiteRichTextDocumentSchema,
   })
   .strict();
 
@@ -327,10 +455,17 @@ export const WEBSITE_SECTION_REGISTRY = {
     defaultVariant: "split_contact",
     contentSchema: contactFormContentSchema,
   },
+  rich_text: {
+    key: "rich_text",
+    schemaVersion: 1,
+    variants: ["default", "narrow"] as const,
+    defaultVariant: "default",
+    contentSchema: richTextContentSchema,
+  },
 } as const satisfies Record<
-  WebsiteMvpSectionKey,
+  WebsiteEditorSectionKey,
   {
-    key: WebsiteMvpSectionKey;
+    key: WebsiteEditorSectionKey;
     schemaVersion: 1;
     variants: readonly [string, ...string[]];
     defaultVariant: string;
@@ -415,6 +550,14 @@ export const websiteSectionSchema = z.discriminatedUnion("type", [
       type: z.literal("contact_form"),
       variant: z.enum(WEBSITE_SECTION_REGISTRY.contact_form.variants),
       content: contactFormContentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...sectionIdentitySchema,
+      type: z.literal("rich_text"),
+      variant: z.enum(WEBSITE_SECTION_REGISTRY.rich_text.variants),
+      content: richTextContentSchema,
     })
     .strict(),
 ]);

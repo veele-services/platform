@@ -55,6 +55,64 @@ test("managed page renders all MVP sections as escaped server markup", () => {
   assert.match(html, /href="\/" target="_blank" rel="noopener noreferrer"/u);
 });
 
+test("managed page renders allowlisted TipTap JSON without an HTML escape hatch", () => {
+  const source = structuredClone(publicationSnapshot());
+  source.pages[0]!.sections.push({
+    id: "20000000-0000-4000-8000-000000000097",
+    type: "rich_text",
+    schemaVersion: 1,
+    variant: "narrow",
+    visible: true,
+    content: {
+      title: "Over onze aanpak",
+      body: {
+        type: "doc",
+        schemaVersion: 2,
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 2 },
+            content: [{ type: "text", text: "Veilig gerenderd" }],
+          },
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Lees " },
+              {
+                type: "text",
+                text: "meer",
+                marks: [
+                  {
+                    type: "link",
+                    attrs: {
+                      href: "https://example.test/uitleg",
+                      target: "_blank",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  const snapshot = websitePublicationSnapshotSchema.parse(source);
+  const html = renderToStaticMarkup(
+    <ManagedWebsiteView
+      resolution={readyResolution(snapshot)}
+      page={snapshot.pages[0]!}
+    />,
+  );
+  assert.match(html, /rich-text-narrow/u);
+  assert.match(html, /<h2>Veilig gerenderd<\/h2>/u);
+  assert.match(
+    html,
+    /href="https:\/\/example\.test\/uitleg" rel="noopener noreferrer" target="_blank"/u,
+  );
+  assert.doesNotMatch(html, /dangerouslySetInnerHTML|javascript:/u);
+});
+
 test("application prefixes never fall through to the website renderer", () => {
   for (const pathname of [
     "/admin",

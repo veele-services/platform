@@ -375,7 +375,11 @@ export const websiteTemplateSchema = z
       paths.add(page.path);
 
       for (const section of page.sections) {
-        if (!template.allowedSections.includes(section.type)) {
+        if (
+          !template.allowedSections.includes(
+            section.type as WebsiteMvpSectionKey,
+          )
+        ) {
           context.addIssue({
             code: "custom",
             path: ["pages"],
