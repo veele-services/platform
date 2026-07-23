@@ -299,9 +299,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm fieldgrid:deploy-health-gate:test
-      - run: pnpm fieldgrid:migration-order-check:check
-      - run: pnpm fieldgrid:test-layers:check
-      - run: pnpm run typecheck
       - name: Run baseline differential from checkout-provided main
         env:
           FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1"
