@@ -48,6 +48,10 @@ test("database owns redirect tenancy, routes, RLS and revision invalidation", ()
   );
   assert.match(
     migration,
+    /TG_OP = 'UPDATE'[\s\S]*NEW\.locale IS DISTINCT FROM OLD\.locale[\s\S]*NEW\.path IS DISTINCT FROM OLD\.path[\s\S]*website_assert_route_integrity\([\s\S]*OLD\.tenant_id,[\s\S]*OLD\.site_id,[\s\S]*OLD\.locale,[\s\S]*OLD\.path/u,
+  );
+  assert.match(
+    migration,
     /trg_website_redirects_touch_authoring[\s\S]*website_touch_child_authoring_revision/u,
   );
   assert.match(
