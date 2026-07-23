@@ -1,7 +1,7 @@
 # Fieldgrid website module — proposed data model
 
 Date: 23 July 2026
-Status: Phase 1 publication invariants plus Phase 3C preview sessions implemented
+Status: Phase 4A navigation invariants implemented
 
 The additive Phase 1A migration implements sites, domain bindings, custom
 deployment records, pages, page sections, navigation, immutable publications and
@@ -19,6 +19,12 @@ immutable preview snapshot and a maximum fifteen-minute database expiry (the
 application issues ten-minute sessions). RLS is enabled and direct anon or
 authenticated table access is revoked. The live preview loader additionally
 requires an active tenant/module and exact current authoring revision.
+
+Phase 4A hardens `website_navigation_items` with a tenant/site/location-bound
+deferrable ordering constraint and a database trigger that rejects cross-menu
+parents and trees deeper than two levels. The application replaces a validated
+full navigation draft in one transaction while suppressing per-row revision
+touches, then advances the site authoring revision exactly once.
 
 ## Design principles
 
@@ -216,6 +222,19 @@ Constraints:
 - visibility and timestamps.
 
 Enforce same-site parents, bounded depth, cycle rejection, safe protocols and publication-time checks for unpublished internal targets.
+
+Implemented Phase 4A constraints and service policy:
+
+- ordering is unique per tenant/site/location and positions are bounded;
+- a parent must belong to the same tenant/site/location;
+- only a root may own submenu children and submenu groups cannot nest;
+- internal links open in the same window and resolve to an active page in the
+  site's default locale;
+- external links use HTTPS without URL credentials;
+- sibling labels and destinations are unique;
+- visible children cannot sit below a hidden parent;
+- every changed full-tree save is exact-revision, audited and advances the site
+  revision once.
 
 ### `website_redirects`
 

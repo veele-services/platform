@@ -308,6 +308,58 @@ test("compiler rejects visible unknown sections and unsafe external navigation",
   );
 });
 
+test("compiler rejects duplicate, over-deep and credentialed navigation", () => {
+  const duplicateLabel = sourceFixture();
+  duplicateLabel.navigation.find((item) => item.id === contactNavId)!.label =
+    "HOME";
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(duplicateLabel)).some(
+      (entry) => entry.code === "duplicate_navigation_label",
+    ),
+  );
+
+  const duplicateDestination = sourceFixture();
+  duplicateDestination.navigation.find(
+    (item) => item.id === contactNavId,
+  )!.pageId = homeId;
+  assert.ok(
+    diagnosticsFor(() =>
+      buildWebsitePublicationSnapshot(duplicateDestination),
+    ).some((entry) => entry.code === "duplicate_navigation_destination"),
+  );
+
+  const overDeep = sourceFixture();
+  overDeep.navigation.push({
+    id: "50000000-0000-4000-8000-000000000004",
+    label: "Meer",
+    location: "header",
+    parentId: null,
+    pageId: null,
+    linkType: "dropdown",
+    href: null,
+    target: "self",
+    position: 2,
+    isVisible: true,
+  });
+  overDeep.navigation.find((item) => item.id === contactNavId)!.parentId =
+    "50000000-0000-4000-8000-000000000004";
+  overDeep.navigation.find((item) => item.id === homeNavId)!.parentId =
+    contactNavId;
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(overDeep)).some(
+      (entry) => entry.code === "invalid_navigation_hierarchy",
+    ),
+  );
+
+  const credentials = sourceFixture();
+  credentials.navigation[0]!.href = "https://user:secret@example.test/onveilig";
+  assert.ok(
+    diagnosticsFor(() => buildWebsitePublicationSnapshot(credentials)).some(
+      (entry) => entry.code === "unsafe_external_navigation",
+    ),
+  );
+});
+
 test("cache identity is tenant-, site-, revision- and content-bound", () => {
   const contentHash = "a".repeat(64);
   const identity = websitePublicationCacheIdentity({

@@ -1,7 +1,7 @@
 # Fieldgrid website module — backoffice administration design
 
 Date: 23 July 2026
-Status: Phase 3C preview and immutable publication review implemented
+Status: Phase 4A navigation authoring implemented
 
 ## Implementation status
 
@@ -24,6 +24,13 @@ renderer and an explicit two-step immutable prepare/activate flow. A tenant can
 activate only while the site is already in `managed_cms`; custom delivery cannot
 be switched by this flow. No domain, proxy, staging or production configuration
 is changed by the implementation.
+
+Phase 4A adds an RBAC-separated navigation editor for Header, Footer and Legal.
+The complete navigation tree is validated and replaced atomically against the
+exact site authoring revision. Internal targets are revalidated against the
+same tenant/site/default locale; external targets require credential-free
+HTTPS. Ordering is deterministic, hierarchy is limited to one submenu level
+and saves remain draft-only.
 
 ## Admin boundary
 
@@ -156,11 +163,26 @@ Editor rules:
 
 ## Navigation editor
 
-- Separate Header, Footer and Legal menus.
-- Add internal pages through a page picker and external destinations through a validated URL field.
-- Use accessible hierarchy/order controls with a bounded depth.
-- Surface unpublished targets, cycles, redirect chains and duplicates before save/publication.
-- Preview navigation as part of the whole draft site rather than an untrusted standalone HTML fragment.
+Implemented behavior:
+
+- separate Header, Footer and Legal menus;
+- internal pages through a default-locale page picker and external destinations
+  through a credential-free HTTPS field;
+- compact labels, contextual plus actions, visual grip handles and equivalent
+  accessible Move up/Move down controls;
+- one optional submenu level, with same-menu parent validation in both the
+  shared contract and PostgreSQL;
+- duplicate sibling labels/destinations, hidden-parent or visible-child
+  conflicts and cycles rejected before save;
+- draft-page targets shown as publication blockers while remaining usable in
+  the authenticated whole-site preview;
+- one atomic full-tree save with exact siterevision, one revision increment and
+  one audit event;
+- no-op saves do not advance the revision;
+- custom Next.js continues to own live navigation in code.
+
+Redirect-chain diagnostics remain Phase 4B because redirect persistence is not
+part of Phase 4A.
 
 ## Blog administration
 

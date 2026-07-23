@@ -237,6 +237,11 @@ function buildWebsiteSnapshot(
   }));
 
   const visibleNavigation = source.navigation.filter((item) => item.isVisible);
+  const visibleNavigationById = new Map(
+    visibleNavigation.map((item) => [item.id, item]),
+  );
+  const siblingLabels = new Set<string>();
+  const siblingDestinations = new Set<string>();
   for (const location of [
     "header",
     "footer_primary",
@@ -247,6 +252,82 @@ function buildWebsiteSnapshot(
       `navigation.${location}`,
       diagnostics,
     );
+  }
+  for (const item of visibleNavigation) {
+    const ancestors = new Set([item.id]);
+    let ancestorId = item.parentId;
+    while (ancestorId) {
+      if (ancestors.has(ancestorId)) {
+        diagnostics.push(
+          diagnostic(
+            "navigation_cycle",
+            `navigation.${item.id}.parentId`,
+            "Navigation hierarchy cannot contain a cycle",
+          ),
+        );
+        break;
+      }
+      ancestors.add(ancestorId);
+      ancestorId = visibleNavigationById.get(ancestorId)?.parentId ?? null;
+    }
+
+    const parent = item.parentId
+      ? visibleNavigationById.get(item.parentId)
+      : undefined;
+    if (
+      item.parentId &&
+      (!parent || parent.location !== item.location || parent.parentId !== null)
+    ) {
+      diagnostics.push(
+        diagnostic(
+          "invalid_navigation_hierarchy",
+          `navigation.${item.id}.parentId`,
+          "Navigation supports one submenu level under a parent in the same location",
+        ),
+      );
+    }
+    if (item.parentId && item.linkType === "dropdown") {
+      diagnostics.push(
+        diagnostic(
+          "nested_navigation_dropdown",
+          `navigation.${item.id}.linkType`,
+          "A submenu item cannot be another destination-less dropdown",
+        ),
+      );
+    }
+
+    const siblingKey = `${item.location}:${item.parentId ?? "root"}`;
+    const labelKey = `${siblingKey}:${item.label.toLocaleLowerCase("nl-NL")}`;
+    if (siblingLabels.has(labelKey)) {
+      diagnostics.push(
+        diagnostic(
+          "duplicate_navigation_label",
+          `navigation.${item.id}.label`,
+          "Navigation labels must be unique within the same level",
+        ),
+      );
+    }
+    siblingLabels.add(labelKey);
+
+    const destination =
+      item.linkType === "page" && item.pageId
+        ? `page:${item.pageId}`
+        : item.linkType === "external" && item.href
+          ? `external:${item.href}`
+          : null;
+    if (destination) {
+      const destinationKey = `${siblingKey}:${destination}`;
+      if (siblingDestinations.has(destinationKey)) {
+        diagnostics.push(
+          diagnostic(
+            "duplicate_navigation_destination",
+            `navigation.${item.id}`,
+            "A navigation destination must be unique within the same level",
+          ),
+        );
+      }
+      siblingDestinations.add(destinationKey);
+    }
   }
 
   const navigation = visibleNavigation
@@ -275,7 +356,10 @@ function buildWebsiteSnapshot(
       } else if (item.linkType === "external") {
         let isHttps = false;
         try {
-          isHttps = Boolean(href && new URL(href).protocol === "https:");
+          const url = href ? new URL(href) : null;
+          isHttps = Boolean(
+            url && url.protocol === "https:" && !url.username && !url.password,
+          );
         } catch {
           isHttps = false;
         }
@@ -284,7 +368,7 @@ function buildWebsiteSnapshot(
             diagnostic(
               "unsafe_external_navigation",
               `navigation.${item.id}.href`,
-              "External navigation must use an HTTPS URL and cannot reference a page",
+              "External navigation must use an HTTPS URL without credentials and cannot reference a page",
             ),
           );
         }

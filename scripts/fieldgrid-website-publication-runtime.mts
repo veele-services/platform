@@ -5,11 +5,14 @@ import {
   activateManagedWebsitePublication,
   createManagedWebsitePublication,
   createWebsitePreviewSession,
+  getWebsiteNavigation,
   includeWebsitePageInPublication,
   loadWebsitePreviewSession,
   pool,
   resolveManagedWebsiteByHost,
+  replaceWebsiteNavigation,
   setPrimaryWebsiteDomain,
+  type WebsiteNavigationDraftItem,
 } from "../lib/db/src/index.ts";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -37,6 +40,8 @@ const previewDraftPageId = randomUUID();
 const heroSectionId = randomUUID();
 const homeNavigationId = randomUUID();
 const contactNavigationId = randomUUID();
+const moreNavigationId = randomUUID();
+const externalNavigationId = randomUUID();
 
 const theme = {
   schemaVersion: 1,
@@ -113,7 +118,7 @@ try {
        template_key, template_version, theme, contact, default_seo,
        created_by, updated_by
      ) VALUES (
-       $1, $2, 'Publication runtime', 'draft', false, 'managed_cms',
+       $1, $2, 'Publication runtime', 'draft', true, 'managed_cms',
        'trust_conversion', 1, $3::jsonb, $4::jsonb, $5::jsonb, $6, $6
      ), (
        $7, $2, 'Competing runtime site', 'draft', false, 'managed_cms',
@@ -201,24 +206,147 @@ try {
       actorA,
     ],
   );
-  await pool.query(
-    `INSERT INTO public.website_navigation_items (
-       id, tenant_id, site_id, page_id, location, label, link_type,
-       target, position, is_visible, created_by, updated_by
-     ) VALUES (
-       $1, $2, $3, $4, 'header', 'Home', 'page', 'self', 0, true, $5, $5
-     ), (
-       $6, $2, $3, $7, 'header', 'Contact', 'page', 'self', 1, true, $5, $5
-     )`,
-    [
-      homeNavigationId,
-      tenantA,
+  const navigationDraft: WebsiteNavigationDraftItem[] = [
+    {
+      id: homeNavigationId,
+      label: "Home",
+      location: "header",
+      parentId: null,
+      pageId: homePageId,
+      linkType: "page",
+      href: null,
+      target: "self",
+      isVisible: true,
+    },
+    {
+      id: moreNavigationId,
+      label: "Meer",
+      location: "header",
+      parentId: null,
+      pageId: null,
+      linkType: "dropdown",
+      href: null,
+      target: "self",
+      isVisible: true,
+    },
+    {
+      id: contactNavigationId,
+      label: "Contact",
+      location: "header",
+      parentId: moreNavigationId,
+      pageId: contactPageId,
+      linkType: "page",
+      href: null,
+      target: "self",
+      isVisible: true,
+    },
+    {
+      id: externalNavigationId,
+      label: "Fieldgrid",
+      location: "footer_primary",
+      parentId: null,
+      pageId: null,
+      linkType: "external",
+      href: "https://fieldgrid.nl/",
+      target: "blank",
+      isVisible: true,
+    },
+  ];
+  const navigationRevision = await currentAuthoringRevision();
+  const navigationWrite = await replaceWebsiteNavigation({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    expectedAuthoringRevision: navigationRevision,
+    items: navigationDraft,
+  });
+  assert.equal(navigationWrite.changed, true);
+  assert.equal(navigationWrite.authoringRevision, navigationRevision + 1);
+  const navigationView = await getWebsiteNavigation(tenantA);
+  assert.equal(navigationView?.items.length, 4);
+  assert.equal(
+    navigationView?.items.find((item) => item.id === contactNavigationId)
+      ?.parentId,
+    moreNavigationId,
+  );
+  const navigationNoop = await replaceWebsiteNavigation({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    expectedAuthoringRevision: navigationWrite.authoringRevision,
+    items: navigationDraft,
+  });
+  assert.equal(navigationNoop.changed, false);
+  assert.equal(
+    navigationNoop.authoringRevision,
+    navigationWrite.authoringRevision,
+  );
+  await assert.rejects(
+    replaceWebsiteNavigation({
+      tenantId: tenantA,
+      actorUserId: actorA,
       siteId,
-      homePageId,
-      actorA,
-      contactNavigationId,
-      contactPageId,
+      expectedAuthoringRevision: navigationRevision,
+      items: navigationDraft,
+    }),
+    /Website is intussen gewijzigd/u,
+  );
+  const reorderedNavigation = [
+    navigationDraft[2]!,
+    navigationDraft[1]!,
+    navigationDraft[0]!,
+    navigationDraft[3]!,
+  ];
+  const navigationReorder = await replaceWebsiteNavigation({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    expectedAuthoringRevision: navigationWrite.authoringRevision,
+    items: reorderedNavigation,
+  });
+  assert.equal(navigationReorder.changed, true);
+  assert.equal(
+    navigationReorder.authoringRevision,
+    navigationWrite.authoringRevision + 1,
+  );
+  const reorderedView = await getWebsiteNavigation(tenantA);
+  assert.deepEqual(
+    reorderedView?.items
+      .filter((item) => item.location === "header")
+      .map((item) => [item.id, item.position]),
+    [
+      [moreNavigationId, 0],
+      [contactNavigationId, 1],
+      [homeNavigationId, 2],
     ],
+  );
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO public.website_navigation_items (
+         tenant_id, site_id, parent_id, page_id, location, label, link_type,
+         target, position, is_visible, created_by, updated_by
+       ) VALUES (
+         $1, $2, $3, $4, 'header', 'Te diep', 'page',
+         'self', 3, true, $5, $5
+       )`,
+      [tenantA, siteId, contactNavigationId, contactPageId, actorA],
+    ),
+    /navigation hierarchy exceeds two levels/u,
+  );
+  await assert.rejects(
+    replaceWebsiteNavigation({
+      tenantId: tenantA,
+      actorUserId: actorA,
+      siteId,
+      expectedAuthoringRevision: navigationReorder.authoringRevision,
+      items: [
+        {
+          ...navigationDraft[3]!,
+          href: "javascript:alert(1)",
+        },
+      ],
+    }),
+    /URL|HTTPS/u,
   );
 
   await assert.rejects(
@@ -579,6 +707,10 @@ try {
           domainReuseRejected: true,
           childMutationAdvancesRevision: true,
           childOwnershipImmutable: true,
+          navigationExactRevision: true,
+          navigationHierarchyBounded: true,
+          navigationDeterministicReorder: true,
+          unsafeNavigationRejected: true,
           deterministicPublicationCreated: true,
           exactCacheIdentityPersisted: true,
           concurrentIdempotentPublicationRetry: true,
