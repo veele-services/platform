@@ -309,7 +309,19 @@ export function PageSections({ page }: { page: SitePage }) {
       {page.sections.map((section, index) => <ContentSection key={`${section.heading}-${index}`} section={section} index={index} template={template} />)}
       {!showRelatedFirst && <RelatedGrid page={page} />}
       <ProcessSection page={page} />
-      {isForm && <div id="contactformulier"><LeadForm kind={page.slug === "/offerte" ? "offerte" : page.slug === "/werken-bij" ? "sollicitatie" : "contact"} /></div>}
+      {isForm && (
+        <div id="contactformulier">
+          <LeadForm
+            kind={
+              page.slug === "/offerte"
+                ? "offerte"
+                : page.slug === "/werken-bij"
+                  ? "sollicitatie"
+                  : "contact"
+            }
+          />
+        </div>
+      )}
       <FaqSection page={page} />
       <FinalCta page={page} />
     </>

@@ -1,35 +1,32 @@
 # Integratiechecklist
 
-Deze codebase verzint geen CRM-, e-mail- of analyticsleverancier. Formulieren staan daarom standaard op `FORM_DELIVERY_MODE=disabled` en geven dan eerlijk een `503` terug. Activeer aflevering pas nadat onderstaande punten aantoonbaar zijn afgerond.
+Deze custom website gebruikt uitsluitend Fieldgrids publieke, hostgebonden
+formulierendpoint. De site bevat geen eigen webhookadapter, databasecredential
+of service-role secret. Zonder een geldig gepubliceerd formulier-ID blijft het
+formulier fail-closed.
 
 ## Formulieren
 
-- [x] Gedeelde server-side Zod-validatie met lengtelimieten en onbekende velden geweigerd
-- [x] Expliciete toestemming in de browser én op de server vereist
-- [x] Honeypot aanwezig; botinzendingen worden niet afgeleverd
-- [x] JSON- en bodylimiet, origincontrole, time-out en veilige foutstatussen
-- [x] Proceslokale basis-rate-limit zonder opslag of logging van ruwe IP-adressen
-- [x] Geen persoonsgegevens, payloads, secrets of afleverreacties in applicatielogs
-- [ ] Eigenaar kiest en contracteert de definitieve CRM-/e-mailontvanger
-- [ ] Veldmapping, ontvangers, foutafhandeling en dubbele inzendingen end-to-end valideren
+- [x] Platformvalidatie met veld- en bodylimieten en onbekende velden geweigerd
+- [x] Expliciete toestemming in de browser vereist
+- [x] Duurzame honeypot, throttling en idempotentie in Fieldgrid
+- [x] Host, tenant, site en gepubliceerd formulier worden gezamenlijk opgelost
+- [x] Geen ruwe netwerkidentifiers, secrets of payloads in applicatielogs
+- [x] Notificatiefouten verliezen de opgeslagen inzending niet
+- [ ] Exact gepubliceerd Veele-formulier-ID op staging configureren
+- [ ] Ontvanger, veldmapping en dubbele inzendingen end-to-end valideren
 - [ ] DPA/verwerkersovereenkomst, grondslag, bewaartermijn en verwijderproces vastleggen
 - [ ] Privacyverklaring linken bij het toestemmingsveld zodra de definitieve URL bekend is
-- [ ] Gedistribueerde rate limiting toevoegen vóór horizontaal/serverless schalen; de huidige geheugenlimiet geldt per proces
 - [ ] Monitoring configureren op statuscodes, latency en request-id, zonder PII in logs of traces
 - [ ] Spambeleid evalueren na echte verkeersdata; voeg geen trackingcaptcha toe zonder privacyreview
 
-### Afleveradapter activeren
+### Platformendpoint activeren
 
-De provider-neutrale adapter verstuurt alleen naar een expliciet geconfigureerde HTTPS-URL. Redirects worden geweigerd en de aanvraag stopt na acht seconden.
-
-1. Zet `FORM_ALLOWED_ORIGINS` op de komma-gescheiden productie- en preview-origins.
-2. Zet `FORM_DELIVERY_MODE=webhook`.
-3. Zet `FORM_DELIVERY_WEBHOOK_URL` op de goedgekeurde HTTPS-ontvanger.
-4. Zet indien ondersteund `FORM_DELIVERY_WEBHOOK_SECRET`; dit wordt als bearer-token verzonden.
-5. Controleer dat downstream request-id idempotent verwerkt, PII niet logt en alleen een 2xx-status teruggeeft na duurzame acceptatie.
-6. Test geldige invoer, validatiefouten, honeypot, timeout, 429 en downstream 4xx/5xx.
-
-`FORM_DELIVERY_MODE=stub` is uitsluitend lokale QA. In productie weigert deze modus aflevering met `503`, zodat aanvragen nooit stilzwijgend verloren gaan.
+1. Publiceer het Veele-formulier in het exacte tenant/site-dossier.
+2. Zet `FIELDGRID_WEBSITE_FORM_ID` op dat UUID.
+3. Controleer dat de custom publieke host bij dezelfde tenant/site hoort.
+4. Test geldige invoer, validatiefouten, honeypot, replay, 429 en notificatiefout.
+5. Controleer de duurzame inzending en tijdlijn in de Fieldgrid-inbox.
 
 ## Security en privacy
 

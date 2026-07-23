@@ -24,6 +24,7 @@ import {
   parsePostgresEnv,
   parseRealtimePublicationMetadata,
   sanitizePublicUrl,
+  validateCustomCandidateConfig,
   validateRuntimeConfig,
 } from "../scripts/fieldgrid-phase2e-staging-preflight.mjs";
 
@@ -56,6 +57,21 @@ function validEnvironment() {
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
     WEBSITE_PUBLIC_HEALTH_URL: "https://website.staging.fieldgrid.nl/healthz",
+    NEXT_PUBLIC_MARKETING_SITE_URL:
+      "https://veele.staging.fieldgrid.nl/",
+    FIELDGRID_CUSTOM_ROUTE_KEY: "veele_staging_primary",
+    FIELDGRID_CUSTOM_EXPECTED_HOST: "veele.staging.fieldgrid.nl",
+    FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: JSON.stringify([
+      {
+        providerKey: "fieldgrid_vps",
+        routeKey: "veele_staging_primary",
+        releaseId: `git-commit:${mainSha}`,
+        expectedHosts: ["veele.staging.fieldgrid.nl"],
+        healthPath: "/api/health",
+        status: "routable",
+        upstreamOrigin: "https://veele-origin.staging.fieldgrid.nl",
+      },
+    ]),
     API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/",
     PILOT_TENANT_LOGIN_URL: "https://field-demo.fieldgrid.nl/admin/login",
   });
@@ -105,6 +121,9 @@ test("secret and routing preflight lists every required deployment dependency by
   assert.ok(
     REQUIRED_VARIABLE_NAMES.includes("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"),
   );
+  assert.ok(
+    REQUIRED_VARIABLE_NAMES.includes("NEXT_PUBLIC_MARKETING_SITE_URL"),
+  );
 
   const env = validEnvironment();
   delete env.FIELDGRID_CREDENTIAL_RECOVERY_SECRET;
@@ -114,6 +133,33 @@ test("secret and routing preflight lists every required deployment dependency by
   );
   assert.match(errors.join(" "), /FIELDGRID_CREDENTIAL_RECOVERY_SECRET/u);
   assert.doesNotMatch(errors.join(" "), /test-token/u);
+});
+
+test("custom candidate preflight is exact-main and staging-only", () => {
+  assert.deepEqual(
+    validateCustomCandidateConfig(mainSha, validEnvironment()),
+    [],
+  );
+
+  const stale = validEnvironment();
+  stale.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON =
+    stale.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON.replace(
+      `git-commit:${mainSha}`,
+      `git-commit:${"c".repeat(40)}`,
+    );
+  assert.match(
+    validateCustomCandidateConfig(mainSha, stale).join(" "),
+    /bound to exact main/u,
+  );
+
+  const production = validEnvironment();
+  production.NEXT_PUBLIC_MARKETING_SITE_URL =
+    "https://www.veeleservices.nl/";
+  production.FIELDGRID_CUSTOM_EXPECTED_HOST = "www.veeleservices.nl";
+  assert.match(
+    validateCustomCandidateConfig(mainSha, production).join(" "),
+    /staging HTTPS origin/u,
+  );
 });
 
 test("database URL parsing creates libpq fields without retaining a URL", () => {

@@ -31,7 +31,6 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testIgnore: /forms-api\.spec\.ts/,
       use: { ...devices["Pixel 7"] },
     },
   ],
@@ -41,7 +40,8 @@ export default defineConfig({
         command: "pnpm dev",
         env: {
           ...process.env,
-          FORM_DELIVERY_MODE: "disabled",
+          FIELDGRID_WEBSITE_FORM_ID:
+            "11111111-1111-4111-8111-111111111111",
         },
         url: baseURL,
         reuseExistingServer: !process.env.CI,

@@ -69,6 +69,9 @@ export const REQUIRED_VARIABLE_NAMES = [
   "API_PUBLIC_ROOT_URL",
   "PILOT_TENANT_LOGIN_URL",
   "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON",
+  "NEXT_PUBLIC_MARKETING_SITE_URL",
+  "FIELDGRID_CUSTOM_ROUTE_KEY",
+  "FIELDGRID_CUSTOM_EXPECTED_HOST",
 ];
 
 export const CRITICAL_RELATIONS = [
@@ -377,6 +380,7 @@ export function validateRuntimeConfig(options, env = process.env) {
   const missingVariables = missingNames(REQUIRED_VARIABLE_NAMES, env);
   if (missingVariables.length > 0)
     errors.push(`Missing staging variables: ${missingVariables.join(", ")}.`);
+  errors.push(...validateCustomCandidateConfig(options.expectedMain, env));
 
   if (
     env.DATABASE_URL &&
@@ -407,6 +411,105 @@ export function validateRuntimeConfig(options, env = process.env) {
     );
   }
 
+  return errors;
+}
+
+export function validateCustomCandidateConfig(
+  expectedMain,
+  env = process.env,
+) {
+  const required = [
+    env.NEXT_PUBLIC_MARKETING_SITE_URL,
+    env.FIELDGRID_CUSTOM_ROUTE_KEY,
+    env.FIELDGRID_CUSTOM_EXPECTED_HOST,
+    env.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON,
+  ];
+  if (required.some((value) => !String(value ?? "").trim())) return [];
+
+  const errors = [];
+  const expectedHost = String(
+    env.FIELDGRID_CUSTOM_EXPECTED_HOST,
+  ).toLowerCase();
+  let marketingUrl;
+  try {
+    marketingUrl = new URL(env.NEXT_PUBLIC_MARKETING_SITE_URL);
+  } catch {
+    errors.push("NEXT_PUBLIC_MARKETING_SITE_URL is not a valid URL.");
+  }
+  if (
+    marketingUrl &&
+    (marketingUrl.protocol !== "https:" ||
+      marketingUrl.hostname !== expectedHost ||
+      !expectedHost.endsWith(".staging.fieldgrid.nl") ||
+      marketingUrl.username ||
+      marketingUrl.password ||
+      marketingUrl.port ||
+      marketingUrl.pathname !== "/" ||
+      marketingUrl.search ||
+      marketingUrl.hash)
+  ) {
+    errors.push(
+      "The marketing canonical URL and expected custom host must be the same staging HTTPS origin.",
+    );
+  }
+
+  let routes;
+  try {
+    routes = JSON.parse(env.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON);
+  } catch {
+    errors.push("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON is not valid JSON.");
+    return errors;
+  }
+  if (!Array.isArray(routes)) {
+    errors.push("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON must be an array.");
+    return errors;
+  }
+
+  const candidate = routes.find(
+    (route) =>
+      route &&
+      typeof route === "object" &&
+      route.providerKey === "fieldgrid_vps" &&
+      route.routeKey === env.FIELDGRID_CUSTOM_ROUTE_KEY &&
+      Array.isArray(route.expectedHosts) &&
+      route.expectedHosts.includes(expectedHost),
+  );
+  if (!candidate) {
+    errors.push(
+      "The reviewed custom route identity is missing from the route registry.",
+    );
+    return errors;
+  }
+  if (
+    candidate.status !== "routable" ||
+    candidate.releaseId !== `git-commit:${expectedMain}` ||
+    candidate.healthPath !== "/api/health"
+  ) {
+    errors.push(
+      "The reviewed custom route must be routable and bound to exact main with /api/health.",
+    );
+  }
+  try {
+    const upstream = new URL(candidate.upstreamOrigin);
+    if (
+      upstream.protocol !== "https:" ||
+      !upstream.hostname.endsWith(".staging.fieldgrid.nl") ||
+      upstream.username ||
+      upstream.password ||
+      upstream.port ||
+      upstream.pathname !== "/" ||
+      upstream.search ||
+      upstream.hash
+    ) {
+      errors.push(
+        "The reviewed custom upstream must be an origin-only staging HTTPS URL.",
+      );
+    }
+  } catch {
+    errors.push(
+      "The reviewed custom upstream must be an origin-only staging HTTPS URL.",
+    );
+  }
   return errors;
 }
 

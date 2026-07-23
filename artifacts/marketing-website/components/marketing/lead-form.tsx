@@ -5,11 +5,18 @@ import { CheckCircle2, CircleAlert, LoaderCircle, ShieldCheck } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  buildFieldgridFormSubmission,
+  resolveFieldgridFormSubmissionEndpoint,
+  type MarketingFormKind,
+} from "@/lib/fieldgrid-forms";
 
-type FormKind = "contact" | "offerte" | "sollicitatie";
 type SubmitState = "idle" | "sending" | "success" | "error";
 
-const labels: Record<FormKind, { eyebrow: string; heading: string; description: string }> = {
+const labels: Record<
+  MarketingFormKind,
+  { eyebrow: string; heading: string; description: string }
+> = {
   contact: {
     eyebrow: "Neem contact op",
     heading: "Vertel ons waar we kunnen helpen.",
@@ -30,7 +37,7 @@ const labels: Record<FormKind, { eyebrow: string; heading: string; description: 
   },
 };
 
-export function LeadForm({ kind }: { kind: FormKind }) {
+export function LeadForm({ kind }: { kind: MarketingFormKind }) {
   const id = useId();
   const [state, setState] = useState<SubmitState>("idle");
   const [feedback, setFeedback] = useState("");
@@ -42,32 +49,48 @@ export function LeadForm({ kind }: { kind: FormKind }) {
 
     if (!form.reportValidity()) return;
 
+    const endpoint = await resolveFieldgridFormSubmissionEndpoint();
+    if (!endpoint) {
+      setState("error");
+      setFeedback(
+        "Het formulier is nog niet gekoppeld. Neem rechtstreeks contact met ons op.",
+      );
+      return;
+    }
+
     setState("sending");
     setFeedback("");
 
     const formData = new FormData(form);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 12_000);
+    const submissionId = globalThis.crypto.randomUUID();
 
     try {
-      const apiResponse = await fetch(kind === "offerte" ? "/api/offerte" : "/api/contact", {
+      const apiResponse = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "Idempotency-Key": submissionId,
+        },
         signal: controller.signal,
-        body: JSON.stringify({
-          kind,
-          name: formData.get("name"),
-          organisation: formData.get("organisation"),
-          email: formData.get("email"),
-          phone: formData.get("phone"),
-          message: formData.get("message"),
-          consent: formData.get("consent") === "yes",
-          website: formData.get("website"),
-        }),
+        body: JSON.stringify(
+          buildFieldgridFormSubmission({
+            kind,
+            name: formData.get("name"),
+            organisation: formData.get("organisation"),
+            email: formData.get("email"),
+            phone: formData.get("phone"),
+            message: formData.get("message"),
+            website: formData.get("website"),
+            submissionId,
+          }),
+        ),
       });
 
       const result = (await apiResponse.json().catch(() => null)) as
-        | { message?: string }
+        | { accepted?: boolean; code?: string }
         | null;
 
       if (!apiResponse.ok) {
@@ -75,8 +98,15 @@ export function LeadForm({ kind }: { kind: FormKind }) {
         setFeedback(
           apiResponse.status === 429
             ? "U heeft kort na elkaar meerdere aanvragen verstuurd. Probeer het over enkele minuten opnieuw."
-            : result?.message ??
-                "Versturen lukt op dit moment niet. Probeer het later opnieuw of neem rechtstreeks contact op.",
+            : "Versturen lukt op dit moment niet. Probeer het later opnieuw of neem rechtstreeks contact op.",
+        );
+        return;
+      }
+
+      if (!result?.accepted) {
+        setState("error");
+        setFeedback(
+          "De aanvraag is niet bevestigd. Probeer het later opnieuw.",
         );
         return;
       }

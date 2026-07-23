@@ -205,7 +205,9 @@ function sanitizePage(sourcePage: SitePage): SitePage {
 export const pages = sourcePages.map(sanitizePage);
 
 function resolveSiteUrl() {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_MARKETING_SITE_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL;
 
   if (!configuredUrl) return DEFAULT_SITE_URL;
 

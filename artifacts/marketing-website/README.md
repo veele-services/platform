@@ -22,7 +22,9 @@ pnpm --filter @workspace/marketing-website test:e2e
 ## Belangrijk
 
 - Dependencyversies zijn vastgezet in het centrale `pnpm-lock.yaml`; gebruik uitsluitend de pnpm-versie uit de repositoryroot.
-- Formulier-API’s geven alleen een veilige stub-response. Koppel pas na een privacy- en securityreview aan mail/CRM.
+- Formulieren posten rechtstreeks naar Fieldgrids hostgebonden Phase-6-endpoint.
+  De custom site bevat geen eigen webhook, databasecredential of service-role
+  secret. Zonder een geldig gepubliceerd formulier-ID faalt de UI gesloten.
 - Claims, cijfers, certificeringen, logo’s en referenties moeten vóór publicatie schriftelijk gevalideerd worden.
 - De fotografie in `public/images` zijn placeholders. Gebruik gelicenseerde of eigen beelden conform `content/media-manifest.json`.
 - De portaalpagina is marketing/demo. Integreer authenticatie en klantdata niet in dit publieke project zonder expliciete architectuurbeslissing.
@@ -83,4 +85,6 @@ pnpm --filter @workspace/marketing-website test:e2e
 - sitemap, robots, JSON-LD en canonical metadata
 - Responsive header/footer, hero, cards, proces, FAQ, CTA en formulieren
 - Referentieafbeeldingen, complete PDF en webcopy
+- Staging-only Fieldgrid custom-delivery health schema v3
+- Duurzame tenant-scoped Fieldgrid-formulierinzendingen
 - `AGENTS.md`, `CODEX_PROMPT.md`, checklist en claimvalidatie

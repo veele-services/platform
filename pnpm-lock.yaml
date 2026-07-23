@@ -527,6 +527,9 @@ importers:
       tailwindcss:
         specifier: 4.3.0
         version: 4.3.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       tw-animate-css:
         specifier: 1.4.0
         version: 1.4.0
@@ -815,7 +818,7 @@ importers:
         version: link:../../lib/website-core
       next:
         specifier: ^15.5.0
-        version: 15.5.18(@playwright/test@1.51.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 15.5.18(@opentelemetry/api@1.9.1)(@playwright/test@1.51.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react:
         specifier: 'catalog:'
         version: 19.1.0

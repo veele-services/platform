@@ -25,15 +25,31 @@ for (const route of accessibilityRoutes) {
   });
 }
 
-test("contact form exposes consent and a useful unconfigured error", async ({ page }) => {
-  await page.route("**/api/contact", async (route) => {
+test("contact form submits an idempotent allowlisted Fieldgrid payload", async ({
+  page,
+}) => {
+  let captured:
+    | {
+        url: string;
+        idempotencyKey: string | undefined;
+        body: Record<string, unknown>;
+      }
+    | undefined;
+
+  await page.route("**/api/website-forms/*/submissions", async (route) => {
+    const request = route.request();
+    captured = {
+      url: request.url(),
+      idempotencyKey: request.headers()["idempotency-key"],
+      body: request.postDataJSON() as Record<string, unknown>,
+    };
     await route.fulfill({
-      status: 503,
+      status: 202,
       contentType: "application/json",
       body: JSON.stringify({
-        ok: false,
-        code: "not_configured",
-        message: "Het formulier is nog niet gekoppeld. Neem rechtstreeks contact met ons op.",
+        accepted: true,
+        reference: "11111111-1111-4111-8111-111111111111",
+        replayed: false,
       }),
     });
   });
@@ -46,5 +62,23 @@ test("contact form exposes consent and a useful unconfigured error", async ({ pa
   await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Verstuur aanvraag" }).click();
 
-  await expect(form.getByRole("alert")).toContainText("nog niet gekoppeld");
+  await expect(form.getByRole("status")).toContainText(
+    "Uw aanvraag is ontvangen",
+  );
+  expect(captured?.url).toMatch(
+    /\/api\/website-forms\/11111111-1111-4111-8111-111111111111\/submissions$/u,
+  );
+  expect(captured?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/u);
+  expect(captured?.body).toEqual({
+    data: {
+      name: "Test Gebruiker",
+      email: "test@example.invalid",
+      phone: "",
+      company: "",
+      subject: "Contactaanvraag",
+      message: "Dit is een veilige geautomatiseerde testaanvraag.",
+    },
+    _submissionId: captured?.idempotencyKey,
+    _companyWebsite: "",
+  });
 });
