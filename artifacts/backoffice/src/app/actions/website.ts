@@ -8,6 +8,7 @@ import {
   activateManagedWebsitePublication,
   deleteWebsiteSection,
   getWebsiteAdminOverview,
+  getWebsiteNavigation,
   getWebsitePage,
   getWebsitePublicationReview,
   getWebsiteSettings,
@@ -15,10 +16,12 @@ import {
   initializeManagedWebsite,
   listWebsitePages,
   reorderWebsiteSections,
+  replaceWebsiteNavigation,
   updateWebsiteSection,
   updateWebsitePage,
   updateWebsiteSettings,
   type WebsitePageDraft,
+  type WebsiteNavigationDraftItem,
   type WebsiteSection,
   type WebsiteSiteSettings,
 } from "@workspace/db";
@@ -92,6 +95,37 @@ export async function getWebsitePagesAction() {
   await requirePermission("website_pages", "read");
   const tenantId = await requireCurrentTenantId();
   return listWebsitePages(tenantId);
+}
+
+export async function getWebsiteNavigationAction() {
+  await requirePermission("website_navigation", "read");
+  const tenantId = await requireCurrentTenantId();
+  return getWebsiteNavigation(tenantId);
+}
+
+export async function replaceWebsiteNavigationAction(input: {
+  siteId: string;
+  expectedAuthoringRevision: number;
+  items: WebsiteNavigationDraftItem[];
+}): Promise<ActionResult<{ authoringRevision: number; changed: boolean }>> {
+  try {
+    await requirePermission("website_navigation", "write");
+    const [tenantId, actorUserId] = await Promise.all([
+      requireCurrentTenantId(),
+      requireActorId(),
+    ]);
+    const data = await replaceWebsiteNavigation({
+      tenantId,
+      actorUserId,
+      ...input,
+    });
+    revalidatePath("/website");
+    revalidatePath("/website/navigation");
+    revalidatePath("/website/review");
+    return { success: true, data };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 export async function getWebsitePageAction(pageId: string) {

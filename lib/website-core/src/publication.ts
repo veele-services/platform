@@ -19,10 +19,20 @@ const externalHttpsUrlSchema = z
   .string()
   .url()
   .max(2_048)
-  .refine(
-    (value) => new URL(value).protocol === "https:",
-    "Only HTTPS navigation URLs are allowed",
-  );
+  .superRefine((value, context) => {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      return;
+    }
+    if (url.protocol !== "https:" || url.username || url.password) {
+      context.addIssue({
+        code: "custom",
+        message: "Only HTTPS navigation URLs without credentials are allowed",
+      });
+    }
+  });
 
 const publicationHrefSchema = z.union([
   publicPathSchema,
@@ -120,6 +130,8 @@ export const websitePublicationSnapshotSchema = z
     }
 
     const navigationIds = new Set<string>();
+    const siblingLabels = new Set<string>();
+    const siblingDestinations = new Set<string>();
     for (const item of snapshot.navigation) {
       if (navigationIds.has(item.id)) {
         context.addIssue({
@@ -138,6 +150,20 @@ export const websitePublicationSnapshotSchema = z
           code: "custom",
           path: ["navigation", item.id, "parentId"],
           message: "Navigation parent must exist in the same location",
+        });
+      }
+      if (parent?.parentId) {
+        context.addIssue({
+          code: "custom",
+          path: ["navigation", item.id, "parentId"],
+          message: "Navigation supports at most two levels",
+        });
+      }
+      if (item.parentId && item.linkType === "dropdown") {
+        context.addIssue({
+          code: "custom",
+          path: ["navigation", item.id, "linkType"],
+          message: "A submenu cannot contain a destination-less dropdown",
         });
       }
 
@@ -169,6 +195,35 @@ export const websitePublicationSnapshotSchema = z
           message:
             "Dropdown navigation cannot have a destination or blank target",
         });
+      }
+
+      const siblingKey = `${item.location}:${item.parentId ?? "root"}`;
+      const labelKey = `${siblingKey}:${item.label.toLocaleLowerCase("nl-NL")}`;
+      if (siblingLabels.has(labelKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["navigation", item.id, "label"],
+          message: "Navigation labels must be unique within the same level",
+        });
+      }
+      siblingLabels.add(labelKey);
+      const destination =
+        item.linkType === "page" && item.pageId
+          ? `page:${item.pageId}`
+          : item.linkType === "external" && item.href
+            ? `external:${item.href}`
+            : null;
+      if (destination) {
+        const destinationKey = `${siblingKey}:${destination}`;
+        if (siblingDestinations.has(destinationKey)) {
+          context.addIssue({
+            code: "custom",
+            path: ["navigation", item.id],
+            message:
+              "Navigation destinations must be unique within the same level",
+          });
+        }
+        siblingDestinations.add(destinationKey);
       }
 
       const ancestors = new Set([item.id]);

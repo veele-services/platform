@@ -1,7 +1,7 @@
 # Fieldgrid managed website runtime
 
 Date: 23 July 2026
-Status: Phase 2B public runtime plus Phase 3C shared preview renderer; not deployed or routed live
+Status: Phase 4A managed navigation contract; not deployed or routed live
 
 ## Runtime boundary
 
@@ -68,6 +68,12 @@ opaque preview boundary. Tokens are reusable by that user for ten minutes so a
 whole-site preview can be navigated; expiry, revocation or any authoring change
 fails closed.
 
+Phase 4A uses that same preview/public renderer for navigation. Managed snapshots
+contain only visible, validated and deterministically ordered Header, Footer and
+Legal items. Internal preview links remain inside the opaque preview prefix;
+public links resolve from the immutable snapshot. Custom Next.js delivery does
+not receive or inject this managed navigation.
+
 ## Validation and activation boundary
 
 Phase 2B adds the runtime to workspace build/typecheck, unit-domain tests,
@@ -76,6 +82,9 @@ publication harness proves that the exact verified hostname resolves the active
 snapshot, an unknown host is rejected and later draft edits do not change the
 public result. Phase 3C extends that harness with actor-bound preview loading,
 stale-preview rejection, explicit page inclusion and direct-browser ACL denial.
+Phase 4A additionally proves exact-revision full-tree replacement, no-op
+stability, deterministic reordering, bounded hierarchy and unsafe-link
+rejection against PostgreSQL 17.
 
 This phase intentionally does not add deployment service definitions, proxy
 configuration, live health routing or domain activation. Those require the

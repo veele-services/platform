@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./custom-delivery": "./src/custom-delivery.ts",
+    "./navigation": "./src/navigation.ts",
     "./publication": "./src/publication.ts",
     "./publication-builder": "./src/publication-builder.ts",
     "./preview-token": "./src/preview-token.ts",

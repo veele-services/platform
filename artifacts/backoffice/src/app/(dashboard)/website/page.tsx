@@ -205,6 +205,11 @@ export default async function WebsiteOverviewPage() {
           description="Maak pagina's, beheer metadata en bewerk schema-gedreven contentsecties."
         />
         <ActionCard
+          href="/website/navigation"
+          title="Navigatie"
+          description="Orden header-, footer- en juridische menu's met veilige interne en externe bestemmingen."
+        />
+        <ActionCard
           href="/website/review"
           title="Preview en publiceren"
           description="Bekijk de volledige draft, los diagnostiek op en activeer alleen een exact gereviewde immutable publicatie."
