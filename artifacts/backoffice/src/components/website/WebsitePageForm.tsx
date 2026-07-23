@@ -3,6 +3,7 @@
 import type {
   WebsitePageDraft,
   WebsitePageType,
+  WebsitePathChangeDecision,
   WebsiteSeo,
 } from "@workspace/db";
 import { useRouter } from "next/navigation";
@@ -87,6 +88,8 @@ export function WebsitePageForm({
   const editing = Boolean(page);
   const [isPending, startTransition] = useTransition();
   const [isHomepage, setIsHomepage] = useState(page?.isHomepage ?? false);
+  const [pathValue, setPathValue] = useState(page?.path ?? "/");
+  const [locale, setLocale] = useState(page?.locale ?? "nl-NL");
   const [siteRevision, setSiteRevision] = useState(siteAuthoringRevision);
   const [pageRevision, setPageRevision] = useState(
     page?.authoringRevision ?? 1,
@@ -98,11 +101,11 @@ export function WebsitePageForm({
     event.preventDefault();
     setMessage(null);
     setError(null);
-    const draft = pageFromForm(
-      new FormData(event.currentTarget),
-      isHomepage,
-      page?.seo,
-    );
+    const formData = new FormData(event.currentTarget);
+    const draft = pageFromForm(formData, isHomepage, page?.seo);
+    const pathChangeDecision = String(
+      formData.get("pathChangeDecision") ?? "create_redirect",
+    ) as WebsitePathChangeDecision;
     startTransition(async () => {
       if (!editing) {
         const result = await createWebsitePageAction({
@@ -126,6 +129,7 @@ export function WebsitePageForm({
         pageId: page!.id,
         expectedAuthoringRevision: siteRevision,
         expectedPageRevision: pageRevision,
+        pathChangeDecision,
         page: draft,
       });
       if (!result.success) {
@@ -142,6 +146,15 @@ export function WebsitePageForm({
   }
 
   const disabled = !canWrite || isPending;
+  const normalizedPath = isHomepage
+    ? "/"
+    : `/${pathValue
+        .trim()
+        .toLowerCase()
+        .replace(/^\/+|\/+$/gu, "")}`;
+  const routeChanged =
+    editing &&
+    (normalizedPath !== page?.path || locale !== (page?.locale ?? locale));
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="veele-card space-y-4">
@@ -203,7 +216,8 @@ export function WebsitePageForm({
             <input
               id="website-page-path"
               name="path"
-              defaultValue={page?.path ?? "/"}
+              value={pathValue}
+              onChange={(event) => setPathValue(event.target.value)}
               maxLength={500}
               required
               disabled={disabled || isHomepage}
@@ -211,6 +225,33 @@ export function WebsitePageForm({
               placeholder="/diensten/schoonmaak"
             />
           </Field>
+          {routeChanged && !page?.isHomepage && (
+            <Field
+              label="Bij een gewijzigde route"
+              htmlFor="website-page-path-change"
+              required
+              hint="Een permanente redirect behoudt bestaande links en wordt samen met de paginawijziging opgeslagen."
+            >
+              <select
+                id="website-page-path-change"
+                name="pathChangeDecision"
+                defaultValue=""
+                disabled={disabled}
+                required
+                className="veele-input w-full"
+              >
+                <option value="" disabled>
+                  Kies wat er met de oude route gebeurt
+                </option>
+                <option value="create_redirect">
+                  Maak automatisch een permanente redirect (aanbevolen)
+                </option>
+                <option value="no_redirect">
+                  Wijzig bewust zonder redirect
+                </option>
+              </select>
+            </Field>
+          )}
           <Field label="Paginatype" htmlFor="website-page-type" required>
             <select
               id="website-page-type"
@@ -234,7 +275,8 @@ export function WebsitePageForm({
             <select
               id="website-page-locale"
               name="locale"
-              defaultValue={page?.locale ?? "nl-NL"}
+              value={locale}
+              onChange={(event) => setLocale(event.target.value)}
               disabled={disabled}
               className="veele-input w-full"
             >

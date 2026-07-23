@@ -101,3 +101,36 @@ export async function managedWebsiteSitemapResponse(
     }),
   });
 }
+
+export async function managedWebsiteRedirectResponse(
+  request: Request,
+  resolver: ManagedWebsiteResolver = resolveManagedWebsiteByHost,
+): Promise<Response | null> {
+  const resolution = await resolveRequest(request, resolver);
+  if (resolution.status !== "ready") return null;
+
+  const requestUrl = new URL(request.url);
+  const redirect = resolution.snapshot.redirects.find(
+    (candidate) =>
+      candidate.locale === resolution.snapshot.defaultLocale &&
+      candidate.sourcePath === requestUrl.pathname,
+  );
+  if (!redirect) return null;
+
+  const destination =
+    redirect.destinationType === "path"
+      ? new URL(
+          `${redirect.destination}${requestUrl.search}`,
+          `https://${resolution.canonicalHostname}`,
+        )
+      : new URL(redirect.destination);
+  const headers = websiteResponseHeaders("text/plain; charset=utf-8", {
+    Location: destination.toString(),
+    "X-Robots-Tag": "noindex, follow",
+  });
+  headers.set("Cache-Control", "private, no-store");
+  return new Response(null, {
+    status: redirect.statusCode,
+    headers,
+  });
+}

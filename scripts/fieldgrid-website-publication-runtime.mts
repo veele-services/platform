@@ -6,13 +6,17 @@ import {
   createManagedWebsitePublication,
   createWebsitePreviewSession,
   getWebsiteNavigation,
+  getWebsiteRedirects,
   includeWebsitePageInPublication,
   loadWebsitePreviewSession,
   pool,
   resolveManagedWebsiteByHost,
   replaceWebsiteNavigation,
+  replaceWebsiteRedirects,
   setPrimaryWebsiteDomain,
+  updateWebsitePage,
   type WebsiteNavigationDraftItem,
+  type WebsiteRedirectDraftItem,
 } from "../lib/db/src/index.ts";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -37,11 +41,13 @@ const hostname = `publication-${randomUUID()}.runtime.fieldgrid.test`;
 const homePageId = randomUUID();
 const contactPageId = randomUUID();
 const previewDraftPageId = randomUUID();
+const noRedirectPageId = randomUUID();
 const heroSectionId = randomUUID();
 const homeNavigationId = randomUUID();
 const contactNavigationId = randomUUID();
 const moreNavigationId = randomUUID();
 const externalNavigationId = randomUUID();
+const externalRedirectId = randomUUID();
 
 const theme = {
   schemaVersion: 1,
@@ -349,6 +355,196 @@ try {
     /URL|HTTPS/u,
   );
 
+  const firstPathRevision = await currentAuthoringRevision();
+  const firstPathChange = await updateWebsitePage({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    pageId: contactPageId,
+    expectedAuthoringRevision: firstPathRevision,
+    expectedPageRevision: 1,
+    pathChangeDecision: "create_redirect",
+    page: {
+      title: "Contact",
+      navigationLabel: null,
+      locale: "nl-NL",
+      slug: "contact-opnemen",
+      path: "/contact-opnemen",
+      pageType: "contact",
+      isHomepage: false,
+      seo,
+    },
+  });
+  assert.equal(firstPathChange.siteAuthoringRevision, firstPathRevision + 1);
+  const firstRedirectView = await getWebsiteRedirects(tenantA);
+  assert.deepEqual(
+    firstRedirectView?.redirects.map((redirect) => [
+      redirect.sourcePath,
+      redirect.destination,
+      redirect.statusCode,
+    ]),
+    [["/contact", "/contact-opnemen", 308]],
+  );
+
+  const secondPathChange = await updateWebsitePage({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    pageId: contactPageId,
+    expectedAuthoringRevision: firstPathChange.siteAuthoringRevision,
+    expectedPageRevision: firstPathChange.pageAuthoringRevision,
+    pathChangeDecision: "create_redirect",
+    page: {
+      title: "Contact",
+      navigationLabel: null,
+      locale: "nl-NL",
+      slug: "contact-nieuw",
+      path: "/contact-nieuw",
+      pageType: "contact",
+      isHomepage: false,
+      seo,
+    },
+  });
+  const retargetedRedirectView = await getWebsiteRedirects(tenantA);
+  assert.deepEqual(
+    retargetedRedirectView?.redirects.map((redirect) => [
+      redirect.sourcePath,
+      redirect.destination,
+    ]),
+    [
+      ["/contact", "/contact-nieuw"],
+      ["/contact-opnemen", "/contact-nieuw"],
+    ],
+  );
+
+  await pool.query(
+    `INSERT INTO public.website_pages (
+       id, tenant_id, site_id, locale, title, slug, path, page_type,
+       status, is_homepage, seo, created_by, updated_by
+     ) VALUES (
+       $1, $2, $3, 'nl-NL', 'Tijdelijke route', 'tijdelijke-route',
+       '/tijdelijke-route', 'standard', 'draft', false, $4::jsonb, $5, $5
+     )`,
+    [noRedirectPageId, tenantA, siteId, JSON.stringify(seo), actorA],
+  );
+  const noRedirectStartRevision = await currentAuthoringRevision();
+  const explicitNoRedirect = await updateWebsitePage({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    pageId: noRedirectPageId,
+    expectedAuthoringRevision: noRedirectStartRevision,
+    expectedPageRevision: 1,
+    pathChangeDecision: "no_redirect",
+    page: {
+      title: "Tijdelijke route",
+      navigationLabel: null,
+      locale: "nl-NL",
+      slug: "tijdelijke-route-nieuw",
+      path: "/tijdelijke-route-nieuw",
+      pageType: "standard",
+      isHomepage: false,
+      seo,
+    },
+  });
+  assert.ok(
+    !(await getWebsiteRedirects(tenantA))?.redirects.some(
+      (redirect) => redirect.sourcePath === "/tijdelijke-route",
+    ),
+  );
+
+  const redirectsWithExternal: WebsiteRedirectDraftItem[] = [
+    ...(retargetedRedirectView?.redirects ?? []),
+    {
+      id: externalRedirectId,
+      locale: "nl-NL",
+      sourcePath: "/partner",
+      destinationType: "external",
+      destination: "https://fieldgrid.nl/partners",
+      statusCode: 302,
+      isActive: true,
+    },
+  ];
+  const redirectWrite = await replaceWebsiteRedirects({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    expectedAuthoringRevision: explicitNoRedirect.siteAuthoringRevision,
+    redirects: redirectsWithExternal,
+  });
+  assert.equal(redirectWrite.changed, true);
+  const redirectNoop = await replaceWebsiteRedirects({
+    tenantId: tenantA,
+    actorUserId: actorA,
+    siteId,
+    expectedAuthoringRevision: redirectWrite.authoringRevision,
+    redirects: redirectsWithExternal,
+  });
+  assert.equal(redirectNoop.changed, false);
+  assert.equal(redirectNoop.authoringRevision, redirectWrite.authoringRevision);
+  await assert.rejects(
+    replaceWebsiteRedirects({
+      tenantId: tenantA,
+      actorUserId: actorA,
+      siteId,
+      expectedAuthoringRevision: secondPathChange.siteAuthoringRevision,
+      redirects: redirectsWithExternal,
+    }),
+    /Website is intussen gewijzigd/u,
+  );
+  await assert.rejects(
+    replaceWebsiteRedirects({
+      tenantId: tenantA,
+      actorUserId: actorA,
+      siteId,
+      expectedAuthoringRevision: redirectWrite.authoringRevision,
+      redirects: [
+        ...redirectsWithExternal,
+        {
+          id: randomUUID(),
+          locale: "nl-NL",
+          sourcePath: "/contact-v1",
+          destinationType: "path",
+          destination: "/contact",
+          statusCode: 301,
+          isActive: true,
+        },
+      ],
+    }),
+    /Redirectketens|lussen/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO public.website_redirects (
+         tenant_id, site_id, locale, source_path, destination_type,
+         destination, status_code, is_active, created_by, updated_by
+       ) VALUES (
+         $1, $2, 'nl-NL', '/database-chain', 'path',
+         '/contact', 308, true, $3, $3
+       )`,
+      [tenantA, siteId, actorA],
+    ),
+    /redirect loops and chains are not allowed/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_pages
+       SET locale = 'en-GB', updated_by = $4
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+      [tenantA, siteId, contactPageId, actorA],
+    ),
+    /internal redirect destination must resolve to an active page/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_pages
+       SET status = 'archived', archived_at = now(), updated_by = $4
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+      [tenantA, siteId, contactPageId, actorA],
+    ),
+    /internal redirect destination must resolve to an active page/u,
+  );
+
   await assert.rejects(
     pool.query(
       `UPDATE public.website_domain_bindings
@@ -378,6 +574,18 @@ try {
     }),
   ]);
   assert.equal(candidateOne.targetDeliveryRevision, 2);
+  assert.deepEqual(
+    candidateOne.snapshot.redirects.map((redirect) => [
+      redirect.sourcePath,
+      redirect.destination,
+      redirect.statusCode,
+    ]),
+    [
+      ["/contact", "/contact-nieuw", 308],
+      ["/contact-opnemen", "/contact-nieuw", 308],
+      ["/partner", "https://fieldgrid.nl/partners", 302],
+    ],
+  );
   assert.equal(candidateOne.snapshot.pages[0]?.title, "Home versie één");
   assert.match(candidateOne.cacheKey, new RegExp(`${siteId}:r2:`, "u"));
   assert.equal(idempotentCandidate.id, candidateOne.id);
@@ -711,6 +919,15 @@ try {
           navigationHierarchyBounded: true,
           navigationDeterministicReorder: true,
           unsafeNavigationRejected: true,
+          redirectExactRevision: true,
+          redirectNoopStable: true,
+          staleRedirectRevisionRejected: true,
+          redirectChainsRejectedInContractAndDatabase: true,
+          redirectDestinationArchiveRejected: true,
+          pagePathRedirectAtomic: true,
+          explicitNoRedirectAuditedWithoutRoute: true,
+          inboundRedirectsRetargeted: true,
+          redirectSnapshotDelivered: true,
           deterministicPublicationCreated: true,
           exactCacheIdentityPersisted: true,
           concurrentIdempotentPublicationRetry: true,

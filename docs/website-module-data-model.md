@@ -238,11 +238,16 @@ Implemented Phase 4A constraints and service policy:
 
 ### `website_redirects`
 
-- `id`, `tenant_id`, `site_id`;
-- source path, destination path/validated URL, status code (`301`, `302` or `308` under explicit policy);
+- `id`, `tenant_id`, `site_id`, locale;
+- canonical source path, destination type and canonical path/validated URL;
+- status code (`301`, `302` or `308` under explicit policy);
 - active state, timestamps and actor fields.
 
-Enforce unique source path, no loops/chains beyond policy, no reserved paths and no unsafe protocols.
+Implemented constraints enforce a unique source per tenant/site/locale, no
+active page collision, no loops or chains, a same-locale active internal
+destination, no reserved paths and no unsafe protocols. Page-path changes
+require an audited `create_redirect` or `no_redirect` decision; automatic
+same-locale redirects also retarget existing inbound redirects directly.
 
 ## Blog tables
 

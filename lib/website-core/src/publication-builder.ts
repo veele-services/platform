@@ -13,12 +13,14 @@ import {
   websiteThemeSchema,
 } from "./site";
 import { WEBSITE_PAGE_TYPES } from "./templates";
+import {
+  websiteCanonicalPathSchema,
+  websiteRedirectDraftSchema,
+  websiteRouteKey,
+} from "./redirects";
 
 const uuidSchema = z.string().uuid();
-const pathSchema = z
-  .string()
-  .regex(/^\/(?!\/)[a-z0-9/_-]*$/u)
-  .max(500);
+const pathSchema = websiteCanonicalPathSchema;
 const hostnameSchema = z
   .string()
   .trim()
@@ -85,6 +87,7 @@ export const websitePublicationSourceSchema = z
     canonicalHostname: hostnameSchema,
     pages: z.array(sourcePageSchema).max(1_000),
     navigation: z.array(sourceNavigationItemSchema).max(500),
+    redirects: websiteRedirectDraftSchema.default([]),
   })
   .strict();
 
@@ -203,6 +206,12 @@ function buildWebsiteSnapshot(
   }
 
   const pageById = new Map(publishedPages.map((page) => [page.id, page]));
+  const pageByRoute = new Map(
+    publishedPages.map((page) => [
+      websiteRouteKey(page.locale, page.path),
+      page,
+    ]),
+  );
   const pages = publishedPages.map((page) => ({
     id: page.id,
     locale: page.locale,
@@ -394,6 +403,47 @@ function buildWebsiteSnapshot(
       };
     });
 
+  const redirects = source.redirects
+    .filter((redirect) => redirect.isActive)
+    .sort(
+      (left, right) =>
+        compareText(left.locale, right.locale) ||
+        compareText(left.sourcePath, right.sourcePath) ||
+        compareText(left.id, right.id),
+    )
+    .map((redirect) => {
+      const sourceKey = websiteRouteKey(redirect.locale, redirect.sourcePath);
+      if (pageByRoute.has(sourceKey)) {
+        diagnostics.push(
+          diagnostic(
+            "redirect_page_collision",
+            `redirects.${redirect.id}.sourcePath`,
+            "Redirect source collides with a page in the same locale",
+          ),
+        );
+      }
+      if (
+        redirect.destinationType === "path" &&
+        !pageByRoute.has(websiteRouteKey(redirect.locale, redirect.destination))
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "unpublished_redirect_destination",
+            `redirects.${redirect.id}.destination`,
+            "Internal redirect destination must resolve to a published page in the same locale",
+          ),
+        );
+      }
+      return {
+        id: redirect.id,
+        locale: redirect.locale,
+        sourcePath: redirect.sourcePath,
+        destinationType: redirect.destinationType,
+        destination: redirect.destination,
+        statusCode: redirect.statusCode,
+      };
+    });
+
   if (diagnostics.length > 0) {
     throw new WebsitePublicationValidationError(diagnostics);
   }
@@ -410,6 +460,7 @@ function buildWebsiteSnapshot(
     defaultSeo: source.site.defaultSeo,
     pages,
     navigation,
+    redirects,
   });
   if (!snapshot.success) {
     throw new WebsitePublicationValidationError(zodDiagnostics(snapshot.error));

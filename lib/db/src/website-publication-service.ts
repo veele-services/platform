@@ -132,6 +132,16 @@ type NavigationRow = {
   is_visible: boolean;
 };
 
+type RedirectRow = {
+  id: string;
+  locale: string;
+  source_path: string;
+  destination_type: "path" | "external";
+  destination: string;
+  status_code: 301 | 302 | 308;
+  is_active: boolean;
+};
+
 type ExistingPublicationRow = {
   id: string;
   sequence: number;
@@ -290,6 +300,14 @@ export async function createManagedWebsitePublication(
        ORDER BY location, position, id`,
         [input.tenantId, input.siteId],
       );
+      const redirectResult = await client.query<RedirectRow>(
+        `SELECT id, locale, source_path, destination_type, destination,
+                status_code, is_active
+         FROM public.website_redirects
+         WHERE tenant_id = $1 AND site_id = $2
+         ORDER BY locale, source_path, id`,
+        [input.tenantId, input.siteId],
+      );
 
       const sectionsByPage = new Map<string, SectionRow[]>();
       for (const section of sectionResult.rows) {
@@ -340,6 +358,15 @@ export async function createManagedWebsitePublication(
           target: item.target,
           position: Number(item.position),
           isVisible: item.is_visible,
+        })),
+        redirects: redirectResult.rows.map((redirect) => ({
+          id: redirect.id,
+          locale: redirect.locale,
+          sourcePath: redirect.source_path,
+          destinationType: redirect.destination_type,
+          destination: redirect.destination,
+          statusCode: Number(redirect.status_code),
+          isActive: redirect.is_active,
         })),
       });
       const snapshot = buildWebsitePublicationSnapshot(source);

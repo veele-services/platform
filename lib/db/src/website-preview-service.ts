@@ -82,6 +82,7 @@ export type WebsitePublicationReview = {
   changes: {
     settings: boolean;
     navigation: boolean;
+    redirects: boolean;
     pages: Array<{
       id: string;
       title: string;
@@ -152,6 +153,16 @@ type SourceNavigationRow = {
   target: string;
   position: number;
   is_visible: boolean;
+};
+
+type SourceRedirectRow = {
+  id: string;
+  locale: string;
+  source_path: string;
+  destination_type: "path" | "external";
+  destination: string;
+  status_code: 301 | 302 | 308;
+  is_active: boolean;
 };
 
 type LoadedSource = {
@@ -239,32 +250,41 @@ async function loadWebsiteSource(
     throw new Error("Website-module is niet actief voor deze tenant");
   }
 
-  const [pageResult, sectionResult, navigationResult] = await Promise.all([
-    query.query<SourcePageRow>(
-      `SELECT id, locale, path, page_type, title, seo, status, is_homepage,
+  const [pageResult, sectionResult, navigationResult, redirectResult] =
+    await Promise.all([
+      query.query<SourcePageRow>(
+        `SELECT id, locale, path, page_type, title, seo, status, is_homepage,
               authoring_revision
        FROM public.website_pages
        WHERE tenant_id = $1 AND site_id = $2
        ORDER BY locale, path, id`,
-      [tenantId, siteId],
-    ),
-    query.query<SourceSectionRow>(
-      `SELECT id, page_id, section_key, schema_version, variant_key, position,
+        [tenantId, siteId],
+      ),
+      query.query<SourceSectionRow>(
+        `SELECT id, page_id, section_key, schema_version, variant_key, position,
               content, is_visible
        FROM public.website_page_sections
        WHERE tenant_id = $1 AND site_id = $2
        ORDER BY page_id, position, id`,
-      [tenantId, siteId],
-    ),
-    query.query<SourceNavigationRow>(
-      `SELECT id, label, location, parent_id, page_id, link_type, href, target,
+        [tenantId, siteId],
+      ),
+      query.query<SourceNavigationRow>(
+        `SELECT id, label, location, parent_id, page_id, link_type, href, target,
               position, is_visible
        FROM public.website_navigation_items
        WHERE tenant_id = $1 AND site_id = $2
        ORDER BY location, position, id`,
-      [tenantId, siteId],
-    ),
-  ]);
+        [tenantId, siteId],
+      ),
+      query.query<SourceRedirectRow>(
+        `SELECT id, locale, source_path, destination_type, destination,
+              status_code, is_active
+       FROM public.website_redirects
+       WHERE tenant_id = $1 AND site_id = $2
+       ORDER BY locale, source_path, id`,
+        [tenantId, siteId],
+      ),
+    ]);
 
   const sectionsByPage = new Map<string, SourceSectionRow[]>();
   for (const section of sectionResult.rows) {
@@ -316,6 +336,15 @@ async function loadWebsiteSource(
       position: Number(item.position),
       isVisible: item.is_visible,
     })),
+    redirects: redirectResult.rows.map((redirect) => ({
+      id: redirect.id,
+      locale: redirect.locale,
+      sourcePath: redirect.source_path,
+      destinationType: redirect.destination_type,
+      destination: redirect.destination,
+      statusCode: Number(redirect.status_code),
+      isActive: redirect.is_active,
+    })),
   });
 
   return {
@@ -364,7 +393,12 @@ function publicationChanges(
   active: WebsitePublicationSnapshot | null,
 ): WebsitePublicationReview["changes"] {
   if (!current) {
-    return { settings: false, navigation: false, pages: [] };
+    return {
+      settings: false,
+      navigation: false,
+      redirects: false,
+      pages: [],
+    };
   }
   const currentPages = new Map(current.pages.map((page) => [page.id, page]));
   const activePages = new Map(
@@ -417,6 +451,10 @@ function publicationChanges(
       !active ||
       stableSnapshotPart(active.navigation) !==
         stableSnapshotPart(current.navigation),
+    redirects:
+      !active ||
+      stableSnapshotPart(active.redirects) !==
+        stableSnapshotPart(current.redirects),
     pages: pages.sort((left, right) => left.path.localeCompare(right.path)),
   };
 }

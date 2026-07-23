@@ -1,7 +1,7 @@
 # Fieldgrid website module — managed navigation
 
 Date: 23 July 2026
-Status: Phase 4A implemented; Phase 4B redirects deferred
+Status: Phase 4A implemented; Phase 4B redirects implemented separately
 
 ## Scope
 
@@ -11,8 +11,9 @@ Phase 4A adds draft authoring for three managed-CMS navigation locations:
 - `footer_primary`;
 - `footer_legal`.
 
-It does not add redirects, change a page path, activate a publication, switch
-delivery mode, deploy software or modify DNS/routing.
+Redirect authoring and guarded page-path changes are defined in
+`docs/website-module-redirects.md`. Neither increment activates a publication,
+switches delivery mode, deploys software or modifies DNS/routing.
 
 ## Authoring contract
 

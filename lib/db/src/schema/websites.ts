@@ -8,6 +8,7 @@ import type {
   WebsitePageType,
   WebsitePublicationSnapshot,
   WebsitePublicationStatus,
+  WebsiteRedirectStatusCode,
   WebsiteSeo,
   WebsiteSiteStatus,
   WebsiteSocialLink,
@@ -411,6 +412,84 @@ export const websiteNavigationItemsTable = pgTable(
   ],
 );
 
+export const websiteRedirectsTable = pgTable(
+  "website_redirects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    locale: varchar("locale", { length: 20 }).notNull().default("nl-NL"),
+    sourcePath: varchar("source_path", { length: 500 }).notNull(),
+    destinationType: varchar("destination_type", { length: 20 })
+      .notNull()
+      .$type<"path" | "external">(),
+    destination: varchar("destination", { length: 2_048 }).notNull(),
+    statusCode: integer("status_code")
+      .notNull()
+      .default(308)
+      .$type<WebsiteRedirectStatusCode>(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").notNull(),
+    updatedBy: uuid("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("website_redirects_tenant_site_id_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.id,
+    ),
+    uniqueIndex("website_redirects_source_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.locale,
+      table.sourcePath,
+    ),
+    index("website_redirects_tenant_site_active_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.isActive,
+    ),
+    check(
+      "website_redirects_status_code_check",
+      sql`${table.statusCode} IN (301, 302, 308)`,
+    ),
+    check(
+      "website_redirects_destination_type_check",
+      sql`${table.destinationType} IN ('path', 'external')`,
+    ),
+    check(
+      "website_redirects_locale_check",
+      sql`${table.locale} ~ '^[a-z]{2}-[A-Z]{2}$'`,
+    ),
+    check(
+      "website_redirects_source_path_check",
+      sql`${table.sourcePath} <> '/' AND ${table.sourcePath} ~ '^/(?:[a-z0-9_-]+(?:/[a-z0-9_-]+)*)?$' AND ${table.sourcePath} !~ '^/(api|_next|health|preview|assets)(/|$)'`,
+    ),
+    check(
+      "website_redirects_destination_check",
+      sql`(${table.destinationType} = 'path' AND ${table.destination} ~ '^/(?:[a-z0-9_-]+(?:/[a-z0-9_-]+)*)?$' AND ${table.destination} !~ '^/(api|_next|health|preview|assets)(/|$)') OR (${table.destinationType} = 'external' AND ${table.destination} ~ '^https://' AND ${table.destination} !~ '^https://[^/]*@')`,
+    ),
+    check(
+      "website_redirects_self_check",
+      sql`${table.destinationType} <> 'path' OR ${table.destination} <> ${table.sourcePath}`,
+    ),
+    foreignKey({
+      name: "website_redirects_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+  ],
+);
+
 export const websitePublicationsTable = pgTable(
   "website_publications",
   {
@@ -547,6 +626,7 @@ export type WebsitePage = typeof websitePagesTable.$inferSelect;
 export type WebsitePageSection = typeof websitePageSectionsTable.$inferSelect;
 export type WebsiteNavigationItem =
   typeof websiteNavigationItemsTable.$inferSelect;
+export type WebsiteRedirect = typeof websiteRedirectsTable.$inferSelect;
 export type WebsitePublication = typeof websitePublicationsTable.$inferSelect;
 export type WebsiteDeliveryActivation =
   typeof websiteDeliveryActivationsTable.$inferSelect;

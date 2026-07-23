@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:ab658cc94cf52453808120c2b243d3d85eb6273c96bf82b82d154cc97fb8a5c9",
+  "inventoryHash": "sha256:ce69571d4d12f58c3d62bff1b1d50d55e25c1354111661cb1c5c40e7097b6951",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -34,11 +34,11 @@
     "www"
   ],
   "counts": {
-    "total": 813,
-    "uniqueRuntimeNodes": 708,
-    "classifications": 813,
+    "total": 820,
+    "uniqueRuntimeNodes": 715,
+    "classifications": 820,
     "externalEntrypoints": 104,
-    "internalDbCallsites": 612,
+    "internalDbCallsites": 619,
     "providerBoundaries": 74,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -50,15 +50,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 605,
+      "raw-sql-callsite": 612,
       "provider-boundary": 74,
       "storage-signed-url-issuance": 20
     },
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 363,
-      "low": 352,
+      "medium": 364,
+      "low": 358,
       "informational": 74
     }
   },
@@ -71,7 +71,7 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:aaf7ad959fe51ed889d686b6b40d3f423c2dc69656741c8fa3ee9aa43b14115b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:a7ca6257adbd960f63da083e3e368093ea4ef672889c63c2a0e58f337a985853",
+    "raw-sql-callsite": "sha256:7a3ddb04db75c88aa71ca62fb14549d2ea5c30eac970a087f4afc671b0b1ecef",
     "provider-boundary": "sha256:228fa77566da54701181e1a0d7d4d9ec49435e272a86e51d08bfe388a91df6f3",
     "storage-signed-url-issuance": "sha256:be890e7d8fda055164b850442dfd03dd6529095ade8ebbee28041c673bb72a73"
   },

@@ -181,8 +181,11 @@ Implemented behavior:
 - no-op saves do not advance the revision;
 - custom Next.js continues to own live navigation in code.
 
-Redirect-chain diagnostics remain Phase 4B because redirect persistence is not
-part of Phase 4A.
+Phase 4B adds a separate Redirects tab with full-set exact-revision saves,
+locale-aware page targets, HTTPS-only external targets, status selection and
+active-state control. The page editor requires an explicit redirect decision
+when its route changes. Database and publication validation both block page
+collisions, chains, loops and unresolved internal destinations.
 
 ## Blog administration
 

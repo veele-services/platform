@@ -300,7 +300,9 @@ export function WebsitePublicationReviewPanel({
             Instellingen:{" "}
             {initialReview.changes.settings ? "gewijzigd" : "gelijk"} ·
             navigatie:{" "}
-            {initialReview.changes.navigation ? "gewijzigd" : "gelijk"}
+            {initialReview.changes.navigation ? "gewijzigd" : "gelijk"} ·
+            redirects:{" "}
+            {initialReview.changes.redirects ? "gewijzigd" : "gelijk"}
           </p>
         </div>
         {initialReview.changes.pages.length === 0 ? (

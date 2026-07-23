@@ -1,9 +1,21 @@
 import { filterWebsiteCookieHeader } from "@workspace/website-core/shared-host-routing";
 import { type NextRequest, NextResponse } from "next/server";
+import { managedWebsiteRedirectResponse } from "./lib/public-responses";
+import { requestPathOwner } from "./lib/request";
 
 /** Defense in depth: the edge owns path-scoped application cookies, and this
  * runtime additionally removes legacy application cookies before rendering. */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  if (
+    requestPathOwner(
+      request.headers.get("host") ?? "",
+      request.nextUrl.pathname,
+    ) === "website"
+  ) {
+    const redirect = await managedWebsiteRedirectResponse(request);
+    if (redirect) return redirect;
+  }
+
   const requestHeaders = new Headers(request.headers);
   const nonce = crypto.randomUUID().replaceAll("-", "");
   const contentSecurityPolicy = [
@@ -37,4 +49,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  runtime: "nodejs",
 };
