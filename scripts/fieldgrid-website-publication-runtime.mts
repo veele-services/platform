@@ -529,6 +529,15 @@ try {
   await assert.rejects(
     pool.query(
       `UPDATE public.website_pages
+       SET locale = 'en-GB', updated_by = $4
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+      [tenantA, siteId, contactPageId, actorA],
+    ),
+    /internal redirect destination must resolve to an active page/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_pages
        SET status = 'archived', archived_at = now(), updated_by = $4
        WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
       [tenantA, siteId, contactPageId, actorA],

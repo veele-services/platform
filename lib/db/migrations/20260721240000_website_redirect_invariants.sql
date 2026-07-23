@@ -185,6 +185,20 @@ BEGIN
     RETURN OLD;
   END IF;
 
+  IF TG_OP = 'UPDATE' AND (
+    NEW.tenant_id IS DISTINCT FROM OLD.tenant_id
+    OR NEW.site_id IS DISTINCT FROM OLD.site_id
+    OR NEW.locale IS DISTINCT FROM OLD.locale
+    OR NEW.path IS DISTINCT FROM OLD.path
+  ) THEN
+    PERFORM public.website_assert_route_integrity(
+      OLD.tenant_id,
+      OLD.site_id,
+      OLD.locale,
+      OLD.path
+    );
+  END IF;
+
   PERFORM public.website_assert_route_integrity(
     NEW.tenant_id,
     NEW.site_id,
