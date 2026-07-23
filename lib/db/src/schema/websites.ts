@@ -1073,6 +1073,66 @@ export const websiteDeliveryActivationsTable = pgTable(
   ],
 );
 
+export const websiteDeliveryOperationsTable = pgTable(
+  "website_delivery_operations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    siteId: uuid("site_id").notNull(),
+    operationType: varchar("operation_type", { length: 20 })
+      .notNull()
+      .$type<"activate" | "rollback">(),
+    environment: varchar("environment", { length: 20 })
+      .notNull()
+      .default("staging")
+      .$type<"staging">(),
+    status: varchar("status", { length: 20 })
+      .notNull()
+      .$type<"succeeded" | "failed">(),
+    fromMode: varchar("from_mode", { length: 30 })
+      .notNull()
+      .$type<WebsiteDeliveryMode>(),
+    fromTargetId: uuid("from_target_id"),
+    toMode: varchar("to_mode", { length: 30 })
+      .notNull()
+      .$type<WebsiteDeliveryMode>(),
+    toTargetId: uuid("to_target_id").notNull(),
+    rollbackSourceTargetId: uuid("rollback_source_target_id"),
+    expectedRevision: integer("expected_revision").notNull(),
+    newRevision: integer("new_revision"),
+    changeReference: varchar("change_reference", { length: 160 }).notNull(),
+    reason: text("reason").notNull(),
+    preflightEvidence: jsonb("preflight_evidence")
+      .notNull()
+      .$type<Record<string, unknown>>(),
+    errorCode: varchar("error_code", { length: 80 }),
+    actorUserId: uuid("actor_user_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("website_delivery_operations_tenant_site_idx").on(
+      table.tenantId,
+      table.siteId,
+      table.createdAt,
+    ),
+    uniqueIndex("website_delivery_operations_site_revision_idx")
+      .on(table.siteId, table.newRevision)
+      .where(sql`${table.status} = 'succeeded'`),
+    foreignKey({
+      name: "website_delivery_operations_tenant_site_fk",
+      columns: [table.tenantId, table.siteId],
+      foreignColumns: [websiteSitesTable.tenantId, websiteSitesTable.id],
+    }).onDelete("restrict"),
+  ],
+);
+
 export type WebsiteSite = typeof websiteSitesTable.$inferSelect;
 export type InsertWebsiteSite = typeof websiteSitesTable.$inferInsert;
 export type WebsiteDomainBinding =
@@ -1092,3 +1152,5 @@ export type WebsiteBlogPostTag = typeof websiteBlogPostTagsTable.$inferSelect;
 export type WebsitePublication = typeof websitePublicationsTable.$inferSelect;
 export type WebsiteDeliveryActivation =
   typeof websiteDeliveryActivationsTable.$inferSelect;
+export type WebsiteDeliveryOperation =
+  typeof websiteDeliveryOperationsTable.$inferSelect;

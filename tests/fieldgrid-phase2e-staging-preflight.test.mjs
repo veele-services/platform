@@ -55,6 +55,7 @@ function validEnvironment() {
       "https://staging.fieldgrid.nl/personeel/healthz",
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
+    WEBSITE_PUBLIC_HEALTH_URL: "https://website.staging.fieldgrid.nl/healthz",
     API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/",
     PILOT_TENANT_LOGIN_URL: "https://field-demo.fieldgrid.nl/admin/login",
   });
@@ -100,6 +101,10 @@ test("secret and routing preflight lists every required deployment dependency by
   );
   assert.ok(REQUIRED_SECRET_NAMES.includes("MOLLIE_WEBHOOK_SECRET"));
   assert.ok(REQUIRED_VARIABLE_NAMES.includes("PILOT_TENANT_LOGIN_URL"));
+  assert.ok(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"));
+  assert.ok(
+    REQUIRED_VARIABLE_NAMES.includes("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"),
+  );
 
   const env = validEnvironment();
   delete env.FIELDGRID_CREDENTIAL_RECOVERY_SECRET;
@@ -133,6 +138,8 @@ test("database URL parsing creates libpq fields without retaining a URL", () => 
     "drizzle",
     "app_private",
   ]);
+  assert.ok(CRITICAL_RELATIONS.includes("public.website_publications"));
+  assert.ok(CRITICAL_RELATIONS.includes("public.website_delivery_activations"));
 });
 
 test("routing policies accept only explicit healthy outcomes", () => {

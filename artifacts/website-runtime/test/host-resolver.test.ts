@@ -43,7 +43,7 @@ function customDatabaseRow(overrides: Parameters<typeof databaseRow>[0] = {}) {
     custom_approved_by: "20000000-0000-4000-8000-000000000099",
     custom_last_checked_at: "2026-07-22T09:04:00.000Z",
     custom_last_health: {
-      schemaVersion: 2,
+      schemaVersion: 3,
       status: "healthy",
       providerKey: CUSTOM_IDENTITY.providerKey,
       routeKey: CUSTOM_IDENTITY.routeKey,
@@ -57,6 +57,8 @@ function customDatabaseRow(overrides: Parameters<typeof databaseRow>[0] = {}) {
         sitemap: true,
         structuredData: true,
       },
+      assets: { healthy: true },
+      forms: { platformEndpoint: true },
     },
     ...overrides,
   });
@@ -132,7 +134,7 @@ test("custom mode fails closed without fallback for stale or mismatched targets"
     [
       {
         custom_last_health: {
-          schemaVersion: 2,
+          schemaVersion: 3,
           status: "healthy",
           providerKey: CUSTOM_IDENTITY.providerKey,
           routeKey: CUSTOM_IDENTITY.routeKey,
@@ -146,6 +148,8 @@ test("custom mode fails closed without fallback for stale or mismatched targets"
             sitemap: true,
             structuredData: true,
           },
+          assets: { healthy: true },
+          forms: { platformEndpoint: true },
         },
       },
       "custom_health_invalid",
@@ -179,7 +183,7 @@ test("the registered Veele candidate remains non-live even with healthy evidence
           custom_expected_host: hostname,
           custom_health_path: candidate.healthPath,
           custom_last_health: {
-            schemaVersion: 2,
+            schemaVersion: 3,
             status: "healthy",
             providerKey: candidate.providerKey,
             routeKey: candidate.routeKey,
@@ -193,6 +197,8 @@ test("the registered Veele candidate remains non-live even with healthy evidence
               sitemap: true,
               structuredData: true,
             },
+            assets: { healthy: true },
+            forms: { platformEndpoint: true },
           },
         }),
       ],

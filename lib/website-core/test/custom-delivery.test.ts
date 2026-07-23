@@ -8,6 +8,7 @@ import {
   VEELE_MARKETING_ROUTE_CONTRACT,
   VEELE_MARKETING_ROUTE_CONTRACT_SHA256,
   createCustomWebsiteRouteRegistry,
+  createStagingCustomWebsiteRouteRegistry,
   customWebsiteHealthEvidenceMatches,
   customWebsiteOriginAddressesArePublic,
 } from "../src/custom-delivery";
@@ -117,9 +118,39 @@ test("route registration rejects URL-shaped keys and unsafe origins", () => {
   }
 });
 
+test("staging route configuration rejects a production upstream", () => {
+  const registration = {
+    providerKey: identity.providerKey,
+    routeKey: identity.routeKey,
+    releaseId: identity.releaseId,
+    expectedHosts: [identity.expectedHost],
+    healthPath: identity.healthPath,
+    status: "routable",
+    upstreamOrigin: "https://fixture-custom.staging.fieldgrid.nl",
+  } as const;
+  assert.equal(
+    createStagingCustomWebsiteRouteRegistry(
+      JSON.stringify([registration]),
+    ).registrations[0]?.status,
+    "routable",
+  );
+  assert.throws(
+    () =>
+      createStagingCustomWebsiteRouteRegistry(
+        JSON.stringify([
+          {
+            ...registration,
+            upstreamOrigin: "https://fixture-custom.fieldgrid.nl",
+          },
+        ]),
+      ),
+    /upstreams must be staging-only/u,
+  );
+});
+
 test("health evidence is strict and bound to route, release, host and TLS", () => {
   const evidence = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     status: "healthy",
     providerKey: identity.providerKey,
     routeKey: identity.routeKey,
@@ -133,6 +164,8 @@ test("health evidence is strict and bound to route, release, host and TLS", () =
       sitemap: true,
       structuredData: true,
     },
+    assets: { healthy: true },
+    forms: { platformEndpoint: true },
   };
   assert.equal(customWebsiteHealthEvidenceMatches(evidence, identity), true);
   assert.equal(

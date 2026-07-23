@@ -43,7 +43,7 @@ test("SEO settings are revisioned and compiled into immutable publications", () 
 
 test("custom delivery requires exact SEO health evidence", () => {
   const customDelivery = read("lib/website-core/src/custom-delivery.ts");
-  assert.match(customDelivery, /CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 2/u);
+  assert.match(customDelivery, /CUSTOM_WEBSITE_HEALTH_SCHEMA_VERSION = 3/u);
   for (const capability of [
     "canonical",
     "robots",

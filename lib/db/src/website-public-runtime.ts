@@ -2,6 +2,7 @@ import {
   CUSTOM_WEBSITE_MAX_HEALTH_AGE_MS,
   FIELDGRID_CUSTOM_WEBSITE_ROUTE_REGISTRY,
   WEBSITE_PUBLICATION_SCHEMA_VERSION,
+  createStagingCustomWebsiteRouteRegistry,
   customWebsiteHealthEvidenceMatches,
   normalizeWebsiteRequestHost,
   parseWebsitePublicationForRuntime,
@@ -11,6 +12,33 @@ import {
   type RuntimePublicationDiagnostic,
   type WebsitePublicationSnapshot,
 } from "@workspace/website-core";
+
+export type CustomWebsiteRouteEnvironment = {
+  [key: string]: string | undefined;
+  APP_ENV?: string;
+  FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON?: string;
+};
+
+export function configuredFieldgridCustomWebsiteRouteRegistry(
+  environment: CustomWebsiteRouteEnvironment = process.env,
+): CustomWebsiteRouteRegistry {
+  const serialized = environment.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON?.trim();
+  if (!serialized) return FIELDGRID_CUSTOM_WEBSITE_ROUTE_REGISTRY;
+  if (environment.APP_ENV !== "staging") {
+    throw new Error(
+      "Phase 9 custom website route configuration is staging-only",
+    );
+  }
+  return createStagingCustomWebsiteRouteRegistry(serialized);
+}
+
+function failClosedCustomWebsiteRouteRegistry(): CustomWebsiteRouteRegistry {
+  try {
+    return configuredFieldgridCustomWebsiteRouteRegistry();
+  } catch {
+    return FIELDGRID_CUSTOM_WEBSITE_ROUTE_REGISTRY;
+  }
+}
 
 export type ManagedWebsiteUnavailableReason =
   | "ambiguous_host"
@@ -528,7 +556,7 @@ export async function resolveWebsiteDeliveryByHost(
 
   const website = resolveCustomWebsiteRow(loaded.row, loaded.hostname, {
     customRoutes:
-      resolverOptions.customRoutes ?? FIELDGRID_CUSTOM_WEBSITE_ROUTE_REGISTRY,
+      resolverOptions.customRoutes ?? failClosedCustomWebsiteRouteRegistry(),
     now: resolverOptions.now ?? new Date(),
   });
   if (website.status !== "ready") return website;

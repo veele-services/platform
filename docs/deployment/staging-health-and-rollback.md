@@ -11,7 +11,9 @@ The scripts are Linux deployment tooling. They run under `bash` on the self-host
 3. The activation script records the previous `current` symlink target.
 4. The new release writes `.fieldgrid-release-sha` with the expected Git SHA.
 5. `scripts/fieldgrid-atomic-release-activate.sh` atomically moves `current` to the new release.
-6. The health gate restarts exactly the four configured services and reloads Caddy before checking the new release.
+6. The health gate restarts exactly the four core services, plus the website
+   runtime when its complete service/port pair is configured, and reloads Caddy
+   before checking the new release.
 7. `scripts/fieldgrid-deploy-health-gate.sh` verifies symlink state, SHA marker, services, ports, local endpoints and public endpoints.
 8. On health failure, the health gate restores the previous symlink, restarts the same services, reloads Caddy and verifies rollback health.
 9. The failed release directory and health evidence JSON are preserved under the release/shared artifact path.
@@ -21,14 +23,14 @@ The scripts are Linux deployment tooling. They run under `bash` on the self-host
 
 The workflow passes these values from GitHub environment variables:
 
-| Variable | Purpose |
-| --- | --- |
+| Variable                                                                                      | Purpose                                          |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `BACKOFFICE_SERVICE_NAME`, `PERSONEEL_SERVICE_NAME`, `KLANT_SERVICE_NAME`, `API_SERVICE_NAME` | The four systemd services to verify and restart. |
-| `BACKOFFICE_PORT`, `PERSONEEL_PORT`, `KLANT_PORT`, `API_PORT` | Local listening ports to verify. |
-| `BACKOFFICE_PUBLIC_URL`, `PERSONEEL_PUBLIC_URL`, `KLANT_PUBLIC_URL`, `API_PUBLIC_URL` | Public endpoints for post-activation checks. |
-| `FIELDGRID_DEPLOY_HEALTH_ATTEMPTS` | Retry attempts per health check. |
-| `FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS` | Delay between retries. |
-| `FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS` | Per-request curl timeout. |
+| `BACKOFFICE_PORT`, `PERSONEEL_PORT`, `KLANT_PORT`, `API_PORT`                                 | Local listening ports to verify.                 |
+| `BACKOFFICE_PUBLIC_URL`, `PERSONEEL_PUBLIC_URL`, `KLANT_PUBLIC_URL`, `API_PUBLIC_URL`         | Public endpoints for post-activation checks.     |
+| `FIELDGRID_DEPLOY_HEALTH_ATTEMPTS`                                                            | Retry attempts per health check.                 |
+| `FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS`                                                       | Delay between retries.                           |
+| `FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS`                                                      | Per-request curl timeout.                        |
 
 Endpoint lists can be overridden with newline-separated `name|url|mode` entries via `FIELDGRID_DEPLOY_LOCAL_ENDPOINTS`, `FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS` and `FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS`. Supported modes are:
 
@@ -36,18 +38,24 @@ Endpoint lists can be overridden with newline-separated `name|url|mode` entries 
 - `login`: HTTP 200 and the explicitly documented login-safe redirects 301, 302, 303, 307 and 308 are healthy. Backoffice `/login` uses this mode locally and publicly.
 - `api-root-404`: only the deliberately expected API-root HTTP 404 is healthy.
 
-Default local probes are exactly four service endpoints:
+Default local probes are exactly four core service endpoints. Staging website
+activation adds one explicit fifth endpoint:
 
-| Surface | Local probe |
-| --- | --- |
-| Backoffice | `http://127.0.0.1:${BACKOFFICE_PORT}/admin/login` |
-| Personnel PWA | `http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz` |
-| Customer PWA | `http://127.0.0.1:${KLANT_PORT}/klant/healthz` |
-| API | `http://127.0.0.1:${API_PORT}/api/healthz` |
+| Surface                 | Local probe                                            |
+| ----------------------- | ------------------------------------------------------ |
+| Backoffice              | `http://127.0.0.1:${BACKOFFICE_PORT}/admin/login`      |
+| Personnel PWA           | `http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz` |
+| Customer PWA            | `http://127.0.0.1:${KLANT_PORT}/klant/healthz`         |
+| API                     | `http://127.0.0.1:${API_PORT}/api/healthz`             |
+| Website (optional pair) | `http://127.0.0.1:${WEBSITE_PORT}/healthz`             |
 
 API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root-404`; 404 remains a failure for `exact-200` service endpoints. Public API root is not also added to the public healthz endpoint group, so the API root contract is checked once.
 
-The gate requires exactly four services, exactly four ports, exactly four local service endpoints and at least three public endpoints. Evidence JSON is machine-readable, written with mode `0640`, and records only URL origins in endpoint details.
+The gate requires exactly four services, ports and local/public endpoints by
+default, or exactly five of each when `WEBSITE_SERVICE_NAME` and
+`WEBSITE_PORT` are configured. A partial website configuration fails closed.
+Evidence JSON is machine-readable, written with mode `0640`, and records only
+URL origins in endpoint details.
 
 ## Rollback Boundaries
 

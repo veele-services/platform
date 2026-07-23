@@ -172,7 +172,7 @@ default_services() {
   if [ -n "${FIELDGRID_DEPLOY_SERVICES:-}" ]; then
     split_words "$FIELDGRID_DEPLOY_SERVICES"
   else
-    split_words "${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-}} ${PERSONEEL_SERVICE_NAME:-} ${KLANT_SERVICE_NAME:-} ${API_SERVICE_NAME:-}"
+    split_words "${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-}} ${PERSONEEL_SERVICE_NAME:-} ${KLANT_SERVICE_NAME:-} ${API_SERVICE_NAME:-} ${WEBSITE_SERVICE_NAME:-}"
   fi
 }
 
@@ -180,7 +180,15 @@ default_ports() {
   if [ -n "${FIELDGRID_DEPLOY_PORTS:-}" ]; then
     split_words "$FIELDGRID_DEPLOY_PORTS"
   else
-    split_words "${BACKOFFICE_PORT:-${PORT:-}} ${PERSONEEL_PORT:-} ${KLANT_PORT:-} ${API_PORT:-}"
+    split_words "${BACKOFFICE_PORT:-${PORT:-}} ${PERSONEEL_PORT:-} ${KLANT_PORT:-} ${API_PORT:-} ${WEBSITE_PORT:-}"
+  fi
+}
+
+expected_runtime_count() {
+  if [ -n "${WEBSITE_SERVICE_NAME:-}" ] || [ -n "${WEBSITE_PORT:-}" ]; then
+    printf '5'
+  else
+    printf '4'
   fi
 }
 
@@ -201,6 +209,9 @@ default_local_endpoints() {
   fi
   if [ -n "${API_PORT:-}" ]; then
     append_endpoint "local-api-health" "http://127.0.0.1:${API_PORT}/api/healthz" "exact-200"
+  fi
+  if [ -n "${WEBSITE_PORT:-}" ]; then
+    append_endpoint "local-website-health" "http://127.0.0.1:${WEBSITE_PORT}/healthz" "exact-200"
   fi
 }
 
@@ -243,6 +254,11 @@ default_public_endpoints() {
     append_endpoint "public-api-health" "$API_PUBLIC_HEALTH_URL" "exact-200"
   elif [ -n "${API_PUBLIC_URL:-}" ]; then
     append_endpoint "public-api-health" "$(with_path "$API_PUBLIC_URL" "/api/healthz")" "exact-200"
+  fi
+  if [ -n "${WEBSITE_PUBLIC_HEALTH_URL:-}" ]; then
+    append_endpoint "public-website-health" "$WEBSITE_PUBLIC_HEALTH_URL" "exact-200"
+  elif [ -n "${WEBSITE_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-website-health" "$(with_path "$WEBSITE_PUBLIC_URL" "/healthz")" "exact-200"
   fi
 }
 
@@ -293,8 +309,10 @@ service_status_detail() {
 
 check_services() {
   local count=0
+  local expected_count
   local failed=0
   local service
+  expected_count="$(expected_runtime_count)"
   for service in $(default_services); do
     [ -n "$service" ] || continue
     count=$((count + 1))
@@ -306,8 +324,8 @@ check_services() {
     fi
   done
 
-  if [ "$count" -ne 4 ]; then
-    record_check "services:configured-count" "fail" "expected exactly four configured services; found $count"
+  if [ "$count" -ne "$expected_count" ]; then
+    record_check "services:configured-count" "fail" "expected exactly $expected_count configured services; found $count"
     failed=1
   else
     record_check "services:configured-count" "pass" "found exactly $count configured services"
@@ -325,8 +343,10 @@ port_is_listening() {
 
 check_ports() {
   local count=0
+  local expected_count
   local failed=0
   local port
+  expected_count="$(expected_runtime_count)"
   for port in $(default_ports); do
     [ -n "$port" ] || continue
     count=$((count + 1))
@@ -338,8 +358,8 @@ check_ports() {
     fi
   done
 
-  if [ "$count" -ne 4 ]; then
-    record_check "ports:configured-count" "fail" "expected exactly four configured ports; found $count"
+  if [ "$count" -ne "$expected_count" ]; then
+    record_check "ports:configured-count" "fail" "expected exactly $expected_count configured ports; found $count"
     failed=1
   else
     record_check "ports:configured-count" "pass" "found exactly $count configured ports"
@@ -478,12 +498,14 @@ verify_release_metadata() {
 
 run_health_checks() {
   local failed=0
+  local expected_count
+  expected_count="$(expected_runtime_count)"
   verify_release_metadata || failed=1
   check_services || failed=1
   check_ports || failed=1
-  check_endpoint_group "local" "$(default_local_endpoints)" 4 exact || failed=1
+  check_endpoint_group "local" "$(default_local_endpoints)" "$expected_count" exact || failed=1
   check_endpoint_group "api-root" "$(default_api_root_endpoints)" 0 || failed=1
-  check_endpoint_group "public" "$(default_public_endpoints)" 4 exact || failed=1
+  check_endpoint_group "public" "$(default_public_endpoints)" "$expected_count" exact || failed=1
   return "$failed"
 }
 

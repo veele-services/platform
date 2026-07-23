@@ -1,6 +1,7 @@
 # Website module custom delivery routing
 
-Status: Phase 2C isolated routing proof; no live route or deployment change
+Status: Phase 9 staging-only activation contract implemented; no staging or
+production route was changed by the implementation PR
 
 ## Boundary
 
@@ -40,12 +41,12 @@ A custom decision is routable only when all of these facts agree:
 - strict health evidence reports the same provider, route, release and host,
   plus successful TLS validation.
 
-Health evidence schema version 2 is deliberately closed and includes the
-rendered SEO contract:
+Health evidence schema version 3 is deliberately closed and includes the
+rendered SEO, asset and platform-form contract:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "status": "healthy",
   "providerKey": "fieldgrid_vps",
   "routeKey": "opaque_code_owned_route",
@@ -58,7 +59,9 @@ rendered SEO contract:
     "robots": true,
     "sitemap": true,
     "structuredData": true
-  }
+  },
+  "assets": { "healthy": true },
+  "forms": { "platformEndpoint": true }
 }
 ```
 
@@ -88,7 +91,7 @@ Those blockers are intentional and prevent accidental traffic activation. The
 44-route marketing contract is copied exactly into the code-owned registration
 and is unchanged by this phase.
 
-## Planned staging edge change — not applied
+## Staging edge contract — implementation present, activation not applied
 
 After a separate review and explicit staging authorization, the edge change is:
 
@@ -112,5 +115,7 @@ and then run exact-host HTTP/SEO/asset/form smoke tests. Rollback is an audited
 delivery-revision switch to the recorded previous target; it is never automatic
 fallback.
 
-No DNS, Caddy, staging, production, database row or deployment was changed by
-Phase 2C.
+The Phase 9 implementation adds the proxy, operator workflow and guarded
+staging evidence path. Its merge does not itself change DNS, Caddy, staging,
+production, a delivery row or a deployment. Follow
+`docs/website-module-enterprise-activation.md` after exact-head review.
