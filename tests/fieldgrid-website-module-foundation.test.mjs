@@ -39,7 +39,7 @@ test("website module is explicit, disabled by default and permission-gated", () 
   }
 });
 
-test("Phase 1A schema contains only the tenant-scoped delivery and authoring foundation", () => {
+test("Phase 1A migration stays limited while the current schema retains its foundation", () => {
   for (const table of [
     "websiteSitesTable",
     "websiteDomainBindingsTable",
@@ -53,10 +53,6 @@ test("Phase 1A schema contains only the tenant-scoped delivery and authoring fou
     assert.match(schema, new RegExp(`\\b${table}\\b`, "u"));
   }
 
-  assert.doesNotMatch(
-    schema,
-    /websiteBlogPostsTable|websiteFormsTable|websiteMediaTable/u,
-  );
   assert.doesNotMatch(
     migration,
     /CREATE TABLE IF NOT EXISTS public\.(website_blog|website_forms|website_media)/u,
