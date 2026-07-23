@@ -1,6 +1,6 @@
 # Veele Services - complete webcopy 2026
-**Positionering:** Schoon. Veilig. Geregeld.  
-**Primaire regio:** Den Haag en Haaglanden  
+**Positionering:** Schoon. Veilig. Geregeld.
+**Primaire regio:** Den Haag en Haaglanden
 **Doel:** premium marketingwebsite en klantenportaal voor zakelijke opdrachtgevers.
 
 > Werkdocument. Feiten, telefoonnummers, erkenning, referenties, certificeringen, juridische teksten en responstijden moeten vóór livegang door Veele Services worden gevalideerd.
@@ -57,18 +57,18 @@ Onze basis ligt in Den Haag. Daardoor kunnen we lokaal snel schakelen en tegelij
 1. **Voorstel op maat** - U ontvangt één overzichtelijk voorstel. Na akkoord starten we gecontroleerd op en blijven we verbeteren.
 
 ### CTA
-**Zullen we uw locatie slimmer organiseren?**  
-Plan een vrijblijvende kennismaking of vraag direct een voorstel aan. We reageren binnen één werkdag.  
+**Zullen we uw locatie slimmer organiseren?**
+Plan een vrijblijvende kennismaking of vraag direct een voorstel aan. We reageren binnen één werkdag.
 Knoppen: **Vraag een voorstel aan** / **Plan een kennismaking**
 
 ### Veelgestelde vragen
-- **Levert Veele Services alle drie de diensten ook los?**  
+- **Levert Veele Services alle drie de diensten ook los?**
   Ja. U kunt schoonmaak, beveiliging of facilitaire ondersteuning afzonderlijk afnemen. De grootste winst ontstaat vaak wanneer meerdere onderdelen onder één regie vallen.
-- **In welke regio werkt Veele Services?**  
+- **In welke regio werkt Veele Services?**
   De primaire focus ligt op Den Haag en Haaglanden. Vanuit daar ondersteunen we ook opdrachtgevers in de bredere Randstad, afhankelijk van de dienst, omvang en planning.
-- **Hoe snel kan een opdracht starten?**  
+- **Hoe snel kan een opdracht starten?**
   Dat hangt af van de scope, benodigde screening, materialen en personele bezetting. Na de locatiescan ontvangt u een realistische startplanning. Spoed bespreken we direct.
-- **Wat is het klantenportaal?**  
+- **Wat is het klantenportaal?**
   Het klantenportaal is de centrale plek voor planning, meldingen, controles, documenten, rapportages en goedkeuringen. Het wordt als onderscheidend onderdeel van de nieuwe website voorgesteld.
 
 # Diensten
@@ -125,16 +125,16 @@ Combineert u meerdere disciplines, dan ontvangt u geen stapel losse werkafsprake
 1. **Eén voorstel** - U ontvangt een overzichtelijke scope met opties en heldere vervolgstappen.
 
 ### CTA
-**Niet zeker welke combinatie past?**  
-Tijdens een korte kennismaking brengen we uw vraag terug tot een praktische, betaalbare scope.  
+**Niet zeker welke combinatie past?**
+Tijdens een korte kennismaking brengen we uw vraag terug tot een praktische, betaalbare scope.
 Knoppen: **Bespreek uw locatie** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kan ik meerdere diensten in één contract onderbrengen?**  
+- **Kan ik meerdere diensten in één contract onderbrengen?**
   Ja. Dat is juist een belangrijk voordeel van de voorgestelde integrale aanpak. De contractstructuur en rapportage worden op uw organisatie afgestemd.
-- **Werken jullie buiten reguliere kantooruren?**  
+- **Werken jullie buiten reguliere kantooruren?**
   Ja. Veel diensten vinden juist vóór opening, na sluiting, ’s nachts of tijdens evenementen plaats. De exacte inzet leggen we vast in het plan.
-- **Kan ik later diensten toevoegen?**  
+- **Kan ik later diensten toevoegen?**
   Ja. De opzet is modulair. Extra locaties, frequenties of diensten kunnen via een wijzigingsvoorstel worden toegevoegd.
 
 # Schoonmaak overzicht
@@ -184,18 +184,18 @@ Schoonmaak kan worden gecombineerd met receptie, beveiliging, sanitaire service 
 1. **Startcontrole** - We starten gecontroleerd op, evalueren na de eerste weken en verbeteren waar nodig.
 
 ### CTA
-**Een schoonmaakplan zonder losse eindjes?**  
-Vraag een locatiescan aan. U ontvangt een voorstel dat aansluit op uw gebouw, gebruik en budget.  
+**Een schoonmaakplan zonder losse eindjes?**
+Vraag een locatiescan aan. U ontvangt een voorstel dat aansluit op uw gebouw, gebruik en budget.
 Knoppen: **Vraag een schoonmaakvoorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werken jullie met vaste schoonmakers?**  
+- **Werken jullie met vaste schoonmakers?**
   We streven naar herkenbare teams en vaste aansturing. De precieze bezetting hangt af van de omvang, openingstijden en continuïteitseisen.
-- **Kunnen jullie buiten openingstijden werken?**  
+- **Kunnen jullie buiten openingstijden werken?**
   Ja. We plannen rond uw operatie en stemmen toegang, alarmprocedures en sleutelbeheer vooraf af.
-- **Hoe wordt de kwaliteit gecontroleerd?**  
+- **Hoe wordt de kwaliteit gecontroleerd?**
   Met afgesproken controlerondes, digitale checklists en opvolging van afwijkingen. De resultaten worden beschikbaar gemaakt in het klantenportaal.
-- **Leveren jullie ook materialen en sanitaire verbruiksartikelen?**  
+- **Leveren jullie ook materialen en sanitaire verbruiksartikelen?**
   Dat kan als optie worden opgenomen. Denk aan dispensers, papier, zeep en afvalzakken, met afgesproken voorraadniveau en aanvulmomenten.
 
 # Kantoorschoonmaak
@@ -245,16 +245,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Vast ritme** - Na evaluatie leggen we het definitieve ritme en de rapportagecyclus vast.
 
 ### CTA
-**Een passend plan voor kantoorschoonmaak?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor kantoorschoonmaak?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie overdag schoonmaken?**  
+- **Kunnen jullie overdag schoonmaken?**
   Ja. Dagschoonmaak kan goed passen bij hybride kantoren en maakt service direct zichtbaar. We spreken gedrag, veiligheid en rustige momenten af.
-- **Kunnen vergaderruimtes tussendoor worden verzorgd?**  
+- **Kunnen vergaderruimtes tussendoor worden verzorgd?**
   Ja. Een hospitality- of facilitaire ronde kan worden toegevoegd voor reset, afval, koffiepunten en onverwachte vervuiling.
-- **Is een eenmalige grote schoonmaak mogelijk?**  
+- **Is een eenmalige grote schoonmaak mogelijk?**
   Ja. Periodieke of eenmalige dieptereiniging kan los of als onderdeel van een jaarplan worden uitgevoerd.
 
 # VvE- en vastgoedschoonmaak
@@ -304,16 +304,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Rapportage aan beheer** - U ontvangt periodiek inzicht in uitvoering, meldingen en verbeterpunten.
 
 ### CTA
-**Een passend plan voor vve- en vastgoedschoonmaak?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor vve- en vastgoedschoonmaak?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen bewoners meldingen doen?**  
+- **Kunnen bewoners meldingen doen?**
   Dat kan via een afgesproken route, bijvoorbeeld bij de beheerder of via een locatiegebonden formulier. Zo voorkomen we versnipperde instructies.
-- **Doen jullie ook glasbewassing?**  
+- **Doen jullie ook glasbewassing?**
   Ja. Glasbewassing kan per complex worden ingepland, afhankelijk van bereikbaarheid, veiligheid en frequentie.
-- **Kunnen meerdere complexen in één overeenkomst?**  
+- **Kunnen meerdere complexen in één overeenkomst?**
   Ja. Per complex blijft een eigen scope en rapportage mogelijk, terwijl beheer centraal overzicht houdt.
 
 # Winkelschoonmaak
@@ -363,16 +363,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Controle per filiaal** - Uitvoering en afwijkingen worden per locatie vastgelegd en centraal gerapporteerd.
 
 ### CTA
-**Een passend plan voor winkelschoonmaak?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor winkelschoonmaak?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie vóór opening klaar zijn?**  
+- **Kunnen jullie vóór opening klaar zijn?**
   Ja. We stemmen bezetting en toegang af op de gewenste openingstijd en eventuele alarmprocedures.
-- **Is etalageglas inbegrepen?**  
+- **Is etalageglas inbegrepen?**
   Dat kan. We maken onderscheid tussen dagelijks glaswerk, periodieke glasbewassing en specialistische bereikbaarheid.
-- **Kunnen jullie na een verbouwing opleveren?**  
+- **Kunnen jullie na een verbouwing opleveren?**
   Ja. We maken stof, bouwresten en oppervlakken gereed voor inrichting of heropening, binnen een vooraf afgebakende scope.
 
 # Horecaschoonmaak
@@ -422,16 +422,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Evaluatie na piek** - Na de eerste drukke periode evalueren we capaciteit en aandachtspunten.
 
 ### CTA
-**Een passend plan voor horecaschoonmaak?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor horecaschoonmaak?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie ’s nachts werken?**  
+- **Kunnen jullie ’s nachts werken?**
   Ja, mits toegang, veiligheid en geluidsafspraken goed zijn geregeld.
-- **Verzorgen jullie ook keukenreiniging?**  
+- **Verzorgen jullie ook keukenreiniging?**
   Alleen binnen een expliciet afgesproken scope en waar de juiste expertise en middelen beschikbaar zijn. Specialistische installaties worden afzonderlijk beoordeeld.
-- **Kunnen sanitairmedewerkers tijdens evenementen worden ingezet?**  
+- **Kunnen sanitairmedewerkers tijdens evenementen worden ingezet?**
   Ja. Sanitaire service kan continu toezicht, aanvulling en directe reiniging verzorgen.
 
 # Glasbewassing
@@ -481,16 +481,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Periodieke uitvoering** - Na iedere ronde worden bijzonderheden en vervolgacties vastgelegd.
 
 ### CTA
-**Een passend plan voor glasbewassing?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor glasbewassing?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Hoe vaak moeten ramen worden gewassen?**  
+- **Hoe vaak moeten ramen worden gewassen?**
   Dat hangt af van ligging, verkeer, weersinvloed en gewenste uitstraling. We adviseren een frequentie per gevel of zone.
-- **Kan glasbewassing buiten kantooruren?**  
+- **Kan glasbewassing buiten kantooruren?**
   Ja, als toegang en veiligheid dat toelaten.
-- **Doen jullie ook hoogbouw?**  
+- **Doen jullie ook hoogbouw?**
   Na een veiligheids- en bereikbaarheidstoets. Voor specialistische hoogbouw kan een gekwalificeerde partner worden ingezet.
 
 # Specialistische en opleveringsschoonmaak
@@ -540,16 +540,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Controle en overdracht** - Na uitvoering lopen we de afgesproken punten na en leggen we restpunten vast.
 
 ### CTA
-**Een passend plan voor specialistische en opleveringsschoonmaak?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor specialistische en opleveringsschoonmaak?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie op zeer korte termijn starten?**  
+- **Kunnen jullie op zeer korte termijn starten?**
   Spoed is soms mogelijk. Beschikbaarheid, toegang, omvang en materiaal bepalen wat realistisch is.
-- **Verwijderen jullie bouwafval?**  
+- **Verwijderen jullie bouwafval?**
   Alleen wanneer afvoer expliciet in de scope staat. Groot of gevaarlijk afval vraagt een geschikte afvalpartner.
-- **Kan een aannemer de oplevering accorderen?**  
+- **Kan een aannemer de oplevering accorderen?**
   Ja. Een contactpersoon kan de opleverlijst en eventuele restpunten digitaal bekijken en goedkeuren.
 
 # Beveiliging overzicht
@@ -599,18 +599,18 @@ Op locaties met publieksstromen werkt beveiliging vaak samen met receptie, hospi
 1. **Briefing en start** - Medewerkers worden locatiegericht gebrieft; na de opstart evalueren we incidenten en werking.
 
 ### CTA
-**Wilt u weten welke beveiliging echt nodig is?**  
-Plan een vertrouwelijke risico-intake. U ontvangt een praktische aanpak zonder onnodige inzet.  
+**Wilt u weten welke beveiliging echt nodig is?**
+Plan een vertrouwelijke risico-intake. U ontvangt een praktische aanpak zonder onnodige inzet.
 Knoppen: **Plan een risico-intake** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Is Veele Services een erkend beveiligingsbedrijf?**  
+- **Is Veele Services een erkend beveiligingsbedrijf?**
   Ja. Op de huidige website vermeldt Veele Services de officiële erkenning door het Ministerie van Justitie en Veiligheid onder nummer ND 8096. Controleer dit nummer vóór publicatie opnieuw in de relevante registers.
-- **Kunnen jullie 24/7 leveren?**  
+- **Kunnen jullie 24/7 leveren?**
   Veele Services is 24/7 bereikbaar. De feitelijke bezetting wordt per opdracht gepland en hangt af van scope, locatie en beschikbaarheid.
-- **Ontvang ik incidentrapportages?**  
+- **Ontvang ik incidentrapportages?**
   Ja. De inhoud, classificatie en distributie worden vooraf afgesproken. In het voorgestelde portaal zijn incidenten en opvolgacties centraal inzichtelijk.
-- **Kunnen beveiliging en receptie worden gecombineerd?**  
+- **Kunnen beveiliging en receptie worden gecombineerd?**
   Ja, mits taken, bevoegdheden, bezetting en uitstraling goed op elkaar worden afgestemd.
 
 # Objectbeveiliging
@@ -660,16 +660,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Startbriefing** - De inzet begint met locatiekennis, sleuteloverdracht en gecontroleerde start.
 
 ### CTA
-**Een passend plan voor objectbeveiliging?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor objectbeveiliging?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen beveiligers ook receptietaken uitvoeren?**  
+- **Kunnen beveiligers ook receptietaken uitvoeren?**
   Ja, binnen een duidelijk takenpakket en met passende bezetting. Veiligheidstaken mogen niet ondersneeuwen door administratief werk.
-- **Werken jullie met digitale ronderegistratie?**  
+- **Werken jullie met digitale ronderegistratie?**
   Dat is onderdeel van het voorgestelde portaal en kan per locatie worden ingericht.
-- **Kunnen jullie tijdelijke objectbeveiliging leveren?**  
+- **Kunnen jullie tijdelijke objectbeveiliging leveren?**
   Ja, bijvoorbeeld bij leegstand, verbouwing, storing of een verhoogd risiconiveau, afhankelijk van beschikbaarheid.
 
 # Mobiele surveillance
@@ -719,16 +719,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Rapportage** - Uitgevoerde rondes en afwijkingen worden digitaal geregistreerd en periodiek geëvalueerd.
 
 ### CTA
-**Een passend plan voor mobiele surveillance?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor mobiele surveillance?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kan mobiele surveillance meerdere locaties combineren?**  
+- **Kan mobiele surveillance meerdere locaties combineren?**
   Ja. Een route kan meerdere locaties bevatten, mits responstijden en veiligheidsvoorwaarden realistisch blijven.
-- **Doen jullie alarmopvolging?**  
+- **Doen jullie alarmopvolging?**
   Dat kan na technische en procedurele afstemming met meldkamer, sleutelbeheer en contactpersonen.
-- **Zijn rondetijden zichtbaar voor onbevoegden?**  
+- **Zijn rondetijden zichtbaar voor onbevoegden?**
   Nee. Operationele details worden alleen gedeeld met geautoriseerde betrokkenen.
 
 # Winkelbeveiliging
@@ -778,16 +778,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Evaluatie** - We bespreken trends, incidenten en mogelijke preventieve aanpassingen.
 
 ### CTA
-**Een passend plan voor winkelbeveiliging?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor winkelbeveiliging?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen beveiligers in burger worden ingezet?**  
+- **Kunnen beveiligers in burger worden ingezet?**
   Dat hangt af van doel, wet- en regelgeving, opdrachtvoorwaarden en gewenste werkwijze. Dit wordt vooraf beoordeeld.
-- **Werken jullie samen met winkelpersoneel?**  
+- **Werken jullie samen met winkelpersoneel?**
   Ja. Een korte briefing en heldere overdracht zijn essentieel voor consistent optreden.
-- **Kan inzet alleen tijdens piekdagen?**  
+- **Kan inzet alleen tijdens piekdagen?**
   Ja. Tijdelijke inzet rond koopavonden, acties, feestdagen of risicoperiodes is mogelijk afhankelijk van beschikbaarheid.
 
 # Evenementenbeveiliging
@@ -795,7 +795,7 @@ Knoppen: **Vraag een voorstel aan** / **Bel direct**
 - **URL:** `/beveiliging/evenementen`
 - **Doel:** Landingspagina voor zakelijke, publieke en besloten evenementen.
 - **SEO-titel:** Evenementenbeveiliging Den Haag | Veele Services
-- **Metabeschrijving:** Professionele evenementenbeveiliging in Den Haag en de Randstad. Persoonlijke aansturing, duidelijke afspraken en 24/7 bereikbaarheid. Vraag een voorstel aan 
+- **Metabeschrijving:** Professionele evenementenbeveiliging in Den Haag en de Randstad. Persoonlijke aansturing, duidelijke afspraken en 24/7 bereikbaarheid. Vraag een voorstel aan
 
 **Eyebrow:** Beveiliging · in Den Haag en de Randstad
 
@@ -837,16 +837,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Uitvoering en evaluatie** - Op de dag zelf sturen we actief; na afloop volgt een compacte evaluatie.
 
 ### CTA
-**Een passend plan voor evenementenbeveiliging?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor evenementenbeveiliging?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Helpen jullie met het volledige veiligheidsplan?**  
+- **Helpen jullie met het volledige veiligheidsplan?**
   We kunnen input leveren voor beveiligingsinzet en operationele maatregelen. Formele verantwoordelijkheden en vergunningseisen blijven bij organisator en bevoegde adviseurs.
-- **Kunnen jullie ook hosts leveren?**  
+- **Kunnen jullie ook hosts leveren?**
   Ja. Via facilitaire dienstverlening kunnen gastvrije hosts, registratie- of garderobemedewerkers worden toegevoegd.
-- **Is last-minute inzet mogelijk?**  
+- **Is last-minute inzet mogelijk?**
   Soms, maar kwaliteit vraagt voorbereiding en beschikbaar personeel. Neem bij spoed direct contact op.
 
 # Horecabeveiliging
@@ -896,16 +896,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Nabespreking** - Bijzonderheden en trends worden gedeeld met de bedrijfsleiding.
 
 ### CTA
-**Een passend plan voor horecabeveiliging?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor horecabeveiliging?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie vaste weekendteams leveren?**  
+- **Kunnen jullie vaste weekendteams leveren?**
   Dat kan wanneer planning, omvang en beschikbaarheid dit toelaten. Vaste teamleiding heeft de voorkeur.
-- **Maken jullie incidentrapporten?**  
+- **Maken jullie incidentrapporten?**
   Ja. Ernstige en relevante gebeurtenissen worden volgens de afgesproken structuur vastgelegd.
-- **Kunnen beveiliging en schoonmaak na sluiting worden gecombineerd?**  
+- **Kunnen beveiliging en schoonmaak na sluiting worden gecombineerd?**
   Ja. De teams kunnen operationeel op elkaar aansluiten, met één contactlijn voor de opdrachtgever.
 
 # Receptie en toegangscontrole
@@ -955,16 +955,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Inwerkperiode** - Medewerkers worden ingewerkt op mensen, gebouw en routines.
 
 ### CTA
-**Een passend plan voor receptie en toegangscontrole?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor receptie en toegangscontrole?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen medewerkers ook Engelstalige bezoekers ontvangen?**  
+- **Kunnen medewerkers ook Engelstalige bezoekers ontvangen?**
   Dat kan als taalvaardigheid als selectiecriterium wordt opgenomen.
-- **Werken jullie met ons bezoekerssysteem?**  
+- **Werken jullie met ons bezoekerssysteem?**
   Ja, na instructie en passende toegangsrechten.
-- **Kan een receptiepost tijdelijk worden overgenomen?**  
+- **Kan een receptiepost tijdelijk worden overgenomen?**
   Ja, bijvoorbeeld bij ziekte, vakantie of overgang naar een nieuwe leverancier, afhankelijk van beschikbaarheid.
 
 # Persoonsbeveiliging
@@ -1014,16 +1014,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Dagbriefing en evaluatie** - De inzet wordt per moment voorbereid en achteraf waar nodig bijgesteld.
 
 ### CTA
-**Een passend plan voor persoonsbeveiliging?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor persoonsbeveiliging?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Hoe vertrouwelijk wordt mijn aanvraag behandeld?**  
+- **Hoe vertrouwelijk wordt mijn aanvraag behandeld?**
   Aanvragen worden beperkt gedeeld met medewerkers die nodig zijn voor beoordeling en uitvoering. Nadere geheimhoudingsafspraken kunnen worden vastgelegd.
-- **Is iedere aanvraag mogelijk?**  
+- **Is iedere aanvraag mogelijk?**
   Nee. We beoordelen haalbaarheid, proportionaliteit, bevoegdheden en beschikbaarheid. Bij een niet-passende vraag adviseren we eerlijk over alternatieven.
-- **Kunnen jullie internationaal begeleiden?**  
+- **Kunnen jullie internationaal begeleiden?**
   Dat vraagt aanvullende beoordeling van wetgeving, partners en logistiek. De nieuwe website positioneert primair inzet in Nederland.
 
 # Chauffeursdiensten
@@ -1073,16 +1073,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Uitvoering** - De chauffeur meldt zich volgens afspraak en houdt contact met de aangewezen contactpersoon.
 
 ### CTA
-**Een passend plan voor chauffeursdiensten?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor chauffeursdiensten?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Leveren jullie zelf het voertuig?**  
+- **Leveren jullie zelf het voertuig?**
   Dat wordt per opdracht afgesproken. Beschikbaarheid en voertuigklasse worden expliciet bevestigd.
-- **Kan een chauffeur wachten tussen afspraken?**  
+- **Kan een chauffeur wachten tussen afspraken?**
   Ja. Wachttijd en bereikbaarheid worden vooraf in de planning en prijs opgenomen.
-- **Is beveiligde begeleiding standaard inbegrepen?**  
+- **Is beveiligde begeleiding standaard inbegrepen?**
   Nee. Een beveiligingscomponent is maatwerk en wordt alleen aangeboden wanneer passend en uitvoerbaar.
 
 # Facilitaire diensten overzicht
@@ -1130,16 +1130,16 @@ Wanneer facilitair, beveiliging en schoonmaak samenwerken, stemmen we houding, c
 1. **Uitvoering en terugkoppeling** - De teamleider bewaakt de inzet en rapporteert bijzonderheden.
 
 ### CTA
-**Extra handen, zonder extra afstemming?**  
-Vertel ons wat uw locatie of evenement nodig heeft. We maken een praktisch bezettingsvoorstel.  
+**Extra handen, zonder extra afstemming?**
+Vertel ons wat uw locatie of evenement nodig heeft. We maken een praktisch bezettingsvoorstel.
 Knoppen: **Vraag facilitair personeel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie personeel voor één dag leveren?**  
+- **Kunnen jullie personeel voor één dag leveren?**
   Ja, afhankelijk van profiel, omvang en beschikbaarheid. Voldoende voorbereiding verhoogt de kwaliteit.
-- **Kunnen medewerkers in onze huisstijl werken?**  
+- **Kunnen medewerkers in onze huisstijl werken?**
   Dat kan na afspraken over kleding, beschikbaarheid en kosten.
-- **Wie stuurt het team aan?**  
+- **Wie stuurt het team aan?**
   Dat hangt af van de opdracht. Er kan een Veele-teamleider worden ingezet of worden gewerkt onder een aangewezen contactpersoon van de opdrachtgever.
 
 # Receptie en gastvrijheid
@@ -1189,16 +1189,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Kwaliteitsmomenten** - We evalueren service, punctualiteit en terugkerende vragen.
 
 ### CTA
-**Een passend plan voor receptie en gastvrijheid?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor receptie en gastvrijheid?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie vakantie en ziekte opvangen?**  
+- **Kunnen jullie vakantie en ziekte opvangen?**
   Dat kan als vervanging onderdeel is van de overeenkomst en er voldoende overdracht beschikbaar is.
-- **Kunnen receptionisten ook beveiligingstaken uitvoeren?**  
+- **Kunnen receptionisten ook beveiligingstaken uitvoeren?**
   Alleen wanneer functie, bevoegdheden en bezetting dat toelaten. Anders adviseren we receptieve beveiliging.
-- **Is een tijdelijke host voor een event mogelijk?**  
+- **Is een tijdelijke host voor een event mogelijk?**
   Ja, bijvoorbeeld voor registratie, routebegeleiding of VIP-ontvangst.
 
 # Evenementenpersoneel
@@ -1248,16 +1248,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Eventdag** - Het team meldt zich centraal, ontvangt briefing en koppelt bijzonderheden terug.
 
 ### CTA
-**Een passend plan voor evenementenpersoneel?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor evenementenpersoneel?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Hoe ver vooraf moet ik aanvragen?**  
+- **Hoe ver vooraf moet ik aanvragen?**
   Bij voorkeur zodra datum, locatie en globale aantallen bekend zijn. Grotere evenementen vragen meer voorbereiding.
-- **Kunnen jullie teamleiding leveren?**  
+- **Kunnen jullie teamleiding leveren?**
   Ja. Voor grotere teams adviseren we één aanspreekpunt op de vloer.
-- **Kunnen uren na afloop worden goedgekeurd?**  
+- **Kunnen uren na afloop worden goedgekeurd?**
   Ja. In het voorgestelde portaal kan de opdrachtgever uren en extra inzet digitaal controleren en accorderen.
 
 # Horeca- en bardiensten
@@ -1265,7 +1265,7 @@ Knoppen: **Vraag een voorstel aan** / **Bel direct**
 - **URL:** `/facilitair/horeca-bar`
 - **Doel:** Landingspagina voor bar-, bedienings- en horecamedewerkers.
 - **SEO-titel:** Barpersoneel Den Haag | Veele Services
-- **Metabeschrijving:** Professionele barpersoneel in Den Haag en de Randstad. Persoonlijke aansturing, duidelijke afspraken en 24/7 bereikbaarheid. Vraag een voorstel aan bij Veele 
+- **Metabeschrijving:** Professionele barpersoneel in Den Haag en de Randstad. Persoonlijke aansturing, duidelijke afspraken en 24/7 bereikbaarheid. Vraag een voorstel aan bij Veele
 
 **Eyebrow:** Facilitair · in Den Haag en de Randstad
 
@@ -1307,16 +1307,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Uren en evaluatie** - Na afloop worden uren, bijzonderheden en eventuele vervolgbehoefte vastgelegd.
 
 ### CTA
-**Een passend plan voor horeca- en bardiensten?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor horeca- en bardiensten?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Leveren jullie gecertificeerd personeel voor alle taken?**  
+- **Leveren jullie gecertificeerd personeel voor alle taken?**
   Eisen verschillen per taak en locatie. Benodigde certificaten of ervaring worden vooraf als selectievoorwaarde opgenomen.
-- **Kunnen medewerkers met ons kassasysteem werken?**  
+- **Kunnen medewerkers met ons kassasysteem werken?**
   Ja, na instructie en passende autorisatie.
-- **Is inzet voor meerdere dagen mogelijk?**  
+- **Is inzet voor meerdere dagen mogelijk?**
   Ja. Voor terugkerende inzet kan een vaste pool worden opgebouwd.
 
 # Sanitaire service
@@ -1366,16 +1366,16 @@ In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldi
 1. **Uitvoering** - De medewerker houdt de ruimte continu op niveau en meldt technische afwijkingen.
 
 ### CTA
-**Een passend plan voor sanitaire service?**  
-Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.  
+**Een passend plan voor sanitaire service?**
+Vertel ons wat er speelt op uw locatie. U ontvangt een praktisch voorstel met scope, planning, aanspreekpunt en heldere prijsafspraken.
 Knoppen: **Vraag een voorstel aan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Leveren jullie verbruiksartikelen?**  
+- **Leveren jullie verbruiksartikelen?**
   Dat kan als optie worden opgenomen, inclusief voorraadniveau en aanvulafspraak.
-- **Kan één medewerker meerdere toiletgroepen bedienen?**  
+- **Kan één medewerker meerdere toiletgroepen bedienen?**
   Ja, wanneer loopafstanden en bezoekersdruk dit toelaten.
-- **Is dit ook geschikt voor kantoren?**  
+- **Is dit ook geschikt voor kantoren?**
   Ja, bijvoorbeeld bij drukke publieksdagen, congressen of als dagdienst voor grotere locaties.
 
 # Sectoren overzicht
@@ -1427,16 +1427,16 @@ Rustige, herkenbare teams, heldere toegang en aandacht voor kwetsbare gebruikers
 1. **Ontvang een schaalbaar voorstel** - Start met de kern en voeg diensten toe wanneer dat waarde oplevert.
 
 ### CTA
-**Uw sector staat er niet tussen?**  
-De aanpak is altijd maatwerk. Beschrijf uw locatie en we denken vanuit de operatie mee.  
+**Uw sector staat er niet tussen?**
+De aanpak is altijd maatwerk. Beschrijf uw locatie en we denken vanuit de operatie mee.
 Knoppen: **Bespreek uw situatie** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Moet ik meerdere diensten afnemen?**  
+- **Moet ik meerdere diensten afnemen?**
   Nee. De sectorpagina’s laten de samenhang zien, maar u kunt ook met één dienst starten.
-- **Kunnen meerdere locaties centraal worden beheerd?**  
+- **Kunnen meerdere locaties centraal worden beheerd?**
   Ja. Het portaal kan rechten en rapportage per locatie, regiomanager of hoofdkantoor ondersteunen.
-- **Bieden jullie maatwerk voor andere sectoren?**  
+- **Bieden jullie maatwerk voor andere sectoren?**
   Ja. We toetsen eerst of expertise, capaciteit en eisen goed aansluiten.
 
 # Kantoren en bedrijfsverzamelgebouwen
@@ -1489,16 +1489,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in kantoren en bedrijfsverzamelgebouwen beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in kantoren en bedrijfsverzamelgebouwen beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie tijdens kantooruren werken?**  
+- **Kunnen jullie tijdens kantooruren werken?**
   Ja. Dagschoonmaak en hospitality kunnen juist zichtbaar service bieden, mits werkzaamheden en rustige momenten goed worden afgesproken.
-- **Kan het portaal aan meerdere huurders worden gekoppeld?**  
+- **Kan het portaal aan meerdere huurders worden gekoppeld?**
   Ja, met rollen en locatiegebonden toegang, mits privacy en verantwoordelijkheden vooraf zijn ingericht.
-- **Kunnen jullie een bestaande leverancier gefaseerd overnemen?**  
+- **Kunnen jullie een bestaande leverancier gefaseerd overnemen?**
   Ja. Een gecontroleerde transitiefase met inventarisatie, overdracht en proefperiode verkleint risico’s.
 
 # VvE en vastgoedbeheer
@@ -1551,16 +1551,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in vve en vastgoedbeheer beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in vve en vastgoedbeheer beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen bewoners rechtstreeks in het portaal?**  
+- **Kunnen bewoners rechtstreeks in het portaal?**
   Dat kan via een beperkte meldfunctie of via de beheerder. De gekozen route moet duidelijk en beheersbaar blijven.
-- **Kan ieder complex een eigen kostenplaats krijgen?**  
+- **Kan ieder complex een eigen kostenplaats krijgen?**
   Ja. Dat is een belangrijk uitgangspunt voor rapportage en facturatie.
-- **Kunnen jullie leegstand controleren?**  
+- **Kunnen jullie leegstand controleren?**
   Mobiele surveillance of periodieke objectcontrole kan worden ingericht na risico- en toegangsanalyse.
 
 # Retail
@@ -1613,16 +1613,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in retail beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in retail beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie landelijke filialen bedienen?**  
+- **Kunnen jullie landelijke filialen bedienen?**
   De primaire focus is Den Haag en de Randstad. Een bredere uitrol wordt alleen beloofd na capaciteits- en partnerbeoordeling.
-- **Kunnen filiaalmanagers zelf extra werk aanvragen?**  
+- **Kunnen filiaalmanagers zelf extra werk aanvragen?**
   Ja, binnen ingestelde rechten en budgetgrenzen.
-- **Hoe bewaken jullie de merkuitstraling?**  
+- **Hoe bewaken jullie de merkuitstraling?**
   Met vaste instructies, kledingafspraken, kwaliteitschecks en feedback per locatie.
 
 # Horeca en hotels
@@ -1675,16 +1675,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in horeca en hotels beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in horeca en hotels beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie per avond variëren in bezetting?**  
+- **Kunnen jullie per avond variëren in bezetting?**
   Ja. De basis en variabele schil worden vooraf afgesproken, inclusief deadlines voor wijziging.
-- **Kunnen incidenten vertrouwelijk worden gerapporteerd?**  
+- **Kunnen incidenten vertrouwelijk worden gerapporteerd?**
   Ja, met beperkte toegang tot geautoriseerde rollen.
-- **Werken jullie op feestdagen?**  
+- **Werken jullie op feestdagen?**
   Dat kan binnen de afgesproken planning en toeslagstructuur.
 
 # Evenementen en locaties
@@ -1737,16 +1737,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in evenementen en locaties beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in evenementen en locaties beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Kunnen jullie één teamleider voor alle disciplines leveren?**  
+- **Kunnen jullie één teamleider voor alle disciplines leveren?**
   Dat kan bij passende omvang en ervaring. Specialistische beveiligingsverantwoordelijkheden blijven duidelijk belegd.
-- **Kunnen uren live worden gevolgd?**  
+- **Kunnen uren live worden gevolgd?**
   Het voorgestelde portaal toont planning, check-instatus en te accorderen extra uren.
-- **Werken jullie met externe leveranciers samen?**  
+- **Werken jullie met externe leveranciers samen?**
   Ja. Rollen, contactpersonen en escalatie moeten vooraf worden vastgelegd.
 
 # Zorg en onderwijs
@@ -1799,16 +1799,16 @@ Samen leggen we prestatienormen, controlerondes en escalatieroutes vast. Via het
 1. **Start en optimalisatie** - Na de opstart volgen vaste evaluaties, kwaliteitsrondes en verbeteracties.
 
 ### CTA
-**Uw locatie in zorg en onderwijs beter geregeld?**  
-Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.  
+**Uw locatie in zorg en onderwijs beter geregeld?**
+Plan een vrijblijvende locatiescan. U krijgt snel inzicht in kansen, risico’s en een werkbare aanpak.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Hebben jullie ervaring in zorg en onderwijs?**  
+- **Hebben jullie ervaring in zorg en onderwijs?**
   Publiceer alleen gevalideerde referenties. Tot die tijd positioneert de website dit als maatwerk na geschiktheidscheck.
-- **Kunnen VOG en aanvullende screening worden gevraagd?**  
+- **Kunnen VOG en aanvullende screening worden gevraagd?**
   Ja, wanneer functie en opdrachtgever dit vereisen. De exacte screening wordt contractueel vastgelegd.
-- **Werken jullie volgens sectorspecifieke protocollen?**  
+- **Werken jullie volgens sectorspecifieke protocollen?**
   Alleen protocollen waarvoor medewerkers zijn geïnstrueerd en de organisatie aantoonbaar kan leveren.
 
 # Over Veele Services
@@ -1856,16 +1856,16 @@ De primaire focus ligt op Den Haag, Scheveningen, Rijswijk, Voorburg, Leidschend
 1. **Blijven verbeteren** - We evalueren prestaties, meldingen en veranderingen op locatie.
 
 ### CTA
-**Liever eerst de mensen achter het plan spreken?**  
-Plan een kennismaking. Geen standaard verkooppraatje, maar een praktisch gesprek over uw locatie.  
+**Liever eerst de mensen achter het plan spreken?**
+Plan een kennismaking. Geen standaard verkooppraatje, maar een praktisch gesprek over uw locatie.
 Knoppen: **Maak kennis met Veele** / **Bekijk onze diensten**
 
 ### Veelgestelde vragen
-- **Waar komt de naam Veele Services vandaan?**  
+- **Waar komt de naam Veele Services vandaan?**
   De organisatie is een familiebedrijf van de familie Veele.
-- **Is de beveiliging officieel erkend?**  
+- **Is de beveiliging officieel erkend?**
   De huidige website noemt erkenning door het Ministerie van Justitie en Veiligheid onder ND 8096. Dit moet vóór livegang nog één keer formeel worden geverifieerd.
-- **Werken jullie alleen in Den Haag?**  
+- **Werken jullie alleen in Den Haag?**
   Den Haag is de primaire markt. Afhankelijk van scope en planning werkt Veele Services ook in de bredere Randstad.
 
 # Cases
@@ -1922,16 +1922,16 @@ Gebruik alleen klantnaam, foto, cijfers en quote met schriftelijke toestemming. 
 1. **Valideren** - Laat feiten, cijfers, quote en beeld schriftelijk goedkeuren.
 
 ### CTA
-**Een vergelijkbare uitdaging?**  
-Vertel ons wat u wilt verbeteren. We denken in een uitvoerbare route, niet in een standaardpakket.  
+**Een vergelijkbare uitdaging?**
+Vertel ons wat u wilt verbeteren. We denken in een uitvoerbare route, niet in een standaardpakket.
 Knoppen: **Bespreek uw uitdaging** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Waarom staan er nog geen klantlogo’s in dit voorstel?**  
+- **Waarom staan er nog geen klantlogo’s in dit voorstel?**
   Omdat toestemming en actuele referenties eerst moeten worden bevestigd. Betrouwbaarheid gaat voor visuele vulling.
-- **Kunnen cases anoniem?**  
+- **Kunnen cases anoniem?**
   Ja, zolang voldoende context overblijft en geen vertrouwelijke informatie wordt gedeeld.
-- **Hoe vaak komen nieuwe cases online?**  
+- **Hoe vaak komen nieuwe cases online?**
   Advies: minimaal één sterke case per kwartaal, aangevuld met korte projectupdates wanneer er nieuwswaarde is.
 
 # Kennis
@@ -1982,16 +1982,16 @@ Schrijf primair voor de lezer. Zoekwoorden helpen de structuur, maar worden nooi
 1. **Actualiseren** - Controleer artikelen jaarlijks of eerder bij gewijzigde regels en diensten.
 
 ### CTA
-**Een vraag die niet wordt beantwoord?**  
-Stuur uw situatie. Een praktisch antwoord is vaak waardevoller dan een algemene brochure.  
+**Een vraag die niet wordt beantwoord?**
+Stuur uw situatie. Een praktisch antwoord is vaak waardevoller dan een algemene brochure.
 Knoppen: **Stel uw vraag** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Zijn artikelen juridisch of veiligheidsadvies?**  
+- **Zijn artikelen juridisch of veiligheidsadvies?**
   Nee. Artikelen geven algemene informatie. Voor locatie-specifieke risico’s en wettelijke verplichtingen is een deskundige beoordeling nodig.
-- **Mag content AI-ondersteund worden geschreven?**  
+- **Mag content AI-ondersteund worden geschreven?**
   Ja, maar iedere publicatie moet inhoudelijk worden gecontroleerd, verrijkt met eigen ervaring en ontdaan van onbewezen claims.
-- **Hoe meten we of de kennisbank werkt?**  
+- **Hoe meten we of de kennisbank werkt?**
   Met organisch verkeer, kwalitatieve contactaanvragen, doorstroom naar diensten, rankings en ondersteunde conversies.
 
 # Werken bij
@@ -2039,16 +2039,16 @@ Staat uw functie er niet bij? Stuur een open sollicitatie. Benoem duidelijk welk
 1. **Screening en start** - Na documenten, eventuele screening en locatie-instructie volgt een duidelijke startafspraak.
 
 ### CTA
-**Klaar om kennis te maken?**  
-Bekijk de openstaande vacatures of stuur een open sollicitatie.  
+**Klaar om kennis te maken?**
+Bekijk de openstaande vacatures of stuur een open sollicitatie.
 Knoppen: **Bekijk vacatures** / **Open sollicitatie**
 
 ### Veelgestelde vragen
-- **Heb ik ervaring nodig?**  
+- **Heb ik ervaring nodig?**
   Dat verschilt per functie. Bij iedere vacature staat wat vereist is en wat u intern kunt leren.
-- **Welke documenten zijn nodig voor beveiliging?**  
+- **Welke documenten zijn nodig voor beveiliging?**
   De exacte wettelijke en functie-eisen worden per vacature vermeld en gecontroleerd vóór inzet.
-- **Kan ik parttime of in de avond werken?**  
+- **Kan ik parttime of in de avond werken?**
   Veel functies hebben flexibele of afwijkende tijden. Beschikbaarheid wordt per vacature afgestemd.
 
 # Contact
@@ -2092,16 +2092,16 @@ Den Haag en Haaglanden vormen de kern. Voor passende opdrachten werken we in de 
 1. **Persoonlijke reactie** - De juiste collega neemt contact op en bepaalt de volgende stap.
 
 ### CTA
-**Liever direct een voorstel?**  
-Het offerteformulier vraagt precies genoeg informatie voor een gerichte eerste reactie.  
+**Liever direct een voorstel?**
+Het offerteformulier vraagt precies genoeg informatie voor een gerichte eerste reactie.
 Knoppen: **Ga naar offerte** / **Log in op het portaal**
 
 ### Veelgestelde vragen
-- **Wanneer krijg ik antwoord?**  
+- **Wanneer krijg ik antwoord?**
   Voorgestelde belofte: binnen één werkdag op reguliere webaanvragen. Bij spoed belt u direct.
-- **Kan ik WhatsApp gebruiken?**  
+- **Kan ik WhatsApp gebruiken?**
   Alleen toevoegen wanneer Veele Services een zakelijk beheerde WhatsApp-route met privacy- en responstijden kan garanderen.
-- **Waar kan ik een klacht of melding doen?**  
+- **Waar kan ik een klacht of melding doen?**
   Bestaande klanten gebruiken bij voorkeur het portaal. Andere meldingen kunnen via contact, met duidelijke vermelding van locatie en datum.
 
 # Offerte aanvragen
@@ -2158,16 +2158,16 @@ Door dit formulier te verzenden geeft u Veele Services toestemming om contact op
 1. **Locatiescan en voorstel** - Wanneer nodig plannen we een bezoek en volgt een afgebakend voorstel.
 
 ### CTA
-**Formulierknop**  
-Knoptekst: “Verstuur mijn aanvraag”. Microcopy eronder: “U ontvangt direct een bevestiging. Geen verplichtingen.”  
+**Formulierknop**
+Knoptekst: “Verstuur mijn aanvraag”. Microcopy eronder: “U ontvangt direct een bevestiging. Geen verplichtingen.”
 Knoppen: **Verstuur mijn aanvraag** / **Bel voor spoed**
 
 ### Veelgestelde vragen
-- **Krijg ik direct een prijs?**  
+- **Krijg ik direct een prijs?**
   Bij eenvoudige aanvragen kan snel een indicatie volgen. Voor de meeste locaties is een intake of opname nodig om kwaliteit en prijs eerlijk vast te stellen.
-- **Kan ik meerdere diensten selecteren?**  
+- **Kan ik meerdere diensten selecteren?**
   Ja. Het formulier ondersteunt combinaties en meerdere locaties.
-- **Mag ik een huidige werklijst uploaden?**  
+- **Mag ik een huidige werklijst uploaden?**
   Ja. Ondersteun PDF, Word, Excel en afbeeldingen met een duidelijke maximale bestandsgrootte en virusscan.
 
 # Portaal login en help
@@ -2215,16 +2215,16 @@ Kies “Inloghulp” voor wachtwoordherstel of neem contact op met uw vaste cont
 1. **Startdashboard** - Na inloggen ziet u alleen locaties en gegevens waarvoor u toestemming heeft.
 
 ### CTA
-**Nog geen klant?**  
-Het portaal hoort bij de dienstverlening. Bespreek tijdens de intake welke modules en gebruikersrollen u nodig heeft.  
+**Nog geen klant?**
+Het portaal hoort bij de dienstverlening. Bespreek tijdens de intake welke modules en gebruikersrollen u nodig heeft.
 Knoppen: **Vraag een voorstel aan** / **Inloghulp**
 
 ### Veelgestelde vragen
-- **Kan ik meerdere locaties beheren?**  
+- **Kan ik meerdere locaties beheren?**
   Ja. Rechten kunnen per organisatie, regio of locatie worden toegekend.
-- **Kan ik facturen downloaden?**  
+- **Kan ik facturen downloaden?**
   Ja, wanneer de facturatiemodule en financiële rol zijn geactiveerd.
-- **Is het portaal ook mobiel bruikbaar?**  
+- **Is het portaal ook mobiel bruikbaar?**
   Ja. De kernacties worden mobiel-first ontworpen voor snelle meldingen, foto’s en goedkeuringen.
 
 # Dienstverlening Den Haag
@@ -2272,16 +2272,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Den Haag beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Den Haag beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Den Haag?**  
+- **Werkt Veele Services in heel Den Haag?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Scheveningen
@@ -2329,16 +2329,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Scheveningen beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Scheveningen beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Scheveningen?**  
+- **Werkt Veele Services in heel Scheveningen?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Rijswijk
@@ -2386,16 +2386,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Rijswijk beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Rijswijk beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Rijswijk?**  
+- **Werkt Veele Services in heel Rijswijk?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Voorburg en Leidschendam
@@ -2443,16 +2443,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Voorburg en Leidschendam beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Voorburg en Leidschendam beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Voorburg en Leidschendam?**  
+- **Werkt Veele Services in heel Voorburg en Leidschendam?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Wassenaar
@@ -2500,16 +2500,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Wassenaar beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Wassenaar beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Wassenaar?**  
+- **Werkt Veele Services in heel Wassenaar?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Delft
@@ -2557,16 +2557,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Delft beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Delft beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Delft?**  
+- **Werkt Veele Services in heel Delft?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Dienstverlening Zoetermeer
@@ -2614,16 +2614,16 @@ Voeg minimaal één gevalideerde lokale case, route-/servicelogica, eigen foto o
 1. **Voorstel** - U ontvangt één plan met contactlijn, kwaliteit en prijsafspraken.
 
 ### CTA
-**Een locatie in Zoetermeer beter geregeld?**  
-Plan een vrijblijvende locatiescan met Veele Services.  
+**Een locatie in Zoetermeer beter geregeld?**
+Plan een vrijblijvende locatiescan met Veele Services.
 Knoppen: **Plan een locatiescan** / **Bel direct**
 
 ### Veelgestelde vragen
-- **Werkt Veele Services in heel Zoetermeer?**  
+- **Werkt Veele Services in heel Zoetermeer?**
   De inzet hangt af van dienst, locatie, omvang en planning. Geef het adres door voor een snelle haalbaarheidscheck.
-- **Kunnen meerdere diensten worden gecombineerd?**  
+- **Kunnen meerdere diensten worden gecombineerd?**
   Ja. Schoonmaak, beveiliging en facilitair kunnen onder één operationele regie vallen.
-- **Hoe snel ontvangen we een voorstel?**  
+- **Hoe snel ontvangen we een voorstel?**
   Na een complete intake ontvangt u doorgaans snel een eerste scope. Voor complexe locaties volgt eerst een opname.
 
 # Sitebrede microcopy
