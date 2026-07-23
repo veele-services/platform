@@ -1,4 +1,9 @@
 import { z } from "zod/v4";
+import {
+  EMPTY_WEBSITE_PUBLICATION_BLOG,
+  WEBSITE_BLOG_INDEX_PATH,
+  websitePublicationBlogSchema,
+} from "./blog";
 import { websiteSectionSchema } from "./sections";
 import {
   websiteContactSchema,
@@ -142,6 +147,7 @@ export const websitePublicationSnapshotSchema = z
     pages: z.array(publicationPageSchema).min(1).max(1_000),
     navigation: z.array(publicationNavigationItemSchema).max(500),
     redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
+    blog: websitePublicationBlogSchema.default(EMPTY_WEBSITE_PUBLICATION_BLOG),
   })
   .strict()
   .superRefine((snapshot, context) => {
@@ -173,6 +179,46 @@ export const websitePublicationSnapshotSchema = z
       }
     }
 
+    const blogRoutes = new Set<string>();
+    const blogLocales = new Set<string>();
+    for (const category of snapshot.blog.categories) {
+      blogLocales.add(category.locale);
+      blogRoutes.add(websiteRouteKey(category.locale, category.path));
+    }
+    for (const tag of snapshot.blog.tags) {
+      blogLocales.add(tag.locale);
+      blogRoutes.add(websiteRouteKey(tag.locale, tag.path));
+    }
+    for (const post of snapshot.blog.posts) {
+      blogLocales.add(post.locale);
+      blogRoutes.add(websiteRouteKey(post.locale, post.path));
+    }
+    for (const locale of blogLocales) {
+      const index = snapshot.pages.find(
+        (page) =>
+          page.locale === locale &&
+          page.pageType === "blog_index" &&
+          page.path === WEBSITE_BLOG_INDEX_PATH,
+      );
+      if (!index) {
+        context.addIssue({
+          code: "custom",
+          path: ["blog"],
+          message:
+            "Blogcontent vereist per taal een gepubliceerde blogoverzichtspagina op /blog",
+        });
+      }
+    }
+    for (const route of blogRoutes) {
+      if (pageRoutes.has(route)) {
+        context.addIssue({
+          code: "custom",
+          path: ["blog"],
+          message: "Een blogroute botst met een gepubliceerde pagina",
+        });
+      }
+    }
+
     const redirectIds = new Set<string>();
     const redirectSources = new Set<string>();
     for (const redirect of snapshot.redirects) {
@@ -194,7 +240,16 @@ export const websitePublicationSnapshotSchema = z
           message: "A redirect source cannot collide with a published page",
         });
       }
+      if (blogRoutes.has(sourceKey)) {
+        context.addIssue({
+          code: "custom",
+          path: ["redirects", redirect.id, "sourcePath"],
+          message:
+            "A redirect source cannot collide with published blog content",
+        });
+      }
     }
+    const contentRoutes = new Set([...pageRoutes, ...blogRoutes]);
     for (const redirect of snapshot.redirects) {
       if (redirect.destinationType !== "path") continue;
       const destinationKey = websiteRouteKey(
@@ -208,7 +263,7 @@ export const websitePublicationSnapshotSchema = z
           message: "Publication redirects cannot form loops or chains",
         });
       }
-      if (!pageRoutes.has(destinationKey)) {
+      if (!contentRoutes.has(destinationKey)) {
         context.addIssue({
           code: "custom",
           path: ["redirects", redirect.id, "destination"],

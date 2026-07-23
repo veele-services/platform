@@ -3,7 +3,11 @@ import {
   hashWebsitePreviewToken,
   verifyWebsitePreviewToken,
 } from "@workspace/website-core/preview-token";
-import { ManagedWebsiteView } from "@workspace/shared-ui/website-renderer";
+import {
+  ManagedWebsiteBlogArchiveView,
+  ManagedWebsiteBlogPostView,
+  ManagedWebsiteView,
+} from "@workspace/shared-ui/website-renderer";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -37,15 +41,18 @@ function previewSigningSecret(): string {
 }
 
 export default async function WebsitePreviewPage({ params }: Props) {
-  const [{ token, slug }, user, tenantId, canRead] = await Promise.all([
-    params,
-    getCurrentBackofficeUser(),
-    requireCurrentTenantId(),
-    hasPermission("website_pages", "read"),
-  ]);
+  const [{ token, slug }, user, tenantId, canReadPages, canReadBlog] =
+    await Promise.all([
+      params,
+      getCurrentBackofficeUser(),
+      requireCurrentTenantId(),
+      hasPermission("website_pages", "read"),
+      hasPermission("website_blog", "read"),
+    ]);
   if (
     !user ||
-    !canRead ||
+    !canReadPages ||
+    !canReadBlog ||
     !verifyWebsitePreviewToken(token, previewSigningSecret())
   ) {
     notFound();
@@ -64,9 +71,55 @@ export default async function WebsitePreviewPage({ params }: Props) {
       candidate.locale === preview.snapshot.defaultLocale &&
       candidate.path === pathname,
   );
-  if (!page) notFound();
-
   const previewRoot = backofficePath(`/website-preview/${token}`);
+  const locale = preview.snapshot.defaultLocale;
+  const blogPosts = preview.snapshot.blog.posts.filter(
+    (post) => post.locale === locale,
+  );
+  const post = blogPosts.find((candidate) => candidate.path === pathname);
+  const category = preview.snapshot.blog.categories.find(
+    (candidate) => candidate.locale === locale && candidate.path === pathname,
+  );
+  const tag = preview.snapshot.blog.tags.find(
+    (candidate) => candidate.locale === locale && candidate.path === pathname,
+  );
+  if (!page && !post && !category && !tag) notFound();
+
+  const content = page ? (
+    <ManagedWebsiteView
+      snapshot={preview.snapshot}
+      page={page}
+      deliveryRevision={preview.snapshot.deliveryRevision}
+      internalPathPrefix={previewRoot}
+      includePreviewBlogPosts
+    />
+  ) : post ? (
+    <ManagedWebsiteBlogPostView
+      snapshot={preview.snapshot}
+      post={post}
+      deliveryRevision={preview.snapshot.deliveryRevision}
+      internalPathPrefix={previewRoot}
+    />
+  ) : category ? (
+    <ManagedWebsiteBlogArchiveView
+      snapshot={preview.snapshot}
+      title={category.name}
+      description={category.description}
+      posts={blogPosts.filter(
+        (candidate) => candidate.categoryId === category.id,
+      )}
+      deliveryRevision={preview.snapshot.deliveryRevision}
+      internalPathPrefix={previewRoot}
+    />
+  ) : tag ? (
+    <ManagedWebsiteBlogArchiveView
+      snapshot={preview.snapshot}
+      title={`Tag: ${tag.name}`}
+      posts={blogPosts.filter((candidate) => candidate.tagIds.includes(tag.id))}
+      deliveryRevision={preview.snapshot.deliveryRevision}
+      internalPathPrefix={previewRoot}
+    />
+  ) : null;
   return (
     <>
       <aside
@@ -90,12 +143,7 @@ export default async function WebsitePreviewPage({ params }: Props) {
           Terug naar publicatiereview
         </a>
       </aside>
-      <ManagedWebsiteView
-        snapshot={preview.snapshot}
-        page={page}
-        deliveryRevision={preview.snapshot.deliveryRevision}
-        internalPathPrefix={previewRoot}
-      />
+      {content}
     </>
   );
 }

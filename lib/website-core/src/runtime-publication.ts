@@ -14,6 +14,10 @@ import {
 } from "./site";
 import { WEBSITE_PAGE_TYPES } from "./templates";
 import { websiteCanonicalPathSchema } from "./redirects";
+import {
+  EMPTY_WEBSITE_PUBLICATION_BLOG,
+  websitePublicationBlogSchema,
+} from "./blog";
 
 const publicPathSchema = websiteCanonicalPathSchema;
 
@@ -72,6 +76,7 @@ const runtimePublicationEnvelopeSchema = z
     pages: z.array(runtimePageSchema).min(1).max(1_000),
     navigation: z.array(runtimeNavigationItemSchema).max(500),
     redirects: z.array(websitePublicationRedirectSchema).max(1_000).default([]),
+    blog: websitePublicationBlogSchema.default(EMPTY_WEBSITE_PUBLICATION_BLOG),
   })
   .strict();
 

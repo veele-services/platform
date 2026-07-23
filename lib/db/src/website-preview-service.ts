@@ -12,6 +12,7 @@ import {
   type WebsitePublicationSource,
 } from "@workspace/website-core";
 import { pool } from "./connection";
+import { loadWebsiteBlogSource } from "./website-blog-service";
 
 const uuidSchema = z.string().uuid();
 const tokenHashSchema = z.string().regex(/^[0-9a-f]{64}$/u);
@@ -83,6 +84,7 @@ export type WebsitePublicationReview = {
     settings: boolean;
     navigation: boolean;
     redirects: boolean;
+    blog: boolean;
     pages: Array<{
       id: string;
       title: string;
@@ -250,41 +252,39 @@ async function loadWebsiteSource(
     throw new Error("Website-module is niet actief voor deze tenant");
   }
 
-  const [pageResult, sectionResult, navigationResult, redirectResult] =
-    await Promise.all([
-      query.query<SourcePageRow>(
-        `SELECT id, locale, path, page_type, title, seo, status, is_homepage,
-              authoring_revision
-       FROM public.website_pages
-       WHERE tenant_id = $1 AND site_id = $2
-       ORDER BY locale, path, id`,
-        [tenantId, siteId],
-      ),
-      query.query<SourceSectionRow>(
-        `SELECT id, page_id, section_key, schema_version, variant_key, position,
-              content, is_visible
-       FROM public.website_page_sections
-       WHERE tenant_id = $1 AND site_id = $2
-       ORDER BY page_id, position, id`,
-        [tenantId, siteId],
-      ),
-      query.query<SourceNavigationRow>(
-        `SELECT id, label, location, parent_id, page_id, link_type, href, target,
-              position, is_visible
-       FROM public.website_navigation_items
-       WHERE tenant_id = $1 AND site_id = $2
-       ORDER BY location, position, id`,
-        [tenantId, siteId],
-      ),
-      query.query<SourceRedirectRow>(
-        `SELECT id, locale, source_path, destination_type, destination,
-              status_code, is_active
-       FROM public.website_redirects
-       WHERE tenant_id = $1 AND site_id = $2
-       ORDER BY locale, source_path, id`,
-        [tenantId, siteId],
-      ),
-    ]);
+  const pageResult = await query.query<SourcePageRow>(
+    `SELECT id, locale, path, page_type, title, seo, status, is_homepage,
+            authoring_revision
+     FROM public.website_pages
+     WHERE tenant_id = $1 AND site_id = $2
+     ORDER BY locale, path, id`,
+    [tenantId, siteId],
+  );
+  const sectionResult = await query.query<SourceSectionRow>(
+    `SELECT id, page_id, section_key, schema_version, variant_key, position,
+            content, is_visible
+     FROM public.website_page_sections
+     WHERE tenant_id = $1 AND site_id = $2
+     ORDER BY page_id, position, id`,
+    [tenantId, siteId],
+  );
+  const navigationResult = await query.query<SourceNavigationRow>(
+    `SELECT id, label, location, parent_id, page_id, link_type, href, target,
+            position, is_visible
+     FROM public.website_navigation_items
+     WHERE tenant_id = $1 AND site_id = $2
+     ORDER BY location, position, id`,
+    [tenantId, siteId],
+  );
+  const redirectResult = await query.query<SourceRedirectRow>(
+    `SELECT id, locale, source_path, destination_type, destination,
+            status_code, is_active
+     FROM public.website_redirects
+     WHERE tenant_id = $1 AND site_id = $2
+     ORDER BY locale, source_path, id`,
+    [tenantId, siteId],
+  );
+  const blog = await loadWebsiteBlogSource(query, tenantId, siteId);
 
   const sectionsByPage = new Map<string, SourceSectionRow[]>();
   for (const section of sectionResult.rows) {
@@ -345,6 +345,7 @@ async function loadWebsiteSource(
       statusCode: Number(redirect.status_code),
       isActive: redirect.is_active,
     })),
+    blog,
   });
 
   return {
@@ -397,6 +398,7 @@ function publicationChanges(
       settings: false,
       navigation: false,
       redirects: false,
+      blog: false,
       pages: [],
     };
   }
@@ -455,6 +457,9 @@ function publicationChanges(
       !active ||
       stableSnapshotPart(active.redirects) !==
         stableSnapshotPart(current.redirects),
+    blog:
+      !active ||
+      stableSnapshotPart(active.blog) !== stableSnapshotPart(current.blog),
     pages: pages.sort((left, right) => left.path.localeCompare(right.path)),
   };
 }
@@ -511,6 +516,16 @@ function draftCapabilityWarnings(
           message: `${page.title} bevat een contactformulier waarvan verzending bewust uitgeschakeld blijft tot de beveiligde formulierfase.`,
         });
       }
+    }
+  }
+  for (const post of loaded.source.blog.posts) {
+    if (hasMediaReference(post.seo)) {
+      warnings.push({
+        severity: "warning",
+        code: "blog_media_resolution_pending",
+        path: `blog.posts.${post.id}.seo`,
+        message: `${post.title} bevat social media die nog niet door de publieke mediaresolver wordt geleverd.`,
+      });
     }
   }
   return warnings;
@@ -576,6 +591,14 @@ export async function getWebsitePublicationReview(
         code: "draft_page_excluded",
         path: `pages.${page.id}.status`,
         message: `${page.title} (${page.path}) staat nog op concept en wordt niet opgenomen in de publicatie.`,
+      })),
+    ...loaded.source.blog.posts
+      .filter((post) => post.status === "draft")
+      .map((post) => ({
+        severity: "warning" as const,
+        code: "draft_blog_post_excluded",
+        path: `blog.posts.${post.id}.status`,
+        message: `${post.title} staat nog op concept en wordt niet opgenomen in de publieke blog.`,
       })),
     ...draftCapabilityWarnings(loaded),
   ];

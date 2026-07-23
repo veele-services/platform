@@ -7,6 +7,9 @@ const read = (path) =>
 const migration = read(
   "lib/db/migrations/20260721210000_website_publication_invariants.sql",
 );
+const blogMigration = read(
+  "lib/db/migrations/20260721250000_website_blog_publication.sql",
+);
 const service = read("lib/db/src/website-publication-service.ts");
 const builder = read("lib/website-core/src/publication-builder.ts");
 const publication = read("lib/website-core/src/publication.ts");
@@ -53,6 +56,20 @@ test("authoring mutations invalidate prepared publications at database level", (
   }
   assert.match(migration, /website authoring revision is database-managed/u);
   assert.match(migration, /website child ownership is immutable/u);
+  for (const table of [
+    "website_blog_categories",
+    "website_blog_tags",
+    "website_blog_posts",
+    "website_blog_post_tags",
+  ]) {
+    assert.match(
+      blogMigration,
+      new RegExp(
+        `ON public\\.${table}[\\s\\S]*website_touch_child_authoring_revision`,
+        "u",
+      ),
+    );
+  }
 });
 
 test("server publication creation locks the site and compiles before insert", () => {
@@ -126,6 +143,12 @@ test("runtime proof covers all Phase 1B acceptance boundaries", () => {
     "explicitPageInclusion",
     "browserPreviewReadDenied",
     "browserExecutionDenied",
+    "blogTaxonomyExactRevision",
+    "futureBlogPublicationRejected",
+    "draftBlogExcludedFromPublication",
+    "draftBlogIncludedInSignedPreview",
+    "activeBlogSnapshotUnaffectedByDraft",
+    "browserBlogReadDenied",
   ]) {
     assert.match(runtime, new RegExp(`${assertion}: true`, "u"));
   }

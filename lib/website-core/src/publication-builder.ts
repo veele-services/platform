@@ -1,5 +1,12 @@
 import { z } from "zod/v4";
 import {
+  WEBSITE_BLOG_INDEX_PATH,
+  websiteBlogCategoryPath,
+  websiteBlogPostPath,
+  websiteBlogSourceSchema,
+  websiteBlogTagPath,
+} from "./blog";
+import {
   WEBSITE_PUBLICATION_SCHEMA_VERSION,
   websitePublicationSnapshotSchema,
   type WebsitePublicationSnapshot,
@@ -88,10 +95,11 @@ export const websitePublicationSourceSchema = z
     pages: z.array(sourcePageSchema).max(1_000),
     navigation: z.array(sourceNavigationItemSchema).max(500),
     redirects: websiteRedirectDraftSchema.default([]),
+    blog: websiteBlogSourceSchema,
   })
   .strict();
 
-export type WebsitePublicationSource = z.input<
+export type WebsitePublicationSource = z.output<
   typeof websitePublicationSourceSchema
 >;
 
@@ -156,6 +164,7 @@ function buildWebsiteSnapshot(
   includePage: (
     status: WebsitePublicationSource["pages"][number]["status"],
   ) => boolean,
+  includeBlogPost: (status: "draft" | "published" | "archived") => boolean,
 ): WebsitePublicationSnapshot {
   const parsed = websitePublicationSourceSchema.safeParse(input);
   if (!parsed.success) {
@@ -211,6 +220,15 @@ function buildWebsiteSnapshot(
       websiteRouteKey(page.locale, page.path),
       page,
     ]),
+  );
+  const blogIndexLocales = new Set(
+    publishedPages
+      .filter(
+        (page) =>
+          page.pageType === "blog_index" &&
+          page.path === WEBSITE_BLOG_INDEX_PATH,
+      )
+      .map((page) => page.locale),
   );
   const pages = publishedPages.map((page) => ({
     id: page.id,
@@ -403,6 +421,171 @@ function buildWebsiteSnapshot(
       };
     });
 
+  const includedSourceBlogPosts = source.blog.posts.filter((post) =>
+    includeBlogPost(post.status),
+  );
+  const includedCategoryIds = new Set(
+    includedSourceBlogPosts.flatMap((post) =>
+      post.categoryId ? [post.categoryId] : [],
+    ),
+  );
+  const includedTagIds = new Set(
+    includedSourceBlogPosts.flatMap((post) => post.tagIds),
+  );
+  const categories = source.blog.categories
+    .filter(
+      (category) => category.isActive && includedCategoryIds.has(category.id),
+    )
+    .sort(
+      (left, right) =>
+        compareText(left.locale, right.locale) ||
+        compareText(left.slug, right.slug) ||
+        compareText(left.id, right.id),
+    )
+    .map((category) => ({
+      id: category.id,
+      locale: category.locale,
+      name: category.name,
+      slug: category.slug,
+      path: websiteBlogCategoryPath(category.slug),
+      description: category.description,
+    }));
+  const tags = source.blog.tags
+    .filter((tag) => tag.isActive && includedTagIds.has(tag.id))
+    .sort(
+      (left, right) =>
+        compareText(left.locale, right.locale) ||
+        compareText(left.slug, right.slug) ||
+        compareText(left.id, right.id),
+    )
+    .map((tag) => ({
+      id: tag.id,
+      locale: tag.locale,
+      name: tag.name,
+      slug: tag.slug,
+      path: websiteBlogTagPath(tag.slug),
+    }));
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  const tagById = new Map(tags.map((tag) => [tag.id, tag]));
+  const blogPosts = includedSourceBlogPosts
+    .sort(
+      (left, right) =>
+        compareText(left.locale, right.locale) ||
+        compareText(
+          right.publishedAt ?? right.updatedAt,
+          left.publishedAt ?? left.updatedAt,
+        ) ||
+        compareText(left.slug, right.slug) ||
+        compareText(left.id, right.id),
+    )
+    .map((post) => {
+      if (!blogIndexLocales.has(post.locale)) {
+        diagnostics.push(
+          diagnostic(
+            "blog_index_missing",
+            `blog.posts.${post.id}.locale`,
+            "Blogcontent vereist een gepubliceerde blogoverzichtspagina op /blog in dezelfde taal",
+          ),
+        );
+      }
+      if (
+        post.status === "published" &&
+        post.publishedAt &&
+        new Date(post.publishedAt).getTime() > Date.now()
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "future_blog_post",
+            `blog.posts.${post.id}.publishedAt`,
+            "Toekomstige publicatie is niet ondersteund; publiceer het bericht expliciet wanneer het live mag",
+          ),
+        );
+      }
+      if (post.categoryId) {
+        const category = categoryById.get(post.categoryId);
+        if (!category || category.locale !== post.locale) {
+          diagnostics.push(
+            diagnostic(
+              "invalid_blog_category",
+              `blog.posts.${post.id}.categoryId`,
+              "De blogcategorie is niet actief of gebruikt een andere taal",
+            ),
+          );
+        }
+      }
+      for (const tagId of post.tagIds) {
+        const tag = tagById.get(tagId);
+        if (!tag || tag.locale !== post.locale) {
+          diagnostics.push(
+            diagnostic(
+              "invalid_blog_tag",
+              `blog.posts.${post.id}.tagIds`,
+              "Een blogtag is niet actief of gebruikt een andere taal",
+            ),
+          );
+        }
+      }
+      const path = websiteBlogPostPath(post.slug);
+      if (pageByRoute.has(websiteRouteKey(post.locale, path))) {
+        diagnostics.push(
+          diagnostic(
+            "blog_page_collision",
+            `blog.posts.${post.id}.slug`,
+            "Blogberichtpad botst met een gepubliceerde pagina",
+          ),
+        );
+      }
+      return {
+        id: post.id,
+        locale: post.locale,
+        title: post.title,
+        slug: post.slug,
+        path,
+        excerpt: post.excerpt,
+        body: post.body,
+        categoryId: post.categoryId,
+        tagIds: post.tagIds,
+        seo: post.seo,
+        visibility:
+          post.status === "published"
+            ? ("published" as const)
+            : ("preview" as const),
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+      };
+    });
+  const blogRouteKeys = new Set([
+    ...categories.map((category) =>
+      websiteRouteKey(category.locale, category.path),
+    ),
+    ...tags.map((tag) => websiteRouteKey(tag.locale, tag.path)),
+    ...blogPosts.map((post) => websiteRouteKey(post.locale, post.path)),
+  ]);
+  for (const category of categories) {
+    if (pageByRoute.has(websiteRouteKey(category.locale, category.path))) {
+      diagnostics.push(
+        diagnostic(
+          "blog_page_collision",
+          `blog.categories.${category.id}.slug`,
+          "Blogcategoriepad botst met een gepubliceerde pagina",
+        ),
+      );
+    }
+  }
+  for (const tag of tags) {
+    if (pageByRoute.has(websiteRouteKey(tag.locale, tag.path))) {
+      diagnostics.push(
+        diagnostic(
+          "blog_page_collision",
+          `blog.tags.${tag.id}.slug`,
+          "Blogtagpad botst met een gepubliceerde pagina",
+        ),
+      );
+    }
+  }
+
   const redirects = source.redirects
     .filter((redirect) => redirect.isActive)
     .sort(
@@ -422,9 +605,23 @@ function buildWebsiteSnapshot(
           ),
         );
       }
+      if (blogRouteKeys.has(sourceKey)) {
+        diagnostics.push(
+          diagnostic(
+            "redirect_blog_collision",
+            `redirects.${redirect.id}.sourcePath`,
+            "Redirectbron botst met gepubliceerde blogcontent",
+          ),
+        );
+      }
       if (
         redirect.destinationType === "path" &&
-        !pageByRoute.has(websiteRouteKey(redirect.locale, redirect.destination))
+        !pageByRoute.has(
+          websiteRouteKey(redirect.locale, redirect.destination),
+        ) &&
+        !blogRouteKeys.has(
+          websiteRouteKey(redirect.locale, redirect.destination),
+        )
       ) {
         diagnostics.push(
           diagnostic(
@@ -461,6 +658,11 @@ function buildWebsiteSnapshot(
     pages,
     navigation,
     redirects,
+    blog: {
+      categories,
+      tags,
+      posts: blogPosts,
+    },
   });
   if (!snapshot.success) {
     throw new WebsitePublicationValidationError(zodDiagnostics(snapshot.error));
@@ -471,13 +673,21 @@ function buildWebsiteSnapshot(
 export function buildWebsitePublicationSnapshot(
   input: WebsitePublicationSource,
 ): WebsitePublicationSnapshot {
-  return buildWebsiteSnapshot(input, (status) => status === "published");
+  return buildWebsiteSnapshot(
+    input,
+    (status) => status === "published",
+    (status) => status === "published",
+  );
 }
 
 export function buildWebsiteDraftPreviewSnapshot(
   input: WebsitePublicationSource,
 ): WebsitePublicationSnapshot {
-  return buildWebsiteSnapshot(input, (status) => status !== "archived");
+  return buildWebsiteSnapshot(
+    input,
+    (status) => status !== "archived",
+    (status) => status !== "archived",
+  );
 }
 
 function stableJsonValue(value: unknown): string {

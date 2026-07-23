@@ -302,7 +302,8 @@ export function WebsitePublicationReviewPanel({
             navigatie:{" "}
             {initialReview.changes.navigation ? "gewijzigd" : "gelijk"} ·
             redirects:{" "}
-            {initialReview.changes.redirects ? "gewijzigd" : "gelijk"}
+            {initialReview.changes.redirects ? "gewijzigd" : "gelijk"} · blog:{" "}
+            {initialReview.changes.blog ? "gewijzigd" : "gelijk"}
           </p>
         </div>
         {initialReview.changes.pages.length === 0 ? (

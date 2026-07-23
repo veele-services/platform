@@ -10,6 +10,7 @@ import {
   type WebsitePublicationSnapshot,
 } from "@workspace/website-core";
 import { pool } from "./connection";
+import { loadWebsiteBlogSource } from "./website-blog-service";
 
 const commandContextSchema = z
   .object({
@@ -308,6 +309,11 @@ export async function createManagedWebsitePublication(
          ORDER BY locale, source_path, id`,
         [input.tenantId, input.siteId],
       );
+      const blog = await loadWebsiteBlogSource(
+        client,
+        input.tenantId,
+        input.siteId,
+      );
 
       const sectionsByPage = new Map<string, SectionRow[]>();
       for (const section of sectionResult.rows) {
@@ -368,6 +374,7 @@ export async function createManagedWebsitePublication(
           statusCode: Number(redirect.status_code),
           isActive: redirect.is_active,
         })),
+        blog,
       });
       const snapshot = buildWebsitePublicationSnapshot(source);
       const canonicalSnapshot = serializeWebsitePublication(snapshot);

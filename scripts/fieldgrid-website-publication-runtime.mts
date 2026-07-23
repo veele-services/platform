@@ -3,17 +3,23 @@ import { randomUUID } from "node:crypto";
 
 import {
   activateManagedWebsitePublication,
+  createWebsiteBlogPost,
   createManagedWebsitePublication,
   createWebsitePreviewSession,
+  getWebsiteBlog,
+  getWebsiteBlogPost,
   getWebsiteNavigation,
   getWebsiteRedirects,
   includeWebsitePageInPublication,
   loadWebsitePreviewSession,
   pool,
+  publishWebsiteBlogPost,
+  replaceWebsiteBlogTaxonomy,
   resolveManagedWebsiteByHost,
   replaceWebsiteNavigation,
   replaceWebsiteRedirects,
   setPrimaryWebsiteDomain,
+  updateWebsiteBlogPost,
   updateWebsitePage,
   type WebsiteNavigationDraftItem,
   type WebsiteRedirectDraftItem,
@@ -40,6 +46,7 @@ const domainId = randomUUID();
 const hostname = `publication-${randomUUID()}.runtime.fieldgrid.test`;
 const homePageId = randomUUID();
 const contactPageId = randomUUID();
+const blogIndexPageId = randomUUID();
 const previewDraftPageId = randomUUID();
 const noRedirectPageId = randomUUID();
 const heroSectionId = randomUUID();
@@ -48,6 +55,9 @@ const contactNavigationId = randomUUID();
 const moreNavigationId = randomUUID();
 const externalNavigationId = randomUUID();
 const externalRedirectId = randomUUID();
+const blogRedirectId = randomUUID();
+const blogCategoryId = randomUUID();
+const blogTagId = randomUUID();
 
 const theme = {
   schemaVersion: 1,
@@ -185,8 +195,19 @@ try {
      ), (
        $6, $2, $3, 'nl-NL', 'Contact', 'contact', '/contact', 'contact',
        'published', false, $4::jsonb, now(), $5, $5
+     ), (
+       $7, $2, $3, 'nl-NL', 'Blog', 'blog', '/blog', 'blog_index',
+       'published', false, $4::jsonb, now(), $5, $5
      )`,
-    [homePageId, tenantA, siteId, JSON.stringify(seo), actorA, contactPageId],
+    [
+      homePageId,
+      tenantA,
+      siteId,
+      JSON.stringify(seo),
+      actorA,
+      contactPageId,
+      blogIndexPageId,
+    ],
   );
   await pool.query(
     `INSERT INTO public.website_page_sections (
@@ -533,7 +554,7 @@ try {
        WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
       [tenantA, siteId, contactPageId, actorA],
     ),
-    /internal redirect destination must resolve to an active page/u,
+    /internal redirect destination must resolve to active website content/u,
   );
 
   await assert.rejects(
@@ -544,6 +565,196 @@ try {
       [tenantA, domain.id, competingSiteId, actorA],
     ),
     /website child ownership is immutable/u,
+  );
+
+  const taxonomyRevision = await currentAuthoringRevision();
+  const taxonomy = {
+    categories: [
+      {
+        id: blogCategoryId,
+        locale: "nl-NL",
+        name: "Veilig werken",
+        slug: "veilig-werken",
+        description: "Praktische publicatiekennis.",
+        isActive: true,
+      },
+    ],
+    tags: [
+      {
+        id: blogTagId,
+        locale: "nl-NL",
+        name: "Publicatie",
+        slug: "publicatie",
+        isActive: true,
+      },
+    ],
+  };
+  const taxonomyWrite = await replaceWebsiteBlogTaxonomy({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: taxonomyRevision,
+    taxonomy,
+  });
+  assert.equal(taxonomyWrite.changed, true);
+  assert.equal(taxonomyWrite.authoringRevision, taxonomyRevision + 1);
+  const taxonomyNoop = await replaceWebsiteBlogTaxonomy({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: taxonomyWrite.authoringRevision,
+    taxonomy,
+  });
+  assert.equal(taxonomyNoop.changed, false);
+  assert.equal(taxonomyNoop.authoringRevision, taxonomyWrite.authoringRevision);
+
+  const publishedPostDraft = {
+    locale: "nl-NL",
+    title: "Veilig publiceren",
+    slug: "veilig-publiceren",
+    excerpt: "Een gecontroleerde publicatie zonder verborgen conceptinhoud.",
+    body: {
+      type: "doc" as const,
+      schemaVersion: 2 as const,
+      content: [
+        {
+          type: "paragraph" as const,
+          content: [
+            {
+              type: "text" as const,
+              text: "Alleen allowlisted TipTap-inhoud bereikt de runtime.",
+            },
+          ],
+        },
+      ],
+    },
+    categoryId: blogCategoryId,
+    tagIds: [blogTagId],
+    seo: {
+      ...seo,
+      title: "Veilig publiceren",
+      description: "Runtimebewijs voor expliciete en immutable blogpublicatie.",
+    },
+  };
+  const publishedPost = await createWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: taxonomyWrite.authoringRevision,
+    post: publishedPostDraft,
+  });
+  assert.equal(
+    publishedPost.authoringRevision,
+    taxonomyWrite.authoringRevision + 1,
+  );
+  const privatePost = await createWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: publishedPost.authoringRevision,
+    post: {
+      ...publishedPostDraft,
+      title: "Intern concept",
+      slug: "intern-concept",
+      excerpt: "Deze tekst mag uitsluitend in een ondertekende preview staan.",
+      seo: {
+        ...publishedPostDraft.seo,
+        title: "Intern concept",
+        indexable: false,
+      },
+    },
+  });
+  const publishedTransition = await publishWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: privatePost.authoringRevision,
+    postId: publishedPost.id,
+    expectedPostRevision: 1,
+  });
+  assert.equal(
+    publishedTransition.authoringRevision,
+    privatePost.authoringRevision + 1,
+  );
+  assert.equal(publishedTransition.postAuthoringRevision, 2);
+
+  const blogView = await getWebsiteBlog(tenantA);
+  assert.equal(blogView?.posts.length, 2);
+  assert.equal(
+    blogView?.posts.find((post) => post.id === publishedPost.id)?.status,
+    "published",
+  );
+  assert.equal(
+    blogView?.posts.find((post) => post.id === privatePost.id)?.status,
+    "draft",
+  );
+  const postNoop = await updateWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: publishedTransition.authoringRevision,
+    postId: publishedPost.id,
+    expectedPostRevision: publishedTransition.postAuthoringRevision,
+    post: publishedPostDraft,
+  });
+  assert.equal(postNoop.changed, false);
+  assert.equal(
+    postNoop.authoringRevision,
+    publishedTransition.authoringRevision,
+  );
+  await assert.rejects(
+    updateWebsiteBlogPost({
+      tenantId: tenantA,
+      siteId,
+      actorUserId: actorA,
+      expectedAuthoringRevision: postNoop.authoringRevision,
+      postId: publishedPost.id,
+      expectedPostRevision: 1,
+      post: publishedPostDraft,
+    }),
+    /Blogbericht is intussen gewijzigd/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_blog_posts
+       SET published_at = now() + interval '1 day', updated_by = $4
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+      [tenantA, siteId, publishedPost.id, actorA],
+    ),
+    /scheduled blog publication is not supported/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `UPDATE public.website_blog_tags
+       SET locale = 'en-GB', updated_by = $4
+       WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
+      [tenantA, siteId, blogTagId, actorA],
+    ),
+    /used blog tag cannot be deactivated or moved/u,
+  );
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO public.website_pages (
+         id, tenant_id, site_id, locale, title, slug, path, page_type,
+         status, is_homepage, seo, created_by, updated_by
+       ) VALUES (
+         $1, $2, $3, 'nl-NL', 'Botsende pagina', 'veilig-publiceren',
+         '/blog/veilig-publiceren', 'standard', 'draft', false,
+         $4::jsonb, $5, $5
+       )`,
+      [randomUUID(), tenantA, siteId, JSON.stringify(seo), actorA],
+    ),
+    /website page, redirect and blog routes must not collide/u,
+  );
+  await pool.query(
+    `INSERT INTO public.website_redirects (
+       id, tenant_id, site_id, locale, source_path, destination_type,
+       destination, status_code, is_active, created_by, updated_by
+     ) VALUES (
+       $1, $2, $3, 'nl-NL', '/blog-oud', 'path',
+       '/blog/veilig-publiceren', 308, true, $4, $4
+     )`,
+    [blogRedirectId, tenantA, siteId, actorA],
   );
 
   const revisionOne = await currentAuthoringRevision();
@@ -572,12 +783,26 @@ try {
       redirect.statusCode,
     ]),
     [
+      ["/blog-oud", "/blog/veilig-publiceren", 308],
       ["/contact", "/contact-nieuw", 308],
       ["/contact-opnemen", "/contact-nieuw", 308],
       ["/partner", "https://fieldgrid.nl/partners", 302],
     ],
   );
   assert.equal(candidateOne.snapshot.pages[0]?.title, "Home versie één");
+  assert.deepEqual(
+    candidateOne.snapshot.blog.posts.map((post) => [
+      post.id,
+      post.title,
+      post.visibility,
+    ]),
+    [[publishedPost.id, "Veilig publiceren", "published"]],
+  );
+  assert.ok(
+    !candidateOne.snapshot.blog.posts.some(
+      (post) => post.id === privatePost.id,
+    ),
+  );
   assert.match(candidateOne.cacheKey, new RegExp(`${siteId}:r2:`, "u"));
   assert.equal(idempotentCandidate.id, candidateOne.id);
 
@@ -664,6 +889,73 @@ try {
     /immutable/u,
   );
 
+  const storedPublishedPost = await getWebsiteBlogPost(
+    tenantA,
+    publishedPost.id,
+  );
+  assert.equal(storedPublishedPost?.status, "published");
+  assert.equal(
+    storedPublishedPost?.authoringRevision,
+    publishedTransition.postAuthoringRevision,
+  );
+  const publishedPostDraftV2 = {
+    ...publishedPostDraft,
+    title: "Veilig publiceren — herzien",
+    excerpt: "Een herzien bericht dat pas na een nieuwe publicatie live wordt.",
+    body: {
+      ...publishedPostDraft.body,
+      content: [
+        {
+          type: "paragraph" as const,
+          content: [
+            {
+              type: "text" as const,
+              text: "De tweede versie blijft concept tot expliciete herpublicatie.",
+            },
+          ],
+        },
+      ],
+    },
+    seo: {
+      ...publishedPostDraft.seo,
+      title: "Veilig publiceren — herzien",
+      description:
+        "Herzien runtimebewijs voor expliciete immutable blogpublicatie.",
+    },
+  };
+  const blogDraftUpdate = await updateWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: revisionTwo,
+    postId: publishedPost.id,
+    expectedPostRevision: publishedTransition.postAuthoringRevision,
+    post: publishedPostDraftV2,
+  });
+  assert.equal(blogDraftUpdate.changed, true);
+  assert.equal(blogDraftUpdate.authoringRevision, revisionTwo + 1);
+  assert.equal(candidateTwo.snapshot.blog.posts[0]?.title, "Veilig publiceren");
+  const liveWhileBlogIsDraft = await resolveManagedWebsiteByHost(hostname);
+  assert.equal(liveWhileBlogIsDraft.status, "ready");
+  if (liveWhileBlogIsDraft.status === "ready") {
+    assert.equal(
+      liveWhileBlogIsDraft.snapshot.blog.posts[0]?.title,
+      "Veilig publiceren",
+    );
+  }
+  const republishedPost = await publishWebsiteBlogPost({
+    tenantId: tenantA,
+    siteId,
+    actorUserId: actorA,
+    expectedAuthoringRevision: blogDraftUpdate.authoringRevision,
+    postId: publishedPost.id,
+    expectedPostRevision: blogDraftUpdate.postAuthoringRevision,
+  });
+  assert.equal(
+    republishedPost.authoringRevision,
+    blogDraftUpdate.authoringRevision + 1,
+  );
+
   await pool.query(
     `UPDATE public.website_pages
      SET title = 'Home versie drie', updated_by = $3, updated_at = now()
@@ -679,6 +971,15 @@ try {
     reason: "runtime replacement candidate",
   });
   assert.equal(candidateThree.targetDeliveryRevision, 3);
+  assert.equal(
+    candidateThree.snapshot.blog.posts[0]?.title,
+    "Veilig publiceren — herzien",
+  );
+  assert.ok(
+    !candidateThree.snapshot.blog.posts.some(
+      (post) => post.id === privatePost.id,
+    ),
+  );
 
   await assert.rejects(
     activateManagedWebsitePublication({
@@ -731,6 +1032,15 @@ try {
     assert.equal(publicResolution.publicationId, candidateThree.id);
     assert.equal(publicResolution.deliveryRevision, 3);
     assert.equal(publicResolution.snapshot.pages[0]?.title, "Home versie drie");
+    assert.equal(
+      publicResolution.snapshot.blog.posts[0]?.title,
+      "Veilig publiceren — herzien",
+    );
+    assert.ok(
+      !publicResolution.snapshot.blog.posts.some(
+        (post) => post.id === privatePost.id,
+      ),
+    );
     assert.equal(publicResolution.cacheKey, candidateThree.cacheKey);
   }
   assert.deepEqual(
@@ -787,6 +1097,12 @@ try {
     previewSession.snapshot.pages.some(
       (page) => page.id === previewDraftPageId,
     ),
+  );
+  assert.equal(
+    previewSession.snapshot.blog.posts.find(
+      (post) => post.id === privatePost.id,
+    )?.visibility,
+    "preview",
   );
   assert.ok(
     await loadWebsitePreviewSession({
@@ -863,6 +1179,25 @@ try {
     await browserClient.query(
       "ROLLBACK TO SAVEPOINT forbidden_activation_probe",
     );
+    await browserClient.query("SAVEPOINT forbidden_blog_read_probe");
+    await assert.rejects(
+      browserClient.query(
+        `SELECT title
+         FROM public.website_blog_posts
+         WHERE tenant_id = $1`,
+        [tenantA],
+      ),
+      (error: unknown) =>
+        Boolean(
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "42501",
+        ),
+    );
+    await browserClient.query(
+      "ROLLBACK TO SAVEPOINT forbidden_blog_read_probe",
+    );
     await assert.rejects(
       browserClient.query(
         `SELECT snapshot
@@ -919,6 +1254,21 @@ try {
           explicitNoRedirectAuditedWithoutRoute: true,
           inboundRedirectsRetargeted: true,
           redirectSnapshotDelivered: true,
+          redirectToPublishedBlogAccepted: true,
+          blogTaxonomyExactRevision: true,
+          blogTaxonomyNoopStable: true,
+          blogPostExactRevision: true,
+          staleBlogPostRevisionRejected: true,
+          blogCategoryAndTagLocaleBound: true,
+          futureBlogPublicationRejected: true,
+          pageBlogRouteCollisionRejected: true,
+          explicitBlogPublication: true,
+          draftBlogExcludedFromPublication: true,
+          draftBlogIncludedInSignedPreview: true,
+          publishedBlogUpdateReturnsToDraft: true,
+          activeBlogSnapshotUnaffectedByDraft: true,
+          previousBlogPublicationImmutable: true,
+          browserBlogReadDenied: true,
           deterministicPublicationCreated: true,
           exactCacheIdentityPersisted: true,
           concurrentIdempotentPublicationRetry: true,

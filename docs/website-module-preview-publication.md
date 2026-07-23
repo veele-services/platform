@@ -1,7 +1,7 @@
 # Fieldgrid website module — preview and immutable publication review
 
 Date: 23 July 2026
-Status: Phase 3C implemented, not deployed
+Status: Phase 5 integrated, not deployed
 
 ## Boundary
 
@@ -50,9 +50,12 @@ there is no stored-HTML path or `dangerouslySetInnerHTML`.
 
 ## Review and activation
 
-The review service loads tenant/site-scoped settings, pages, sections and
-navigation. It uses the same compiler as immutable publication creation and
-compares the result with the active snapshot. The UI exposes:
+The review service loads tenant/site-scoped settings, pages, sections,
+navigation, redirects and blog content. It uses the same compiler as immutable
+publication creation and compares the result with the active snapshot. Because
+a whole-site snapshot can contain private blog drafts in preview and published
+blog content on activation, review/preview require both page-read and blog-read;
+preparation/activation require both publish permissions. The UI exposes:
 
 - blocking diagnostics and warnings;
 - missing primary-domain state;
@@ -70,7 +73,7 @@ Preparing a publication creates or reuses one deterministic immutable `ready`
 snapshot for the exact authoring revision. Activation is a separate confirmed
 operation. The server rechecks:
 
-- `website_pages:publish`;
+- `website_pages:publish` and `website_blog:publish`;
 - exact tenant and site;
 - current delivery mode is `managed_cms`;
 - exact source revision;
