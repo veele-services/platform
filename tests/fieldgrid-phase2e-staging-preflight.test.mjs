@@ -55,16 +55,11 @@ function validEnvironment() {
     PERSONEEL_PORT: "3302",
     KLANT_PORT: "3303",
     API_PORT: "3304",
-    WEBSITE_PORT: "3305",
-    MARKETING_PORT: "3306",
     BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login",
     PERSONEEL_PUBLIC_HEALTH_URL:
       "https://staging.fieldgrid.nl/personeel/healthz",
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
-    WEBSITE_PUBLIC_HEALTH_URL: "https://website.staging.fieldgrid.nl/healthz",
-    MARKETING_PUBLIC_HEALTH_URL:
-      "https://veele-origin.staging.fieldgrid.nl/healthz",
     NEXT_PUBLIC_MARKETING_SITE_URL:
       "https://veele.staging.fieldgrid.nl/",
     FIELDGRID_CUSTOM_ROUTE_KEY: "veele_staging_primary",
@@ -125,12 +120,8 @@ test("secret and routing preflight lists every required deployment dependency by
   );
   assert.ok(REQUIRED_SECRET_NAMES.includes("MOLLIE_WEBHOOK_SECRET"));
   assert.ok(REQUIRED_VARIABLE_NAMES.includes("PILOT_TENANT_LOGIN_URL"));
-  assert.ok(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"));
-  assert.ok(REQUIRED_VARIABLE_NAMES.includes("MARKETING_SERVICE_NAME"));
-  assert.ok(REQUIRED_VARIABLE_NAMES.includes("MARKETING_PORT"));
-  assert.ok(
-    REQUIRED_VARIABLE_NAMES.includes("MARKETING_PUBLIC_HEALTH_URL"),
-  );
+  assert.equal(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"), false);
+  assert.equal(REQUIRED_VARIABLE_NAMES.includes("MARKETING_SERVICE_NAME"), false);
   assert.ok(
     REQUIRED_VARIABLE_NAMES.includes("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"),
   );
@@ -148,7 +139,7 @@ test("secret and routing preflight lists every required deployment dependency by
   assert.doesNotMatch(errors.join(" "), /test-token/u);
 
   const duplicatePort = validEnvironment();
-  duplicatePort.MARKETING_PORT = duplicatePort.WEBSITE_PORT;
+  duplicatePort.API_PORT = duplicatePort.KLANT_PORT;
   assert.match(
     validateRuntimeConfig(
       { expectedMain: mainSha, expectedStaging: stagingSha },
@@ -158,13 +149,13 @@ test("secret and routing preflight lists every required deployment dependency by
   );
 
   const invalidPort = validEnvironment();
-  invalidPort.MARKETING_PORT = "not-a-port";
+  invalidPort.API_PORT = "not-a-port";
   assert.match(
     validateRuntimeConfig(
       { expectedMain: mainSha, expectedStaging: stagingSha },
       invalidPort,
     ).join(" "),
-    /MARKETING_PORT must be a valid TCP port/u,
+    /API_PORT must be a valid TCP port/u,
   );
 });
 
@@ -183,14 +174,6 @@ test("custom candidate preflight is exact-main and staging-only", () => {
   assert.match(
     validateCustomCandidateConfig(mainSha, stale).join(" "),
     /bound to exact main/u,
-  );
-
-  const mismatchedHealth = validEnvironment();
-  mismatchedHealth.MARKETING_PUBLIC_HEALTH_URL =
-    "https://other-origin.staging.fieldgrid.nl/healthz";
-  assert.match(
-    validateCustomCandidateConfig(mainSha, mismatchedHealth).join(" "),
-    /marketing health URL must use the reviewed custom upstream/u,
   );
 
   const production = validEnvironment();

@@ -55,20 +55,14 @@ export const REQUIRED_VARIABLE_NAMES = [
   "PERSONEEL_SERVICE_NAME",
   "KLANT_SERVICE_NAME",
   "API_SERVICE_NAME",
-  "WEBSITE_SERVICE_NAME",
-  "MARKETING_SERVICE_NAME",
   "BACKOFFICE_PORT",
   "PERSONEEL_PORT",
   "KLANT_PORT",
   "API_PORT",
-  "WEBSITE_PORT",
-  "MARKETING_PORT",
   "BACKOFFICE_PUBLIC_LOGIN_URL",
   "PERSONEEL_PUBLIC_HEALTH_URL",
   "KLANT_PUBLIC_HEALTH_URL",
   "API_PUBLIC_HEALTH_URL",
-  "WEBSITE_PUBLIC_HEALTH_URL",
-  "MARKETING_PUBLIC_HEALTH_URL",
   "API_PUBLIC_ROOT_URL",
   "PILOT_TENANT_LOGIN_URL",
   "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON",
@@ -390,8 +384,6 @@ export function validateRuntimeConfig(options, env = process.env) {
     "PERSONEEL_PORT",
     "KLANT_PORT",
     "API_PORT",
-    "WEBSITE_PORT",
-    "MARKETING_PORT",
   ];
   const configuredPorts = portNames
     .map((name) => [name, String(env[name] ?? "")])
@@ -531,22 +523,9 @@ export function validateCustomCandidateConfig(
         "The reviewed custom upstream must be an origin-only staging HTTPS URL.",
       );
     }
-    const marketingHealth = new URL(env.MARKETING_PUBLIC_HEALTH_URL);
-    if (
-      marketingHealth.origin !== upstream.origin ||
-      marketingHealth.pathname !== "/healthz" ||
-      marketingHealth.username ||
-      marketingHealth.password ||
-      marketingHealth.search ||
-      marketingHealth.hash
-    ) {
-      errors.push(
-        "The marketing health URL must use the reviewed custom upstream and /healthz.",
-      );
-    }
   } catch {
     errors.push(
-      "The reviewed custom upstream or marketing health URL is not a valid URL.",
+      "The reviewed custom upstream must be an origin-only staging HTTPS URL.",
     );
   }
   return errors;
@@ -639,8 +618,6 @@ async function verifyRoutes(env = process.env) {
     ["personnel-health", env.PERSONEEL_PUBLIC_HEALTH_URL, "exact-200"],
     ["customer-health", env.KLANT_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-health", env.API_PUBLIC_HEALTH_URL, "exact-200"],
-    ["website-health", env.WEBSITE_PUBLIC_HEALTH_URL, "exact-200"],
-    ["marketing-health", env.MARKETING_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-root", env.API_PUBLIC_ROOT_URL, "api-root"],
     ["pilot-tenant-login", env.PILOT_TENANT_LOGIN_URL, "login"],
   ];
@@ -708,7 +685,6 @@ async function verifyRollbackTarget(expectedStaging, env = process.env) {
     env.PERSONEEL_SERVICE_NAME,
     env.KLANT_SERVICE_NAME,
     env.API_SERVICE_NAME,
-    env.WEBSITE_SERVICE_NAME,
   ];
   for (const service of services) {
     const statusResult = await runCommand("systemctl", ["is-active", service], {
