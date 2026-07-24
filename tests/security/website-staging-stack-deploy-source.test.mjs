@@ -11,7 +11,15 @@ test("website stack workflow is manual, exact-ref and staging-only", () => {
   assert.match(workflow, /github\.ref_name == 'staging'/u);
   assert.match(workflow, /website-staging-stack-only/u);
   assert.match(workflow, /persist-credentials: false/u);
-  assert.match(workflow, /gh api[\s\S]*git\/ref\/heads\/staging/u);
+  assert.match(
+    workflow,
+    /node --input-type=module[\s\S]*api\.github\.com[\s\S]*git\/ref\/heads\/staging/u,
+  );
+  assert.match(
+    workflow,
+    /Authorization: `Bearer \$\{process\.env\.GITHUB_TOKEN\}`/u,
+  );
+  assert.doesNotMatch(workflow, /\bgh\s+api\b/u);
   assert.match(workflow, /test "\$remote" = "\$expected"/u);
   assert.doesNotMatch(workflow, /\bpush:|git push|heads\/production/u);
 });

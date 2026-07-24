@@ -62,7 +62,29 @@ jobs:
           set -euo pipefail
           expected="${{ inputs.expected_staging_sha }}"
           checkout="$(git rev-parse HEAD)"
-          remote="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/staging" --jq .object.sha)"
+          remote="$(
+            node --input-type=module -e '
+              const response = await fetch(
+                `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/staging`,
+                {
+                  headers: {
+                    Accept: "application/vnd.github+json",
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    "X-GitHub-Api-Version": "2022-11-28",
+                  },
+                },
+              );
+              if (!response.ok) {
+                throw new Error(`staging ref lookup failed with HTTP ${response.status}`);
+              }
+              const payload = await response.json();
+              const sha = payload.object?.sha ?? "";
+              if (!/^[a-f0-9]{40}$/u.test(sha)) {
+                throw new Error("staging ref lookup returned an invalid SHA");
+              }
+              process.stdout.write(sha);
+            '
+          )"
           test "$checkout" = "$expected"
           test "$remote" = "$expected"
 
