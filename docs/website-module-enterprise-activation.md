@@ -108,6 +108,12 @@ sudo install -d -o root -g root -m 0755 /etc/caddy/fieldgrid.d
 sudo install -o root -g root -m 0644 \
   "$source_root/ops/caddy/fieldgrid-website-staging.caddy" \
   /etc/caddy/fieldgrid.d/fieldgrid-website-staging.caddy
+sudo visudo -cf \
+  "$source_root/ops/sudoers/veele-staging-website-stack"
+sudo install -o root -g root -m 0440 \
+  "$source_root/ops/sudoers/veele-staging-website-stack" \
+  /etc/sudoers.d/veele-staging-website-stack
+sudo visudo -cf /etc/sudoers.d/veele-staging-website-stack
 if ! sudo grep -Fxq 'import /etc/caddy/fieldgrid.d/*.caddy' /etc/caddy/Caddyfile; then
   printf '\n%s\n' 'import /etc/caddy/fieldgrid.d/*.caddy' |
     sudo tee -a /etc/caddy/Caddyfile >/dev/null
@@ -124,7 +130,10 @@ after both local process-health checks pass, using the Caddy service's protected
 DNS-provider environment. Every later deployment compares all three root-owned
 assets byte for byte with the exact staging checkout and fails closed on drift.
 It never uses `sudo install`, `sudo cp`, `sudo tee` or generic privileged file
-mutation.
+mutation. The separate root-owned sudoers drop-in grants only the exact
+two-unit restart/stop commands needed for activation and rollback, plus
+`systemctl reload caddy`. The workflow verifies those grants without executing
+them before it builds a release.
 
 Configure and validate Caddy so that:
 

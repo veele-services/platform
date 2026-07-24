@@ -42,6 +42,31 @@ test("website stack services are separate, local-only and hardened", () => {
   }
 });
 
+test("website stack sudoers grants only exact staging controls", () => {
+  const sudoers = read("ops/sudoers/veele-staging-website-stack");
+
+  assert.match(
+    sudoers,
+    /\/usr\/bin\/systemctl restart veele-staging-website veele-staging-marketing/u,
+  );
+  assert.match(
+    sudoers,
+    /\/usr\/bin\/systemctl stop veele-staging-website veele-staging-marketing/u,
+  );
+  assert.match(sudoers, /\/usr\/bin\/systemctl reload caddy/u);
+  assert.match(
+    sudoers,
+    /github-runner ALL=\(root\) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL/u,
+  );
+  assert.doesNotMatch(sudoers, /\*/u);
+  assert.doesNotMatch(sudoers, /\b(?:start|enable|disable|daemon-reload)\b/u);
+  assert.doesNotMatch(
+    sudoers,
+    /\/(?:bin|usr\/bin)\/(?:cp|install|mv|rm|tee)\b/u,
+  );
+  assert.doesNotMatch(sudoers, /production/u);
+});
+
 test("Caddy keeps application prefixes ahead of the website fallback", () => {
   const caddy = read("ops/caddy/fieldgrid-website-staging.caddy");
   const fallback = caddy.lastIndexOf("reverse_proxy 127.0.0.1:3305");
@@ -85,6 +110,9 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /trap rollback ERR/u);
   assert.match(script, /release-restored/u);
   assert.match(script, /require_preprovisioned_asset/u);
+  assert.match(script, /SUDOERS_TARGET/u);
+  assert.match(script, /stat -c '%u:%g:%a'/u);
+  assert.match(script, /sudo -n -l/u);
   assert.match(script, /systemctl is-enabled --quiet/u);
   assert.match(script, /caddy adapt --config "\$CADDYFILE"/u);
   assert.match(script, /sudo systemctl reload caddy/u);

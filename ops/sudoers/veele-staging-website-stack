@@ -1,0 +1,8 @@
+# Fieldgrid staging-only website stack controls.
+# Keep every command and argument exact; do not add wildcards or file writes.
+Cmnd_Alias FIELDGRID_WEBSITE_STACK_CONTROL = \
+    /usr/bin/systemctl restart veele-staging-website veele-staging-marketing, \
+    /usr/bin/systemctl stop veele-staging-website veele-staging-marketing, \
+    /usr/bin/systemctl reload caddy
+
+github-runner ALL=(root) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL
