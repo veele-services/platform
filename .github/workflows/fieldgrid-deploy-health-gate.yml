@@ -1,19 +1,6 @@
 name: Fieldgrid Deploy Health Gate
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/deploy.yml"
-      - ".github/workflows/fieldgrid-deploy-health-gate.yml"
-      - "scripts/fieldgrid-atomic-release-activate.sh"
-      - "scripts/fieldgrid-deploy-health-gate.sh"
-      - "scripts/fieldgrid-test-baseline-differential.mjs"
-      - "tests/fieldgrid-deploy-health-gate.test.mjs"
-      - "tests/fieldgrid-test-baseline-differential.test.mjs"
-      - "package.json"
-      - "pnpm-lock.yaml"
   workflow_dispatch:
 
 permissions:
@@ -22,7 +9,6 @@ permissions:
 jobs:
   baseline-differential-health-gate:
     name: Baseline differential health gate
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

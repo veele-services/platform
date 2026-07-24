@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:340a9a3901f1af42d0a5ebc1eff3c822742b1acb9a5998a3a63e636aef05867a",
+  "inventoryHash": "sha256:9ec90d11a896fa94f6a520f46eef6a1a8616bd877f97614e22b80882b5877aba",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -35,16 +35,16 @@
     "www"
   ],
   "counts": {
-    "total": 848,
-    "uniqueRuntimeNodes": 741,
-    "classifications": 848,
-    "externalEntrypoints": 109,
+    "total": 849,
+    "uniqueRuntimeNodes": 742,
+    "classifications": 849,
+    "externalEntrypoints": 110,
     "internalDbCallsites": 642,
     "providerBoundaries": 74,
     "signedUrlCallsites": 20,
     "byKind": {
       "server-action": 38,
-      "route-handler": 66,
+      "route-handler": 67,
       "middleware": 4,
       "webhook-handler": 1,
       "worker-entrypoint": 3,
@@ -59,13 +59,13 @@
       "review-required": 20,
       "high": 4,
       "medium": 373,
-      "low": 377,
+      "low": 378,
       "informational": 74
     }
   },
   "kindHashes": {
     "server-action": "sha256:b89bbec28b758c3448f2698c030b60f32dda2095cfbbe194620ff8f0ebb71d18",
-    "route-handler": "sha256:1daa599823af9f116cc8349f647be50bda78b7d739b7a3702112148bf1c1d86c",
+    "route-handler": "sha256:4009e550a27512f087ba38cce05f09834e3b6c7fcea67a9eef3b50adc38bac2c",
     "middleware": "sha256:d1c24050b9bcb8ff6454a27a6b93d05d673ff731469609d11e3d0c8f746477fb",
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",

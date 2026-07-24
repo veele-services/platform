@@ -172,7 +172,7 @@ default_services() {
   if [ -n "${FIELDGRID_DEPLOY_SERVICES:-}" ]; then
     split_words "$FIELDGRID_DEPLOY_SERVICES"
   else
-    split_words "${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-}} ${PERSONEEL_SERVICE_NAME:-} ${KLANT_SERVICE_NAME:-} ${API_SERVICE_NAME:-} ${WEBSITE_SERVICE_NAME:-}"
+    split_words "${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-}} ${PERSONEEL_SERVICE_NAME:-} ${KLANT_SERVICE_NAME:-} ${API_SERVICE_NAME:-} ${WEBSITE_SERVICE_NAME:-} ${MARKETING_SERVICE_NAME:-}"
   fi
 }
 
@@ -180,16 +180,19 @@ default_ports() {
   if [ -n "${FIELDGRID_DEPLOY_PORTS:-}" ]; then
     split_words "$FIELDGRID_DEPLOY_PORTS"
   else
-    split_words "${BACKOFFICE_PORT:-${PORT:-}} ${PERSONEEL_PORT:-} ${KLANT_PORT:-} ${API_PORT:-} ${WEBSITE_PORT:-}"
+    split_words "${BACKOFFICE_PORT:-${PORT:-}} ${PERSONEEL_PORT:-} ${KLANT_PORT:-} ${API_PORT:-} ${WEBSITE_PORT:-} ${MARKETING_PORT:-}"
   fi
 }
 
 expected_runtime_count() {
+  local count=4
   if [ -n "${WEBSITE_SERVICE_NAME:-}" ] || [ -n "${WEBSITE_PORT:-}" ]; then
-    printf '5'
-  else
-    printf '4'
+    count=$((count + 1))
   fi
+  if [ -n "${MARKETING_SERVICE_NAME:-}" ] || [ -n "${MARKETING_PORT:-}" ]; then
+    count=$((count + 1))
+  fi
+  printf '%s' "$count"
 }
 
 default_local_endpoints() {
@@ -212,6 +215,9 @@ default_local_endpoints() {
   fi
   if [ -n "${WEBSITE_PORT:-}" ]; then
     append_endpoint "local-website-health" "http://127.0.0.1:${WEBSITE_PORT}/healthz" "exact-200"
+  fi
+  if [ -n "${MARKETING_PORT:-}" ]; then
+    append_endpoint "local-marketing-health" "http://127.0.0.1:${MARKETING_PORT}/healthz" "exact-200"
   fi
 }
 
@@ -259,6 +265,11 @@ default_public_endpoints() {
     append_endpoint "public-website-health" "$WEBSITE_PUBLIC_HEALTH_URL" "exact-200"
   elif [ -n "${WEBSITE_PUBLIC_URL:-}" ]; then
     append_endpoint "public-website-health" "$(with_path "$WEBSITE_PUBLIC_URL" "/healthz")" "exact-200"
+  fi
+  if [ -n "${MARKETING_PUBLIC_HEALTH_URL:-}" ]; then
+    append_endpoint "public-marketing-health" "$MARKETING_PUBLIC_HEALTH_URL" "exact-200"
+  elif [ -n "${MARKETING_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-marketing-health" "$(with_path "$MARKETING_PUBLIC_URL" "/healthz")" "exact-200"
   fi
 }
 

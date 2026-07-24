@@ -128,12 +128,15 @@ Optional multi-service deploy variables:
 - `API_SERVICE_NAME`: systemd service for `@workspace/api-server`; if omitted, not restarted by deploy.
 - `WEBSITE_SERVICE_NAME`: staging-only systemd service for
   `@workspace/website-runtime`; configure together with `WEBSITE_PORT`.
+- `MARKETING_SERVICE_NAME`: staging-only independent systemd service for the
+  reviewed custom Next.js application; configure with `MARKETING_PORT`.
 - `BACKOFFICE_PORT`: runtime port for backoffice. Defaults to `PORT`.
 - `PERSONEEL_PORT`: runtime port for personnel PWA.
 - `KLANT_PORT`: runtime port for customer PWA.
 - `API_PORT`: runtime port for API server.
 - `WEBSITE_PORT`: staging-only runtime port for the managed/custom website
   router.
+- `MARKETING_PORT`: staging-only runtime port for the custom application.
 
 The deploy job writes all configured secrets and variables into the shared
 environment file at `/var/www/veele/<environment>/shared/.env`. For multi-service
@@ -142,7 +145,8 @@ deploys, each systemd unit should set its own `PORT` from the matching
 
 The deploy workflow validates the multi-service variables as pairs. If
 `PERSONEEL_SERVICE_NAME` is configured, `PERSONEEL_PORT` must also be configured,
-and the same rule applies to `KLANT_*`, `API_*` and staging `WEBSITE_*`. This prevents a green deploy
+and the same rule applies to `KLANT_*`, `API_*`, staging `WEBSITE_*` and
+staging `MARKETING_*`. This prevents a green deploy
 where a PWA is built but never restarted or exposed.
 
 ## Database Autofix workflow
@@ -195,7 +199,17 @@ API_SERVICE_NAME=veele-staging-api
 API_PORT=3304
 WEBSITE_SERVICE_NAME=veele-staging-website
 WEBSITE_PORT=3305
+MARKETING_SERVICE_NAME=veele-staging-marketing
+MARKETING_PORT=3306
 ```
+
+The two website units are repository-owned under `ops/systemd/`; the exact
+staging host routes are under `ops/caddy/`. Do not install them manually.
+Dispatch **Website Staging Stack Deploy** after the initial four-service staging
+promotion. The workflow builds an independent immutable release, separates the
+website database environment from the secret-free marketing environment,
+installs and validates Caddy transactionally and rolls both states back on
+failure.
 
 Example personnel systemd unit:
 

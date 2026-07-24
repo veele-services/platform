@@ -51,12 +51,15 @@ function validEnvironment() {
     env[name] ||= `${name.toLowerCase()}-configured`;
   Object.assign(env, {
     APP_URL: "https://staging.fieldgrid.nl/",
+    BACKOFFICE_PORT: "3301",
+    PERSONEEL_PORT: "3302",
+    KLANT_PORT: "3303",
+    API_PORT: "3304",
     BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login",
     PERSONEEL_PUBLIC_HEALTH_URL:
       "https://staging.fieldgrid.nl/personeel/healthz",
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
-    WEBSITE_PUBLIC_HEALTH_URL: "https://website.staging.fieldgrid.nl/healthz",
     NEXT_PUBLIC_MARKETING_SITE_URL:
       "https://veele.staging.fieldgrid.nl/",
     FIELDGRID_CUSTOM_ROUTE_KEY: "veele_staging_primary",
@@ -117,7 +120,8 @@ test("secret and routing preflight lists every required deployment dependency by
   );
   assert.ok(REQUIRED_SECRET_NAMES.includes("MOLLIE_WEBHOOK_SECRET"));
   assert.ok(REQUIRED_VARIABLE_NAMES.includes("PILOT_TENANT_LOGIN_URL"));
-  assert.ok(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"));
+  assert.equal(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"), false);
+  assert.equal(REQUIRED_VARIABLE_NAMES.includes("MARKETING_SERVICE_NAME"), false);
   assert.ok(
     REQUIRED_VARIABLE_NAMES.includes("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"),
   );
@@ -133,6 +137,26 @@ test("secret and routing preflight lists every required deployment dependency by
   );
   assert.match(errors.join(" "), /FIELDGRID_CREDENTIAL_RECOVERY_SECRET/u);
   assert.doesNotMatch(errors.join(" "), /test-token/u);
+
+  const duplicatePort = validEnvironment();
+  duplicatePort.API_PORT = duplicatePort.KLANT_PORT;
+  assert.match(
+    validateRuntimeConfig(
+      { expectedMain: mainSha, expectedStaging: stagingSha },
+      duplicatePort,
+    ).join(" "),
+    /ports must be unique/u,
+  );
+
+  const invalidPort = validEnvironment();
+  invalidPort.API_PORT = "not-a-port";
+  assert.match(
+    validateRuntimeConfig(
+      { expectedMain: mainSha, expectedStaging: stagingSha },
+      invalidPort,
+    ).join(" "),
+    /API_PORT must be a valid TCP port/u,
+  );
 });
 
 test("custom candidate preflight is exact-main and staging-only", () => {

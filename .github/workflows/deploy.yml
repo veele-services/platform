@@ -40,12 +40,14 @@ jobs:
       KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
       API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
       WEBSITE_SERVICE_NAME: ${{ github.ref_name == 'staging' && vars.WEBSITE_SERVICE_NAME || '' }}
+      MARKETING_SERVICE_NAME: ${{ github.ref_name == 'staging' && vars.MARKETING_SERVICE_NAME || '' }}
 
       BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
       PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
       KLANT_PORT: ${{ vars.KLANT_PORT }}
       API_PORT: ${{ vars.API_PORT }}
       WEBSITE_PORT: ${{ github.ref_name == 'staging' && vars.WEBSITE_PORT || '' }}
+      MARKETING_PORT: ${{ github.ref_name == 'staging' && vars.MARKETING_PORT || '' }}
       FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON || '' }}
       FIELDGRID_CUSTOM_ROUTE_KEY: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_ROUTE_KEY || '' }}
       FIELDGRID_CUSTOM_RELEASE_ID: ${{ github.ref_name == 'staging' && format('git-commit:{0}', github.sha) || '' }}
@@ -117,6 +119,7 @@ jobs:
           echo "Klant service: ${KLANT_SERVICE_NAME:-<not configured>}"
           echo "API service: ${API_SERVICE_NAME:-<not configured>}"
           echo "Website service: ${WEBSITE_SERVICE_NAME:-<not configured>}"
+          echo "Marketing service: ${MARKETING_SERVICE_NAME:-<not configured>}"
 
       - name: Validate service configuration
         run: |
@@ -143,16 +146,27 @@ jobs:
           require_pair "KLANT_SERVICE_NAME" "${KLANT_SERVICE_NAME:-}" "KLANT_PORT" "${KLANT_PORT:-}"
           require_pair "API_SERVICE_NAME" "${API_SERVICE_NAME:-}" "API_PORT" "${API_PORT:-}"
           require_pair "WEBSITE_SERVICE_NAME" "${WEBSITE_SERVICE_NAME:-}" "WEBSITE_PORT" "${WEBSITE_PORT:-}"
+          require_pair "MARKETING_SERVICE_NAME" "${MARKETING_SERVICE_NAME:-}" "MARKETING_PORT" "${MARKETING_PORT:-}"
 
           if [ -z "${BACKOFFICE_PORT:-}" ]; then
             echo "::error::PORT or BACKOFFICE_PORT must be configured for the backoffice service."
             exit 1
           fi
 
-          for value in "${BACKOFFICE_PORT:-}" "${PERSONEEL_PORT:-}" "${KLANT_PORT:-}" "${API_PORT:-}" "${WEBSITE_PORT:-}"; do
+          configured_ports=()
+          for value in "${BACKOFFICE_PORT:-}" "${PERSONEEL_PORT:-}" "${KLANT_PORT:-}" "${API_PORT:-}" "${WEBSITE_PORT:-}" "${MARKETING_PORT:-}"; do
             if [ -n "$value" ] && ! [[ "$value" =~ ^[0-9]+$ ]]; then
               echo "::error::Configured ports must be numeric. Invalid value: $value"
               exit 1
+            fi
+            if [ -n "$value" ]; then
+              for configured_port in "${configured_ports[@]}"; do
+                if [ "$configured_port" = "$value" ]; then
+                  echo "::error::Configured ports must be unique. Duplicate value: $value"
+                  exit 1
+                fi
+              done
+              configured_ports+=("$value")
             fi
           done
 
@@ -203,6 +217,7 @@ jobs:
             printf 'KLANT_PORT=%s\n' "$KLANT_PORT"
             printf 'API_PORT=%s\n' "$API_PORT"
             printf 'WEBSITE_PORT=%s\n' "$WEBSITE_PORT"
+            printf 'MARKETING_PORT=%s\n' "$MARKETING_PORT"
             printf 'FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=%s\n' "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
             printf 'FIELDGRID_CUSTOM_ROUTE_KEY=%s\n' "$FIELDGRID_CUSTOM_ROUTE_KEY"
             printf 'FIELDGRID_CUSTOM_RELEASE_ID=%s\n' "$FIELDGRID_CUSTOM_RELEASE_ID"
@@ -349,12 +364,14 @@ jobs:
           KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
           API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
           WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
+          MARKETING_PUBLIC_HEALTH_URL: ${{ vars.MARKETING_PUBLIC_HEALTH_URL }}
           API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL }}
           BACKOFFICE_PUBLIC_URL: ${{ vars.BACKOFFICE_PUBLIC_URL || vars.APP_URL }}
           PERSONEEL_PUBLIC_URL: ${{ vars.PERSONEEL_PUBLIC_URL }}
           KLANT_PUBLIC_URL: ${{ vars.KLANT_PUBLIC_URL }}
           API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
           WEBSITE_PUBLIC_URL: ${{ vars.WEBSITE_PUBLIC_URL }}
+          MARKETING_PUBLIC_URL: ${{ vars.MARKETING_PUBLIC_URL }}
           FIELDGRID_DEPLOY_EVIDENCE_GROUP: veele-deploy
           FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_ATTEMPTS || '12' }}
           FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS || '5' }}

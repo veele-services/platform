@@ -10,10 +10,10 @@ after the existing trusted domain resolver marks it verified for the exact
 tenant and site.
 
 `artifacts/website-runtime` implements the managed renderer and the
-operator-allowlisted custom proxy. The deploy health gate accepts it as an
-explicit fifth service only when `WEBSITE_SERVICE_NAME` and `WEBSITE_PORT` are
-both configured. No service unit, Caddy route, staging ref or production ref is
-changed merely by merging this code.
+operator-allowlisted custom proxy. The independent custom application is a
+sixth process. The deploy health gate accepts each only as a complete
+service/port/health pair. No service unit, Caddy route, staging ref or
+production ref is changed merely by merging this code.
 
 ## Precedence
 

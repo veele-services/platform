@@ -1,0 +1,26 @@
+[Unit]
+Description=Fieldgrid Veele staging marketing website
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=github-runner
+Group=veele-deploy
+WorkingDirectory=/var/www/veele/website-stack-staging/current
+EnvironmentFile=/var/www/veele/website-stack-staging/shared/marketing.env
+Environment=PORT=3306
+ExecStart=/usr/bin/env pnpm --filter @workspace/marketing-website run start
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/veele/website-stack-staging
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

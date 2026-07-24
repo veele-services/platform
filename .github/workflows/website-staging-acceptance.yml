@@ -33,8 +33,11 @@ jobs:
       TARGET_ENVIRONMENT: staging
       STAGING_BASE_DIR: /var/www/veele/staging
       WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
+      MARKETING_PUBLIC_HEALTH_URL: ${{ vars.MARKETING_PUBLIC_HEALTH_URL }}
       WEBSITE_MANAGED_ACCEPTANCE_URL: ${{ vars.WEBSITE_MANAGED_ACCEPTANCE_URL }}
       WEBSITE_CUSTOM_ACCEPTANCE_URL: ${{ vars.WEBSITE_CUSTOM_ACCEPTANCE_URL }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
 
     steps:
       - name: Checkout exact staging release
@@ -59,6 +62,7 @@ jobs:
           pnpm fieldgrid:website-staging-acceptance --run \
             --expected-staging "${{ inputs.expected_staging_sha }}" \
             --website-health "$WEBSITE_PUBLIC_HEALTH_URL" \
+            --marketing-health "$MARKETING_PUBLIC_HEALTH_URL" \
             --managed-url "$WEBSITE_MANAGED_ACCEPTANCE_URL" \
             --custom-url "$WEBSITE_CUSTOM_ACCEPTANCE_URL"
 

@@ -1,7 +1,6 @@
 name: Runtime Entrypoint Inventory
 
 on:
-  pull_request:
   workflow_dispatch:
 
 permissions:

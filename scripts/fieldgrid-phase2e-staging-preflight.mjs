@@ -55,17 +55,14 @@ export const REQUIRED_VARIABLE_NAMES = [
   "PERSONEEL_SERVICE_NAME",
   "KLANT_SERVICE_NAME",
   "API_SERVICE_NAME",
-  "WEBSITE_SERVICE_NAME",
   "BACKOFFICE_PORT",
   "PERSONEEL_PORT",
   "KLANT_PORT",
   "API_PORT",
-  "WEBSITE_PORT",
   "BACKOFFICE_PUBLIC_LOGIN_URL",
   "PERSONEEL_PUBLIC_HEALTH_URL",
   "KLANT_PUBLIC_HEALTH_URL",
   "API_PUBLIC_HEALTH_URL",
-  "WEBSITE_PUBLIC_HEALTH_URL",
   "API_PUBLIC_ROOT_URL",
   "PILOT_TENANT_LOGIN_URL",
   "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON",
@@ -382,6 +379,27 @@ export function validateRuntimeConfig(options, env = process.env) {
     errors.push(`Missing staging variables: ${missingVariables.join(", ")}.`);
   errors.push(...validateCustomCandidateConfig(options.expectedMain, env));
 
+  const portNames = [
+    "BACKOFFICE_PORT",
+    "PERSONEEL_PORT",
+    "KLANT_PORT",
+    "API_PORT",
+  ];
+  const configuredPorts = portNames
+    .map((name) => [name, String(env[name] ?? "")])
+    .filter(([, value]) => value.length > 0);
+  for (const [name, value] of configuredPorts) {
+    const port = Number(value);
+    if (!/^\d+$/u.test(value) || port < 1 || port > 65_535)
+      errors.push(`${name} must be a valid TCP port.`);
+  }
+  if (
+    new Set(configuredPorts.map(([, value]) => value)).size !==
+    configuredPorts.length
+  ) {
+    errors.push("Staging service ports must be unique.");
+  }
+
   if (
     env.DATABASE_URL &&
     !env.DATABASE_URL.includes(EXPECTED_STAGING_PROJECT_REF)
@@ -600,7 +618,6 @@ async function verifyRoutes(env = process.env) {
     ["personnel-health", env.PERSONEEL_PUBLIC_HEALTH_URL, "exact-200"],
     ["customer-health", env.KLANT_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-health", env.API_PUBLIC_HEALTH_URL, "exact-200"],
-    ["website-health", env.WEBSITE_PUBLIC_HEALTH_URL, "exact-200"],
     ["api-root", env.API_PUBLIC_ROOT_URL, "api-root"],
     ["pilot-tenant-login", env.PILOT_TENANT_LOGIN_URL, "login"],
   ];
@@ -668,7 +685,6 @@ async function verifyRollbackTarget(expectedStaging, env = process.env) {
     env.PERSONEEL_SERVICE_NAME,
     env.KLANT_SERVICE_NAME,
     env.API_SERVICE_NAME,
-    env.WEBSITE_SERVICE_NAME,
   ];
   for (const service of services) {
     const statusResult = await runCommand("systemctl", ["is-active", service], {

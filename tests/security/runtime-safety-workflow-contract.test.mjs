@@ -9,25 +9,34 @@ function read(path) {
   return readFileSync(join(repoRoot, path), "utf8").replace(/\r\n/gu, "\n");
 }
 
-test("runtime safety workflow exposes required Linux PR jobs", () => {
-  const workflow = read(".github/workflows/runtime-safety-harness.yml");
+test("exact-head workflow exposes required Linux PR validation groups", () => {
+  const workflow = read(".github/workflows/main-exact-head-validation.yml");
 
   assert.match(workflow, /on:\s*\n\s+pull_request:\s*\n\s+branches:\s*\n\s+- main/u);
-  for (const job of [
+  for (const group of [
+    "runtime-safety-static",
+    "runtime-safety-build",
+    "runtime-safety-diff",
+    "runtime-safety-database",
+  ]) {
+    assert.match(
+      workflow,
+      new RegExp(`\\n  ${group}:\\n[\\s\\S]*?runs-on: ubuntu-latest`, "u"),
+    );
+  }
+  for (const lane of [
     "contract-static",
     "unit-domain",
     "security-source",
     "migration-order",
     "typecheck",
-    "build",
-    "diff-check",
     "postgres17-migration-smoke",
     "db-integration-tenant-ab",
     "rls-security",
     "phase-b-previous-release-database-compatibility",
     "api-runtime",
   ]) {
-    assert.match(workflow, new RegExp(`\\n  ${job}:\\n    name: ${job}\\n    runs-on: ubuntu-latest`, "u"));
+    assert.match(workflow, new RegExp(`lane: ${lane}`, "u"));
   }
 });
 
