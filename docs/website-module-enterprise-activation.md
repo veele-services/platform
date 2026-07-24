@@ -86,6 +86,44 @@ release root `/var/www/veele/website-stack-staging`. They have separate
 environment files: only the website router receives the database URL. The
 marketing process never receives platform database credentials.
 
+### One-time root bootstrap
+
+The deploy runner must not receive generic root file-write access. A server
+operator installs the reviewed root-owned systemd and Caddy assets once from
+the exact active staging release:
+
+```bash
+set -euo pipefail
+expected="EXACT_STAGING_SHA"
+source_root="/var/www/veele/staging/current"
+
+test "$(cat "$source_root/.fieldgrid-release-sha")" = "$expected"
+sudo install -o root -g root -m 0644 \
+  "$source_root/ops/systemd/veele-staging-website.service" \
+  /etc/systemd/system/veele-staging-website.service
+sudo install -o root -g root -m 0644 \
+  "$source_root/ops/systemd/veele-staging-marketing.service" \
+  /etc/systemd/system/veele-staging-marketing.service
+sudo install -d -o root -g root -m 0755 /etc/caddy/fieldgrid.d
+sudo install -o root -g root -m 0644 \
+  "$source_root/ops/caddy/fieldgrid-website-staging.caddy" \
+  /etc/caddy/fieldgrid.d/fieldgrid-website-staging.caddy
+if ! sudo grep -Fxq 'import /etc/caddy/fieldgrid.d/*.caddy' /etc/caddy/Caddyfile; then
+  printf '\n%s\n' 'import /etc/caddy/fieldgrid.d/*.caddy' |
+    sudo tee -a /etc/caddy/Caddyfile >/dev/null
+fi
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl daemon-reload
+sudo systemctl enable veele-staging-website veele-staging-marketing
+sudo systemctl reload caddy
+```
+
+Do not use `enable --now`: the deploy workflow first creates and atomically
+activates `/var/www/veele/website-stack-staging/current`, then starts both
+services. Every later deployment compares all three root-owned assets byte for
+byte with the exact staging checkout and fails closed on drift. It never uses
+`sudo install`, `sudo cp`, `sudo tee` or generic privileged file mutation.
+
 Configure and validate Caddy so that:
 
 - the existing application prefixes remain before the website fallback;
@@ -93,7 +131,8 @@ Configure and validate Caddy so that:
 - verified staging website hosts reach `${WEBSITE_PORT}` without stripping
   paths;
 - TLS is valid for every exact managed, custom and health proof host;
-- the prior Caddyfile and prior staging release remain available for rollback.
+- deploys never rewrite root-owned Caddy configuration and retain the prior
+  website-stack release for rollback.
 
 Before reload:
 

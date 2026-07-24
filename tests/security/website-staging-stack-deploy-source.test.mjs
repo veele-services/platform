@@ -84,7 +84,13 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.match(script, /trap rollback ERR/u);
   assert.match(script, /release-restored/u);
-  assert.match(script, /caddy-restored/u);
+  assert.match(script, /require_preprovisioned_asset/u);
+  assert.match(script, /systemctl is-enabled --quiet/u);
+  assert.match(script, /sudo caddy validate --config/u);
+  assert.doesNotMatch(
+    script,
+    /sudo (?:install|cp|mkdir|rm|tee)|sudo systemctl enable/u,
+  );
   assert.match(script, /productionChanged": false/u);
   assert.doesNotMatch(script, /\/var\/www\/veele\/production/u);
 });
