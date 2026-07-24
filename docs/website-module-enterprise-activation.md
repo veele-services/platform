@@ -115,14 +115,15 @@ fi
 sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl daemon-reload
 sudo systemctl enable veele-staging-website veele-staging-marketing
-sudo systemctl reload caddy
 ```
 
 Do not use `enable --now`: the deploy workflow first creates and atomically
 activates `/var/www/veele/website-stack-staging/current`, then starts both
-services. Every later deployment compares all three root-owned assets byte for
-byte with the exact staging checkout and fails closed on drift. It never uses
-`sudo install`, `sudo cp`, `sudo tee` or generic privileged file mutation.
+services. Do not reload Caddy during bootstrap; the workflow reloads it only
+after both local process-health checks pass. Every later deployment compares
+all three root-owned assets byte for byte with the exact staging checkout and
+fails closed on drift. It never uses `sudo install`, `sudo cp`, `sudo tee` or
+generic privileged file mutation.
 
 Configure and validate Caddy so that:
 
