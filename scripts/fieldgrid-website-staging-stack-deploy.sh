@@ -167,11 +167,31 @@ NODE
 RUN_KEY="${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_ATTEMPT:-1}"
 RELEASE="$BASE_DIR/releases/$(date -u +%Y%m%d%H%M%S)-${RUN_KEY}-${EXPECTED_SHA:0:7}"
 PREVIOUS_CURRENT=""
-CADDY_BACKUP="$BASE_DIR/shared/caddy-before-${RUN_KEY}.bak"
-SNIPPET_BACKUP="$BASE_DIR/shared/caddy-snippet-before-${RUN_KEY}.bak"
-SNIPPET_EXISTED="0"
 ACTIVATED="0"
-CADDY_CHANGED="0"
+
+require_preprovisioned_asset() {
+  local source="$1"
+  local target="$2"
+  [ -f "$target" ] ||
+    fail "root bootstrap is required: missing $target"
+  cmp -s "$source" "$target" ||
+    fail "root bootstrap is required: $target differs from exact staging"
+}
+
+require_preprovisioned_asset \
+  "$WEBSITE_UNIT_SOURCE" \
+  "/etc/systemd/system/veele-staging-website.service"
+require_preprovisioned_asset \
+  "$MARKETING_UNIT_SOURCE" \
+  "/etc/systemd/system/veele-staging-marketing.service"
+require_preprovisioned_asset "$CADDY_SOURCE" "$CADDY_SNIPPET"
+grep -Fxq "$IMPORT_LINE" "$CADDYFILE" ||
+  fail "root bootstrap is required: Caddy import is missing"
+systemctl is-enabled --quiet "$WEBSITE_SERVICE_NAME" ||
+  fail "root bootstrap is required: $WEBSITE_SERVICE_NAME is not enabled"
+systemctl is-enabled --quiet "$MARKETING_SERVICE_NAME" ||
+  fail "root bootstrap is required: $MARKETING_SERVICE_NAME is not enabled"
+caddy adapt --config "$CADDYFILE" >/dev/null
 
 write_evidence() {
   local status="$1"
@@ -205,17 +225,6 @@ rollback() {
   trap - ERR
   set +e
   rollback_status="not-needed"
-  if [ "$CADDY_CHANGED" = "1" ]; then
-    sudo cp "$CADDY_BACKUP" "$CADDYFILE"
-    if [ "$SNIPPET_EXISTED" = "1" ]; then
-      sudo cp "$SNIPPET_BACKUP" "$CADDY_SNIPPET"
-    else
-      sudo rm -f "$CADDY_SNIPPET"
-    fi
-    sudo caddy validate --config "$CADDYFILE" &&
-      sudo systemctl reload caddy
-    rollback_status="caddy-restored"
-  fi
   if [ "$ACTIVATED" = "1" ]; then
     if [ -n "$PREVIOUS_CURRENT" ]; then
       ln -s "$PREVIOUS_CURRENT" "$BASE_DIR/.current.rollback.$$"
@@ -275,12 +284,6 @@ chgrp veele-deploy "$BASE_DIR/shared/website.env" "$BASE_DIR/shared/marketing.en
 chown -R github-runner:veele-deploy "$RELEASE"
 chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
 
-sudo install -o root -g root -m 0644 \
-  "$WEBSITE_UNIT_SOURCE" "/etc/systemd/system/veele-staging-website.service"
-sudo install -o root -g root -m 0644 \
-  "$MARKETING_UNIT_SOURCE" "/etc/systemd/system/veele-staging-marketing.service"
-sudo systemctl daemon-reload
-
 if [ -L "$BASE_DIR/current" ]; then
   PREVIOUS_CURRENT="$(readlink "$BASE_DIR/current")"
   case "$PREVIOUS_CURRENT" in
@@ -292,7 +295,6 @@ ln -s "$RELEASE" "$BASE_DIR/.current.new.$$"
 mv -Tf "$BASE_DIR/.current.new.$$" "$BASE_DIR/current"
 ACTIVATED="1"
 
-sudo systemctl enable "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"
 sudo systemctl restart "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"
 
 retry_curl() {
@@ -309,18 +311,6 @@ retry_curl() {
 retry_curl "http://127.0.0.1:3305/healthz"
 retry_curl "http://127.0.0.1:3306/healthz"
 
-sudo mkdir -p "$CADDY_SNIPPET_DIR"
-sudo cp "$CADDYFILE" "$CADDY_BACKUP"
-if sudo test -f "$CADDY_SNIPPET"; then
-  sudo cp "$CADDY_SNIPPET" "$SNIPPET_BACKUP"
-  SNIPPET_EXISTED="1"
-fi
-sudo install -o root -g root -m 0644 "$CADDY_SOURCE" "$CADDY_SNIPPET"
-if ! sudo grep -Fxq "$IMPORT_LINE" "$CADDYFILE"; then
-  printf '\n%s\n' "$IMPORT_LINE" | sudo tee -a "$CADDYFILE" >/dev/null
-fi
-CADDY_CHANGED="1"
-sudo caddy validate --config "$CADDYFILE"
 sudo systemctl reload caddy
 
 retry_curl "$WEBSITE_PUBLIC_HEALTH_URL"
