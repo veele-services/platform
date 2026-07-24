@@ -8,6 +8,8 @@ SYSTEMD_DIR="$REPO_ROOT/ops/systemd"
 CADDY_SOURCE="$REPO_ROOT/ops/caddy/fieldgrid-website-staging.caddy"
 WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
+SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
+SUDOERS_TARGET="/etc/sudoers.d/veele-staging-website-stack"
 
 MODE=""
 SOURCE_DIR=""
@@ -43,7 +45,11 @@ require_file_contains() {
 }
 
 check_contract() {
-  for file in "$WEBSITE_UNIT_SOURCE" "$MARKETING_UNIT_SOURCE" "$CADDY_SOURCE"; do
+  for file in \
+    "$WEBSITE_UNIT_SOURCE" \
+    "$MARKETING_UNIT_SOURCE" \
+    "$CADDY_SOURCE" \
+    "$SUDOERS_SOURCE"; do
     [ -f "$file" ] || fail "required deployment asset is missing: $file"
     if grep -Eiq 'production|eedbf033ec08a12411760acf8ea7f5d5acf8cc20' "$file"; then
       fail "staging deployment asset contains a production marker"
@@ -70,6 +76,13 @@ check_contract() {
   done
   require_file_contains "$CADDY_SOURCE" "reverse_proxy 127.0.0.1:3305"
   require_file_contains "$CADDY_SOURCE" "reverse_proxy 127.0.0.1:3306"
+  require_file_contains "$SUDOERS_SOURCE" \
+    "/usr/bin/systemctl restart veele-staging-website veele-staging-marketing"
+  require_file_contains "$SUDOERS_SOURCE" \
+    "/usr/bin/systemctl stop veele-staging-website veele-staging-marketing"
+  require_file_contains "$SUDOERS_SOURCE" "/usr/bin/systemctl reload caddy"
+  require_file_contains "$SUDOERS_SOURCE" \
+    "github-runner ALL=(root) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL"
 }
 
 check_contract
@@ -187,6 +200,20 @@ require_preprovisioned_asset \
 require_preprovisioned_asset "$CADDY_SOURCE" "$CADDY_SNIPPET"
 grep -Fxq "$IMPORT_LINE" "$CADDYFILE" ||
   fail "root bootstrap is required: Caddy import is missing"
+[ -f "$SUDOERS_TARGET" ] ||
+  fail "root bootstrap is required: missing $SUDOERS_TARGET"
+[ "$(stat -c '%u:%g:%a' "$SUDOERS_TARGET")" = "0:0:440" ] ||
+  fail "root bootstrap is required: $SUDOERS_TARGET must be root:root mode 0440"
+sudo -n -l \
+  /usr/bin/systemctl restart \
+  veele-staging-website veele-staging-marketing >/dev/null ||
+  fail "root bootstrap is required: exact website restart permission is missing"
+sudo -n -l \
+  /usr/bin/systemctl stop \
+  veele-staging-website veele-staging-marketing >/dev/null ||
+  fail "root bootstrap is required: exact website stop permission is missing"
+sudo -n -l /usr/bin/systemctl reload caddy >/dev/null ||
+  fail "root bootstrap is required: exact Caddy reload permission is missing"
 systemctl is-enabled --quiet "$WEBSITE_SERVICE_NAME" ||
   fail "root bootstrap is required: $WEBSITE_SERVICE_NAME is not enabled"
 systemctl is-enabled --quiet "$MARKETING_SERVICE_NAME" ||
