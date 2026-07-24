@@ -86,7 +86,8 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /release-restored/u);
   assert.match(script, /require_preprovisioned_asset/u);
   assert.match(script, /systemctl is-enabled --quiet/u);
-  assert.match(script, /sudo caddy validate --config/u);
+  assert.match(script, /caddy adapt --config "\$CADDYFILE"/u);
+  assert.match(script, /sudo systemctl reload caddy/u);
   assert.doesNotMatch(
     script,
     /sudo (?:install|cp|mkdir|rm|tee)|sudo systemctl enable/u,

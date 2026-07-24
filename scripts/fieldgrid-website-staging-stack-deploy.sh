@@ -191,7 +191,7 @@ systemctl is-enabled --quiet "$WEBSITE_SERVICE_NAME" ||
   fail "root bootstrap is required: $WEBSITE_SERVICE_NAME is not enabled"
 systemctl is-enabled --quiet "$MARKETING_SERVICE_NAME" ||
   fail "root bootstrap is required: $MARKETING_SERVICE_NAME is not enabled"
-sudo caddy validate --config "$CADDYFILE"
+caddy adapt --config "$CADDYFILE" >/dev/null
 
 write_evidence() {
   local status="$1"

@@ -112,7 +112,7 @@ if ! sudo grep -Fxq 'import /etc/caddy/fieldgrid.d/*.caddy' /etc/caddy/Caddyfile
   printf '\n%s\n' 'import /etc/caddy/fieldgrid.d/*.caddy' |
     sudo tee -a /etc/caddy/Caddyfile >/dev/null
 fi
-sudo caddy validate --config /etc/caddy/Caddyfile
+caddy adapt --config /etc/caddy/Caddyfile >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable veele-staging-website veele-staging-marketing
 ```
@@ -120,10 +120,11 @@ sudo systemctl enable veele-staging-website veele-staging-marketing
 Do not use `enable --now`: the deploy workflow first creates and atomically
 activates `/var/www/veele/website-stack-staging/current`, then starts both
 services. Do not reload Caddy during bootstrap; the workflow reloads it only
-after both local process-health checks pass. Every later deployment compares
-all three root-owned assets byte for byte with the exact staging checkout and
-fails closed on drift. It never uses `sudo install`, `sudo cp`, `sudo tee` or
-generic privileged file mutation.
+after both local process-health checks pass, using the Caddy service's protected
+DNS-provider environment. Every later deployment compares all three root-owned
+assets byte for byte with the exact staging checkout and fails closed on drift.
+It never uses `sudo install`, `sudo cp`, `sudo tee` or generic privileged file
+mutation.
 
 Configure and validate Caddy so that:
 
