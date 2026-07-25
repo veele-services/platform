@@ -109,7 +109,12 @@ test("platform overview has tenant creation and tenant detail navigation", () =>
 });
 
 test("tenant detail page exposes the platform-admin MVP sections", () => {
-  const page = read(tenantDetailPage);
+  const page = [
+    read(tenantDetailPage),
+    read("artifacts/backoffice/src/components/platform/PlatformTenantDetailNav.tsx"),
+    read("artifacts/backoffice/src/components/platform/PlatformLifecycleAction.tsx"),
+    read("artifacts/backoffice/src/components/platform/PlatformSupportAccessPanel.tsx"),
+  ].join("\n");
 
   assertContains(
     page,
@@ -124,14 +129,14 @@ test("tenant detail page exposes the platform-admin MVP sections", () => {
       "Domeinen",
       "Modules",
       "Sectorbeleid",
-      "Support grants",
+      "Bestaande supporttoegang",
       "Gebruik",
       "Audit",
-      "Suspend",
-      "Reactiveren",
+      "Pauzeren",
+      "Heractiveren",
       "Archiveren",
-      "Grant maken",
-      "Revoke",
+      "Toegang verlenen",
+      "Toegang intrekken",
     ],
     tenantDetailPage,
   );
