@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { WebsiteFormsView } from "@workspace/db";
 import {
@@ -284,7 +285,7 @@ export function WebsiteFormsEditor({
                 />
               </Field>
               <Field label="Type">
-                <select
+                <SelectAdapter
                   className="veele-input w-full"
                   value={form.kind}
                   disabled={disabled}
@@ -298,10 +299,10 @@ export function WebsiteFormsEditor({
                   <option value="quote">Offerteaanvraag</option>
                   <option value="callback">Terugbelverzoek</option>
                   <option value="emergency">Spoedaanvraag</option>
-                </select>
+                </SelectAdapter>
               </Field>
               <Field label="Status">
-                <select
+                <SelectAdapter
                   className="veele-input w-full"
                   value={form.status}
                   disabled={disabled}
@@ -314,7 +315,7 @@ export function WebsiteFormsEditor({
                   <option value="draft">Concept</option>
                   <option value="published">Gepubliceerd</option>
                   <option value="archived">Gearchiveerd</option>
-                </select>
+                </SelectAdapter>
               </Field>
               <Field label="Taal">
                 <input

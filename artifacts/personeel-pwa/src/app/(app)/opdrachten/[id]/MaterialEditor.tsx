@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { CheckboxAdapter } from "@workspace/shared-ui";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { Boxes, Loader2, Plus, Trash2 } from "lucide-react";
@@ -441,7 +442,7 @@ export function MaterialEditor({
                 >
                   Materiaal
                 </span>
-                <select
+                <SelectAdapter
                   value={form.materialId}
                   onChange={(event) => setMaterial(event.target.value)}
                   className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
@@ -455,7 +456,7 @@ export function MaterialEditor({
                       {material.code} - {material.name}
                     </option>
                   ))}
-                </select>
+                </SelectAdapter>
               </label>
             ) : (
               <label className="block">
@@ -559,7 +560,7 @@ export function MaterialEditor({
                   />
                 </label>
                 {form.usesStock ? (
-                  <select
+                  <SelectAdapter
                     value={form.stockLocationId}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -579,7 +580,7 @@ export function MaterialEditor({
                         beschikbaar
                       </option>
                     ))}
-                  </select>
+                  </SelectAdapter>
                 ) : null}
                 {availableStockLocations.length === 0 ? (
                   <p

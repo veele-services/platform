@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteNavigationDraftItem,
@@ -482,7 +483,7 @@ function NavigationRow({
         </label>
         <label className="grid gap-1 text-xs font-medium text-slate-500">
           Soort
-          <select
+          <SelectAdapter
             value={item.linkType}
             onChange={(event) =>
               onLinkTypeChange(
@@ -496,13 +497,13 @@ function NavigationRow({
             <option value="page">Interne pagina</option>
             <option value="external">Externe HTTPS-link</option>
             {!nested && <option value="dropdown">Menugroep</option>}
-          </select>
+          </SelectAdapter>
         </label>
         <div className="min-w-0">
           {item.linkType === "page" ? (
             <label className="grid gap-1 text-xs font-medium text-slate-500">
               Pagina
-              <select
+              <SelectAdapter
                 value={item.pageId ?? ""}
                 onChange={(event) =>
                   onChange({ pageId: event.target.value || null })
@@ -518,7 +519,7 @@ function NavigationRow({
                     {option.status === "draft" ? " (concept)" : ""}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
           ) : item.linkType === "external" ? (
             <label className="grid gap-1 text-xs font-medium text-slate-500">

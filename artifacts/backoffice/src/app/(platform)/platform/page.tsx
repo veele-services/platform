@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -244,7 +245,7 @@ function OnboardingWizard({
             </label>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Plan
-              <select
+              <SelectAdapter
                 name="planKey"
                 defaultValue={selectedPlan}
                 className="rounded border border-slate-300 px-3 py-2 text-sm"
@@ -254,7 +255,7 @@ function OnboardingWizard({
                     {plan.name}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
           </div>
         </WizardGroup>
@@ -335,18 +336,18 @@ function OnboardingWizard({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Sectorbeleid
-                  <select
+                  <SelectAdapter
                     name="sectorMode"
                     defaultValue={selectedSectorMode}
                     className="rounded border border-slate-300 px-3 py-2 text-sm"
                   >
                     <option value="multi">Multi-sector</option>
                     <option value="single">Single-sector</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Defaultsector
-                  <select
+                  <SelectAdapter
                     name="defaultSectorId"
                     defaultValue={selectedDefaultSectorId}
                     className="rounded border border-slate-300 px-3 py-2 text-sm"
@@ -357,7 +358,7 @@ function OnboardingWizard({
                         {sector.name}
                       </option>
                     ))}
-                  </select>
+                  </SelectAdapter>
                 </label>
               </div>
 

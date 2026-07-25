@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -11,7 +12,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMyPaymentBatches, getMyPayments } from "@/actions/payments";
-import { FinanceSectionHeader, FinanceSummaryStrip } from "@/components/FinanceWorkspace";
+import {
+  FinanceSectionHeader,
+  FinanceSummaryStrip,
+} from "@/components/FinanceWorkspace";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
 import {
   PortalActionMenu,
@@ -29,7 +33,9 @@ import {
 } from "@/components/portal-ui";
 
 type CustomerPayment = Awaited<ReturnType<typeof getMyPayments>>[number];
-type CustomerPaymentBatch = Awaited<ReturnType<typeof getMyPaymentBatches>>[number];
+type CustomerPaymentBatch = Awaited<
+  ReturnType<typeof getMyPaymentBatches>
+>[number];
 type PaymentStatusFilter = "all" | "open" | "paid" | "failed";
 
 function cents(amount: number): string {
@@ -69,10 +75,20 @@ function latestPaymentDate(
 
 function statusConfig(status: string) {
   if (status === "paid") {
-    return { label: "Betaald", bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 };
+    return {
+      label: "Betaald",
+      bg: "#DCFCE7",
+      color: "#166534",
+      Icon: CheckCircle2,
+    };
   }
   if (status === "failed" || status === "cancelled" || status === "expired") {
-    return { label: "Niet afgerond", bg: "#FEE2E2", color: "#991B1B", Icon: XCircle };
+    return {
+      label: "Niet afgerond",
+      bg: "#FEE2E2",
+      color: "#991B1B",
+      Icon: XCircle,
+    };
   }
   return { label: "Open", bg: "#FEF3C7", color: "#92400E", Icon: Clock };
 }
@@ -82,12 +98,15 @@ function normalizeQuery(value?: string): string {
 }
 
 function normalizeStatus(value?: string): PaymentStatusFilter {
-  return value === "open" || value === "paid" || value === "failed" ? value : "all";
+  return value === "open" || value === "paid" || value === "failed"
+    ? value
+    : "all";
 }
 
 function statusGroup(status: string): PaymentStatusFilter {
   if (status === "paid") return "paid";
-  if (status === "failed" || status === "cancelled" || status === "expired") return "failed";
+  if (status === "failed" || status === "cancelled" || status === "expired")
+    return "failed";
   return "open";
 }
 
@@ -103,7 +122,11 @@ function statusLabel(value: PaymentStatusFilter) {
 
 function matchesPaymentSearch(payment: CustomerPayment, query: string) {
   if (!query) return true;
-  const haystack = [payment.invoiceNumber, payment.status, cents(payment.amountCents)]
+  const haystack = [
+    payment.invoiceNumber,
+    payment.status,
+    cents(payment.amountCents),
+  ]
     .join(" ")
     .toLowerCase();
   return haystack.includes(query.toLowerCase());
@@ -127,7 +150,8 @@ function filterPayments(
   status: PaymentStatusFilter,
 ) {
   return payments.filter((payment) => {
-    const matchesStatus = status === "all" || statusGroup(payment.status) === status;
+    const matchesStatus =
+      status === "all" || statusGroup(payment.status) === status;
     return matchesStatus && matchesPaymentSearch(payment, query);
   });
 }
@@ -138,7 +162,8 @@ function filterBatches(
   status: PaymentStatusFilter,
 ) {
   return batches.filter((batch) => {
-    const matchesStatus = status === "all" || statusGroup(batch.status) === status;
+    const matchesStatus =
+      status === "all" || statusGroup(batch.status) === status;
     return matchesStatus && matchesBatchSearch(batch, query);
   });
 }
@@ -165,7 +190,10 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       key: "invoice",
       header: "Factuur",
       render: (payment) => (
-        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="font-mono text-xs font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {payment.invoiceNumber}
         </span>
       ),
@@ -174,7 +202,10 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       key: "amount",
       header: "Bedrag",
       render: (payment) => (
-        <span className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-sm font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {cents(payment.amountCents)}
         </span>
       ),
@@ -183,7 +214,10 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       key: "date",
       header: "Datum",
       render: (payment) => (
-        <span className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatDate(payment.paidAt ?? payment.createdAt)}
         </span>
       ),
@@ -198,7 +232,9 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       header: "Acties",
       align: "right",
       render: (payment) => (
-        <PortalActionMenu label={`Acties voor betaling ${payment.invoiceNumber}`}>
+        <PortalActionMenu
+          label={`Acties voor betaling ${payment.invoiceNumber}`}
+        >
           <PortalActionMenuLink href={`/facturen/${payment.invoiceId}`}>
             Factuur bekijken
           </PortalActionMenuLink>
@@ -224,10 +260,16 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
       header: "Verzameling",
       render: (batch) => (
         <span className="block min-w-[14rem]">
-          <span className="block text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+          <span
+            className="block text-xs font-black uppercase"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
             {batch.invoices.length} facturen
           </span>
-          <span className="mt-0.5 block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="mt-0.5 block text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {batch.invoices.map((invoice) => invoice.invoiceNumber).join(", ")}
           </span>
         </span>
@@ -237,7 +279,10 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
       key: "amount",
       header: "Bedrag",
       render: (batch) => (
-        <span className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-sm font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {cents(batch.amountCents)}
         </span>
       ),
@@ -253,7 +298,10 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
       align: "right",
       render: (batch) => (
         <PortalActionMenu label="Acties voor verzamelfactuur">
-          <PortalActionMenuLink href={`/api/verzamelfactuur/${batch.id}/pdf`} external>
+          <PortalActionMenuLink
+            href={`/api/verzamelfactuur/${batch.id}/pdf`}
+            external
+          >
             Verzamelfactuur downloaden
           </PortalActionMenuLink>
           {batch.status === "open" && batch.checkoutUrl ? (
@@ -282,7 +330,8 @@ export default async function BetalingenPage({
   const visiblePayments = filterPayments(payments, query, status);
   const visibleBatches = filterBatches(batches, query, status);
   const openCount =
-    payments.filter((payment) => statusGroup(payment.status) === "open").length +
+    payments.filter((payment) => statusGroup(payment.status) === "open")
+      .length +
     batches.filter((batch) => statusGroup(batch.status) === "open").length;
   const paidTotal =
     payments
@@ -292,7 +341,8 @@ export default async function BetalingenPage({
       .filter((batch) => statusGroup(batch.status) === "paid")
       .reduce((sum, batch) => sum + batch.amountCents, 0);
   const failedCount =
-    payments.filter((payment) => statusGroup(payment.status) === "failed").length +
+    payments.filter((payment) => statusGroup(payment.status) === "failed")
+      .length +
     batches.filter((batch) => statusGroup(batch.status) === "failed").length;
   const latestDate = latestPaymentDate(payments, batches);
 
@@ -316,7 +366,10 @@ export default async function BetalingenPage({
       title="Betalingen"
       subtitle="Mollie betalingen, losse facturen en verzamelbetalingen."
       status={{
-        label: openCount > 0 ? `${openCount} open` : `${payments.length + batches.length} betalingen`,
+        label:
+          openCount > 0
+            ? `${openCount} open`
+            : `${payments.length + batches.length} betalingen`,
         tone: openCount > 0 ? "warning" : "accent",
       }}
     >
@@ -346,7 +399,9 @@ export default async function BetalingenPage({
           {
             label: "Laatste betaling",
             value: latestDate ? formatDate(latestDate) : "-",
-            description: latestDate ? "Meest recente betaalactiviteit." : "Nog geen betaling gestart.",
+            description: latestDate
+              ? "Meest recente betaalactiviteit."
+              : "Nog geen betaling gestart.",
             icon: <WalletCards size={18} />,
             tone: latestDate ? "accent" : "neutral",
           },
@@ -355,7 +410,12 @@ export default async function BetalingenPage({
 
       <PortalToolbar
         resultLabel={`${visiblePayments.length + visibleBatches.length} van ${payments.length + batches.length} betalingen`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/betalingen" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/betalingen"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Betalingsfilters"
@@ -366,13 +426,20 @@ export default async function BetalingenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/betalingen" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/betalingen"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek factuur of betaling"
           />
-          <PortalToolbarSelect name="status" label="Status" defaultValue={status}>
+          <PortalToolbarSelect
+            name="status"
+            label="Status"
+            defaultValue={status}
+          >
             <option value="all">Alle betalingen</option>
             <option value="open">Open</option>
             <option value="paid">Betaald</option>
@@ -400,16 +467,22 @@ export default async function BetalingenPage({
           getItemKey={(payment) => payment.id}
           tableLabel="Losse betalingen"
           emptyState={{
-            icon: <CreditCard size={30} style={{ color: "var(--color-muted-fg)" }} />,
-            title: activeFilters.length > 0 ? "Geen losse betalingen gevonden" : "Geen losse betalingen",
+            icon: (
+              <CreditCard
+                size={30}
+                style={{ color: "var(--color-muted-fg)" }}
+              />
+            ),
+            title:
+              activeFilters.length > 0
+                ? "Geen losse betalingen gevonden"
+                : "Geen losse betalingen",
             description:
               activeFilters.length > 0
                 ? "Pas uw zoekopdracht of filters aan om de betalingen opnieuw te bekijken."
                 : "Er zijn nog geen losse betalingen gestart.",
           }}
-          renderMobileCard={(payment) => (
-            <PaymentCard payment={payment} />
-          )}
+          renderMobileCard={(payment) => <PaymentCard payment={payment} />}
         />
       </section>
 
@@ -425,16 +498,22 @@ export default async function BetalingenPage({
           getItemKey={(batch) => batch.id}
           tableLabel="Verzamelbetalingen"
           emptyState={{
-            icon: <WalletCards size={30} style={{ color: "var(--color-muted-fg)" }} />,
-            title: activeFilters.length > 0 ? "Geen verzamelbetalingen gevonden" : "Geen verzamelbetalingen",
+            icon: (
+              <WalletCards
+                size={30}
+                style={{ color: "var(--color-muted-fg)" }}
+              />
+            ),
+            title:
+              activeFilters.length > 0
+                ? "Geen verzamelbetalingen gevonden"
+                : "Geen verzamelbetalingen",
             description:
               activeFilters.length > 0
                 ? "Pas uw zoekopdracht of filters aan om verzamelbetalingen opnieuw te bekijken."
                 : "Nog geen verzamelbetalingen gestart.",
           }}
-          renderMobileCard={(batch) => (
-            <BatchCard batch={batch} />
-          )}
+          renderMobileCard={(batch) => <BatchCard batch={batch} />}
         />
       </section>
     </PortalPageShell>
@@ -451,7 +530,11 @@ function PaymentFilterForm({
   return (
     <form action="/betalingen" className="space-y-4">
       <div>
-        <label htmlFor="payment-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="payment-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -461,31 +544,44 @@ function PaymentFilterForm({
           defaultValue={query}
           placeholder="Factuur of betaling"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="payment-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="payment-filter-status"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Status
         </label>
-        <select
+        <SelectAdapter
           id="payment-filter-status"
           name="status"
           defaultValue={status}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle betalingen</option>
           <option value="open">Open</option>
           <option value="paid">Betaald</option>
           <option value="failed">Niet afgerond</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/betalingen"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>
@@ -503,16 +599,28 @@ function PaymentFilterForm({
 
 function PaymentCard({ payment }: { payment: CustomerPayment }) {
   return (
-    <article className="rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+    <article
+      className="rounded-2xl border bg-white p-4 shadow-sm"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-xs font-black" style={{ color: "var(--color-muted-fg)" }}>
+          <p
+            className="font-mono text-xs font-black"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
             {payment.invoiceNumber}
           </p>
-          <p className="mt-1 text-xl font-black" style={{ color: "var(--color-primary)" }}>
+          <p
+            className="mt-1 text-xl font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {cents(payment.amountCents)}
           </p>
-          <p className="mt-1 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+          <p
+            className="mt-1 text-xs font-semibold"
+            style={{ color: "var(--color-secondary)" }}
+          >
             {formatDate(payment.paidAt ?? payment.createdAt)}
           </p>
         </div>
@@ -541,13 +649,22 @@ function PaymentCard({ payment }: { payment: CustomerPayment }) {
 
 function BatchCard({ batch }: { batch: CustomerPaymentBatch }) {
   return (
-    <article className="rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+    <article
+      className="rounded-2xl border bg-white p-4 shadow-sm"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
+          <p
+            className="text-xs font-black uppercase tracking-wide"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
             {batch.invoices.length} facturen
           </p>
-          <p className="mt-1 text-xl font-black" style={{ color: "var(--color-primary)" }}>
+          <p
+            className="mt-1 text-xl font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {cents(batch.amountCents)}
           </p>
         </div>

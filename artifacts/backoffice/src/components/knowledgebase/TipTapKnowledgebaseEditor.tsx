@@ -1,7 +1,13 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useCallback, useMemo, useState } from "react";
-import { EditorContent, Node as TipTapNode, mergeAttributes, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  Node as TipTapNode,
+  mergeAttributes,
+  useEditor,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
@@ -52,7 +58,10 @@ function isCalloutTone(value: unknown): value is CalloutTone {
   return value === "tip" || value === "warning" || value === "example";
 }
 
-function sanitizeEditorUrl(rawValue: string | null | undefined, allowRelative = true): string | null {
+function sanitizeEditorUrl(
+  rawValue: string | null | undefined,
+  allowRelative = true,
+): string | null {
   const value = rawValue?.trim();
   if (!value) return null;
 
@@ -133,12 +142,22 @@ const KnowledgebaseMediaNode = TipTapNode.create({
           const image = figure.querySelector("img");
           const video = figure.querySelector("video");
           const link = figure.querySelector("a");
-          const caption = figure.querySelector("figcaption")?.textContent?.trim() ?? "";
+          const caption =
+            figure.querySelector("figcaption")?.textContent?.trim() ?? "";
 
           return {
-            mediaId: figure.getAttribute("data-kb-media-id") ?? image?.getAttribute("data-kb-media-id") ?? null,
-            mediaType: figure.getAttribute("data-media-type") ?? (image ? "image" : video ? "video" : "attachment"),
-            src: image?.getAttribute("src") ?? video?.getAttribute("src") ?? link?.getAttribute("href") ?? null,
+            mediaId:
+              figure.getAttribute("data-kb-media-id") ??
+              image?.getAttribute("data-kb-media-id") ??
+              null,
+            mediaType:
+              figure.getAttribute("data-media-type") ??
+              (image ? "image" : video ? "video" : "attachment"),
+            src:
+              image?.getAttribute("src") ??
+              video?.getAttribute("src") ??
+              link?.getAttribute("href") ??
+              null,
             alt: image?.getAttribute("alt") ?? link?.textContent?.trim() ?? "",
             caption,
           };
@@ -171,7 +190,10 @@ const KnowledgebaseMediaNode = TipTapNode.create({
     if (mediaType === "image") {
       children.push(["img", { src, alt, "data-kb-media-id": mediaId }]);
     } else if (mediaType === "video") {
-      children.push(["video", { src, controls: true, "data-kb-media-id": mediaId }]);
+      children.push([
+        "video",
+        { src, controls: true, "data-kb-media-id": mediaId },
+      ]);
     } else {
       children.push([
         "a",
@@ -216,7 +238,8 @@ const VideoEmbedNode = TipTapNode.create({
           return {
             src: iframe?.getAttribute("src") ?? null,
             title: iframe?.getAttribute("title") ?? "Video",
-            caption: figure.querySelector("figcaption")?.textContent?.trim() ?? "",
+            caption:
+              figure.querySelector("figcaption")?.textContent?.trim() ?? "",
           };
         },
       },
@@ -224,7 +247,11 @@ const VideoEmbedNode = TipTapNode.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const attrs = node.attrs as { src?: string | null; title?: string | null; caption?: string | null };
+    const attrs = node.attrs as {
+      src?: string | null;
+      title?: string | null;
+      caption?: string | null;
+    };
     const caption = attrs.caption ?? "";
     const children: unknown[] = [
       [
@@ -265,7 +292,11 @@ const SimpleTableNode = TipTapNode.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["table", mergeAttributes(HTMLAttributes, { class: "kb-table" }), ["tbody", 0]];
+    return [
+      "table",
+      mergeAttributes(HTMLAttributes, { class: "kb-table" }),
+      ["tbody", 0],
+    ];
   },
 });
 
@@ -384,38 +415,57 @@ export function TipTapKnowledgebaseEditor({
     },
   });
 
-  const previewHtml = useMemo(() => editor?.getHTML() ?? initialHtml ?? "", [editor, initialHtml, mode]);
+  const previewHtml = useMemo(
+    () => editor?.getHTML() ?? initialHtml ?? "",
+    [editor, initialHtml, mode],
+  );
 
-  const applyLink = useCallback((values: Readonly<Record<string, string>>) => {
-    if (!editor) return;
-    const url = values.href ?? "";
-    if (url.trim() === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
+  const applyLink = useCallback(
+    (values: Readonly<Record<string, string>>) => {
+      if (!editor) return;
+      const url = values.href ?? "";
+      if (url.trim() === "") {
+        editor.chain().focus().extendMarkRange("link").unsetLink().run();
+        return;
+      }
 
-    const sanitizedUrl = sanitizeEditorUrl(url);
-    if (!sanitizedUrl) return;
+      const sanitizedUrl = sanitizeEditorUrl(url);
+      if (!sanitizedUrl) return;
 
-    editor.chain().focus().extendMarkRange("link").setLink({ href: sanitizedUrl }).run();
-  }, [editor]);
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange("link")
+        .setLink({ href: sanitizedUrl })
+        .run();
+    },
+    [editor],
+  );
 
-  const insertCallout = useCallback((tone: CalloutTone) => {
-    editor
-      ?.chain()
-      .focus()
-      .insertContent({
-        type: "callout",
-        attrs: { tone },
-        content: [
-          {
-            type: "paragraph",
-            content: [{ type: "text", text: `${CALLOUT_LABELS[tone]}: schrijf hier de toelichting.` }],
-          },
-        ],
-      })
-      .run();
-  }, [editor]);
+  const insertCallout = useCallback(
+    (tone: CalloutTone) => {
+      editor
+        ?.chain()
+        .focus()
+        .insertContent({
+          type: "callout",
+          attrs: { tone },
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: `${CALLOUT_LABELS[tone]}: schrijf hier de toelichting.`,
+                },
+              ],
+            },
+          ],
+        })
+        .run();
+    },
+    [editor],
+  );
 
   const insertTable = useCallback(() => {
     editor?.chain().focus().insertContent(buildTableContent()).run();
@@ -442,26 +492,29 @@ export function TipTapKnowledgebaseEditor({
     setSelectedMediaId("");
   }, [editor, media, mediaBasePath, selectedMediaId]);
 
-  const insertVideoEmbed = useCallback((values: Readonly<Record<string, string>>) => {
-    if (!editor) return;
-    const url = values.url ?? "";
-    const sanitizedUrl = sanitizeEditorUrl(url, false);
-    if (!sanitizedUrl || !sanitizedUrl.startsWith("https://")) return;
-    const title = values.title?.trim() || "Knowledgebase video";
-    const caption = values.caption?.trim() || "";
-    editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: "videoEmbed",
-        attrs: {
-          src: sanitizedUrl,
-          title,
-          caption,
-        },
-      })
-      .run();
-  }, [editor]);
+  const insertVideoEmbed = useCallback(
+    (values: Readonly<Record<string, string>>) => {
+      if (!editor) return;
+      const url = values.url ?? "";
+      const sanitizedUrl = sanitizeEditorUrl(url, false);
+      if (!sanitizedUrl || !sanitizedUrl.startsWith("https://")) return;
+      const title = values.title?.trim() || "Knowledgebase video";
+      const caption = values.caption?.trim() || "";
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "videoEmbed",
+          attrs: {
+            src: sanitizedUrl,
+            title,
+            caption,
+          },
+        })
+        .run();
+    },
+    [editor],
+  );
 
   if (!editor) {
     return (
@@ -526,7 +579,10 @@ export function TipTapKnowledgebaseEditor({
             variant={item.active ? "default" : "ghost"}
             size="sm"
             onClick={item.action}
-            className={cn("h-8 gap-1.5 px-2 text-xs", item.active && "bg-slate-900 text-white")}
+            className={cn(
+              "h-8 gap-1.5 px-2 text-xs",
+              item.active && "bg-slate-900 text-white",
+            )}
             title={item.label}
           >
             <item.icon className="h-4 w-4" />
@@ -548,12 +604,26 @@ export function TipTapKnowledgebaseEditor({
             <span className="hidden sm:inline">{item.label}</span>
           </Button>
         ))}
-        <Button type="button" variant="ghost" size="sm" onClick={insertTable} className="h-8 gap-1.5 px-2 text-xs" title="Tabel invoegen">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={insertTable}
+          className="h-8 gap-1.5 px-2 text-xs"
+          title="Tabel invoegen"
+        >
           <Table2 className="h-4 w-4" />
           <span className="hidden sm:inline">Tabel</span>
         </Button>
         <span className="mx-1 h-8 w-px bg-slate-200" />
-        <Button type="button" variant="ghost" size="sm" onClick={() => setLinkDialogOpen(true)} className="h-8 gap-1.5 px-2 text-xs" title="Link toevoegen">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setLinkDialogOpen(true)}
+          className="h-8 gap-1.5 px-2 text-xs"
+          title="Link toevoegen"
+        >
           <LinkIcon className="h-4 w-4" />
           <span className="hidden sm:inline">Link</span>
         </Button>
@@ -568,7 +638,14 @@ export function TipTapKnowledgebaseEditor({
         >
           <Unlink className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setVideoDialogOpen(true)} className="h-8 gap-1.5 px-2 text-xs" title="Video embed invoegen">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setVideoDialogOpen(true)}
+          className="h-8 gap-1.5 px-2 text-xs"
+          title="Video embed invoegen"
+        >
           <Video className="h-4 w-4" />
           <span className="hidden sm:inline">Video</span>
         </Button>
@@ -600,34 +677,57 @@ export function TipTapKnowledgebaseEditor({
           type="button"
           variant={mode === "preview" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setMode((value) => (value === "preview" ? "edit" : "preview"))}
-          className={cn("h-8 gap-1.5 px-2 text-xs", mode === "preview" && "bg-slate-900 text-white")}
+          onClick={() =>
+            setMode((value) => (value === "preview" ? "edit" : "preview"))
+          }
+          className={cn(
+            "h-8 gap-1.5 px-2 text-xs",
+            mode === "preview" && "bg-slate-900 text-white",
+          )}
           title={mode === "preview" ? "Bewerken" : "Preview"}
         >
-          {mode === "preview" ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <span className="hidden sm:inline">{mode === "preview" ? "Bewerken" : "Preview"}</span>
+          {mode === "preview" ? (
+            <Pencil className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">
+            {mode === "preview" ? "Bewerken" : "Preview"}
+          </span>
         </Button>
       </div>
 
       <div className="flex flex-col gap-2 border-b border-slate-200 bg-white p-2 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <ImagePlus className="h-4 w-4 shrink-0 text-slate-500" />
-          <select
+          <SelectAdapter
             value={selectedMediaId}
             onChange={(event) => setSelectedMediaId(event.target.value)}
             disabled={media.length === 0}
             className="h-9 min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-700 disabled:bg-slate-50 disabled:text-slate-400"
             aria-label="Kies media om inline in te voegen"
           >
-            <option value="">{media.length === 0 ? "Upload eerst media bij dit artikel" : "Kies media om inline in te voegen"}</option>
+            <option value="">
+              {media.length === 0
+                ? "Upload eerst media bij dit artikel"
+                : "Kies media om inline in te voegen"}
+            </option>
             {media.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.caption || item.altText || item.storagePath} ({item.mediaType})
+                {item.caption || item.altText || item.storagePath} (
+                {item.mediaType})
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={insertSelectedMedia} disabled={!selectedMediaId} className="h-9 gap-1.5 text-xs">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={insertSelectedMedia}
+          disabled={!selectedMediaId}
+          className="h-9 gap-1.5 text-xs"
+        >
           <ImagePlus className="h-4 w-4" />
           Invoegen
         </Button>
@@ -635,7 +735,10 @@ export function TipTapKnowledgebaseEditor({
 
       {mode === "preview" ? (
         <div className="min-h-[360px] bg-white px-4 py-3">
-          <KnowledgebaseContentRenderer html={previewHtml} mediaBasePath={mediaBasePath} />
+          <KnowledgebaseContentRenderer
+            html={previewHtml}
+            mediaBasePath={mediaBasePath}
+          />
         </div>
       ) : (
         <div className="news-editor px-4 py-3">

@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import Link from "next/link";
 import { Archive, ArrowLeft, HelpCircle, Save } from "lucide-react";
@@ -163,7 +164,7 @@ function TooltipForm({
           <div className="grid gap-3 md:grid-cols-2">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Primair artikel
-              <select
+              <SelectAdapter
                 name="articleId"
                 defaultValue={tooltip?.articleId ?? ""}
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal"
@@ -174,11 +175,11 @@ function TooltipForm({
                     {article.title}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Module
-              <select
+              <SelectAdapter
                 name="moduleKey"
                 defaultValue={tooltip?.moduleKey ?? ""}
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal"
@@ -189,14 +190,14 @@ function TooltipForm({
                     {module.name}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Permissie
-              <select
+              <SelectAdapter
                 name="permissionKey"
                 defaultValue={tooltip?.permissionKey ?? ""}
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal"
@@ -207,11 +208,11 @@ function TooltipForm({
                     {permission.key}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Status
-              <select
+              <SelectAdapter
                 name="status"
                 defaultValue={tooltip?.status ?? "draft"}
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal"
@@ -219,11 +220,11 @@ function TooltipForm({
                 <option value="draft">Concept</option>
                 <option value="published">Gepubliceerd</option>
                 <option value="archived">Gearchiveerd</option>
-              </select>
+              </SelectAdapter>
             </label>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Tooltippositie
-              <select
+              <SelectAdapter
                 name="placement"
                 defaultValue={tooltip?.placement ?? "top"}
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal"
@@ -232,7 +233,7 @@ function TooltipForm({
                 <option value="right">Rechts</option>
                 <option value="bottom">Onder</option>
                 <option value="left">Links</option>
-              </select>
+              </SelectAdapter>
             </label>
           </div>
         </div>
@@ -268,7 +269,7 @@ function TooltipForm({
             <p className="text-sm font-semibold text-slate-950">
               Gerelateerde artikelen
             </p>
-            <select
+            <SelectAdapter
               name="relatedArticleIds"
               multiple
               defaultValue={[...selectedRelated]}
@@ -279,7 +280,7 @@ function TooltipForm({
                   {article.title}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
             <p className="mt-2 text-xs text-slate-500">
               Gebruik Ctrl/Cmd om meerdere artikelen te selecteren.
             </p>

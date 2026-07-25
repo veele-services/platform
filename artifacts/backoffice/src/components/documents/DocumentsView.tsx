@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
@@ -87,18 +88,25 @@ function formatDate(iso: string): string {
 }
 
 function getMimeIcon(mimeType: string) {
-  if (mimeType === "application/pdf") return <FileText className="h-4 w-4 flex-shrink-0 text-red-600" />;
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-green-600" />;
-  if (mimeType.startsWith("image/")) return <ImageIcon className="h-4 w-4 flex-shrink-0 text-violet-600" />;
-  if (mimeType.includes("word") || mimeType.includes("wordprocessing")) return <FileText className="h-4 w-4 flex-shrink-0 text-blue-700" />;
+  if (mimeType === "application/pdf")
+    return <FileText className="h-4 w-4 flex-shrink-0 text-red-600" />;
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
+    return <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-green-600" />;
+  if (mimeType.startsWith("image/"))
+    return <ImageIcon className="h-4 w-4 flex-shrink-0 text-violet-600" />;
+  if (mimeType.includes("word") || mimeType.includes("wordprocessing"))
+    return <FileText className="h-4 w-4 flex-shrink-0 text-blue-700" />;
   return <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />;
 }
 
 function getMimeBadge(mimeType: string): string {
   if (mimeType === "application/pdf") return "PDF";
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "Excel";
-  if (mimeType.includes("wordprocessing") || mimeType.includes("word")) return "Word";
-  if (mimeType.includes("presentation") || mimeType.includes("powerpoint")) return "PPT";
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
+    return "Excel";
+  if (mimeType.includes("wordprocessing") || mimeType.includes("word"))
+    return "Word";
+  if (mimeType.includes("presentation") || mimeType.includes("powerpoint"))
+    return "PPT";
   if (mimeType.startsWith("image/")) return "Afbeelding";
   return "Bestand";
 }
@@ -113,7 +121,11 @@ function EntityLink({ doc }: { doc: DocumentRow }) {
 
   if (base && doc.entityName) {
     return (
-      <a href={`${base}/${doc.entityId}`} className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-primary hover:underline" title={doc.entityName}>
+      <a
+        href={`${base}/${doc.entityId}`}
+        className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-primary hover:underline"
+        title={doc.entityName}
+      >
         <Link2 className="h-3 w-3 flex-shrink-0" />
         {label}
       </a>
@@ -121,7 +133,10 @@ function EntityLink({ doc }: { doc: DocumentRow }) {
   }
 
   return (
-    <span className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-slate-600" title={doc.entityId}>
+    <span
+      className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-slate-600"
+      title={doc.entityId}
+    >
       <Link2 className="h-3 w-3 flex-shrink-0" />
       {label}
     </span>
@@ -135,7 +150,9 @@ interface Props {
 
 export function DocumentsView({ initialDocuments, canWrite }: Props) {
   const [documents, setDocuments] = useState(initialDocuments);
-  const [activeFilter, setActiveFilter] = useState<DocumentEntityType | "all">("all");
+  const [activeFilter, setActiveFilter] = useState<DocumentEntityType | "all">(
+    "all",
+  );
   const [searchInput, setSearchInput] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -146,7 +163,8 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
 
   const [uploadName, setUploadName] = useState("");
-  const [uploadEntityType, setUploadEntityType] = useState<DocumentEntityType>("general");
+  const [uploadEntityType, setUploadEntityType] =
+    useState<DocumentEntityType>("general");
   const [uploadEntityId, setUploadEntityId] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -154,19 +172,33 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
 
   const normalizedSearch = searchInput.trim().toLowerCase();
   const filtered = documents.filter((document) => {
-    const matchesType = activeFilter === "all" || document.entityType === activeFilter;
+    const matchesType =
+      activeFilter === "all" || document.entityType === activeFilter;
     const matchesSearch =
       !normalizedSearch ||
-      [document.name, document.filename, document.entityName, document.uploaderName, document.uploaderEmail]
+      [
+        document.name,
+        document.filename,
+        document.entityName,
+        document.uploaderName,
+        document.uploaderEmail,
+      ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+        .some((value) =>
+          String(value).toLowerCase().includes(normalizedSearch),
+        );
 
     return matchesType && matchesSearch;
   });
 
   const activeFilters = [
     searchInput
-      ? { id: "search", label: "Zoeken", value: searchInput, onRemove: () => setSearchInput("") }
+      ? {
+          id: "search",
+          label: "Zoeken",
+          value: searchInput,
+          onRemove: () => setSearchInput(""),
+        }
       : null,
     activeFilter !== "all"
       ? {
@@ -242,7 +274,9 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         setShowUpload(false);
         showFlash("Document geupload.", false);
       } else {
-        setUploadError((result as { message?: string }).message ?? "Uploaden mislukt.");
+        setUploadError(
+          (result as { message?: string }).message ?? "Uploaden mislukt.",
+        );
       }
     });
   }
@@ -255,7 +289,10 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       if (result.success && result.data) {
         window.open(result.data.url, "_blank", "noopener,noreferrer");
       } else {
-        showFlash((result as { message?: string }).message ?? "Download mislukt.", true);
+        showFlash(
+          (result as { message?: string }).message ?? "Download mislukt.",
+          true,
+        );
       }
     });
   }
@@ -266,10 +303,15 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       const result = await deleteDocument(doc.id);
       setDeletingId(null);
       if (result.success) {
-        setDocuments((current) => current.filter((document) => document.id !== doc.id));
+        setDocuments((current) =>
+          current.filter((document) => document.id !== doc.id),
+        );
         showFlash("Document verwijderd.", false);
       } else {
-        showFlash((result as { message?: string }).message ?? "Verwijderen mislukt.", true);
+        showFlash(
+          (result as { message?: string }).message ?? "Verwijderen mislukt.",
+          true,
+        );
       }
       setDeleteTarget(null);
     });
@@ -283,8 +325,18 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         <div className="flex min-w-0 items-center gap-2">
           {getMimeIcon(doc.mimeType)}
           <div className="min-w-0">
-            <p className="max-w-[180px] truncate font-medium text-foreground" title={doc.name}>{doc.name}</p>
-            <p className="max-w-[180px] truncate text-xs text-muted-foreground" title={doc.filename}>{doc.filename}</p>
+            <p
+              className="max-w-[180px] truncate font-medium text-foreground"
+              title={doc.name}
+            >
+              {doc.name}
+            </p>
+            <p
+              className="max-w-[180px] truncate text-xs text-muted-foreground"
+              title={doc.filename}
+            >
+              {doc.filename}
+            </p>
           </div>
         </div>
       ),
@@ -319,11 +371,23 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         <div className="max-w-[160px] text-xs">
           {doc.uploaderName ? (
             <>
-              <p className="truncate font-medium text-slate-700" title={doc.uploaderName}>{doc.uploaderName}</p>
-              <p className="truncate text-muted-foreground" title={doc.uploaderEmail}>{doc.uploaderEmail}</p>
+              <p
+                className="truncate font-medium text-slate-700"
+                title={doc.uploaderName}
+              >
+                {doc.uploaderName}
+              </p>
+              <p
+                className="truncate text-muted-foreground"
+                title={doc.uploaderEmail}
+              >
+                {doc.uploaderEmail}
+              </p>
             </>
           ) : (
-            <p className="truncate text-slate-600" title={doc.uploaderEmail}>{doc.uploaderEmail}</p>
+            <p className="truncate text-slate-600" title={doc.uploaderEmail}>
+              {doc.uploaderEmail}
+            </p>
           )}
         </div>
       ),
@@ -331,12 +395,20 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
     {
       id: "size",
       header: "Grootte",
-      cell: (doc) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatFileSize(doc.sizeBytes)}</span>,
+      cell: (doc) => (
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {formatFileSize(doc.sizeBytes)}
+        </span>
+      ),
     },
     {
       id: "date",
       header: "Datum",
-      cell: (doc) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(doc.createdAt)}</span>,
+      cell: (doc) => (
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {formatDate(doc.createdAt)}
+        </span>
+      ),
     },
     {
       id: "actions",
@@ -356,7 +428,8 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
               ? [
                   {
                     id: "delete",
-                    label: deletingId === doc.id ? "Verwijderen..." : "Verwijderen",
+                    label:
+                      deletingId === doc.id ? "Verwijderen..." : "Verwijderen",
                     icon: <Trash2 className="h-4 w-4" />,
                     disabled: isPending && deletingId === doc.id,
                     destructive: true,
@@ -375,8 +448,18 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
     <div className="space-y-4">
       {(error || success) && (
         <div className="flex items-center gap-2">
-          {error && <span className="inline-flex items-center gap-1.5 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{error}</span>}
-          {success && <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600"><CheckCircle2 className="h-4 w-4" />{success}</span>}
+          {error && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              {error}
+            </span>
+          )}
+          {success && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+              {success}
+            </span>
+          )}
         </div>
       )}
 
@@ -390,26 +473,32 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         }
         actions={
           <>
-            <TenantFilterDrawer activeCount={activeFilters.length} title="Documentfilters">
+            <TenantFilterDrawer
+              activeCount={activeFilters.length}
+              title="Documentfilters"
+            >
               <label className="flex flex-col gap-1 text-sm">
                 <span className="font-medium text-foreground">Categorie</span>
-                <select
+                <SelectAdapter
                   value={activeFilter}
-                  onChange={(event) => setActiveFilter(event.target.value as DocumentEntityType | "all")}
+                  onChange={(event) =>
+                    setActiveFilter(
+                      event.target.value as DocumentEntityType | "all",
+                    )
+                  }
                   className="veele-input"
                 >
                   <option value="all">Alle categorieen</option>
                   {DOCUMENT_ENTITY_TYPES.map((type) => (
-                    <option key={type} value={type}>{ENTITY_TYPE_LABELS[type]}</option>
+                    <option key={type} value={type}>
+                      {ENTITY_TYPE_LABELS[type]}
+                    </option>
                   ))}
-                </select>
+                </SelectAdapter>
               </label>
             </TenantFilterDrawer>
             {canWrite && (
-              <Button
-                type="button"
-                onClick={() => setShowUpload(true)}
-              >
+              <Button type="button" onClick={() => setShowUpload(true)}>
                 <Plus className="h-4 w-4" />
                 Document uploaden
               </Button>
@@ -436,7 +525,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       >
         <label className="block text-sm font-medium text-foreground">
           Categorie
-          <select
+          <SelectAdapter
             value={uploadEntityType}
             onChange={(event) => {
               setUploadEntityType(event.target.value as DocumentEntityType);
@@ -446,16 +535,19 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             disabled={isPending}
           >
             {DOCUMENT_ENTITY_TYPES.map((type) => (
-              <option key={type} value={type}>{ENTITY_TYPE_SINGULAR[type]}</option>
+              <option key={type} value={type}>
+                {ENTITY_TYPE_SINGULAR[type]}
+              </option>
             ))}
-          </select>
+          </SelectAdapter>
         </label>
 
         {uploadEntityType !== "general" && (
           <label className="block text-sm font-medium text-foreground">
             Entiteit-ID
             <span className="block text-xs font-normal text-muted-foreground">
-              UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()}
+              UUID van de gekoppelde{" "}
+              {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()}
             </span>
             <input
               type="text"
@@ -473,7 +565,11 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         rows={filtered}
         columns={columns}
         getRowKey={(doc) => doc.id}
-        emptyTitle={activeFilter === "all" ? "Nog geen documenten opgeslagen" : `Geen documenten in categorie ${ENTITY_TYPE_LABELS[activeFilter]}`}
+        emptyTitle={
+          activeFilter === "all"
+            ? "Nog geen documenten opgeslagen"
+            : `Geen documenten in categorie ${ENTITY_TYPE_LABELS[activeFilter]}`
+        }
         emptyDescription="Pas de filters aan of upload een nieuw document."
         renderMobileCard={(doc) => (
           <article className="rounded-lg border border-border bg-card p-4 shadow-card">
@@ -481,19 +577,29 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
                   {getMimeIcon(doc.mimeType)}
-                  <p className="truncate font-medium text-foreground">{doc.name}</p>
+                  <p className="truncate font-medium text-foreground">
+                    {doc.name}
+                  </p>
                 </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{doc.filename}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {doc.filename}
+                </p>
               </div>
               {columns[7]?.cell(doc, 0)}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="rounded bg-muted px-1.5 py-0.5">{getMimeBadge(doc.mimeType)}</span>
+              <span className="rounded bg-muted px-1.5 py-0.5">
+                {getMimeBadge(doc.mimeType)}
+              </span>
               <span>{ENTITY_TYPE_SINGULAR[doc.entityType]}</span>
               <span>{formatFileSize(doc.sizeBytes)}</span>
               <span>{formatDate(doc.createdAt)}</span>
             </div>
-            {doc.entityType !== "general" && <div className="mt-2"><EntityLink doc={doc} /></div>}
+            {doc.entityType !== "general" && (
+              <div className="mt-2">
+                <EntityLink doc={doc} />
+              </div>
+            )}
           </article>
         )}
       />
@@ -501,7 +607,8 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       {filtered.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {filtered.length} document{filtered.length !== 1 ? "en" : ""}
-          {activeFilter !== "all" && ` in categorie "${ENTITY_TYPE_LABELS[activeFilter]}"`}
+          {activeFilter !== "all" &&
+            ` in categorie "${ENTITY_TYPE_LABELS[activeFilter]}"`}
         </p>
       )}
 
@@ -511,7 +618,11 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
           if (!open) setDeleteTarget(null);
         }}
         title="Document verwijderen?"
-        description={deleteTarget ? `Weet u zeker dat u "${deleteTarget.name}" wilt verwijderen?` : undefined}
+        description={
+          deleteTarget
+            ? `Weet u zeker dat u "${deleteTarget.name}" wilt verwijderen?`
+            : undefined
+        }
         confirmLabel="Verwijderen"
         destructive
         onConfirm={() => {

@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -481,7 +482,7 @@ function InvoiceFilterForm({
         >
           Status
         </label>
-        <select
+        <SelectAdapter
           id="invoice-filter-status"
           name="status"
           defaultValue={status}
@@ -495,7 +496,7 @@ function InvoiceFilterForm({
           <option value="sent">Te betalen</option>
           <option value="paid">Betaald</option>
           <option value="other">Overig</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link

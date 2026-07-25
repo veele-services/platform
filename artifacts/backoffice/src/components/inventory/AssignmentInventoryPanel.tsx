@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import {
@@ -303,7 +304,7 @@ export function AssignmentInventoryPanel({
               >
                 Inventarisitem
               </span>
-              <select
+              <SelectAdapter
                 value={attachForm.inventoryItemId}
                 onChange={(event) =>
                   setAttachForm((current) => ({
@@ -325,7 +326,7 @@ export function AssignmentInventoryPanel({
                       : ""}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <label className="flex flex-col gap-1">
               <span
@@ -334,7 +335,7 @@ export function AssignmentInventoryPanel({
               >
                 Gebruikstype
               </span>
-              <select
+              <SelectAdapter
                 value={attachForm.usageType}
                 onChange={(event) =>
                   setAttachForm((current) => ({
@@ -351,7 +352,7 @@ export function AssignmentInventoryPanel({
                     {label}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <label className="flex flex-col gap-1">
               <span

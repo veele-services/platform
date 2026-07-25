@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useMemo, useRef, useState, useTransition } from "react";
 import {
@@ -749,7 +750,7 @@ export function NewsView({
                   <span className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                     Status
                   </span>
-                  <select
+                  <SelectAdapter
                     value={form.status}
                     onChange={(event) =>
                       updateForm({
@@ -769,7 +770,7 @@ export function NewsView({
                     <option value="archived" disabled={!canDelete}>
                       Gearchiveerd
                     </option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <label className="space-y-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">

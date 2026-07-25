@@ -1,8 +1,18 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, FileCheck2, Loader2, Search, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileCheck2,
+  Loader2,
+  Search,
+  TrendingUp,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { exportQuotes, listQuotes } from "@/app/actions/quotes";
@@ -28,7 +38,9 @@ const fmt = (v: string | number | null) =>
 function fmtDate(d: string) {
   if (!d) return "-";
   return new Date(`${d}T00:00:00`).toLocaleDateString("nl-NL", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -50,7 +62,9 @@ const STATUS_OPTIONS = [
 ];
 
 function statusLabel(value: string) {
-  return STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value;
+  return (
+    STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value
+  );
 }
 
 function downloadCsv(csv: string, filename: string) {
@@ -63,7 +77,11 @@ function downloadCsv(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewProps) {
+export function QuotesView({
+  initialRows,
+  initialTotal,
+  summary,
+}: QuotesViewProps) {
   const [rows, setRows] = useState<QuoteRow[]>(initialRows);
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
@@ -73,18 +91,15 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
   const [exportPending, setExportPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const load = useCallback(
-    (p: number, s: string, st: string) => {
-      startTransition(async () => {
-        const result = await listQuotes({ page: p, search: s, status: st });
-        setRows(result.rows);
-        setTotal(result.total);
-        setPage(p);
-        setSubmittedSearch(s);
-      });
-    },
-    [],
-  );
+  const load = useCallback((p: number, s: string, st: string) => {
+    startTransition(async () => {
+      const result = await listQuotes({ page: p, search: s, status: st });
+      setRows(result.rows);
+      setTotal(result.total);
+      setPage(p);
+      setSubmittedSearch(s);
+    });
+  }, []);
 
   function handleSearch(event: React.FormEvent) {
     event.preventDefault();
@@ -104,7 +119,9 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
         downloadCsv(result.data.csv, result.data.filename);
         toast.success("Offertes CSV gedownload");
       } else {
-        toast.error("message" in result ? result.message : "CSV exporteren mislukt");
+        toast.error(
+          "message" in result ? result.message : "CSV exporteren mislukt",
+        );
       }
     } catch {
       toast.error("CSV exporteren mislukt. Probeer het opnieuw.");
@@ -122,8 +139,18 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
         title="Offerteregister"
         description="Zoek op offertenummer, klant of opdracht en open acties via het rijmenu."
         actions={
-          <Button type="button" variant="outline" size="sm" onClick={handleExportCsv} disabled={exportPending}>
-            {exportPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={exportPending}
+          >
+            {exportPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             CSV downloaden
           </Button>
         }
@@ -135,51 +162,91 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
               placeholder="Zoek offerte, klant of opdracht"
               wrapperClassName="sm:max-w-lg"
             />
-            <Button type="submit" variant="outline" size="sm" className="h-10" disabled={pending}>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className="h-10"
+              disabled={pending}
+            >
               <Search className="h-4 w-4" />
               Zoeken
             </Button>
           </form>
         }
         filters={
-          <select
+          <SelectAdapter
             value={status}
             onChange={(event) => handleStatusChange(event.target.value)}
             className="h-10 rounded-md border border-input bg-background px-3 text-sm font-medium"
           >
             {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
-          </select>
+          </SelectAdapter>
         }
         activeFilters={
           <TenantActiveFilters
             filters={[
-              ...(submittedSearch ? [{ id: "search", label: "Zoek", value: submittedSearch }] : []),
-              ...(status ? [{ id: "status", label: "Status", value: statusLabel(status) }] : []),
+              ...(submittedSearch
+                ? [{ id: "search", label: "Zoek", value: submittedSearch }]
+                : []),
+              ...(status
+                ? [
+                    {
+                      id: "status",
+                      label: "Status",
+                      value: statusLabel(status),
+                    },
+                  ]
+                : []),
             ]}
-            clearAll={activeFilterCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setStatus("");
-                  load(1, "", "");
-                }}
-              >
-                Filters wissen
-              </button>
-            ) : undefined}
+            clearAll={
+              activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatus("");
+                    load(1, "", "");
+                  }}
+                >
+                  Filters wissen
+                </button>
+              ) : undefined
+            }
           />
         }
       />
 
       <TenantConflictStrip
         items={[
-          { label: "Concept", value: summary.draftCount, description: "nog niet verzonden", tone: summary.draftCount > 0 ? "warning" : "neutral" },
-          { label: "Ter goedkeuring", value: summary.sentCount, description: "bij klant", tone: summary.sentCount > 0 ? "info" : "neutral" },
-          { label: "Goedgekeurd", value: summary.approvedCount, description: "klaar voor vervolg", tone: "success" },
-          { label: "Verlopen", value: summary.expiredCount, description: `${summary.totalCount} offertes totaal`, tone: summary.expiredCount > 0 ? "danger" : "success" },
+          {
+            label: "Concept",
+            value: summary.draftCount,
+            description: "nog niet verzonden",
+            tone: summary.draftCount > 0 ? "warning" : "neutral",
+          },
+          {
+            label: "Ter goedkeuring",
+            value: summary.sentCount,
+            description: "bij klant",
+            tone: summary.sentCount > 0 ? "info" : "neutral",
+          },
+          {
+            label: "Goedgekeurd",
+            value: summary.approvedCount,
+            description: "klaar voor vervolg",
+            tone: "success",
+          },
+          {
+            label: "Verlopen",
+            value: summary.expiredCount,
+            description: `${summary.totalCount} offertes totaal`,
+            tone: summary.expiredCount > 0 ? "danger" : "success",
+          },
         ]}
       />
 
@@ -188,24 +255,41 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
         description={`${total} offerte${total !== 1 ? "s" : ""} in deze selectie`}
       >
         {pending ? (
-          <div className="flex items-center justify-center px-4 py-16 text-muted-foreground">Laden...</div>
+          <div className="flex items-center justify-center px-4 py-16 text-muted-foreground">
+            Laden...
+          </div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-4 py-16 text-center">
             <FileCheck2 className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Geen offertes gevonden.</p>
+            <p className="text-sm text-muted-foreground">
+              Geen offertes gevonden.
+            </p>
           </div>
         ) : (
           <>
             <div className="grid gap-3 p-3 md:hidden">
-              {rows.map((row) => <QuoteMobileCard key={row.id} row={row} />)}
+              {rows.map((row) => (
+                <QuoteMobileCard key={row.id} row={row} />
+              ))}
             </div>
 
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead className="border-b border-border bg-muted/50">
                   <tr>
-                    {["Offerte", "Klant", "Opdracht", "Bedrag", "Status", "Geldig tot", ""].map((header) => (
-                      <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {[
+                      "Offerte",
+                      "Klant",
+                      "Opdracht",
+                      "Bedrag",
+                      "Status",
+                      "Geldig tot",
+                      "",
+                    ].map((header) => (
+                      <th
+                        key={header}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
                         {header}
                       </th>
                     ))}
@@ -213,24 +297,48 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} className="border-b border-border/60 transition-colors hover:bg-muted/30">
+                    <tr
+                      key={row.id}
+                      className="border-b border-border/60 transition-colors hover:bg-muted/30"
+                    >
                       <td className="px-4 py-3">
-                        <Link href={`/quotes/${row.id}`} className="font-mono text-xs font-semibold text-primary hover:underline">
+                        <Link
+                          href={`/quotes/${row.id}`}
+                          className="font-mono text-xs font-semibold text-primary hover:underline"
+                        >
                           {row.quoteNumber}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-foreground">{row.customerName}</td>
+                      <td className="px-4 py-3 text-foreground">
+                        {row.customerName}
+                      </td>
                       <td className="px-4 py-3">
-                        <Link href={`/assignments/${row.assignmentId}`} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:underline">
+                        <Link
+                          href={`/assignments/${row.assignmentId}`}
+                          className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:underline"
+                        >
                           {row.assignmentCode}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 font-semibold text-foreground">{fmt(row.amount)}</td>
-                      <td className="px-4 py-3">
-                        <ProcessStatusBadge kind="quote" status={row.isExpired ? "expired" : row.status} />
+                      <td className="px-4 py-3 font-semibold text-foreground">
+                        {fmt(row.amount)}
                       </td>
-                      <td className={row.isExpired ? "px-4 py-3 font-semibold text-red-600" : "px-4 py-3 text-muted-foreground"}>
-                        {row.isExpired && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
+                      <td className="px-4 py-3">
+                        <ProcessStatusBadge
+                          kind="quote"
+                          status={row.isExpired ? "expired" : row.status}
+                        />
+                      </td>
+                      <td
+                        className={
+                          row.isExpired
+                            ? "px-4 py-3 font-semibold text-red-600"
+                            : "px-4 py-3 text-muted-foreground"
+                        }
+                      >
+                        {row.isExpired && (
+                          <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
+                        )}
                         {fmtDate(row.validityDate)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -247,14 +355,28 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
 
       {totalPages > 1 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">{total} offerte{total !== 1 ? "s" : ""}</p>
+          <p className="text-sm text-muted-foreground">
+            {total} offerte{total !== 1 ? "s" : ""}
+          </p>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => load(page - 1, search, status)} disabled={page <= 1 || pending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load(page - 1, search, status)}
+              disabled={page <= 1 || pending}
+            >
               <ChevronLeft className="h-4 w-4" />
               Vorige
             </Button>
-            <span className="text-sm text-muted-foreground">Pagina {page} van {totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => load(page + 1, search, status)} disabled={page >= totalPages || pending}>
+            <span className="text-sm text-muted-foreground">
+              Pagina {page} van {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load(page + 1, search, status)}
+              disabled={page >= totalPages || pending}
+            >
               Volgende
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -269,9 +391,24 @@ function QuoteRowActions({ row }: { row: QuoteRow }) {
   return (
     <TenantActionMenu
       actions={[
-        { id: "open", label: "Open offerte", href: `/quotes/${row.id}`, icon: <FileCheck2 className="h-4 w-4" /> },
-        { id: "assignment", label: "Open opdracht", href: `/assignments/${row.assignmentId}`, icon: <TrendingUp className="h-4 w-4" /> },
-        { id: "pdf", label: "Download PDF", href: `/backoffice-api/quotes/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
+        {
+          id: "open",
+          label: "Open offerte",
+          href: `/quotes/${row.id}`,
+          icon: <FileCheck2 className="h-4 w-4" />,
+        },
+        {
+          id: "assignment",
+          label: "Open opdracht",
+          href: `/assignments/${row.assignmentId}`,
+          icon: <TrendingUp className="h-4 w-4" />,
+        },
+        {
+          id: "pdf",
+          label: "Download PDF",
+          href: `/backoffice-api/quotes/${row.id}/pdf`,
+          icon: <Download className="h-4 w-4" />,
+        },
       ]}
     />
   );
@@ -282,18 +419,36 @@ function QuoteMobileCard({ row }: { row: QuoteRow }) {
     <article className="rounded-lg border border-border bg-card p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link href={`/quotes/${row.id}`} className="font-mono text-xs font-semibold text-primary hover:underline">
+          <Link
+            href={`/quotes/${row.id}`}
+            className="font-mono text-xs font-semibold text-primary hover:underline"
+          >
             {row.quoteNumber}
           </Link>
-          <h2 className="mt-1 truncate text-sm font-semibold text-foreground">{row.customerName}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{row.assignmentCode}</p>
+          <h2 className="mt-1 truncate text-sm font-semibold text-foreground">
+            {row.customerName}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {row.assignmentCode}
+          </p>
         </div>
         <QuoteRowActions row={row} />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ProcessStatusBadge kind="quote" status={row.isExpired ? "expired" : row.status} />
-        <span className="text-sm font-semibold text-foreground">{fmt(row.amount)}</span>
-        <span className={row.isExpired ? "text-xs font-semibold text-red-600" : "text-xs text-muted-foreground"}>
+        <ProcessStatusBadge
+          kind="quote"
+          status={row.isExpired ? "expired" : row.status}
+        />
+        <span className="text-sm font-semibold text-foreground">
+          {fmt(row.amount)}
+        </span>
+        <span
+          className={
+            row.isExpired
+              ? "text-xs font-semibold text-red-600"
+              : "text-xs text-muted-foreground"
+          }
+        >
           Geldig tot {fmtDate(row.validityDate)}
         </span>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { RadioGroup, RadioGroupItem } from "@workspace/shared-ui";
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -359,7 +360,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
             >
               Sector
             </span>
-            <select
+            <SelectAdapter
               name="sectorId"
               defaultValue={object?.sectorId ?? ""}
               className={fieldClass(errors?.sectorId)}
@@ -371,7 +372,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
                   {sector.name}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
             {errors?.sectorId ? (
               <span className="block text-xs font-bold text-red-600">
                 {errors.sectorId}

@@ -1,17 +1,18 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { useActionState, useState } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Home, MapPin, Phone, Route, User } from "lucide-react";
-import {
-  updateMyProfile,
-  type PersonnelProfile,
-} from "@/actions/personnel";
+import { updateMyProfile, type PersonnelProfile } from "@/actions/personnel";
 import {
   PersonnelSettingsFeedback,
   PersonnelSettingsSaveBar,
 } from "@/components/SettingsShell";
-import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSelection,
+} from "@/components/google-maps/AddressAutocomplete";
 
 const VEHICLE_TYPE_OPTIONS = [
   { value: "DRIVE", label: "Auto" },
@@ -25,26 +26,40 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
     updateMyProfile,
     undefined,
   );
-  const [addressStreet, setAddressStreet] = useState(profile.addressStreet ?? "");
-  const [addressPostalCode, setAddressPostalCode] = useState(profile.addressPostalCode ?? "");
+  const [addressStreet, setAddressStreet] = useState(
+    profile.addressStreet ?? "",
+  );
+  const [addressPostalCode, setAddressPostalCode] = useState(
+    profile.addressPostalCode ?? "",
+  );
   const [addressCity, setAddressCity] = useState(profile.addressCity ?? "");
   const [addressCountry, setAddressCountry] = useState(profile.addressCountry);
-  const [vehicleType, setVehicleType] = useState<string>(profile.vehicleType ?? "DRIVE");
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
+  const [vehicleType, setVehicleType] = useState<string>(
+    profile.vehicleType ?? "DRIVE",
+  );
+  const [selectedGooglePlace, setSelectedGooglePlace] =
+    useState<SelectedGooglePlace | null>(null);
 
-  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
-    setAddressStreet(place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+  function applyAddressSelection({
+    suggestion,
+    place,
+  }: AddressAutocompleteSelection) {
+    setAddressStreet(
+      place.addressLine1 ?? suggestion.mainText ?? suggestion.label,
+    );
     setAddressPostalCode(place.postalCode ?? "");
     setAddressCity(place.city ?? "");
-    setAddressCountry(place.countryCode === "NL" ? "Nederland" : place.countryCode);
+    setAddressCountry(
+      place.countryCode === "NL" ? "Nederland" : place.countryCode,
+    );
     setSelectedGooglePlace(place);
   }
 
-  const googlePlaceStillMatches = selectedGooglePlace && (
+  const googlePlaceStillMatches =
+    selectedGooglePlace &&
     (selectedGooglePlace.addressLine1 ?? "") === addressStreet &&
     (selectedGooglePlace.postalCode ?? "") === addressPostalCode &&
-    (selectedGooglePlace.city ?? "") === addressCity
-  );
+    (selectedGooglePlace.city ?? "") === addressCity;
 
   return (
     <form
@@ -81,14 +96,46 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
       </div>
       {googlePlaceStillMatches ? (
         <>
-          <input type="hidden" name="googlePlaceId" value={selectedGooglePlace.googlePlaceId} />
-          <input type="hidden" name="formattedAddress" value={selectedGooglePlace.formattedAddress ?? ""} />
-          <input type="hidden" name="addressLine1" value={selectedGooglePlace.addressLine1 ?? ""} />
-          <input type="hidden" name="addressLine2" value={selectedGooglePlace.addressLine2 ?? ""} />
-          <input type="hidden" name="stateOrRegion" value={selectedGooglePlace.stateOrRegion ?? ""} />
-          <input type="hidden" name="countryCode" value={selectedGooglePlace.countryCode} />
-          <input type="hidden" name="latitude" value={selectedGooglePlace.latitude ?? ""} />
-          <input type="hidden" name="longitude" value={selectedGooglePlace.longitude ?? ""} />
+          <input
+            type="hidden"
+            name="googlePlaceId"
+            value={selectedGooglePlace.googlePlaceId}
+          />
+          <input
+            type="hidden"
+            name="formattedAddress"
+            value={selectedGooglePlace.formattedAddress ?? ""}
+          />
+          <input
+            type="hidden"
+            name="addressLine1"
+            value={selectedGooglePlace.addressLine1 ?? ""}
+          />
+          <input
+            type="hidden"
+            name="addressLine2"
+            value={selectedGooglePlace.addressLine2 ?? ""}
+          />
+          <input
+            type="hidden"
+            name="stateOrRegion"
+            value={selectedGooglePlace.stateOrRegion ?? ""}
+          />
+          <input
+            type="hidden"
+            name="countryCode"
+            value={selectedGooglePlace.countryCode}
+          />
+          <input
+            type="hidden"
+            name="latitude"
+            value={selectedGooglePlace.latitude ?? ""}
+          />
+          <input
+            type="hidden"
+            name="longitude"
+            value={selectedGooglePlace.longitude ?? ""}
+          />
         </>
       ) : null}
 
@@ -111,7 +158,7 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
           <span className="shrink-0 text-[#009E9A]">
             <Route size={18} strokeWidth={2.4} />
           </span>
-          <select
+          <SelectAdapter
             name="vehicleType"
             value={vehicleType}
             onChange={(event) => setVehicleType(event.currentTarget.value)}
@@ -122,10 +169,11 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </span>
         <span className="mt-1 block text-xs font-semibold text-slate-500">
-          Gebruikt als standaard bij routeberekening; planning kan per route tijdelijk afwijken.
+          Gebruikt als standaard bij routeberekening; planning kan per route
+          tijdelijk afwijken.
         </span>
       </label>
 
@@ -179,7 +227,9 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
 
       {state?.error ? (
         <div className="mt-3">
-          <PersonnelSettingsFeedback type="error">{state.error}</PersonnelSettingsFeedback>
+          <PersonnelSettingsFeedback type="error">
+            {state.error}
+          </PersonnelSettingsFeedback>
         </div>
       ) : null}
       {state?.success ? (
@@ -225,7 +275,11 @@ function TextField({
           name={name}
           defaultValue={value === undefined ? defaultValue : undefined}
           value={value}
-          onChange={onChange ? (event) => onChange(event.currentTarget.value) : undefined}
+          onChange={
+            onChange
+              ? (event) => onChange(event.currentTarget.value)
+              : undefined
+          }
           autoComplete={autoComplete}
           inputMode={inputMode}
           className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#081D3A] outline-none placeholder:text-slate-300"

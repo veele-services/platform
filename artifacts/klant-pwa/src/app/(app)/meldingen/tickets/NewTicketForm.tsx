@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { useActionState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -55,7 +56,9 @@ export function NewTicketForm({
   const department = isDepartmentValue(initialDepartment)
     ? initialDepartment
     : "service";
-  const priority = isPriorityValue(initialPriority) ? initialPriority : "normal";
+  const priority = isPriorityValue(initialPriority)
+    ? initialPriority
+    : "normal";
 
   useEffect(() => {
     if (!state?.success) return;
@@ -90,7 +93,7 @@ export function NewTicketForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Afdeling">
-          <select
+          <SelectAdapter
             name="department"
             className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
             defaultValue={department}
@@ -100,10 +103,10 @@ export function NewTicketForm({
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </Field>
         <Field label="Prioriteit">
-          <select
+          <SelectAdapter
             name="priority"
             className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
             defaultValue={priority}
@@ -113,7 +116,7 @@ export function NewTicketForm({
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </Field>
       </div>
 
@@ -173,13 +176,7 @@ export function NewTicketForm({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
       <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">

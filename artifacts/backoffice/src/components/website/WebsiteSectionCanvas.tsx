@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteAction,
@@ -620,7 +621,7 @@ function WebsiteSectionCard({
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <label className="text-xs font-medium text-slate-500">
               Weergave
-              <select
+              <SelectAdapter
                 value={draft.variant}
                 disabled={disabled}
                 onChange={(event) =>
@@ -636,7 +637,7 @@ function WebsiteSectionCard({
                     {VARIANT_LABELS[variant] ?? variant}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <span className="text-xs text-slate-400">
               Revisie {section.authoringRevision}
@@ -1306,7 +1307,7 @@ function SectionCollectionEditor({
                     className={cn(FLAT_INPUT, "resize-y")}
                   />
                 ) : field.kind === "icon" ? (
-                  <select
+                  <SelectAdapter
                     value={text(item[field.key])}
                     disabled={disabled}
                     onChange={(event) =>
@@ -1331,7 +1332,7 @@ function SectionCollectionEditor({
                         {icon.replaceAll("_", " ")}
                       </option>
                     ))}
-                  </select>
+                  </SelectAdapter>
                 ) : field.kind === "boolean" ? (
                   <Toggle
                     label={field.label}
@@ -1517,7 +1518,7 @@ function ActionEditor({
         )}
       </div>
       <div className="space-y-2">
-        <select
+        <SelectAdapter
           value={action.kind}
           disabled={disabled}
           onChange={(event) =>
@@ -1538,7 +1539,7 @@ function ActionEditor({
             <option value="email">E-mailadres</option>
           )}
           {action.kind === "page" && <option value="page">Pagina-ID</option>}
-        </select>
+        </SelectAdapter>
         <input
           value={action.label}
           disabled={disabled}

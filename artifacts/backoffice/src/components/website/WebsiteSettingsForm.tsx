@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { WebsiteSiteSettings } from "@workspace/db";
 import {
@@ -267,7 +268,7 @@ export function WebsiteSettingsForm({
             />
           </Field>
           <Field label="Standaardtaal" htmlFor="website-locale" required>
-            <select
+            <SelectAdapter
               id="website-locale"
               name="defaultLocale"
               defaultValue={initialSettings.defaultLocale}
@@ -277,7 +278,7 @@ export function WebsiteSettingsForm({
               <option value="nl-NL">Nederlands (Nederland)</option>
               <option value="en-GB">English (United Kingdom)</option>
               <option value="de-DE">Deutsch (Deutschland)</option>
-            </select>
+            </SelectAdapter>
           </Field>
         </div>
       </WebsiteFormSection>
@@ -793,7 +794,7 @@ function SelectField({
 }) {
   return (
     <Field label={label} htmlFor={id}>
-      <select
+      <SelectAdapter
         id={id}
         name={name}
         defaultValue={value}
@@ -805,7 +806,7 @@ function SelectField({
             {optionLabel}
           </option>
         ))}
-      </select>
+      </SelectAdapter>
     </Field>
   );
 }

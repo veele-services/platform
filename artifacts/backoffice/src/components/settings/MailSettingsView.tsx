@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useState, useTransition } from "react";
 import {
@@ -253,7 +254,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
 
           <div className="grid gap-4 md:grid-cols-[240px_1fr]">
             <Field label="Provider" htmlFor="emailApiProvider" required>
-              <select
+              <SelectAdapter
                 id="emailApiProvider"
                 value={emailApiProvider}
                 onChange={(e) =>
@@ -263,7 +264,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
                 className="veele-input w-full"
               >
                 <option value="resend">Resend</option>
-              </select>
+              </SelectAdapter>
             </Field>
 
             <Field
@@ -365,7 +366,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             </Field>
 
             <Field label="Beveiliging" htmlFor="smtpEncryption">
-              <select
+              <SelectAdapter
                 id="smtpEncryption"
                 value={smtpEncryption}
                 onChange={(e) =>
@@ -379,7 +380,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
                     {option.label} - {option.hint}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </Field>
           </div>
         </div>
@@ -520,7 +521,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             className="veele-input flex-1"
             placeholder="test@tenant.nl"
           />
-          <select
+          <SelectAdapter
             value={testTemplate}
             onChange={(e) =>
               setTestTemplate(e.target.value as "basic" | "account_activation")
@@ -530,7 +531,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
           >
             <option value="account_activation">Accountactivatie</option>
             <option value="basic">Basis testmail</option>
-          </select>
+          </SelectAdapter>
           <button
             type="button"
             onClick={handleTest}

@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -14,9 +15,18 @@ const STATUS_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "open", label: processStatusLabel("ticket", "open") },
-  { value: "waiting_backoffice", label: processStatusLabel("ticket", "waiting_backoffice") },
-  { value: "waiting_customer", label: processStatusLabel("ticket", "waiting_customer") },
-  { value: "waiting_personnel", label: processStatusLabel("ticket", "waiting_personnel") },
+  {
+    value: "waiting_backoffice",
+    label: processStatusLabel("ticket", "waiting_backoffice"),
+  },
+  {
+    value: "waiting_customer",
+    label: processStatusLabel("ticket", "waiting_customer"),
+  },
+  {
+    value: "waiting_personnel",
+    label: processStatusLabel("ticket", "waiting_personnel"),
+  },
   { value: "closed", label: processStatusLabel("ticket", "closed") },
 ];
 
@@ -52,7 +62,10 @@ export function StatusActions({
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+    <div
+      className="rounded-lg border bg-white p-4 shadow-sm"
+      style={{ borderColor: "#E2E8F0" }}
+    >
       <h2 className="text-sm font-black" style={{ color: "#081D3A" }}>
         Ticketstatus
       </h2>
@@ -60,9 +73,11 @@ export function StatusActions({
         Wijzig de administratieve status van dit ticket.
       </p>
       <div className="mt-3 flex gap-2">
-        <select
+        <SelectAdapter
           value={status}
-          onChange={(event) => setStatus(event.target.value as BackofficeTicketStatus)}
+          onChange={(event) =>
+            setStatus(event.target.value as BackofficeTicketStatus)
+          }
           className="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm font-semibold outline-none focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10"
           style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
         >
@@ -71,7 +86,7 @@ export function StatusActions({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
         <button
           type="button"
           onClick={save}

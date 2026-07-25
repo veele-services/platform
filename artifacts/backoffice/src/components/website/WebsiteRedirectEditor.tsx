@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteRedirectDraftItem,
@@ -130,7 +131,7 @@ export function WebsiteRedirectEditor({
               >
                 <label className="text-xs font-semibold text-slate-600">
                   Taal
-                  <select
+                  <SelectAdapter
                     value={redirect.locale}
                     onChange={(event) =>
                       updateRedirect(redirect.id, {
@@ -145,7 +146,7 @@ export function WebsiteRedirectEditor({
                         {locale}
                       </option>
                     ))}
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
                   Bronpad
@@ -164,7 +165,7 @@ export function WebsiteRedirectEditor({
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
                   Doeltype
-                  <select
+                  <SelectAdapter
                     value={redirect.destinationType}
                     onChange={(event) =>
                       updateRedirect(redirect.id, {
@@ -186,12 +187,12 @@ export function WebsiteRedirectEditor({
                   >
                     <option value="path">Interne pagina</option>
                     <option value="external">Externe HTTPS-link</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
                   Bestemming
                   {redirect.destinationType === "path" ? (
-                    <select
+                    <SelectAdapter
                       value={redirect.destination}
                       onChange={(event) =>
                         updateRedirect(redirect.id, {
@@ -209,7 +210,7 @@ export function WebsiteRedirectEditor({
                             {page.status === "draft" ? " (concept)" : ""}
                           </option>
                         ))}
-                    </select>
+                    </SelectAdapter>
                   ) : (
                     <input
                       type="url"
@@ -227,8 +228,8 @@ export function WebsiteRedirectEditor({
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
                   Status
-                  <select
-                    value={redirect.statusCode}
+                  <SelectAdapter
+                    value={String(redirect.statusCode)}
                     onChange={(event) =>
                       updateRedirect(redirect.id, {
                         statusCode: Number(event.target.value) as
@@ -240,10 +241,10 @@ export function WebsiteRedirectEditor({
                     disabled={disabled}
                     className="veele-input mt-1 w-full text-sm"
                   >
-                    <option value={308}>308</option>
-                    <option value={301}>301</option>
-                    <option value={302}>302</option>
-                  </select>
+                    <option value="308">308</option>
+                    <option value="301">301</option>
+                    <option value="302">302</option>
+                  </SelectAdapter>
                 </label>
                 <div className="flex items-end justify-between gap-2 lg:justify-end">
                   <label className="flex items-center gap-2 pb-2 text-xs font-medium text-slate-600">

@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -716,14 +717,14 @@ function SelectField({
   return (
     <label className="grid gap-1 text-sm font-medium text-slate-700">
       {label}
-      <select
+      <SelectAdapter
         name={name}
         defaultValue={defaultValue}
         disabled={disabled}
         className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-slate-50 disabled:text-slate-400"
       >
         {children}
-      </select>
+      </SelectAdapter>
     </label>
   );
 }

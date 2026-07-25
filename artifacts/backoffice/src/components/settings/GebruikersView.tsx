@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { FormEvent, useState, useTransition } from "react";
 import {
@@ -428,7 +429,7 @@ function InviteUserSheet({
             style={{ color: "#374151" }}
           >
             Rol
-            <select
+            <SelectAdapter
               value={roleId}
               onChange={(event) => onRoleChange(event.target.value)}
               disabled={pending}
@@ -440,7 +441,7 @@ function InviteUserSheet({
                   {role.name}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </label>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={pending || !email.trim() || !roleId}>

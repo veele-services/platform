@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteBlogCategoryDraftItem,
@@ -289,7 +290,7 @@ export function WebsiteBlogPostEditor({
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Categorie
-            <select
+            <SelectAdapter
               name="categoryId"
               defaultValue={post?.categoryId ?? ""}
               disabled={!canWrite || isPending}
@@ -301,7 +302,7 @@ export function WebsiteBlogPostEditor({
                   {item.name}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </label>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-slate-700">Tags</legend>

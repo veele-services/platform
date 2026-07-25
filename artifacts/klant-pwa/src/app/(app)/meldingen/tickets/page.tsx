@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -32,9 +33,19 @@ import {
 } from "./TicketStatus";
 
 type CustomerTicket = Awaited<ReturnType<typeof getMyCustomerTickets>>[number];
-type TicketFilter = "all" | "open" | "waiting_backoffice" | "waiting_customer" | "closed";
+type TicketFilter =
+  | "all"
+  | "open"
+  | "waiting_backoffice"
+  | "waiting_customer"
+  | "closed";
 type TicketPriorityFilter = "all" | "urgent" | "high" | "normal" | "low";
-type TicketContextFilter = "all" | "object" | "assignment" | "invoice" | "general";
+type TicketContextFilter =
+  | "all"
+  | "object"
+  | "assignment"
+  | "invoice"
+  | "general";
 type TicketDateFilter = "all" | "today" | "week" | "month" | "older";
 
 function ticketPrefillHref(params: Record<string, string>): string {
@@ -110,7 +121,9 @@ function normalizeTextParam(value?: string): string {
 }
 
 function normalizeStatus(value?: string): TicketFilter {
-  return ["open", "waiting_backoffice", "waiting_customer", "closed"].includes(value ?? "")
+  return ["open", "waiting_backoffice", "waiting_customer", "closed"].includes(
+    value ?? "",
+  )
     ? (value as TicketFilter)
     : "all";
 }
@@ -194,23 +207,40 @@ function matchesTicketSearch(ticket: CustomerTicket, query: string) {
   return !query || ticketSearchText(ticket).includes(query.toLowerCase());
 }
 
-function matchesTicketContext(ticket: CustomerTicket, context: TicketContextFilter): boolean {
+function matchesTicketContext(
+  ticket: CustomerTicket,
+  context: TicketContextFilter,
+): boolean {
   if (context === "all") return true;
   const text = ticketSearchText(ticket);
 
   if (context === "object") {
-    return text.includes("object") || text.includes("locatie") || ticket.department === "service";
+    return (
+      text.includes("object") ||
+      text.includes("locatie") ||
+      ticket.department === "service"
+    );
   }
   if (context === "assignment") {
-    return text.includes("opdracht") || text.includes("werkbon") || ticket.department === "planning";
+    return (
+      text.includes("opdracht") ||
+      text.includes("werkbon") ||
+      ticket.department === "planning"
+    );
   }
   if (context === "invoice") {
-    return text.includes("factuur") || text.includes("betaling") || ticket.department === "finance";
+    return (
+      text.includes("factuur") ||
+      text.includes("betaling") ||
+      ticket.department === "finance"
+    );
   }
 
-  return !matchesTicketContext(ticket, "object") &&
+  return (
+    !matchesTicketContext(ticket, "object") &&
     !matchesTicketContext(ticket, "assignment") &&
-    !matchesTicketContext(ticket, "invoice");
+    !matchesTicketContext(ticket, "invoice")
+  );
 }
 
 function matchesTicketDate(ticket: CustomerTicket, date: TicketDateFilter) {
@@ -266,7 +296,8 @@ function filterHref({
   const params = new URLSearchParams();
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "status" && status !== "all") params.set("status", status);
-  if (remove !== "priority" && priority !== "all") params.set("priority", priority);
+  if (remove !== "priority" && priority !== "all")
+    params.set("priority", priority);
   if (remove !== "context" && context !== "all") params.set("context", context);
   if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
@@ -280,11 +311,18 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
       header: "Onderwerp",
       render: (ticket) => (
         <span className="block min-w-[18rem]">
-          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="block truncate text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {ticket.subject}
           </span>
-          <span className="mt-0.5 block line-clamp-1 text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
-            {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"} - {formatDate(ticket.lastMessageAt)}
+          <span
+            className="mt-0.5 block line-clamp-1 text-xs font-semibold"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
+            {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"} -{" "}
+            {formatDate(ticket.lastMessageAt)}
           </span>
         </span>
       ),
@@ -293,7 +331,10 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
       key: "department",
       header: "Afdeling",
       render: (ticket) => (
-        <span className="truncate text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="truncate text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {departmentLabel(ticket.department)}
         </span>
       ),
@@ -359,39 +400,86 @@ export default async function CustomerTicketsPage({
   const initialSubject = normalizeTextParam(params.subject);
   const initialBody = normalizeTextParam(params.body);
   const tickets = await getMyCustomerTickets();
-  const visibleTickets = filterTickets(tickets, query, status, priority, context, date);
-  const unreadTotal = tickets.reduce((sum, ticket) => sum + ticket.unreadCount, 0);
-  const openTickets = tickets.filter((ticket) => ticket.status !== "closed").length;
+  const visibleTickets = filterTickets(
+    tickets,
+    query,
+    status,
+    priority,
+    context,
+    date,
+  );
+  const unreadTotal = tickets.reduce(
+    (sum, ticket) => sum + ticket.unreadCount,
+    0,
+  );
+  const openTickets = tickets.filter(
+    (ticket) => ticket.status !== "closed",
+  ).length;
 
   const activeFilters = [
     query
       ? {
           label: `Zoeken: ${query}`,
-          href: filterHref({ query, status, priority, context, date, remove: "query" }),
+          href: filterHref({
+            query,
+            status,
+            priority,
+            context,
+            date,
+            remove: "query",
+          }),
         }
       : null,
     status !== "all"
       ? {
           label: ticketStatusLabel(status),
-          href: filterHref({ query, status, priority, context, date, remove: "status" }),
+          href: filterHref({
+            query,
+            status,
+            priority,
+            context,
+            date,
+            remove: "status",
+          }),
         }
       : null,
     priority !== "all"
       ? {
           label: `Prioriteit: ${ticketPriorityLabel(priority)}`,
-          href: filterHref({ query, status, priority, context, date, remove: "priority" }),
+          href: filterHref({
+            query,
+            status,
+            priority,
+            context,
+            date,
+            remove: "priority",
+          }),
         }
       : null,
     context !== "all"
       ? {
           label: `Context: ${ticketContextLabel(context)}`,
-          href: filterHref({ query, status, priority, context, date, remove: "context" }),
+          href: filterHref({
+            query,
+            status,
+            priority,
+            context,
+            date,
+            remove: "context",
+          }),
         }
       : null,
     date !== "all"
       ? {
           label: ticketDateLabel(date),
-          href: filterHref({ query, status, priority, context, date, remove: "date" }),
+          href: filterHref({
+            query,
+            status,
+            priority,
+            context,
+            date,
+            remove: "date",
+          }),
         }
       : null,
   ].filter((item): item is { label: string; href: string } => Boolean(item));
@@ -412,15 +500,24 @@ export default async function CustomerTicketsPage({
             key={key}
             href={href}
             className="rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            style={{ borderColor: context === key ? "var(--color-accent)" : "var(--color-border)" }}
+            style={{
+              borderColor:
+                context === key ? "var(--color-accent)" : "var(--color-border)",
+            }}
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
               <Icon size={18} />
             </span>
-            <h2 className="mt-3 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <h2
+              className="mt-3 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               {label}
             </h2>
-            <p className="mt-1 text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+            <p
+              className="mt-1 text-xs font-semibold leading-5"
+              style={{ color: "var(--color-secondary)" }}
+            >
               {description}
             </p>
           </Link>
@@ -432,7 +529,10 @@ export default async function CustomerTicketsPage({
           <PortalToolbar
             resultLabel={`${visibleTickets.length} van ${tickets.length} tickets`}
             activeFilters={
-              <PortalActiveFilterChips filters={activeFilters} clearHref="/meldingen/tickets" />
+              <PortalActiveFilterChips
+                filters={activeFilters}
+                clearHref="/meldingen/tickets"
+              />
             }
             actions={
               <PortalFilterSheet
@@ -450,13 +550,20 @@ export default async function CustomerTicketsPage({
               </PortalFilterSheet>
             }
           >
-            <form action="/meldingen/tickets" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+            <form
+              action="/meldingen/tickets"
+              className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+            >
               <PortalToolbarSearch
                 name="q"
                 defaultValue={query}
                 placeholder="Zoek ticket of bericht"
               />
-              <PortalToolbarSelect name="status" label="Status" defaultValue={status}>
+              <PortalToolbarSelect
+                name="status"
+                label="Status"
+                defaultValue={status}
+              >
                 <option value="all">Alle tickets</option>
                 <option value="open">Open</option>
                 <option value="waiting_backoffice">Actie dienstverlener</option>
@@ -476,13 +583,23 @@ export default async function CustomerTicketsPage({
             </form>
           </PortalToolbar>
 
-          <div className="rounded-2xl border bg-white px-4 py-3 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
-            <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <div
+            className="rounded-2xl border bg-white px-4 py-3 shadow-sm"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <p
+              className="text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               Supportstatus
             </p>
-            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
-              Open tickets worden opgepakt door de juiste afdeling. Prioriteit en afdeling
-              bepalen de volgorde; SLA-tijden kunnen later per contract worden getoond.
+            <p
+              className="mt-1 text-sm font-semibold leading-6"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              Open tickets worden opgepakt door de juiste afdeling. Prioriteit
+              en afdeling bepalen de volgorde; SLA-tijden kunnen later per
+              contract worden getoond.
             </p>
           </div>
 
@@ -492,8 +609,13 @@ export default async function CustomerTicketsPage({
             getItemKey={(ticket) => ticket.id}
             tableLabel="Supporttickets"
             emptyState={{
-              icon: <Inbox size={30} style={{ color: "var(--color-muted-fg)" }} />,
-              title: activeFilters.length > 0 ? "Geen tickets gevonden" : "Geen tickets",
+              icon: (
+                <Inbox size={30} style={{ color: "var(--color-muted-fg)" }} />
+              ),
+              title:
+                activeFilters.length > 0
+                  ? "Geen tickets gevonden"
+                  : "Geen tickets",
               description:
                 activeFilters.length > 0
                   ? "Pas uw zoekopdracht of filters aan om de support inbox opnieuw te bekijken."
@@ -513,7 +635,8 @@ export default async function CustomerTicketsPage({
                   <span
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      backgroundColor: ticket.unreadCount > 0 ? "#E8FBFA" : "#F1F5F9",
+                      backgroundColor:
+                        ticket.unreadCount > 0 ? "#E8FBFA" : "#F1F5F9",
                       color: ticket.unreadCount > 0 ? "#009E9A" : "#64748B",
                     }}
                   >
@@ -522,11 +645,18 @@ export default async function CustomerTicketsPage({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-1 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                        <h3
+                          className="line-clamp-1 text-sm font-black"
+                          style={{ color: "var(--color-primary)" }}
+                        >
                           {ticket.subject}
                         </h3>
-                        <p className="mt-1 line-clamp-2 text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
-                          {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"}
+                        <p
+                          className="mt-1 line-clamp-2 text-xs font-semibold"
+                          style={{ color: "var(--color-muted-fg)" }}
+                        >
+                          {ticket.lastMessagePreview ??
+                            "Nog geen berichtinhoud"}
                         </p>
                       </div>
                       {ticket.unreadCount > 0 ? (
@@ -545,7 +675,10 @@ export default async function CustomerTicketsPage({
                         {formatDate(ticket.lastMessageAt)}
                       </span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
+                    <div
+                      className="mt-3 flex items-center justify-between border-t pt-3"
+                      style={{ borderColor: "var(--color-border)" }}
+                    >
                       <Link
                         href={`/meldingen/tickets/${ticket.id}`}
                         className="text-xs font-black"
@@ -553,8 +686,12 @@ export default async function CustomerTicketsPage({
                       >
                         Ticket openen
                       </Link>
-                      <PortalActionMenu label={`Acties voor ticket ${ticket.subject}`}>
-                        <PortalActionMenuLink href={`/meldingen/tickets/${ticket.id}`}>
+                      <PortalActionMenu
+                        label={`Acties voor ticket ${ticket.subject}`}
+                      >
+                        <PortalActionMenuLink
+                          href={`/meldingen/tickets/${ticket.id}`}
+                        >
                           Ticket openen
                         </PortalActionMenuLink>
                       </PortalActionMenu>
@@ -571,7 +708,9 @@ export default async function CustomerTicketsPage({
           initialPriority={priority === "all" ? "normal" : priority}
           initialSubject={initialSubject}
           initialBody={initialBody}
-          contextLabel={context === "all" ? undefined : ticketContextLabel(context)}
+          contextLabel={
+            context === "all" ? undefined : ticketContextLabel(context)
+          }
         />
       </div>
     </PortalPageShell>
@@ -594,7 +733,11 @@ function TicketFilterForm({
   return (
     <form action="/meldingen/tickets" className="space-y-4">
       <div>
-        <label htmlFor="ticket-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="ticket-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -604,86 +747,120 @@ function TicketFilterForm({
           defaultValue={query}
           placeholder="Ticket of bericht"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="ticket-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="ticket-filter-status"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Status
         </label>
-        <select
+        <SelectAdapter
           id="ticket-filter-status"
           name="status"
           defaultValue={status}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle tickets</option>
           <option value="open">Open</option>
           <option value="waiting_backoffice">Actie dienstverlener</option>
           <option value="waiting_customer">Wacht op klant</option>
           <option value="closed">Afgesloten</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="ticket-filter-priority" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="ticket-filter-priority"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Prioriteit
         </label>
-        <select
+        <SelectAdapter
           id="ticket-filter-priority"
           name="priority"
           defaultValue={priority}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle prioriteiten</option>
           <option value="urgent">Urgent</option>
           <option value="high">Hoog</option>
           <option value="normal">Normaal</option>
           <option value="low">Laag</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="ticket-filter-context" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="ticket-filter-context"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Context
         </label>
-        <select
+        <SelectAdapter
           id="ticket-filter-context"
           name="context"
           defaultValue={context}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle contexten</option>
           <option value="object">Object</option>
           <option value="assignment">Opdracht</option>
           <option value="invoice">Factuur</option>
           <option value="general">Algemeen</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="ticket-filter-date" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="ticket-filter-date"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Datum
         </label>
-        <select
+        <SelectAdapter
           id="ticket-filter-date"
           name="date"
           defaultValue={date}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle datums</option>
           <option value="today">Vandaag</option>
           <option value="week">Laatste 7 dagen</option>
           <option value="month">Laatste 30 dagen</option>
           <option value="older">Ouder dan 30 dagen</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/meldingen/tickets"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>

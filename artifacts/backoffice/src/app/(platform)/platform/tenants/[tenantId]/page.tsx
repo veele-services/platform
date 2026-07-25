@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -1188,7 +1189,7 @@ function SubscriptionTab({
           <input type="hidden" name="tenantId" value={tenant.id} />
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Plan
-            <select
+            <SelectAdapter
               name="planKey"
               defaultValue={tenant.planKey}
               className="h-10 rounded border border-slate-300 px-3 text-sm"
@@ -1203,7 +1204,7 @@ function SubscriptionTab({
                       : ""}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Periode-einde
@@ -1378,7 +1379,7 @@ function DomainsTab({
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Type
-          <select
+          <SelectAdapter
             name="type"
             defaultValue="fieldgrid_subdomain"
             className="h-10 rounded border border-slate-300 px-3 text-sm"
@@ -1387,7 +1388,7 @@ function DomainsTab({
             <option value="custom_domain" disabled={!customDomainsEnabled}>
               Custom domain
             </option>
-          </select>
+          </SelectAdapter>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
           <CheckboxAdapter type="checkbox" name="isPrimary" /> Primair
@@ -1717,14 +1718,14 @@ function SectorsAndRegionsTab({
           <input type="hidden" name="tenantId" value={tenant.id} />
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Modus
-            <select
+            <SelectAdapter
               name="mode"
               defaultValue={sectorsModel.policy.mode}
               className="h-10 rounded border border-slate-300 px-3 text-sm"
             >
               <option value="multi">Multi</option>
               <option value="single">Single</option>
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Max
@@ -1738,7 +1739,7 @@ function SectorsAndRegionsTab({
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Default
-            <select
+            <SelectAdapter
               name="defaultSectorId"
               defaultValue={sectorsModel.policy.defaultSectorId ?? ""}
               className="h-10 rounded border border-slate-300 px-3 text-sm"
@@ -1749,7 +1750,7 @@ function SectorsAndRegionsTab({
                   {sector.name}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </label>
           <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
             <CheckboxAdapter
@@ -1965,7 +1966,7 @@ function UsersTab({
                   <span className="text-xs font-medium uppercase text-slate-500">
                     Status
                   </span>
-                  <select
+                  <SelectAdapter
                     name="status"
                     defaultValue={user.status}
                     className="h-10 rounded border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
@@ -1973,7 +1974,7 @@ function UsersTab({
                     <option value="active">Actief</option>
                     <option value="inactive">Inactief</option>
                     <option value="suspended">Geschorst</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {tenantUsersAndOwner.roles.map((role) => (

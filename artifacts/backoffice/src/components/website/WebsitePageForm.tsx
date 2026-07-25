@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsitePageDraft,
@@ -239,7 +240,7 @@ export function WebsitePageForm({
               required
               hint="Een permanente redirect behoudt bestaande links en wordt samen met de paginawijziging opgeslagen."
             >
-              <select
+              <SelectAdapter
                 id="website-page-path-change"
                 name="pathChangeDecision"
                 defaultValue=""
@@ -256,11 +257,11 @@ export function WebsitePageForm({
                 <option value="no_redirect">
                   Wijzig bewust zonder redirect
                 </option>
-              </select>
+              </SelectAdapter>
             </Field>
           )}
           <Field label="Paginatype" htmlFor="website-page-type" required>
-            <select
+            <SelectAdapter
               id="website-page-type"
               name="pageType"
               defaultValue={
@@ -276,10 +277,10 @@ export function WebsitePageForm({
                   {label}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </Field>
           <Field label="Taal" htmlFor="website-page-locale" required>
-            <select
+            <SelectAdapter
               id="website-page-locale"
               name="locale"
               value={locale}
@@ -290,7 +291,7 @@ export function WebsitePageForm({
               <option value="nl-NL">Nederlands (Nederland)</option>
               <option value="en-GB">English (United Kingdom)</option>
               <option value="de-DE">Deutsch (Deutschland)</option>
-            </select>
+            </SelectAdapter>
           </Field>
         </div>
       </section>
