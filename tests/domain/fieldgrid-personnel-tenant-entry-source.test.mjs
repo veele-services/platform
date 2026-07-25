@@ -79,10 +79,17 @@ test("tenant-code deep link sets context before activation or reset route", () =
   const route = source(
     "artifacts/personeel-pwa/src/app/organisatie/[code]/route.ts",
   );
+  const personnelAuth = source("artifacts/personeel-pwa/src/actions/auth.ts");
+  const backofficeAuth = source("artifacts/backoffice/src/app/actions/auth.ts");
   const middleware = source("artifacts/personeel-pwa/src/middleware.ts");
 
   assert.match(route, /resolveActivePersonnelTenantIdByCode/u);
   assert.match(route, /requireTenantModule\(tenantId, "personnel_portal"\)/u);
   assert.match(route, /response\.cookies\.set\(PERSONNEL_TENANT_COOKIE/u);
+  assert.match(route, /normalizePersonnelPortalNextPath/u);
+  for (const authSource of [personnelAuth, backofficeAuth]) {
+    assert.match(authSource, /buildPersonnelTenantEntryUrl\(/u);
+    assert.match(authSource, /"\/wachtwoord-vergeten"/u);
+  }
   assert.match(middleware, /startsWith\("\/organisatie\/"\)/u);
 });

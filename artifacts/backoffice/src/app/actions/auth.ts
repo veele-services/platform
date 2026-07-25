@@ -19,10 +19,14 @@ import {
   personeelPortalUrl,
   sendEmailWithResult,
 } from "@/lib/email";
-import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
+import {
+  evaluatePasswordStrength,
+  mediumPasswordMessage,
+} from "@/lib/password-strength";
 import {
   TENANT_RUNTIME_ACTIVE_STATUSES,
   auditLogTable,
+  buildPersonnelTenantEntryUrl,
   consumeCredentialRecoveryGrant,
   db,
   issueCredentialRecoveryChallenge,
@@ -58,7 +62,10 @@ type BackofficeRecoveryAccount = {
   subjectUserId: string;
   email: string;
   recipientName: string;
-  surface: Extract<CredentialRecoverySurface, "tenant-backoffice" | "platform-admin">;
+  surface: Extract<
+    CredentialRecoverySurface,
+    "tenant-backoffice" | "platform-admin"
+  >;
   tenantId: string | null;
 };
 
@@ -68,7 +75,9 @@ function firstForwardedValue(value: string | null): string {
 
 function recoveryOrigin(): string {
   const configured = new URL(backofficeUrl()).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configured)
+  const allowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configured
+  )
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
@@ -79,46 +88,63 @@ function recoveryOrigin(): string {
   });
 }
 
-async function recoveryRequestSignals(): Promise<{ networkSignal: string; clientSignal: string }> {
+async function recoveryRequestSignals(): Promise<{
+  networkSignal: string;
+  clientSignal: string;
+}> {
   const requestHeaders = await headers();
   return {
-    networkSignal: firstForwardedValue(requestHeaders.get("x-forwarded-for")) || "unknown-network",
+    networkSignal:
+      firstForwardedValue(requestHeaders.get("x-forwarded-for")) ||
+      "unknown-network",
     clientSignal: requestHeaders.get("user-agent") ?? "unknown-client",
   };
 }
 
-async function findBackofficeRecoveryAccount(email: string): Promise<BackofficeRecoveryAccount | null> {
+async function findBackofficeRecoveryAccount(
+  email: string,
+): Promise<BackofficeRecoveryAccount | null> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return null;
   const admin = createAdminClient();
   const authUser = await findAuthUserByEmail(admin, normalizedEmail);
-  if (!authUser || authUser.email?.toLowerCase() !== normalizedEmail) return null;
+  if (!authUser || authUser.email?.toLowerCase() !== normalizedEmail)
+    return null;
 
   const [platformMembership, tenantMemberships] = await Promise.all([
     db
       .select({ id: platformUsersTable.id })
       .from(platformUsersTable)
-      .where(and(eq(platformUsersTable.userId, authUser.id), eq(platformUsersTable.status, "active")))
+      .where(
+        and(
+          eq(platformUsersTable.userId, authUser.id),
+          eq(platformUsersTable.status, "active"),
+        ),
+      )
       .limit(1),
     db
       .select({ tenantId: tenantUsersTable.tenantId })
       .from(tenantUsersTable)
       .innerJoin(tenantsTable, eq(tenantsTable.id, tenantUsersTable.tenantId))
-      .where(and(
-        eq(tenantUsersTable.userId, authUser.id),
-        eq(tenantUsersTable.status, "active"),
-        eq(tenantsTable.isActive, true),
-        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
-      )),
+      .where(
+        and(
+          eq(tenantUsersTable.userId, authUser.id),
+          eq(tenantUsersTable.status, "active"),
+          eq(tenantsTable.isActive, true),
+          inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+        ),
+      ),
   ]);
 
   const isPlatformUser = platformMembership.length === 1;
   if (isPlatformUser === (tenantMemberships.length === 1)) return null;
-  const name = authUser.user_metadata?.["full_name"] ?? authUser.user_metadata?.["name"];
+  const name =
+    authUser.user_metadata?.["full_name"] ?? authUser.user_metadata?.["name"];
   return {
     subjectUserId: authUser.id,
     email: normalizedEmail,
-    recipientName: typeof name === "string" && name.trim() ? name.trim() : normalizedEmail,
+    recipientName:
+      typeof name === "string" && name.trim() ? name.trim() : normalizedEmail,
     surface: isPlatformUser ? "platform-admin" : "tenant-backoffice",
     tenantId: isPlatformUser ? null : tenantMemberships[0]!.tenantId,
   };
@@ -141,7 +167,8 @@ function parseRecoveryGrant(value: string | undefined): {
   if (!value) return null;
   const [surface, tenantId, purpose, grant, extra] = value.split("|");
   if (extra !== undefined || !grant) return null;
-  if (surface !== "tenant-backoffice" && surface !== "platform-admin") return null;
+  if (surface !== "tenant-backoffice" && surface !== "platform-admin")
+    return null;
   if (purpose !== "activation" && purpose !== "password-reset") return null;
   if ((surface === "platform-admin") !== !tenantId) return null;
   return { surface, tenantId: tenantId || null, purpose, grant };
@@ -151,7 +178,12 @@ function redirectPathFromFormValue(value: FormDataEntryValue | null): string {
   if (typeof value !== "string") return BACKOFFICE_BASE_PATH;
 
   const next = value.trim();
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) {
+  if (
+    !next ||
+    !next.startsWith("/") ||
+    next.startsWith("//") ||
+    next.includes("\\")
+  ) {
     return BACKOFFICE_BASE_PATH;
   }
 
@@ -172,7 +204,7 @@ export async function signIn(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const email    = (formData.get("email") as string | null)?.trim() ?? "";
+  const email = (formData.get("email") as string | null)?.trim() ?? "";
   const password = (formData.get("password") as string | null) ?? "";
   const nextPath = redirectPathFromFormValue(formData.get("next"));
 
@@ -198,11 +230,11 @@ export async function signIn(
   // Mandatory audit log. If this fails the sign-in is rolled back so every login is recorded.
   try {
     await db.insert(auditLogTable).values({
-      userId:     data.user.id,
-      action:     "login",
-      resource:   "auth",
+      userId: data.user.id,
+      action: "login",
+      resource: "auth",
       resourceId: data.user.id,
-      metadata:   { email: data.user.email },
+      metadata: { email: data.user.email },
     });
   } catch (auditError) {
     await supabase.auth.signOut();
@@ -232,19 +264,25 @@ export async function signIn(
  */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (user) {
     try {
       await db.insert(auditLogTable).values({
-        userId:     user.id,
-        action:     "logout",
-        resource:   "auth",
+        userId: user.id,
+        action: "logout",
+        resource: "auth",
         resourceId: user.id,
-        metadata:   { email: user.email },
+        metadata: { email: user.email },
       });
     } catch (e) {
-      console.error("[audit_log] Failed to record logout for user:", user.id, e);
+      console.error(
+        "[audit_log] Failed to record logout for user:",
+        user.id,
+        e,
+      );
     }
   }
 
@@ -263,9 +301,9 @@ export async function completePasswordReset(
   _prev: PasswordActionState | undefined,
   formData: FormData,
 ): Promise<PasswordActionState> {
-  const password    = String(formData.get("password") ?? "");
+  const password = String(formData.get("password") ?? "");
   const passwordTwo = String(formData.get("passwordTwo") ?? "");
-  const nextPath    = redirectPathFromFormValue(formData.get("next"));
+  const nextPath = redirectPathFromFormValue(formData.get("next"));
 
   if (!password || !evaluatePasswordStrength(password).isMedium) {
     return { error: mediumPasswordMessage() };
@@ -276,7 +314,10 @@ export async function completePasswordReset(
 
   const cookieStore = await cookies();
   const recovery = parseRecoveryGrant(cookieStore.get(RECOVERY_COOKIE)?.value);
-  if (!recovery) return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
+  if (!recovery)
+    return {
+      error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt.",
+    };
 
   let activationProfileName: string | null = null;
   if (recovery.purpose === "activation") {
@@ -297,7 +338,12 @@ export async function completePasswordReset(
         const [eligible] = await db
           .select({ id: platformUsersTable.id })
           .from(platformUsersTable)
-          .where(and(eq(platformUsersTable.userId, subjectUserId), eq(platformUsersTable.status, "active")))
+          .where(
+            and(
+              eq(platformUsersTable.userId, subjectUserId),
+              eq(platformUsersTable.status, "active"),
+            ),
+          )
           .limit(1);
         return Boolean(eligible);
       }
@@ -306,28 +352,40 @@ export async function completePasswordReset(
         .select({ id: tenantUsersTable.id })
         .from(tenantUsersTable)
         .innerJoin(tenantsTable, eq(tenantsTable.id, tenantUsersTable.tenantId))
-        .where(and(
-          eq(tenantUsersTable.userId, subjectUserId),
-          eq(tenantUsersTable.tenantId, recovery.tenantId),
-          eq(tenantUsersTable.status, "active"),
-          eq(tenantsTable.isActive, true),
-          inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
-        ))
+        .where(
+          and(
+            eq(tenantUsersTable.userId, subjectUserId),
+            eq(tenantUsersTable.tenantId, recovery.tenantId),
+            eq(tenantUsersTable.status, "active"),
+            eq(tenantsTable.isActive, true),
+            inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+          ),
+        )
         .limit(1);
       return Boolean(eligible);
     },
   });
-  if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId || !consumed.claimId) {
+  if (
+    consumed.state !== "valid" ||
+    !consumed.subjectUserId ||
+    !consumed.challengeId ||
+    !consumed.claimId
+  ) {
     if (consumed.state !== "processing") {
       cookieStore.delete({ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH });
     }
-    return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
+    return {
+      error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt.",
+    };
   }
 
   const admin = createAdminClient();
-  const { data: current } = await admin.auth.admin.getUserById(consumed.subjectUserId);
+  const { data: current } = await admin.auth.admin.getUserById(
+    consumed.subjectUserId,
+  );
   const providerAlreadyApplied =
-    current.user?.app_metadata?.["credential_recovery_challenge_id"] === consumed.challengeId;
+    current.user?.app_metadata?.["credential_recovery_challenge_id"] ===
+    consumed.challengeId;
   const appMetadata: Record<string, unknown> = {
     ...(current.user?.app_metadata ?? {}),
     force_password_change: false,
@@ -339,7 +397,8 @@ export async function completePasswordReset(
   delete appMetadata["temporary_password_expires_at"];
   delete appMetadata["temporary_password_kind"];
   delete appMetadata["credential_activation_pending"];
-  if (activationProfileName) delete appMetadata[BACKOFFICE_PROFILE_NAME_REQUIRED];
+  if (activationProfileName)
+    delete appMetadata[BACKOFFICE_PROFILE_NAME_REQUIRED];
   const { error } = providerAlreadyApplied
     ? { error: null }
     : await admin.auth.admin.updateUserById(consumed.subjectUserId, {
@@ -361,7 +420,10 @@ export async function completePasswordReset(
     success: !error,
     sessionRevoked: !error,
   });
-  if (error) return { error: "Wachtwoord opslaan mislukt. Probeer deze herstelsessie opnieuw." };
+  if (error)
+    return {
+      error: "Wachtwoord opslaan mislukt. Probeer deze herstelsessie opnieuw.",
+    };
   cookieStore.delete({ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH });
 
   await db.insert(auditLogTable).values({
@@ -399,7 +461,13 @@ async function issueAndSendRecoveryChallenge(opts: {
     actorUserId: opts.actorUserId ?? null,
     ...(await recoveryRequestSignals()),
   });
-  if (!opts.account || challenge.status !== "issued" || !challenge.challengeId || !challenge.code) return;
+  if (
+    !opts.account ||
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code
+  )
+    return;
 
   const { subject, html } = buildPasswordResetCodeEmail({
     recipientName: opts.account.recipientName,
@@ -417,7 +485,9 @@ async function issueAndSendRecoveryChallenge(opts: {
   await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
 }
 
-export async function requestPasswordResetCode(email: string): Promise<ActionResult> {
+export async function requestPasswordResetCode(
+  email: string,
+): Promise<ActionResult> {
   const normalizedEmail = email.trim().toLowerCase();
   const publicResult: ActionResult = { success: true };
   try {
@@ -425,7 +495,10 @@ export async function requestPasswordResetCode(email: string): Promise<ActionRes
     await issueAndSendRecoveryChallenge({
       account,
       email: normalizedEmail,
-      portalName: account?.surface === "platform-admin" ? "Fieldgrid platformbeheer" : "Fieldgrid backoffice",
+      portalName:
+        account?.surface === "platform-admin"
+          ? "Fieldgrid platformbeheer"
+          : "Fieldgrid backoffice",
       resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
     });
   } catch (error) {
@@ -456,13 +529,17 @@ export async function verifyPasswordResetCode(input: {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(RECOVERY_COOKIE, serializeRecoveryGrant(account, purpose, result.grant), {
-    httpOnly: true,
-    secure: recoveryOrigin().startsWith("https://"),
-    sameSite: "strict",
-    path: BACKOFFICE_BASE_PATH,
-    expires: result.grantExpiresAt,
-  });
+  cookieStore.set(
+    RECOVERY_COOKIE,
+    serializeRecoveryGrant(account, purpose, result.grant),
+    {
+      httpOnly: true,
+      secure: recoveryOrigin().startsWith("https://"),
+      sameSite: "strict",
+      path: BACKOFFICE_BASE_PATH,
+      expires: result.grantExpiresAt,
+    },
+  );
   return { success: true, state: "valid" };
 }
 
@@ -472,12 +549,16 @@ export async function verifyPasswordResetCode(input: {
  * Only callable by users with personnel:write permission.
  * The employee must have an active portal account (user_id set).
  */
-export async function sendPasswordReset(personnelId: string): Promise<ActionResult<{ expiresAt: string; deliveryStatus: "sent" }>> {
+export async function sendPasswordReset(
+  personnelId: string,
+): Promise<ActionResult<{ expiresAt: string; deliveryStatus: "sent" }>> {
   await requirePermission("personnel", "write");
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
@@ -486,25 +567,37 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
       userId: personnelTable.userId,
       firstName: personnelTable.firstName,
       lastName: personnelTable.lastName,
+      tenantCode: tenantsTable.personnelLoginCode,
     })
     .from(personnelTable)
-    .where(and(
-      eq(personnelTable.id, personnelId),
-      eq(personnelTable.tenantId, tenantId),
-      eq(personnelTable.isActive, true),
-    ))
+    .innerJoin(tenantsTable, eq(tenantsTable.id, personnelTable.tenantId))
+    .where(
+      and(
+        eq(personnelTable.id, personnelId),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .limit(1);
 
-  if (!person?.userId) return { success: false, message: "Actief portaalaccount niet gevonden." };
+  if (!person?.userId)
+    return { success: false, message: "Actief portaalaccount niet gevonden." };
   const admin = createAdminClient();
   const { data: authData } = await admin.auth.admin.getUserById(person.userId);
   if (authData.user?.email?.toLowerCase() !== person.email.toLowerCase()) {
-    return { success: false, message: "Het gekoppelde auth-account kon niet veilig worden bevestigd." };
+    return {
+      success: false,
+      message: "Het gekoppelde auth-account kon niet veilig worden bevestigd.",
+    };
   }
 
   const configuredOrigin = new URL(personeelPortalUrl()).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
-    .split(",").map((value) => value.trim()).filter(Boolean);
+  const allowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "personnel-portal",
     purpose: "password-reset",
@@ -519,14 +612,28 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     actorUserId: user.id,
     ...(await recoveryRequestSignals()),
   });
-  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code || !challenge.expiresAt) {
-    return { success: false, message: "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw." };
+  if (
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code ||
+    !challenge.expiresAt
+  ) {
+    return {
+      success: false,
+      message:
+        "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+    };
   }
 
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: `${person.firstName} ${person.lastName}`.trim() || person.email,
+    recipientName:
+      `${person.firstName} ${person.lastName}`.trim() || person.email,
     portalName: "Personeelsportaal",
-    resetUrl: `${personeelPortalUrl()}/wachtwoord-vergeten`,
+    resetUrl: buildPersonnelTenantEntryUrl(
+      personeelPortalUrl(),
+      person.tenantCode,
+      "/wachtwoord-vergeten",
+    ),
     code: challenge.code,
   });
   const sent = await sendEmailWithResult({
@@ -537,19 +644,27 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     purpose: "personnel_portal_password_reset",
   });
   await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success) return { success: false, message: "Herstelmail versturen mislukt." };
+  if (!sent.success)
+    return { success: false, message: "Herstelmail versturen mislukt." };
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "password_recovery_issued",
     resource: "personnel",
     resourceId: personnelId,
-    metadata: { tenantId, challengeId: challenge.challengeId, expiresAt: challenge.expiresAt.toISOString() },
+    metadata: {
+      tenantId,
+      challengeId: challenge.challengeId,
+      expiresAt: challenge.expiresAt.toISOString(),
+    },
   });
 
   return {
     success: true,
-    data: { expiresAt: challenge.expiresAt.toISOString(), deliveryStatus: "sent" },
+    data: {
+      expiresAt: challenge.expiresAt.toISOString(),
+      deliveryStatus: "sent",
+    },
   };
 }
 
@@ -559,16 +674,20 @@ export async function revokePasswordReset(
   await requirePermission("personnel", "write");
   const tenantId = await requireCurrentTenantId();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
     .select({ userId: personnelTable.userId })
     .from(personnelTable)
-    .where(and(
-      eq(personnelTable.id, personnelId),
-      eq(personnelTable.tenantId, tenantId),
-    ))
+    .where(
+      and(
+        eq(personnelTable.id, personnelId),
+        eq(personnelTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!person?.userId) {
     return { success: false, message: "Portaalaccount niet gevonden." };

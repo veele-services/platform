@@ -4,27 +4,13 @@ import {
 } from "@/lib/auth/tenant";
 import {
   isValidPersonnelTenantCode,
+  normalizePersonnelPortalNextPath,
   normalizePersonnelTenantCode,
   requireTenantModule,
 } from "@workspace/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PORTAL_BASE = "/personeel";
-
-function safeNext(value: string | null): string {
-  const candidate = value?.trim() || "/login";
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) {
-    return "/login";
-  }
-  if (candidate === "/organisatie" || candidate.startsWith("/organisatie/")) {
-    return "/login";
-  }
-  if (candidate === PORTAL_BASE) return "/";
-  if (candidate.startsWith(`${PORTAL_BASE}/`)) {
-    return candidate.slice(PORTAL_BASE.length) || "/";
-  }
-  return candidate;
-}
 
 function portalUrl(request: NextRequest, pathname: string): URL {
   const relative = new URL(pathname, "https://fieldgrid.invalid");
@@ -40,7 +26,9 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const code = normalizePersonnelTenantCode((await params).code);
-  const next = safeNext(request.nextUrl.searchParams.get("next"));
+  const next = normalizePersonnelPortalNextPath(
+    request.nextUrl.searchParams.get("next"),
+  );
   const tenantId = isValidPersonnelTenantCode(code)
     ? await resolveActivePersonnelTenantIdByCode(code)
     : null;
