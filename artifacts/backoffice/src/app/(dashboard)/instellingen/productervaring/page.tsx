@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Lightbulb, Smartphone } from "lucide-react";
@@ -96,9 +97,11 @@ function SettingToggle({
       <span className="rounded-md bg-cyan-50 p-2">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block font-semibold text-slate-950">{title}</span>
-        <span className="mt-1 block text-sm leading-6 text-slate-600">{description}</span>
+        <span className="mt-1 block text-sm leading-6 text-slate-600">
+          {description}
+        </span>
       </span>
-      <input
+      <CheckboxAdapter
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}

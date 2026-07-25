@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -1389,7 +1390,7 @@ function DomainsTab({
           </select>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
-          <input type="checkbox" name="isPrimary" /> Primair
+          <CheckboxAdapter type="checkbox" name="isPrimary" /> Primair
         </label>
         <button
           type="submit"
@@ -1751,7 +1752,7 @@ function SectorsAndRegionsTab({
             </select>
           </label>
           <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               name="enforceSectorScope"
               defaultChecked={sectorsModel.policy.enforceSectorScope}
@@ -1890,7 +1891,7 @@ function UsersTab({
                   key={role.id}
                   className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2"
                 >
-                  <input
+                  <CheckboxAdapter
                     type="checkbox"
                     name="tenantRoleIds"
                     value={role.id}
@@ -1980,7 +1981,7 @@ function UsersTab({
                       key={role.id}
                       className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2"
                     >
-                      <input
+                      <CheckboxAdapter
                         type="checkbox"
                         name="tenantRoleIds"
                         value={role.id}

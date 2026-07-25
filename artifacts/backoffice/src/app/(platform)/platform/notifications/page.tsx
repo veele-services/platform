@@ -1,3 +1,5 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import {
@@ -140,7 +142,7 @@ function TenantOwnerRow({
 }) {
   return (
     <label className="grid gap-3 rounded border border-slate-200 bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)_170px] sm:items-center">
-      <input
+      <CheckboxAdapter
         type="checkbox"
         name="tenantIds"
         value={owner.tenantId}
@@ -241,7 +243,7 @@ function CreateNotificationForm({
             </legend>
             <div className="mt-2 grid gap-2">
               <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
+                <CheckboxAdapter
                   type="checkbox"
                   name="channels"
                   value="in_app"
@@ -251,7 +253,7 @@ function CreateNotificationForm({
                 In-app
               </label>
               <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
+                <CheckboxAdapter
                   type="checkbox"
                   name="channels"
                   value="email"
@@ -260,7 +262,7 @@ function CreateNotificationForm({
                 E-mail
               </label>
               <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
+                <CheckboxAdapter
                   type="checkbox"
                   name="channels"
                   value="push"
@@ -275,26 +277,21 @@ function CreateNotificationForm({
             <legend className="px-1 text-sm font-semibold text-slate-700">
               Verzendschema
             </legend>
-            <div className="mt-2 grid gap-2">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="scheduleType"
-                  value="immediate"
-                  defaultChecked
-                  className="h-4 w-4 border-slate-300"
-                />
+            <RadioGroup
+              name="scheduleType"
+              defaultValue="immediate"
+              className="mt-2"
+            >
+              <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                <RadioGroupItem value="immediate" />
                 Direct
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="scheduleType"
-                  value="scheduled"
-                  className="h-4 w-4 border-slate-300"
-                />
+              <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                <RadioGroupItem value="scheduled" />
                 Gepland
               </label>
+            </RadioGroup>
+            <div className="mt-2 grid gap-2">
               <input
                 name="scheduledAt"
                 type="datetime-local"

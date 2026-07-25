@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -301,7 +302,7 @@ function OnboardingWizard({
                     key={module.key}
                     className="flex gap-2 rounded border border-slate-200 px-3 py-2 text-sm"
                   >
-                    <input
+                    <CheckboxAdapter
                       type="checkbox"
                       name="moduleKeys"
                       value={module.key}
@@ -370,7 +371,7 @@ function OnboardingWizard({
                       key={sector.id}
                       className="flex gap-2 rounded border border-slate-200 px-3 py-2 text-sm"
                     >
-                      <input
+                      <CheckboxAdapter
                         type="checkbox"
                         name="sectorIds"
                         value={sector.id}

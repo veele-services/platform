@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import {
   getPlatformSettingsDashboard,
@@ -252,7 +253,7 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input
+            <CheckboxAdapter
               name="smtpEnabled"
               type="checkbox"
               defaultChecked={smtp.smtpEnabled}
@@ -366,7 +367,7 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input
+            <CheckboxAdapter
               name="clearPassword"
               type="checkbox"
               className="h-4 w-4 rounded border-slate-300 text-cyan-600"

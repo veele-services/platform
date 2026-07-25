@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import Link from "next/link";
 import { Archive, ArrowLeft, HelpCircle, Save } from "lucide-react";
 import {
@@ -37,8 +38,10 @@ async function archiveTooltipAction(formData: FormData): Promise<void> {
 }
 
 function statusClass(status: string): string {
-  if (status === "published") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "archived") return "border-slate-300 bg-slate-100 text-slate-600";
+  if (status === "published")
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "archived")
+    return "border-slate-300 bg-slate-100 text-slate-600";
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
@@ -49,7 +52,10 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function relatedArticlePreview(tooltip: KnowledgebaseTooltipRow | null, options: KnowledgebaseEditorOptions) {
+function relatedArticlePreview(
+  tooltip: KnowledgebaseTooltipRow | null,
+  options: KnowledgebaseEditorOptions,
+) {
   const ids = new Set(tooltip?.relatedArticleIds ?? []);
   return options.relatedArticles
     .filter((article) => ids.has(article.id))
@@ -68,32 +74,52 @@ function TooltipForm({
 }) {
   const selectedAudiences = new Set(tooltip?.audienceKeys ?? []);
   const selectedRelated = new Set(tooltip?.relatedArticleIds ?? []);
-  const articleHref = tooltip?.articleId ? `/platform/knowledgebase/articles/${tooltip.articleId}` : null;
+  const articleHref = tooltip?.articleId
+    ? `/platform/knowledgebase/articles/${tooltip.articleId}`
+    : null;
 
   return (
-    <form action={saveTooltipAction} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <form
+      action={saveTooltipAction}
+      className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+    >
       {tooltip && <input type="hidden" name="id" value={tooltip.id} />}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-cyan-700" />
-            <h2 className="text-lg font-semibold text-slate-950">{tooltip ? tooltip.title : "Nieuwe tooltip"}</h2>
+            <h2 className="text-lg font-semibold text-slate-950">
+              {tooltip ? tooltip.title : "Nieuwe tooltip"}
+            </h2>
             {tooltip && (
-              <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusClass(tooltip.status)}`}>
+              <span
+                className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusClass(tooltip.status)}`}
+              >
                 {tooltip.status}
               </span>
             )}
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            Korte contextuele uitleg met een veilige link naar het gekoppelde knowledgebase-artikel.
+            Korte contextuele uitleg met een veilige link naar het gekoppelde
+            knowledgebase-artikel.
           </p>
         </div>
         <FeatureHelp
           title={tooltip?.title ?? "Voorbeeld tooltip"}
-          description={tooltip?.description ?? "Korte uitleg verschijnt bij hover en opent bij klikken of tappen met verdieping."}
+          description={
+            tooltip?.description ??
+            "Korte uitleg verschijnt bij hover en opent bij klikken of tappen met verdieping."
+          }
           articleHref={articleHref}
           relatedArticles={relatedArticlePreview(tooltip, options)}
-          placement={(tooltip?.placement as "top" | "right" | "bottom" | "left" | undefined) ?? "top"}
+          placement={
+            (tooltip?.placement as
+              | "top"
+              | "right"
+              | "bottom"
+              | "left"
+              | undefined) ?? "top"
+          }
           showRelatedArticles={tooltip?.showRelatedArticles ?? true}
         />
       </div>
@@ -216,8 +242,11 @@ function TooltipForm({
             <p className="text-sm font-semibold text-slate-950">Doelgroepen</p>
             <div className="mt-3 grid gap-2">
               {options.audiences.map((audience) => (
-                <label key={audience.key} className="flex items-start gap-2 text-sm text-slate-700">
-                  <input
+                <label
+                  key={audience.key}
+                  className="flex items-start gap-2 text-sm text-slate-700"
+                >
+                  <CheckboxAdapter
                     name="audienceKeys"
                     type="checkbox"
                     value={audience.key}
@@ -226,7 +255,9 @@ function TooltipForm({
                   />
                   <span>
                     <span className="font-medium">{audience.label}</span>
-                    <span className="block text-xs text-slate-500">{audience.description}</span>
+                    <span className="block text-xs text-slate-500">
+                      {audience.description}
+                    </span>
                   </span>
                 </label>
               ))}
@@ -234,7 +265,9 @@ function TooltipForm({
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-950">Gerelateerde artikelen</p>
+            <p className="text-sm font-semibold text-slate-950">
+              Gerelateerde artikelen
+            </p>
             <select
               name="relatedArticleIds"
               multiple
@@ -247,16 +280,27 @@ function TooltipForm({
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs text-slate-500">Gebruik Ctrl/Cmd om meerdere artikelen te selecteren.</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Gebruik Ctrl/Cmd om meerdere artikelen te selecteren.
+            </p>
           </div>
 
           <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
             <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input name="openInDrawer" type="checkbox" defaultChecked={tooltip?.openInDrawer ?? false} />
+              <CheckboxAdapter
+                name="openInDrawer"
+                type="checkbox"
+                defaultChecked={tooltip?.openInDrawer ?? false}
+              />
               Open uitgebreide hulp als drawer
             </label>
             <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input name="showRelatedArticles" type="checkbox" value="on" defaultChecked={tooltip?.showRelatedArticles ?? true} />
+              <CheckboxAdapter
+                name="showRelatedArticles"
+                type="checkbox"
+                value="on"
+                defaultChecked={tooltip?.showRelatedArticles ?? true}
+              />
               Toon gerelateerde artikelen
             </label>
           </div>
@@ -273,14 +317,18 @@ function TooltipForm({
   );
 }
 
-export default async function KnowledgebaseTooltipsPage({ searchParams }: Props) {
+export default async function KnowledgebaseTooltipsPage({
+  searchParams,
+}: Props) {
   const resolvedSearchParams = await searchParams;
   const [tooltips, options, previewModel] = await Promise.all([
     listKnowledgebaseTooltipsForManagement(),
     listKnowledgebaseEditorOptions(),
     getPlatformContentPreviewModel("tooltips", resolvedSearchParams),
   ]);
-  const published = tooltips.filter((tooltip) => tooltip.status === "published").length;
+  const published = tooltips.filter(
+    (tooltip) => tooltip.status === "published",
+  ).length;
 
   return (
     <main className="px-5 py-6 md:px-8">
@@ -294,13 +342,19 @@ export default async function KnowledgebaseTooltipsPage({ searchParams }: Props)
               </Link>
             </Button>
             <p className="text-sm font-medium text-slate-500">Knowledgebase</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Tooltips</h1>
+            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">
+              Tooltips
+            </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Beheer korte helpteksten die bij functies, velden en knoppen getoond worden en doorklikken naar volledige handleidingen.
+              Beheer korte helpteksten die bij functies, velden en knoppen
+              getoond worden en doorklikken naar volledige handleidingen.
             </p>
           </div>
           <div className="flex gap-2">
-            <Badge variant="outline" className="border-cyan-200 bg-cyan-50 px-3 py-1 text-cyan-800">
+            <Badge
+              variant="outline"
+              className="border-cyan-200 bg-cyan-50 px-3 py-1 text-cyan-800"
+            >
               {published} gepubliceerd
             </Badge>
             <Badge variant="outline" className="px-3 py-1">
@@ -315,22 +369,36 @@ export default async function KnowledgebaseTooltipsPage({ searchParams }: Props)
 
         <section className="grid gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Bestaande tooltips</h2>
-            <p className="mt-1 text-sm text-slate-500">Wijzig scope, content, artikelkoppeling en gerelateerde artikelen per tooltip.</p>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Bestaande tooltips
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Wijzig scope, content, artikelkoppeling en gerelateerde artikelen
+              per tooltip.
+            </p>
           </div>
           {tooltips.map((tooltip) => (
             <div key={tooltip.id} className="grid gap-2">
               <TooltipForm tooltip={tooltip} options={options} />
               {tooltip.status !== "archived" && (
-                <form action={archiveTooltipAction} className="flex justify-end">
+                <form
+                  action={archiveTooltipAction}
+                  className="flex justify-end"
+                >
                   <input type="hidden" name="id" value={tooltip.id} />
-                  <Button type="submit" variant="outline" className="gap-2 text-rose-700">
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="gap-2 text-rose-700"
+                  >
                     <Archive className="h-4 w-4" />
                     Archiveer tooltip
                   </Button>
                 </form>
               )}
-              <p className="text-right text-xs text-slate-500">Laatst bijgewerkt: {formatDate(tooltip.updatedAt)}</p>
+              <p className="text-right text-xs text-slate-500">
+                Laatst bijgewerkt: {formatDate(tooltip.updatedAt)}
+              </p>
             </div>
           ))}
           {tooltips.length === 0 && (

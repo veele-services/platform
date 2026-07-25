@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import { Archive, ArrowLeft, Save, Tags } from "lucide-react";
@@ -93,7 +94,7 @@ export default async function ReleaseCategoriesPage() {
               className="h-10 rounded-md border border-slate-300 px-3 text-sm"
             />
             <label className="flex h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
-              <input name="isActive" type="checkbox" defaultChecked />
+              <CheckboxAdapter name="isActive" type="checkbox" defaultChecked />
               Actief
             </label>
             <Button type="submit" className="gap-2 md:col-start-5">
@@ -143,7 +144,7 @@ export default async function ReleaseCategoriesPage() {
                   className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                 />
                 <label className="flex h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
-                  <input
+                  <CheckboxAdapter
                     name="isActive"
                     type="checkbox"
                     defaultChecked={category.isActive}

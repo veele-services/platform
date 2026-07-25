@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import {
@@ -304,7 +305,7 @@ function RoadmapCreateForm({ options }: { options: RoadmapEditorOptions }) {
                   key={audience.key}
                   className="flex items-center gap-2 text-sm text-slate-700"
                 >
-                  <input
+                  <CheckboxAdapter
                     name="audienceKeys"
                     type="checkbox"
                     value={audience.key}
@@ -353,11 +354,15 @@ function RoadmapCreateForm({ options }: { options: RoadmapEditorOptions }) {
             className="min-h-20 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           <label className="flex h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
-            <input name="publicVisible" type="checkbox" defaultChecked />
+            <CheckboxAdapter
+              name="publicVisible"
+              type="checkbox"
+              defaultChecked
+            />
             Publiek voor tenants
           </label>
           <label className="flex h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm">
-            <input name="featured" type="checkbox" />
+            <CheckboxAdapter name="featured" type="checkbox" />
             Uitgelicht
           </label>
         </div>

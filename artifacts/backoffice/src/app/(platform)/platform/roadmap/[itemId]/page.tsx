@@ -1,3 +1,4 @@
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -197,7 +198,7 @@ function RoadmapEditForm({
               />
             </label>
             <label className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm">
-              <input
+              <CheckboxAdapter
                 name="publicVisible"
                 type="checkbox"
                 defaultChecked={item.publicVisible}
@@ -205,7 +206,7 @@ function RoadmapEditForm({
               Zichtbaar voor tenants
             </label>
             <label className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm">
-              <input
+              <CheckboxAdapter
                 name="featured"
                 type="checkbox"
                 defaultChecked={item.featured}
@@ -226,7 +227,7 @@ function RoadmapEditForm({
                     key={audience.key}
                     className="flex items-center gap-2 text-sm text-slate-700"
                   >
-                    <input
+                    <CheckboxAdapter
                       name="audienceKeys"
                       type="checkbox"
                       value={audience.key}
