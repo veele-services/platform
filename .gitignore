@@ -69,3 +69,9 @@ Thumbs.db
 /artifacts/fieldgrid-phase2-runtime/
 /artifacts/runtime-safety-harness/
 /test-results/
+
+# Android signing material must never enter source control
+*.jks
+*.keystore
+*.p12
+android-signing.properties

@@ -17,6 +17,8 @@
     "android:bundle:fieldgrid": "pnpm cap:sync && ./android/gradlew -p android bundleFieldgridRelease",
     "android:build:play": "pnpm cap:sync && ./android/gradlew -p android assembleVeeleRelease bundleVeeleRelease assembleFieldgridRelease bundleFieldgridRelease",
     "android:collect:play": "node ../../scripts/collect-android-personnel-artifacts.mjs",
+    "android:preflight:runtime": "node ../../scripts/preflight-android-personnel-runtime.mjs --runtime-only",
+    "android:preflight:play": "node ../../scripts/preflight-android-personnel-runtime.mjs",
     "start": "next start -H 0.0.0.0 -p $PORT",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

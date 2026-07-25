@@ -31,8 +31,8 @@ import { isNativeCapacitorRuntime } from "@/lib/capacitor";
 import {
   ensureNativePushRegistration,
   getLocalNativePushState,
+  getNativePushAppMetadata,
   unregisterNativePush,
-  type NativePushRegistration,
 } from "@/lib/native-push";
 import {
   PersonnelSettingsFeedback,
@@ -140,11 +140,35 @@ export function NotificationSettingsForm({
     });
   }
 
-  async function saveNativeRegistration(registration: NativePushRegistration) {
+  async function saveNativeRegistration(registration: {
+    token: string;
+    platform: "android" | "ios";
+    appId?: string;
+    appVersion?: string;
+    appBuild?: string;
+  }) {
+    const metadata =
+      registration.appId &&
+      registration.appVersion &&
+      registration.appBuild
+        ? {
+            appId: registration.appId,
+            appVersion: registration.appVersion,
+            appBuild: registration.appBuild,
+          }
+        : await getNativePushAppMetadata();
+    if (!metadata) {
+      return {
+        success: false as const,
+        error: "De identiteit van deze personeelsapp kon niet worden gelezen.",
+      };
+    }
     return saveMyNativePushToken({
       token: registration.token,
       platform: registration.platform,
-      appId: "nl.veeleservices.personeel",
+      appId: metadata.appId,
+      appVersion: metadata.appVersion,
+      appBuild: metadata.appBuild,
       userAgent: navigator.userAgent,
     });
   }

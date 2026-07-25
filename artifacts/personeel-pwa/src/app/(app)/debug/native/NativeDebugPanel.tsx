@@ -156,7 +156,9 @@ export function NativeDebugPanel() {
       const saveResult = await saveMyNativePushToken({
         token: result.token,
         platform: result.platform,
-        appId: "nl.veeleservices.personeel",
+        appId: result.appId,
+        appVersion: result.appVersion,
+        appBuild: result.appBuild,
         userAgent: navigator.userAgent,
       });
 

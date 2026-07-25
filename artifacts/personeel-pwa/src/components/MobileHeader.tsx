@@ -14,7 +14,7 @@ import {
   Trash2,
   UserCircle,
 } from "lucide-react";
-import { signOut } from "@/actions/auth";
+import { NativeAwareSignOutButton } from "@/components/NativeAwareSignOutButton";
 import {
   clearAllNotifications,
   deleteNotification,
@@ -300,17 +300,14 @@ export function MobileHeaderActions({
               Instellingen
             </Link>
             <div className="my-1 border-t" style={{ borderColor: "var(--color-border)" }} />
-            <form action={signOut}>
-              <button
-                type="submit"
+            <NativeAwareSignOutButton
                 className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-bold"
                 role="menuitem"
                 style={{ color: "var(--color-destructive)" }}
-              >
+            >
                 <LogOut size={17} strokeWidth={2.3} />
                 Uitloggen
-              </button>
-            </form>
+            </NativeAwareSignOutButton>
           </div>
         ) : null}
       </div>

@@ -593,7 +593,12 @@ async function deliverPushItem(
   }
 
   for (const device of nativeTokens) {
-    const result = await sendFcmPush(device.token, payload, urgency);
+    const result = await sendFcmPush(
+      device.token,
+      payload,
+      urgency,
+      device.appId,
+    );
 
     if (result.success) {
       successCount += 1;

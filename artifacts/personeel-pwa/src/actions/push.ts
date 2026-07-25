@@ -23,10 +23,16 @@ export type NativePushTokenPayload = {
   platform: "android" | "ios";
   appId?: string | null;
   appVersion?: string | null;
+  appBuild?: string | null;
   deviceId?: string | null;
   deviceModel?: string | null;
   userAgent?: string | null;
 };
+
+const PERSONNEL_NATIVE_APP_IDS = new Set([
+  "nl.veeleservices.personeel",
+  "nl.fieldgrid.personeel",
+]);
 
 export type PushSubscriptionResult =
   | { success: true }
@@ -173,6 +179,14 @@ export async function saveMyNativePushToken(
   if (!token || token.length < 32) {
     return { success: false, error: "Native push-token is ongeldig." };
   }
+  const appId = payload.appId?.trim() ?? "";
+  if (!PERSONNEL_NATIVE_APP_IDS.has(appId)) {
+    return { success: false, error: "Native app-identiteit is ongeldig." };
+  }
+  const normalizedVersion =
+    payload.appVersion && payload.appBuild
+      ? `${payload.appVersion} (${payload.appBuild})`
+      : payload.appVersion ?? payload.appBuild ?? null;
 
   await db
     .insert(nativePushDeviceTokensTable)
@@ -185,8 +199,8 @@ export async function saveMyNativePushToken(
       provider: "fcm",
       platform: payload.platform,
       token,
-      appId: payload.appId?.slice(0, 160) ?? null,
-      appVersion: payload.appVersion?.slice(0, 80) ?? null,
+      appId,
+      appVersion: normalizedVersion?.slice(0, 80) ?? null,
       deviceId: payload.deviceId?.slice(0, 160) ?? null,
       deviceModel: payload.deviceModel?.slice(0, 160) ?? null,
       userAgent: payload.userAgent?.slice(0, 1000) ?? null,
@@ -202,8 +216,8 @@ export async function saveMyNativePushToken(
         customerId: null,
         userId: identity.userId,
         platform: payload.platform,
-        appId: payload.appId?.slice(0, 160) ?? null,
-        appVersion: payload.appVersion?.slice(0, 80) ?? null,
+        appId,
+        appVersion: normalizedVersion?.slice(0, 80) ?? null,
         deviceId: payload.deviceId?.slice(0, 160) ?? null,
         deviceModel: payload.deviceModel?.slice(0, 160) ?? null,
         userAgent: payload.userAgent?.slice(0, 1000) ?? null,

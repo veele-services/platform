@@ -1,18 +1,36 @@
 "use client";
 
 import { useEffect } from "react";
-import { isNativeCapacitorRuntime } from "@/lib/capacitor";
+
+import { getNativeAppInfo, isNativeCapacitorRuntime } from "@/lib/capacitor";
+import { resolvePersonnelNativeUrl } from "@/lib/native-navigation";
 
 type ListenerHandle = {
   remove: () => Promise<void>;
 };
+
+async function navigateToTrustedNativeUrl(rawUrl: string) {
+  const info = await getNativeAppInfo();
+  if (!info) return;
+  const trustedUrl = resolvePersonnelNativeUrl(rawUrl, info.id);
+  if (!trustedUrl || trustedUrl === window.location.href) return;
+  window.location.assign(trustedUrl);
+}
 
 export function CapacitorRuntimeBridge() {
   useEffect(() => {
     if (!isNativeCapacitorRuntime()) return;
 
     let mounted = true;
-    let backButtonHandle: ListenerHandle | null = null;
+    const handles: ListenerHandle[] = [];
+
+    function keepHandle(handle: ListenerHandle) {
+      if (!mounted) {
+        void handle.remove();
+        return;
+      }
+      handles.push(handle);
+    }
 
     void import("@capacitor/status-bar")
       .then(({ StatusBar, Style }) =>
@@ -29,28 +47,48 @@ export function CapacitorRuntimeBridge() {
 
     void import("@capacitor/app")
       .then(async ({ App }) => {
-        const handle = await App.addListener("backButton", ({ canGoBack }) => {
-          if (canGoBack || window.history.length > 1) {
-            window.history.back();
-            return;
-          }
+        const [backButtonHandle, appUrlHandle] = await Promise.all([
+          App.addListener("backButton", ({ canGoBack }) => {
+            if (canGoBack || window.history.length > 1) {
+              window.history.back();
+              return;
+            }
+            void App.exitApp();
+          }),
+          App.addListener("appUrlOpen", ({ url }) => {
+            void navigateToTrustedNativeUrl(url);
+          }),
+        ]);
 
-          void App.exitApp();
-        });
+        keepHandle(backButtonHandle);
+        keepHandle(appUrlHandle);
 
-        if (!mounted) {
-          await handle.remove();
-          return;
+        const launch = await App.getLaunchUrl();
+        if (launch?.url) {
+          await navigateToTrustedNativeUrl(launch.url);
         }
+      })
+      .catch(() => undefined);
 
-        backButtonHandle = handle;
+    void import("@capacitor/push-notifications")
+      .then(async ({ PushNotifications }) => {
+        const handle = await PushNotifications.addListener(
+          "pushNotificationActionPerformed",
+          ({ notification }) => {
+            const href = notification.data?.["href"];
+            if (typeof href === "string") {
+              void navigateToTrustedNativeUrl(href);
+            }
+          },
+        );
+        keepHandle(handle);
       })
       .catch(() => undefined);
 
     return () => {
       mounted = false;
-      if (backButtonHandle) {
-        void backButtonHandle.remove();
+      for (const handle of handles) {
+        void handle.remove();
       }
     };
   }, []);
