@@ -28,11 +28,11 @@ test("customer detail gates cross-module loaders and navigation", () => {
   assert.match(customerPage, /const visibleTabs = VALID_TABS\.filter/u);
   assert.match(
     customerPage,
-    /canReadObjects \? listObjectsForCustomer\(id\) : Promise\.resolve\(\[\]\)/u,
+    /canReadObjects && \(showOverview \|\| activeTab === "objecten"\)[\s\S]*\? listObjectsForCustomer\(id\)[\s\S]*: Promise\.resolve\(\[\]\)/u,
   );
   assert.match(
     customerPage,
-    /canManagePortalUsers \? listCustomerPortalUsers\(id\) : Promise\.resolve\(\[\]\)/u,
+    /canManagePortalUsers && showOverview[\s\S]*\? listCustomerPortalUsers\(id\)[\s\S]*: Promise\.resolve\(\[\]\)/u,
   );
   for (const permission of ["objects", "assignments", "invoices"]) {
     assert.match(

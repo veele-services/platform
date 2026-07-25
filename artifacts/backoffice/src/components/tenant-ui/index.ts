@@ -2,6 +2,8 @@ export * from "./tenant-action-menu";
 export * from "./tenant-confirm-dialog";
 export * from "./tenant-data-table";
 export * from "./tenant-detail-layout";
+export * from "./tenant-detail-responsive-actions";
+export * from "./tenant-detail-section-nav";
 export * from "./tenant-detail-drawer";
 export * from "./tenant-filter-drawer";
 export * from "./tenant-page-header";

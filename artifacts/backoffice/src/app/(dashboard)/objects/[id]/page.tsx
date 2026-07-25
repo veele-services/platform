@@ -20,16 +20,20 @@ import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel";
 import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
 import { ObjectDetailActions } from "@/components/objects/ObjectDetailActions";
-import { OBJECT_TAB_KEYS, OBJECT_TAB_LABELS, type ObjectTabKey } from "@/components/objects/object-tabs";
+import {
+  OBJECT_TAB_KEYS,
+  OBJECT_TAB_LABELS,
+  type ObjectTabKey,
+} from "@/components/objects/object-tabs";
 import { ObjectContactsTab } from "@/components/objects/tabs/ObjectContactsTab";
 import { ObjectDetailsTab } from "@/components/objects/tabs/ObjectDetailsTab";
 import { ObjectOverviewTab } from "@/components/objects/tabs/ObjectOverviewTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
 import {
-  TenantDetailActionPanel,
   TenantDetailHeader,
   TenantDetailLayout,
+  TenantDetailResponsiveActions,
   TenantDetailSectionNav,
   TenantPageShell,
 } from "@/components/tenant-ui";
@@ -101,19 +105,23 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function ObjectDetailPage({ params, searchParams }: Props) {
+export default async function ObjectDetailPage({
+  params,
+  searchParams,
+}: Props) {
   const canRead = await hasPermission("objects", "read");
   if (!canRead) return <ForbiddenPage resource="objects" action="read" />;
 
   const { id } = await params;
   const sp = await searchParams;
 
-  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] = await Promise.all([
-    hasPermission("objects", "write"),
-    hasPermission("assignments", "read"),
-    hasPermission("materials", "view"),
-    hasPermission("inventory", "view"),
-  ]);
+  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] =
+    await Promise.all([
+      hasPermission("objects", "write"),
+      hasPermission("assignments", "read"),
+      hasPermission("materials", "view"),
+      hasPermission("inventory", "view"),
+    ]);
   const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
     if (tab === "diensten") return canReadAssignments;
     if (tab === "materiaal") return canReadMaterials;
@@ -126,8 +134,14 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
   )
     ? (rawTab as ObjectTabKey)
     : "overzicht";
+  const showOverview = activeTab === "overzicht";
 
-  const obj = await safeOptional("object", id, () => getObjectForDetailPage(id), null);
+  const obj = await safeOptional(
+    "object",
+    id,
+    () => getObjectForDetailPage(id),
+    null,
+  );
   if (!obj) notFound();
 
   const [
@@ -142,28 +156,66 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     rawMaterialStock,
     rawInventoryItems,
   ] = await Promise.all([
-    safeOptional("contacts", id, () => listObjectContacts(id), []),
-    safeOptional("personnel", id, () => listObjectPersonnel(id), []),
-    canWrite ? safeOptional("personnel-options", id, () => listPersonnelOptions(), []) : Promise.resolve([]),
-    canReadAssignments ? safeOptional("assignments", id, () => listAssignmentsForObject(id, 50), []) : Promise.resolve([]),
-    canWrite ? safeOptional("sectors", id, () => listSectors(), []) : Promise.resolve([]),
-    canWrite ? safeOptional("customers", id, () => listCustomerOptions(), []) : Promise.resolve([]),
-    safeOptional("performance", id, () => getObjectPerformance(id), emptyPerformance),
-    safeOptional("history", id, () => listObjectHistory(id), []),
-    canReadMaterials ? safeOptional("material-stock", id, () => listMaterialStockForObject(id), []) : Promise.resolve([]),
-    canReadInventory ? safeOptional("inventory-items", id, () => listInventoryForObject(id), []) : Promise.resolve([]),
+    activeTab === "contacten"
+      ? safeOptional("contacts", id, () => listObjectContacts(id), [])
+      : Promise.resolve([]),
+    showOverview
+      ? safeOptional("personnel", id, () => listObjectPersonnel(id), [])
+      : Promise.resolve([]),
+    canWrite && showOverview
+      ? safeOptional("personnel-options", id, () => listPersonnelOptions(), [])
+      : Promise.resolve([]),
+    canReadAssignments && activeTab === "diensten"
+      ? safeOptional(
+          "assignments",
+          id,
+          () => listAssignmentsForObject(id, 50),
+          [],
+        )
+      : Promise.resolve([]),
+    canWrite
+      ? safeOptional("sectors", id, () => listSectors(), [])
+      : Promise.resolve([]),
+    canWrite
+      ? safeOptional("customers", id, () => listCustomerOptions(), [])
+      : Promise.resolve([]),
+    safeOptional(
+      "performance",
+      id,
+      () => getObjectPerformance(id),
+      emptyPerformance,
+    ),
+    showOverview
+      ? safeOptional("history", id, () => listObjectHistory(id), [])
+      : Promise.resolve([]),
+    canReadMaterials && activeTab === "materiaal"
+      ? safeOptional(
+          "material-stock",
+          id,
+          () => listMaterialStockForObject(id),
+          [],
+        )
+      : Promise.resolve([]),
+    canReadInventory && activeTab === "inventaris"
+      ? safeOptional(
+          "inventory-items",
+          id,
+          () => listInventoryForObject(id),
+          [],
+        )
+      : Promise.resolve([]),
   ]);
 
-  const contacts         = asArray(rawContacts);
-  const personnel        = asArray(rawPersonnel);
+  const contacts = asArray(rawContacts);
+  const personnel = asArray(rawPersonnel);
   const personnelOptions = asArray(rawPersonnelOptions);
-  const assignments      = asArray(rawAssignments);
-  const sectors          = asArray(rawSectors);
-  const customers        = asArray(rawCustomers);
-  const performance      = asPerformance(rawPerformance);
-  const history          = asArray(rawHistory);
-  const materialStock    = asArray(rawMaterialStock);
-  const inventoryItems   = asArray(rawInventoryItems);
+  const assignments = asArray(rawAssignments);
+  const sectors = asArray(rawSectors);
+  const customers = asArray(rawCustomers);
+  const performance = asPerformance(rawPerformance);
+  const history = asArray(rawHistory);
+  const materialStock = asArray(rawMaterialStock);
+  const inventoryItems = asArray(rawInventoryItems);
 
   const counts = {
     contacten: contacts.length,
@@ -181,7 +233,10 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
         description={
           <>
             {obj.customerName ? (
-              <Link href={`/customers/${obj.customerId}`} className="font-medium text-primary hover:underline">
+              <Link
+                href={`/customers/${obj.customerId}`}
+                className="font-medium text-primary hover:underline"
+              >
                 {obj.customerName}
               </Link>
             ) : (
@@ -202,14 +257,22 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
         summary={
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Totaal opdrachten", value: performance.totalAssignments },
+              {
+                label: "Totaal opdrachten",
+                value: performance.totalAssignments,
+              },
               { label: "Actief", value: performance.activeAssignments },
               { label: "Open acties", value: performance.openActions },
               { label: "Vast personeel", value: performance.fixedPersonnel },
             ].map((item) => (
-              <div key={item.label} className="rounded-md border border-border bg-background px-3 py-3">
+              <div
+                key={item.label}
+                className="rounded-md border border-border bg-background px-3 py-3"
+              >
                 <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">
+                  {item.value}
+                </p>
               </div>
             ))}
           </div>
@@ -228,18 +291,26 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
       <TenantDetailLayout
         aside={
           canWrite ? (
-            <TenantDetailActionPanel
+            <TenantDetailResponsiveActions
               title="Objectacties"
               description="Pas objectgegevens, klantkoppeling en servicecontext aan."
             >
-              <ObjectDetailActions object={obj} sectors={sectors} customers={customers} />
-            </TenantDetailActionPanel>
+              <ObjectDetailActions
+                object={obj}
+                sectors={sectors}
+                customers={customers}
+              />
+            </TenantDetailResponsiveActions>
           ) : undefined
         }
       >
         {activeTab === "overzicht" && (
           <>
-            <ObjectOverviewTab object={obj} performance={performance} history={history} />
+            <ObjectOverviewTab
+              object={obj}
+              performance={performance}
+              history={history}
+            />
             {(personnel.length > 0 || canWrite) && (
               <div className="mt-6">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -270,7 +341,9 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
           />
         )}
 
-        {activeTab === "details" && <ObjectDetailsTab object={obj} canWrite={canWrite} />}
+        {activeTab === "details" && (
+          <ObjectDetailsTab object={obj} canWrite={canWrite} />
+        )}
 
         {activeTab === "contacten" && (
           <ObjectContactsTab
@@ -281,10 +354,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
         )}
 
         {activeTab === "diensten" && canReadAssignments && (
-          <ObjectServicesTab
-            objectId={id}
-            assignments={assignments}
-          />
+          <ObjectServicesTab objectId={id} assignments={assignments} />
         )}
       </TenantDetailLayout>
     </TenantPageShell>
