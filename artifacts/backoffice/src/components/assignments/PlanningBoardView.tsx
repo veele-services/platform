@@ -70,10 +70,10 @@ import {
   formatPlanboardTimeRange,
   planboardInterestAsAssignedIndicator,
   planboardMinuteOfDay,
+  planboardRelativeTimestampMinute,
   planboardStaffingLabel,
   planboardStaffingState,
   planboardStaffingStateLabel,
-  planboardTimestampMinute,
 } from "./planboard-assignment-states";
 
 const DAY_START_MIN = 0;
@@ -490,14 +490,14 @@ function minuteBlock(
 function actualTimeBlock(
   assignment: PlanningBoardPersonnelAssignment,
   boardDate: string,
-  liveMinute: number,
+  liveRelativeMinute: number,
   timeline?: TimelineWindow,
 ): { left: number; width: number } | null {
-  const actualStart = planboardTimestampMinute(
+  const actualStart = planboardRelativeTimestampMinute(
     assignment.actualStartedAt,
     boardDate,
   );
-  const actualEnd = planboardTimestampMinute(
+  const actualEnd = planboardRelativeTimestampMinute(
     assignment.actualCompletedAt,
     boardDate,
   );
@@ -505,7 +505,7 @@ function actualTimeBlock(
     const effectiveEnd = parseTimeMin(assignment.effectiveEnd);
     return minuteBlock(
       actualStart,
-      actualEnd ?? (assignment.isRunning ? liveMinute : effectiveEnd),
+      actualEnd ?? (assignment.isRunning ? liveRelativeMinute : effectiveEnd),
       timeline,
     );
   }
@@ -868,16 +868,34 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
   const configuredStart =
     parseTimeMin(data.planningSettings.workdayStart) ?? 8 * 60;
+  const liveMinute = currentMinuteOfDay(new Date(clockNow));
+  const liveRelativeMinute =
+    planboardRelativeTimestampMinute(new Date(clockNow), data.date) ??
+    liveMinute;
   const relevantWindow = useMemo(() => {
     const starts: number[] = [];
     const ends: number[] = [];
     for (const assignment of data.scheduledAssignments) {
-      const start = parseTimeMin(
-        assignment.effectiveStart ?? assignment.scheduledStart,
+      const actualStart = planboardRelativeTimestampMinute(
+        assignment.actualStartedAt,
+        data.date,
       );
-      const end = parseTimeMin(
-        assignment.effectiveEnd ?? assignment.scheduledEnd,
+      const actualEnd = planboardRelativeTimestampMinute(
+        assignment.actualCompletedAt,
+        data.date,
       );
+      const start =
+        actualStart ??
+        parseTimeMin(assignment.effectiveStart ?? assignment.scheduledStart);
+      const end =
+        actualStart !== null
+          ? (actualEnd ??
+            (assignment.isRunning
+              ? liveRelativeMinute
+              : parseTimeMin(
+                  assignment.effectiveEnd ?? assignment.scheduledEnd,
+                )))
+          : parseTimeMin(assignment.effectiveEnd ?? assignment.scheduledEnd);
       if (start !== null) starts.push(start);
       if (end !== null) ends.push(end);
     }
@@ -905,7 +923,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       end: Math.max(start + 60, end),
       span: Math.max(60, end - start),
     };
-  }, [configuredStart, data.scheduledAssignments]);
+  }, [
+    configuredStart,
+    data.date,
+    data.scheduledAssignments,
+    liveRelativeMinute,
+  ]);
   const timelineWindow: TimelineWindow =
     timelineScope === "full"
       ? { start: DAY_START_MIN, end: DAY_END_MIN, span: DAY_SPAN }
@@ -1049,7 +1072,6 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   );
   const today = todayDateKey();
   const isToday = data.date === today;
-  const liveMinute = currentMinuteOfDay(new Date(clockNow));
   const currentTimePct =
     isToday &&
     liveMinute >= timelineWindow.start &&
@@ -3259,7 +3281,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               const actualBlock = actualTimeBlock(
                                 assignment,
                                 data.date,
-                                liveMinute,
+                                liveRelativeMinute,
                                 timelineWindow,
                               );
                               const block =
