@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
@@ -155,7 +156,7 @@ export function PortalPageHeader({
           </p>
         ) : null}
       </div>
-      {(primaryAction || actions) ? (
+      {primaryAction || actions ? (
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {actions}
           {primaryAction ? (
@@ -265,7 +266,7 @@ export function PortalToolbarSelect({
   return (
     <label className={cx("min-w-0 sm:w-48", className)}>
       <span className="sr-only">{label}</span>
-      <select
+      <SelectAdapter
         name={name}
         defaultValue={defaultValue}
         className="h-10 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
@@ -275,7 +276,7 @@ export function PortalToolbarSelect({
         }}
       >
         {children}
-      </select>
+      </SelectAdapter>
     </label>
   );
 }
@@ -301,14 +302,18 @@ export function PortalActiveFilterChips({
         <Link
           key={`${filter.label}-${filter.href}`}
           href={filter.href}
-          className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition-colors hover:bg-slate-50"
+          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition-colors hover:bg-slate-50"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
           }}
         >
-          {filter.label}
-          <span aria-hidden="true" style={{ color: "var(--color-muted-fg)" }}>
+          <span className="min-w-0 break-all">{filter.label}</span>
+          <span
+            className="shrink-0"
+            aria-hidden="true"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
             x
           </span>
         </Link>
@@ -457,7 +462,10 @@ function PortalEmptyState({
       style={{ borderColor: "var(--color-border)" }}
     >
       {icon ? <div className="mb-3 flex justify-center">{icon}</div> : null}
-      <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+      <p
+        className="text-sm font-black"
+        style={{ color: "var(--color-primary)" }}
+      >
         {title}
       </p>
       {description ? (
