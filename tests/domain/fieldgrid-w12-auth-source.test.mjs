@@ -7,17 +7,20 @@ const root = process.cwd();
 const read = (relativePath) =>
   fs.readFileSync(path.join(root, relativePath), "utf8");
 
-const loginPage = read(
-  "artifacts/backoffice/src/app/(auth)/login/page.tsx",
-);
+const loginPage = read("artifacts/backoffice/src/app/(auth)/login/page.tsx");
 const loginForm = read(
   "artifacts/backoffice/src/components/auth/LoginForm.tsx",
 );
-const authLayout = read(
-  "artifacts/backoffice/src/app/(auth)/layout.tsx",
+const authLayout = read("artifacts/backoffice/src/app/(auth)/layout.tsx");
+const authAction = read("artifacts/backoffice/src/app/actions/auth.ts");
+const forgotPasswordPage = read(
+  "artifacts/backoffice/src/app/(auth)/wachtwoord-vergeten/page.tsx",
 );
-const authAction = read(
-  "artifacts/backoffice/src/app/actions/auth.ts",
+const resetPasswordPage = read(
+  "artifacts/backoffice/src/app/(auth)/reset-wachtwoord/page.tsx",
+);
+const profileOnboardingPage = read(
+  "artifacts/backoffice/src/app/(auth)/profiel-instellen/page.tsx",
 );
 
 test("login uses a scroll-safe dynamic viewport and Dutch metadata", () => {
@@ -51,4 +54,23 @@ test("safe next paths remain fail-closed in page and server action", () => {
   assert.ok(loginPage.includes('value.includes("\\\\")'));
   assert.match(authAction, /redirectPathFromFormValue/);
   assert.match(authAction, /next\.startsWith\("\/\/"\)/);
+});
+
+test("credential recovery and profile onboarding share the canonical auth controls", () => {
+  for (const source of [forgotPasswordPage, resetPasswordPage]) {
+    assert.match(source, /@\/components\/ui\/alert/);
+    assert.match(source, /@\/components\/ui\/button/);
+    assert.match(source, /@\/components\/ui\/input/);
+    assert.match(source, /@\/components\/ui\/label/);
+    assert.doesNotMatch(source, /style=\{/);
+    assert.doesNotMatch(source, /<button/);
+    assert.match(source, /min-h-11|<Button/);
+  }
+
+  assert.match(resetPasswordPage, /aria-invalid=\{!passwordsMatch\}/);
+  assert.match(resetPasswordPage, /aria-pressed=\{showPassword\}/);
+  assert.match(resetPasswordPage, /safeNextPath/);
+  assert.match(forgotPasswordPage, /autoComplete="one-time-code"/);
+  assert.match(profileOnboardingPage, /@\/components\/ui\/button/);
+  assert.doesNotMatch(profileOnboardingPage, /<button/);
 });

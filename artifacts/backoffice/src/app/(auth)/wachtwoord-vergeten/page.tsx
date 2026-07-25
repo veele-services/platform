@@ -1,32 +1,43 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, KeyRound, Loader2 } from "lucide-react";
+import {
+  requestPasswordResetCode,
+  verifyPasswordResetCode,
+} from "@/app/actions/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { requestPasswordResetCode, verifyPasswordResetCode } from "@/app/actions/auth";
 
 export default function WachtwoordVergetenPage() {
   const router = useRouter();
-  const [email,   setEmail]   = useState("");
-  const [code,    setCode]    = useState("");
-  const [sent,    setSent]    = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [purpose, setPurpose] = useState<"activation" | "password-reset">("password-reset");
+  const [purpose, setPurpose] = useState<"activation" | "password-reset">(
+    "password-reset",
+  );
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("doel") === "activatie") setPurpose("activation");
+    if (
+      new URLSearchParams(window.location.search).get("doel") === "activatie"
+    ) {
+      setPurpose("activation");
+    }
   }, []);
 
   function normalizedEmail(): string {
     return email.trim().toLowerCase();
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     setError(null);
     if (purpose === "activation") {
       setSent(true);
@@ -36,16 +47,18 @@ export default function WachtwoordVergetenPage() {
     startTransition(async () => {
       const result = await requestPasswordResetCode(normalizedEmail());
       if (!result.success) {
-        setError(result.message ?? "Er is een fout opgetreden. Controleer uw e-mailadres en probeer het opnieuw.");
+        setError(
+          result.message ??
+            "Er ging iets mis. Controleer uw e-mailadres en probeer het opnieuw.",
+        );
         return;
       }
-
       setSent(true);
     });
   }
 
-  function handleVerifyCode(e: React.FormEvent) {
-    e.preventDefault();
+  function handleVerifyCode(event: FormEvent) {
+    event.preventDefault();
     setError(null);
 
     startTransition(async () => {
@@ -55,257 +68,146 @@ export default function WachtwoordVergetenPage() {
         purpose,
       });
       if (!result.success) {
-        const message = result.state === "expired"
-          ? "De herstelcode is verlopen. Vraag een nieuwe code aan."
-          : result.state === "used"
-            ? "Deze herstelcode is al gebruikt. Vraag een nieuwe code aan."
-            : "De herstelcode is ongeldig. Controleer de code of vraag een nieuwe aan.";
-        setError(message);
+        setError(
+          result.state === "expired"
+            ? "De herstelcode is verlopen. Vraag een nieuwe code aan."
+            : result.state === "used"
+              ? "Deze herstelcode is al gebruikt. Vraag een nieuwe code aan."
+              : "De herstelcode is ongeldig. Controleer de code of vraag een nieuwe aan.",
+        );
         return;
       }
 
-      router.push(purpose === "activation" ? "/reset-wachtwoord?doel=activatie" : "/reset-wachtwoord");
+      router.push(
+        purpose === "activation"
+          ? "/reset-wachtwoord?doel=activatie"
+          : "/reset-wachtwoord",
+      );
       router.refresh();
     });
   }
 
   return (
-    <div
-      className="w-full max-w-sm mx-4"
-      style={{
-        backgroundColor: "#FFFFFF",
-        borderRadius: "12px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 24px rgba(8,29,58,0.10)",
-        padding: "36px 32px 40px",
-      }}
-    >
-      <div className="flex flex-col items-center mb-8">
-        <div className="flex flex-col items-center leading-none mb-5">
-          <span
-            className="font-bold tracking-widest"
-            style={{
-              fontFamily: "var(--font-poppins), Poppins, sans-serif",
-              fontSize: "20px",
-              color: "#081D3A",
-            }}
-          >
-            FIELDGRID
+    <main className="w-full max-w-md px-4 py-6 sm:px-0">
+      <section className="rounded-[var(--radius-panel)] border border-border bg-card p-5 shadow-lg sm:p-8">
+        <header className="mb-7 text-center">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <KeyRound className="size-5" aria-hidden="true" />
           </span>
-          <span
-            className="uppercase tracking-[0.22em]"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "9px",
-              color: "#00B7B3",
-              marginTop: "3px",
-            }}
-          >
-            Services
-          </span>
-        </div>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Fieldgrid
+          </p>
+          <h1 className="mt-2 font-heading text-2xl font-semibold text-foreground">
+            {sent ? "Herstelcode invoeren" : "Wachtwoord vergeten"}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {sent
+              ? "Vul de code uit uw e-mail in om veilig een nieuw wachtwoord te kiezen."
+              : "Vul uw e-mailadres in. Als het bekend is, ontvangt u een herstelcode."}
+          </p>
+        </header>
 
-        <h1
-          className="font-semibold"
-          style={{
-            fontFamily: "var(--font-poppins), Poppins, sans-serif",
-            fontSize: "17px",
-            color: "#081D3A",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Wachtwoord vergeten
-        </h1>
-        <p
-          className="mt-1 text-center"
-          style={{
-            fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontSize: "13px",
-            color: "#64748B",
-            lineHeight: "1.5",
-          }}
-        >
-          Vul uw e-mailadres in. Als het bekend is, ontvangt u een herstelcode.
-        </p>
-      </div>
+        {sent ? (
+          <form onSubmit={handleVerifyCode} className="space-y-5" noValidate>
+            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+              <CheckCircle2 className="size-4 text-emerald-700" />
+              <AlertTitle>Controleer uw inbox</AlertTitle>
+              <AlertDescription>
+                Gebruik de eenmalige herstelcode. Deel deze code met niemand.
+              </AlertDescription>
+            </Alert>
 
-      {sent ? (
-        <form onSubmit={handleVerifyCode} className="space-y-5" noValidate>
-          <div
-            className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-            style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
-          >
-            <CheckCircle2
-              className="flex-shrink-0 mt-0.5"
-              style={{ width: "15px", height: "15px", color: "#16A34A" }}
-            />
-            <p
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "13px",
-                color: "#15803D",
-                lineHeight: "1.4",
-              }}
-            >
-              Controleer uw inbox. Vul de herstelcode hieronder in om een nieuw wachtwoord te kiezen.
-            </p>
-          </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          {error && (
-            <div
-              className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-              style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-              role="alert"
-            >
-              <AlertCircle
-                className="flex-shrink-0 mt-0.5"
-                style={{ width: "15px", height: "15px", color: "#EF4444" }}
+            <div className="space-y-1.5">
+              <Label htmlFor="code">Herstelcode</Label>
+              <Input
+                id="code"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                disabled={pending}
+                placeholder="Code uit e-mail"
+                className="min-h-11"
               />
-              <p
-                style={{
-                  fontFamily: "var(--font-inter), Inter, sans-serif",
-                  fontSize: "13px",
-                  color: "#B91C1C",
-                  lineHeight: "1.4",
-                }}
-              >
-                {error}
-              </p>
             </div>
-          )}
 
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="code"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "#081D3A",
+            <Button
+              type="submit"
+              disabled={pending || !code.trim()}
+              className="w-full"
+            >
+              {pending && (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              )}
+              {pending ? "Code controleren…" : "Code controleren"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setSent(false);
+                setCode("");
+                setError(null);
               }}
             >
-              Herstelcode
-            </Label>
-            <Input
-              id="code"
-              name="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              disabled={pending}
-              placeholder="Code uit e-mail"
-              style={{ fontSize: "14px" }}
-            />
-          </div>
+              Ander e-mailadres gebruiken
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <button
-            type="submit"
-            disabled={pending || !code.trim()}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "14px",
-              backgroundColor: pending || !code.trim() ? "#94A3B8" : "#00B7B3",
-              cursor: pending || !code.trim() ? "not-allowed" : "pointer",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {pending ? "Controleren..." : "Code controleren"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSent(false);
-              setCode("");
-              setError(null);
-            }}
-            className="block w-full text-center text-sm"
-            style={{ color: "#64748B" }}
-          >
-            Andere e-mail gebruiken
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {error && (
-            <div
-              className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-              style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-              role="alert"
-            >
-              <AlertCircle
-                className="flex-shrink-0 mt-0.5"
-                style={{ width: "15px", height: "15px", color: "#EF4444" }}
+            <div className="space-y-1.5">
+              <Label htmlFor="email">E-mailadres</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={pending}
+                placeholder="jij@bedrijf.nl"
+                className="min-h-11"
               />
-              <p
-                style={{
-                  fontFamily: "var(--font-inter), Inter, sans-serif",
-                  fontSize: "13px",
-                  color: "#B91C1C",
-                  lineHeight: "1.4",
-                }}
-              >
-                {error}
-              </p>
             </div>
-          )}
 
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="email"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "#081D3A",
-              }}
+            <Button
+              type="submit"
+              disabled={pending || !email.trim()}
+              className="w-full"
             >
-              E-mailadres
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={pending}
-              placeholder="jij@bedrijf.nl"
-              style={{ fontSize: "14px" }}
-            />
-          </div>
+              {pending && (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              )}
+              {pending ? "Herstelcode versturen…" : "Herstelcode versturen"}
+            </Button>
 
-          <button
-            type="submit"
-            disabled={pending || !email}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "14px",
-              backgroundColor: pending || !email ? "#94A3B8" : "#00B7B3",
-              cursor: pending || !email ? "not-allowed" : "pointer",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {pending ? "Bezig..." : "Herstelcode versturen"}
-          </button>
-
-          <Link
-            href="/login"
-            className="block text-center text-sm"
-            style={{ color: "#64748B" }}
-          >
-            Terug naar inloggen
-          </Link>
-        </form>
-      )}
-    </div>
+            <Button asChild type="button" variant="ghost" className="w-full">
+              <Link href="/login">Terug naar inloggen</Link>
+            </Button>
+          </form>
+        )}
+      </section>
+    </main>
   );
 }

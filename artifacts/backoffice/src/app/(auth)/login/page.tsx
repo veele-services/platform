@@ -15,11 +15,7 @@ import {
   getTenantBrandingCssVariables,
 } from "@workspace/db";
 import { LoginForm } from "@/components/auth/LoginForm";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   isPlatformHost,
   normalizeHost,
@@ -48,7 +44,13 @@ type LoginBranding = {
 };
 
 function safeNextPath(value: string | undefined, fallback = "/"): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return fallback;
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  )
+    return fallback;
   return value;
 }
 
@@ -58,7 +60,9 @@ async function getLoginBranding(host: string): Promise<LoginBranding> {
   const theme = tenantBranding ?? (await getPlatformBrandTheme());
   const whitelabel = Boolean(tenantBranding?.customBrandingEnabled);
   const displayName = whitelabel
-    ? tenantBranding?.displayName.trim() || tenantBranding?.tenantName.trim() || "Organisatie"
+    ? tenantBranding?.displayName.trim() ||
+      tenantBranding?.tenantName.trim() ||
+      "Organisatie"
     : theme.brandName.trim() || "Fieldgrid";
 
   return {
@@ -83,9 +87,7 @@ function BrandMark({ branding }: { branding: LoginBranding }) {
 
   if (branding.whitelabel) {
     return (
-      <span
-        className="max-w-[220px] truncate text-center font-heading text-xl font-bold text-primary"
-      >
+      <span className="max-w-[220px] truncate text-center font-heading text-xl font-bold text-primary">
         {branding.displayName}
       </span>
     );
@@ -106,7 +108,9 @@ function BrandMark({ branding }: { branding: LoginBranding }) {
 export default async function LoginPage({ searchParams }: Props) {
   const { message, error, next } = await searchParams;
   const requestHeaders = await headers();
-  const host = normalizeHost(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "");
+  const host = normalizeHost(
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "",
+  );
   const fallbackNextPath = isPlatformHost(host) ? "/platform" : "/";
   const nextPath = safeNextPath(next, fallbackNextPath);
   const branding = await getLoginBranding(host);
@@ -120,10 +124,8 @@ export default async function LoginPage({ searchParams }: Props) {
       style={branding.cssVariables as CSSProperties}
     >
       <div className="mx-auto grid min-h-[calc(100dvh-2rem)] w-full max-w-6xl items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-border bg-card shadow-lg lg:grid-cols-[minmax(0,1.05fr)_minmax(24rem,0.95fr)]">
-        <section className="relative hidden overflow-hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-          <div className="absolute -right-20 -top-20 size-72 rounded-full border border-primary-foreground/10" />
-          <div className="absolute -bottom-32 -left-24 size-96 rounded-full border border-primary-foreground/10" />
-          <div className="relative">
+        <section className="hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+          <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] opacity-75">
               {branding.platformName}
             </p>
@@ -134,7 +136,7 @@ export default async function LoginPage({ searchParams }: Props) {
               Planning, uitvoering en administratie in één veilige werkomgeving.
             </p>
           </div>
-          <ul className="relative space-y-4 text-sm">
+          <ul className="space-y-4 text-sm">
             {[
               {
                 icon: CalendarClock,

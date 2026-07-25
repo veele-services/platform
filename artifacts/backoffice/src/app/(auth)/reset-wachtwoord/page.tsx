@@ -1,21 +1,39 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { completePasswordReset } from "@/app/actions/auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { evaluatePasswordStrength } from "@/lib/password-strength";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
-function strengthColor(score: number): string {
-  if (score >= 4) return "#16A34A";
-  if (score >= 3) return "#0E7490";
-  if (score >= 2) return "#F59E0B";
-  return "#DC2626";
+function strengthClass(score: number): string {
+  if (score >= 4) return "bg-emerald-600";
+  if (score >= 3) return "bg-cyan-700";
+  if (score >= 2) return "bg-amber-500";
+  return "bg-red-600";
+}
+
+function strengthTextClass(score: number): string {
+  if (score >= 4) return "text-emerald-700";
+  if (score >= 3) return "text-cyan-800";
+  if (score >= 2) return "text-amber-700";
+  return "text-red-700";
 }
 
 function safeNextPath(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return "/";
+  }
   return value;
 }
 
@@ -28,12 +46,23 @@ export default function ResetWachtwoordPage() {
   const [fullName, setFullName] = useState("");
   const [isActivation, setIsActivation] = useState(false);
   const [nextPath, setNextPath] = useState("/");
-  const [state, formAction, pending] = useActionState(completePasswordReset, undefined);
+  const [state, formAction, pending] = useActionState(
+    completePasswordReset,
+    undefined,
+  );
 
   const strength = evaluatePasswordStrength(password);
   const passwordsMatch = !confirmPassword || password === confirmPassword;
   const PasswordIcon = showPassword ? EyeOff : Eye;
   const ConfirmPasswordIcon = showConfirmPassword ? EyeOff : Eye;
+  const activationNameMissing = isActivation && !fullName.trim();
+  const canSubmit =
+    !pending &&
+    !activationNameMissing &&
+    (!isActivation || fullName.trim().length >= 2) &&
+    Boolean(password && confirmPassword) &&
+    strength.isMedium &&
+    password === confirmPassword;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,262 +71,183 @@ export default function ResetWachtwoordPage() {
   }, []);
 
   useEffect(() => {
-    if (state?.success) {
-      const params = new URLSearchParams({
-        message: isActivation
-          ? "Account geactiveerd. U kunt nu inloggen."
-          : "Wachtwoord succesvol gewijzigd. U kunt nu inloggen.",
-        next: state.next ?? nextPath,
-      });
-      router.push(`/login?${params.toString()}`);
-    }
+    if (!state?.success) return;
+    const params = new URLSearchParams({
+      message: isActivation
+        ? "Account geactiveerd. U kunt nu inloggen."
+        : "Wachtwoord gewijzigd. U kunt nu inloggen.",
+      next: state.next ?? nextPath,
+    });
+    router.push(`/login?${params.toString()}`);
   }, [isActivation, nextPath, router, state?.next, state?.success]);
 
   return (
-    <div
-      className="w-full max-w-sm mx-4"
-      style={{
-        backgroundColor: "#FFFFFF",
-        borderRadius: "12px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 24px rgba(8,29,58,0.10)",
-        padding: "36px 32px 40px",
-      }}
-    >
-      <div className="flex flex-col items-center mb-8">
-        <div className="flex flex-col items-center leading-none mb-5">
-          <span
-            className="font-bold tracking-widest"
-            style={{
-              fontFamily: "var(--font-poppins), Poppins, sans-serif",
-              fontSize: "20px",
-              color: "#081D3A",
-            }}
-          >
-            FIELDGRID
+    <main className="w-full max-w-md px-4 py-6 sm:px-0">
+      <section className="rounded-[var(--radius-panel)] border border-border bg-card p-5 shadow-lg sm:p-8">
+        <header className="mb-7 text-center">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <KeyRound className="size-5" aria-hidden="true" />
           </span>
-          <span
-            className="uppercase tracking-[0.22em]"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "9px",
-              color: "#00B7B3",
-              marginTop: "3px",
-            }}
-          >
-            Services
-          </span>
-        </div>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Fieldgrid
+          </p>
+          <h1 className="mt-2 font-heading text-2xl font-semibold text-foreground">
+            {isActivation ? "Account activeren" : "Nieuw wachtwoord instellen"}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {isActivation
+              ? "Vul uw volledige naam in en kies een sterk wachtwoord."
+              : "Kies een sterk, uniek wachtwoord van minimaal acht tekens."}
+          </p>
+        </header>
 
-        <h1
-          className="font-semibold"
-          style={{
-            fontFamily: "var(--font-poppins), Poppins, sans-serif",
-            fontSize: "17px",
-            color: "#081D3A",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {isActivation ? "Account activeren" : "Nieuw wachtwoord instellen"}
-        </h1>
-        <p
-          className="mt-1 text-center"
-          style={{
-            fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontSize: "13px",
-            color: "#64748B",
-          }}
-        >
-          {isActivation
-            ? "Vul uw volledige naam in en kies een sterk wachtwoord."
-            : "Kies een sterk wachtwoord van minimaal 8 tekens."}
-        </p>
-      </div>
+        <form action={formAction} className="space-y-5" noValidate>
+          <input type="hidden" name="next" value={nextPath} />
 
-      <form action={formAction} className="space-y-5" noValidate>
-        <input type="hidden" name="next" value={nextPath} />
-
-        {state?.error && (
-          <div
-            className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-            style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-            role="alert"
-          >
-            <AlertCircle
-              className="flex-shrink-0 mt-0.5"
-              style={{ width: "15px", height: "15px", color: "#EF4444" }}
-            />
-            <p
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "13px",
-                color: "#B91C1C",
-                lineHeight: "1.4",
-              }}
-            >
-              {state.error}
-            </p>
-          </div>
-        )}
-
-        {isActivation && (
-          <div className="space-y-1.5">
-            <label
-              htmlFor="full-name"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "#081D3A",
-              }}
-            >
-              Volledige naam
-            </label>
-            <input
-              id="full-name"
-              name="fullName"
-              type="text"
-              autoComplete="name"
-              autoFocus
-              required
-              minLength={2}
-              maxLength={120}
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              disabled={pending}
-              placeholder="Voor- en achternaam"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none disabled:opacity-60"
-              style={{ borderColor: "#CBD5E1" }}
-            />
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <label
-            htmlFor="password"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "#081D3A",
-            }}
-          >
-            Nieuw wachtwoord
-          </label>
-          <div className="relative">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              autoFocus={!isActivation}
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={pending}
-              placeholder="Minimaal 8 tekens"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none disabled:opacity-60"
-              style={{ borderColor: "#CBD5E1", paddingRight: "42px" }}
-            />
-            <button
-              type="button"
-              aria-label={showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
-              onClick={() => setShowPassword((value) => !value)}
-              disabled={pending}
-              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
-            >
-              <PasswordIcon className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mt-2">
-            <div className="flex gap-1">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <span
-                  key={index}
-                  className="h-1.5 flex-1 rounded-full"
-                  style={{ backgroundColor: index < strength.score ? strengthColor(strength.score) : "#E2E8F0" }}
-                />
-              ))}
-            </div>
-            <p className="mt-1 text-xs" style={{ color: strengthColor(strength.score) }}>
-              Sterkte: {strength.label}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label
-            htmlFor="confirm-password"
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "#081D3A",
-            }}
-          >
-            Wachtwoord bevestigen
-          </label>
-          <div className="relative">
-            <input
-              id="confirm-password"
-              name="passwordTwo"
-              type={showConfirmPassword ? "text" : "password"}
-              autoComplete="new-password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={pending}
-              placeholder="Herhaal nieuw wachtwoord"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none disabled:opacity-60"
-              style={{ borderColor: passwordsMatch ? "#CBD5E1" : "#DC2626", paddingRight: "42px" }}
-            />
-            <button
-              type="button"
-              aria-label={showConfirmPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
-              onClick={() => setShowConfirmPassword((value) => !value)}
-              disabled={pending}
-              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
-            >
-              <ConfirmPasswordIcon className="h-4 w-4" />
-            </button>
-          </div>
-          {!passwordsMatch && (
-            <p className="mt-1 text-xs font-medium" style={{ color: "#DC2626" }}>
-              Wachtwoorden komen niet overeen.
-            </p>
+          {state?.error && (
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" />
+              <AlertDescription>{state.error}</AlertDescription>
+            </Alert>
           )}
-        </div>
 
-        <button
-          type="submit"
-          disabled={pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword}
-          className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
-          style={{
-            fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontSize: "14px",
-            backgroundColor:
-              pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
-                ? "#94A3B8"
-                : "#00B7B3",
-            cursor:
-              pending || (isActivation && !fullName.trim()) || !password || !confirmPassword || !strength.isMedium || password !== confirmPassword
-                ? "not-allowed"
-                : "pointer",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-          {pending ? "Opslaan..." : isActivation ? "Account activeren" : "Wachtwoord opslaan"}
-        </button>
+          {isActivation && (
+            <div className="space-y-1.5">
+              <Label htmlFor="full-name">Volledige naam</Label>
+              <Input
+                id="full-name"
+                name="fullName"
+                type="text"
+                autoComplete="name"
+                autoFocus
+                required
+                minLength={2}
+                maxLength={120}
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                disabled={pending}
+                placeholder="Voor- en achternaam"
+                className="min-h-11"
+              />
+            </div>
+          )}
 
-        <Link
-          href="/login"
-          className="block text-center text-sm"
-          style={{ color: "#64748B" }}
-        >
-          Annuleren - terug naar inloggen
-        </Link>
-      </form>
-    </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Nieuw wachtwoord</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                autoFocus={!isActivation}
+                required
+                minLength={8}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={pending}
+                placeholder="Minimaal 8 tekens"
+                className="min-h-11 pr-12"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={
+                  showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"
+                }
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((value) => !value)}
+                disabled={pending}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                <PasswordIcon aria-hidden="true" />
+              </Button>
+            </div>
+            {password && (
+              <div aria-live="polite" className="pt-1">
+                <div className="flex gap-1" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className={`h-1.5 flex-1 rounded-full ${
+                        index < strength.score
+                          ? strengthClass(strength.score)
+                          : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p
+                  className={`mt-1 text-xs font-medium ${strengthTextClass(strength.score)}`}
+                >
+                  Wachtwoordsterkte: {strength.label}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="confirm-password">Wachtwoord bevestigen</Label>
+            <div className="relative">
+              <Input
+                id="confirm-password"
+                name="passwordTwo"
+                type={showConfirmPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                disabled={pending}
+                aria-invalid={!passwordsMatch}
+                aria-describedby={
+                  !passwordsMatch ? "password-match-error" : undefined
+                }
+                placeholder="Herhaal nieuw wachtwoord"
+                className="min-h-11 pr-12"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={
+                  showConfirmPassword
+                    ? "Wachtwoord verbergen"
+                    : "Wachtwoord tonen"
+                }
+                aria-pressed={showConfirmPassword}
+                onClick={() => setShowConfirmPassword((value) => !value)}
+                disabled={pending}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                <ConfirmPasswordIcon aria-hidden="true" />
+              </Button>
+            </div>
+            {!passwordsMatch && (
+              <p
+                id="password-match-error"
+                role="alert"
+                className="text-xs font-medium text-red-700"
+              >
+                De wachtwoorden komen niet overeen.
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" disabled={!canSubmit} className="w-full">
+            {pending && <Loader2 className="animate-spin" aria-hidden="true" />}
+            {pending
+              ? "Veilig opslaan…"
+              : isActivation
+                ? "Account activeren"
+                : "Wachtwoord opslaan"}
+          </Button>
+
+          <Button asChild type="button" variant="ghost" className="w-full">
+            <Link href="/login">Annuleren en terug naar inloggen</Link>
+          </Button>
+        </form>
+      </section>
+    </main>
   );
 }
