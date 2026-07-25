@@ -9,11 +9,12 @@ function read(path) {
 test("phase 4 defines the customer desktop navigation around daily tasks", () => {
   const sidebar = read("artifacts/klant-pwa/src/components/DesktopSidebar.tsx");
 
-  for (const label of ["Home", "Opdrachten", "Objecten", "Support", "Financieel", "Documenten"]) {
+  for (const label of ["Overzicht", "Opdrachten", "Objecten", "Support", "Offertes", "Facturen", "Documenten"]) {
     assert.match(sidebar, new RegExp(`label:\\s*"${label}"`, "u"));
   }
 
-  assert.match(sidebar, /href:\s*"\/financieel"[\s\S]*match:\s*\["\/financieel", "\/facturen", "\/betalingen", "\/offertes"\]/u);
+  assert.match(sidebar, /href:\s*"\/facturen"[\s\S]*match:\s*\["\/financieel", "\/facturen", "\/betalingen"\]/u);
+  assert.match(sidebar, /href:\s*"\/offertes"[\s\S]*match:\s*\["\/offertes"\]/u);
   assert.match(sidebar, /href:\s*"\/meldingen\/tickets"[\s\S]*label:\s*"Support"/u);
   assert.doesNotMatch(sidebar, /label:\s*"Afspraken"/u);
   assert.doesNotMatch(sidebar, /label:\s*"Aanvragen"/u);
@@ -23,13 +24,14 @@ test("phase 4 keeps mobile navigation compact and moves secondary areas to Meer"
   const bottomNav = read("artifacts/klant-pwa/src/components/BottomNav.tsx");
   const morePage = read("artifacts/klant-pwa/src/app/(app)/meer/page.tsx");
 
-  for (const label of ["Home", "Opdrachten", "Objecten", "Support", "Meer"]) {
+  for (const label of ["Overzicht", "Opdrachten", "Objecten", "Support", "Meer"]) {
     assert.match(bottomNav, new RegExp(`label:\\s*"${label}"`, "u"));
   }
 
   assert.doesNotMatch(bottomNav, /label:\s*"Aanvragen"/u);
   assert.doesNotMatch(bottomNav, /label:\s*"Meldingen"/u);
-  assert.match(morePage, /href:\s*"\/financieel"/u);
+  assert.match(morePage, /href:\s*"\/facturen"/u);
+  assert.match(morePage, /href:\s*"\/offertes"/u);
   assert.match(morePage, /href:\s*"\/documenten"/u);
   assert.match(morePage, /href:\s*"\/meldingen\/tickets"/u);
   assert.doesNotMatch(morePage, /ticketfunctie[\s\S]*later/u);
@@ -63,6 +65,7 @@ test("phase 4 sends contact actions directly to support and documents module dec
   for (const moduleKey of ["finance", "documents", "reporting"]) {
     assert.ok(docs.includes(`\`${moduleKey}\``), `docs must mention ${moduleKey}`);
   }
-  assert.match(docs, /Meer -> Financieel/u);
+  assert.match(docs, /Meer -> Facturen/u);
+  assert.match(docs, /Meer -> Offertes/u);
   assert.match(docs, /Meer -> Documenten/u);
 });

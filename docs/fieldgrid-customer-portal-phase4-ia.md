@@ -10,11 +10,12 @@ Het klantportaal gebruikt vanaf fase 4 een taakgerichte hoofdstructuur:
 
 | Gebied | Route | Doel |
 | --- | --- | --- |
-| Home | `/` | Startpunt met status en snelle acties. |
+| Overzicht | `/` | Startpunt met status en snelle acties. |
 | Opdrachten | `/opdrachten` | Opdrachtstatus, aanvragen, planning en historie. |
 | Objecten | `/objecten` | Locaties, objectgegevens en objectdocumentatie. |
 | Support | `/meldingen/tickets` | Tickets bekijken en een vraag stellen. |
-| Financieel | `/financieel` | Facturen, betalingen en offertes als één werkgebied. |
+| Offertes | `/offertes` | Offertes en akkoordstatus bekijken. |
+| Facturen | `/facturen` | Facturen, betaalstatus en bestaande betaalopties bekijken. |
 | Documenten | `/documenten` | Gedeelde bestanden en downloads. |
 
 `Aanvragen` is geen hoofdnavigatie meer. Het is een actie binnen `Opdrachten` via `/opdrachten/aanvragen`.
@@ -24,20 +25,21 @@ Het klantportaal gebruikt vanaf fase 4 een taakgerichte hoofdstructuur:
 
 Desktop toont de hoofdgebieden direct in de sidebar:
 
-- Home
+- Overzicht
 - Opdrachten
 - Objecten
 - Support
-- Financieel
+- Offertes
+- Facturen
 - Documenten
 
-De finance-ingang markeert ook `/facturen`, `/betalingen` en `/offertes` als actief. Support markeert `/meldingen` en onderliggende ticketroutes als actief.
+De factuuringang markeert ook `/financieel`, `/facturen` en `/betalingen` als actief. Offertes behouden een eigen taakgerichte ingang. Support markeert `/meldingen` en onderliggende ticketroutes als actief.
 
 ## Mobiel
 
 De mobiele bottom nav heeft vijf vaste items:
 
-- Home
+- Overzicht
 - Opdrachten
 - Objecten
 - Support
@@ -45,7 +47,8 @@ De mobiele bottom nav heeft vijf vaste items:
 
 `Meer` bevat de minder frequente maar belangrijke gebieden:
 
-- Financieel
+- Offertes
+- Facturen
 - Documenten
 - Rapportages
 - Meldingen
@@ -53,7 +56,7 @@ De mobiele bottom nav heeft vijf vaste items:
 - Beveiliging
 - Instellingen
 
-Hiermee blijven open facturen en documenten binnen twee tikken bereikbaar: `Meer -> Financieel` en `Meer -> Documenten`.
+Hiermee blijven offertes, open facturen en documenten binnen twee tikken bereikbaar: `Meer -> Offertes`, `Meer -> Facturen` en `Meer -> Documenten`.
 
 ## Financieel Werkgebied
 
@@ -69,13 +72,13 @@ De hub toont een compacte summary voor open facturen, open betaalacties en offer
 
 | Moduleflag | Routes | Navigatiegedrag | Empty state |
 | --- | --- | --- | --- |
-| `finance` | `/financieel`, `/facturen`, `/betalingen`, `/offertes` | Desktop sidebar toont Financieel alleen wanneer finance actief is. | Finance-pagina en onderliggende pagina's tonen bestaande lege lijsten wanneer er nog geen data is. |
+| `finance` | `/financieel`, `/facturen`, `/betalingen`, `/offertes` | Desktop sidebar toont Offertes en Facturen alleen wanneer finance actief is. | Finance-pagina en onderliggende pagina's tonen bestaande lege lijsten wanneer er nog geen data is. |
 | `documents` | `/documenten` | Desktop sidebar toont Documenten alleen wanneer documenten actief zijn. | Documentenpagina toont "Geen documenten beschikbaar". |
 | `reporting` | `/rapporten` | Rapportages staan onder Meer en worden als secundair gebied behandeld. | Rapportagespagina toont bestaande lege rapportagelijst. |
 
 ## Acceptatiecheck
 
-- Opdrachtstatus: `Home/Opdrachten -> opdracht`.
-- Open factuur: `Financieel -> Facturen`.
+- Opdrachtstatus: `Overzicht/Opdrachten -> opdracht`.
+- Open factuur: `Facturen -> factuur`.
 - Ticket: `Support -> ticket` of nieuw ticketformulier.
 - Document: `Documenten` op desktop, `Meer -> Documenten` op mobiel.
