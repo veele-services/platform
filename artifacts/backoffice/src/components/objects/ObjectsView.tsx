@@ -1,16 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   Eye,
   Pencil,
   Trash2,
@@ -19,9 +14,12 @@ import {
   Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BulkActionBar } from "@/components/ui/bulk-action-bar";
+import { Badge } from "@/components/ui/badge";
+import {
+  FieldgridDataView,
+  type FieldgridDataViewColumn,
+} from "@/components/ui/fieldgrid-data-view";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -58,45 +56,6 @@ import type { SectorOption } from "@/app/actions/sectors";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["name", "code", "city", "createdAt"] as const;
-
-// ─── Sortable header cell ─────────────────────────────────────────────────────
-
-function SortHeader({
-  label,
-  columnKey,
-  currentSort,
-  currentDir,
-  onSort,
-}: {
-  label:       string;
-  columnKey:   string;
-  currentSort: string;
-  currentDir:  string;
-  onSort:      (key: string) => void;
-}) {
-  const active = currentSort === columnKey;
-  return (
-    <th className="px-4 py-3 text-left">
-      <button
-        type="button"
-        onClick={() => onSort(columnKey)}
-        className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80"
-        style={{ color: active ? "#00B7B3" : "#64748B" }}
-      >
-        {label}
-        {active ? (
-          currentDir === "asc" ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )
-        ) : (
-          <ChevronsUpDown className="h-3 w-3 opacity-40" />
-        )}
-      </button>
-    </th>
-  );
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -140,11 +99,31 @@ export function ObjectsView({
   const [editingId,     setEditingId]     = useState<string | null>(null);
   const [selected,      setSelected]      = useState<Set<string>>(new Set());
   const [searchInput,   setSearchInput]   = useState(initialSearch);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [draftStatus, setDraftStatus] = useState(initialStatus || "all");
+  const [draftServiceType, setDraftServiceType] = useState(initialServiceType);
+  const [draftRegion, setDraftRegion] = useState(initialRegion);
   const [deleteTarget,  setDeleteTarget]  = useState<{ id: string; name: string } | null>(null);
   const [bulkPending,   startBulkTransition] = useTransition();
   const [bulkDeactivateOpen, setBulkDeactivateOpen] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const rowLabels = useMemo(
+    () => new Map(rows.map((row) => [row.id, row.name])),
+    [rows],
+  );
+
+  useEffect(() => {
+    setSearchInput(initialSearch);
+    setDraftStatus(initialStatus || "all");
+    setDraftServiceType(initialServiceType);
+    setDraftRegion(initialRegion);
+  }, [
+    initialRegion,
+    initialSearch,
+    initialServiceType,
+    initialStatus,
+  ]);
 
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
@@ -173,30 +152,38 @@ export function ObjectsView({
     applyFilter("search", searchInput);
   }
 
+  function applyDraftFilters() {
+    router.replace(
+      buildUrl({
+        status: draftStatus === "all" ? undefined : draftStatus,
+        serviceType: draftServiceType.trim() || undefined,
+        region: draftRegion.trim() || undefined,
+        page: undefined,
+      }),
+    );
+  }
+
+  function resetFilters() {
+    setDraftStatus("all");
+    setDraftServiceType("");
+    setDraftRegion("");
+    setFilterDrawerOpen(false);
+    router.replace(
+      buildUrl({
+        customerId: undefined,
+        status: undefined,
+        serviceType: undefined,
+        region: undefined,
+        page: undefined,
+      }),
+    );
+  }
+
   function handleSort(column: string) {
     if (!SORTABLE.includes(column as typeof SORTABLE[number])) return;
     const newDir =
       initialSort === column && initialDir === "asc" ? "desc" : "asc";
     router.replace(buildUrl({ sort: column, dir: newDir, page: undefined }));
-  }
-
-  const allSelected =
-    rows.length > 0 && rows.every((r) => selected.has(r.id));
-
-  function toggleAll() {
-    if (allSelected) {
-      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.delete(r.id)); return next; });
-    } else {
-      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.add(r.id)); return next; });
-    }
-  }
-
-  function toggleOne(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
   }
 
   function openCreate() { setEditingId(null); setSheetOpen(true); }
@@ -296,6 +283,87 @@ export function ObjectsView({
     );
   }
 
+  const columns: FieldgridDataViewColumn<ObjectRow>[] = [
+    {
+      id: "name",
+      label: "Object",
+      sortable: true,
+      hideable: false,
+      cell: (row) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+            <Building2 className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <Link
+              href={`/objects/${row.id}`}
+              className="block max-w-[18rem] truncate font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {row.name}
+            </Link>
+            <span className="font-mono text-xs text-muted-foreground">
+              {row.code}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "city",
+      label: "Adres",
+      sortable: true,
+      cell: (row) =>
+        [row.address, row.city].filter(Boolean).join(", ") || "—",
+    },
+    {
+      id: "serviceType",
+      label: "Diensttype",
+      cell: (row) =>
+        row.serviceType ? (
+          <Badge variant="secondary">{row.serviceType}</Badge>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      id: "nextServiceDate",
+      label: "Eerstvolgende dienst",
+      cell: (row) =>
+        row.nextServiceDate
+          ? new Date(row.nextServiceDate).toLocaleDateString("nl-NL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : "—",
+    },
+    {
+      id: "createdAt",
+      label: "Aangemaakt",
+      sortable: true,
+      hiddenByDefault: true,
+      cell: (row) =>
+        new Date(row.createdAt).toLocaleDateString("nl-NL", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+    },
+    {
+      id: "status",
+      label: "Status",
+      cell: (row) => <StatusBadge isActive={row.isActive} />,
+    },
+    {
+      id: "actions",
+      label: "Acties",
+      hideable: false,
+      headerClassName: "w-14 text-right",
+      className: "text-right",
+      cell: renderRowActions,
+    },
+  ];
+
   return (
     <>
       {/* Toolbar */}
@@ -313,55 +381,80 @@ export function ObjectsView({
         }
         actions={
           <>
-            <TenantFilterDrawer activeCount={activeFilters.length} title="Objectfilters">
+            <TenantFilterDrawer
+              activeCount={[
+                initialCustomerId,
+                initialStatus !== "all" ? initialStatus : "",
+                initialServiceType,
+                initialRegion,
+              ].filter(Boolean).length}
+              title="Objectfilters"
+              open={filterDrawerOpen}
+              onOpenChange={setFilterDrawerOpen}
+              onApply={applyDraftFilters}
+              onReset={resetFilters}
+            >
               <div className="grid gap-4">
-        {/* Status filter */}
-        <Select
-          value={initialStatus || "all"}
-          onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle statussen</SelectItem>
-            <SelectItem value="active">Actief</SelectItem>
-            <SelectItem value="inactive">Inactief</SelectItem>
-          </SelectContent>
-        </Select>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="object-status-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Status
+                  </label>
+                  <Select
+                    value={draftStatus}
+                    onValueChange={setDraftStatus}
+                  >
+                    <SelectTrigger id="object-status-filter" className="w-full">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle statussen</SelectItem>
+                      <SelectItem value="active">Actief</SelectItem>
+                      <SelectItem value="inactive">Inactief</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* Service type filter */}
-        <div className="relative">
-          <Input
-            value={initialServiceType}
-            onChange={(e) => applyFilter("serviceType", e.target.value)}
-            placeholder="Diensttype..."
-            className="w-[150px] h-9"
-          />
-        </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="object-service-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Diensttype
+                  </label>
+                  <Input
+                    id="object-service-filter"
+                    value={draftServiceType}
+                    onChange={(event) =>
+                      setDraftServiceType(event.target.value)
+                    }
+                    placeholder="Bijvoorbeeld: schoonmaak"
+                  />
+                </div>
 
-        {/* Region / city filter */}
-        <div className="relative">
-          <Input
-            value={initialRegion}
-            onChange={(e) => applyFilter("region", e.target.value)}
-            placeholder="Regio / stad..."
-            className="w-[140px] h-9"
-          />
-        </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="object-region-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Regio of stad
+                  </label>
+                  <Input
+                    id="object-region-filter"
+                    value={draftRegion}
+                    onChange={(event) => setDraftRegion(event.target.value)}
+                    placeholder="Bijvoorbeeld: Den Haag"
+                  />
+                </div>
 
-        {/* Customer filter — secondary, used when coming from customer pages */}
-        {initialCustomerId && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => applyFilter("customerId", "")}
-          >
-            Klantfilter ×
-          </Button>
-        )}
-
+                {initialCustomerId ? (
+                  <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                    De actieve klantselectie wordt verwijderd wanneer je de
+                    filters reset.
+                  </p>
+                ) : null}
               </div>
             </TenantFilterDrawer>
 
@@ -378,250 +471,125 @@ export function ObjectsView({
         activeFilters={<TenantActiveFilters filters={activeFilters} />}
       />
 
-      {/* Bulk actions bar */}
-      {selected.size > 0 && canWrite && (
-        <BulkActionBar count={selected.size} className="mb-4">
-          <Button variant="outline" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
-            <ToggleRight className="mr-1.5 h-4 w-4" />Activeren
-          </Button>
-          <Button variant="outline" onClick={() => setBulkDeactivateOpen(true)} disabled={bulkPending}>
-            <ToggleLeft className="mr-1.5 h-4 w-4" />Deactiveren
-          </Button>
-          <Button variant="ghost" onClick={() => setSelected(new Set())}>
-            Wissen
-          </Button>
-        </BulkActionBar>
-      )}
-
-      {/* Table */}
-      {rows.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground md:hidden">
-          Geen objecten gevonden
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-3 md:hidden">
-          {rows.map((row) => {
-            const fullAddress = [row.address, row.city].filter(Boolean).join(", ");
-
-            return (
-              <article key={row.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    {canWrite && (
-                      <Checkbox checked={selected.has(row.id)} onCheckedChange={() => toggleOne(row.id)} aria-label={`Select ${row.name}`} />
-                    )}
-                    <div className="min-w-0">
-                      <Link href={`/objects/${row.id}`} className="font-medium text-foreground hover:underline">
-                        {row.name}
-                      </Link>
-                      <p className="font-mono text-xs text-muted-foreground">{row.code}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{fullAddress || "Geen adres"}</p>
-                    </div>
-                  </div>
-                  {renderRowActions(row)}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <StatusBadge isActive={row.isActive} />
-                  {row.serviceType && <span>{row.serviceType}</span>}
-                  {row.nextServiceDate && <span>{new Date(row.nextServiceDate).toLocaleDateString("nl-NL")}</span>}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="veele-card hidden overflow-hidden p-0 md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
-                {canWrite && (
-                  <th className="w-10 pl-4 py-3">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="Select all"
-                    />
-                  </th>
-                )}
-                <SortHeader
-                  label="Object"
-                  columnKey="name"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Adres
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Diensttype
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Eerstvolgende dienst
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Status
-                </th>
-                <th className="w-12 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={canWrite ? 7 : 6}
-                    className="px-4 py-12 text-center text-sm"
-                    style={{ color: "#94A3B8" }}
+      <FieldgridDataView
+        className="mt-4"
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        caption="Objecten met adres, dienstverlening, eerstvolgende dienst en status"
+        hasActiveFilters={activeFilters.length > 0}
+        emptyTitle="Nog geen objecten"
+        emptyDescription="Maak het eerste object aan om werk, dienstverlening en planning te koppelen."
+        filteredEmptyTitle="Geen objecten gevonden"
+        filteredEmptyDescription="Pas de zoekopdracht of actieve filters aan."
+        emptyAction={
+          canWrite ? (
+            <Button type="button" onClick={openCreate}>
+              <Plus className="size-4" />
+              Nieuw object
+            </Button>
+          ) : undefined
+        }
+        preferenceKey="fieldgrid:objects:data-view"
+        savedViews={{
+          storageKey: "fieldgrid:objects:saved-views",
+          currentQuery: buildUrl({ page: undefined }).split("?")[1] ?? "",
+          onApplyQuery: (query) =>
+            router.replace(query ? `${pathname}?${query}` : pathname),
+        }}
+        sort={{
+          key: initialSort,
+          direction: initialDir === "desc" ? "desc" : "asc",
+          onChange: handleSort,
+        }}
+        selection={
+          canWrite
+            ? {
+                selectedIds: selected,
+                onSelectionChange: setSelected,
+                getRowLabel: (rowId) => rowLabels.get(rowId) ?? "object",
+              }
+            : undefined
+        }
+        bulkActions={
+          canWrite
+            ? ({ clear }) => (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleBulkStatus(true)}
+                    disabled={bulkPending}
                   >
-                    Geen objecten gevonden
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row, i) => {
-                  const fullAddress = [row.address, row.city]
-                    .filter(Boolean)
-                    .join(", ");
-
-                  return (
-                    <tr
-                      key={row.id}
-                      className="transition-colors hover:bg-slate-50/60"
-                      style={{
-                        borderBottom:
-                          i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
-                      }}
+                    <ToggleRight className="size-4" />
+                    Activeren
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setBulkDeactivateOpen(true)}
+                    disabled={bulkPending}
+                  >
+                    <ToggleLeft className="size-4" />
+                    Deactiveren
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={clear}>
+                    Selectie wissen
+                  </Button>
+                </>
+              )
+            : undefined
+        }
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          pageCount: totalPages,
+          total,
+          onPageChange: (nextPage) =>
+            router.replace(buildUrl({ page: String(nextPage) })),
+        }}
+        renderMobileCard={(row, _index, context) => {
+          const fullAddress = [row.address, row.city]
+            .filter(Boolean)
+            .join(", ");
+          return (
+            <article className="rounded-lg border border-border bg-card p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  {context.selectionControl}
+                  <div className="min-w-0">
+                    <Link
+                      href={`/objects/${row.id}`}
+                      className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      {canWrite && (
-                        <td className="pl-4 py-3">
-                          <Checkbox
-                            checked={selected.has(row.id)}
-                            onCheckedChange={() => toggleOne(row.id)}
-                          />
-                        </td>
-                      )}
-
-                      {/* Object (name + type icon + code) */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className="flex-shrink-0 flex items-center justify-center rounded-lg h-8 w-8"
-                            style={{ backgroundColor: "#E0FAFB" }}
-                          >
-                            <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                          </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/objects/${row.id}`}
-                              className="text-sm font-medium hover:underline block truncate max-w-[180px]"
-                              style={{ color: "#081D3A" }}
-                            >
-                              {row.name}
-                            </Link>
-                            <span className="font-mono text-xs" style={{ color: "#94A3B8" }}>
-                              {row.code}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Address */}
-                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                        {fullAddress || "—"}
-                      </td>
-
-                      {/* Service type */}
-                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                        {row.serviceType ? (
-                          <span
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: "#EEF2FF", color: "#3730A3" }}
-                          >
-                            {row.serviceType}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-
-                      {/* Next service */}
-                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                        {row.nextServiceDate
-                          ? new Date(row.nextServiceDate).toLocaleDateString("nl-NL", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3">
-                        <StatusBadge isActive={row.isActive} />
-                      </td>
-
-                      {/* Actions */}
-                      <td className="pr-4 py-3 text-right">
-                        {renderRowActions(row)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm">
-          <span style={{ color: "#64748B" }}>
-            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–
-            {Math.min(page * PAGE_SIZE, total)} van {total}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page <= 1}
-              onClick={() =>
-                router.replace(buildUrl({ page: String(page - 1) }))
-              }
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="px-3" style={{ color: "#081D3A" }}>
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page >= totalPages}
-              onClick={() =>
-                router.replace(buildUrl({ page: String(page + 1) }))
-              }
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+                      {row.name}
+                    </Link>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {row.code}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {fullAddress || "Geen adres"}
+                    </p>
+                  </div>
+                </div>
+                {renderRowActions(row)}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <StatusBadge isActive={row.isActive} />
+                {row.serviceType ? (
+                  <Badge variant="secondary">{row.serviceType}</Badge>
+                ) : null}
+                {row.nextServiceDate ? (
+                  <span>
+                    Volgende dienst{" "}
+                    {new Date(row.nextServiceDate).toLocaleDateString("nl-NL")}
+                  </span>
+                ) : null}
+              </div>
+            </article>
+          );
+        }}
+      />
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

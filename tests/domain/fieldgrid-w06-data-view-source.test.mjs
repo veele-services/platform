@@ -11,6 +11,13 @@ const dataView = fs.readFileSync(
   ),
   "utf8",
 );
+const objectsView = fs.readFileSync(
+  path.join(
+    root,
+    "artifacts/backoffice/src/components/objects/ObjectsView.tsx",
+  ),
+  "utf8",
+);
 
 test("FieldgridDataView composes canonical table and Radix controls", () => {
   for (const requiredImport of [
@@ -36,4 +43,15 @@ test("FieldgridDataView exposes semantic sort, selection and state contracts", (
   assert.match(dataView, /mobile-skeleton-/);
   assert.match(dataView, /Resultaatpagina’s/);
   assert.match(dataView, /Deze voorkeuren blijven alleen in deze browser bewaard/);
+});
+
+test("objects is the server-filtered DataView pilot without duplicate table UI", () => {
+  assert.match(objectsView, /<FieldgridDataView/);
+  assert.match(objectsView, /preferenceKey="fieldgrid:objects:data-view"/);
+  assert.match(objectsView, /storageKey: "fieldgrid:objects:saved-views"/);
+  assert.match(objectsView, /onApply=\{applyDraftFilters\}/);
+  assert.match(objectsView, /setDraftServiceType\(event\.target\.value\)/);
+  assert.match(objectsView, /setDraftRegion\(event\.target\.value\)/);
+  assert.doesNotMatch(objectsView, /<table|<thead|<tbody|<th(?:\s|>)/);
+  assert.doesNotMatch(objectsView, /style=\{/);
 });
