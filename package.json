@@ -62,6 +62,7 @@
     "fieldgrid:uiux-object-semantics:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w02-object-kpi-semantics.test.ts && node --test tests/domain/fieldgrid-w02-object-kpi-source.test.mjs",
     "fieldgrid:uiux-detail-permissions:check": "node --test tests/domain/fieldgrid-w02-detail-permissions-source.test.mjs",
     "fieldgrid:uiux-navigation:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w05-route-registry.test.ts && node --test tests/domain/fieldgrid-w05-navigation-source.test.mjs",
+    "fieldgrid:uiux-data-view:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w06-data-view.test.ts && node --test tests/domain/fieldgrid-w06-data-view-source.test.mjs",
     "fieldgrid:android-play:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-android-native-navigation.test.ts && node --test tests/domain/fieldgrid-android-play-source.test.mjs",
     "fieldgrid:android-runtime:preflight": "node scripts/preflight-android-personnel-runtime.mjs --runtime-only",
     "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
