@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, Wrench } from "lucide-react";
@@ -95,7 +96,9 @@ export function InventoryIssueStatusPanel({
         performedAt: formString(formData, "performedAt"),
         notes: formString(formData, "notes"),
       });
-      setMessage(result.success ? "Onderhoud/keuring opgeslagen." : result.message);
+      setMessage(
+        result.success ? "Onderhoud/keuring opgeslagen." : result.message,
+      );
       if (result.success) router.refresh();
     });
   }
@@ -107,45 +110,113 @@ export function InventoryIssueStatusPanel({
           title="Ticketacties"
           description="Werk de melding bij, plan herstel of leg onderhoud/keuring vast."
         >
-          {message ? <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground">{message}</div> : null}
+          {message ? (
+            <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground">
+              {message}
+            </div>
+          ) : null}
 
           {canResolve ? (
-            <form onSubmit={handleStatus} className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <form
+              onSubmit={handleStatus}
+              className="rounded-lg border border-border bg-card p-4 shadow-card"
+            >
               <div className="flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4 text-teal-700" />
-                <h2 className="text-sm font-semibold text-foreground">Status opvolgen</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Status opvolgen
+                </h2>
               </div>
               <div className="mt-4 flex flex-col gap-4">
-                <select name="status" defaultValue={issue.status} className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  {ISSUE_STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-                <textarea name="resolutionNotes" defaultValue={issue.resolutionNotes ?? ""} rows={4} placeholder="Afrondingsnotitie of vervolgactie" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <Button type="submit" disabled={pending}>Status opslaan</Button>
+                <SelectAdapter
+                  name="status"
+                  defaultValue={issue.status}
+                  className="h-10 rounded-md border px-3 text-sm"
+                  style={{ borderColor: "#CBD5E1" }}
+                >
+                  {ISSUE_STATUS_OPTIONS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </SelectAdapter>
+                <textarea
+                  name="resolutionNotes"
+                  defaultValue={issue.resolutionNotes ?? ""}
+                  rows={4}
+                  placeholder="Afrondingsnotitie of vervolgactie"
+                  className="rounded-md border px-3 py-2 text-sm"
+                  style={{ borderColor: "#CBD5E1" }}
+                />
+                <Button type="submit" disabled={pending}>
+                  Status opslaan
+                </Button>
               </div>
             </form>
           ) : null}
 
           {canManageMaintenance ? (
-            <form onSubmit={handleMaintenance} className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <form
+              onSubmit={handleMaintenance}
+              className="rounded-lg border border-border bg-card p-4 shadow-card"
+            >
               <div className="flex items-center gap-2">
                 <Wrench className="h-4 w-4 text-teal-700" />
-                <h2 className="text-sm font-semibold text-foreground">Onderhoud / keuring</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Onderhoud / keuring
+                </h2>
               </div>
               <div className="mt-4 flex flex-col gap-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <select name="eventType" defaultValue="repair" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                    {MAINTENANCE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                  <select name="maintenanceStatus" defaultValue="scheduled" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                    {MAINTENANCE_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
+                  <SelectAdapter
+                    name="eventType"
+                    defaultValue="repair"
+                    className="h-10 rounded-md border px-3 text-sm"
+                    style={{ borderColor: "#CBD5E1" }}
+                  >
+                    {MAINTENANCE_TYPES.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </SelectAdapter>
+                  <SelectAdapter
+                    name="maintenanceStatus"
+                    defaultValue="scheduled"
+                    className="h-10 rounded-md border px-3 text-sm"
+                    style={{ borderColor: "#CBD5E1" }}
+                  >
+                    {MAINTENANCE_STATUSES.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </SelectAdapter>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <input name="dueDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                  <input name="performedAt" type="datetime-local" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+                  <input
+                    name="dueDate"
+                    type="date"
+                    className="h-10 rounded-md border px-3 text-sm"
+                    style={{ borderColor: "#CBD5E1" }}
+                  />
+                  <input
+                    name="performedAt"
+                    type="datetime-local"
+                    className="h-10 rounded-md border px-3 text-sm"
+                    style={{ borderColor: "#CBD5E1" }}
+                  />
                 </div>
-                <textarea name="notes" rows={3} placeholder="Notities, bewijsstukreferentie of leverancier" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <Button type="submit" disabled={pending}>Onderhoud opslaan</Button>
+                <textarea
+                  name="notes"
+                  rows={3}
+                  placeholder="Notities, bewijsstukreferentie of leverancier"
+                  className="rounded-md border px-3 py-2 text-sm"
+                  style={{ borderColor: "#CBD5E1" }}
+                />
+                <Button type="submit" disabled={pending}>
+                  Onderhoud opslaan
+                </Button>
               </div>
             </form>
           ) : null}
@@ -153,10 +224,17 @@ export function InventoryIssueStatusPanel({
       }
     >
       <div className="flex flex-col gap-6">
-        <TenantWorkbenchPanel id="review" title="Reviewdossier" description="Meldingcontext, omschrijving en afrondingsnotitie.">
+        <TenantWorkbenchPanel
+          id="review"
+          title="Reviewdossier"
+          description="Meldingcontext, omschrijving en afrondingsnotitie."
+        >
           <div className="px-4 py-4">
             <dl className="grid gap-4 text-sm md:grid-cols-2">
-              <Info label="Inventaris" value={`${issue.inventoryCode} - ${issue.inventoryName}`} />
+              <Info
+                label="Inventaris"
+                value={`${issue.inventoryCode} - ${issue.inventoryName}`}
+              />
               <Info label="Status" value={issue.status} />
               <Info label="Prioriteit" value={issue.severity} />
               <Info label="Gemeld door" value={issue.reportedByName ?? "-"} />
@@ -176,12 +254,20 @@ export function InventoryIssueStatusPanel({
           </div>
         </TenantWorkbenchPanel>
 
-        <TenantWorkbenchPanel id="onderhoud" title="Onderhoudshistorie" description="Keuringen, reparaties en onderhoud gekoppeld aan dit ticket.">
+        <TenantWorkbenchPanel
+          id="onderhoud"
+          title="Onderhoudshistorie"
+          description="Keuringen, reparaties en onderhoud gekoppeld aan dit ticket."
+        >
           {issue.maintenanceEvents.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">Nog geen onderhoud of keuringen geregistreerd.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">
+              Nog geen onderhoud of keuringen geregistreerd.
+            </p>
           ) : (
             <div className="divide-y divide-border">
-              {issue.maintenanceEvents.map((event) => <MaintenanceLine key={event.id} event={event} />)}
+              {issue.maintenanceEvents.map((event) => (
+                <MaintenanceLine key={event.id} event={event} />
+              ))}
             </div>
           )}
         </TenantWorkbenchPanel>
@@ -193,7 +279,9 @@ export function InventoryIssueStatusPanel({
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase text-muted-foreground">{label}</dt>
+      <dt className="text-xs font-semibold uppercase text-muted-foreground">
+        {label}
+      </dt>
       <dd className="mt-1 font-medium text-foreground">{value}</dd>
     </div>
   );
@@ -203,13 +291,21 @@ function MaintenanceLine({ event }: { event: InventoryMaintenanceRow }) {
   return (
     <div className="px-4 py-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold text-foreground">{event.eventType} - {event.status}</p>
-        <p className="text-xs text-muted-foreground">{formatDateTime(event.createdAt)}</p>
+        <p className="font-semibold text-foreground">
+          {event.eventType} - {event.status}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {formatDateTime(event.createdAt)}
+        </p>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Vervaldatum: {formatDate(event.dueDate)} | Uitgevoerd: {formatDateTime(event.performedAt)} | Door: {event.performedByName ?? "-"}
+        Vervaldatum: {formatDate(event.dueDate)} | Uitgevoerd:{" "}
+        {formatDateTime(event.performedAt)} | Door:{" "}
+        {event.performedByName ?? "-"}
       </p>
-      {event.notes ? <p className="mt-1 text-xs text-foreground">{event.notes}</p> : null}
+      {event.notes ? (
+        <p className="mt-1 text-xs text-foreground">{event.notes}</p>
+      ) : null}
     </div>
   );
 }
