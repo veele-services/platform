@@ -311,8 +311,7 @@ function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment,
   return APPOINTMENT_PASTELS[hashString(assignment.id) % APPOINTMENT_PASTELS.length]!;
 }
 
-function currentMinuteOfDay(): number {
-  const now = new Date();
+function currentMinuteOfDay(now = new Date()): number {
   return planboardMinuteOfDay(now) ?? now.getHours() * 60 + now.getMinutes();
 }
 
@@ -333,10 +332,20 @@ function minuteBlock(startMin: number | null, endMin: number | null): { left: nu
   };
 }
 
-function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate: string): { left: number; width: number } | null {
+function actualTimeBlock(
+  assignment: PlanningBoardPersonnelAssignment,
+  boardDate: string,
+  liveMinute: number,
+): { left: number; width: number } | null {
   const actualStart = planboardTimestampMinute(assignment.actualStartedAt, boardDate);
   const actualEnd = planboardTimestampMinute(assignment.actualCompletedAt, boardDate);
-  if (actualStart !== null) return minuteBlock(actualStart, actualEnd ?? currentMinuteOfDay());
+  if (actualStart !== null) {
+    const effectiveEnd = parseTimeMin(assignment.effectiveEnd);
+    return minuteBlock(
+      actualStart,
+      actualEnd ?? (assignment.isRunning ? liveMinute : effectiveEnd),
+    );
+  }
 
   const effectiveStart = parseTimeMin(assignment.effectiveStart);
   const effectiveEnd = parseTimeMin(assignment.effectiveEnd);
@@ -370,7 +379,7 @@ function suggestedStartForAssignment(assignment: PlanningBoardAssignment, boardD
 }
 
 function isPlanboardMovableStatus(status: string): boolean {
-  return ["plannable", "scheduled", "seen", "en_route", "in_progress"].includes(status);
+  return ["plannable", "scheduled"].includes(status);
 }
 
 function isLateAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "scheduledStart" | "scheduledEnd" | "status">, boardDate: string): boolean {
@@ -465,27 +474,20 @@ function compactTimeRange(start: string | null, end: string | null): string {
   return start ?? end ?? "";
 }
 
-function formatDateTimeForLabel(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("nl-NL", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function appointmentTimingLabel(assignment: Pick<PlanningBoardPersonnelAssignment, "scheduledStart" | "scheduledEnd" | "actualStartedAt" | "actualCompletedAt">): string {
+function appointmentTimingLabel(assignment: PlanningBoardPersonnelAssignment): string {
+  const shown = `Tijd ${planboardDisplayWindow(assignment).label}`;
   const planned = `Gepland ${formatPlanboardTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}`;
-  const actualStarted = formatDateTimeForLabel(assignment.actualStartedAt);
-  const actualCompleted = formatDateTimeForLabel(assignment.actualCompletedAt);
-  const actual = [
-    actualStarted ? `Werkelijk gestart ${actualStarted}` : null,
-    actualCompleted ? `Werkelijk gereed ${actualCompleted}` : null,
-  ].filter(Boolean);
-  return actual.length > 0 ? `${planned}; ${actual.join("; ")}` : planned;
+  const parts = [shown];
+  if (
+    assignment.effectiveStart !== assignment.scheduledStart ||
+    assignment.effectiveEnd !== assignment.scheduledEnd
+  ) {
+    parts.push(planned);
+  }
+  if (assignment.timeDataQualityWarning) {
+    parts.push(assignment.timeDataQualityWarning);
+  }
+  return parts.join("; ");
 }
 
 function workOrderTimeLabel(assignment: PlanningBoardAssignment): string {
@@ -578,6 +580,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const [isPending, startTransition] = useTransition();
   const [plannerInteracting, setPlannerInteracting] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<(typeof ZOOM_LEVELS)[number]["id"]>("comfort");
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   const hourWidth = ZOOM_LEVELS.find((level) => level.id === zoomLevel)?.hourWidth ?? HOUR_WIDTH_DEFAULT;
   const timelineWidth = 24 * hourWidth;
@@ -636,7 +639,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   );
   const today = todayDateKey();
   const isToday = data.date === today;
-  const currentTimePct = isToday ? minuteToTimelinePct(currentMinuteOfDay()) : null;
+  const liveMinute = currentMinuteOfDay(new Date(clockNow));
+  const currentTimePct = isToday ? minuteToTimelinePct(liveMinute) : null;
   const visibleSlotMarkers = useMemo(() => {
     const start = parseTimeMin(data.planningSettings.workdayStart) ?? 8 * 60;
     const interval = Math.max(15, Math.min(240, data.planningSettings.slotMinutes));
@@ -694,6 +698,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       tone: conflictCount > 0 ? "#F97316" : "#64748B",
     },
   ];
+
+  useEffect(() => {
+    const updateClock = () => setClockNow(Date.now());
+    const delayUntilNextMinute = 60_000 - (Date.now() % 60_000) + 25;
+    let intervalId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
+      updateClock();
+      intervalId = window.setInterval(updateClock, 60_000);
+    }, delayUntilNextMinute);
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== null) window.clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     const scrollEl = boardScrollRef.current;
@@ -1505,7 +1523,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         >
                           <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow" style={{ background: "#00B7B3" }} />
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm" style={{ background: "#00B7B3", color: "#081D3A" }}>
-                            Nu {minutesToTime(currentMinuteOfDay())}
+                            Nu {minutesToTime(liveMinute)}
                           </span>
                         </div>
                       )}
@@ -1709,7 +1727,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               }[staffingState];
                               const late = isLateAppointment(assignment, data.date);
                               const pastel = late ? { bg: "#FFEDD5", border: "#FB923C", text: "#7C2D12", rail: "#F97316" } : pastelForAppointment(assignment);
-                              const actualBlock = actualTimeBlock(assignment, data.date);
+                              const actualBlock = actualTimeBlock(
+                                assignment,
+                                data.date,
+                                liveMinute,
+                              );
                               const block = actualBlock ?? effectiveBlock ?? plannedBlock;
                               const plannedOverlay = !actualBlock && block ? relativeTimeBlock(plannedBlock, block) : null;
                               const actualOverlay = block ? relativeTimeBlock(actualBlock, block) : null;

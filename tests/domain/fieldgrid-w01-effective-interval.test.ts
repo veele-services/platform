@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildAssignmentTimeProjection,
+  effectiveAssignmentIntervalsOverlap,
   resolveAssignmentEffectiveInterval,
 } from "../../lib/db/src/assignment-time-projection.ts";
 import {
@@ -124,6 +125,36 @@ test("required slot count reconciles explicit count and distinct roles", () => {
   assert.equal(resolveRequiredSlots(null, []), 1);
   assert.equal(resolveRequiredSlots(3, ["role-a"]), 3);
   assert.equal(resolveRequiredSlots(1, ["role-a", "role-b", "role-a"]), 2);
+});
+
+test("conflicts compare effective intervals instead of planned windows", () => {
+  const first = resolveAssignmentEffectiveInterval({
+    scheduledDate: "2026-07-21",
+    scheduledStart: "11:00",
+    scheduledEnd: "12:00",
+    actualStartedAt: "2026-07-21T07:22:00.000Z",
+    actualCompletedAt: "2026-07-21T07:44:00.000Z",
+    status: "completed",
+  });
+  const second = resolveAssignmentEffectiveInterval({
+    scheduledDate: "2026-07-21",
+    scheduledStart: "09:30",
+    scheduledEnd: "10:00",
+    actualStartedAt: null,
+    actualCompletedAt: null,
+    status: "scheduled",
+  });
+
+  assert.equal(effectiveAssignmentIntervalsOverlap(first, second), true);
+  assert.equal(
+    effectiveAssignmentIntervalsOverlap(first, {
+      ...second,
+      effectiveDate: "2026-07-22",
+      effectiveStartAt: null,
+      effectiveEndAt: null,
+    }),
+    false,
+  );
 });
 
 test("staffing status requires full planning and never regresses active/final work", () => {

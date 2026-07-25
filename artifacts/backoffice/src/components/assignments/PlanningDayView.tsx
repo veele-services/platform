@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, Plus, CalendarDays, Users, AlertTriangle, X } from "lucide-react";
@@ -65,6 +65,22 @@ function minToTime(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function amsterdamMinuteOfDay(now: Date): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Amsterdam",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+
+function isTimelineMovable(status: TimelineAssignment["status"]): boolean {
+  return status === "plannable" || status === "scheduled";
 }
 
 function timeBlock(start: string | null, end: string | null): { left: number; width: number } | null {
@@ -175,7 +191,22 @@ export function PlanningDayView({
   const [optimisticShifts, setOptimisticShifts] = useState<Map<string, { start: string; end: string }>>(new Map());
   const [conflictWarning,  setConflictWarning]  = useState<string | null>(null);
   const [isPending,        startTransition]     = useTransition();
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const dragRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setClockNow(Date.now());
+    const delayUntilNextMinute = 60_000 - (Date.now() % 60_000) + 25;
+    let intervalId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
+      updateClock();
+      intervalId = window.setInterval(updateClock, 60_000);
+    }, delayUntilNextMinute);
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== null) window.clearInterval(intervalId);
+    };
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const date    = new Date(dateStr + "T00:00:00");
@@ -194,6 +225,7 @@ export function PlanningDayView({
   const weekStr  = getWeekMonday(dateStr);
   const prevDay  = addDaysLocal(dateStr, -1);
   const nextDay  = addDaysLocal(dateStr,  1);
+  const liveMinute = amsterdamMinuteOfDay(new Date(clockNow));
 
   // Apply optimistic shifts to the rows
   const effectiveRows: TimelinePersonnelRow[] = rows.map((row) => ({
@@ -201,7 +233,13 @@ export function PlanningDayView({
     assignments: row.assignments.map((a) => {
       const shift = optimisticShifts.get(a.id);
       if (!shift) return a;
-      return { ...a, scheduledStart: shift.start, scheduledEnd: shift.end };
+      return {
+        ...a,
+        scheduledStart: shift.start,
+        scheduledEnd: shift.end,
+        effectiveStart: shift.start,
+        effectiveEnd: shift.end,
+      };
     }),
   }));
 
@@ -210,7 +248,7 @@ export function PlanningDayView({
   // ── Drag handlers ──────────────────────────────────────────────────────────
 
   function handleDragStart(e: React.DragEvent, a: TimelineAssignment) {
-    if (!canWrite) return;
+    if (!canWrite || !isTimelineMovable(a.status)) return;
     const s = parseTimeMin(a.scheduledStart);
     const end = parseTimeMin(a.scheduledEnd);
     const duration = (s !== null && end !== null) ? Math.max(15, end - s) : 60;
@@ -422,12 +460,12 @@ export function PlanningDayView({
                   <p className="text-xs" style={{ color: "#64748B" }}>{a.customerName}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {(a.scheduledStart || a.scheduledEnd) && (
+                  {(a.effectiveStart || a.effectiveEnd) && (
                     <span className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
                       <Clock className="h-3 w-3" />
-                      {a.scheduledStart ?? ""}
-                      {a.scheduledStart && a.scheduledEnd ? " – " : ""}
-                      {a.scheduledEnd ?? ""}
+                      {a.effectiveStart ?? ""}
+                      {a.effectiveStart && (a.effectiveEnd || a.isRunning) ? " – " : ""}
+                      {a.isRunning ? "nu" : (a.effectiveEnd ?? "")}
                     </span>
                   )}
                   <AssignmentStatusBadge status={a.status} />
@@ -545,10 +583,17 @@ export function PlanningDayView({
 
                       {/* Assignment blocks */}
                       {row.assignments.map((a) => {
-                        const block = timeBlock(a.scheduledStart, a.scheduledEnd);
+                        const displayEnd = a.isRunning
+                          ? minToTime(liveMinute)
+                          : a.effectiveEnd;
+                        const block = timeBlock(a.effectiveStart, displayEnd);
                         const bg    = STATUS_BLOCK_BG[a.status] ?? "#F1F5F9";
                         const text  = STATUS_BLOCK_TEXT[a.status] ?? "#081D3A";
                         const isBeingDragged = draggingId === a.id;
+                        const isMovable = canWrite && isTimelineMovable(a.status);
+                        const timeLabel = `${a.effectiveStart ?? "?"}–${
+                          a.isRunning ? "nu" : (a.effectiveEnd ?? "?")
+                        }`;
 
                         if (!block) {
                           // No time set — show as inline tag (not draggable)
@@ -600,10 +645,10 @@ export function PlanningDayView({
                         const blockEl = (
                           <div
                             key={a.id}
-                            draggable={canWrite}
-                            onDragStart={canWrite ? (e) => handleDragStart(e, a) : undefined}
-                            onDragEnd={canWrite ? handleDragEnd : undefined}
-                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            draggable={isMovable}
+                            onDragStart={isMovable ? (e) => handleDragStart(e, a) : undefined}
+                            onDragEnd={isMovable ? handleDragEnd : undefined}
+                            title={`${a.title} · ${timeLabel} · gepland ${a.scheduledStart ?? "?"}–${a.scheduledEnd ?? "?"} · ${a.customerName}`}
                             className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
                             style={{
                               left:    `${block.left}%`,
@@ -612,7 +657,7 @@ export function PlanningDayView({
                               background:  bg,
                               color:       text,
                               border: "1px solid rgba(0,0,0,0.06)",
-                              cursor: canWrite ? (isBeingDragged ? "grabbing" : "grab") : "default",
+                              cursor: isMovable ? (isBeingDragged ? "grabbing" : "grab") : "default",
                               opacity: isBeingDragged ? 0.35 : 1,
                               transition: "opacity 0.15s",
                               zIndex: isBeingDragged ? 0 : 1,
@@ -624,13 +669,13 @@ export function PlanningDayView({
                         );
 
                         // Wrap with a link-on-click when NOT actively dragging
-                        return canWrite ? (
+                        return isMovable ? (
                           blockEl
                         ) : (
                           <Link
                             key={a.id}
                             href={`/assignments/${a.id}`}
-                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            title={`${a.title} · ${timeLabel} · gepland ${a.scheduledStart ?? "?"}–${a.scheduledEnd ?? "?"} · ${a.customerName}`}
                             className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
                             style={{
                               left:    `${block.left}%`,

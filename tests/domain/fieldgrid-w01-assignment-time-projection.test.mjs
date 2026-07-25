@@ -18,6 +18,14 @@ const backofficeAssignmentAction = readFileSync(
   "artifacts/backoffice/src/app/actions/assignments.ts",
   "utf8",
 );
+const planningBoard = readFileSync(
+  "artifacts/backoffice/src/components/assignments/PlanningBoardView.tsx",
+  "utf8",
+);
+const planningDay = readFileSync(
+  "artifacts/backoffice/src/components/assignments/PlanningDayView.tsx",
+  "utf8",
+);
 const reconciliationMigration = readFileSync(
   "lib/db/migrations/20260716115900_assignment_schedule_reconciliation.sql",
   "utf8",
@@ -48,7 +56,7 @@ test("W01 projection preserves planned values through the canonical effective in
 });
 
 test("W01 planboard and personnel consume the same canonical time projection", () => {
-  assert.match(planningAction, /buildAssignmentTimeProjection/u);
+  assert.match(planningAction, /resolveAssignmentEffectiveInterval/u);
   assert.match(
     planningAction,
     /actualStartedAt:\s*assignmentsTable\.actualStartedAt/u,
@@ -65,11 +73,28 @@ test("W01 planboard and personnel consume the same canonical time projection", (
     planningAction,
     /effectiveStart:\s*timeProjection\.effectiveStart/u,
   );
-  assert.match(personnelAction, /buildAssignmentTimeProjection/u);
+  assert.match(
+    planningAction,
+    /effectiveDate:\s*timeProjection\.effectiveDate/u,
+  );
+  assert.match(planningAction, /isRunning:\s*timeProjection\.isRunning/u);
+  assert.match(personnelAction, /resolveAssignmentEffectiveInterval/u);
   assert.match(
     personnelAction,
     /effectiveStart:\s*timeProjection\.effectiveStart/u,
   );
+  assert.match(
+    personnelAction,
+    /effectiveDate:\s*timeProjection\.effectiveDate/u,
+  );
+  assert.match(
+    backofficeAssignmentAction,
+    /effectiveAssignmentIntervalsOverlap/u,
+  );
+  assert.match(planningBoard, /setInterval\(updateClock,\s*60_000\)/u);
+  assert.match(planningBoard, /assignment\.isRunning/u);
+  assert.match(planningDay, /setInterval\(updateClock,\s*60_000\)/u);
+  assert.match(planningDay, /isTimelineMovable\(a\.status\)/u);
 });
 
 test("W01 lifecycle guards prevent generic edit bypass and preserve first completion", () => {
@@ -93,7 +118,7 @@ test("W01 lifecycle guards prevent generic edit bypass and preserve first comple
   );
   assert.match(
     personnelAction,
-    /expectedVersion: input\.expectedParticipantVersion \?\? current\.participantVersion \?\? 1/u,
+    /expectedVersion:\s+input\.expectedParticipantVersion \?\? current\.participantVersion \?\? 1/u,
   );
   assert.match(
     personnelAction,

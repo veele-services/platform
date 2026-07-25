@@ -23,7 +23,10 @@ import {
   ASSIGNMENT_STATUSES,
   type AssignmentPriority,
   type AssignmentStatus,
-  buildAssignmentTimeProjection,
+  effectiveAssignmentIntervalsOverlap,
+  resolveAssignmentEffectiveInterval,
+  resolveRequiredSlots,
+  type EffectiveAssignmentInterval,
   transitionAssignmentStaffing,
   reconcileAssignmentChecklistsRecoverably,
 } from "@workspace/db";
@@ -198,8 +201,16 @@ export type PlanningBoardAssignment = {
   scheduledEnd: string | null;
   actualStartedAt: string | null;
   actualCompletedAt: string | null;
+  effectiveDate: string | null;
   effectiveStart: string | null;
   effectiveEnd: string | null;
+  effectiveStartAt: string | null;
+  effectiveEndAt: string | null;
+  endMode: EffectiveAssignmentInterval["endMode"];
+  timeSource: EffectiveAssignmentInterval["source"];
+  isRunning: boolean;
+  hasTimeDeviation: boolean;
+  timeDataQualityWarning: string | null;
   customerId: string;
   customerName: string;
   objectId: string | null;
@@ -228,8 +239,16 @@ export type PlanningBoardPersonnelAssignment = {
   scheduledEnd: string | null;
   actualStartedAt: string | null;
   actualCompletedAt: string | null;
+  effectiveDate: string | null;
   effectiveStart: string | null;
   effectiveEnd: string | null;
+  effectiveStartAt: string | null;
+  effectiveEndAt: string | null;
+  endMode: EffectiveAssignmentInterval["endMode"];
+  timeSource: EffectiveAssignmentInterval["source"];
+  isRunning: boolean;
+  hasTimeDeviation: boolean;
+  timeDataQualityWarning: string | null;
   estimatedDurationMinutes: number;
   requiredSlots: number;
   filledSlots: number;
@@ -717,7 +736,11 @@ export async function getPlanningBoardData(
     eq(assignmentsTable.isActive, true),
   ];
   const boardScope = or(
-    eq(assignmentsTable.scheduledDate, date),
+    and(
+      isNull(assignmentsTable.actualStartedAt),
+      eq(assignmentsTable.scheduledDate, date),
+    ),
+    sql<boolean>`(${assignmentsTable.actualStartedAt} at time zone 'Europe/Amsterdam')::date = ${date}::date`,
     inArray(assignmentsTable.status, OPEN_ASSIGNMENT_STATUSES),
   );
   if (boardScope) conditions.push(boardScope);
@@ -1076,11 +1099,27 @@ export async function getPlanningBoardData(
   const baseAssignmentsById = new Map(
     assignmentRows.map((row) => [row.id, row]),
   );
+  const projectionNow = new Date();
+  const effectiveIntervalsByAssignment = new Map(
+    assignmentRows.map((row) => [
+      row.id,
+      resolveAssignmentEffectiveInterval({
+        scheduledDate: row.scheduledDate ?? null,
+        scheduledStart: row.scheduledStart ?? null,
+        scheduledEnd: row.scheduledEnd ?? null,
+        actualStartedAt: row.actualStartedAt ?? null,
+        actualCompletedAt: row.actualCompletedAt ?? null,
+        status: row.status,
+        now: projectionNow,
+      }),
+    ]),
+  );
   const conflictAssignmentIds = new Set<string>();
 
   for (const link of linkRows) {
     const assignment = baseAssignmentsById.get(link.assignmentId);
-    if (!assignment || assignment.scheduledDate !== date) continue;
+    const interval = effectiveIntervalsByAssignment.get(link.assignmentId);
+    if (!assignment || interval?.effectiveDate !== date) continue;
     const status = availabilityMap[link.personnelId];
     if (
       status === "ziek" ||
@@ -1094,7 +1133,8 @@ export async function getPlanningBoardData(
   const assignmentsByPersonnel = new Map<string, typeof assignmentRows>();
   for (const link of linkRows) {
     const assignment = baseAssignmentsById.get(link.assignmentId);
-    if (!assignment || assignment.scheduledDate !== date) continue;
+    const interval = effectiveIntervalsByAssignment.get(link.assignmentId);
+    if (!assignment || interval?.effectiveDate !== date) continue;
     const list = assignmentsByPersonnel.get(link.personnelId) ?? [];
     list.push(assignment);
     assignmentsByPersonnel.set(link.personnelId, list);
@@ -1105,13 +1145,12 @@ export async function getPlanningBoardData(
       for (let j = i + 1; j < list.length; j++) {
         const a = list[i]!;
         const b = list[j]!;
+        const aInterval = effectiveIntervalsByAssignment.get(a.id);
+        const bInterval = effectiveIntervalsByAssignment.get(b.id);
         if (
-          overlaps(
-            a.scheduledStart,
-            a.scheduledEnd,
-            b.scheduledStart,
-            b.scheduledEnd,
-          )
+          aInterval &&
+          bInterval &&
+          effectiveAssignmentIntervalsOverlap(aInterval, bInterval)
         ) {
           conflictAssignmentIds.add(a.id);
           conflictAssignmentIds.add(b.id);
@@ -1135,14 +1174,11 @@ export async function getPlanningBoardData(
             60,
           );
       const assignedPersonnelIds = personnelIdsByAssignment.get(row.id) ?? [];
-      const requiredSlots = Math.max(row.requiredPersonnelCount ?? 1, requiredRoleIds.length, 1);
-
-      const timeProjection = buildAssignmentTimeProjection({
-        scheduledStart: row.scheduledStart ?? null,
-        scheduledEnd: row.scheduledEnd ?? null,
-        actualStartedAt: row.actualStartedAt ?? null,
-        actualCompletedAt: row.actualCompletedAt ?? null,
-      });
+      const requiredSlots = resolveRequiredSlots(
+        row.requiredPersonnelCount,
+        requiredRoleIds,
+      );
+      const timeProjection = effectiveIntervalsByAssignment.get(row.id)!;
 
       return {
         id: row.id,
@@ -1155,8 +1191,16 @@ export async function getPlanningBoardData(
         scheduledEnd: timeProjection.plannedEnd,
         actualStartedAt: row.actualStartedAt?.toISOString() ?? null,
         actualCompletedAt: row.actualCompletedAt?.toISOString() ?? null,
+        effectiveDate: timeProjection.effectiveDate,
         effectiveStart: timeProjection.effectiveStart,
         effectiveEnd: timeProjection.effectiveEnd,
+        effectiveStartAt: timeProjection.effectiveStartAt,
+        effectiveEndAt: timeProjection.effectiveEndAt,
+        endMode: timeProjection.endMode,
+        timeSource: timeProjection.source,
+        isRunning: timeProjection.isRunning,
+        hasTimeDeviation: timeProjection.hasDeviation,
+        timeDataQualityWarning: timeProjection.dataQualityWarning,
         customerId: row.customerId,
         customerName: row.customerName ?? "",
         objectId: row.objectId ?? null,
@@ -1195,7 +1239,7 @@ export async function getPlanningBoardData(
 
   for (const link of linkRows) {
     const assignment = assignmentById.get(link.assignmentId);
-    if (!assignment || assignment.scheduledDate !== date) continue;
+    if (!assignment || assignment.effectiveDate !== date) continue;
     const list = scheduledBlocksByPersonnel.get(link.personnelId) ?? [];
     list.push({
       id: assignment.id,
@@ -1210,8 +1254,16 @@ export async function getPlanningBoardData(
       scheduledEnd: assignment.scheduledEnd,
       actualStartedAt: assignment.actualStartedAt,
       actualCompletedAt: assignment.actualCompletedAt,
+      effectiveDate: assignment.effectiveDate,
       effectiveStart: assignment.effectiveStart,
       effectiveEnd: assignment.effectiveEnd,
+      effectiveStartAt: assignment.effectiveStartAt,
+      effectiveEndAt: assignment.effectiveEndAt,
+      endMode: assignment.endMode,
+      timeSource: assignment.timeSource,
+      isRunning: assignment.isRunning,
+      hasTimeDeviation: assignment.hasTimeDeviation,
+      timeDataQualityWarning: assignment.timeDataQualityWarning,
       estimatedDurationMinutes:
         assignment.requirements.estimatedDurationMinutes,
       requiredSlots: assignment.requiredSlots,
@@ -1309,7 +1361,7 @@ export async function getPlanningBoardData(
   });
 
   const scheduledAssignments = boardAssignments.filter(
-    (assignment) => assignment.scheduledDate === date,
+    (assignment) => assignment.effectiveDate === date,
   );
 
   const matchesByAssignmentId: Record<string, PlanningBoardMatch[]> = {};
@@ -2601,10 +2653,13 @@ export async function scheduleAssignmentOnBoard(
         title: assignmentsTable.title,
         status: assignmentsTable.status,
         priority: assignmentsTable.priority,
+        scheduledDate: assignmentsTable.scheduledDate,
         customerName: customersTable.name,
         objectName: objectsTable.name,
         scheduledStart: assignmentsTable.scheduledStart,
         scheduledEnd: assignmentsTable.scheduledEnd,
+        actualStartedAt: assignmentsTable.actualStartedAt,
+        actualCompletedAt: assignmentsTable.actualCompletedAt,
       })
       .from(assignmentPersonnelTable)
       .innerJoin(
@@ -2632,7 +2687,13 @@ export async function scheduleAssignmentOnBoard(
         and(
           eq(assignmentPersonnelTable.personnelId, personnelId),
           eq(assignmentPersonnelTable.status, "assigned"),
-          eq(assignmentsTable.scheduledDate, date),
+          or(
+            and(
+              isNull(assignmentsTable.actualStartedAt),
+              eq(assignmentsTable.scheduledDate, date),
+            ),
+            sql<boolean>`(${assignmentsTable.actualStartedAt} at time zone 'Europe/Amsterdam')::date = ${date}::date`,
+          ),
           ne(assignmentsTable.id, assignmentId),
         ),
       ),
@@ -2657,13 +2718,30 @@ export async function scheduleAssignmentOnBoard(
     ? timeToMinutes(requestedEnd) - timeToMinutes(start)
     : estimatedDurationMinutes;
   const duration = Math.max(15, requestedDuration);
+  const projectionNow = new Date();
+  const existingIntervals = existingRows.map((row) => ({
+    row,
+    interval: resolveAssignmentEffectiveInterval({
+      scheduledDate: row.scheduledDate ?? null,
+      scheduledStart: row.scheduledStart ?? null,
+      scheduledEnd: row.scheduledEnd ?? null,
+      actualStartedAt: row.actualStartedAt ?? null,
+      actualCompletedAt: row.actualCompletedAt ?? null,
+      status: row.status,
+      now: projectionNow,
+    }),
+  }));
   start = nextNonOverlappingStart({
     preferredStart: start,
     durationMinutes: duration,
     slotMinutes: PLANNING_SNAP_MINUTES,
     workdayStart: planningWorkdayStart,
     movingAssignmentId: assignmentId,
-    existingAssignments: existingRows,
+    existingAssignments: existingIntervals.map(({ row, interval }) => ({
+      id: row.id,
+      scheduledStart: interval.effectiveStart,
+      scheduledEnd: interval.effectiveEnd,
+    })),
   });
   const end = addMinutes(start, duration);
   if (!isTimeKey(end)) {
@@ -2686,6 +2764,15 @@ export async function scheduleAssignmentOnBoard(
     assignment.customerSectorId ??
     taskSectorIds[0] ??
     null;
+  const syntheticInterval = resolveAssignmentEffectiveInterval({
+    scheduledDate: date,
+    scheduledStart: start,
+    scheduledEnd: end,
+    actualStartedAt: null,
+    actualCompletedAt: null,
+    status: assignment.status,
+    now: projectionNow,
+  });
   const syntheticAssignment: PlanningBoardAssignment = {
     id: assignment.id,
     code: assignment.code,
@@ -2697,8 +2784,16 @@ export async function scheduleAssignmentOnBoard(
     scheduledEnd: end,
     actualStartedAt: null,
     actualCompletedAt: null,
-    effectiveStart: start,
-    effectiveEnd: end,
+    effectiveDate: syntheticInterval.effectiveDate,
+    effectiveStart: syntheticInterval.effectiveStart,
+    effectiveEnd: syntheticInterval.effectiveEnd,
+    effectiveStartAt: syntheticInterval.effectiveStartAt,
+    effectiveEndAt: syntheticInterval.effectiveEndAt,
+    endMode: syntheticInterval.endMode,
+    timeSource: syntheticInterval.source,
+    isRunning: syntheticInterval.isRunning,
+    hasTimeDeviation: syntheticInterval.hasDeviation,
+    timeDataQualityWarning: syntheticInterval.dataQualityWarning,
     customerId: assignment.customerId,
     customerName: assignment.customerName ?? "",
     objectId: assignment.objectId ?? null,
@@ -2710,7 +2805,9 @@ export async function scheduleAssignmentOnBoard(
     assignedPersonnelIds: assignedRows.map((row) => row.personnelId),
     requiredSlots,
     filledSlots: assignedRows.length,
-    hasConflict: existingRows.length > 0,
+    hasConflict: existingIntervals.some(({ interval }) =>
+      effectiveAssignmentIntervalsOverlap(syntheticInterval, interval),
+    ),
     requirements: {
       requiredRoleIds,
       requiredRoleNames,
@@ -2741,7 +2838,7 @@ export async function scheduleAssignmentOnBoard(
     availabilityStatus: (availabilityMap[personnelId] ??
       "niet_ingesteld") as AvailabilityStatus,
     availabilityWindow: availabilityDayEntry ?? availabilityWindow ?? null,
-    personnelAssignments: existingRows.map((row) => ({
+    personnelAssignments: existingIntervals.map(({ row, interval }) => ({
       id: row.id,
       code: row.code,
       title: row.title,
@@ -2752,13 +2849,21 @@ export async function scheduleAssignmentOnBoard(
       sectorName: null,
       scheduledStart: row.scheduledStart ?? null,
       scheduledEnd: row.scheduledEnd ?? null,
-      actualStartedAt: null,
-      actualCompletedAt: null,
-      effectiveStart: row.scheduledStart ?? null,
-      effectiveEnd: row.scheduledEnd ?? null,
+      actualStartedAt: row.actualStartedAt?.toISOString() ?? null,
+      actualCompletedAt: row.actualCompletedAt?.toISOString() ?? null,
+      effectiveDate: interval.effectiveDate,
+      effectiveStart: interval.effectiveStart,
+      effectiveEnd: interval.effectiveEnd,
+      effectiveStartAt: interval.effectiveStartAt,
+      effectiveEndAt: interval.effectiveEndAt,
+      endMode: interval.endMode,
+      timeSource: interval.source,
+      isRunning: interval.isRunning,
+      hasTimeDeviation: interval.hasDeviation,
+      timeDataQualityWarning: interval.dataQualityWarning,
       estimatedDurationMinutes: durationMinutes(
-        row.scheduledStart ?? null,
-        row.scheduledEnd ?? null,
+        interval.effectiveStart,
+        interval.effectiveEnd,
         60,
       ),
       requiredSlots: syntheticAssignment.requiredSlots,

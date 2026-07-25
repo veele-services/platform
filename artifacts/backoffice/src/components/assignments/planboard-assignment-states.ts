@@ -5,6 +5,8 @@ export type PlanboardTimeWindowInput = {
   actualCompletedAt?: string | null;
   effectiveStart?: string | null;
   effectiveEnd?: string | null;
+  endMode?: "planned" | "actual" | "now" | "unknown";
+  isRunning?: boolean;
 };
 
 export type PlanboardStaffingInput = {
@@ -143,11 +145,16 @@ export function planboardDisplayWindow(input: PlanboardTimeWindowInput): Planboa
   if (input.actualStartedAt || input.actualCompletedAt) {
     const actualStart = formatPlanboardActualTime(input.actualStartedAt);
     const actualEnd = formatPlanboardActualTime(input.actualCompletedAt);
+    const displayEnd =
+      actualEnd ??
+      (input.endMode === "now" || input.isRunning
+        ? "nu"
+        : (input.effectiveEnd ?? null));
     return {
       kind: "actual",
       start: actualStart,
-      end: actualEnd,
-      label: formatPlanboardTimeRange(actualStart, actualEnd),
+      end: displayEnd,
+      label: formatPlanboardTimeRange(actualStart, displayEnd),
     };
   }
 

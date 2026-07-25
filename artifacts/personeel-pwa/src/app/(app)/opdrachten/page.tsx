@@ -110,6 +110,7 @@ function getPlanningStatus(assignment: MyAssignment): PlanningStatus {
 
 function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boolean {
   if (selectedDateKey !== todayKey()) return false;
+  if (assignment.isRunning) return true;
   if (!assignment.effectiveStart || !assignment.effectiveEnd) return false;
 
   const now = new Intl.DateTimeFormat("nl-NL", {
@@ -159,7 +160,10 @@ function PlanningCard({
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="whitespace-nowrap text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
-            {formatTime(assignment.effectiveStart, assignment.effectiveEnd)}
+            {formatTime(
+              assignment.effectiveStart,
+              assignment.isRunning ? "nu" : assignment.effectiveEnd,
+            )}
           </p>
           <p className="mt-1.5 truncate font-mono text-[12px] font-black leading-tight" style={{ color: "var(--color-secondary)" }}>
             {assignment.code || "Werkbon"}
@@ -211,10 +215,16 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
   const planningDays = getPlanningDays(selectedDateKey);
   const assignments = await getMyAssignments();
   const selectedAssignments = assignments
-    .filter((assignment) => assignment.scheduledDate === selectedDateKey)
+    .filter(
+      (assignment) =>
+        (assignment.effectiveDate ?? assignment.scheduledDate) ===
+        selectedDateKey,
+    )
     .sort((a, b) => timeValue(a.effectiveStart).localeCompare(timeValue(b.effectiveStart)));
   const unscheduledAssignments = assignments
-    .filter((assignment) => !assignment.scheduledDate)
+    .filter(
+      (assignment) => !assignment.effectiveDate && !assignment.scheduledDate,
+    )
     .sort((a, b) => a.code.localeCompare(b.code));
   const selectedListClassName = "grid gap-3 md:grid-cols-2 xl:grid-cols-3";
 

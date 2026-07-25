@@ -22,6 +22,6 @@ test("interest selection uses canonical locked staffing and capacity checks", ()
 
 test("planboard data includes canonical assigned personnel ids from the planning action", () => {
   assert.match(planningAction, /const assignedPersonnelIds = personnelIdsByAssignment\.get\(row\.id\) \?\? \[\]/u);
-  assert.match(planningAction, /buildAssignmentTimeProjection/u);
+  assert.match(planningAction, /resolveAssignmentEffectiveInterval/u);
   assert.match(planningAction, /actualStartedAt:\s*assignmentsTable\.actualStartedAt/u);
 });

@@ -29,6 +29,9 @@ import {
   cancelAssignmentStaffing,
   finalizeAssignmentChecklists,
   reconcileAssignmentChecklistsRecoverably,
+  effectiveAssignmentIntervalsOverlap,
+  resolveAssignmentEffectiveInterval,
+  type EffectiveAssignmentInterval,
   type AssignmentStatus,
   type AssignmentPriority,
   type SmartPlanningInterestResponseStatus,
@@ -232,6 +235,12 @@ export type TimelineAssignment = {
   status: AssignmentStatus;
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  endMode: EffectiveAssignmentInterval["endMode"];
+  isRunning: boolean;
+  hasTimeDeviation: boolean;
+  timeDataQualityWarning: string | null;
   customerName: string;
   hasConflict: boolean;
 };
@@ -931,8 +940,11 @@ export async function getDayTimelineData(dateStr: string): Promise<{
       id: assignmentsTable.id,
       title: assignmentsTable.title,
       status: assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
       customerName: customersTable.name,
     })
     .from(assignmentsTable)
@@ -946,7 +958,13 @@ export async function getDayTimelineData(dateStr: string): Promise<{
     .where(
       and(
         eq(assignmentsTable.tenantId, tenantId),
-        eq(assignmentsTable.scheduledDate, dateStr),
+        or(
+          and(
+            isNull(assignmentsTable.actualStartedAt),
+            eq(assignmentsTable.scheduledDate, dateStr),
+          ),
+          sql<boolean>`(${assignmentsTable.actualStartedAt} at time zone 'Europe/Amsterdam')::date = ${dateStr}::date`,
+        ),
       ),
     )
     .orderBy(asc(assignmentsTable.scheduledStart));
@@ -954,6 +972,21 @@ export async function getDayTimelineData(dateStr: string): Promise<{
   if (asgnRows.length === 0) return { rows: [], unassigned: [] };
 
   const assignmentIds = asgnRows.map((a) => a.id);
+  const projectionNow = new Date();
+  const effectiveIntervalsByAssignment = new Map(
+    asgnRows.map((assignment) => [
+      assignment.id,
+      resolveAssignmentEffectiveInterval({
+        scheduledDate: assignment.scheduledDate ?? null,
+        scheduledStart: assignment.scheduledStart ?? null,
+        scheduledEnd: assignment.scheduledEnd ?? null,
+        actualStartedAt: assignment.actualStartedAt ?? null,
+        actualCompletedAt: assignment.actualCompletedAt ?? null,
+        status: assignment.status,
+        now: projectionNow,
+      }),
+    ]),
+  );
 
   // Personnel assignments for these assignments — only confirmed (assigned) links
   const pRows = await db
@@ -1029,17 +1062,12 @@ export async function getDayTimelineData(dateStr: string): Promise<{
       for (let j = i + 1; j < dayList.length; j++) {
         const a = dayList[i]!;
         const b = dayList[j]!;
+        const aInterval = effectiveIntervalsByAssignment.get(a.id);
+        const bInterval = effectiveIntervalsByAssignment.get(b.id);
         if (
-          !a.scheduledStart ||
-          !a.scheduledEnd ||
-          !b.scheduledStart ||
-          !b.scheduledEnd
-        ) {
-          conflictAssignmentIds.add(a.id);
-          conflictAssignmentIds.add(b.id);
-        } else if (
-          a.scheduledStart < b.scheduledEnd &&
-          a.scheduledEnd > b.scheduledStart
+          aInterval &&
+          bInterval &&
+          effectiveAssignmentIntervalsOverlap(aInterval, bInterval)
         ) {
           conflictAssignmentIds.add(a.id);
           conflictAssignmentIds.add(b.id);
@@ -1051,18 +1079,27 @@ export async function getDayTimelineData(dateStr: string): Promise<{
   // ── Build result maps ────────────────────────────────────────────────────
 
   const asgnMap = new Map(
-    asgnRows.map((a) => [
-      a.id,
-      {
-        id: a.id,
-        title: a.title,
-        status: a.status as AssignmentStatus,
-        scheduledStart: a.scheduledStart ?? null,
-        scheduledEnd: a.scheduledEnd ?? null,
-        customerName: a.customerName ?? "",
-        hasConflict: conflictAssignmentIds.has(a.id),
-      } satisfies TimelineAssignment,
-    ]),
+    asgnRows.map((a) => {
+      const interval = effectiveIntervalsByAssignment.get(a.id)!;
+      return [
+        a.id,
+        {
+          id: a.id,
+          title: a.title,
+          status: a.status as AssignmentStatus,
+          scheduledStart: a.scheduledStart ?? null,
+          scheduledEnd: a.scheduledEnd ?? null,
+          effectiveStart: interval.effectiveStart,
+          effectiveEnd: interval.effectiveEnd,
+          endMode: interval.endMode,
+          isRunning: interval.isRunning,
+          hasTimeDeviation: interval.hasDeviation,
+          timeDataQualityWarning: interval.dataQualityWarning,
+          customerName: a.customerName ?? "",
+          hasConflict: conflictAssignmentIds.has(a.id),
+        } satisfies TimelineAssignment,
+      ] as const;
+    }),
   );
 
   const rowMap = new Map<string, TimelinePersonnelRow>();

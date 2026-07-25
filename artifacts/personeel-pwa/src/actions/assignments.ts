@@ -13,7 +13,7 @@ import {
   customersTable,
   db,
   objectsTable,
-  buildAssignmentTimeProjection,
+  resolveAssignmentEffectiveInterval,
   executeAssignmentParticipantAction,
   beginOfflineOperation,
   completeOfflineOperation,
@@ -49,8 +49,14 @@ export type MyAssignment = {
   scheduledEnd:     string | null;
   actualStart:      string | null;
   actualEnd:        string | null;
+  effectiveDate:    string | null;
   effectiveStart:   string | null;
   effectiveEnd:     string | null;
+  endMode:          "planned" | "actual" | "now" | "unknown";
+  timeSource:       "planned" | "partly_actual" | "actual";
+  isRunning:        boolean;
+  hasTimeDeviation: boolean;
+  timeDataQualityWarning: string | null;
   seenAt:           string | null;
   enRouteAt:        string | null;
   actualStartedAt:  string | null;
@@ -211,11 +217,13 @@ function todayKey(): string {
 }
 
 function mapAssignmentRow(row: AssignmentRow): MyAssignment {
-  const timeProjection = buildAssignmentTimeProjection({
+  const timeProjection = resolveAssignmentEffectiveInterval({
+    scheduledDate: row.scheduledDate ?? null,
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd: row.scheduledEnd ?? null,
     actualStartedAt: row.actualStartedAt,
     actualCompletedAt: row.actualCompletedAt,
+    status: row.status,
   });
 
   return {
@@ -227,8 +235,14 @@ function mapAssignmentRow(row: AssignmentRow): MyAssignment {
     scheduledEnd:     timeProjection.plannedEnd,
     actualStart:      timeProjection.actualStart,
     actualEnd:        timeProjection.actualEnd,
+    effectiveDate:    timeProjection.effectiveDate,
     effectiveStart:   timeProjection.effectiveStart,
     effectiveEnd:     timeProjection.effectiveEnd,
+    endMode:          timeProjection.endMode,
+    timeSource:       timeProjection.source,
+    isRunning:        timeProjection.isRunning,
+    hasTimeDeviation: timeProjection.hasDeviation,
+    timeDataQualityWarning: timeProjection.dataQualityWarning,
     seenAt:           toIsoString(row.seenAt),
     enRouteAt:        toIsoString(row.enRouteAt),
     actualStartedAt:  toIsoString(row.actualStartedAt),
@@ -254,16 +268,18 @@ function mapAssignmentRow(row: AssignmentRow): MyAssignment {
 
 function sortAssignments(a: MyAssignment, b: MyAssignment): number {
   const today = todayKey();
-  const aFuture = (a.scheduledDate ?? "") >= today;
-  const bFuture = (b.scheduledDate ?? "") >= today;
+  const aDate = a.effectiveDate ?? a.scheduledDate ?? "";
+  const bDate = b.effectiveDate ?? b.scheduledDate ?? "";
+  const aFuture = aDate >= today;
+  const bFuture = bDate >= today;
   if (aFuture && !bFuture) return -1;
   if (!aFuture && bFuture) return 1;
   if (aFuture && bFuture) {
-    const byDate = (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
+    const byDate = aDate.localeCompare(bDate);
     if (byDate !== 0) return byDate;
     return (a.effectiveStart ?? a.scheduledStart ?? "99:99").localeCompare(b.effectiveStart ?? b.scheduledStart ?? "99:99");
   }
-  return (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? "");
+  return bDate.localeCompare(aDate);
 }
 
 export async function getMyAssignments(): Promise<MyAssignment[]> {

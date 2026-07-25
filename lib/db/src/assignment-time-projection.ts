@@ -258,6 +258,56 @@ export function buildAssignmentTimeProjection(
   };
 }
 
+export function effectiveAssignmentIntervalsOverlap(
+  left: Pick<
+    EffectiveAssignmentInterval,
+    | "effectiveStartAt"
+    | "effectiveEndAt"
+    | "effectiveDate"
+    | "effectiveStart"
+    | "effectiveEnd"
+  >,
+  right: Pick<
+    EffectiveAssignmentInterval,
+    | "effectiveStartAt"
+    | "effectiveEndAt"
+    | "effectiveDate"
+    | "effectiveStart"
+    | "effectiveEnd"
+  >,
+): boolean {
+  if (
+    left.effectiveStartAt &&
+    left.effectiveEndAt &&
+    right.effectiveStartAt &&
+    right.effectiveEndAt
+  ) {
+    return (
+      left.effectiveStartAt < right.effectiveEndAt &&
+      left.effectiveEndAt > right.effectiveStartAt
+    );
+  }
+  if (
+    left.effectiveDate &&
+    right.effectiveDate &&
+    left.effectiveDate !== right.effectiveDate
+  ) {
+    return false;
+  }
+  if (
+    !left.effectiveStart ||
+    !left.effectiveEnd ||
+    !right.effectiveStart ||
+    !right.effectiveEnd
+  ) {
+    return true;
+  }
+  return (
+    left.effectiveStart < right.effectiveEnd &&
+    left.effectiveEnd > right.effectiveStart
+  );
+}
+
 export function assertGenericAssignmentEditDoesNotTouchLifecycle(
   payload: Record<string, unknown>,
 ): void {
