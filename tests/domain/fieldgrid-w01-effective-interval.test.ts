@@ -157,6 +157,55 @@ test("conflicts compare effective intervals instead of planned windows", () => {
   );
 });
 
+test("completed actual intervals do not retain their obsolete planned conflict", () => {
+  const completed = resolveAssignmentEffectiveInterval({
+    scheduledDate: "2026-07-21",
+    scheduledStart: "13:00",
+    scheduledEnd: "14:00",
+    actualStartedAt: "2026-07-21T07:00:00.000Z",
+    actualCompletedAt: "2026-07-21T08:00:00.000Z",
+    status: "completed",
+  });
+  const candidate = (start: string, end: string, date = "2026-07-21") =>
+    resolveAssignmentEffectiveInterval({
+      scheduledDate: date,
+      scheduledStart: start,
+      scheduledEnd: end,
+      actualStartedAt: null,
+      actualCompletedAt: null,
+      status: "scheduled",
+    });
+
+  assert.equal(
+    effectiveAssignmentIntervalsOverlap(
+      completed,
+      candidate("13:00", "14:00"),
+    ),
+    false,
+  );
+  assert.equal(
+    effectiveAssignmentIntervalsOverlap(
+      completed,
+      candidate("09:30", "10:30"),
+    ),
+    true,
+  );
+  assert.equal(
+    effectiveAssignmentIntervalsOverlap(
+      completed,
+      candidate("10:00", "11:00"),
+    ),
+    false,
+  );
+  assert.equal(
+    effectiveAssignmentIntervalsOverlap(
+      completed,
+      candidate("09:30", "10:30", "2026-07-22"),
+    ),
+    false,
+  );
+});
+
 test("staffing status requires full planning and never regresses active/final work", () => {
   const base = {
     assignedCount: 2,

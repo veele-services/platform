@@ -442,16 +442,6 @@ function durationMinutes(
   return Math.max(15, timeToMinutes(end) - timeToMinutes(start));
 }
 
-function overlaps(
-  aStart: string | null,
-  aEnd: string | null,
-  bStart: string | null,
-  bEnd: string | null,
-): boolean {
-  if (!aStart || !aEnd || !bStart || !bEnd) return true;
-  return aStart < bEnd && aEnd > bStart;
-}
-
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
   return [
     ...new Set(values.filter((value): value is string => Boolean(value))),
@@ -609,13 +599,7 @@ function buildPlanningMatch(params: {
 
   const hasOverlappingAssignment = personnelAssignments.some((other) => {
     if (other.id === assignment.id) return false;
-    if (!assignment.scheduledDate) return false;
-    return overlaps(
-      other.scheduledStart,
-      other.scheduledEnd,
-      assignment.scheduledStart,
-      assignment.scheduledEnd,
-    );
+    return effectiveAssignmentIntervalsOverlap(assignment, other);
   });
   if (hasOverlappingAssignment) {
     reasons.push(

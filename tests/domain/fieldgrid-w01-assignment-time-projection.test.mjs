@@ -91,6 +91,18 @@ test("W01 planboard and personnel consume the same canonical time projection", (
     backofficeAssignmentAction,
     /effectiveAssignmentIntervalsOverlap/u,
   );
+  const planningMatch = planningAction.slice(
+    planningAction.indexOf("function buildPlanningMatch"),
+    planningAction.indexOf("function assignmentStatusLabel"),
+  );
+  assert.match(
+    planningMatch,
+    /effectiveAssignmentIntervalsOverlap\(assignment, other\)/u,
+  );
+  assert.doesNotMatch(
+    planningMatch,
+    /overlaps\(\s*other\.scheduledStart/u,
+  );
   assert.match(planningBoard, /setInterval\(updateClock,\s*60_000\)/u);
   assert.match(planningBoard, /assignment\.isRunning/u);
   assert.match(planningDay, /setInterval\(updateClock,\s*60_000\)/u);
