@@ -8,6 +8,10 @@ import {
   type TenantPlanKey,
 } from "./schema";
 import { getTenantPlanSnapshot } from "./tenant-entitlements";
+import {
+  accessibleBrandTextColor,
+  ensureAccessibleBrandTextColor,
+} from "./brand-color-contrast";
 
 const CUSTOM_BRANDING_PLAN_KEYS = new Set<TenantPlanKey>(["enterprise"]);
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/iu;
@@ -499,6 +503,13 @@ function densityCssValue(density: BrandThemeDensity): string {
 
 export function getTenantBrandingCssVariables(branding: BrandTheme): Record<string, string> {
   const radius = radiusCssValue(branding.borderRadius);
+  const primaryForeground = accessibleBrandTextColor(branding.primaryColor);
+  const accentForeground = accessibleBrandTextColor(branding.accentColor);
+  const sidebarText = ensureAccessibleBrandTextColor(
+    branding.sidebarBackgroundColor,
+    branding.sidebarTextColor,
+  );
+  const sidebarActiveText = accessibleBrandTextColor(branding.sidebarAccentColor);
 
   return {
     "--brand-primary": branding.primaryColor,
@@ -509,20 +520,21 @@ export function getTenantBrandingCssVariables(branding: BrandTheme): Record<stri
     "--brand-text": branding.textColor,
     "--brand-muted": branding.mutedColor,
     "--brand-sidebar-background": branding.sidebarBackgroundColor,
-    "--brand-sidebar-text": branding.sidebarTextColor,
+    "--brand-sidebar-text": sidebarText,
     "--brand-sidebar-accent": branding.sidebarAccentColor,
+    "--brand-sidebar-active-text": sidebarActiveText,
     "--color-background": branding.backgroundColor,
     "--color-foreground": branding.textColor,
     "--color-card": branding.surfaceColor,
     "--color-card-foreground": branding.textColor,
     "--color-primary": branding.primaryColor,
     "--color-primary-light": branding.secondaryColor,
-    "--color-primary-foreground": "#FFFFFF",
+    "--color-primary-foreground": primaryForeground,
     "--color-secondary": branding.mutedColor,
     "--color-secondary-foreground": branding.textColor,
     "--color-accent": branding.accentColor,
     "--color-accent-dark": branding.accentColor,
-    "--color-accent-foreground": "#FFFFFF",
+    "--color-accent-foreground": accentForeground,
     "--color-muted": branding.backgroundColor,
     "--color-muted-foreground": branding.mutedColor,
     "--color-muted-fg": branding.mutedColor,

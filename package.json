@@ -56,6 +56,7 @@
     "fieldgrid:test:unit-domain": "pnpm fieldgrid:test:domain-recursive && pnpm fieldgrid:test:website-runtime-unit",
     "fieldgrid:live-planning-consistency:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w01-effective-interval.test.ts && node --test tests/domain/fieldgrid-w01-assignment-time-projection.test.mjs",
     "fieldgrid:staffing-capacity-invariants:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w02-staffing-capacity.test.ts && node --test tests/domain/fieldgrid-w02-staffing-capacity-source.test.mjs tests/fieldgrid-w03-interest-selection-source.test.mjs",
+    "fieldgrid:uiux-design-system:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w04-design-system.test.ts && node --test tests/domain/fieldgrid-w04-design-system-source.test.mjs",
     "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
     "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration",
     "fieldgrid:test:realtime-projection-migration": "node --test tests/fieldgrid-realtime-projection-migration.test.mjs",

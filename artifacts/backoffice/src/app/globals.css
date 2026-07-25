@@ -63,6 +63,14 @@
   --color-success:         #22C55E;
   --color-warning:         #F59E0B;
   --color-danger:          #EF4444;
+  --color-info:            #2563EB;
+  --color-brand-mark:      #22C55E;
+  --color-planning-match:  #22C55E;
+  --color-planning-warning: #F59E0B;
+  --color-planning-block:  #EF4444;
+  --color-time-planned:    #64748B;
+  --color-time-actual:     #2563EB;
+  --color-time-deviation:  #F97316;
 
   /* ── Status Badge Colors ── */
   --color-status-new:          #3B82F6;
@@ -86,6 +94,22 @@
   --radius-card:   12px;
   --radius-button: 6px;
   --radius-input:  6px;
+  --radius-control: 6px;
+  --radius-panel: 12px;
+  --radius-overlay: 14px;
+
+  /* ── Density, layering and functional motion ── */
+  --control-height-compact: 36px;
+  --control-height-default: 44px;
+  --control-height-comfortable: 48px;
+  --z-dropdown: 40;
+  --z-sticky: 50;
+  --z-overlay: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --motion-fast: 120ms;
+  --motion-default: 180ms;
+  --motion-slow: 220ms;
 
   /* ── Shadows ── */
   --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05);
@@ -111,12 +135,30 @@
     font-weight: 600;
     color: var(--color-foreground, #081D3A);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring, #00B7B3);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer utilities {
   /* ── shadcn button elevation helpers ── */
   .hover-elevate {
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    transition:
+      box-shadow var(--motion-fast) ease,
+      transform var(--motion-fast) ease;
   }
   .hover-elevate:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
@@ -125,6 +167,12 @@
   .active-elevate-2:active {
     box-shadow: none;
     transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hover-elevate:hover {
+      transform: none;
+    }
   }
 
   .font-heading {

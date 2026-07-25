@@ -29,6 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
+import {
+  accessibleBrandTextColor,
+  ensureAccessibleBrandTextColor,
+} from "@workspace/db/brand-color-contrast";
 
 const NAV_ITEMS = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard", permission: "dashboard:read" },
@@ -53,17 +57,6 @@ const NAV_ITEMS = [
   { href: "/releases", icon: FileText, label: "Releases", permission: "releases:view" },
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
-
-function accessibleTextColor(background: string): "#081D3A" | "#FFFFFF" {
-  const match = /^#([0-9a-f]{6})$/iu.exec(background.trim());
-  if (!match) return "#081D3A";
-  const channels = [0, 2, 4].map((offset) => parseInt(match[1]!.slice(offset, offset + 2), 16) / 255);
-  const [red, green, blue] = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
-  const luminance = 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
-  const navyContrast = (luminance + 0.05) / (0.0099 + 0.05);
-  const whiteContrast = 1.05 / (luminance + 0.05);
-  return navyContrast >= whiteContrast ? "#081D3A" : "#FFFFFF";
-}
 
 function isActive(pathname: string, href: string, searchParams: URLSearchParams): boolean {
   if (href.includes("?")) {
@@ -128,9 +121,13 @@ export function Sidebar({
   });
   const whitelabel = Boolean(branding?.customBrandingEnabled);
   const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
-  const sidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
+  const configuredSidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
   const sidebarAccentColor = branding?.sidebarAccentColor ?? "#00B7B3";
-  const sidebarActiveTextColor = accessibleTextColor(sidebarAccentColor);
+  const sidebarTextColor = ensureAccessibleBrandTextColor(
+    sidebarBackgroundColor,
+    configuredSidebarTextColor,
+  );
+  const sidebarActiveTextColor = accessibleBrandTextColor(sidebarAccentColor);
   const displayName = whitelabel ? branding?.displayName?.trim() || "Organisatie" : "Fieldgrid";
   const compactInitials = whitelabel ? initialsFor(displayName) : "FG";
 
