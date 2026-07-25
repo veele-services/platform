@@ -138,7 +138,10 @@ test("Phase 2A migration preserves snapshots, remains previous-release compatibl
 test("Phase 2A surfaces use participant progression, positioned actual overlays, and a real multi-context journey", () => {
   assert.match(participantProgress, /assignment\.participantStatus \?\? assignment\.status/u);
   assert.match(personnelAssignmentActions, /assigned:\s*\["seen", "en_route", "in_progress"\]/u);
-  assert.match(planboard, /const block = actualBlock \?\? effectiveBlock \?\? plannedBlock/u);
+  assert.match(
+    planboard,
+    /const block =\s*actualBlock\s*\?\?\s*effectiveBlock\s*\?\?\s*plannedBlock/u,
+  );
   assert.doesNotMatch(planboard, /unionTimeBlocks/u);
   assert.match(planboard, /relativeTimeBlock\(actualBlock, block\)/u);
   assert.match(browserJourney, /E2E: planning tijdelijk gewijzigd/u);
@@ -150,9 +153,12 @@ test("Phase 2A surfaces use participant progression, positioned actual overlays,
 });
 
 test("Phase 2A planboard free-state badge keeps WCAG AA text contrast", () => {
+  const freeStateStart = planboard.indexOf(
+    "person.scheduledAssignments.length === 0",
+  );
   const freeState = planboard.slice(
-    planboard.indexOf("person.scheduledAssignments.length === 0"),
-    planboard.indexOf("person.scheduledAssignments.map"),
+    freeStateStart,
+    planboard.indexOf("person.scheduledAssignments.map", freeStateStart),
   );
 
   assert.match(freeState, /color: "#475569"/u);

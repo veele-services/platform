@@ -160,7 +160,7 @@ test("planboard cards use persisted actual timestamps and stop at the actual com
   assert.match(planboardStates, /PLANBOARD_TIME_ZONE\s*=\s*"Europe\/Amsterdam"/u);
   assert.match(
     planningBoard,
-    /const block = actualBlock \?\? effectiveBlock \?\? plannedBlock/u,
+    /const block =\s*actualBlock\s*\?\?\s*effectiveBlock\s*\?\?\s*plannedBlock/u,
   );
   assert.doesNotMatch(planningBoard, /unionTimeBlocks/u);
 });

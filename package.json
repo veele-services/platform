@@ -65,6 +65,7 @@
     "fieldgrid:uiux-data-view:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w06-data-view.test.ts && node --test tests/domain/fieldgrid-w06-data-view-source.test.mjs",
     "fieldgrid:uiux-detail-dossiers:check": "node --test tests/domain/fieldgrid-w08-detail-dossiers-source.test.mjs",
     "fieldgrid:uiux-dashboard:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w09-dashboard-experience.test.ts && node --test tests/domain/fieldgrid-w09-dashboard-experience-source.test.mjs",
+    "fieldgrid:uiux-planboard:check": "node --test tests/domain/fieldgrid-w10-planboard-ux-source.test.mjs tests/domain/fieldgrid-w01-assignment-time-projection.test.mjs tests/domain/fieldgrid-signed-work-order-lock-and-planboard-actual-end.test.mjs",
     "fieldgrid:uiux-auth:check": "node --test tests/domain/fieldgrid-w12-auth-source.test.mjs",
     "fieldgrid:uiux-analytics:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w13-ux-analytics.test.ts && node --test tests/domain/fieldgrid-w13-ux-analytics-source.test.mjs",
     "fieldgrid:android-play:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-android-native-navigation.test.ts && node --test tests/domain/fieldgrid-android-play-source.test.mjs",
