@@ -1,21 +1,91 @@
 apply plugin: 'com.android.application'
 
+def signingProperties = new Properties()
+def signingPropertiesPath =
+    System.getenv('FIELDGRID_ANDROID_SIGNING_PROPERTIES') ?:
+    "${System.getProperty('user.home')}/.local/share/fieldgrid-android/signing/android-signing.properties"
+def signingPropertiesFile = file(signingPropertiesPath)
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+def hasSigningProfile = { String prefix ->
+    ['STORE_FILE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD'].every {
+        signingProperties.getProperty("${prefix}_${it}")?.trim()
+    }
+}
+
 android {
     namespace = "nl.veeleservices.personeel"
     compileSdk = rootProject.ext.compileSdkVersion
+    flavorDimensions += "brand"
+
     defaultConfig {
-        applicationId "nl.veeleservices.personeel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [
+            personnelAppHost: "fieldgrid.nl",
+        ]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        if (hasSigningProfile('VEELE')) {
+            veeleRelease {
+                storeFile file(signingProperties.getProperty('VEELE_STORE_FILE'))
+                storePassword signingProperties.getProperty('VEELE_STORE_PASSWORD')
+                keyAlias signingProperties.getProperty('VEELE_KEY_ALIAS')
+                keyPassword signingProperties.getProperty('VEELE_KEY_PASSWORD')
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+        if (hasSigningProfile('FIELDGRID')) {
+            fieldgridRelease {
+                storeFile file(signingProperties.getProperty('FIELDGRID_STORE_FILE'))
+                storePassword signingProperties.getProperty('FIELDGRID_STORE_PASSWORD')
+                keyAlias signingProperties.getProperty('FIELDGRID_KEY_ALIAS')
+                keyPassword signingProperties.getProperty('FIELDGRID_KEY_PASSWORD')
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
+    productFlavors {
+        veele {
+            dimension "brand"
+            applicationId "nl.veeleservices.personeel"
+            resValue "string", "app_name", "Veele Personeel"
+            resValue "string", "title_activity_main", "Veele Personeel"
+            resValue "string", "package_name", "nl.veeleservices.personeel"
+            resValue "string", "custom_url_scheme", "nl.veeleservices.personeel"
+            manifestPlaceholders.personnelAppHost = "veeleservices.fieldgrid.nl"
+            if (hasSigningProfile('VEELE')) {
+                signingConfig signingConfigs.veeleRelease
+            }
+        }
+        fieldgrid {
+            dimension "brand"
+            applicationId "nl.fieldgrid.personeel"
+            resValue "string", "app_name", "Fieldgrid Personeel"
+            resValue "string", "title_activity_main", "Fieldgrid Personeel"
+            resValue "string", "package_name", "nl.fieldgrid.personeel"
+            resValue "string", "custom_url_scheme", "nl.fieldgrid.personeel"
+            manifestPlaceholders.personnelAppHost = "fieldgrid.nl"
+            if (hasSigningProfile('FIELDGRID')) {
+                signingConfig signingConfigs.fieldgridRelease
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false

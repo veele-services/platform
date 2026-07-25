@@ -1,0 +1,29 @@
+{
+  "appId": "nl.veeleservices.personeel",
+  "appName": "Veele Personeel",
+  "webDir": "native/www",
+  "server": {
+    "url": "https://veeleservices.fieldgrid.nl/personeel",
+    "cleartext": false
+  },
+  "android": {
+    "path": "android"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 900,
+      "backgroundColor": "#081D3A",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "backgroundColor": "#081D3A",
+      "style": "LIGHT",
+      "overlaysWebView": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

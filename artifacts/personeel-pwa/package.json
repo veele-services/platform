@@ -10,6 +10,13 @@
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
     "cap:run:android": "cap run android",
+    "android:signing:init": "node ../../scripts/generate-android-upload-keystores.mjs",
+    "android:assemble:veele": "pnpm cap:sync && ./android/gradlew -p android assembleVeeleRelease",
+    "android:bundle:veele": "pnpm cap:sync && ./android/gradlew -p android bundleVeeleRelease",
+    "android:assemble:fieldgrid": "pnpm cap:sync && ./android/gradlew -p android assembleFieldgridRelease",
+    "android:bundle:fieldgrid": "pnpm cap:sync && ./android/gradlew -p android bundleFieldgridRelease",
+    "android:build:play": "pnpm cap:sync && ./android/gradlew -p android assembleVeeleRelease bundleVeeleRelease assembleFieldgridRelease bundleFieldgridRelease",
+    "android:collect:play": "node ../../scripts/collect-android-personnel-artifacts.mjs",
     "start": "next start -H 0.0.0.0 -p $PORT",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
