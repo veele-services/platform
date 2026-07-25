@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -468,7 +469,7 @@ function EditMaterialSheet({
             className="inline-flex items-center gap-2 text-sm"
             style={{ color: "#334155" }}
           >
-            <input
+            <CheckboxAdapter
               name="defaultInvoiceable"
               type="checkbox"
               defaultChecked={material.defaultInvoiceable}

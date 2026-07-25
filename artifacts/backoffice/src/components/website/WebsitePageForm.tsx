@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsitePageDraft,
   WebsitePageType,
@@ -175,7 +176,7 @@ export function WebsitePageForm({
         </div>
         {!editing && allowHomepageCreation && (
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               checked={isHomepage}
               onChange={(event) => setIsHomepage(event.target.checked)}
@@ -364,7 +365,7 @@ export function WebsitePageForm({
           </Field>
         </div>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input
+          <CheckboxAdapter
             type="checkbox"
             name="indexable"
             defaultChecked={page?.seo.indexable ?? true}

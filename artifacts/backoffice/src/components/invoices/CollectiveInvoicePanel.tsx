@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -287,7 +288,7 @@ export function CollectiveInvoicePanel({
                             className="border-b border-border/60"
                           >
                             <td className="px-3 py-2">
-                              <input
+                              <CheckboxAdapter
                                 type="checkbox"
                                 checked={selectedIds.includes(invoice.id)}
                                 onChange={() => toggle(invoice.id)}

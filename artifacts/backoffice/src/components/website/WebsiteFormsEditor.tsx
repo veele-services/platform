@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { WebsiteFormsView } from "@workspace/db";
 import {
   WEBSITE_FORM_FIELD_KEYS,
@@ -389,7 +390,7 @@ export function WebsiteFormsEditor({
                       className="rounded-lg border border-slate-200 p-3"
                     >
                       <label className="flex items-center gap-2 text-sm font-medium">
-                        <input
+                        <CheckboxAdapter
                           type="checkbox"
                           checked={Boolean(field)}
                           onChange={() => toggleField(form.clientId, key)}
@@ -410,7 +411,7 @@ export function WebsiteFormsEditor({
                             }
                           />
                           <label className="flex items-center gap-2 text-xs text-slate-600">
-                            <input
+                            <CheckboxAdapter
                               type="checkbox"
                               checked={field.required}
                               onChange={(event) =>

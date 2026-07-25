@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -729,7 +730,7 @@ function CreateInventorySheet({
             className="inline-flex items-center gap-2 text-sm"
             style={{ color: "#334155" }}
           >
-            <input name="customerVisible" type="checkbox" />
+            <CheckboxAdapter name="customerVisible" type="checkbox" />
             Klantzichtbaar
           </label>
           <Button type="submit" disabled={pending}>

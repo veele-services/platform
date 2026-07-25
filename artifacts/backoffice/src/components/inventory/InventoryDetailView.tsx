@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -625,7 +626,7 @@ function EditInventorySheet({
             className="inline-flex items-center gap-2 text-sm"
             style={{ color: "#334155" }}
           >
-            <input
+            <CheckboxAdapter
               name="customerVisible"
               type="checkbox"
               defaultChecked={item.customerVisible}

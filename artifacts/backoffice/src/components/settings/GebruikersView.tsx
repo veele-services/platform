@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { FormEvent, useState, useTransition } from "react";
 import {
   AlertCircle,
@@ -36,7 +37,10 @@ import {
 import { TenantActionMenu } from "@/components/tenant-ui/tenant-action-menu";
 import { TenantConfirmDialog } from "@/components/tenant-ui/tenant-confirm-dialog";
 
-const STATUS_LABELS: Record<UserRow["status"], { label: string; bg: string; color: string }> = {
+const STATUS_LABELS: Record<
+  UserRow["status"],
+  { label: string; bg: string; color: string }
+> = {
   actief: { label: "Actief", bg: "#D1FAE5", color: "#065F46" },
   uitgenodigd: { label: "Uitgenodigd", bg: "#EFF6FF", color: "#1D4ED8" },
   inactief: { label: "Inactief", bg: "#FEE2E2", color: "#991B1B" },
@@ -67,7 +71,11 @@ interface Props {
   canWrite: boolean;
 }
 
-export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) {
+export function GebruikersView({
+  users: initialUsers,
+  roles,
+  canWrite,
+}: Props) {
   const [users, setUsers] = useState(initialUsers);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -79,7 +87,8 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
 
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
   const [editRoleIds, setEditRoleIds] = useState<string[]>([]);
-  const editingUser = users.find((user) => user.userId === editingRolesFor) ?? null;
+  const editingUser =
+    users.find((user) => user.userId === editingRolesFor) ?? null;
 
   function showFlash(msg: string, isErr: boolean) {
     if (isErr) {
@@ -101,7 +110,9 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
         setEmail("");
         showFlash("Uitnodiging verstuurd.", false);
       } else {
-        setError((result as { message?: string }).message ?? "Uitnodiging mislukt.");
+        setError(
+          (result as { message?: string }).message ?? "Uitnodiging mislukt.",
+        );
       }
     });
   }
@@ -112,13 +123,18 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
       const result = await deactivateUser(userId);
       if (result.success) {
         setUsers((prev) =>
-          prev.map((user) => user.userId === userId ? { ...user, status: "inactief" as const } : user),
+          prev.map((user) =>
+            user.userId === userId
+              ? { ...user, status: "inactief" as const }
+              : user,
+          ),
         );
         showFlash("Gebruiker gedeactiveerd.", false);
       } else {
         setActionError((prev) => ({
           ...prev,
-          [userId]: (result as { message?: string }).message ?? "Deactiveren mislukt.",
+          [userId]:
+            (result as { message?: string }).message ?? "Deactiveren mislukt.",
         }));
       }
     });
@@ -130,7 +146,11 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
       if (result.success) {
         showFlash("Herstelmail verstuurd.", false);
       } else {
-        showFlash((result as { message?: string }).message ?? "Opnieuw versturen mislukt.", true);
+        showFlash(
+          (result as { message?: string }).message ??
+            "Opnieuw versturen mislukt.",
+          true,
+        );
       }
     });
   }
@@ -141,7 +161,11 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
       if (result.success) {
         showFlash("Herstelcode per e-mail verstuurd.", false);
       } else {
-        showFlash((result as { message?: string }).message ?? "Herstelcode versturen mislukt.", true);
+        showFlash(
+          (result as { message?: string }).message ??
+            "Herstelcode versturen mislukt.",
+          true,
+        );
       }
     });
   }
@@ -159,7 +183,9 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
 
   function toggleRoleId(nextRoleId: string) {
     setEditRoleIds((prev) =>
-      prev.includes(nextRoleId) ? prev.filter((id) => id !== nextRoleId) : [...prev, nextRoleId],
+      prev.includes(nextRoleId)
+        ? prev.filter((id) => id !== nextRoleId)
+        : [...prev, nextRoleId],
     );
   }
 
@@ -182,7 +208,8 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
       } else {
         setActionError((prev) => ({
           ...prev,
-          [userId]: (result as { message?: string }).message ?? "Opslaan mislukt.",
+          [userId]:
+            (result as { message?: string }).message ?? "Opslaan mislukt.",
         }));
       }
     });
@@ -215,7 +242,15 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-              {["Naam", "E-mail", "Rollen", "Status", "Toegevoegd", "Laatste login", ""].map((header) => (
+              {[
+                "Naam",
+                "E-mail",
+                "Rollen",
+                "Status",
+                "Toegevoegd",
+                "Laatste login",
+                "",
+              ].map((header) => (
                 <th
                   key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
@@ -237,7 +272,10 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                   style={{ borderBottom: "1px solid #F8FAFC" }}
                   className="hover:bg-slate-50"
                 >
-                  <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
+                  <td
+                    className="px-4 py-3 font-medium"
+                    style={{ color: "#081D3A" }}
+                  >
                     {user.name ?? <span style={{ color: "#94A3B8" }}>-</span>}
                   </td>
                   <td className="px-4 py-3" style={{ color: "#475569" }}>
@@ -250,7 +288,10 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                           <span
                             key={role}
                             className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
-                            style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                            style={{
+                              backgroundColor: "#F1F5F9",
+                              color: "#475569",
+                            }}
                           >
                             {role}
                           </span>
@@ -263,15 +304,24 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                   <td className="px-4 py-3">
                     <span
                       className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: status.bg, color: status.color }}
+                      style={{
+                        backgroundColor: status.bg,
+                        color: status.color,
+                      }}
                     >
                       {status.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
+                  <td
+                    className="px-4 py-3 text-xs"
+                    style={{ color: "#64748B" }}
+                  >
                     {formatDate(user.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
+                  <td
+                    className="px-4 py-3 text-xs"
+                    style={{ color: "#64748B" }}
+                  >
                     {formatDateTime(user.lastSignInAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -284,7 +334,9 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                         onDeactivate={() => handleDeactivate(user.userId)}
                         onResend={() => handleResend(user.userId)}
                         onPasswordReset={() => handlePasswordReset(user.userId)}
-                        onEditRoles={() => startEditRoles(user.userId, user.roleIds)}
+                        onEditRoles={() =>
+                          startEditRoles(user.userId, user.roleIds)
+                        }
                       />
                     )}
                   </td>
@@ -351,10 +403,15 @@ function InviteUserSheet({
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Gebruiker uitnodigen</SheetTitle>
-          <SheetDescription>Kies een rol en verstuur een uitnodiging per e-mail.</SheetDescription>
+          <SheetDescription>
+            Kies een rol en verstuur een uitnodiging per e-mail.
+          </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium"
+            style={{ color: "#374151" }}
+          >
             E-mailadres
             <input
               type="email"
@@ -366,7 +423,10 @@ function InviteUserSheet({
               required
             />
           </label>
-          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium"
+            style={{ color: "#374151" }}
+          >
             Rol
             <select
               value={roleId}
@@ -376,7 +436,9 @@ function InviteUserSheet({
               required
             >
               {roles.map((role) => (
-                <option key={role.id} value={role.id}>{role.name}</option>
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
               ))}
             </select>
           </label>
@@ -419,13 +481,18 @@ function EditRolesSheet({
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Rollen bewerken</SheetTitle>
-          <SheetDescription>Wijzig de actieve rollen voor {displayName}.</SheetDescription>
+          <SheetDescription>
+            Wijzig de actieve rollen voor {displayName}.
+          </SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-4">
           <div className="space-y-3">
             {roles.map((role) => (
-              <label key={role.id} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3">
-                <input
+              <label
+                key={role.id}
+                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3"
+              >
+                <CheckboxAdapter
                   type="checkbox"
                   checked={selectedRoleIds.includes(role.id)}
                   onChange={() => onToggleRole(role.id)}
@@ -433,13 +500,21 @@ function EditRolesSheet({
                   className="mt-0.5 h-4 w-4 rounded border-gray-300"
                 />
                 <span>
-                  <span className="block text-sm font-medium text-foreground">{role.name}</span>
-                  {role.description && <span className="mt-0.5 block text-xs text-muted-foreground">{role.description}</span>}
+                  <span className="block text-sm font-medium text-foreground">
+                    {role.name}
+                  </span>
+                  {role.description && (
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {role.description}
+                    </span>
+                  )}
                 </span>
               </label>
             ))}
           </div>
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {actionError && (
+            <p className="text-sm text-destructive">{actionError}</p>
+          )}
           <Button type="button" onClick={onSubmit} disabled={pending}>
             {pending ? "Opslaan..." : "Rollen opslaan"}
           </Button>
@@ -489,27 +564,31 @@ function UserActionMenu({
             onSelect: () => onPasswordReset(),
           },
           ...(user.status === "uitgenodigd"
-            ? [{
-                id: "resend",
-                label: "Herstelmail versturen",
-                icon: <RotateCcw className="h-3.5 w-3.5" />,
-                disabled: pending,
-                onSelect: () => onResend(),
-              }]
+            ? [
+                {
+                  id: "resend",
+                  label: "Herstelmail versturen",
+                  icon: <RotateCcw className="h-3.5 w-3.5" />,
+                  disabled: pending,
+                  onSelect: () => onResend(),
+                },
+              ]
             : []),
           ...(user.status !== "inactief"
-            ? [{
-                id: "deactivate",
-                label: "Deactiveren",
-                icon: <UserX className="h-3.5 w-3.5" />,
-                destructive: true,
-                separatorBefore: true,
-                disabled: pending,
-                onSelect: (event: Event) => {
-                  event.preventDefault();
-                  setConfirmOpen(true);
+            ? [
+                {
+                  id: "deactivate",
+                  label: "Deactiveren",
+                  icon: <UserX className="h-3.5 w-3.5" />,
+                  destructive: true,
+                  separatorBefore: true,
+                  disabled: pending,
+                  onSelect: (event: Event) => {
+                    event.preventDefault();
+                    setConfirmOpen(true);
+                  },
                 },
-              }]
+              ]
             : []),
         ]}
       />
@@ -522,7 +601,9 @@ function UserActionMenu({
         destructive
         onConfirm={onDeactivate}
       />
-      {actionError && <p className="ml-2 text-xs text-destructive">{actionError}</p>}
+      {actionError && (
+        <p className="ml-2 text-xs text-destructive">{actionError}</p>
+      )}
     </div>
   );
 }
@@ -530,7 +611,13 @@ function UserActionMenu({
 function Flash({ tone, text }: { tone: "success" | "error"; text: string }) {
   const Icon = tone === "success" ? CheckCircle2 : AlertCircle;
   return (
-    <span className={tone === "success" ? "inline-flex items-center gap-1.5 text-sm text-emerald-700" : "inline-flex items-center gap-1.5 text-sm text-destructive"}>
+    <span
+      className={
+        tone === "success"
+          ? "inline-flex items-center gap-1.5 text-sm text-emerald-700"
+          : "inline-flex items-center gap-1.5 text-sm text-destructive"
+      }
+    >
       <Icon className="h-4 w-4" />
       {text}
     </span>

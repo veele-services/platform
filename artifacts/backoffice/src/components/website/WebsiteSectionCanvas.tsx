@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteAction,
   WebsiteEditorSectionKey,
@@ -1577,7 +1578,7 @@ function Toggle({
 }) {
   return (
     <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-      <input
+      <CheckboxAdapter
         type="checkbox"
         checked={checked}
         disabled={disabled}

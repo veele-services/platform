@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -974,7 +975,7 @@ function Checkbox({
 }) {
   return (
     <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-      <input
+      <CheckboxAdapter
         name={name}
         type="checkbox"
         defaultChecked={defaultChecked}

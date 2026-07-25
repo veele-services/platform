@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useMemo, useState, useTransition } from "react";
 import {
@@ -946,7 +947,7 @@ function CheckboxGrid({
             className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs"
             style={{ color: "#334155" }}
           >
-            <input
+            <CheckboxAdapter
               type="checkbox"
               checked={selected.includes(item.id)}
               disabled={disabled}

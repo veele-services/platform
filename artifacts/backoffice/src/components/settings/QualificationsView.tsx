@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { FormEvent, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -784,7 +785,7 @@ function CheckField({ name, label }: { name: string; label: string }) {
       className="flex items-end gap-2 pb-2 text-sm font-medium"
       style={{ color: "#475569" }}
     >
-      <input
+      <CheckboxAdapter
         name={name}
         type="checkbox"
         defaultChecked

@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -96,7 +97,7 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
           )}
         </div>
         <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <input
+          <CheckboxAdapter
             name="isActive"
             type="checkbox"
             defaultChecked={provider.isActive}
@@ -243,7 +244,7 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
             />
           </label>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input
+            <CheckboxAdapter
               name="clearSmtpPassword"
               type="checkbox"
               className="h-4 w-4 rounded border-slate-300 text-cyan-600"

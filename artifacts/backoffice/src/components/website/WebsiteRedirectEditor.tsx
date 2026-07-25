@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteRedirectDraftItem,
   WebsiteRedirectPageOption,
@@ -246,7 +247,7 @@ export function WebsiteRedirectEditor({
                 </label>
                 <div className="flex items-end justify-between gap-2 lg:justify-end">
                   <label className="flex items-center gap-2 pb-2 text-xs font-medium text-slate-600">
-                    <input
+                    <CheckboxAdapter
                       type="checkbox"
                       checked={redirect.isActive}
                       onChange={(event) =>

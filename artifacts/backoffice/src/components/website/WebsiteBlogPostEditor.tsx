@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteBlogCategoryDraftItem,
   WebsiteBlogPostDetail,
@@ -312,7 +313,7 @@ export function WebsiteBlogPostEditor({
                   key={item.id}
                   className="flex items-center gap-2 text-sm text-slate-700"
                 >
-                  <input
+                  <CheckboxAdapter
                     type="checkbox"
                     name="tagIds"
                     value={item.id}
@@ -374,7 +375,7 @@ export function WebsiteBlogPostEditor({
           />
         </label>
         <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
+          <CheckboxAdapter
             name="indexable"
             type="checkbox"
             defaultChecked={post?.seo.indexable ?? true}
@@ -436,9 +437,7 @@ export function WebsiteBlogPostEditor({
             ? "Het bericht verdwijnt uit de publiceerbare bloginhoud."
             : "Het bericht wordt publiceerbaar. De websitepublicatie moet daarna nog afzonderlijk worden geactiveerd."
         }
-        confirmLabel={
-          confirmAction === "archive" ? "Archiveren" : "Publiceren"
-        }
+        confirmLabel={confirmAction === "archive" ? "Archiveren" : "Publiceren"}
         destructive={confirmAction === "archive"}
         confirmDisabled={isPending}
         onConfirm={() => {

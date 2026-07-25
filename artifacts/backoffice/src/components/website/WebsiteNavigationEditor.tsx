@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteNavigationDraftItem,
   WebsiteNavigationPageOption,
@@ -548,7 +549,7 @@ function NavigationRow({
         <div className="flex flex-wrap items-center justify-end gap-1">
           {item.linkType === "external" && (
             <label className="mr-2 inline-flex items-center gap-2 text-xs text-slate-600">
-              <input
+              <CheckboxAdapter
                 type="checkbox"
                 checked={item.target === "blank"}
                 onChange={(event) =>
@@ -563,7 +564,7 @@ function NavigationRow({
             </label>
           )}
           <label className="mr-2 inline-flex items-center gap-2 text-xs text-slate-600">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               checked={item.isVisible}
               onChange={(event) =>

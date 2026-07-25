@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ImageIcon, Paintbrush, Save, Type, Upload } from "lucide-react";
@@ -79,7 +80,9 @@ export function BrandThemeForm({
   const logoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
   const splashRef = useRef<HTMLInputElement>(null);
-  const editable = canWrite && (mode === "platform" || (customThemeAllowed && customThemeEnabled));
+  const editable =
+    canWrite &&
+    (mode === "platform" || (customThemeAllowed && customThemeEnabled));
 
   function updateColor(name: ColorName, value: string) {
     setColors((current) => ({ ...current, [name]: value }));
@@ -92,9 +95,10 @@ export function BrandThemeForm({
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = mode === "platform"
-        ? await savePlatformThemeSettings(formData)
-        : await saveTenantThemeSettings(formData);
+      const result =
+        mode === "platform"
+          ? await savePlatformThemeSettings(formData)
+          : await saveTenantThemeSettings(formData);
 
       if (result.success) {
         setSaved(true);
@@ -107,12 +111,16 @@ export function BrandThemeForm({
   }
 
   function uploadAsset(kind: BrandingAssetKind, file: File | undefined) {
-    if (!file || !canWrite || (mode === "tenant" && !customThemeAllowed)) return;
+    if (!file || !canWrite || (mode === "tenant" && !customThemeAllowed))
+      return;
     setSaved(false);
     setError(null);
-    const maxBytes = kind === "splash" ? MAX_SPLASH_ASSET_BYTES : MAX_BRAND_ASSET_BYTES;
+    const maxBytes =
+      kind === "splash" ? MAX_SPLASH_ASSET_BYTES : MAX_BRAND_ASSET_BYTES;
     if (file.size > maxBytes) {
-      setError(`${assetLabel(kind)} mag maximaal ${formatBytes(maxBytes)} zijn.`);
+      setError(
+        `${assetLabel(kind)} mag maximaal ${formatBytes(maxBytes)} zijn.`,
+      );
       return;
     }
 
@@ -121,9 +129,10 @@ export function BrandThemeForm({
     formData.append("asset", file);
 
     startTransition(async () => {
-      const result = mode === "platform"
-        ? await uploadPlatformThemeAsset(formData)
-        : await uploadTenantThemeAsset(formData);
+      const result =
+        mode === "platform"
+          ? await uploadPlatformThemeAsset(formData)
+          : await uploadTenantThemeAsset(formData);
 
       if (!result.success) {
         setError(result.message);
@@ -138,9 +147,23 @@ export function BrandThemeForm({
       const uploaded = result.data;
       if (uploaded) {
         setAssets((current) => {
-          if (kind === "logo") return { ...current, logoUrl: uploaded.url, logoStoragePath: uploaded.path };
-          if (kind === "favicon") return { ...current, faviconUrl: uploaded.url, faviconStoragePath: uploaded.path };
-          return { ...current, splashUrl: uploaded.url, splashStoragePath: uploaded.path };
+          if (kind === "logo")
+            return {
+              ...current,
+              logoUrl: uploaded.url,
+              logoStoragePath: uploaded.path,
+            };
+          if (kind === "favicon")
+            return {
+              ...current,
+              faviconUrl: uploaded.url,
+              faviconStoragePath: uploaded.path,
+            };
+          return {
+            ...current,
+            splashUrl: uploaded.url,
+            splashStoragePath: uploaded.path,
+          };
         });
         if (mode === "tenant") setCustomThemeEnabled(true);
         router.refresh();
@@ -151,16 +174,28 @@ export function BrandThemeForm({
   return (
     <form onSubmit={submitTheme} className="grid gap-5">
       <input type="hidden" name="logoUrl" value={assets.logoUrl ?? ""} />
-      <input type="hidden" name="logoStoragePath" value={assets.logoStoragePath ?? ""} />
+      <input
+        type="hidden"
+        name="logoStoragePath"
+        value={assets.logoStoragePath ?? ""}
+      />
       <input type="hidden" name="faviconUrl" value={assets.faviconUrl ?? ""} />
-      <input type="hidden" name="faviconStoragePath" value={assets.faviconStoragePath ?? ""} />
+      <input
+        type="hidden"
+        name="faviconStoragePath"
+        value={assets.faviconStoragePath ?? ""}
+      />
       <input type="hidden" name="splashUrl" value={assets.splashUrl ?? ""} />
-      <input type="hidden" name="splashStoragePath" value={assets.splashStoragePath ?? ""} />
+      <input
+        type="hidden"
+        name="splashStoragePath"
+        value={assets.splashStoragePath ?? ""}
+      />
 
       {mode === "tenant" && (
         <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
           <label className="flex items-start gap-3">
-            <input
+            <CheckboxAdapter
               name="useCustomTheme"
               type="checkbox"
               checked={customThemeEnabled}
@@ -169,13 +204,17 @@ export function BrandThemeForm({
               className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600"
             />
             <span>
-              <span className="block text-sm font-semibold text-slate-950">Eigen organisatiethema gebruiken</span>
+              <span className="block text-sm font-semibold text-slate-950">
+                Eigen organisatiethema gebruiken
+              </span>
               <span className="mt-1 block text-sm text-slate-600">
-                Uitgeschakeld gebruikt uw organisatie de standaard platformuitstraling.
+                Uitgeschakeld gebruikt uw organisatie de standaard
+                platformuitstraling.
               </span>
               {!customThemeAllowed ? (
                 <span className="mt-2 block rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                  Whitelabel branding is beschikbaar voor Enterprise organisaties.
+                  Whitelabel branding is beschikbaar voor Enterprise
+                  organisaties.
                 </span>
               ) : null}
             </span>
@@ -187,7 +226,9 @@ export function BrandThemeForm({
         <div className="grid gap-5">
           <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             <Paintbrush className="h-5 w-5 text-cyan-700" />
-            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Branding</h2>
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+              Branding
+            </h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -206,7 +247,11 @@ export function BrandThemeForm({
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50">
                   {assets.logoUrl ? (
-                    <img src={assets.logoUrl} alt="" className="h-full w-full object-contain p-1" />
+                    <img
+                      src={assets.logoUrl}
+                      alt=""
+                      className="h-full w-full object-contain p-1"
+                    />
                   ) : (
                     <ImageIcon className="h-5 w-5 text-slate-400" />
                   )}
@@ -216,7 +261,11 @@ export function BrandThemeForm({
                   id="logoUpload"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="hidden"
                   onChange={(event) => {
                     uploadAsset("logo", event.target.files?.[0]);
@@ -226,7 +275,11 @@ export function BrandThemeForm({
                 <button
                   type="button"
                   onClick={() => logoRef.current?.click()}
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
@@ -238,7 +291,11 @@ export function BrandThemeForm({
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50">
                   {assets.faviconUrl ? (
-                    <img src={assets.faviconUrl} alt="" className="h-full w-full object-contain p-1" />
+                    <img
+                      src={assets.faviconUrl}
+                      alt=""
+                      className="h-full w-full object-contain p-1"
+                    />
                   ) : (
                     <ImageIcon className="h-5 w-5 text-slate-400" />
                   )}
@@ -248,7 +305,11 @@ export function BrandThemeForm({
                   id="faviconUpload"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="hidden"
                   onChange={(event) => {
                     uploadAsset("favicon", event.target.files?.[0]);
@@ -258,7 +319,11 @@ export function BrandThemeForm({
                 <button
                   type="button"
                   onClick={() => faviconRef.current?.click()}
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
@@ -270,7 +335,11 @@ export function BrandThemeForm({
               <div className="flex items-center gap-3">
                 <div className="flex h-16 w-12 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50">
                   {assets.splashUrl ? (
-                    <img src={assets.splashUrl} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={assets.splashUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <ImageIcon className="h-5 w-5 text-slate-400" />
                   )}
@@ -280,7 +349,11 @@ export function BrandThemeForm({
                   id="splashUpload"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="hidden"
                   onChange={(event) => {
                     uploadAsset("splash", event.target.files?.[0]);
@@ -290,7 +363,11 @@ export function BrandThemeForm({
                 <button
                   type="button"
                   onClick={() => splashRef.current?.click()}
-                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  disabled={
+                    !canWrite ||
+                    (mode === "tenant" && !customThemeAllowed) ||
+                    isPending
+                  }
                   className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
@@ -299,41 +376,122 @@ export function BrandThemeForm({
               </div>
             </Field>
             <p className="self-end text-xs text-slate-500">
-              PNG, JPG, WebP of SVG. Logo en app-icoon maximaal 2 MB; splashscreen maximaal 6 MB.
-              Gebruik voor PWA-icon bij voorkeur PNG/WebP 512x512; splash bij voorkeur 1080x1920.
+              PNG, JPG, WebP of SVG. Logo en app-icoon maximaal 2 MB;
+              splashscreen maximaal 6 MB. Gebruik voor PWA-icon bij voorkeur
+              PNG/WebP 512x512; splash bij voorkeur 1080x1920.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <ColorField label="Primair" name="primaryColor" value={colors.primaryColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Secundair" name="secondaryColor" value={colors.secondaryColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Accent" name="accentColor" value={colors.accentColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Achtergrond" name="backgroundColor" value={colors.backgroundColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Vlakken" name="surfaceColor" value={colors.surfaceColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Tekst" name="textColor" value={colors.textColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Subtekst" name="mutedColor" value={colors.mutedColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Sidebar achtergrond" name="sidebarBackgroundColor" value={colors.sidebarBackgroundColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Sidebar tekst" name="sidebarTextColor" value={colors.sidebarTextColor} disabled={!editable || isPending} onChange={updateColor} />
-            <ColorField label="Sidebar accent" name="sidebarAccentColor" value={colors.sidebarAccentColor} disabled={!editable || isPending} onChange={updateColor} />
+            <ColorField
+              label="Primair"
+              name="primaryColor"
+              value={colors.primaryColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Secundair"
+              name="secondaryColor"
+              value={colors.secondaryColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Accent"
+              name="accentColor"
+              value={colors.accentColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Achtergrond"
+              name="backgroundColor"
+              value={colors.backgroundColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Vlakken"
+              name="surfaceColor"
+              value={colors.surfaceColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Tekst"
+              name="textColor"
+              value={colors.textColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Subtekst"
+              name="mutedColor"
+              value={colors.mutedColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Sidebar achtergrond"
+              name="sidebarBackgroundColor"
+              value={colors.sidebarBackgroundColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Sidebar tekst"
+              name="sidebarTextColor"
+              value={colors.sidebarTextColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
+            <ColorField
+              label="Sidebar accent"
+              name="sidebarAccentColor"
+              value={colors.sidebarAccentColor}
+              disabled={!editable || isPending}
+              onChange={updateColor}
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <SelectField label="Tekstfont" name="fontFamily" defaultValue={theme.fontFamily} disabled={!editable || isPending}>
+            <SelectField
+              label="Tekstfont"
+              name="fontFamily"
+              defaultValue={theme.fontFamily}
+              disabled={!editable || isPending}
+            >
               <option value="inter">Inter</option>
               <option value="poppins">Poppins</option>
               <option value="system">System</option>
             </SelectField>
-            <SelectField label="Kopfont" name="headingFontFamily" defaultValue={theme.headingFontFamily} disabled={!editable || isPending}>
+            <SelectField
+              label="Kopfont"
+              name="headingFontFamily"
+              defaultValue={theme.headingFontFamily}
+              disabled={!editable || isPending}
+            >
               <option value="poppins">Poppins</option>
               <option value="inter">Inter</option>
               <option value="system">System</option>
             </SelectField>
-            <SelectField label="Hoeken" name="borderRadius" defaultValue={theme.borderRadius} disabled={!editable || isPending}>
+            <SelectField
+              label="Hoeken"
+              name="borderRadius"
+              defaultValue={theme.borderRadius}
+              disabled={!editable || isPending}
+            >
               <option value="sm">Strak</option>
               <option value="md">Normaal</option>
               <option value="lg">Rond</option>
             </SelectField>
-            <SelectField label="Dichtheid" name="density" defaultValue={theme.density} disabled={!editable || isPending}>
+            <SelectField
+              label="Dichtheid"
+              name="density"
+              defaultValue={theme.density}
+              disabled={!editable || isPending}
+            >
               <option value="compact">Compact</option>
               <option value="comfortable">Comfortabel</option>
               <option value="spacious">Ruim</option>
@@ -341,38 +499,89 @@ export function BrandThemeForm({
           </div>
         </div>
 
-        <aside className="rounded border border-slate-200 p-4" style={{ backgroundColor: colors.backgroundColor, color: colors.textColor }}>
+        <aside
+          className="rounded border border-slate-200 p-4"
+          style={{
+            backgroundColor: colors.backgroundColor,
+            color: colors.textColor,
+          }}
+        >
           <div
             className="rounded p-4 shadow-sm"
             style={{
               backgroundColor: colors.surfaceColor,
-              borderRadius: theme.borderRadius === "lg" ? 10 : theme.borderRadius === "sm" ? 4 : 6,
+              borderRadius:
+                theme.borderRadius === "lg"
+                  ? 10
+                  : theme.borderRadius === "sm"
+                    ? 4
+                    : 6,
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded" style={{ backgroundColor: colors.accentColor }}>
-                {assets.logoUrl ? <img src={assets.logoUrl} alt="" className="h-full w-full object-contain p-1" /> : <Type className="h-5 w-5 text-white" />}
+              <div
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded"
+                style={{ backgroundColor: colors.accentColor }}
+              >
+                {assets.logoUrl ? (
+                  <img
+                    src={assets.logoUrl}
+                    alt=""
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <Type className="h-5 w-5 text-white" />
+                )}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold" style={{ color: colors.primaryColor }}>{brandName || theme.brandName}</p>
-                <p className="truncate text-xs" style={{ color: colors.mutedColor }}>Theme preview</p>
+                <p
+                  className="truncate text-sm font-semibold"
+                  style={{ color: colors.primaryColor }}
+                >
+                  {brandName || theme.brandName}
+                </p>
+                <p
+                  className="truncate text-xs"
+                  style={{ color: colors.mutedColor }}
+                >
+                  Theme preview
+                </p>
               </div>
             </div>
             <div className="mt-5 grid gap-2">
-              <span className="h-2 rounded-full" style={{ backgroundColor: colors.primaryColor }} />
-              <span className="h-2 w-4/5 rounded-full" style={{ backgroundColor: colors.secondaryColor }} />
-              <span className="h-2 w-3/5 rounded-full" style={{ backgroundColor: colors.accentColor }} />
+              <span
+                className="h-2 rounded-full"
+                style={{ backgroundColor: colors.primaryColor }}
+              />
+              <span
+                className="h-2 w-4/5 rounded-full"
+                style={{ backgroundColor: colors.secondaryColor }}
+              />
+              <span
+                className="h-2 w-3/5 rounded-full"
+                style={{ backgroundColor: colors.accentColor }}
+              />
             </div>
             <div
               className="mt-4 rounded p-3"
-              style={{ backgroundColor: colors.sidebarBackgroundColor, color: colors.sidebarTextColor }}
+              style={{
+                backgroundColor: colors.sidebarBackgroundColor,
+                color: colors.sidebarTextColor,
+              }}
             >
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.sidebarAccentColor }} />
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: colors.sidebarAccentColor }}
+                />
                 <span className="text-xs font-semibold">Sidebar preview</span>
               </div>
             </div>
-            <button type="button" className="mt-5 min-h-10 rounded px-4 text-sm font-semibold text-white" style={{ backgroundColor: colors.accentColor }}>
+            <button
+              type="button"
+              className="mt-5 min-h-10 rounded px-4 text-sm font-semibold text-white"
+              style={{ backgroundColor: colors.accentColor }}
+            >
               Actie
             </button>
           </div>
@@ -382,7 +591,9 @@ export function BrandThemeForm({
       <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
           <Type className="h-5 w-5 text-cyan-700" />
-          <h2 className="text-lg font-semibold tracking-normal text-slate-950">E-mail</h2>
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+            E-mail
+          </h2>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <Field label="Footertekst" htmlFor="emailFooterText">
@@ -412,8 +623,12 @@ export function BrandThemeForm({
 
       <div className="sticky bottom-4 z-10 flex flex-col gap-2 rounded border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm">
-          {saved ? <span className="font-semibold text-emerald-700">Opgeslagen</span> : null}
-          {error ? <span className="font-semibold text-rose-700">{error}</span> : null}
+          {saved ? (
+            <span className="font-semibold text-emerald-700">Opgeslagen</span>
+          ) : null}
+          {error ? (
+            <span className="font-semibold text-rose-700">{error}</span>
+          ) : null}
         </p>
         <button
           type="submit"
@@ -438,7 +653,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label htmlFor={htmlFor} className="grid gap-1 text-sm font-medium text-slate-700">
+    <label
+      htmlFor={htmlFor}
+      className="grid gap-1 text-sm font-medium text-slate-700"
+    >
       {label}
       {children}
     </label>
