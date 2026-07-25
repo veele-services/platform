@@ -1,34 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   Eye,
   Pencil,
-  Trash2,
+  Plus,
   ToggleLeft,
   ToggleRight,
+  Trash2,
   UserCircle2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { BulkActionBar } from "@/components/ui/bulk-action-bar";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  bulkSetPersonnelStatus,
+  deletePersonnel,
+  setPersonnelStatus,
+  type PersonnelRow,
+  type RoleOption,
+  type SectorOption,
+} from "@/app/actions/personnel";
+import type { AvailabilityStatus } from "@/app/actions/availability";
+import { PersonnelForm } from "@/components/personnel/PersonnelForm";
+import { SlimProfielPanel } from "@/components/personnel/SlimProfielPanel";
 import {
   TenantActionMenu,
   TenantActiveFilters,
@@ -37,182 +33,190 @@ import {
   TenantToolbar,
   TenantToolbarSearch,
 } from "@/components/tenant-ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  FieldgridDataView,
+  type FieldgridDataViewColumn,
+} from "@/components/ui/fieldgrid-data-view";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { PersonnelForm } from "@/components/personnel/PersonnelForm";
-import { SlimProfielPanel } from "@/components/personnel/SlimProfielPanel";
 import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
-import {
-  bulkSetPersonnelStatus,
-  setPersonnelStatus,
-  deletePersonnel,
-  type PersonnelRow,
-  type RoleOption,
-  type SectorOption,
-} from "@/app/actions/personnel";
-import type { AvailabilityStatus } from "@/app/actions/availability";
 import {
   PERSONNEL_TYPES,
   PERSONNEL_TYPE_LABELS,
-  PERSONNEL_TYPE_COLORS,
   type PersonnelType,
 } from "@/types/personnel";
 
-// ─── Invite status badge ──────────────────────────────────────────────────────
-
 type InviteStatus = "none" | "invited" | "active";
 
-function getInviteStatus(userId: string | null, inviteSentAt: string | null): InviteStatus {
+type BadgeTone = {
+  label: string;
+  className: string;
+  indicatorClassName: string;
+};
+
+const INVITE_BADGE: Record<InviteStatus, BadgeTone> = {
+  none: {
+    label: "Geen account",
+    className: "bg-muted text-muted-foreground ring-border",
+    indicatorClassName: "bg-muted-foreground",
+  },
+  invited: {
+    label: "Wachtwoord verstuurd",
+    className: "bg-warning/10 text-foreground ring-warning/30",
+    indicatorClassName: "bg-warning",
+  },
+  active: {
+    label: "Portaal actief",
+    className: "bg-success/10 text-foreground ring-success/30",
+    indicatorClassName: "bg-success",
+  },
+};
+
+const AVAILABILITY_BADGE: Record<AvailabilityStatus, BadgeTone> = {
+  beschikbaar: {
+    label: "Beschikbaar",
+    className: "bg-success/10 text-foreground ring-success/30",
+    indicatorClassName: "bg-success",
+  },
+  op_verlof: {
+    label: "Op verlof",
+    className: "bg-info/10 text-foreground ring-info/30",
+    indicatorClassName: "bg-info",
+  },
+  ziek: {
+    label: "Ziek",
+    className: "bg-danger/10 text-foreground ring-danger/30",
+    indicatorClassName: "bg-danger",
+  },
+  niet_beschikbaar: {
+    label: "Niet beschikbaar",
+    className: "bg-warning/10 text-foreground ring-warning/30",
+    indicatorClassName: "bg-warning",
+  },
+  niet_ingesteld: {
+    label: "Niet ingesteld",
+    className: "bg-muted text-muted-foreground ring-border",
+    indicatorClassName: "bg-muted-foreground",
+  },
+};
+
+const PAGE_SIZE = 25;
+const SORTABLE = [
+  "lastName",
+  "firstName",
+  "email",
+  "code",
+  "region",
+  "createdAt",
+] as const;
+
+function getInviteStatus(
+  userId: string | null,
+  inviteSentAt: string | null,
+): InviteStatus {
   if (userId) return "active";
   if (inviteSentAt) return "invited";
   return "none";
 }
 
-const INVITE_BADGE: Record<InviteStatus, { label: string; bg: string; color: string; dot: string }> = {
-  none:    { label: "Geen account",            bg: "#F1F5F9", color: "#94A3B8", dot: "#CBD5E1" },
-  invited: { label: "Wachtwoord verstuurd",    bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
-  active:  { label: "Portaal actief",          bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
-};
-
-function InviteBadge({ userId, inviteSentAt }: { userId: string | null; inviteSentAt: string | null }) {
-  const status = getInviteStatus(userId, inviteSentAt);
-  const s = INVITE_BADGE[status];
+function ToneBadge({ tone }: { tone: BadgeTone }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: s.bg, color: s.color }}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${tone.className}`}
     >
-      <span className="flex-shrink-0 rounded-full" style={{ width: "6px", height: "6px", backgroundColor: s.dot }} />
-      {s.label}
+      <span
+        className={`size-1.5 shrink-0 rounded-full ${tone.indicatorClassName}`}
+        aria-hidden="true"
+      />
+      {tone.label}
     </span>
   );
 }
 
-const PAGE_SIZE = 25;
-const SORTABLE = ["lastName", "firstName", "email", "code", "region", "createdAt"] as const;
-
-// ─── Availability badge ───────────────────────────────────────────────────────
-
-const AVAIL_BADGE: Record<AvailabilityStatus, { label: string; bg: string; color: string; dot: string }> = {
-  beschikbaar:      { label: "Beschikbaar",      bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
-  op_verlof:        { label: "Op verlof",         bg: "#DBEAFE", color: "#1D4ED8", dot: "#3B82F6" },
-  ziek:             { label: "Ziek",              bg: "#FEE2E2", color: "#991B1B", dot: "#EF4444" },
-  niet_beschikbaar: { label: "Niet beschikbaar",  bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
-  niet_ingesteld:   { label: "Niet ingesteld",    bg: "#F1F5F9", color: "#94A3B8", dot: "#CBD5E1" },
-};
+function InviteBadge({
+  userId,
+  inviteSentAt,
+}: {
+  userId: string | null;
+  inviteSentAt: string | null;
+}) {
+  return (
+    <ToneBadge tone={INVITE_BADGE[getInviteStatus(userId, inviteSentAt)]} />
+  );
+}
 
 function AvailabilityBadge({ status }: { status: AvailabilityStatus }) {
-  const s = AVAIL_BADGE[status];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: s.bg, color: s.color }}
-    >
-      <span className="flex-shrink-0 rounded-full" style={{ width: "6px", height: "6px", backgroundColor: s.dot }} />
-      {s.label}
-    </span>
-  );
+  return <ToneBadge tone={AVAILABILITY_BADGE[status]} />;
 }
-
-// ─── Personnel type badge ─────────────────────────────────────────────────────
 
 function PersonnelTypeBadge({ type }: { type: string | null }) {
-  if (!type) return <span style={{ color: "#94A3B8" }}>—</span>;
-  const label = PERSONNEL_TYPE_LABELS[type as PersonnelType] ?? type;
-  const color = PERSONNEL_TYPE_COLORS[type as PersonnelType] ?? { bg: "#F1F5F9", color: "#64748B" };
+  if (!type) return <span className="text-muted-foreground">—</span>;
   return (
-    <span
-      className="inline-block rounded px-2 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: color.bg, color: color.color }}
-    >
-      {label}
-    </span>
+    <Badge variant="secondary">
+      {PERSONNEL_TYPE_LABELS[type as PersonnelType] ?? type}
+    </Badge>
   );
 }
 
-// ─── Sortable header cell ─────────────────────────────────────────────────────
-
-function SortHeader({
-  label,
-  columnKey,
-  currentSort,
-  currentDir,
-  onSort,
+function QualificationChips({
+  tags,
+  max = 2,
 }: {
-  label:       string;
-  columnKey:   string;
-  currentSort: string;
-  currentDir:  string;
-  onSort:      (key: string) => void;
+  tags: string[];
+  max?: number;
 }) {
-  const active = currentSort === columnKey;
-  return (
-    <th className="px-4 py-3 text-left">
-      <button
-        type="button"
-        onClick={() => onSort(columnKey)}
-        className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80"
-        style={{ color: active ? "#00B7B3" : "#64748B" }}
-      >
-        {label}
-        {active ? (
-          currentDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronsUpDown className="h-3 w-3 opacity-40" />
-        )}
-      </button>
-    </th>
-  );
-}
+  if (tags.length === 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
 
-// ─── Qualification chips (truncated) ─────────────────────────────────────────
-
-function QualChips({ tags, max = 2 }: { tags: string[]; max?: number }) {
-  if (!tags.length) return <span style={{ color: "#94A3B8" }}>—</span>;
-  const visible  = tags.slice(0, max);
-  const overflow = tags.length - max;
+  const visible = tags.slice(0, max);
+  const overflow = tags.length - visible.length;
   return (
     <div className="flex flex-wrap gap-1">
-      {visible.map((t) => (
-        <span
-          key={t}
-          className="inline-block rounded px-1.5 py-0.5 text-xs font-medium"
-          style={{ backgroundColor: "#E0FAFB", color: "#0A7E7A" }}
-        >
-          {t}
-        </span>
+      {visible.map((tag) => (
+        <Badge key={tag} variant="outline">
+          {tag}
+        </Badge>
       ))}
-      {overflow > 0 && (
-        <span className="inline-block rounded px-1.5 py-0.5 text-xs" style={{ color: "#94A3B8" }}>
+      {overflow > 0 ? (
+        <span className="self-center text-xs text-muted-foreground">
           +{overflow}
         </span>
-      )}
+      ) : null}
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 interface PersonnelViewProps {
-  rows:               PersonnelRow[];
-  total:              number;
-  roles:              RoleOption[];
-  sectors:            SectorOption[];
-  canWrite:           boolean;
-  page:               number;
-  initialSearch:      string;
-  initialRoleId:      string;
-  initialSectorId:    string;
-  initialRegion:      string;
-  initialStatus:      string;
-  initialSort:        string;
-  initialDir:         string;
+  rows: PersonnelRow[];
+  total: number;
+  roles: RoleOption[];
+  sectors: SectorOption[];
+  canWrite: boolean;
+  page: number;
+  initialSearch: string;
+  initialRoleId: string;
+  initialSectorId: string;
+  initialRegion: string;
+  initialStatus: string;
+  initialSort: string;
+  initialDir: string;
   initialPersonnelType: string;
 }
 
@@ -232,77 +236,150 @@ export function PersonnelView({
   initialDir,
   initialPersonnelType,
 }: PersonnelViewProps) {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
 
-  const [sheetOpen,      setSheetOpen]      = useState(false);
-  const [editingId,      setEditingId]      = useState<string | null>(null);
-  const [selected,       setSelected]       = useState<Set<string>>(new Set());
-  const [searchInput,    setSearchInput]    = useState(initialSearch);
-  const [regionInput,    setRegionInput]    = useState(initialRegion);
-  const [deleteTarget,   setDeleteTarget]   = useState<{ id: string; name: string } | null>(null);
-  const [slimProfiel,    setSlimProfiel]    = useState<PersonnelRow | null>(null);
-  const [bulkPending,    startBulkTransition] = useTransition();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [draftRoleId, setDraftRoleId] = useState(initialRoleId || "ALL");
+  const [draftSectorId, setDraftSectorId] = useState(initialSectorId || "ALL");
+  const [draftRegion, setDraftRegion] = useState(initialRegion);
+  const [draftStatus, setDraftStatus] = useState(initialStatus || "all");
+  const [draftPersonnelType, setDraftPersonnelType] = useState(
+    initialPersonnelType || "ALL",
+  );
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [slimProfiel, setSlimProfiel] = useState<PersonnelRow | null>(null);
+  const [bulkPending, startBulkTransition] = useTransition();
   const [bulkDeactivateOpen, setBulkDeactivateOpen] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const rowLabels = useMemo(
+    () =>
+      new Map(
+        rows.map((row) => [row.id, `${row.firstName} ${row.lastName}`.trim()]),
+      ),
+    [rows],
+  );
 
-  // ─── URL helpers ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    setSearchInput(initialSearch);
+    setDraftRoleId(initialRoleId || "ALL");
+    setDraftSectorId(initialSectorId || "ALL");
+    setDraftRegion(initialRegion);
+    setDraftStatus(initialStatus || "all");
+    setDraftPersonnelType(initialPersonnelType || "ALL");
+  }, [
+    initialPersonnelType,
+    initialRegion,
+    initialRoleId,
+    initialSearch,
+    initialSectorId,
+    initialStatus,
+  ]);
+
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:        initialSearch        || undefined,
-      roleId:        initialRoleId        || undefined,
-      sectorId:      initialSectorId      || undefined,
-      region:        initialRegion        || undefined,
-      status:        initialStatus !== "all" ? initialStatus : undefined,
+      search: initialSearch || undefined,
+      roleId: initialRoleId || undefined,
+      sectorId: initialSectorId || undefined,
+      region: initialRegion || undefined,
+      status: initialStatus !== "all" ? initialStatus : undefined,
       personnelType: initialPersonnelType || undefined,
-      sort:          initialSort !== "lastName" ? initialSort : undefined,
-      dir:           initialDir  !== "asc"     ? initialDir  : undefined,
-      page:          page > 1 ? String(page) : undefined,
+      sort: initialSort !== "lastName" ? initialSort : undefined,
+      dir: initialDir !== "asc" ? initialDir : undefined,
+      page: page > 1 ? String(page) : undefined,
       ...overrides,
     };
-    Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
-    const qs = params.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
+
+    Object.entries(merged).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
   }
 
   function applyFilter(key: string, value: string) {
     router.replace(buildUrl({ [key]: value || undefined, page: undefined }));
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    router.replace(buildUrl({ search: searchInput || undefined, region: regionInput || undefined, page: undefined }));
+  function handleSearchSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    applyFilter("search", searchInput.trim());
+  }
+
+  function applyDraftFilters() {
+    router.replace(
+      buildUrl({
+        roleId: draftRoleId === "ALL" ? undefined : draftRoleId,
+        sectorId: draftSectorId === "ALL" ? undefined : draftSectorId,
+        region: draftRegion.trim() || undefined,
+        status: draftStatus === "all" ? undefined : draftStatus,
+        personnelType:
+          draftPersonnelType === "ALL" ? undefined : draftPersonnelType,
+        page: undefined,
+      }),
+    );
+  }
+
+  function resetFilters() {
+    setDraftRoleId("ALL");
+    setDraftSectorId("ALL");
+    setDraftRegion("");
+    setDraftStatus("all");
+    setDraftPersonnelType("ALL");
+    setFilterDrawerOpen(false);
+    router.replace(
+      buildUrl({
+        roleId: undefined,
+        sectorId: undefined,
+        region: undefined,
+        status: undefined,
+        personnelType: undefined,
+        page: undefined,
+      }),
+    );
   }
 
   function handleSort(column: string) {
-    if (!SORTABLE.includes(column as typeof SORTABLE[number])) return;
-    const newDir = initialSort === column && initialDir === "asc" ? "desc" : "asc";
-    router.replace(buildUrl({ sort: column, dir: newDir, page: undefined }));
+    if (!SORTABLE.includes(column as (typeof SORTABLE)[number])) return;
+    const nextDirection =
+      initialSort === column && initialDir === "asc" ? "desc" : "asc";
+    router.replace(
+      buildUrl({
+        sort: column,
+        dir: nextDirection,
+        page: undefined,
+      }),
+    );
   }
 
-  // ─── Selection ───────────────────────────────────────────────────────────────
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
-
-  function toggleAll() {
-    if (allSelected) {
-      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.delete(r.id)); return next; });
-    } else {
-      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.add(r.id)); return next; });
-    }
+  function openCreate() {
+    setEditingId(null);
+    setSheetOpen(true);
   }
 
-  function toggleOne(id: string) {
-    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  function openEdit(id: string) {
+    setEditingId(id);
+    setSheetOpen(true);
   }
 
-  // ─── Sheet helpers ────────────────────────────────────────────────────────────
-  function openCreate()               { setEditingId(null); setSheetOpen(true); }
-  function openEdit(id: string)       { setEditingId(id);   setSheetOpen(true); }
-  function handleFormSuccess()        { setSheetOpen(false); setEditingId(null); }
+  function handleFormSuccess() {
+    setSheetOpen(false);
+    setEditingId(null);
+  }
 
-  // ─── Mutations ────────────────────────────────────────────────────────────────
+  function openQuickView(row: PersonnelRow) {
+    setSlimProfiel(row);
+  }
+
   function handleStatusToggle(id: string, isActive: boolean) {
     startBulkTransition(async () => {
       const result = await setPersonnelStatus(id, !isActive);
@@ -316,7 +393,11 @@ export function PersonnelView({
       const result = await bulkSetPersonnelStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} medewerker${ids.length > 1 ? "s" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
+        toast.success(
+          `${ids.length} medewerker${ids.length > 1 ? "s" : ""} ${
+            isActive ? "geactiveerd" : "gedeactiveerd"
+          }`,
+        );
       } else {
         toast.error(result.message);
       }
@@ -338,29 +419,60 @@ export function PersonnelView({
   }
 
   const activeFilters = [
-    initialSearch ? { id: "search", label: "Zoeken", value: initialSearch, onRemove: () => applyFilter("search", "") } : null,
-    initialRegion ? { id: "region", label: "Branch/regio", value: initialRegion, onRemove: () => applyFilter("region", "") } : null,
+    initialSearch
+      ? {
+          id: "search",
+          label: "Zoeken",
+          value: initialSearch,
+          onRemove: () => applyFilter("search", ""),
+        }
+      : null,
+    initialRegion
+      ? {
+          id: "region",
+          label: "Branch/regio",
+          value: initialRegion,
+          onRemove: () => applyFilter("region", ""),
+        }
+      : null,
     initialRoleId
       ? {
           id: "role",
           label: "Rol",
-          value: formatPersonnelRoleName(roles.find((role) => role.id === initialRoleId)?.name) || initialRoleId,
+          value:
+            formatPersonnelRoleName(
+              roles.find((role) => role.id === initialRoleId)?.name,
+            ) || initialRoleId,
           onRemove: () => applyFilter("roleId", ""),
         }
       : null,
     initialSectorId
-      ? { id: "sector", label: "Sector", value: sectors.find((sector) => sector.id === initialSectorId)?.name ?? initialSectorId, onRemove: () => applyFilter("sectorId", "") }
+      ? {
+          id: "sector",
+          label: "Sector",
+          value:
+            sectors.find((sector) => sector.id === initialSectorId)?.name ??
+            initialSectorId,
+          onRemove: () => applyFilter("sectorId", ""),
+        }
       : null,
     initialPersonnelType && initialPersonnelType !== "ALL"
       ? {
           id: "personnelType",
           label: "Type",
-          value: PERSONNEL_TYPE_LABELS[initialPersonnelType as PersonnelType] ?? initialPersonnelType,
+          value:
+            PERSONNEL_TYPE_LABELS[initialPersonnelType as PersonnelType] ??
+            initialPersonnelType,
           onRemove: () => applyFilter("personnelType", ""),
         }
       : null,
     initialStatus !== "all"
-      ? { id: "status", label: "Status", value: initialStatus === "active" ? "Actief" : "Inactief", onRemove: () => applyFilter("status", "") }
+      ? {
+          id: "status",
+          label: "Status",
+          value: initialStatus === "active" ? "Actief" : "Inactief",
+          onRemove: () => applyFilter("status", ""),
+        }
       : null,
   ].filter(Boolean) as Parameters<typeof TenantActiveFilters>[0]["filters"];
 
@@ -369,17 +481,23 @@ export function PersonnelView({
       <TenantActionMenu
         actions={[
           {
+            id: "quick-view",
+            label: "Snel bekijken",
+            icon: <UserCircle2 className="size-4" />,
+            onSelect: () => openQuickView(row),
+          },
+          {
             id: "view",
-            label: "Bekijken",
+            label: "Volledig profiel",
             href: `/personnel/${row.id}`,
-            icon: <Eye className="h-4 w-4" />,
+            icon: <Eye className="size-4" />,
           },
           ...(canWrite
             ? [
                 {
                   id: "edit",
                   label: "Bewerken",
-                  icon: <Pencil className="h-4 w-4" />,
+                  icon: <Pencil className="size-4" />,
                   onSelect: () => {
                     setSlimProfiel(null);
                     openEdit(row.id);
@@ -388,7 +506,11 @@ export function PersonnelView({
                 {
                   id: "status",
                   label: row.isActive ? "Deactiveren" : "Activeren",
-                  icon: row.isActive ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />,
+                  icon: row.isActive ? (
+                    <ToggleLeft className="size-4" />
+                  ) : (
+                    <ToggleRight className="size-4" />
+                  ),
                   disabled: bulkPending,
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
@@ -396,10 +518,14 @@ export function PersonnelView({
                 {
                   id: "delete",
                   label: "Verwijderen",
-                  icon: <Trash2 className="h-4 w-4" />,
+                  icon: <Trash2 className="size-4" />,
                   destructive: true,
                   separatorBefore: true,
-                  onSelect: () => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` }),
+                  onSelect: () =>
+                    setDeleteTarget({
+                      id: row.id,
+                      name: `${row.firstName} ${row.lastName}`,
+                    }),
                 },
               ]
             : []),
@@ -408,361 +534,460 @@ export function PersonnelView({
     );
   }
 
-  const colCount = canWrite ? 13 : 12;
+  const columns: FieldgridDataViewColumn<PersonnelRow>[] = [
+    {
+      id: "lastName",
+      label: "Naam",
+      sortable: true,
+      hideable: false,
+      cell: (row) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+            {row.firstName[0]?.toUpperCase()}
+            {row.lastName[0]?.toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <Link
+              href={`/personnel/${row.id}`}
+              className="block max-w-[18rem] truncate font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {row.lastName}, {row.firstName}
+            </Link>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto min-h-0 justify-start p-0 text-xs text-muted-foreground"
+              onClick={() => openQuickView(row)}
+            >
+              Snel bekijken
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "role",
+      label: "Rol",
+      cell: (row) => formatPersonnelRoleName(row.roleName) || "—",
+    },
+    {
+      id: "region",
+      label: "Branch/regio",
+      sortable: true,
+      cell: (row) => row.region || "—",
+    },
+    {
+      id: "availability",
+      label: "Beschikbaarheid",
+      cell: (row) => <AvailabilityBadge status={row.availabilityStatus} />,
+    },
+    {
+      id: "portal",
+      label: "Portaal",
+      cell: (row) => (
+        <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      cell: (row) => <StatusBadge isActive={row.isActive} />,
+    },
+    {
+      id: "code",
+      label: "Code",
+      sortable: true,
+      hiddenByDefault: true,
+      cell: (row) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.code}
+        </span>
+      ),
+    },
+    {
+      id: "email",
+      label: "E-mail",
+      sortable: true,
+      hiddenByDefault: true,
+      cell: (row) => (
+        <span className="block max-w-[18rem] truncate">{row.email}</span>
+      ),
+    },
+    {
+      id: "personnelType",
+      label: "Type",
+      hiddenByDefault: true,
+      cell: (row) => <PersonnelTypeBadge type={row.personnelType} />,
+    },
+    {
+      id: "sector",
+      label: "Sector",
+      hiddenByDefault: true,
+      cell: (row) =>
+        row.sectorName ? (
+          <Badge variant="outline">{row.sectorName}</Badge>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      id: "certificates",
+      label: "Certificaten",
+      hiddenByDefault: true,
+      cell: (row) => <QualificationChips tags={row.certificates} max={1} />,
+    },
+    {
+      id: "createdAt",
+      label: "Aangemaakt",
+      sortable: true,
+      hiddenByDefault: true,
+      cell: (row) =>
+        new Date(row.createdAt).toLocaleDateString("nl-NL", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+    },
+    {
+      id: "actions",
+      label: "Acties",
+      hideable: false,
+      headerClassName: "w-14 text-right",
+      className: "text-right",
+      cell: renderRowActions,
+    },
+  ];
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Toolbar */}
       <TenantToolbar
         search={
           <form
-          onSubmit={handleSearchSubmit}
-          className="flex min-w-0 flex-1 gap-2 sm:max-w-lg"
-        >
-          <TenantToolbarSearch
+            onSubmit={handleSearchSubmit}
+            className="flex min-w-0 flex-1 gap-2 sm:max-w-md"
+          >
+            <TenantToolbarSearch
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Zoek op naam of e-mail…"
               wrapperClassName="max-w-none"
             />
-          <Input
-            value={regionInput}
-            onChange={(e) => setRegionInput(e.target.value)}
-            placeholder="Branch/regio..."
-            className="w-32 h-9"
-          />
-          <Button type="submit" variant="outline" size="sm" className="h-9">
-            Zoeken
-          </Button>
+            <Button type="submit" variant="outline" size="sm">
+              Zoeken
+            </Button>
           </form>
         }
         actions={
           <>
-            <TenantFilterDrawer activeCount={activeFilters.length} title="Personeelsfilters">
+            <TenantFilterDrawer
+              activeCount={
+                [
+                  initialRoleId,
+                  initialSectorId,
+                  initialRegion,
+                  initialStatus !== "all" ? initialStatus : "",
+                  initialPersonnelType,
+                ].filter(Boolean).length
+              }
+              title="Personeelsfilters"
+              open={filterDrawerOpen}
+              onOpenChange={setFilterDrawerOpen}
+              onApply={applyDraftFilters}
+              onReset={resetFilters}
+            >
               <div className="grid gap-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="personnel-role-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Rol
+                  </label>
+                  <Select value={draftRoleId} onValueChange={setDraftRoleId}>
+                    <SelectTrigger
+                      id="personnel-role-filter"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Alle rollen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Alle rollen</SelectItem>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {formatPersonnelRoleName(role.name)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Select
-          value={initialRoleId || "ALL"}
-          onValueChange={(v) => applyFilter("roleId", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[150px] h-9">
-            <SelectValue placeholder="Alle rollen" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle rollen</SelectItem>
-            {roles.map((r) => (
-              <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="personnel-sector-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Sector
+                  </label>
+                  <Select
+                    value={draftSectorId}
+                    onValueChange={setDraftSectorId}
+                  >
+                    <SelectTrigger
+                      id="personnel-sector-filter"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Alle sectoren" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Alle sectoren</SelectItem>
+                      {sectors.map((sector) => (
+                        <SelectItem key={sector.id} value={sector.id}>
+                          {sector.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Select
-          value={initialSectorId || "ALL"}
-          onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[145px] h-9">
-            <SelectValue placeholder="Alle sectoren" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle sectoren</SelectItem>
-            {sectors.map((sector) => (
-              <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="personnel-region-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Branch/regio
+                  </label>
+                  <Input
+                    id="personnel-region-filter"
+                    value={draftRegion}
+                    onChange={(event) => setDraftRegion(event.target.value)}
+                    placeholder="Bijvoorbeeld: Utrecht"
+                  />
+                </div>
 
-        <Select
-          value={initialPersonnelType || "ALL"}
-          onValueChange={(v) => applyFilter("personnelType", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Alle types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle types</SelectItem>
-            {PERSONNEL_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>{PERSONNEL_TYPE_LABELS[t]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="personnel-type-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Type
+                  </label>
+                  <Select
+                    value={draftPersonnelType}
+                    onValueChange={setDraftPersonnelType}
+                  >
+                    <SelectTrigger
+                      id="personnel-type-filter"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Alle types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Alle types</SelectItem>
+                      {PERSONNEL_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {PERSONNEL_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Select
-          value={initialStatus || "all"}
-          onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="Alle statussen" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle statussen</SelectItem>
-            <SelectItem value="active">Actief</SelectItem>
-            <SelectItem value="inactive">Inactief</SelectItem>
-          </SelectContent>
-        </Select>
-
+                <div className="space-y-2">
+                  <label
+                    htmlFor="personnel-status-filter"
+                    className="text-sm font-semibold"
+                  >
+                    Status
+                  </label>
+                  <Select value={draftStatus} onValueChange={setDraftStatus}>
+                    <SelectTrigger
+                      id="personnel-status-filter"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Alle statussen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle statussen</SelectItem>
+                      <SelectItem value="active">Actief</SelectItem>
+                      <SelectItem value="inactive">Inactief</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </TenantFilterDrawer>
 
-        <div className="ml-auto">
-          {canWrite && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nieuw personeelslid
-            </Button>
-          )}
-        </div>
+            <div className="ml-auto">
+              {canWrite ? (
+                <Button size="sm" onClick={openCreate}>
+                  <Plus className="size-4" />
+                  Nieuw personeelslid
+                </Button>
+              ) : null}
+            </div>
           </>
         }
         activeFilters={<TenantActiveFilters filters={activeFilters} />}
       />
 
-      {/* Bulk actions bar */}
-      {selected.size > 0 && canWrite && (
-        <BulkActionBar count={selected.size} className="mb-4">
-          <Button variant="outline" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
-            <ToggleRight className="mr-1.5 h-4 w-4" />Activeren
-          </Button>
-          <Button variant="outline" onClick={() => setBulkDeactivateOpen(true)} disabled={bulkPending}>
-            <ToggleLeft className="mr-1.5 h-4 w-4" />Deactiveren
-          </Button>
-          <Button variant="ghost" onClick={() => setSelected(new Set())}>Wissen</Button>
-        </BulkActionBar>
-      )}
-
-      {/* Table + Slim profiel panel side-by-side */}
-      {rows.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground md:hidden">
-          Geen personeelsrecords gevonden
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-3 md:hidden">
-          {rows.map((row) => (
-            <article key={row.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  {canWrite && (
-                    <Checkbox
-                      checked={selected.has(row.id)}
-                      onCheckedChange={() => toggleOne(row.id)}
-                      aria-label={`Select ${row.firstName} ${row.lastName}`}
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                      <Link href={`/personnel/${row.id}`} className="font-medium text-foreground hover:underline">
-                        {row.firstName} {row.lastName}
-                      </Link>
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">{row.email}</p>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">{row.code}</p>
-                  </div>
-                </div>
-                {renderRowActions(row)}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <StatusBadge isActive={row.isActive} />
-                <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
-                <AvailabilityBadge status={row.availabilityStatus} />
-                {row.sectorName && <span>{row.sectorName}</span>}
-                {row.roleName && <span>{formatPersonnelRoleName(row.roleName)}</span>}
-                {row.region && <span>{row.region}</span>}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      <div className="hidden gap-0 overflow-hidden rounded-xl md:flex" style={{ border: "1px solid #E2E8F0" }}>
-        <div className="flex-1 overflow-x-auto min-w-0">
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FAFBFD" }}>
-                {canWrite && (
-                  <th className="w-10 pl-4 py-3">
-                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
-                  </th>
-                )}
-                <th className="w-10 px-2 py-3" />
-                <SortHeader label="Code"      columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Functie(s)</th>
-                <SortHeader label="Branch/regio" columnKey="region" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Portaal</th>
-                <th className="w-12 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={colCount}
-                    className="px-4 py-12 text-center text-sm"
-                    style={{ color: "#94A3B8" }}
+      <FieldgridDataView
+        className="mt-4"
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        caption="Personeel met rol, regio, beschikbaarheid, portaaltoegang en status"
+        hasActiveFilters={activeFilters.length > 0}
+        emptyTitle="Nog geen personeelsleden"
+        emptyDescription="Voeg het eerste personeelslid toe om beschikbaarheid en planning te beheren."
+        filteredEmptyTitle="Geen personeelsleden gevonden"
+        filteredEmptyDescription="Pas de zoekopdracht of actieve filters aan."
+        emptyAction={
+          canWrite ? (
+            <Button type="button" onClick={openCreate}>
+              <Plus className="size-4" />
+              Nieuw personeelslid
+            </Button>
+          ) : undefined
+        }
+        preferenceKey="fieldgrid:personnel:data-view"
+        savedViews={{
+          storageKey: "fieldgrid:personnel:saved-views",
+          currentQuery: buildUrl({ page: undefined }).split("?")[1] ?? "",
+          onApplyQuery: (query) =>
+            router.replace(query ? `${pathname}?${query}` : pathname),
+        }}
+        sort={{
+          key: initialSort,
+          direction: initialDir === "desc" ? "desc" : "asc",
+          onChange: handleSort,
+        }}
+        selection={
+          canWrite
+            ? {
+                selectedIds: selected,
+                onSelectionChange: setSelected,
+                getRowLabel: (rowId) => rowLabels.get(rowId) ?? "personeelslid",
+              }
+            : undefined
+        }
+        bulkActions={
+          canWrite
+            ? ({ clear }) => (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleBulkStatus(true)}
+                    disabled={bulkPending}
                   >
-                    Geen personeelsrecords gevonden
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row, i) => {
-                  const isSlim = slimProfiel?.id === row.id;
-                  return (
-                    <tr
-                      key={row.id}
-                      className="transition-colors"
-                      style={{
-                        borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
-                        backgroundColor: isSlim ? "#F0FAFA" : undefined,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setSlimProfiel(isSlim ? null : row)}
+                    <ToggleRight className="size-4" />
+                    Activeren
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setBulkDeactivateOpen(true)}
+                    disabled={bulkPending}
+                  >
+                    <ToggleLeft className="size-4" />
+                    Deactiveren
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={clear}>
+                    Selectie wissen
+                  </Button>
+                </>
+              )
+            : undefined
+        }
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          pageCount: totalPages,
+          total,
+          onPageChange: (nextPage) =>
+            router.replace(buildUrl({ page: String(nextPage) })),
+        }}
+        renderMobileCard={(row, _index, context) => (
+          <article
+            aria-labelledby={`personnel-mobile-${row.id}-title`}
+            className="rounded-lg border border-border bg-card p-4 shadow-card"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                {context.selectionControl}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <UserCircle2 className="size-4 text-muted-foreground" />
+                    <Link
+                      id={`personnel-mobile-${row.id}-title`}
+                      href={`/personnel/${row.id}`}
+                      className="truncate font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      {canWrite && (
-                        <td className="pl-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selected.has(row.id)}
-                            onCheckedChange={() => toggleOne(row.id)}
-                            aria-label={`Select ${row.firstName} ${row.lastName}`}
-                          />
-                        </td>
-                      )}
-                      <td className="pl-3 pr-1 py-3">
-                        <div
-                          className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                          style={{
-                            width:           "32px",
-                            height:          "32px",
-                            backgroundColor: "#E0FAFB",
-                            color:           "#0A7E7A",
-                          }}
-                        >
-                          {row.firstName[0]?.toUpperCase()}{row.lastName[0]?.toUpperCase()}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                          {row.code}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-sm" style={{ color: "#081D3A" }}>
-                          {row.lastName}, {row.firstName}
-                        </div>
-                        <div className="text-xs" style={{ color: "#94A3B8" }}>{row.email}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <PersonnelTypeBadge type={row.personnelType} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.sectorName ? (
-                          <span
-                            className="inline-block rounded px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
-                          >
-                            {row.sectorName}
-                          </span>
-                        ) : (
-                          <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.roleName ? (
-                          <span
-                            className="inline-block rounded px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
-                          >
-                            {formatPersonnelRoleName(row.roleName)}
-                          </span>
-                        ) : (
-                          <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                        {row.region ?? "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.certificates.length === 0 ? (
-                          <span style={{ color: "#94A3B8" }}>—</span>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="inline-flex items-center justify-center rounded-full text-xs font-bold"
-                              style={{
-                                width: "22px", height: "22px",
-                                backgroundColor: "#E0FAFB", color: "#0A7E7A",
-                              }}
-                            >
-                              {row.certificates.length}
-                            </span>
-                            <QualChips tags={row.certificates} max={1} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <AvailabilityBadge status={row.availabilityStatus} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge isActive={row.isActive} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
-                      </td>
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        {renderRowActions(row)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      {row.firstName} {row.lastName}
+                    </Link>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {formatPersonnelRoleName(row.roleName) ||
+                      "Geen rol ingesteld"}
+                    {row.region ? ` · ${row.region}` : ""}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="-ml-3 mt-0.5 text-xs text-muted-foreground"
+                    onClick={() => openQuickView(row)}
+                  >
+                    Snel bekijken
+                  </Button>
+                </div>
+              </div>
+              {renderRowActions(row)}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <AvailabilityBadge status={row.availabilityStatus} />
+              <InviteBadge
+                userId={row.userId}
+                inviteSentAt={row.inviteSentAt}
+              />
+              <StatusBadge isActive={row.isActive} />
+            </div>
+          </article>
+        )}
+      />
 
-        {/* Slim profiel panel */}
-        {slimProfiel && (
+      <Sheet
+        open={slimProfiel !== null}
+        onOpenChange={(open) => {
+          if (!open) setSlimProfiel(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full overflow-hidden p-0 sm:max-w-[360px] [&>aside]:!w-full [&>button]:hidden"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>
+              {slimProfiel
+                ? `Snel profiel van ${slimProfiel.firstName} ${slimProfiel.lastName}`
+                : "Snel profiel"}
+            </SheetTitle>
+            <SheetDescription>
+              Beschikbaarheid, regio&apos;s en gekoppelde objecten.
+            </SheetDescription>
+          </SheetHeader>
           <SlimProfielPanel
             person={slimProfiel}
             onClose={() => setSlimProfiel(null)}
           />
-        )}
-      </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-sm" style={{ color: "#64748B" }}>
-            Pagina {page} van {totalPages} ({total} totaal)
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Create/edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-xl"
+        >
           <SheetHeader>
             <SheetTitle>
               {editingId ? "Medewerker bewerken" : "Nieuw personeelslid"}
@@ -795,7 +1020,7 @@ export function PersonnelView({
       />
 
       <TenantConfirmDialog
-        open={!!deleteTarget}
+        open={deleteTarget !== null}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
