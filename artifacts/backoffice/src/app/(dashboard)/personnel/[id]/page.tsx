@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft, Mail, Phone, MapPin, Calendar,
+  Mail, Phone, MapPin, Calendar,
   CheckCircle2, XCircle, ClipboardList, Building2,
   Briefcase, AlertCircle, FileText, Route,
 } from "lucide-react";
@@ -229,80 +229,6 @@ export default async function PersonnelDetailPage({ params }: Props) {
           ) : undefined
         }
       >
-      {/* ── Header ──────────────────────────────────────── */}
-      <div className="hidden">
-        <div className="flex items-start gap-4">
-          <Link
-            href="/personnel"
-            className="mt-1 flex items-center gap-1 text-sm transition-colors hover:underline"
-            style={{ color: "#64748B" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Personeel
-          </Link>
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-                {fullName}
-              </h1>
-              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                {person.code}
-              </span>
-              {typeLabel && typeColor && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: typeColor.bg, color: typeColor.color }}
-                >
-                  {typeLabel}
-                </span>
-              )}
-              {person.roleName && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
-                >
-                  {formatPersonnelRoleName(person.roleName)}
-                </span>
-              )}
-              {person.sectorName && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
-                >
-                  {person.sectorName}
-                </span>
-              )}
-              <StatusBadge isActive={person.isActive} />
-              {person.emergencyAvailable && (
-                <span
-                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
-                >
-                  <AlertCircle className="h-3 w-3" />
-                  Spoedsbeschikbaar
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 text-sm" style={{ color: "#64748B" }}>{person.email}</p>
-          </div>
-        </div>
-
-        {canWrite && (
-          <PersonnelDetailActions
-            personnelId={person.id}
-            personnelName={fullName}
-            personnelEmail={person.email}
-            isActive={person.isActive}
-            userId={person.userId}
-            inviteSentAt={person.inviteSentAt}
-            authStatus={authStatus}
-            roles={roles}
-            sectors={sectors}
-            canManagePortal={canManagePortal}
-          />
-        )}
-      </div>
-
       {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
       <section id="availability" className="mb-6 scroll-mt-24">
         <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   Building2,
   FileCheck2,
   Download,
@@ -93,33 +92,6 @@ export default async function QuoteDetailPage({ params }: Props) {
           { label: "Acties", href: "#actions" },
         ]}
       />
-      {/* Header */}
-      <div className="hidden">
-        <Link
-          href="/quotes"
-          className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
-          style={{ color: "#64748B" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Offertes
-        </Link>
-
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-                {quote.quoteNumber}
-              </h1>
-              <ProcessStatusBadge kind="quote" status={displayStatus} size="md" />
-            </div>
-            <p className="text-sm" style={{ color: "#64748B" }}>
-              Aangemaakt op {fmtDate(quote.createdAt)}
-            </p>
-            <ProcessStepper kind="quote" status={displayStatus} className="mt-4" />
-          </div>
-        </div>
-      </div>
-
       {/* Expiry warning */}
       {quote.status === "sent" && daysUntilExpiry !== null && (
         <div

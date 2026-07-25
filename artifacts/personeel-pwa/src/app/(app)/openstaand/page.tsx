@@ -306,15 +306,6 @@ export default async function OpenstaandePage({ searchParams }: Props) {
       title="Open diensten"
       subtitle="Meld je aan als kandidaat; planning bevestigt de inzet."
     >
-      <div className="hidden">
-        <h1 className="text-xl font-bold md:text-2xl" style={{ color: "var(--color-primary)" }}>
-          Openstaande opdrachten
-        </h1>
-        <p className="mt-0.5 text-sm" style={{ color: "var(--color-secondary)" }}>
-          Meld je aan als kandidaat; de planner bevestigt de definitieve inzet.
-        </p>
-      </div>
-
       <OpenAssignmentsCommandBar
         query={query}
         status={status}

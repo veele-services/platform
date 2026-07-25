@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
+import { FileText, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
@@ -216,41 +216,6 @@ export default async function ReportDetailPage({ params }: Props) {
           { label: "Acties", href: "#actions" },
         ]}
       />
-      {/* ── Header ── */}
-      <div className="hidden">
-        <Link
-          href="/reports"
-          className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
-          style={{ color: "#64748B" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Rapporten
-        </Link>
-
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-                Rapport — {report.assignmentTitle}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <ProcessStatusBadge kind="report" status={report.status} />
-              <span
-                className="font-mono text-xs rounded px-1.5 py-0.5"
-                style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
-              >
-                {report.assignmentCode}
-              </span>
-            </div>
-            <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
-              Ingediend {formatDate(report.submittedAt)}
-            </p>
-            <ProcessStepper kind="report" status={report.status} className="mt-4" />
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: report content */}
         <div className="lg:col-span-2 flex flex-col gap-6">

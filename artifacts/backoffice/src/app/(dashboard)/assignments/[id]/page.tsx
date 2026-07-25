@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   Building2,
   MapPin,
   Calendar,
@@ -864,9 +863,6 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
     : [];
 
   // ── Formatted dates ────────────────────────────────────────────────────────
-  const createdAt = new Date(assignment.createdAt).toLocaleDateString("nl-NL", {
-    day: "numeric", month: "long", year: "numeric",
-  });
   const updatedAt = new Date(assignment.updatedAt).toLocaleDateString("nl-NL", {
     day: "numeric", month: "long", year: "numeric",
   });
@@ -979,42 +975,6 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
           .filter((item) => visibleTabs.includes(item.tab))
           .map(({ tab: _tab, ...item }) => item)}
       />
-
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="hidden">
-        <Link
-          href="/assignments"
-          className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
-          style={{ color: "#64748B" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Opdrachten
-        </Link>
-
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1
-                className="font-heading text-2xl font-bold"
-                style={{ color: "#081D3A" }}
-              >
-                {assignment.title}
-              </h1>
-              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100 self-center" style={{ color: "#475569" }}>
-                {assignment.code}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <AssignmentStatusBadge status={assignment.status} />
-              <AssignmentPriorityBadge priority={assignment.priority} />
-            </div>
-            <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
-              Aangemaakt {createdAt} · Bijgewerkt {updatedAt}
-            </p>
-            <ProcessStepper kind="assignment" status={assignment.status} className="mt-4" />
-          </div>
-        </div>
-      </div>
 
       {/* ── Two-column layout ─────────────────────────── */}
       {activeTab === "planning" && planningReadiness && (

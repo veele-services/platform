@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   Building2,
   MapPin,
   Calendar,
@@ -173,56 +172,6 @@ export default async function InvoiceDetailPage({ params }: Props) {
           { label: "Historie", href: "#history", count: statusHistory.length },
         ]}
       />
-
-      {/* ── Header ── */}
-      <div className="hidden">
-        <Link
-          href="/invoices"
-          className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
-          style={{ color: "#64748B" }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Facturen
-        </Link>
-
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1
-                className="font-heading text-2xl font-bold"
-                style={{ color: "#081D3A" }}
-              >
-                {invoice.invoiceNumber}
-              </h1>
-              <ProcessStatusBadge kind="invoice" status={invoice.status} size="md" />
-              {isOverdue && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
-                >
-                  <Clock className="h-3.5 w-3.5" />
-                  Achterstallig
-                </span>
-              )}
-            </div>
-            <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Aangemaakt op {new Date(invoice.createdAt).toLocaleDateString("nl-NL", {
-                day: "numeric", month: "long", year: "numeric",
-              })}
-            </p>
-            <ProcessStepper kind="invoice" status={invoice.status} className="mt-4" />
-          </div>
-          <Link
-            href={`/backoffice-api/invoices/${invoice.id}/pdf`}
-            target="_blank"
-            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
-            style={{ borderColor: "#CBD5E1", color: "#081D3A", background: "#FFFFFF" }}
-          >
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Link>
-        </div>
-      </div>
 
       {/* ── Two-column layout ── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">

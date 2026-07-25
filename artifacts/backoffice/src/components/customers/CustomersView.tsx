@@ -17,7 +17,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Download,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
@@ -575,75 +574,6 @@ export function CustomersView({
         }
         activeFilters={<TenantActiveFilters filters={activeFilters} />}
       />
-
-      {false && advancedFilterCount > 0 && (
-        <div className="hidden">
-          <span>Filters:</span>
-          {initialCity && (
-            <span
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "#E0FAFB", color: "#00746F" }}
-            >
-              Stad: {initialCity}
-              <button type="button" onClick={() => applyFilter("city", "")} className="hover:opacity-70">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {initialCountry && (
-            <span
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "#E0FAFB", color: "#00746F" }}
-            >
-              Land: {initialCountry}
-              <button type="button" onClick={() => applyFilter("country", "")} className="hover:opacity-70">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {initialAccountManagerId && (
-            <span
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "#E0FAFB", color: "#00746F" }}
-            >
-              Accountmanager: {accountManagers.find((a) => a.id === initialAccountManagerId)?.fullName ?? "—"}
-              <button type="button" onClick={() => applyFilter("accountManagerId", "")} className="hover:opacity-70">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {initialDateFrom && (
-            <span
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "#E0FAFB", color: "#00746F" }}
-            >
-              Vanaf: {initialDateFrom}
-              <button type="button" onClick={() => applyFilter("dateFrom", "")} className="hover:opacity-70">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {initialDateTo && (
-            <span
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "#E0FAFB", color: "#00746F" }}
-            >
-              Tot: {initialDateTo}
-              <button type="button" onClick={() => applyFilter("dateTo", "")} className="hover:opacity-70">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          <button
-            type="button"
-            className="text-xs underline hover:no-underline"
-            style={{ color: "#64748B" }}
-            onClick={clearAdvancedFilters}
-          >
-            Alles wissen
-          </button>
-        </div>
-      )}
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canWrite && (
