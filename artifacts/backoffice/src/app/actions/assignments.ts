@@ -1658,7 +1658,7 @@ export async function getAssignmentPlanningReadiness(
       .from(assignmentsTable)
       .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
-    calculateAssignmentCapacity(assignmentId, { persist: true }),
+    calculateAssignmentCapacity(tenantId, assignmentId, { persist: true }),
     db
       .select({
         personnelId: assignmentPersonnelTable.personnelId,
@@ -1799,7 +1799,7 @@ export async function recalculateAssignmentCapacity(
     .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId))).limit(1);
   if (!scopedAssignment) return { success: false, message: "Opdracht niet gevonden." };
 
-  const result = await calculateAssignmentCapacity(assignmentId, {
+  const result = await calculateAssignmentCapacity(tenantId, assignmentId, {
     persist: true,
     actorUserId: user.id,
   });
@@ -1869,13 +1869,13 @@ export async function sendAssignmentInterestPoll(
     };
   }
 
-  const capacity = await calculateAssignmentCapacity(assignmentId, {
+  const capacity = await calculateAssignmentCapacity(tenantId, assignmentId, {
     persist: true,
     actorUserId: user.id,
   });
   if (!capacity) return { success: false, message: "Opdracht niet gevonden." };
 
-  const defaults = await getSmartPlanningRoundDefaults(assignmentId);
+  const defaults = await getSmartPlanningRoundDefaults(tenantId, assignmentId);
   const audienceType = input?.audienceType ?? "top_matches";
   const limit = Math.max(1, Math.min(input?.limit ?? defaults.roundSize, 50));
   const candidates = capacity.candidates
@@ -2467,17 +2467,24 @@ export async function markInterestCandidate(
       .limit(1),
   ]);
 
-  await safeRefreshPlanningRoutesForAssignment({
-    tenantId,
-    userId: user.id,
-    assignmentId,
-    reason: "assignment_assigned",
-    status: selection.assignmentStatus,
-    personnelIds: [personnelId],
-    source: "backoffice",
-  });
+  if (!selection.idempotent) {
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      userId: user.id,
+      assignmentId,
+      reason: "assignment_assigned",
+      status: selection.assignmentStatus,
+      personnelIds: [personnelId],
+      source: "backoffice",
+    });
+  }
 
-  if (status !== "cancelled" && assignment && personnel) {
+  if (
+    !selection.idempotent &&
+    status !== "cancelled" &&
+    assignment &&
+    personnel
+  ) {
     await emitDomainEvent({
       eventKey:
         status === "reserve"
@@ -3310,7 +3317,7 @@ export async function createAssignment(
       metadata: { title: payload.title, status: payload.status },
     });
 
-    await calculateAssignmentCapacity(created!.id, {
+    await calculateAssignmentCapacity(tenantId, created!.id, {
       persist: true,
       actorUserId: user.id,
     });
@@ -3406,7 +3413,7 @@ export async function updateAssignment(
       metadata: { title: payload.title },
     });
 
-    await calculateAssignmentCapacity(id, {
+    await calculateAssignmentCapacity(tenantId, id, {
       persist: true,
       actorUserId: user.id,
     });
@@ -3814,7 +3821,7 @@ export async function addAssignmentTask(
     metadata: { taskCodeId, taskId: created!.id },
   });
 
-  await calculateAssignmentCapacity(assignmentId, {
+  await calculateAssignmentCapacity(tenantId, assignmentId, {
     persist: true,
     actorUserId: user.id,
   });
@@ -3867,7 +3874,7 @@ export async function removeAssignmentTask(
     metadata: { taskId },
   });
 
-  await calculateAssignmentCapacity(assignmentId, {
+  await calculateAssignmentCapacity(tenantId, assignmentId, {
     persist: true,
     actorUserId: user.id,
   });

@@ -36,7 +36,7 @@ export async function selectInterestCandidateCanonically(input: {
   const { tenantId, assignmentId, personnelId, status, actorUserId } = input;
 
   const eligibility = status === "selected"
-    ? await getCanonicalPlanningEligibility(assignmentId)
+    ? await getCanonicalPlanningEligibility(tenantId, assignmentId)
     : null;
   if (status === "selected") {
     const candidate = eligibility?.candidates.find((row) => row.personnelId === personnelId);
@@ -194,28 +194,33 @@ export async function selectInterestCandidateCanonically(input: {
     const assignedCount = transition
       ? Number(transition.assigned_count)
       : Number(countResult.rows[0]?.count ?? 0);
+    const requiredPersonnelCount = transition
+      ? Number(transition.required_personnel_count)
+      : assignment.required_personnel_count;
     const assignmentStatus = transition?.assignment_status ?? assignment.status;
     const canonicalAssignmentLinked = transition?.staffing_status === "assigned";
     const idempotent = responseAlreadyFinal && (transition?.idempotent ?? true);
 
-    await client.query(
-      `INSERT INTO public.audit_log (tenant_id, user_id, action, resource, resource_id, metadata)
-       VALUES ($1, $2, $3, 'assignments', $4, $5::jsonb)`,
-      [
-        tenantId,
-        actorUserId,
-        `assignment_interest_${status}`,
-        assignmentId,
-        JSON.stringify({
-          personnelId,
-          responseId: response.id,
-          assignmentPersonnelId: transition?.assignment_personnel_id ?? null,
-          assignedCount,
-          requiredPersonnelCount: assignment.required_personnel_count,
-          canonicalAssignmentLinked,
-        }),
-      ],
-    );
+    if (!idempotent) {
+      await client.query(
+        `INSERT INTO public.audit_log (tenant_id, user_id, action, resource, resource_id, metadata)
+         VALUES ($1, $2, $3, 'assignments', $4, $5::jsonb)`,
+        [
+          tenantId,
+          actorUserId,
+          `assignment_interest_${status}`,
+          assignmentId,
+          JSON.stringify({
+            personnelId,
+            responseId: response.id,
+            assignmentPersonnelId: transition?.assignment_personnel_id ?? null,
+            assignedCount,
+            requiredPersonnelCount,
+            canonicalAssignmentLinked,
+          }),
+        ],
+      );
+    }
 
     await client.query("COMMIT");
     return {
@@ -226,12 +231,24 @@ export async function selectInterestCandidateCanonically(input: {
       status,
       canonicalAssignmentLinked,
       assignedCount,
-      requiredPersonnelCount: assignment.required_personnel_count,
+      requiredPersonnelCount,
       assignmentStatus,
       idempotent,
     };
   } catch (error) {
     await client.query("ROLLBACK");
+    const detail =
+      typeof error === "object" &&
+      error !== null &&
+      "detail" in error &&
+      typeof error.detail === "string"
+        ? error.detail
+        : null;
+    if (detail === "assignment_capacity_full") {
+      throw Object.assign(new Error("Deze opdracht is al volledig bezet."), {
+        code: "assignment_capacity_full",
+      });
+    }
     throw error;
   } finally {
     client.release();
