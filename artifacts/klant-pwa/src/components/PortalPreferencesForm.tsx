@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@workspace/shared-ui";
 import { useActionState, useState, useTransition } from "react";
 import { Loader2, Smartphone } from "lucide-react";
 import {
@@ -16,30 +17,63 @@ import {
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 const OPTIONS = [
-  { name: "emailNotifications",  label: "E-mailmeldingen ontvangen", description: "Hoofdschakelaar voor operationele e-mails." },
-  { name: "invoiceEmails",       label: "Facturen en betalingen", description: "Nieuwe facturen, herinneringen en betaalstatus." },
-  { name: "quoteEmails",         label: "Offertes", description: "Offertes die beoordeling of akkoord nodig hebben." },
-  { name: "reportEmails",        label: "Rapportages", description: "Nieuwe rapportages en documenten na uitvoering." },
-  { name: "serviceUpdateEmails", label: "Service-updates", description: "Updates over aanvragen, planning en objecten." },
-  { name: "marketingEmails",     label: "Commerciele updates", description: "Nieuws over diensten en algemene campagnes." },
-  { name: "pushNotifications",   label: "Pushmeldingen", description: "Apparaatmeldingen wanneer push voor dit portaal actief is." },
+  {
+    name: "emailNotifications",
+    label: "E-mailmeldingen ontvangen",
+    description: "Hoofdschakelaar voor operationele e-mails.",
+  },
+  {
+    name: "invoiceEmails",
+    label: "Facturen en betalingen",
+    description: "Nieuwe facturen, herinneringen en betaalstatus.",
+  },
+  {
+    name: "quoteEmails",
+    label: "Offertes",
+    description: "Offertes die beoordeling of akkoord nodig hebben.",
+  },
+  {
+    name: "reportEmails",
+    label: "Rapportages",
+    description: "Nieuwe rapportages en documenten na uitvoering.",
+  },
+  {
+    name: "serviceUpdateEmails",
+    label: "Service-updates",
+    description: "Updates over aanvragen, planning en objecten.",
+  },
+  {
+    name: "marketingEmails",
+    label: "Commerciele updates",
+    description: "Nieuws over diensten en algemene campagnes.",
+  },
+  {
+    name: "pushNotifications",
+    label: "Pushmeldingen",
+    description: "Apparaatmeldingen wanneer push voor dit portaal actief is.",
+  },
 ] as const;
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-export function PortalPreferencesForm({ preferences }: { preferences: CustomerPortalPreferenceState }) {
-  const [state, formAction, pending] = useActionState<PreferenceResult, FormData>(
-    updateMyPortalPreferences,
-    { success: false, error: "" },
-  );
-  const [pushStatus, setPushStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+export function PortalPreferencesForm({
+  preferences,
+}: {
+  preferences: CustomerPortalPreferenceState;
+}) {
+  const [state, formAction, pending] = useActionState<
+    PreferenceResult,
+    FormData
+  >(updateMyPortalPreferences, { success: false, error: "" });
+  const [pushStatus, setPushStatus] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [isRegisteringPush, startPushRegistration] = useTransition();
 
   function registerPush() {
@@ -63,7 +97,10 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
 
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setPushStatus({ type: "error", text: "Push toestemming is niet gegeven." });
+        setPushStatus({
+          type: "error",
+          text: "Push toestemming is niet gegeven.",
+        });
         return;
       }
 
@@ -87,7 +124,10 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
 
       setPushStatus(
         result.success
-          ? { type: "success", text: "Browser is geregistreerd voor pushmeldingen." }
+          ? {
+              type: "success",
+              text: "Browser is geregistreerd voor pushmeldingen.",
+            }
           : { type: "error", text: result.error },
       );
     });
@@ -97,11 +137,18 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
     <form action={formAction} className="rounded-[22px] bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+          <h2
+            className="text-lg font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             Notificatie- en e-mailinstellingen
           </h2>
-          <p className="mt-1 text-sm font-medium" style={{ color: "var(--color-secondary)" }}>
-            Bepaal welke klantportaalmeldingen u per e-mail of push wilt ontvangen.
+          <p
+            className="mt-1 text-sm font-medium"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            Bepaal welke klantportaalmeldingen u per e-mail of push wilt
+            ontvangen.
           </p>
         </div>
       </div>
@@ -113,17 +160,23 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
             className="flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3"
             style={{ borderColor: "var(--color-border)" }}
           >
-            <input
+            <CheckboxAdapter
               type="checkbox"
               name={option.name}
               defaultChecked={preferences[option.name]}
               className="mt-1 h-4 w-4 accent-[#00B7B3]"
             />
             <span>
-              <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              <span
+                className="block text-sm font-black"
+                style={{ color: "var(--color-primary)" }}
+              >
                 {option.label}
               </span>
-              <span className="mt-0.5 block text-xs font-medium leading-5" style={{ color: "var(--color-secondary)" }}>
+              <span
+                className="mt-0.5 block text-xs font-medium leading-5"
+                style={{ color: "var(--color-secondary)" }}
+              >
                 {option.description}
               </span>
             </span>
@@ -133,7 +186,9 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
 
       {state && !state.success && state.error ? (
         <div className="mt-4">
-          <CustomerSettingsFeedback type="error">{state.error}</CustomerSettingsFeedback>
+          <CustomerSettingsFeedback type="error">
+            {state.error}
+          </CustomerSettingsFeedback>
         </div>
       ) : null}
       {state?.success && !pending ? (
@@ -151,7 +206,10 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
             disabled={isRegisteringPush}
             onClick={registerPush}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black disabled:opacity-60"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           >
             {isRegisteringPush ? (
               <Loader2 size={16} className="animate-spin" />

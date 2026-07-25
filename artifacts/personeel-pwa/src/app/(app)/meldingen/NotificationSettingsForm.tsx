@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@workspace/shared-ui";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import {
   CalendarClock,
@@ -79,7 +80,13 @@ const OPTIONS = [
 
 type OptionName = (typeof OPTIONS)[number]["name"];
 type PushDeviceState = {
-  status: "checking" | "active" | "inactive" | "unsupported" | "denied" | "error";
+  status:
+    | "checking"
+    | "active"
+    | "inactive"
+    | "unsupported"
+    | "denied"
+    | "error";
   text: string;
   endpoint: string | null;
 };
@@ -148,9 +155,7 @@ export function NotificationSettingsForm({
     appBuild?: string;
   }) {
     const metadata =
-      registration.appId &&
-      registration.appVersion &&
-      registration.appBuild
+      registration.appId && registration.appVersion && registration.appBuild
         ? {
             appId: registration.appId,
             appVersion: registration.appVersion,
@@ -291,7 +296,9 @@ export function NotificationSettingsForm({
         return;
       }
 
-      const serverStatus = await getMyPushSubscriptionStatus(localState.endpoint);
+      const serverStatus = await getMyPushSubscriptionStatus(
+        localState.endpoint,
+      );
       if (serverStatus.success && serverStatus.active) {
         setPushDevice({
           status: "active",
@@ -326,7 +333,9 @@ export function NotificationSettingsForm({
       try {
         if (isNativeApp) {
           const previousState = await getLocalNativePushState();
-          const previousToken = previousState.supported ? previousState.token : null;
+          const previousToken = previousState.supported
+            ? previousState.token
+            : null;
           const registration = await ensureNativePushRegistration();
 
           if (previousToken && previousToken !== registration.token) {
@@ -486,7 +495,7 @@ export function NotificationSettingsForm({
             className="flex items-center gap-3 rounded-[20px] border bg-white px-3 py-3 shadow-sm"
             style={{ borderColor: active ? "#BDEDEA" : "#D8E8F3" }}
           >
-            <input
+            <CheckboxAdapter
               type="checkbox"
               name={name}
               checked={active}

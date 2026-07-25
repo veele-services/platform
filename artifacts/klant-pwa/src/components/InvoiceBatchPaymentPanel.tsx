@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@workspace/shared-ui";
 import { useMemo, useState } from "react";
 import { ArrowRight, CheckSquare2, WalletCards, X } from "lucide-react";
 import type { CustomerInvoice } from "@/actions/invoices";
@@ -179,7 +180,7 @@ export function InvoiceBatchPaymentPanel({
                           backgroundColor: checked ? "#F0FDFB" : "#FFFFFF",
                         }}
                       >
-                        <input
+                        <CheckboxAdapter
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggle(invoice.id)}

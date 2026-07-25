@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@workspace/shared-ui";
 import { SelectAdapter } from "@workspace/shared-ui";
 import { useMemo, useState, useTransition } from "react";
 import {
@@ -611,7 +612,7 @@ function ChecklistField({
       {item.type !== "information" && (
         <div className="mt-3 border-t border-slate-100 pt-3">
           <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               disabled={disabled}
               checked={deviationSelected}
