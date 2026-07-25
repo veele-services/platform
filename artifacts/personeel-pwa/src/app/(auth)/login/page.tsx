@@ -1,6 +1,14 @@
 import { LoginForm } from "@/components/LoginForm";
+import {
+  clearPersonnelTenantSelection,
+  selectPersonnelTenant,
+} from "@/actions/auth";
 import { getTenantBranding } from "@workspace/db";
-import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
+import {
+  requireCurrentPersonnelPortalTenantId,
+  resolvePersonnelPortalTenantContext,
+} from "@/lib/auth/tenant";
+import { ArrowRight, Building2 } from "lucide-react";
 
 type Props = {
   searchParams: Promise<{ error?: string; message?: string; next?: string }>;
@@ -33,10 +41,14 @@ function safeNext(value: string | undefined): string | null {
 export default async function LoginPage({ searchParams }: Props) {
   const { error, message, next } = await searchParams;
   const redirectPath = safeNext(next);
-  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const [tenantContext, tenantId] = await Promise.all([
+    resolvePersonnelPortalTenantContext(),
+    requireCurrentPersonnelPortalTenantId(),
+  ]);
   const branding = tenantId ? await getTenantBranding(tenantId) : null;
   const displayName = branding?.displayName ?? "Fieldgrid";
   const title = branding?.customBrandingEnabled ? `${displayName} Personeel` : "Fieldgrid Personeel";
+  const showTenantCode = tenantContext.requiresTenantCode && !tenantId;
 
   return (
     <div
@@ -81,7 +93,73 @@ export default async function LoginPage({ searchParams }: Props) {
           )}
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
-            <LoginForm next={redirectPath} />
+            {showTenantCode ? (
+              <form action={selectPersonnelTenant} className="space-y-5">
+                {redirectPath ? <input type="hidden" name="next" value={redirectPath} /> : null}
+                <div className="flex items-start gap-3">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Building2 aria-hidden="true" className="size-5" />
+                  </span>
+                  <div>
+                    <h2 className="font-semibold text-foreground">Kies je organisatie</h2>
+                    <p id="tenant-code-help" className="mt-1 text-sm leading-5 text-muted-foreground">
+                      Vul de unieke code van zes tekens in die je van je werkgever hebt ontvangen.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="tenantCode" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Organisatiecode
+                  </label>
+                  <input
+                    id="tenantCode"
+                    name="tenantCode"
+                    type="text"
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    minLength={6}
+                    maxLength={6}
+                    pattern="[A-HJ-NP-Za-hj-np-z2-9]{6}"
+                    aria-describedby="tenant-code-help"
+                    required
+                    autoFocus
+                    placeholder="ABC234"
+                    className="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-center font-mono text-xl font-bold uppercase tracking-[0.3em] text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  Naar inloggen
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                </button>
+              </form>
+            ) : tenantContext.blockedHost ? (
+              <div role="alert" className="space-y-2 text-center">
+                <h2 className="font-semibold text-foreground">Personeelsapp niet beschikbaar</h2>
+                <p className="text-sm text-muted-foreground">
+                  Deze app-link hoort niet bij een actieve organisatie.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <LoginForm next={redirectPath} />
+                {tenantContext.source === "selection" ? (
+                  <form action={clearPersonnelTenantSelection}>
+                    <button
+                      type="submit"
+                      className="min-h-11 w-full rounded-lg text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Andere organisatie kiezen
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </div>

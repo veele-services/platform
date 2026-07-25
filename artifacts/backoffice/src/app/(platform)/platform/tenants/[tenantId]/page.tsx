@@ -625,6 +625,7 @@ function OverviewTab({
             {[
               ["Organisatie-ID", tenant.id],
               ["Slug", tenant.slug],
+              ["Personeelsapp-code", tenant.personnelLoginCode],
               ["Plan", `${tenant.planName} (${tenant.planKey})`],
               [
                 "Primaire host",

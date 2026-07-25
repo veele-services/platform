@@ -35,6 +35,7 @@ export * from "./assignment-participant-execution";
 export * from "./staffing-lifecycle";
 export * from "./staffing-invariants";
 export * from "./planning-qualification-requirements";
+export * from "./personnel-tenant-code";
 export * from "./review-remediation-lifecycle";
 export * from "./mollie-payment-provider";
 export * from "./payment-integrity";

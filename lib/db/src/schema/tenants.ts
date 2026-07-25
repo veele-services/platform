@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -30,6 +31,9 @@ export const tenantsTable = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     slug: varchar("slug", { length: 80 }).notNull(),
+    personnelLoginCode: varchar("personnel_login_code", { length: 6 })
+      .notNull()
+      .default(sql`public.fieldgrid_generate_personnel_login_code()`),
     name: varchar("name", { length: 200 }).notNull(),
     isActive: boolean("is_active").notNull().default(true),
     status: varchar("status", { length: 30 })
@@ -53,6 +57,7 @@ export const tenantsTable = pgTable(
   },
   (table) => [
     uniqueIndex("tenants_slug_idx").on(table.slug),
+    uniqueIndex("tenants_personnel_login_code_idx").on(table.personnelLoginCode),
     index("tenants_status_idx").on(table.status),
     index("tenants_plan_key_idx").on(table.planKey),
   ],

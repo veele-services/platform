@@ -307,6 +307,7 @@ export type PlatformTenantOperationalReadiness = {
 };
 
 export type PlatformTenantDetail = PlatformTenantRow & {
+  personnelLoginCode: string;
   suspendedAt: string | null;
   archivedAt: string | null;
   updatedAt: string;
@@ -1823,6 +1824,7 @@ export async function getPlatformTenantDetail(
     .select({
       id: tenantsTable.id,
       slug: tenantsTable.slug,
+      personnelLoginCode: tenantsTable.personnelLoginCode,
       name: tenantsTable.name,
       isActive: tenantsTable.isActive,
       status: tenantsTable.status,

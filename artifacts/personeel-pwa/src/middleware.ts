@@ -47,6 +47,7 @@ export async function middleware(request: NextRequest) {
     isLoginPage ||
     isPasswordResetPage ||
     normalizedPathname === "/wachtwoord-vergeten" ||
+    normalizedPathname.startsWith("/organisatie/") ||
     normalizedPathname.startsWith("/auth/confirm");
 
   if (!url || !key) {

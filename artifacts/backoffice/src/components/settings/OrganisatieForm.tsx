@@ -198,6 +198,19 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             className="veele-input w-32"
           />
         </Field>
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Code algemene personeelsapp
+          </p>
+          <p className="mt-2 font-mono text-2xl font-bold tracking-[0.3em] text-foreground">
+            {s?.personnelLoginCode ?? "------"}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            Medewerkers van algemene Fieldgrid-klanten vullen deze unieke code
+            in voordat zij hun e-mailadres en wachtwoord zien. Enterprise-apps
+            met een eigen organisatiehost slaan deze stap over.
+          </p>
+        </div>
       </div>
 
       <div className="veele-card space-y-4">

@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   db,
   isFieldgridSubdomain,
   isPlatformHost,
+  normalizePersonnelTenantCode,
   normalizeHost,
   personnelTable,
   requireTenantModule,
@@ -14,11 +15,20 @@ import {
 } from "@workspace/db";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
-type PortalHostTenantResolution =
+export const PERSONNEL_TENANT_COOKIE = "fg_personnel_tenant";
+
+export type PortalHostTenantResolution =
   | { kind: "tenant"; tenantId: string }
   | { kind: "platform" }
   | { kind: "blocked" }
   | { kind: "none" };
+
+export type PersonnelPortalTenantContext = {
+  tenantId: string | null;
+  source: "host" | "selection" | "account" | null;
+  requiresTenantCode: boolean;
+  blockedHost: boolean;
+};
 
 function firstForwardedValue(value: string | null): string {
   return (value ?? "").split(",")[0]?.trim() ?? "";
@@ -27,6 +37,37 @@ function firstForwardedValue(value: string | null): string {
 async function requestHost(): Promise<string> {
   const requestHeaders = await headers();
   return firstForwardedValue(requestHeaders.get("x-forwarded-host")) || requestHeaders.get("host") || "";
+}
+
+async function resolveSelectedPersonnelTenantId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const code = normalizePersonnelTenantCode(
+    cookieStore.get(PERSONNEL_TENANT_COOKIE)?.value,
+  );
+  if (!code) return null;
+
+  return resolveActivePersonnelTenantIdByCode(code);
+}
+
+export async function resolveActivePersonnelTenantIdByCode(
+  rawCode: unknown,
+): Promise<string | null> {
+  const code = normalizePersonnelTenantCode(rawCode);
+  if (!code) return null;
+
+  const [tenant] = await db
+    .select({ tenantId: tenantsTable.id })
+    .from(tenantsTable)
+    .where(
+      and(
+        eq(tenantsTable.personnelLoginCode, code),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+
+  return tenant?.tenantId ?? null;
 }
 
 function singleTenantId(rows: { tenantId: string }[]): string | null {
@@ -106,13 +147,54 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
   return { kind: "none" };
 }
 
-export async function getCurrentPortalTenantId(): Promise<string | null> {
+export async function resolvePersonnelPortalTenantContext(): Promise<PersonnelPortalTenantContext> {
   const resolution = await resolvePortalTenantFromHost();
-  if (resolution.kind === "tenant") return resolution.tenantId;
-  if (resolution.kind === "platform" || resolution.kind === "none") {
-    return resolveAuthenticatedPersonnelTenantId();
+  if (resolution.kind === "tenant") {
+    return {
+      tenantId: resolution.tenantId,
+      source: "host",
+      requiresTenantCode: false,
+      blockedHost: false,
+    };
   }
-  return null;
+  if (resolution.kind === "blocked") {
+    return {
+      tenantId: null,
+      source: null,
+      requiresTenantCode: false,
+      blockedHost: true,
+    };
+  }
+
+  if (resolution.kind === "platform" || resolution.kind === "none") {
+    const selectedTenantId = await resolveSelectedPersonnelTenantId();
+    if (selectedTenantId) {
+      return {
+        tenantId: selectedTenantId,
+        source: "selection",
+        requiresTenantCode: true,
+        blockedHost: false,
+      };
+    }
+
+    const authenticatedTenantId = await resolveAuthenticatedPersonnelTenantId();
+    return {
+      tenantId: authenticatedTenantId,
+      source: authenticatedTenantId ? "account" : null,
+      requiresTenantCode: true,
+      blockedHost: false,
+    };
+  }
+  return {
+    tenantId: null,
+    source: null,
+    requiresTenantCode: false,
+    blockedHost: true,
+  };
+}
+
+export async function getCurrentPortalTenantId(): Promise<string | null> {
+  return (await resolvePersonnelPortalTenantContext()).tenantId;
 }
 
 export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey): Promise<string | null> {

@@ -3,23 +3,32 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   CREDENTIAL_RECOVERY_GENERIC_RESPONSE,
   consumeCredentialRecoveryGrant,
   db,
+  isValidPersonnelTenantCode,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
+  normalizePersonnelTenantCode,
   personnelTable,
   recordCredentialRecoveryProviderOutcome,
+  requireTenantModule,
   resolveCredentialRecoveryOrigin,
+  TENANT_RUNTIME_ACTIVE_STATUSES,
+  tenantsTable,
   verifyCredentialRecoveryChallenge,
   type CredentialRecoveryPurpose,
   type CredentialRecoveryState,
 } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
+import {
+  PERSONNEL_TENANT_COOKIE,
+  requireCurrentPersonnelPortalTenantId,
+  resolveActivePersonnelTenantIdByCode,
+} from "@/lib/auth/tenant";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
 import { buildPasswordResetCodeEmail, personeelPortalUrl, sendEmailWithResult } from "@/lib/email";
 
@@ -128,18 +137,92 @@ function sanitizeRedirectPath(value: FormDataEntryValue | null): string | null {
   return trimmed;
 }
 
+function loginRedirect(message: string | null, next: string | null): never {
+  const query = new URLSearchParams();
+  if (message) query.set("error", message);
+  if (next) query.set("next", next);
+  redirect(`/login${query.size > 0 ? `?${query.toString()}` : ""}`);
+}
+
+export async function selectPersonnelTenant(formData: FormData) {
+  const code = normalizePersonnelTenantCode(formData.get("tenantCode"));
+  const next = sanitizeRedirectPath(formData.get("next"));
+
+  if (!isValidPersonnelTenantCode(code)) {
+    loginRedirect("Vul de geldige organisatiecode van zes tekens in.", next);
+  }
+
+  const tenantId = await resolveActivePersonnelTenantIdByCode(code);
+  if (!tenantId) {
+    loginRedirect("Organisatiecode niet herkend. Controleer de zes tekens.", next);
+  }
+
+  try {
+    await requireTenantModule(tenantId, "personnel_portal");
+  } catch {
+    loginRedirect("De personeelsapp is niet beschikbaar voor deze organisatie.", next);
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(PERSONNEL_TENANT_COOKIE, code, {
+    httpOnly: true,
+    path: PORTAL_BASE,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  loginRedirect(null, next);
+}
+
+export async function clearPersonnelTenantSelection() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+
+  const cookieStore = await cookies();
+  cookieStore.delete({
+    name: PERSONNEL_TENANT_COOKIE,
+    path: PORTAL_BASE,
+  });
+  redirect("/login");
+}
+
 export async function signIn(formData: FormData) {
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const next = sanitizeRedirectPath(formData.get("next"));
+  if (!tenantId) {
+    loginRedirect("Kies eerst je organisatie met de code van zes tekens.", next);
+  }
+
   const supabase = await createClient();
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const next = sanitizeRedirectPath(formData.get("next"));
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
-    redirect(`/login?error=Ongeldige+inloggegevens${nextQuery}`);
+  if (error || !data.user) {
+    loginRedirect("Ongeldige inloggegevens.", next);
+  }
+
+  const [personnel] = await db
+    .select({ id: personnelTable.id })
+    .from(personnelTable)
+    .innerJoin(tenantsTable, eq(personnelTable.tenantId, tenantsTable.id))
+    .where(
+      and(
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.userId, data.user.id),
+        eq(personnelTable.isActive, true),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+
+  if (!personnel) {
+    await supabase.auth.signOut();
+    loginRedirect("Ongeldige inloggegevens voor deze organisatie.", next);
   }
 
   redirect(next ?? "/");
