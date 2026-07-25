@@ -1,0 +1,143 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+import {
+  buildVisualRegressionPlan,
+  visualRegressionViewports,
+} from "../../scripts/fieldgrid-visual-regression-snapshots.mjs";
+import { scanReleasedSources } from "../../scripts/fieldgrid-uiux-master-gate.mjs";
+
+const root = process.cwd();
+const read = (relativePath) =>
+  fs.readFileSync(path.join(root, relativePath), "utf8");
+
+test("W14 visual plan covers the required widths and 200 percent zoom", () => {
+  const dimensions = new Set(
+    visualRegressionViewports.map(
+      (viewport) => `${viewport.width}x${viewport.height}`,
+    ),
+  );
+  for (const required of [
+    "320x568",
+    "390x844",
+    "430x932",
+    "768x1024",
+    "1024x768",
+    "1280x800",
+    "1440x1100",
+    "1920x1080",
+  ]) {
+    assert.ok(dimensions.has(required), `missing viewport ${required}`);
+  }
+  assert.ok(
+    visualRegressionViewports.some((viewport) => viewport.cssZoom === 2),
+    "missing 200% zoom scenario",
+  );
+});
+
+test("W14 visual plan separates every required authorization persona", () => {
+  const plan = buildVisualRegressionPlan({}, { target: "all" });
+  assert.deepEqual(plan.errors, []);
+  const personas = plan.groups.flatMap((group) =>
+    group.personas.map((persona) => persona.id),
+  );
+  assert.deepEqual(personas, [
+    "platform-owner",
+    "platform-admin",
+    "platform-support",
+    "tenant-management",
+    "tenant-planner",
+    "tenant-administration",
+    "customer",
+    "personnel",
+  ]);
+});
+
+test("released sources do not add direct Radix imports or browser dialogs", () => {
+  const findings = scanReleasedSources();
+  assert.deepEqual(
+    findings.filter((finding) =>
+      ["DIRECT_RADIX_IMPORT", "BROWSER_DIALOG"].includes(finding.rule),
+    ),
+    [],
+  );
+});
+
+test("canonical data views expose sorting, loading and responsive alternatives", () => {
+  const dataView = read(
+    "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+  );
+  for (const contract of [
+    /aria-sort=\{ariaSort\}/,
+    /aria-busy=\{loading\}/,
+    /filteredEmptyTitle/,
+    /mobile-skeleton-/,
+    /hidden md:block/,
+    /md:hidden/,
+  ]) {
+    assert.match(dataView, contract);
+  }
+});
+
+test("canonical overlays use semantic layers and reduced-motion fallbacks", () => {
+  for (const relativePath of [
+    "artifacts/backoffice/src/components/ui/dialog.tsx",
+    "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+    "artifacts/backoffice/src/components/ui/sheet.tsx",
+    "artifacts/backoffice/src/components/ui/popover.tsx",
+    "artifacts/backoffice/src/components/ui/select.tsx",
+    "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+  ]) {
+    const source = read(relativePath);
+    assert.match(source, /--z-(?:dropdown|overlay|modal)/, relativePath);
+    assert.match(source, /motion-reduce:/, relativePath);
+  }
+});
+
+test("critical planning paths retain pointer-free operation and live feedback", () => {
+  const planboard = read(
+    "artifacts/backoffice/src/components/assignments/PlanningBoardView.tsx",
+  );
+  for (const contract of [
+    /aria-label="Mobiele dagagenda"/,
+    /event\.key === "ArrowLeft"/,
+    /event\.key === "ArrowRight"/,
+    /event\.key === "Enter"/,
+    /event\.key === "Escape"/,
+    /aria-live="polite"/,
+    /Ongedaan maken/,
+  ]) {
+    assert.match(planboard, contract);
+  }
+});
+
+test("loading, error and forbidden states do not expose private diagnostics", () => {
+  const dashboardError = read(
+    "artifacts/backoffice/src/app/(dashboard)/error.tsx",
+  );
+  const platformError = read(
+    "artifacts/backoffice/src/app/(platform)/platform/error.tsx",
+  );
+  const forbidden = read(
+    "artifacts/backoffice/src/components/layout/ForbiddenPage.tsx",
+  );
+  for (const source of [dashboardError, platformError]) {
+    assert.match(source, /Opnieuw proberen/);
+    assert.doesNotMatch(source, /error\.digest|error\.message/);
+  }
+  assert.doesNotMatch(forbidden, /\{resource\}|\{action\}/);
+});
+
+test("privacy-safe analytics cannot accept product content or identities", () => {
+  const analytics = read("artifacts/backoffice/src/lib/ux-analytics.ts");
+  assert.doesNotMatch(
+    analytics,
+    /\b(query|email|fullName|address|notes?|signature|token|secret|userId|tenantId|entityId)\s*:/,
+  );
+  assert.doesNotMatch(
+    analytics,
+    /fetch\(|sendBeacon|localStorage|sessionStorage/,
+  );
+});
