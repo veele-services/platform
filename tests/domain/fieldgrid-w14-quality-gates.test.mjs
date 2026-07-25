@@ -79,6 +79,28 @@ test("canonical data views expose sorting, loading and responsive alternatives",
   ]) {
     assert.match(dataView, contract);
   }
+  assert.match(dataView, /containerClassName="max-h-\[70dvh\]"/);
+});
+
+test("high-risk layouts remain bounded at narrow and tablet widths", () => {
+  const inventoryQr = read(
+    "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/qr/page.tsx",
+  );
+  const knowledgebaseCategories = read(
+    "artifacts/backoffice/src/app/(platform)/platform/knowledgebase/categories/page.tsx",
+  );
+  const releaseCategories = read(
+    "artifacts/backoffice/src/app/(platform)/platform/releases/categories/page.tsx",
+  );
+  const websiteRenderer = read("lib/shared-ui/src/website-renderer.tsx");
+
+  assert.match(inventoryQr, /w-full max-w-\[360px\]/);
+  assert.match(inventoryQr, /lg:grid-cols-/);
+  assert.doesNotMatch(knowledgebaseCategories, /md:grid-cols-\[1fr_1fr/);
+  assert.match(knowledgebaseCategories, /xl:grid-cols-\[1fr_1fr/);
+  assert.doesNotMatch(releaseCategories, /md:grid-cols-\[1fr_1fr/);
+  assert.match(releaseCategories, /xl:grid-cols-\[1fr_1fr/);
+  assert.match(websiteRenderer, /overflow-wrap:anywhere/);
 });
 
 test("canonical overlays use semantic layers and reduced-motion fallbacks", () => {

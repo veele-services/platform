@@ -46,10 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   dataViewResultRange,
   dataViewSelectionState,
@@ -60,10 +57,7 @@ import {
   type DataViewSavedView,
   type DataViewSortDirection,
 } from "@/lib/data-view";
-import {
-  trackUxAnalytics,
-  type UxAnalyticsSurface,
-} from "@/lib/ux-analytics";
+import { trackUxAnalytics, type UxAnalyticsSurface } from "@/lib/ux-analytics";
 import { cn } from "@/lib/utils";
 
 export type FieldgridDataViewColumn<TData> = {
@@ -175,11 +169,7 @@ function isVisibilityMap(value: unknown): value is Record<string, boolean> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function SavedViewsControl({
-  config,
-}: {
-  config: DataViewSavedViews;
-}) {
+function SavedViewsControl({ config }: { config: DataViewSavedViews }) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [views, setViews] = React.useState<DataViewSavedView[]>([]);
@@ -367,9 +357,7 @@ export function FieldgridDataView<TData>({
         isVisibilityMap,
       ),
     );
-    setDensity(
-      readPreference(`${preferenceKey}:density`, "normal", isDensity),
-    );
+    setDensity(readPreference(`${preferenceKey}:density`, "normal", isDensity));
     setPreferencesLoaded(true);
   }, [defaultVisibility, preferenceKey]);
 
@@ -422,9 +410,7 @@ export function FieldgridDataView<TData>({
             {hasActiveFilters ? filteredEmptyTitle : emptyTitle}
           </EmptyTitle>
           <EmptyDescription>
-            {hasActiveFilters
-              ? filteredEmptyDescription
-              : emptyDescription}
+            {hasActiveFilters ? filteredEmptyDescription : emptyDescription}
           </EmptyDescription>
         </EmptyHeader>
         {emptyAction ? <EmptyContent>{emptyAction}</EmptyContent> : null}
@@ -481,7 +467,10 @@ export function FieldgridDataView<TData>({
             </DropdownMenu>
           ) : null}
           <div className="hidden items-center gap-1 lg:flex">
-            <Rows3 className="size-4 text-muted-foreground" aria-hidden="true" />
+            <Rows3
+              className="size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <ToggleGroup
               type="single"
               value={density}
@@ -527,11 +516,7 @@ export function FieldgridDataView<TData>({
       ) : null}
 
       {renderMobileCard ? (
-        <div
-          className="grid gap-3 md:hidden"
-          role="list"
-          aria-label={caption}
-        >
+        <div className="grid gap-3 md:hidden" role="list" aria-label={caption}>
           {loading
             ? Array.from({ length: 4 }, (_, index) => (
                 <div
@@ -565,7 +550,10 @@ export function FieldgridDataView<TData>({
           renderMobileCard && "hidden md:block",
         )}
       >
-        <Table className={cn("min-w-full", densityClasses[density])}>
+        <Table
+          containerClassName="max-h-[70dvh]"
+          className={cn("min-w-full", densityClasses[density])}
+        >
           <TableCaption className="sr-only">{caption}</TableCaption>
           <TableHeader className="sticky top-0 z-[var(--z-sticky)] bg-muted/95 backdrop-blur">
             <TableRow className="hover:bg-muted/95">
@@ -634,7 +622,10 @@ export function FieldgridDataView<TData>({
           <TableBody>
             {loading
               ? Array.from({ length: 7 }, (_, rowIndex) => (
-                  <TableRow key={`table-skeleton-${rowIndex}`} aria-hidden="true">
+                  <TableRow
+                    key={`table-skeleton-${rowIndex}`}
+                    aria-hidden="true"
+                  >
                     {selection ? (
                       <TableCell className="pl-4">
                         <Skeleton className="size-4" />
@@ -656,7 +647,10 @@ export function FieldgridDataView<TData>({
                   const rowId = getRowId(row);
                   const selected = selection?.selectedIds.has(rowId) ?? false;
                   return (
-                    <TableRow key={rowId} data-state={selected ? "selected" : undefined}>
+                    <TableRow
+                      key={rowId}
+                      data-state={selected ? "selected" : undefined}
+                    >
                       {selection ? (
                         <TableCell className="pl-4">
                           {rowSelectionControl(rowId)}

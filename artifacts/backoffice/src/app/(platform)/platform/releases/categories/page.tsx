@@ -63,7 +63,7 @@ export default async function ReleaseCategoriesPage() {
           </div>
           <form
             action={saveCategoryAction}
-            className="grid gap-3 md:grid-cols-[1fr_1fr_180px_120px_auto]"
+            className="grid gap-3 xl:grid-cols-[1fr_1fr_180px_120px_auto]"
           >
             <input
               name="name"
@@ -97,7 +97,7 @@ export default async function ReleaseCategoriesPage() {
               <CheckboxAdapter name="isActive" type="checkbox" defaultChecked />
               Actief
             </label>
-            <Button type="submit" className="gap-2 md:col-start-5">
+            <Button type="submit" className="gap-2 xl:col-start-5">
               <Save className="h-4 w-4" />
               Opslaan
             </Button>

@@ -55,7 +55,7 @@ export default async function KnowledgebaseCategoriesPage() {
           </div>
           <form
             action={saveCategoryAction}
-            className="grid gap-3 md:grid-cols-[1fr_1fr_180px_120px_auto]"
+            className="grid gap-3 xl:grid-cols-[1fr_1fr_180px_120px_auto]"
           >
             <input
               name="name"
@@ -92,9 +92,9 @@ export default async function KnowledgebaseCategoriesPage() {
             <textarea
               name="description"
               placeholder="Beschrijving"
-              className="min-h-20 rounded-md border border-slate-300 px-3 py-2 text-sm md:col-span-4"
+              className="min-h-20 rounded-md border border-slate-300 px-3 py-2 text-sm xl:col-span-4"
             />
-            <Button type="submit" className="gap-2 md:col-start-5">
+            <Button type="submit" className="gap-2 xl:col-start-5">
               <Save className="h-4 w-4" />
               Opslaan
             </Button>
