@@ -1,5 +1,5 @@
 import { DashboardPageSkeleton } from "@/components/ui/canonical-page-skeletons";
 
-export default function PlatformLoading() {
+export default function DashboardLoading() {
   return <DashboardPageSkeleton />;
 }

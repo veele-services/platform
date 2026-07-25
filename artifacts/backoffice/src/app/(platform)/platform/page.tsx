@@ -844,10 +844,10 @@ function QuickTenantLinks({
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">
-            Snelle tenantlinks
+            Snelle organisatielinks
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Prioriteit op open acties, trial en actieve tenants.
+            Prioriteit op open acties, proefperiodes en actieve organisaties.
           </p>
         </div>
         <Link
@@ -880,7 +880,7 @@ function QuickTenantLinks({
         ))}
         {quickLinks.length === 0 && (
           <div className="py-6 text-sm text-slate-500">
-            Nog geen tenants beschikbaar.
+            Nog geen organisaties beschikbaar.
           </div>
         )}
       </div>
@@ -911,23 +911,23 @@ function buildDashboardActions(input: {
     } else if (run.canRetry) {
       actions.push({
         id: `retry:${run.id}`,
-        label: `${run.name} provisioning opnieuw bekijken`,
+        label: `${run.name} inrichting opnieuw bekijken`,
         detail: run.errorMessage ?? run.rollbackPath,
         href: "/platform/onboarding#provisioning-runs",
-        meta: "Retry",
+        meta: "Inrichting",
         tone: "danger",
       });
     } else if (run.ownerInviteStatus === "pending") {
       actions.push({
         id: `owner-invite:${run.id}`,
-        label: `${run.name} owner invite staat open`,
+        label: `${run.name} eigenaarsuitnodiging staat open`,
         detail: run.ownerEmail
-          ? `${run.ownerEmail} heeft nog geen afgeronde owner-koppeling.`
-          : "Owner invite status staat op pending.",
+          ? `${run.ownerEmail} heeft de eigenaarsuitnodiging nog niet afgerond.`
+          : "De eigenaarsuitnodiging staat nog in afwachting.",
         href: run.tenantId
           ? `/platform/tenants/${run.tenantId}`
           : "/platform/onboarding#provisioning-runs",
-        meta: "Owner",
+        meta: "Eigenaar",
         tone: "warning",
       });
     }
@@ -950,7 +950,7 @@ function buildDashboardActions(input: {
       label: `${subscription.tenantName} abonnement met betalingsachterstand`,
       detail: `${subscription.planName} staat sinds ${formatDate(subscription.updatedAt)} op ${subscription.status}.`,
       href: `/platform/tenants/${subscription.tenantId}`,
-      meta: "Billing",
+      meta: "Abonnement",
       tone: "danger",
     });
   }
@@ -960,7 +960,7 @@ function buildDashboardActions(input: {
     if (supportGrantStatus(grant) !== "Actief" || expiresAt > soon) continue;
     actions.push({
       id: `support:${grant.id}`,
-      label: `${grant.tenantName} supportgrant verloopt bijna`,
+      label: `${grant.tenantName} supporttoegang verloopt bijna`,
       detail: `Verloopt ${formatDate(grant.expiresAt)}. Reden: ${grant.reason}`,
       href: `/platform/tenants/${grant.tenantId}`,
       meta: "Support",
@@ -971,10 +971,10 @@ function buildDashboardActions(input: {
   if (input.smokeDashboard.finalExternalTenantGate.status !== "ok") {
     actions.push({
       id: "smoke:final-gate",
-      label: "Final external tenant gate vraagt aandacht",
+      label: "Externe organisatiecontrole vraagt aandacht",
       detail: input.smokeDashboard.finalExternalTenantGate.summary,
       href: "/platform/operations",
-      meta: "Smoke",
+      meta: "Controle",
       tone: dashboardStatusTone(
         input.smokeDashboard.finalExternalTenantGate.status,
       ),
@@ -990,7 +990,7 @@ function buildDashboardActions(input: {
         label: `${check.label} is geblokkeerd`,
         detail: check.nextAction,
         href: "/platform/operations",
-        meta: "Smoke",
+        meta: "Controle",
         tone: "danger",
       });
     });
@@ -1045,9 +1045,9 @@ function PlatformDashboardOverview({
 
   const metrics: DashboardMetric[] = [
     {
-      label: "Actieve tenants",
+      label: "Actieve organisaties",
       value: activeTenants,
-      detail: `${tenants.length} totaal in platformbeheer.`,
+      detail: `${tenants.length} organisaties in platformbeheer.`,
       href: "/platform/tenants",
       icon: Building2,
       tone: "good",
@@ -1069,9 +1069,9 @@ function PlatformDashboardOverview({
       tone: activeSupportGrants > 0 ? "warning" : "neutral",
     },
     {
-      label: "Domeinen pending",
+      label: "Domeinen in afwachting",
       value: signals.pendingDomains.total,
-      detail: "Niet-geverifieerde tenantdomeinen.",
+      detail: "Niet-geverifieerde organisatiedomeinen.",
       href: "/platform/tenants",
       icon: ShieldCheck,
       tone: signals.pendingDomains.total > 0 ? "warning" : "good",

@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  SearchX,
   SlidersHorizontal,
 } from "lucide-react";
 import {
@@ -12,9 +13,18 @@ import {
 } from "@/app/actions/platform-tenants";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { PlatformTenantFilters } from "@/components/platform/PlatformTenantFilters";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export const metadata = {
-  title: "Tenants",
+  title: "Organisaties",
 };
 
 type Props = {
@@ -396,6 +406,43 @@ function Pagination({ result }: { result: PlatformTenantListResult }) {
   );
 }
 
+function PlatformTenantEmptyState({
+  hasActiveFilters,
+}: {
+  hasActiveFilters: boolean;
+}) {
+  return (
+    <Empty className="border border-dashed border-slate-300 bg-white">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <SearchX aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>
+          {hasActiveFilters
+            ? "Geen organisaties gevonden"
+            : "Nog geen organisaties ingericht"}
+        </EmptyTitle>
+        <EmptyDescription>
+          {hasActiveFilters
+            ? "Wis één of meer filters of kies een andere opgeslagen weergave."
+            : "Start de begeleide inrichting om de eerste organisatie veilig toe te voegen."}
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button asChild>
+          <Link
+            href={
+              hasActiveFilters ? "/platform/tenants" : "/platform/onboarding"
+            }
+          >
+            {hasActiveFilters ? "Filters wissen" : "Organisatie inrichten"}
+          </Link>
+        </Button>
+      </EmptyContent>
+    </Empty>
+  );
+}
+
 export default async function PlatformTenantsPage({ searchParams }: Props) {
   const params = await searchParams;
   const result = await listPlatformTenantList({
@@ -458,9 +505,27 @@ export default async function PlatformTenantsPage({ searchParams }: Props) {
 
         <PlatformTenantFilters result={result} />
 
-        <TenantDesktopTable rows={result.rows} />
-        <TenantMobileList rows={result.rows} />
-        <Pagination result={result} />
+        {result.rows.length > 0 ? (
+          <>
+            <TenantDesktopTable rows={result.rows} />
+            <TenantMobileList rows={result.rows} />
+            <Pagination result={result} />
+          </>
+        ) : (
+          <PlatformTenantEmptyState
+            hasActiveFilters={Boolean(
+              result.filters.q ||
+              result.filters.status !== "all" ||
+              result.filters.plan !== "all" ||
+              result.filters.module ||
+              result.filters.sector ||
+              result.filters.region ||
+              result.filters.domainStatus !== "all" ||
+              result.filters.readiness !== "all" ||
+              result.filters.view !== "all",
+            )}
+          />
+        )}
       </div>
     </main>
   );

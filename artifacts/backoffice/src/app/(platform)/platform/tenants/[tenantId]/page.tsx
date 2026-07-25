@@ -79,7 +79,7 @@ import { PlatformSupportAccessPanel } from "@/components/platform/PlatformSuppor
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 
 export const metadata = {
-  title: "Tenantbeheer",
+  title: "Organisatiebeheer",
 };
 
 type Props = {
@@ -318,9 +318,17 @@ function tenantHasCustomDomains(tenant: PlatformTenantDetail): boolean {
 }
 
 function domainTypeLabel(type: string): string {
-  if (type === "custom_domain") return "Custom domain";
+  if (type === "custom_domain") return "Eigen domein";
   if (type === "platform_reserved") return "Platform";
-  return "Fieldgrid subdomain";
+  return "Fieldgrid-subdomein";
+}
+
+function tenantStatusLabel(status: PlatformTenantDetail["status"]): string {
+  if (status === "provisioning") return "Wordt ingericht";
+  if (status === "trial") return "Proefperiode";
+  if (status === "active") return "Actief";
+  if (status === "suspended") return "Gepauzeerd";
+  return "Gearchiveerd";
 }
 
 function domainStatusTone(
@@ -491,8 +499,8 @@ function TenantTabs({
 function TenantOpenLinks({ tenant }: { tenant: PlatformTenantDetail }) {
   const host = tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`;
   const links = [
-    { label: "Tenant root", path: "" },
-    { label: "Tenant backoffice", path: "/admin" },
+    { label: "Organisatiewebsite", path: "" },
+    { label: "Backoffice", path: "/admin" },
     { label: "Klantenportaal", path: "/klant" },
     { label: "Personeelsportaal", path: "/personeel" },
   ];
@@ -557,7 +565,7 @@ function StatusPanel({ tenant }: { tenant: PlatformTenantDetail }) {
             <span
               className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(tenantStatusTone(tenant.status))}`}
             >
-              {tenant.status}
+              {tenantStatusLabel(tenant.status)}
             </span>
             <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
               {tenant.planName} via {tenant.planSource}
@@ -565,7 +573,7 @@ function StatusPanel({ tenant }: { tenant: PlatformTenantDetail }) {
             <span
               className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(blockingSignals === 0 ? "good" : "danger")}`}
             >
-              readiness {tenant.operationalReadiness.score}%
+              gereedheid {tenant.operationalReadiness.score}%
             </span>
           </div>
           <h1 className="mt-3 break-words text-3xl font-semibold tracking-normal text-slate-950">
@@ -580,13 +588,13 @@ function StatusPanel({ tenant }: { tenant: PlatformTenantDetail }) {
       </div>
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Stat
-          label="Readiness"
+          label="Gereedheid"
           value={`${tenant.operationalReadiness.score}%`}
           detail={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} klaar`}
         />
         <Stat label="Gebruikers" value={tenant.usage.users} />
         <Stat label="Actieve modules" value={tenant.usage.enabledModules} />
-        <Stat label="Support grants" value={tenant.usage.activeSupportGrants} />
+        <Stat label="Supporttoegang" value={tenant.usage.activeSupportGrants} />
       </div>
       <div className="mt-5">
         <TenantOpenLinks tenant={tenant} />
@@ -608,12 +616,12 @@ function OverviewTab({
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid gap-5">
         <Section
-          title="Status en lifecycle"
-          helper="Lifecycle acties controleren platformrol server-side en schrijven auditregels."
+          title="Status en levenscyclus"
+          helper="Wijzigingen controleren de platformrol en worden vastgelegd in de beveiligingslog."
         >
           <dl className="grid gap-3 text-sm md:grid-cols-2">
             {[
-              ["Tenant ID", tenant.id],
+              ["Organisatie-ID", tenant.id],
               ["Slug", tenant.slug],
               ["Plan", `${tenant.planName} (${tenant.planKey})`],
               [
@@ -622,8 +630,8 @@ function OverviewTab({
               ],
               ["Aangemaakt", formatDate(tenant.createdAt)],
               ["Bijgewerkt", formatDate(tenant.updatedAt)],
-              ["Suspended", formatDate(tenant.suspendedAt)],
-              ["Archived", formatDate(tenant.archivedAt)],
+              ["Gepauzeerd", formatDate(tenant.suspendedAt)],
+              ["Gearchiveerd", formatDate(tenant.archivedAt)],
             ].map(([label, value]) => (
               <div key={label} className="rounded bg-slate-50 px-3 py-2">
                 <dt className="text-xs font-medium uppercase text-slate-500">
@@ -638,15 +646,15 @@ function OverviewTab({
         </Section>
 
         <Section
-          title="Open tenant"
-          helper="Host-first links voor tenant root, backoffice en beide portalen."
+          title="Organisatie openen"
+          helper="Veilige links naar de website, backoffice en beide portalen."
         >
           <TenantOpenLinks tenant={tenant} />
         </Section>
 
         <Section
-          title="Rollbackbare provisioning retry"
-          helper="Mislukte of teruggedraaide provisioning runs kunnen opnieuw via dezelfde retry-action."
+          title="Inrichting opnieuw proberen"
+          helper="Mislukte of teruggedraaide inrichtingsruns kunnen gecontroleerd opnieuw worden uitgevoerd."
         >
           {retryableRuns.length > 0 ? (
             <div className="grid gap-3">
@@ -667,14 +675,14 @@ function OverviewTab({
                     type="submit"
                     className="mt-3 rounded border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900"
                   >
-                    Retry provisioning
+                    Inrichting opnieuw proberen
                   </button>
                 </form>
               ))}
             </div>
           ) : (
             <p className="text-sm text-slate-500">
-              Geen retrybare provisioning runs voor deze tenant.
+              Geen inrichtingsruns die opnieuw kunnen worden uitgevoerd.
             </p>
           )}
         </Section>
@@ -689,7 +697,7 @@ function ReadinessColumn({ tenant }: { tenant: PlatformTenantDetail }) {
   return (
     <aside className="grid gap-5">
       <Section
-        title="Operational readiness"
+        title="Operationele gereedheid"
         helper={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} signalen klaar`}
       >
         <div className="h-2 overflow-hidden rounded bg-slate-100">
@@ -2230,20 +2238,20 @@ function UsageTab({ tenant }: { tenant: PlatformTenantDetail }) {
     ["Personeel", tenant.usage.personnel],
     ["Opdrachten", tenant.usage.assignments],
     ["Documenten", tenant.usage.documents],
-    ["Storage", formatBytes(tenant.usage.storageBytes)],
+    ["Opslag", formatBytes(tenant.usage.storageBytes)],
     ["Downloads/PDF", tenant.usage.downloadAuditEvents],
     ["Domeinen", tenant.usage.domains],
     ["Actieve modules", tenant.usage.enabledModules],
     ["Actieve sectoren", tenant.usage.enabledSectors],
     ["Regio's", tenant.usage.activeRegions],
-    ["Supportgrants", tenant.usage.activeSupportGrants],
+    ["Actieve supporttoegang", tenant.usage.activeSupportGrants],
     [
-      "Tenant-prefixed documenten",
+      "Documenten in organisatieopslag",
       `${tenant.usage.tenantPrefixedDocuments}/${tenant.usage.documents}`,
     ],
-    ["Legacy storagepaden", tenant.usage.legacyDocumentPaths],
+    ["Verouderde opslagpaden", tenant.usage.legacyDocumentPaths],
     [
-      "Audit events",
+      "Beveiligingsgebeurtenissen",
       tenant.usage.auditEvents + tenant.usage.supportAuditEvents,
     ],
   ] as const;
@@ -2251,8 +2259,8 @@ function UsageTab({ tenant }: { tenant: PlatformTenantDetail }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <Section
-        title="Usage"
-        helper="Usage voor beheer, supporttriage en toekomstige limieten."
+        title="Gebruik"
+        helper="Gebruikscijfers voor beheer, support en abonnementsgrenzen."
       >
         <dl className="grid gap-2 text-sm md:grid-cols-2">
           {usageRows.map(([key, value]) => (
@@ -2353,8 +2361,8 @@ function AuditTab({ events }: { events: PlatformSecurityEventRow[] }) {
 function ProvisioningTab({ runs }: { runs: PlatformProvisioningRunRow[] }) {
   return (
     <Section
-      title="Provisioning"
-      helper="Runstatus, retry en rollbackpad blijven zichtbaar per tenant."
+      title="Inrichtingsruns"
+      helper="Status, opnieuw proberen en herstelpad blijven zichtbaar per organisatie."
     >
       <div className="grid gap-3">
         {runs.map((run) => (
@@ -2371,7 +2379,7 @@ function ProvisioningTab({ runs }: { runs: PlatformProvisioningRunRow[] }) {
                   {run.errorMessage ?? run.rollbackPath}
                 </p>
                 <p className="mt-2 text-xs text-slate-500">
-                  Owner {run.ownerEmail ?? "-"} - {run.ownerInviteStatus} -{" "}
+                  Eigenaar {run.ownerEmail ?? "-"} - {run.ownerInviteStatus} -{" "}
                   {run.moduleKeys.length} module(s), {run.sectorIds.length}{" "}
                   sector(en), {run.regionNames.length} regio(s)
                 </p>
@@ -2383,7 +2391,7 @@ function ProvisioningTab({ runs }: { runs: PlatformProvisioningRunRow[] }) {
                     type="submit"
                     className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
                   >
-                    Retry
+                    Opnieuw proberen
                   </button>
                 </form>
               )}
@@ -2472,7 +2480,7 @@ export default async function PlatformTenantDetailPage({
             href="/platform/tenants"
             className="w-fit text-sm text-slate-500 underline-offset-2 hover:underline"
           >
-            Platformbeheer / Tenants
+            Platformbeheer / Organisaties
           </Link>
           <StatusPanel tenant={tenant} />
         </header>

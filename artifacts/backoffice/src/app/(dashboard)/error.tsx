@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/empty";
 import { trackUxAnalytics } from "@/lib/ux-analytics";
 
-export default function PlatformError({
+export default function DashboardError({
   error,
   reset,
 }: {
@@ -21,10 +21,10 @@ export default function PlatformError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[platform] Pagina kon niet laden.", error);
+    console.error("[backoffice] Pagina kon niet laden.", error);
     trackUxAnalytics({
       name: "mutation_error",
-      surface: "platform",
+      surface: "navigation",
       category: "server",
     });
   }, [error]);
@@ -36,11 +36,10 @@ export default function PlatformError({
           <EmptyMedia variant="icon" className="text-amber-700">
             <AlertTriangle aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>Platformbeheer kon niet laden</EmptyTitle>
+          <EmptyTitle>Deze pagina kon niet laden</EmptyTitle>
           <EmptyDescription>
-            Dit is meestal tijdelijk. Probeer de pagina opnieuw te laden. Blijft
-            het probleem bestaan, neem dan contact op met de technisch
-            beheerder.
+            Uw gegevens zijn niet aangepast. Probeer de pagina opnieuw te laden
+            of ga terug naar het dashboard.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
