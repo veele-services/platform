@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
@@ -22,7 +26,6 @@ test("sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gat
       "FIELDGRID_BRAND_DEFAULTS",
       "platformName: \"Fieldgrid\"",
       "canTenantUseCustomBranding",
-      "professional",
       "enterprise",
       "getTenantBranding",
       "getTenantBrandingCssVariables",
@@ -65,7 +68,7 @@ test("sprint 10 gates customer and personnel portal shells by host-bound tenant 
       "isTenantModuleEnabled",
       "DesktopSidebar branding={branding}",
       "MobileHeader",
-      "Het klantportaal is niet beschikbaar voor deze tenant.",
+      "Het klantportaal is niet beschikbaar voor deze organisatie.",
     ],
     "customer portal layout",
   );
@@ -79,7 +82,7 @@ test("sprint 10 gates customer and personnel portal shells by host-bound tenant 
       "isTenantModuleEnabled",
       "DesktopSidebar branding={branding}",
       "MobileHeader",
-      "De personeelsapp is niet beschikbaar voor deze tenant.",
+      "De personeelsapp is niet beschikbaar voor deze organisatie.",
     ],
     "personnel portal layout",
   );
@@ -108,7 +111,9 @@ test("sprint 10 applies branding props and module-aware navigation in both porta
   );
 });
 
-test("sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant branding", () => {
+test("sprint 10 keeps static PWA shells neutral and resolves branding per tenant", () => {
+  const customerRootLayout = read("artifacts/klant-pwa/src/app/layout.tsx");
+  const personnelRootLayout = read("artifacts/personeel-pwa/src/app/layout.tsx");
   const staticFiles = [
     "artifacts/klant-pwa/src/app/layout.tsx",
     "artifacts/personeel-pwa/src/app/layout.tsx",
@@ -116,9 +121,19 @@ test("sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant bra
     "artifacts/personeel-pwa/public/manifest.json",
   ];
 
+  assertIncludes(
+    customerRootLayout,
+    ["getCustomerPwaBranding", "PwaSplashScreen", "title: \"Klantportaal\""],
+    "customer root layout",
+  );
+  assertIncludes(
+    personnelRootLayout,
+    ["getPersonnelPwaBranding", "PwaSplashScreen", "title: \"Personeelsapp\""],
+    "personnel root layout",
+  );
+
   for (const path of staticFiles) {
     const content = read(path);
-    assert.ok(content.includes("Fieldgrid"), `${path} should include Fieldgrid`);
     assert.ok(!content.includes("Veele Services"), `${path} should not include Veele Services`);
     assert.ok(!content.includes("Veele Klantportaal"), `${path} should not include Veele Klantportaal`);
     assert.ok(!content.includes("Veele Personeel"), `${path} should not include Veele Personeel`);

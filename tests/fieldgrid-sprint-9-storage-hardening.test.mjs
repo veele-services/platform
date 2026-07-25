@@ -42,8 +42,8 @@ test("Sprint 9 signed URLs are bound to tenant and assignment before signing", (
   const personnelReports = read("artifacts/personeel-pwa/src/actions/reports.ts");
   const extraWorkActions = read("artifacts/personeel-pwa/src/actions/extra-work.ts");
 
-  assert.match(customerAssignments, /getTenantBoundAssignmentMediaStoragePath\(storagePath, tenantId, assignmentId/u);
-  assert.match(backofficeReports, /getTenantBoundAssignmentMediaStoragePath\(storagePath, tenantId, assignmentId/u);
+  assert.match(customerAssignments, /getTenantBoundAssignmentMediaStoragePath\(\s*storagePath,\s*tenantId,\s*assignmentId,/u);
+  assert.match(backofficeReports, /getTenantBoundAssignmentMediaStoragePath\(\s*storagePath,\s*tenantId,\s*assignmentId,/u);
   assert.match(backofficeReports, /createSignedUrl\(safeStoragePath, 3600\)/u);
   assert.match(personnelReports, /isReportNoteAttachmentPath\(tenantId, assignmentId, storagePath\)/u);
   assert.match(personnelReports, /createSignedAttachmentUrl\(attachment\.storagePath, auth\.tenantId, assignmentId\)/u);

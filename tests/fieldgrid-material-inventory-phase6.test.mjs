@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should contain ${phrase}`,
+    );
   }
 }
 

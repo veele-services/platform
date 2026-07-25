@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
@@ -58,7 +62,7 @@ test("platform onboarding v2 has a dedicated mobile-safe platform route", () => 
       "Provisioning runs",
       "Rollback provisioning",
       'href="/platform/onboarding"',
-      "Open Onboarding 2.0",
+      "Organisatie inrichten",
     ],
     "platform onboarding v2 route",
   );

@@ -10,7 +10,6 @@ test("phase 6 adds customer portal shared primitives", () => {
   const portalUi = read("artifacts/klant-pwa/src/components/portal-ui.tsx");
   const filterSheet = read("artifacts/klant-pwa/src/components/PortalFilterSheet.tsx");
   const actionMenu = read("artifacts/klant-pwa/src/components/PortalActionMenu.tsx");
-  const confirmDialog = read("artifacts/klant-pwa/src/components/PortalConfirmDialog.tsx");
 
   for (const exportName of [
     "PortalPageShell",
@@ -26,13 +25,15 @@ test("phase 6 adds customer portal shared primitives", () => {
 
   assert.match(filterSheet, /export function PortalFilterSheet/u);
   assert.match(actionMenu, /export function PortalActionMenu/u);
-  assert.match(confirmDialog, /export function PortalConfirmDialog/u);
+  assert.match(filterSheet, /from "@workspace\/shared-ui"/u);
+  assert.match(filterSheet, /DialogContent/u);
+  assert.match(filterSheet, /DialogTitle/u);
+  assert.match(filterSheet, /DialogDescription/u);
 });
 
 test("phase 6 primitives use existing portal styling tokens and responsive list pattern", () => {
   const portalUi = read("artifacts/klant-pwa/src/components/portal-ui.tsx");
   const filterSheet = read("artifacts/klant-pwa/src/components/PortalFilterSheet.tsx");
-  const confirmDialog = read("artifacts/klant-pwa/src/components/PortalConfirmDialog.tsx");
 
   for (const token of [
     "var(--color-border)",
@@ -44,7 +45,7 @@ test("phase 6 primitives use existing portal styling tokens and responsive list 
   }
 
   assert.match(filterSheet, /var\(--color-border\)/u);
-  assert.match(confirmDialog, /var\(--color-accent\)/u);
+  assert.match(filterSheet, /var\(--color-accent\)/u);
   assert.match(portalUi, /hidden overflow-x-auto[\s\S]+md:block/u);
   assert.match(portalUi, /grid gap-3 md:hidden/u);
   assert.match(portalUi, /renderMobileCard/u);
@@ -67,6 +68,9 @@ test("phase 6 migrates documents as low-risk reference page without changing dat
   assert.match(documentsPage, /getMyDocuments\(\)/u);
   assert.match(documentsPage, /DocumentDownloadButton/u);
   assert.match(documentsPage, /filterDocuments\(\{\s*documents,\s*query,\s*type: selectedType,/u);
-  assert.match(documentsPage, /searchParams: Promise<\{ q\?: string; type\?: string; object\?: string; assignment\?: string; date\?: string \}>/u);
+  assert.match(
+    documentsPage,
+    /searchParams:\s*Promise<\{\s*q\?: string;\s*type\?: string;\s*object\?: string;\s*assignment\?: string;\s*date\?: string;\s*\}>/u,
+  );
   assert.doesNotMatch(documentsPage, /Veele Services/u);
 });

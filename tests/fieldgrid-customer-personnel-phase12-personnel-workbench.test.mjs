@@ -27,7 +27,10 @@ test("planning cards show one effective time with the work order number below an
   const planningPage = read("artifacts/personeel-pwa/src/app/(app)/opdrachten/page.tsx");
 
   assert.match(planningPage, /justify-between gap-3/u);
-  assert.match(planningPage, /formatTime\(assignment\.effectiveStart, assignment\.effectiveEnd\)/u);
+  assert.match(
+    planningPage,
+    /formatTime\(\s*assignment\.effectiveStart,\s*assignment\.isRunning\s*\?\s*"nu"\s*:\s*assignment\.effectiveEnd,\s*\)/u,
+  );
   assert.match(planningPage, /assignment\.code \|\| "Werkbon"/u);
   assert.match(planningPage, /md:grid-cols-2 xl:grid-cols-3/u);
   assert.match(planningPage, /StatusPill/u);

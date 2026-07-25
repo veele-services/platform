@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should contain ${phrase}`,
+    );
   }
 }
 
@@ -34,7 +38,7 @@ test("sprint 3 has a reusable region multiselect with autocomplete and create-on
       "CommandInput",
       "value={query}",
       "onValueChange={setQuery}",
-      "Nieuwe regio:",
+      "Nieuwe branch/regio:",
       "Badge",
       "onChange(uniqueRegionNames(next))",
     ],
@@ -80,9 +84,12 @@ test("personnel form uses multi-region UI and preserves legacy region fields", (
       "syncPersonnelRegions",
       "region:             regionNames[0]",
       "preferredRegions:   regionNames.slice(1)",
-      "setRegionNames(linkedRegions.length ? linkedRegions",
     ],
     "personnel region UI",
+  );
+  assert.match(
+    form,
+    /setRegionNames\(\s*linkedRegions\.length\s*\?\s*linkedRegions\s*:\s*\[/u,
   );
 });
 
@@ -97,7 +104,7 @@ test("object form uses tenant region links", () => {
       "getObjectRegionNames",
       "syncObjectRegions",
       "setRegionNames(linkedRegions)",
-      "Objectregio",
+      "Regio’s",
     ],
     "object region UI",
   );

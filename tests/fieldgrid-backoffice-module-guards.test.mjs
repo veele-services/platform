@@ -78,7 +78,7 @@ test("dashboard layout gives client UI module-filtered permissions", () => {
   assert.doesNotMatch(layout, /getUserPermissions/u);
   assert.match(
     layout,
-    /<PermissionsProvider permissions=\{\[\.\.\.permissions\]\}/u,
+    /<PermissionsProvider\s+permissions=\{\[\.\.\.permissions\]\}/u,
   );
   assert.match(
     layout,

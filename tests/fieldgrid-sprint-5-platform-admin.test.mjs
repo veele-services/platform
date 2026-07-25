@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should mention ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should mention ${phrase}`,
+    );
   }
 }
 
@@ -124,7 +128,7 @@ test("tenant detail page exposes the platform-admin MVP sections", () => {
       "listPlatformTenantModules",
       "listPlatformTenantSectors",
       "supportAuditEvents",
-      "Status en lifecycle",
+      "Status en levenscyclus",
       "Actief abonnement",
       "Domeinen",
       "Modules",

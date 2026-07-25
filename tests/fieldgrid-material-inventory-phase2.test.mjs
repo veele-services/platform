@@ -43,7 +43,7 @@ test("phase 2 actions generate tenant material codes and write stock movements",
 test("phase 2 stock locations support object and personnel dossiers", () => {
   const actions = read("artifacts/backoffice/src/app/actions/materials.ts");
   const objectPage = read("artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx");
-  const objectTabs = read("artifacts/backoffice/src/components/objects/ObjectDetailTabs.tsx");
+  const objectTabs = read("artifacts/backoffice/src/components/objects/object-tabs.ts");
   const personnelMaterialsPage = read("artifacts/backoffice/src/app/(dashboard)/personnel/[id]/materials/page.tsx");
 
   assertContains(

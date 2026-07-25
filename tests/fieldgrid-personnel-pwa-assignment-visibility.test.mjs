@@ -47,11 +47,16 @@ test("open personnel assignments also use the host-bound tenant context", () => 
 
 test("personnel planning refreshes live and on every visible minute", () => {
   const provider = read("artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx");
+  const realtimeClient = read("artifacts/personeel-pwa/src/lib/realtime/portal-realtime-client.ts");
 
-  assert.ok(provider.includes("portal_realtime_events"));
-  assert.ok(provider.includes("postgres_changes"));
+  assert.ok(provider.includes("subscribeToPortalRealtimeEvents"));
+  assert.ok(realtimeClient.includes("portal_realtime_events"));
+  assert.ok(realtimeClient.includes("postgres_changes"));
   assert.ok(provider.includes("MINUTE_REFRESH_INTERVAL_MS = 60_000"));
-  assert.ok(provider.includes("setInterval(refreshIfVisible, MINUTE_REFRESH_INTERVAL_MS)"));
+  assert.match(
+    provider,
+    /setInterval\(\s*refreshIfVisible,\s*MINUTE_REFRESH_INTERVAL_MS,?\s*\)/u,
+  );
   assert.ok(provider.includes("window.addEventListener(\"focus\", handleFocus)"));
   assert.ok(provider.includes("window.addEventListener(\"pageshow\", handleFocus)"));
   assert.ok(provider.includes("document.visibilityState === \"visible\""));
