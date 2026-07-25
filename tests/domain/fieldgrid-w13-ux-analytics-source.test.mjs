@@ -88,6 +88,8 @@ test("canonical loading and recoverable error states preserve layout", () => {
     assert.match(skeletons, new RegExp(`function ${name}`));
   }
   assert.match(skeletons, /role="status"/);
+  assert.match(skeletons, /aria-busy="true"/);
+  assert.doesNotMatch(skeletons, /<main\b/);
   assert.match(forbidden, /<Empty/);
   assert.match(forbidden, /Geen toegang tot deze pagina/);
   assert.doesNotMatch(forbidden, /\{resource\}|\{action\}/);
