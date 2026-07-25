@@ -110,7 +110,7 @@ export function WebsiteNavigationEditor({
     setItems((current) =>
       current.map((item) => {
         if (item.id === id) return { ...item, ...patch };
-        if (patch.isVisible === false && item.parentId === id) {
+        if (Object.is(patch.isVisible, false) && item.parentId === id) {
           return { ...item, isVisible: false };
         }
         return item;

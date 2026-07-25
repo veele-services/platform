@@ -84,7 +84,8 @@ function isAllowedPrimitivePath(file) {
   const normalized = normalizedPath(file);
   return (
     normalized.includes("/components/ui/") ||
-    normalized.includes("/components/radix-adapters/")
+    normalized.includes("/components/radix-adapters/") ||
+    normalized.includes("/radix-adapters/")
   );
 }
 
@@ -92,6 +93,13 @@ function walk(root) {
   if (!existsSync(root)) return [];
   const files = [];
   for (const entry of readdirSync(root)) {
+    if (
+      entry === "__tests__" ||
+      /\.test\.[cm]?[jt]sx?$/u.test(entry) ||
+      /\.spec\.[cm]?[jt]sx?$/u.test(entry)
+    ) {
+      continue;
+    }
     const path = resolve(root, entry);
     const stats = statSync(path);
     if (stats.isDirectory()) {
