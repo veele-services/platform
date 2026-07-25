@@ -37,24 +37,19 @@ test("bulk status mutations use the responsive canonical bar and confirmation", 
   for (const path of [
     "artifacts/backoffice/src/components/customers/CustomersView.tsx",
     "artifacts/backoffice/src/components/personnel/PersonnelView.tsx",
+    "artifacts/backoffice/src/components/objects/ObjectsView.tsx",
   ]) {
     const source = read(path);
-    assert.match(source, /BulkActionBar/u, path);
+    assert.match(source, /FieldgridDataView/u, path);
+    assert.match(source, /bulkActions=/u, path);
     assert.match(source, /bulkDeactivateOpen/u, path);
     assert.match(source, /TenantConfirmDialog/u, path);
   }
 
-  const objects = read(
-    "artifacts/backoffice/src/components/objects/ObjectsView.tsx",
-  );
   const dataView = read(
     "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
   );
-  assert.match(objects, /FieldgridDataView/u);
-  assert.match(objects, /bulkActions=/u);
   assert.match(dataView, /BulkActionBar/u);
-  assert.match(objects, /bulkDeactivateOpen/u);
-  assert.match(objects, /TenantConfirmDialog/u);
 });
 
 test("assignment times are validated in client and server paths", () => {
