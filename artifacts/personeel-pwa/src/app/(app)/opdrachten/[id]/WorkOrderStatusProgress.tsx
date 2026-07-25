@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/shared-ui";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,7 +37,7 @@ function StepCircle({
   kind,
   state,
 }: {
-  kind:  StepKind;
+  kind: StepKind;
   state: "done" | "active" | "pending" | "failed";
 }) {
   if (state === "failed") {
@@ -68,8 +75,12 @@ function StepCircle({
 
   return (
     <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D7DDE8] bg-[#E7EBF2] ring-4 ring-[#F1F3F7]">
-      {kind === "start" ? <Play size={16} strokeWidth={2.35} className="text-[#8EA0B7]" /> : null}
-      {kind === "en_route" ? <Navigation size={16} strokeWidth={2.35} className="text-[#8EA0B7]" /> : null}
+      {kind === "start" ? (
+        <Play size={16} strokeWidth={2.35} className="text-[#8EA0B7]" />
+      ) : null}
+      {kind === "en_route" ? (
+        <Navigation size={16} strokeWidth={2.35} className="text-[#8EA0B7]" />
+      ) : null}
     </span>
   );
 }
@@ -79,25 +90,41 @@ function FinishChoiceDialog({
   onClose,
 }: {
   assignmentId: string;
-  onClose:      () => void;
+  onClose: () => void;
 }) {
   const router = useRouter();
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[#061F44]/35 px-4 pb-[calc(1rem+var(--safe-bottom))] backdrop-blur-sm">
-      <section className="w-full max-w-sm rounded-[24px] bg-white p-5 shadow-2xl" role="dialog" aria-modal="true">
-        <h2 className="text-[18px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+    >
+      <DialogContent className="max-w-sm rounded-t-[24px] bg-white sm:rounded-[24px]">
+        <DialogTitle
+          className="text-[18px] font-black leading-tight"
+          style={{ color: "var(--color-primary)" }}
+        >
           Zijn alle werkzaamheden afgerond?
-        </h2>
-        <p className="mt-2 text-[14px] leading-5" style={{ color: "var(--color-secondary)" }}>
-          Kies Ja voor de definitieve samenvatting met eventuele klantbevestiging, of Nee om de bon af te melden.
-        </p>
+        </DialogTitle>
+        <DialogDescription
+          className="mt-2 text-[14px] leading-5"
+          style={{ color: "var(--color-secondary)" }}
+        >
+          Kies Ja voor de definitieve samenvatting met eventuele
+          klantbevestiging, of Nee om de bon af te melden.
+        </DialogDescription>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Link
             href={`/opdrachten/${assignmentId}/afronden?result=not_completed`}
             className="rounded-2xl border px-4 py-3 text-center text-[14px] font-black active:scale-[0.98]"
-            style={{ borderColor: "#FCA5A5", backgroundColor: "#FEF2F2", color: "#DC2626" }}
+            style={{
+              borderColor: "#FCA5A5",
+              backgroundColor: "#FEF2F2",
+              color: "#DC2626",
+            }}
           >
             Nee
           </Link>
@@ -110,16 +137,17 @@ function FinishChoiceDialog({
           </Link>
         </div>
 
-        <button
-          type="button"
-          className="mt-3 w-full rounded-2xl px-4 py-3 text-[14px] font-bold"
-          style={{ color: "var(--color-secondary)" }}
-          onClick={onClose}
-        >
-          Annuleren
-        </button>
-      </section>
-    </div>
+        <DialogClose asChild>
+          <button
+            type="button"
+            className="mt-3 min-h-11 w-full rounded-2xl px-4 py-3 text-[14px] font-bold"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            Annuleren
+          </button>
+        </DialogClose>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -137,14 +165,16 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   // The automatic seen transition owns the rendered participant version until
   // SeenMarker has refreshed the route with its canonical result. Letting a
   // second action race it would turn our own transition into a false conflict.
-  const awaitingSeenRefresh = assignment.status === "scheduled"
-    && (status === "assigned" || status === "scheduled");
+  const awaitingSeenRefresh =
+    assignment.status === "scheduled" &&
+    (status === "assigned" || status === "scheduled");
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
-  const canMarkEnRoute = !workOrderLocked
-    && !awaitingSeenRefresh
-    && (status === "assigned" || status === "scheduled" || status === "seen");
+  const canMarkEnRoute =
+    !workOrderLocked &&
+    !awaitingSeenRefresh &&
+    (status === "assigned" || status === "scheduled" || status === "seen");
   const canStart = !workOrderLocked && status === "en_route";
   const canFinish = !workOrderLocked && status === "in_progress";
 
@@ -167,12 +197,16 @@ export function InteractiveStatusProgress({ assignment }: Props) {
         expectedParticipantVersion: assignment.participantVersion ?? null,
       });
       setEnRouteDialogOpen(false);
-      setNotice("Onderweg melden is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+      setNotice(
+        "Onderweg melden is offline opgeslagen en wordt automatisch gesynchroniseerd.",
+      );
       return;
     }
 
     startTransition(async () => {
-      const result = await markAssignmentEnRoute(assignment.id, { expectedParticipantVersion: assignment.participantVersion ?? null });
+      const result = await markAssignmentEnRoute(assignment.id, {
+        expectedParticipantVersion: assignment.participantVersion ?? null,
+      });
       if (!result.success) {
         setEnRouteDialogOpen(false);
         setError(result.error ?? "Onderweg melden mislukt");
@@ -202,12 +236,16 @@ export function InteractiveStatusProgress({ assignment }: Props) {
         expectedParticipantVersion: assignment.participantVersion ?? null,
       });
       setStartDialogOpen(false);
-      setNotice("Starten is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+      setNotice(
+        "Starten is offline opgeslagen en wordt automatisch gesynchroniseerd.",
+      );
       return;
     }
 
     startTransition(async () => {
-      const result = await startAssignment(assignment.id, { expectedParticipantVersion: assignment.participantVersion ?? null });
+      const result = await startAssignment(assignment.id, {
+        expectedParticipantVersion: assignment.participantVersion ?? null,
+      });
       if (!result.success) {
         setStartDialogOpen(false);
         setError(result.error ?? "Starten mislukt");
@@ -229,63 +267,100 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   }
 
   const steps: Array<{
-    kind:     StepKind;
-    label:    string;
-    time?:    string | null;
-    state:    "done" | "active" | "pending" | "failed";
+    kind: StepKind;
+    label: string;
+    time?: string | null;
+    state: "done" | "active" | "pending" | "failed";
     onClick?: () => void;
     disabled?: boolean;
   }> = [
     {
-      kind:  "seen",
+      kind: "seen",
       label: "Gezien",
-      time:  formatDateTimeTime(assignment.seenAt),
-      state: activeStep > 0 || status === "seen" || status === "scheduled" ? "done" : "active",
+      time: formatDateTimeTime(assignment.seenAt),
+      state:
+        activeStep > 0 || status === "seen" || status === "scheduled"
+          ? "done"
+          : "active",
     },
     {
-      kind:     "en_route",
-      label:    "Onderweg",
-      time:     formatDateTimeTime(assignment.enRouteAt),
-      state:    activeStep > 1 || status === "en_route" || finished || failedFinal ? "done" : activeStep === 0 ? "active" : "pending",
-      onClick:  handleEnRoute,
+      kind: "en_route",
+      label: "Onderweg",
+      time: formatDateTimeTime(assignment.enRouteAt),
+      state:
+        activeStep > 1 || status === "en_route" || finished || failedFinal
+          ? "done"
+          : activeStep === 0
+            ? "active"
+            : "pending",
+      onClick: handleEnRoute,
       disabled: !canMarkEnRoute || isPending,
     },
     {
-      kind:     "start",
-      label:    status === "in_progress" || finished || failedFinal ? "Gestart" : "Start",
-      time:     formatDateTimeTime(assignment.actualStartedAt),
-      state:    activeStep > 1 || finished || failedFinal ? "done" : activeStep === 1 ? "active" : "pending",
-      onClick:  handleStart,
+      kind: "start",
+      label:
+        status === "in_progress" || finished || failedFinal
+          ? "Gestart"
+          : "Start",
+      time: formatDateTimeTime(assignment.actualStartedAt),
+      state:
+        activeStep > 1 || finished || failedFinal
+          ? "done"
+          : activeStep === 1
+            ? "active"
+            : "pending",
+      onClick: handleStart,
       disabled: !canStart || isPending,
     },
     {
-      kind:     "finish",
-      label:    failedFinal ? "Afgemeld" : finished ? "Afgerond" : "Afronden",
-      time:     formatDateTimeTime(assignment.actualCompletedAt),
-      state:    failedFinal ? "failed" : finished ? "done" : activeStep === 2 ? "active" : "pending",
-      onClick:  handleFinish,
+      kind: "finish",
+      label: failedFinal ? "Afgemeld" : finished ? "Afgerond" : "Afronden",
+      time: formatDateTimeTime(assignment.actualCompletedAt),
+      state: failedFinal
+        ? "failed"
+        : finished
+          ? "done"
+          : activeStep === 2
+            ? "active"
+            : "pending",
+      onClick: handleFinish,
       disabled: !canFinish,
     },
   ];
 
   return (
-    <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
+    <section
+      className="rounded-[18px] bg-white px-5 py-4 shadow-sm"
+      style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+        <h2
+          className="text-[15px] font-black leading-tight"
+          style={{ color: "var(--color-primary)" }}
+        >
           Status werkbon
         </h2>
-        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-[15px] font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {getDisplayedTimeSlot(assignment)}
         </span>
       </div>
 
       {error ? (
-        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+        <p
+          className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold"
+          style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
+        >
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+        <p
+          className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold"
+          style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}
+        >
           {notice}
         </p>
       ) : null}
@@ -309,17 +384,25 @@ export function InteractiveStatusProgress({ assignment }: Props) {
                 <span
                   className="mt-2 text-[12px] font-bold"
                   style={{
-                    color: step.state === "active" && !failedFinal
-                      ? "var(--color-accent-accessible)"
-                      : step.state === "failed"
-                        ? "#DC2626"
-                        : "var(--color-secondary)",
+                    color:
+                      step.state === "active" && !failedFinal
+                        ? "var(--color-accent-accessible)"
+                        : step.state === "failed"
+                          ? "#DC2626"
+                          : "var(--color-secondary)",
                   }}
                 >
-                  {isPending && step.kind === "en_route" ? "Onderweg..." : isPending && step.kind === "start" ? "Start..." : step.label}
+                  {isPending && step.kind === "en_route"
+                    ? "Onderweg..."
+                    : isPending && step.kind === "start"
+                      ? "Start..."
+                      : step.label}
                 </span>
                 {step.time ? (
-                  <span className="mt-0.5 text-[10px] font-black" style={{ color: "var(--color-secondary)" }}>
+                  <span
+                    className="mt-0.5 text-[10px] font-black"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
                     {step.time}
                   </span>
                 ) : null}
@@ -327,7 +410,13 @@ export function InteractiveStatusProgress({ assignment }: Props) {
               {index < steps.length - 1 ? (
                 <div
                   className="mt-5 h-0.5 flex-1"
-                  style={{ backgroundColor: lineIsFailed ? "#FCA5A5" : lineIsDone ? "var(--color-accent)" : "#D7DDE8" }}
+                  style={{
+                    backgroundColor: lineIsFailed
+                      ? "#FCA5A5"
+                      : lineIsDone
+                        ? "var(--color-accent)"
+                        : "#D7DDE8",
+                  }}
                 />
               ) : null}
             </div>
@@ -336,7 +425,10 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       </div>
 
       {finishDialogOpen ? (
-        <FinishChoiceDialog assignmentId={assignment.id} onClose={() => setFinishDialogOpen(false)} />
+        <FinishChoiceDialog
+          assignmentId={assignment.id}
+          onClose={() => setFinishDialogOpen(false)}
+        />
       ) : null}
       <PersonnelConfirmDialog
         open={enRouteDialogOpen}

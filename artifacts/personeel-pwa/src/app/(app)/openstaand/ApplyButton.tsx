@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/shared-ui";
 import { useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -20,11 +27,11 @@ import {
 import { askQuestionAboutAssignment } from "@/actions/messages";
 
 interface Props {
-  assignmentId:     string;
-  title:            string;
+  assignmentId: string;
+  title: string;
   isAlreadyApplied: boolean;
-  interestStatus?:  string | null;
-  canDecline?:      boolean;
+  interestStatus?: string | null;
+  canDecline?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -61,58 +68,71 @@ function ResponseBottomSheet({
   const isInfo = tone === "info";
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-[#061F44]/35 px-4 pb-[calc(1rem+var(--safe-bottom))] pt-6 backdrop-blur-sm sm:items-center sm:pb-6"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md rounded-[26px] bg-white p-5 shadow-2xl"
-      >
+      <DialogContent className="max-w-md rounded-t-[26px] bg-white sm:rounded-[26px]">
         <div className="flex items-start gap-3">
           <span
             className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
             style={{
-              backgroundColor: isDanger ? "#FEF2F2" : isInfo ? "#E8F2FF" : "#E8FBFA",
-              color: isDanger ? "#DC2626" : isInfo ? "#1D4ED8" : "var(--color-accent)",
+              backgroundColor: isDanger
+                ? "#FEF2F2"
+                : isInfo
+                  ? "#E8F2FF"
+                  : "#E8FBFA",
+              color: isDanger
+                ? "#DC2626"
+                : isInfo
+                  ? "#1D4ED8"
+                  : "var(--color-accent)",
             }}
           >
-            {isInfo ? <MessageSquare size={20} strokeWidth={2.4} /> : <AlertTriangle size={20} strokeWidth={2.4} />}
+            {isInfo ? (
+              <MessageSquare size={20} strokeWidth={2.4} />
+            ) : (
+              <AlertTriangle size={20} strokeWidth={2.4} />
+            )}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[18px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+            <DialogTitle
+              className="text-[18px] font-black leading-tight"
+              style={{ color: "var(--color-primary)" }}
+            >
               {title}
-            </h2>
-            <p className="mt-2 text-[14px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+            </DialogTitle>
+            <DialogDescription
+              className="mt-2 text-[14px] font-semibold leading-5"
+              style={{ color: "var(--color-secondary)" }}
+            >
               {description}
-            </p>
+            </DialogDescription>
           </div>
-          <button
-            type="button"
-            aria-label="Sluiten"
-            onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"
-          >
-            <X size={18} strokeWidth={2.4} />
-          </button>
+          <DialogClose asChild>
+            <button
+              type="button"
+              aria-label="Sluiten"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+            >
+              <X size={18} strokeWidth={2.4} />
+            </button>
+          </DialogClose>
         </div>
 
-        <div className="mt-5">
-          {children}
-        </div>
-      </section>
-    </div>
+        <div className="mt-5">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function statusDescription(status: string | null): string {
-  if (status === "unavailable") return "Planning ziet dat je niet beschikbaar bent voor deze dienst.";
-  if (status === "question") return "Je vraag is als bericht verstuurd. Volg het gesprek in Berichten.";
+  if (status === "unavailable")
+    return "Planning ziet dat je niet beschikbaar bent voor deze dienst.";
+  if (status === "question")
+    return "Je vraag is als bericht verstuurd. Volg het gesprek in Berichten.";
   if (status === "selected" || status === "reserve" || status === "confirmed") {
     return "Planning heeft je reactie verwerkt. Controleer je planning voor definitieve inzet.";
   }
@@ -135,7 +155,9 @@ export function ApplyButton({
   const [pending, startTransition] = useTransition();
   const applied =
     isAlreadyApplied ||
-    ["interested", "question", "selected", "reserve", "confirmed"].includes(status ?? "");
+    ["interested", "question", "selected", "reserve", "confirmed"].includes(
+      status ?? "",
+    );
 
   function closeSheet() {
     if (pending) return;
@@ -154,7 +176,9 @@ export function ApplyButton({
       if (!result.success) {
         setError(
           result.error ??
-          (action === "apply" ? "Aanmelden mislukt" : "Reactie opslaan mislukt"),
+            (action === "apply"
+              ? "Aanmelden mislukt"
+              : "Reactie opslaan mislukt"),
         );
         return;
       }
@@ -191,7 +215,9 @@ export function ApplyButton({
       setTicketId(result.ticketId ?? null);
       setQuestion("");
       setSheetAction(null);
-      setFeedback("Vraag verstuurd naar planning. Het gesprek staat nu in Berichten.");
+      setFeedback(
+        "Vraag verstuurd naar planning. Het gesprek staat nu in Berichten.",
+      );
     });
   }
 
@@ -199,13 +225,24 @@ export function ApplyButton({
     const isUnavailable = status === "unavailable";
     const isQuestion = status === "question";
     return (
-      <div className="rounded-2xl border bg-white p-3" style={{ borderColor: "var(--color-border)" }}>
+      <div
+        className="rounded-2xl border bg-white p-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div
             className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black"
             style={{
-              backgroundColor: isUnavailable ? "#FEE2E2" : isQuestion ? "#E8F2FF" : "#DCFCE7",
-              color: isUnavailable ? "#991B1B" : isQuestion ? "#1D4ED8" : "#166534",
+              backgroundColor: isUnavailable
+                ? "#FEE2E2"
+                : isQuestion
+                  ? "#E8F2FF"
+                  : "#DCFCE7",
+              color: isUnavailable
+                ? "#991B1B"
+                : isQuestion
+                  ? "#1D4ED8"
+                  : "#166534",
             }}
           >
             {isUnavailable ? (
@@ -227,7 +264,10 @@ export function ApplyButton({
             </Link>
           ) : null}
         </div>
-        <p className="mt-2 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+        <p
+          className="mt-2 text-[12px] font-semibold leading-5"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {feedback ?? statusDescription(status)}
         </p>
       </div>
@@ -281,7 +321,11 @@ export function ApplyButton({
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
-          {pending && sheetAction === "apply" ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={12} />}
+          {pending && sheetAction === "apply" ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <UserPlus size={12} />
+          )}
           Interesse tonen
         </button>
       </div>
@@ -296,12 +340,21 @@ export function ApplyButton({
         open={sheetAction !== null}
         title={sheetTitle}
         description={sheetDescription}
-        tone={sheetAction === "decline" ? "danger" : sheetAction === "question" ? "info" : "accent"}
+        tone={
+          sheetAction === "decline"
+            ? "danger"
+            : sheetAction === "question"
+              ? "info"
+              : "accent"
+        }
         onClose={closeSheet}
       >
         {sheetAction === "question" ? (
           <div className="space-y-3">
-            <label className="block rounded-2xl border bg-white px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
+            <label
+              className="block rounded-2xl border bg-white px-3 py-2.5"
+              style={{ borderColor: "var(--color-border)" }}
+            >
               <span className="block text-[11px] font-black uppercase tracking-wide text-slate-400">
                 Bericht aan planning
               </span>
@@ -325,7 +378,10 @@ export function ApplyButton({
                 onClick={closeSheet}
                 disabled={pending}
                 className="rounded-2xl border px-4 py-3 text-[14px] font-black disabled:opacity-60"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-secondary)",
+                }}
               >
                 Annuleren
               </button>
@@ -336,7 +392,11 @@ export function ApplyButton({
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-black text-white disabled:opacity-60"
                 style={{ backgroundColor: "var(--color-accent)" }}
               >
-                {pending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                {pending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Send size={15} />
+                )}
                 Versturen
               </button>
             </div>
@@ -354,19 +414,35 @@ export function ApplyButton({
                 onClick={closeSheet}
                 disabled={pending}
                 className="rounded-2xl border px-4 py-3 text-[14px] font-black disabled:opacity-60"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-secondary)",
+                }}
               >
                 Annuleren
               </button>
               <button
                 type="button"
-                onClick={() => handleDecisionAction(sheetAction === "decline" ? "decline" : "apply")}
+                onClick={() =>
+                  handleDecisionAction(
+                    sheetAction === "decline" ? "decline" : "apply",
+                  )
+                }
                 disabled={pending}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-black text-white disabled:opacity-60"
-                style={{ backgroundColor: sheetAction === "decline" ? "#DC2626" : "var(--color-accent)" }}
+                style={{
+                  backgroundColor:
+                    sheetAction === "decline"
+                      ? "#DC2626"
+                      : "var(--color-accent)",
+                }}
               >
-                {pending ? <Loader2 size={15} className="animate-spin" /> : null}
-                {sheetAction === "decline" ? "Niet beschikbaar" : "Interesse tonen"}
+                {pending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : null}
+                {sheetAction === "decline"
+                  ? "Niet beschikbaar"
+                  : "Interesse tonen"}
               </button>
             </div>
           </div>

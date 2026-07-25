@@ -12,6 +12,21 @@ export {
   type CheckboxAdapterChangeEvent,
 } from "./radix-adapters/checkbox-adapter";
 export { RadioGroup, RadioGroupItem } from "./radix-adapters/radio-group";
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "./radix-adapters/modal";
 
 export function SkipLink({
   href = "#main-content",
@@ -375,80 +390,6 @@ export function FormField({
   );
 }
 
-export function ConfirmDialog({
-  title,
-  description,
-  confirmLabel = "Bevestigen",
-  cancelLabel = "Annuleren",
-  destructive = false,
-}: {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  destructive?: boolean;
-}) {
-  return (
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
-      aria-describedby={description ? "confirm-description" : undefined}
-      className="rounded-xl border border-border bg-card p-5 shadow-lg"
-    >
-      <h2 id="confirm-title" className="text-lg font-semibold">
-        {title}
-      </h2>
-      {description ? (
-        <p
-          id="confirm-description"
-          className="mt-2 text-sm text-muted-foreground"
-        >
-          {description}
-        </p>
-      ) : null}
-      <div className="mt-5 flex justify-end gap-2">
-        <button
-          type="button"
-          className="min-h-11 rounded-md border border-border px-4"
-        >
-          {cancelLabel}
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "min-h-11 rounded-md px-4 text-white",
-            destructive ? "bg-destructive" : "bg-primary",
-          )}
-        >
-          {confirmLabel}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function ResponsiveDrawer({
-  title,
-  children,
-}: {
-  title: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <aside
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="drawer-title"
-      className="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-auto rounded-t-2xl border border-border bg-card p-4 shadow-xl md:inset-y-0 md:left-auto md:right-0 md:w-[28rem] md:rounded-none"
-    >
-      <h2 id="drawer-title" className="text-lg font-semibold">
-        {title}
-      </h2>
-      <div className="mt-4">{children}</div>
-    </aside>
-  );
-}
 export function Timeline({
   children,
   label = "Tijdlijn",
