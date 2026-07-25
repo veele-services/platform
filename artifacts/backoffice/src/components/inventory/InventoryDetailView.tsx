@@ -653,7 +653,7 @@ function Metric({
   tone?: "neutral" | "warn" | "danger";
 }) {
   const color =
-    tone === "danger" ? "#B91C1C" : tone === "warn" ? "#B45309" : "#081D3A";
+    tone === "danger" ? "#B91C1C" : tone === "warn" ? "#B45309" : "var(--color-foreground)";
   return (
     <div className="veele-card">
       <p

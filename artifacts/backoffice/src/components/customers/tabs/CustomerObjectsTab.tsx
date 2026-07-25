@@ -34,7 +34,7 @@ export function CustomerObjectsTab({ customerId, customerName, objects, sectors,
           <Link
             href={`/objects?customerId=${customerId}`}
             className="text-xs font-medium hover:underline"
-            style={{ color: "#00B7B3" }}
+            style={{ color: "var(--color-primary)" }}
           >
             Alle bekijken →
           </Link>
@@ -67,7 +67,7 @@ export function CustomerObjectsTab({ customerId, customerName, objects, sectors,
                     className="transition-colors hover:bg-slate-50/60"
                     style={{ borderBottom: i < objects.length - 1 ? "1px solid #F1F5F9" : undefined }}
                   >
-                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                       <Link href={`/objects/${obj.id}`} className="hover:underline">{obj.name}</Link>
                     </td>
                     <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{obj.code ?? "—"}</td>

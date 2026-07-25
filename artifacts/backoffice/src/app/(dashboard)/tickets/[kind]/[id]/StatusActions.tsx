@@ -66,7 +66,7 @@ export function StatusActions({
       className="rounded-lg border bg-white p-4 shadow-sm"
       style={{ borderColor: "#E2E8F0" }}
     >
-      <h2 className="text-sm font-black" style={{ color: "#081D3A" }}>
+      <h2 className="text-sm font-black" style={{ color: "var(--color-foreground)" }}>
         Ticketstatus
       </h2>
       <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -78,8 +78,8 @@ export function StatusActions({
           onChange={(event) =>
             setStatus(event.target.value as BackofficeTicketStatus)
           }
-          className="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm font-semibold outline-none focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10"
-          style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+          className="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+          style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -91,7 +91,7 @@ export function StatusActions({
           type="button"
           onClick={save}
           disabled={isPending}
-          className="h-10 rounded-md bg-[#081D3A] px-4 text-sm font-black text-white disabled:opacity-60"
+          className="h-10 rounded-md bg-foreground px-4 text-sm font-black text-white disabled:opacity-60"
         >
           Opslaan
         </button>

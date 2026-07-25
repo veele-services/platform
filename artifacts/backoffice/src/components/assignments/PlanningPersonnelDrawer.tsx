@@ -347,7 +347,7 @@ function PersonnelRow({
               disabled={isPending}
               onClick={handleAssign}
               className="h-7 px-2 text-xs flex-shrink-0"
-              style={{ background: "#081D3A", color: "#fff" }}
+              style={{ background: "var(--color-foreground)", color: "#fff" }}
             >
               {isPending ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -480,7 +480,7 @@ export function PlanningPersonnelDrawer({
         className="flex w-full flex-col overflow-y-auto sm:max-w-[440px]"
       >
         <SheetHeader className="pb-4">
-          <SheetTitle style={{ color: "#081D3A" }}>Personeel inplannen</SheetTitle>
+          <SheetTitle style={{ color: "var(--color-foreground)" }}>Personeel inplannen</SheetTitle>
           <SheetDescription>
             Selecteer welke medewerkers worden ingepland voor deze opdracht.
           </SheetDescription>

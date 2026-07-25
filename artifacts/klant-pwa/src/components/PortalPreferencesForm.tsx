@@ -164,7 +164,7 @@ export function PortalPreferencesForm({
               type="checkbox"
               name={option.name}
               defaultChecked={preferences[option.name]}
-              className="mt-1 h-4 w-4 accent-[#00B7B3]"
+              className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
             />
             <span>
               <span

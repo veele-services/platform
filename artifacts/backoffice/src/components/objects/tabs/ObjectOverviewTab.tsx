@@ -33,7 +33,7 @@ function InfoRow({ icon: Icon, label, children }: {
       <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium mb-0.5" style={{ color: "#94A3B8" }}>{label}</p>
-        <div className="text-sm" style={{ color: "#081D3A" }}>{children}</div>
+        <div className="text-sm" style={{ color: "var(--color-foreground)" }}>{children}</div>
       </div>
     </div>
   );
@@ -143,7 +143,7 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
 
           <InfoRow icon={Building2} label="Klant">
             {obj.customerName ? (
-              <Link href={`/customers/${obj.customerId}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+              <Link href={`/customers/${obj.customerId}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                 {obj.customerName}
                 {obj.customerCode && <span style={{ color: "#94A3B8" }}> ({obj.customerCode})</span>}
               </Link>
@@ -195,10 +195,10 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4 text-xs" style={{ color: "#64748B" }}>
-              <span>Laatste service: <strong style={{ color: "#081D3A" }}>{formatDate(performance.lastServiceDate)}</strong></span>
-              <span>Volgende service: <strong style={{ color: "#081D3A" }}>{formatDate(performance.nextServiceDate)}</strong></span>
-              <span>Rapporten in controle: <strong style={{ color: "#081D3A" }}>{performance.reportsSubmitted}</strong></span>
-              <span>Goedgekeurde rapporten: <strong style={{ color: "#081D3A" }}>{performance.reportsApproved}</strong></span>
+              <span>Laatste service: <strong style={{ color: "var(--color-foreground)" }}>{formatDate(performance.lastServiceDate)}</strong></span>
+              <span>Volgende service: <strong style={{ color: "var(--color-foreground)" }}>{formatDate(performance.nextServiceDate)}</strong></span>
+              <span>Rapporten in controle: <strong style={{ color: "var(--color-foreground)" }}>{performance.reportsSubmitted}</strong></span>
+              <span>Goedgekeurde rapporten: <strong style={{ color: "var(--color-foreground)" }}>{performance.reportsApproved}</strong></span>
             </div>
           </div>
 
@@ -286,7 +286,7 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                    <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                       {title}
                     </p>
                     {description && (

@@ -28,7 +28,7 @@ function StatCard({ icon, label, value, color, bg }: StatCardProps) {
         <div style={{ color }}>{icon}</div>
       </div>
       <div>
-        <p className="text-2xl font-bold leading-none" style={{ color: "#081D3A" }}>
+        <p className="text-2xl font-bold leading-none" style={{ color: "var(--color-foreground)" }}>
           {value}
         </p>
         <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>

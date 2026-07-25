@@ -68,7 +68,7 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="break-words text-lg font-black text-[#081D3A]">
+          <h2 className="break-words text-lg font-black text-[var(--color-primary)]">
             Persoonsgegevens
           </h2>
           <p className="mt-1 break-words text-sm font-medium text-slate-500">
@@ -162,7 +162,7 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
             name="vehicleType"
             value={vehicleType}
             onChange={(event) => setVehicleType(event.currentTarget.value)}
-            className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
           >
             {VEHICLE_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -180,7 +180,7 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
       <div className="mt-4 rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] p-3">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-black text-[#081D3A]">
+            <div className="flex items-center gap-2 text-sm font-black text-[var(--color-primary)]">
               <Home size={18} strokeWidth={2.4} className="text-[#009E9A]" />
               NAW gegevens
             </div>
@@ -282,7 +282,7 @@ function TextField({
           }
           autoComplete={autoComplete}
           inputMode={inputMode}
-          className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#081D3A] outline-none placeholder:text-slate-300"
+          className="min-w-0 flex-1 bg-transparent text-base font-bold text-[var(--color-primary)] outline-none placeholder:text-slate-300"
         />
       </span>
     </label>

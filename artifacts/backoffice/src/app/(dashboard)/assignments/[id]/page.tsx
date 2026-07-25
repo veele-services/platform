@@ -113,7 +113,7 @@ function InfoRow({
         >
           {label}
         </p>
-        <div className="text-sm" style={{ color: "#081D3A" }}>
+        <div className="text-sm" style={{ color: "var(--color-foreground)" }}>
           {value}
         </div>
       </div>
@@ -183,9 +183,9 @@ function DetailCard({
     >
       <h3
         className="mb-3 flex items-center gap-2 font-heading text-sm font-semibold"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <Icon className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <Icon className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         {title}
       </h3>
       {children}
@@ -345,9 +345,9 @@ function CapacityMatchingSection({
         <div>
           <h2
             className="font-heading text-lg font-semibold flex items-center gap-2"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
-            <TrendingUp className="h-5 w-5" style={{ color: "#00B7B3" }} />
+            <TrendingUp className="h-5 w-5" style={{ color: "var(--color-primary)" }} />
             Capaciteit & matching
           </h2>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -388,19 +388,19 @@ function CapacityMatchingSection({
         >
           <div className="flex items-center justify-between gap-3">
             <span style={{ color: "#64748B" }}>Hoogste match</span>
-            <span className="font-semibold" style={{ color: "#081D3A" }}>
+            <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
               {planningReadiness.highestMatchScore}%
             </span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span style={{ color: "#64748B" }}>Definitief gekoppeld</span>
-            <span className="font-semibold" style={{ color: "#081D3A" }}>
+            <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
               {planningReadiness.assignedCount}
             </span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span style={{ color: "#64748B" }}>Suggesties</span>
-            <span className="font-semibold" style={{ color: "#081D3A" }}>
+            <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
               {planningReadiness.suggestedCount}
             </span>
           </div>
@@ -415,7 +415,7 @@ function CapacityMatchingSection({
           >
             <p
               className={`text-xl font-semibold ${metric.valueClassName}`}
-              style={metric.valueClassName ? undefined : { color: "#081D3A" }}
+              style={metric.valueClassName ? undefined : { color: "var(--color-foreground)" }}
             >
               {metric.value}
             </p>
@@ -453,7 +453,7 @@ function CapacityMatchingSection({
                     <div className="min-w-0">
                       <p
                         className="truncate font-semibold"
-                        style={{ color: "#081D3A" }}
+                        style={{ color: "var(--color-foreground)" }}
                       >
                         {person.name}
                       </p>
@@ -554,7 +554,7 @@ function CapacityMatchingSection({
                       <div className="min-w-0">
                         <p
                           className="truncate font-semibold"
-                          style={{ color: "#081D3A" }}
+                          style={{ color: "var(--color-foreground)" }}
                         >
                           {candidate.name}
                         </p>
@@ -568,7 +568,7 @@ function CapacityMatchingSection({
                       <div className="flex flex-col items-end gap-1">
                         <span
                           className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold"
-                          style={{ color: "#081D3A" }}
+                          style={{ color: "var(--color-foreground)" }}
                         >
                           {candidate.matchScore}%
                         </span>
@@ -736,7 +736,7 @@ function WorkOrderOverviewSection({
         <div>
           <h2
             className="font-heading text-lg font-semibold"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
             Werkboninformatie
           </h2>
@@ -760,7 +760,7 @@ function WorkOrderOverviewSection({
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
         <DetailCard title="Klantdata" icon={Building2}>
-          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+          <div className="space-y-2 text-sm" style={{ color: "var(--color-foreground)" }}>
             <p className="font-semibold">{assignment.customerName}</p>
             {assignment.customerCode && (
               <p className="text-xs" style={{ color: "#64748B" }}>
@@ -789,7 +789,7 @@ function WorkOrderOverviewSection({
         </DetailCard>
 
         <DetailCard title="Object & adres" icon={MapPin}>
-          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+          <div className="space-y-2 text-sm" style={{ color: "var(--color-foreground)" }}>
             <p className="font-semibold">
               {assignment.objectName ?? "Geen object gekoppeld"}
             </p>
@@ -813,7 +813,7 @@ function WorkOrderOverviewSection({
         </DetailCard>
 
         <DetailCard title="Toegang & aandachtspunten" icon={KeyRound}>
-          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+          <div className="space-y-2 text-sm" style={{ color: "var(--color-foreground)" }}>
             {assignment.objectAccessInfo && (
               <p>
                 <span className="font-medium">Toegang:</span>{" "}
@@ -855,7 +855,7 @@ function WorkOrderOverviewSection({
                   </p>
                   <p
                     className="mt-1 whitespace-pre-wrap text-sm"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     {note.value}
                   </p>
@@ -877,12 +877,12 @@ function WorkOrderOverviewSection({
                 >
                   <CheckCircle2
                     className="mt-0.5 h-4 w-4 flex-shrink-0"
-                    style={{ color: "#00B7B3" }}
+                    style={{ color: "var(--color-primary)" }}
                   />
                   <div className="min-w-0">
                     <p
                       className="text-sm font-medium"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       {task.taskCodeCode && (
                         <span
@@ -1427,7 +1427,7 @@ export default async function AssignmentDetailPage({
                   <Link
                     href={`/customers/${assignment.customerId}`}
                     className="hover:underline"
-                    style={{ color: "#00B7B3" }}
+                    style={{ color: "var(--color-primary)" }}
                   >
                     {assignment.customerName}
                   </Link>
@@ -1474,9 +1474,9 @@ export default async function AssignmentDetailPage({
               <div className="veele-card">
                 <h2
                   className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
-                  <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   Beschrijving
                 </h2>
                 <p
@@ -1526,11 +1526,11 @@ export default async function AssignmentDetailPage({
               <div className="veele-card scroll-mt-24">
                 <h2
                   className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
                   <FileCheck2
                     className="h-4 w-4"
-                    style={{ color: "#00B7B3" }}
+                    style={{ color: "var(--color-primary)" }}
                   />
                   Offerte
                   <ProcessStatusBadge
@@ -1548,7 +1548,7 @@ export default async function AssignmentDetailPage({
                   >
                     {existingQuote.quoteNumber}
                   </span>
-                  <span className="font-semibold" style={{ color: "#081D3A" }}>
+                  <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
                     {new Intl.NumberFormat("nl-NL", {
                       style: "currency",
                       currency: "EUR",
@@ -1578,7 +1578,7 @@ export default async function AssignmentDetailPage({
                 <Link
                   href={`/quotes/${existingQuote.id}`}
                   className="text-sm font-medium hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   Offerte bekijken →
                 </Link>
@@ -1601,9 +1601,9 @@ export default async function AssignmentDetailPage({
               <div className="veele-card scroll-mt-24">
                 <h2
                   className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
-                  <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   Rapport
                   <ProcessStatusBadge
                     kind="report"
@@ -1620,7 +1620,7 @@ export default async function AssignmentDetailPage({
                 <Link
                   href={`/reports/${existingReport.id}`}
                   className="text-sm font-medium hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   Rapport bekijken →
                 </Link>
@@ -1640,9 +1640,9 @@ export default async function AssignmentDetailPage({
               <div className="veele-card scroll-mt-24">
                 <h2
                   className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
-                  <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  <Receipt className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   Factuur
                   <ProcessStatusBadge
                     kind="invoice"
@@ -1657,7 +1657,7 @@ export default async function AssignmentDetailPage({
                   >
                     {existingInvoice.invoiceNumber}
                   </span>
-                  <span className="font-semibold" style={{ color: "#081D3A" }}>
+                  <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
                     {new Intl.NumberFormat("nl-NL", {
                       style: "currency",
                       currency: "EUR",
@@ -1667,7 +1667,7 @@ export default async function AssignmentDetailPage({
                 <Link
                   href={`/invoices/${existingInvoice.id}`}
                   className="text-sm font-medium hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   Factuur bekijken →
                 </Link>
@@ -1701,9 +1701,9 @@ export default async function AssignmentDetailPage({
                   <div className="veele-card">
                     <h3
                       className="font-heading text-sm font-semibold mb-3 flex items-center gap-2"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
-                      <Users className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                      <Users className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                       Medewerkers
                     </h3>
                     {assignment.personnel.length === 0 ? (
@@ -1719,7 +1719,7 @@ export default async function AssignmentDetailPage({
                           <li
                             key={p.id}
                             className="py-2 text-sm"
-                            style={{ color: "#081D3A" }}
+                            style={{ color: "var(--color-foreground)" }}
                           >
                             {p.firstName} {p.lastName}
                           </li>
@@ -1733,7 +1733,7 @@ export default async function AssignmentDetailPage({
                     <div className="veele-card">
                       <h3
                         className="font-heading text-sm font-semibold mb-3"
-                        style={{ color: "#081D3A" }}
+                        style={{ color: "var(--color-foreground)" }}
                       >
                         Taken
                       </h3>
@@ -1745,7 +1745,7 @@ export default async function AssignmentDetailPage({
                           <li key={t.id} className="py-2">
                             <span
                               className="text-sm"
-                              style={{ color: "#081D3A" }}
+                              style={{ color: "var(--color-foreground)" }}
                             >
                               {t.taskCodeCode && (
                                 <span

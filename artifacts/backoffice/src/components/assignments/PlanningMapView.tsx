@@ -566,7 +566,7 @@ export function PlanningMapView({
         return {
           id: route.personnelId,
           path,
-          color: "#00B7B3",
+          color: "var(--color-primary)",
         };
       })
       .filter((polyline) => polyline.path.length > 1);

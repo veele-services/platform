@@ -45,7 +45,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
   const displayName = branding?.displayName || "Fieldgrid";
   const platformName = branding ? branding.platformName.trim() : "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
-  const accentColor = branding?.accentColor || "#00B7B3";
+  const accentColor = branding?.accentColor || "var(--color-accent)";
 
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label={`${displayName} home`}>
@@ -144,7 +144,7 @@ export function MobileHeaderActions({
             <div className="border-b px-3.5 py-3" style={{ borderColor: "var(--color-border)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-black text-[#081D3A]">Meldingen</p>
+                  <p className="font-black text-[var(--color-primary)]">Meldingen</p>
                   <p className="mt-0.5 text-xs font-semibold text-slate-500">
                     {notificationSummary.unreadCount} ongelezen
                   </p>
@@ -167,7 +167,7 @@ export function MobileHeaderActions({
                     style={{ borderColor: "var(--color-border)" }}
                   >
                     <Link href={item.href ?? "/meldingen"} className="block">
-                      <p className="line-clamp-1 text-sm font-black text-[#081D3A]">
+                      <p className="line-clamp-1 text-sm font-black text-[var(--color-primary)]">
                         {item.title}
                       </p>
                       {item.body ? (
@@ -221,7 +221,7 @@ export function MobileHeaderActions({
                 type="button"
                 disabled={isPending}
                 onClick={() => runNotificationAction(markAllNotificationsRead)}
-                className="rounded-xl px-2 py-2 text-[11px] font-black text-[#081D3A] disabled:opacity-50"
+                className="rounded-xl px-2 py-2 text-[11px] font-black text-[var(--color-primary)] disabled:opacity-50"
               >
                 Alles gelezen
               </button>
@@ -229,7 +229,7 @@ export function MobileHeaderActions({
                 type="button"
                 disabled={isPending}
                 onClick={() => runNotificationAction(markAllNotificationsUnread)}
-                className="rounded-xl px-2 py-2 text-[11px] font-black text-[#081D3A] disabled:opacity-50"
+                className="rounded-xl px-2 py-2 text-[11px] font-black text-[var(--color-primary)] disabled:opacity-50"
               >
                 Alles ongelezen
               </button>

@@ -52,9 +52,9 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
     <div className="veele-card">
       <h2
         className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <FileCheck2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <FileCheck2 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Offerte opstellen
       </h2>
 
@@ -80,7 +80,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
                     ) : "—"}
                   </td>
                   <td className="px-3 py-2" style={{ color: "#374151" }}>{li.taskCodeName ?? "—"}</td>
-                  <td className="px-3 py-2 text-right font-medium" style={{ color: li.invoiceable ? "#081D3A" : "#94A3B8" }}>
+                  <td className="px-3 py-2 text-right font-medium" style={{ color: li.invoiceable ? "var(--color-foreground)" : "#94A3B8" }}>
                     {li.invoiceable ? fmt(li.price) : <span className="text-xs" style={{ color: "#94A3B8" }}>Niet factureerbaar</span>}
                   </td>
                 </tr>
@@ -89,7 +89,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
             <tfoot style={{ borderTop: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }}>
               <tr>
                 <td colSpan={2} className="px-3 py-2 font-medium text-sm" style={{ color: "#64748B" }}>Subtotaal taakcodes</td>
-                <td className="px-3 py-2 text-right font-semibold text-sm" style={{ color: "#081D3A" }}>
+                <td className="px-3 py-2 text-right font-semibold text-sm" style={{ color: "var(--color-foreground)" }}>
                   {fmt(prefill.suggestedAmount)}
                 </td>
               </tr>
@@ -121,7 +121,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
                 className="w-full pl-7 pr-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2"
                 style={{
                   borderColor: "#E2E8F0",
-                  color: "#081D3A",
+                  color: "var(--color-foreground)",
                 }}
                 disabled={pending}
               />
@@ -137,7 +137,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
               value={validity}
               onChange={(e) => setValidity(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2"
-              style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+              style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
               disabled={pending}
             />
           </div>
@@ -153,7 +153,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
             rows={3}
             placeholder="Toelichting voor intern gebruik..."
             className="w-full px-3 py-2 rounded-lg text-sm border resize-none focus:outline-none focus:ring-2"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
             disabled={pending}
           />
         </div>
@@ -172,7 +172,7 @@ export function CreateQuoteForm({ assignmentId, prefill }: CreateQuoteFormProps)
           type="submit"
           disabled={pending}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "#00B7B3" }}
+          style={{ backgroundColor: "var(--color-primary)" }}
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCheck2 className="h-4 w-4" />}
           Offerte aanmaken

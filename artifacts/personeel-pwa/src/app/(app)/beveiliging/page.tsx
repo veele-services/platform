@@ -24,7 +24,7 @@ export default function BeveiligingPage() {
               <KeyRound size={21} strokeWidth={2.4} />
             </span>
             <div>
-              <h2 className="text-lg font-black text-[#081D3A]">
+              <h2 className="text-lg font-black text-[var(--color-primary)]">
                 Wachtwoord wijzigen
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
@@ -42,7 +42,7 @@ export default function BeveiligingPage() {
                 <ShieldCheck size={21} strokeWidth={2.4} />
               </span>
               <div>
-                <h2 className="text-lg font-black text-[#081D3A]">
+                <h2 className="text-lg font-black text-[var(--color-primary)]">
                   Tweestapsverificatie
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">

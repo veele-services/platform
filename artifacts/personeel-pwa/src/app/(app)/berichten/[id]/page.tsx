@@ -43,7 +43,7 @@ function MessageBubble({
         }}
       >
         <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-sm font-black text-[#081D3A]">
+          <p className="text-sm font-black text-[var(--color-primary)]">
             {isPersonnel ? "Jij" : message.authorName}
           </p>
           <span className="text-xs font-bold text-slate-400">
@@ -52,7 +52,7 @@ function MessageBubble({
               : departmentLabel(message.department ?? ticket.department)}
           </span>
         </div>
-        <p className="whitespace-pre-line text-sm font-medium leading-relaxed text-[#081D3A]">
+        <p className="whitespace-pre-line text-sm font-medium leading-relaxed text-[var(--color-primary)]">
           {message.body}
         </p>
         <time className="mt-2 block text-right text-[11px] font-bold text-slate-400">
@@ -71,7 +71,7 @@ function ConversationTimeline({ ticket }: { ticket: PersonnelTicketDetail }) {
           <MessageSquare size={21} strokeWidth={2.4} />
         </span>
         <div>
-          <h2 className="text-lg font-black text-[#081D3A]">
+          <h2 className="text-lg font-black text-[var(--color-primary)]">
             Gesprekstijdlijn
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
@@ -104,7 +104,7 @@ function TicketContextPanel({
             <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
               Gesprek
             </p>
-            <h2 className="mt-1 text-[17px] font-black leading-tight text-[#081D3A]">
+            <h2 className="mt-1 text-[17px] font-black leading-tight text-[var(--color-primary)]">
               {isClosed ? "Afgerond" : "Actief ticket"}
             </h2>
           </div>
@@ -115,7 +115,7 @@ function TicketContextPanel({
             <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
               Afdeling
             </p>
-            <p className="mt-1 text-[14px] font-black text-[#081D3A]">
+            <p className="mt-1 text-[14px] font-black text-[var(--color-primary)]">
               {departmentLabel(ticket.department)}
             </p>
           </div>
@@ -123,7 +123,7 @@ function TicketContextPanel({
             <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
               Laatste activiteit
             </p>
-            <p className="mt-1 text-[14px] font-black text-[#081D3A]">
+            <p className="mt-1 text-[14px] font-black text-[var(--color-primary)]">
               {formatDateTime(ticket.lastMessageAt)}
             </p>
           </div>
@@ -140,7 +140,7 @@ function TicketContextPanel({
       <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5">
         <div className="mb-3 flex items-center gap-2">
           <Send size={18} style={{ color: "var(--color-accent)" }} />
-          <h2 className="text-lg font-black text-[#081D3A]">
+          <h2 className="text-lg font-black text-[var(--color-primary)]">
             Reageren
           </h2>
         </div>

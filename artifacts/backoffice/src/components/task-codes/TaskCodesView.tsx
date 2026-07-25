@@ -74,7 +74,7 @@ function SortHeader({
         type="button"
         onClick={() => onSort(columnKey)}
         className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80"
-        style={{ color: active ? "#00B7B3" : "#64748B" }}
+        style={{ color: active ? "var(--color-primary)" : "#64748B" }}
       >
         {label}
         {active ? (

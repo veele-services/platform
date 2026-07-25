@@ -34,6 +34,27 @@ const SOURCE_ROOTS = [
   "lib/shared-ui/src",
 ];
 const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
+const BRAND_COLOR_ALLOWLIST = new Set([
+  "artifacts/backoffice/src/app/(dashboard)/website/page.tsx",
+  "artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx",
+  "artifacts/backoffice/src/app/(platform)/platform/page.tsx",
+  "artifacts/backoffice/src/app/actions/customers.ts",
+  "artifacts/backoffice/src/app/actions/invoice-settings.ts",
+  "artifacts/backoffice/src/app/actions/invoices.ts",
+  "artifacts/backoffice/src/app/actions/settings.ts",
+  "artifacts/backoffice/src/app/actions/tenant-first-run.ts",
+  "artifacts/backoffice/src/app/api/reports/[id]/pdf/route.ts",
+  "artifacts/backoffice/src/lib/content-notification-events.ts",
+  "artifacts/backoffice/src/lib/inventory-qr.ts",
+  "artifacts/backoffice/src/lib/pdf-style.ts",
+  "artifacts/klant-pwa/src/app/api/factuur/[id]/pdf/route.ts",
+  "artifacts/klant-pwa/src/app/layout.tsx",
+  "artifacts/klant-pwa/src/lib/pdf-style.ts",
+  "artifacts/personeel-pwa/src/actions/news.ts",
+  "artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx",
+  "artifacts/personeel-pwa/src/app/layout.tsx",
+  "artifacts/personeel-pwa/src/components/CapacitorRuntimeBridge.tsx",
+]);
 
 const RULES = [
   {
@@ -73,6 +94,12 @@ const RULES = [
     id: "RAW_CHOICE_CONTROL",
     pattern: /<input\b[^>]*\btype=["'](?:checkbox|radio)["']/u,
     message: "Raw checkbox or radio outside a documented native exception.",
+  },
+  {
+    id: "HARDCODED_BRAND_COLOR",
+    pattern: /#(?:081d3a|00b7b3)\b/iu,
+    message:
+      "Canonical brand color literal outside the documented non-CSS allowlist.",
   },
 ];
 
@@ -155,6 +182,12 @@ export function scanReleasedSources(root = ROOT) {
           if (
             rule.id === "CUSTOM_OVERLAY" &&
             isAllowedPrimitivePath(absoluteFile)
+          ) {
+            continue;
+          }
+          if (
+            rule.id === "HARDCODED_BRAND_COLOR" &&
+            BRAND_COLOR_ALLOWLIST.has(file)
           ) {
             continue;
           }

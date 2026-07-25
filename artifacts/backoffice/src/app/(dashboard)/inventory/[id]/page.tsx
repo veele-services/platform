@@ -102,7 +102,7 @@ export default async function InventoryDetailPage({ params }: Props) {
 }
 
 function FollowupMetric({ label, value, tone }: { label: string; value: string; tone: "neutral" | "warn" | "danger" }) {
-  const color = tone === "danger" ? "#B91C1C" : tone === "warn" ? "#B45309" : "#081D3A";
+  const color = tone === "danger" ? "#B91C1C" : tone === "warn" ? "#B45309" : "var(--color-foreground)";
   return (
     <div className="rounded-md border bg-white px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
       <p className="text-xs font-semibold uppercase" style={{ color: "#64748B" }}>{label}</p>

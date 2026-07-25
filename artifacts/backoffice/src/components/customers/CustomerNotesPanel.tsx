@@ -119,9 +119,9 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
       {/* Header */}
       <h2
         className="font-heading text-base font-semibold flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <StickyNote className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <StickyNote className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Notities
         {notes.length > 0 && (
           <span
@@ -143,14 +143,14 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
           maxLength={4000}
           disabled={isPending}
           className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
-          style={{ borderColor: "#E2E8F0", color: "#081D3A", backgroundColor: "#FAFCFF" }}
+          style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)", backgroundColor: "#FAFCFF" }}
         />
         <div className="flex items-center gap-2">
           <button
             type="submit"
             disabled={isPending || !content.trim()}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: "#00B7B3" }}
+            style={{ backgroundColor: "var(--color-primary)" }}
           >
             <MessageSquarePlus className="h-3.5 w-3.5" />
             {isPending ? "Opslaan…" : "Toevoegen"}
@@ -189,7 +189,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                     className="w-full rounded border px-2 py-1.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
-                    style={{ borderColor: "#00B7B3", color: "#081D3A", backgroundColor: "#fff" }}
+                    style={{ borderColor: "var(--color-primary)", color: "var(--color-foreground)", backgroundColor: "#fff" }}
                   />
                   <div className="flex items-center gap-2">
                     <button
@@ -197,7 +197,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
                       onClick={handleUpdate}
                       disabled={isPending || !editContent.trim()}
                       className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50"
-                      style={{ backgroundColor: "#00B7B3" }}
+                      style={{ backgroundColor: "var(--color-primary)" }}
                     >
                       <Check className="h-3 w-3" />
                       {isPending ? "Opslaan…" : "Opslaan"}

@@ -171,7 +171,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             <Mail className="h-5 w-5" strokeWidth={1.75} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               E-mailtransport
             </p>
             <p
@@ -247,7 +247,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               style={{ color: "#64748B" }}
               strokeWidth={1.75}
             />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               API-provider
             </p>
           </div>
@@ -333,7 +333,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               style={{ color: "#64748B" }}
               strokeWidth={1.75}
             />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               Serververbinding
             </p>
           </div>
@@ -394,7 +394,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               style={{ color: "#64748B" }}
               strokeWidth={1.75}
             />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               SMTP-authenticatie
             </p>
           </div>
@@ -460,7 +460,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             style={{ color: "#64748B" }}
             strokeWidth={1.75}
           />
-          <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             Afzender
           </p>
         </div>
@@ -509,7 +509,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Testmail
         </p>
         <div className="grid gap-3 sm:grid-cols-[1fr_220px_auto]">
@@ -537,7 +537,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             onClick={handleTest}
             disabled={!canWrite || testStatus === "sending"}
             className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-60"
-            style={{ backgroundColor: "#081D3A" }}
+            style={{ backgroundColor: "var(--color-foreground)" }}
           >
             <Send className="h-4 w-4" />
             {testStatus === "sending" ? "Versturen..." : "Test versturen"}
@@ -594,9 +594,9 @@ function TransportOption({
       onClick={() => onSelect(value)}
       className="rounded-lg border p-3 text-left transition disabled:opacity-60"
       style={{
-        borderColor: active ? "#00B7B3" : "#E2E8F0",
+        borderColor: active ? "var(--color-primary)" : "#E2E8F0",
         backgroundColor: active ? "#ECFEFF" : "#FFFFFF",
-        color: "#081D3A",
+        color: "var(--color-foreground)",
       }}
     >
       <span className="mb-2 flex items-center gap-2 text-sm font-semibold">

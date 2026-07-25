@@ -269,7 +269,7 @@ export function QualificationsView({ data, canWrite }: Props) {
           <div>
             <h2
               className="font-heading text-base font-semibold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               Kwalificatiecatalogus
             </h2>
@@ -488,7 +488,7 @@ function SummaryCard({
   tone?: "neutral" | "warning" | "danger";
 }) {
   const color =
-    tone === "danger" ? "#DC2626" : tone === "warning" ? "#B45309" : "#081D3A";
+    tone === "danger" ? "#DC2626" : tone === "warning" ? "#B45309" : "var(--color-foreground)";
   return (
     <div className="veele-card">
       <p
@@ -518,7 +518,7 @@ function SectionHeader({
     <div>
       <h2
         className="font-heading text-base font-semibold"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
         {title}
       </h2>
@@ -650,7 +650,7 @@ function QualificationGroup({
           <Icon className="h-4 w-4" />
         </span>
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             {meta.plural}
           </h3>
           <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -673,7 +673,7 @@ function QualificationGroup({
                 <div>
                   <p
                     className="text-sm font-semibold"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     {item.name}
                   </p>
@@ -859,7 +859,7 @@ function LinkList({
                 </div>
                 <p
                   className="mt-1 text-sm font-semibold"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
                   {formatPersonnelRoleName(row.targetLabel)}
                 </p>

@@ -36,7 +36,7 @@ export function ReplyForm({
           rows={4}
           maxLength={4000}
           disabled={disabled}
-          className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[#081D3A] outline-none disabled:opacity-50"
+          className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[var(--color-primary)] outline-none disabled:opacity-50"
           placeholder={
             disabled
               ? "Dit ticket is gesloten. Heropen het ticket om te reageren."
@@ -60,7 +60,7 @@ export function ReplyForm({
       <button
         type="submit"
         disabled={disabled || isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? (
           <Loader2 size={19} className="animate-spin" />

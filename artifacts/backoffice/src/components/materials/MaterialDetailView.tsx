@@ -502,7 +502,7 @@ function Metric({
         ? "#B45309"
         : tone === "ok"
           ? "#047857"
-          : "#081D3A";
+          : "var(--color-foreground)";
   return (
     <div className="veele-card">
       <p

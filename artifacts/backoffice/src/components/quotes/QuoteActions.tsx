@@ -58,7 +58,7 @@ export function QuoteActions({ quoteId, status, isExpired, canWrite, canApprove 
           onClick={() => act(() => sendQuote(quoteId))}
           disabled={pending}
           className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "#00B7B3" }}
+          style={{ backgroundColor: "var(--color-primary)" }}
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Markeer als verzonden
@@ -102,7 +102,7 @@ export function QuoteActions({ quoteId, status, isExpired, canWrite, canApprove 
             rows={3}
             placeholder="Voer een toelichting in..."
             className="w-full px-3 py-2 rounded-lg text-sm border resize-none focus:outline-none"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
             disabled={pending}
           />
           <div className="flex gap-2">

@@ -43,7 +43,7 @@ export default async function MaterialsPage({ searchParams }: Props) {
         <div>
           <div className="flex items-center gap-2">
             <Boxes className="h-5 w-5" style={{ color: "#0F766E" }} />
-            <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
+            <h1 className="font-heading text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
               Materiaalbeheer
             </h1>
           </div>

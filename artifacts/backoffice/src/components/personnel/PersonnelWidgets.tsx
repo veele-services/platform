@@ -16,7 +16,7 @@ function FlexpoolWidget({ rows }: { rows: FlexpoolRow[] }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4" style={{ color: "#F59E0B" }} />
-          <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h3 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             Flexpool vandaag
           </h3>
         </div>
@@ -56,7 +56,7 @@ function FlexpoolWidget({ rows }: { rows: FlexpoolRow[] }) {
                     {r.firstName[0]}{r.lastName[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                    <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                       {r.firstName} {r.lastName}
                     </p>
                     <p className="text-xs truncate" style={{ color: "#94A3B8" }}>
@@ -97,7 +97,7 @@ function FlexpoolWidget({ rows }: { rows: FlexpoolRow[] }) {
         <Link
           href="/personnel?personnelType=flex"
           className="flex items-center gap-1 text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle flexmedewerkers bekijken
           <ArrowRight className="h-3 w-3" />
@@ -114,7 +114,7 @@ function CapacityWidget({ rows }: { rows: CapacityByRoleRow[] }) {
     <div className="veele-card flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <Users2 className="h-4 w-4" style={{ color: "#3B5CE0" }} />
-        <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <h3 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Beschikbaarheid per functie
         </h3>
       </div>
@@ -163,7 +163,7 @@ function CertificatesWidget({ stats }: { stats: PersonnelStats }) {
     <div className="veele-card flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <Award className="h-4 w-4" style={{ color: "#3B5CE0" }} />
-        <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <h3 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Documenten &amp; certificaten
         </h3>
       </div>

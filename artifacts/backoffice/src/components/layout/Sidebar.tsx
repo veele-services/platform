@@ -104,9 +104,9 @@ export function Sidebar({
   }
 
   const whitelabel = Boolean(branding?.customBrandingEnabled);
-  const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
+  const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "var(--color-foreground)";
   const configuredSidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
-  const sidebarAccentColor = branding?.sidebarAccentColor ?? "#00B7B3";
+  const sidebarAccentColor = branding?.sidebarAccentColor ?? "var(--color-primary)";
   const sidebarTextColor = ensureAccessibleBrandTextColor(
     sidebarBackgroundColor,
     configuredSidebarTextColor,

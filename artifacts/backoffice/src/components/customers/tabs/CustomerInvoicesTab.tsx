@@ -24,7 +24,7 @@ export function CustomerInvoicesTab({ customerId, invoices }: Props) {
         <Link
           href={`/invoices?customerId=${customerId}`}
           className="text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle bekijken →
         </Link>
@@ -56,8 +56,8 @@ export function CustomerInvoicesTab({ customerId, invoices }: Props) {
                       className="transition-colors hover:bg-slate-50/60"
                       style={{ borderBottom: i < invoices.length - 1 ? "1px solid #F1F5F9" : undefined }}
                     >
-                      <td className="px-5 py-3 text-sm font-mono font-medium" style={{ color: "#081D3A" }}>
-                        <Link href={`/invoices/${inv.id}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                      <td className="px-5 py-3 text-sm font-mono font-medium" style={{ color: "var(--color-foreground)" }}>
+                        <Link href={`/invoices/${inv.id}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                           {inv.invoiceNumber}
                         </Link>
                       </td>

@@ -39,7 +39,7 @@ export function ReplyForm({
           maxLength={4000}
           disabled={disabled}
           className="mt-1 w-full resize-none bg-transparent text-sm font-semibold leading-6 outline-none disabled:opacity-50"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
           placeholder={disabled ? "Dit ticket is gesloten." : "Typ de reactie namens de backoffice..."}
         />
       </label>
@@ -59,7 +59,7 @@ export function ReplyForm({
       <button
         type="submit"
         disabled={disabled || isPending}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#00B7B3] px-4 text-sm font-black text-white shadow-sm disabled:opacity-60"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-black text-white shadow-sm disabled:opacity-60"
       >
         {isPending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
         Versturen

@@ -445,7 +445,7 @@ function ChecklistField({
     ? item.validation.options.map(String)
     : [];
   const common =
-    "mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-[#00B7B3] disabled:bg-slate-100";
+    "mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-[var(--color-accent)] disabled:bg-slate-100";
   return (
     <div className="rounded-2xl border border-slate-100 p-4">
       <label className="text-[15px] font-bold text-slate-800">
@@ -469,8 +469,8 @@ function ChecklistField({
           <span
             className="flex h-7 w-7 items-center justify-center rounded-lg border-2"
             style={{
-              borderColor: value === true ? "#00B7B3" : "#CBD5E1",
-              backgroundColor: value === true ? "#00B7B3" : "white",
+              borderColor: value === true ? "var(--color-accent)" : "#CBD5E1",
+              backgroundColor: value === true ? "var(--color-accent)" : "white",
               color: "white",
             }}
           >
@@ -575,7 +575,7 @@ function ChecklistField({
                   className="flex h-6 w-6 items-center justify-center rounded-md border"
                   style={{
                     backgroundColor: selected.includes(option)
-                      ? "#00B7B3"
+                      ? "var(--color-accent)"
                       : "white",
                     color: "white",
                   }}

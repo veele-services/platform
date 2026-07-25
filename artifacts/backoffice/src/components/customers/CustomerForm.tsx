@@ -295,7 +295,7 @@ export function CustomerForm({
       <div className="flex items-center justify-center py-16">
         <Loader2
           className="h-6 w-6 animate-spin"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         />
       </div>
     );
@@ -568,7 +568,7 @@ export function CustomerForm({
                 <label
                   htmlFor="invitePortal"
                   className="cursor-pointer text-sm font-medium"
-                  style={{ color: canInvitePortal ? "#081D3A" : "#94A3B8" }}
+                  style={{ color: canInvitePortal ? "var(--color-foreground)" : "#94A3B8" }}
                 >
                   Direct uitnodigen voor klantportaal
                 </label>

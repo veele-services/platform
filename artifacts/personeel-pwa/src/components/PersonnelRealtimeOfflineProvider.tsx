@@ -606,7 +606,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
                 if (target) router.push(target);
               }}
             >
-              <p className="line-clamp-1 text-[13px] font-black text-[#081D3A]">
+              <p className="line-clamp-1 text-[13px] font-black text-[var(--color-primary)]">
                 {pushToast.title}
               </p>
               <p className="mt-1 line-clamp-2 text-[12px] font-bold leading-snug text-slate-500">

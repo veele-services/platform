@@ -184,7 +184,7 @@ function TargetPicker({
     <div className="rounded-lg border border-[#E2E8F0] bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-3 py-2">
         <div>
-          <p className="text-sm font-semibold text-[#081D3A]">{title}</p>
+          <p className="text-sm font-semibold text-foreground">{title}</p>
           <p className="text-xs text-[#64748B]">{value.length} geselecteerd</p>
         </div>
         <div className="relative w-44">
@@ -220,7 +220,7 @@ function TargetPicker({
                   onChange={(event) =>
                     onChange(setIds(value, option.id, event.target.checked))
                   }
-                  className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] accent-[#00B7B3]"
+                  className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] accent-primary"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-[#0F172A]">
@@ -422,7 +422,7 @@ export function NewsView({
         <div className="border-b border-[#E2E8F0] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="font-heading text-base font-semibold text-[#081D3A]">
+              <h2 className="font-heading text-base font-semibold text-foreground">
                 Nieuws
               </h2>
               <p className="text-xs text-[#64748B]">{posts.length} berichten</p>
@@ -466,13 +466,13 @@ export function NewsView({
                   className={cn(
                     "w-full rounded-lg border p-3 text-left transition-colors",
                     selectedId === post.id
-                      ? "border-[#00B7B3] bg-[#E0FAFB]"
+                      ? "border-primary bg-[#E0FAFB]"
                       : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:bg-[#F8FAFC]",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#081D3A]">
+                      <p className="truncate text-sm font-semibold text-foreground">
                         {post.title}
                       </p>
                       <p className="mt-1 line-clamp-2 text-xs text-[#64748B]">
@@ -508,7 +508,7 @@ export function NewsView({
       <section className="rounded-xl border border-[#E2E8F0] bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] p-4">
           <div>
-            <h2 className="font-heading text-lg font-semibold text-[#081D3A]">
+            <h2 className="font-heading text-lg font-semibold text-foreground">
               {form.id ? "Nieuwsbericht bewerken" : "Nieuw nieuwsbericht"}
             </h2>
             <p className="text-sm text-[#64748B]">
@@ -647,7 +647,7 @@ export function NewsView({
             <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-heading text-sm font-semibold text-[#081D3A]">
+                  <h3 className="font-heading text-sm font-semibold text-foreground">
                     Doelgroepen
                   </h3>
                   <p className="text-xs text-[#64748B]">
@@ -673,10 +673,10 @@ export function NewsView({
                     onChange={(event) =>
                       updateAudience({ allPersonnel: event.target.checked })
                     }
-                    className="h-4 w-4 rounded border-[#CBD5E1] accent-[#00B7B3]"
+                    className="h-4 w-4 rounded border-[#CBD5E1] accent-primary"
                   />
                   <span>
-                    <span className="block text-sm font-semibold text-[#081D3A]">
+                    <span className="block text-sm font-semibold text-foreground">
                       Alle medewerkers
                     </span>
                     <span className="block text-xs text-[#64748B]">
@@ -692,10 +692,10 @@ export function NewsView({
                     onChange={(event) =>
                       updateAudience({ allCustomers: event.target.checked })
                     }
-                    className="h-4 w-4 rounded border-[#CBD5E1] accent-[#00B7B3]"
+                    className="h-4 w-4 rounded border-[#CBD5E1] accent-primary"
                   />
                   <span>
-                    <span className="block text-sm font-semibold text-[#081D3A]">
+                    <span className="block text-sm font-semibold text-foreground">
                       Alle klanten
                     </span>
                     <span className="block text-xs text-[#64748B]">
@@ -742,7 +742,7 @@ export function NewsView({
 
           <aside className="space-y-4">
             <div className="rounded-lg border border-[#E2E8F0] bg-white p-4">
-              <h3 className="font-heading text-sm font-semibold text-[#081D3A]">
+              <h3 className="font-heading text-sm font-semibold text-foreground">
                 Publicatie
               </h3>
               <div className="mt-3 space-y-3">
@@ -787,7 +787,7 @@ export function NewsView({
                 </label>
                 <div className="rounded-lg bg-[#F8FAFC] p-3 text-xs text-[#64748B]">
                   <p className="flex items-center gap-2 font-medium text-[#334155]">
-                    <MailCheck className="h-4 w-4 text-[#00B7B3]" />
+                    <MailCheck className="h-4 w-4 text-primary" />
                     Doelgroep wordt opgeslagen
                   </p>
                   <p className="mt-1">
@@ -799,7 +799,7 @@ export function NewsView({
             </div>
 
             <div className="rounded-lg border border-[#E2E8F0] bg-white p-4">
-              <h3 className="font-heading text-sm font-semibold text-[#081D3A]">
+              <h3 className="font-heading text-sm font-semibold text-foreground">
                 Hero image
               </h3>
               <p className="mt-1 text-xs text-[#64748B]">
@@ -865,7 +865,7 @@ export function NewsView({
             </div>
 
             <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <h3 className="font-heading text-sm font-semibold text-[#081D3A]">
+              <h3 className="font-heading text-sm font-semibold text-foreground">
                 Statusinformatie
               </h3>
               <div className="mt-3 space-y-2 text-xs text-[#64748B]">

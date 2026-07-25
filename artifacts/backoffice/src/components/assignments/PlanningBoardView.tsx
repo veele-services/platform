@@ -148,7 +148,7 @@ const APPOINTMENT_PASTELS: Pastel[] = [
   { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" },
   { bg: "#FFEAF0", border: "#FDA4AF", text: "#7F1D1D", rail: "#F43F5E" },
   { bg: "#FFF7D6", border: "#FCD34D", text: "#6B4E00", rail: "#EAB308" },
-  { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" },
+  { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "var(--color-primary)" },
   { bg: "#EFF6F1", border: "#B7D3C3", text: "#264D3C", rail: "#16A34A" },
 ];
 
@@ -1116,7 +1116,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       label: "Ingepland",
       value: data.scheduledAssignments.length,
       hint: `${availablePersonnelCount}/${data.personnel.length} medewerkers beschikbaar`,
-      tone: "#00B7B3",
+      tone: "var(--color-primary)",
     },
     {
       label: "Topmatches",
@@ -1788,8 +1788,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-sm"
                   style={
                     isToday
-                      ? { background: "#00B7B3", color: "#fff" }
-                      : { background: "#081D3A", color: "#fff" }
+                      ? { background: "var(--color-primary)", color: "#fff" }
+                      : { background: "var(--color-foreground)", color: "#fff" }
                   }
                 >
                   <CalendarDays className="h-5 w-5" />
@@ -1798,7 +1798,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   <div className="flex flex-wrap items-center gap-2">
                     <h2
                       className="font-heading text-xl font-semibold capitalize tracking-tight"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       {formatBoardDate(data.date)}
                     </h2>
@@ -1887,7 +1887,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   </div>
                   <p
                     className="mt-1 text-2xl font-semibold leading-none"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     {card.value}
                   </p>
@@ -2060,9 +2060,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
               <div>
                 <h3
                   className="flex items-center gap-2 font-heading text-sm font-semibold"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
-                  <Layers3 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  <Layers3 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   Werkbon-wachtrij
                 </h3>
                 <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -2128,7 +2128,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       }}
                       className="group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       style={{
-                        borderColor: selected ? "#00B7B3" : "#E2E8F0",
+                        borderColor: selected ? "var(--color-primary)" : "#E2E8F0",
                         boxShadow: selected
                           ? "0 0 0 3px rgba(0,183,179,0.12)"
                           : undefined,
@@ -2178,7 +2178,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           <Link
                             href={`/assignments/${assignment.id}`}
                             className="mt-2 block text-[13px] font-semibold leading-snug hover:underline"
-                            style={{ color: "#081D3A" }}
+                            style={{ color: "var(--color-foreground)" }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <span
@@ -2362,11 +2362,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 ) : (
                   <span
                     className="inline-flex items-center gap-2 font-medium"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     <Activity
                       className="h-4 w-4"
-                      style={{ color: "#00B7B3" }}
+                      style={{ color: "var(--color-primary)" }}
                     />
                     Live planbord met {data.personnel.length} medewerkers
                     zichtbaar
@@ -2458,7 +2458,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               className="relative overflow-hidden rounded-lg border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                               style={{
                                 borderColor: selected
-                                  ? "#00B7B3"
+                                  ? "var(--color-primary)"
                                   : statusStyle.border,
                                 boxShadow: selected
                                   ? "0 0 0 3px rgba(0,183,179,0.12)"
@@ -2500,7 +2500,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   </div>
                                   <p
                                     className="mt-1.5 truncate text-[13px] font-semibold"
-                                    style={{ color: "#081D3A" }}
+                                    style={{ color: "var(--color-foreground)" }}
                                   >
                                     {title}
                                   </p>
@@ -2832,11 +2832,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         >
                           <span
                             className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow"
-                            style={{ background: "#00B7B3" }}
+                            style={{ background: "var(--color-primary)" }}
                           />
                           <span
                             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm"
-                            style={{ background: "#00B7B3", color: "#081D3A" }}
+                            style={{ background: "var(--color-primary)", color: "var(--color-foreground)" }}
                           >
                             Nu {minutesToTime(liveMinute)}
                           </span>
@@ -2880,7 +2880,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           className="absolute inset-y-0 z-10"
                           style={{
                             left: `${currentTimePct}%`,
-                            borderLeft: "2px solid #00B7B3",
+                            borderLeft: "2px solid var(--color-primary)",
                             boxShadow: "0 0 0 1px rgba(0,183,179,0.08)",
                           }}
                         />
@@ -2955,7 +2955,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                 />
                                 <div
                                   className="truncate text-[13px] font-semibold leading-tight"
-                                  style={{ color: "#081D3A" }}
+                                  style={{ color: "var(--color-foreground)" }}
                                 >
                                   {person.lastName}, {person.firstName}
                                 </div>
@@ -2979,7 +2979,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   >
                                     <p
                                       className="font-semibold"
-                                      style={{ color: "#081D3A" }}
+                                      style={{ color: "var(--color-foreground)" }}
                                     >
                                       {person.lastName}, {person.firstName}
                                     </p>

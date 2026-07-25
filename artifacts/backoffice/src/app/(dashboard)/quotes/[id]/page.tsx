@@ -163,7 +163,7 @@ export default async function QuoteDetailPage({ params }: Props) {
                 <Link
                   href={`/customers/${quote.customerId}`}
                   className="text-sm hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   {quote.customerName}
                 </Link>
@@ -185,7 +185,7 @@ export default async function QuoteDetailPage({ params }: Props) {
                 <Link
                   href={`/assignments/${quote.assignmentId}`}
                   className="text-sm hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   {quote.assignmentCode} — {quote.assignmentTitle}
                 </Link>
@@ -201,7 +201,7 @@ export default async function QuoteDetailPage({ params }: Props) {
                 <p className="text-xs font-medium uppercase tracking-wider mb-0.5" style={{ color: "#94A3B8" }}>Geldig tot</p>
                 <p
                   className="text-sm font-medium"
-                  style={{ color: quote.isExpired ? "#DC2626" : "#081D3A" }}
+                  style={{ color: quote.isExpired ? "#DC2626" : "var(--color-foreground)" }}
                 >
                   {fmtDate(quote.validityDate)}
                   {quote.isExpired && (
@@ -222,7 +222,7 @@ export default async function QuoteDetailPage({ params }: Props) {
                 <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium uppercase tracking-wider mb-0.5" style={{ color: "#94A3B8" }}>Goedgekeurd op</p>
-                  <p className="text-sm" style={{ color: "#081D3A" }}>{fmtDate(quote.approvedAt.slice(0, 10))}</p>
+                  <p className="text-sm" style={{ color: "var(--color-foreground)" }}>{fmtDate(quote.approvedAt.slice(0, 10))}</p>
                 </div>
               </div>
             )}
@@ -232,7 +232,7 @@ export default async function QuoteDetailPage({ params }: Props) {
           {quote.lineItems.length > 0 && (
             <div id="lines" className="veele-card overflow-hidden p-0 scroll-mt-24">
               <div className="px-5 py-4" style={{ borderBottom: "1px solid #F1F5F9" }}>
-                <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+                <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>
                   Taakoverzicht
                 </h2>
               </div>
@@ -264,7 +264,7 @@ export default async function QuoteDetailPage({ params }: Props) {
                         ) : "—"}
                       </td>
                       <td className="px-5 py-3" style={{ color: "#374151" }}>{li.taskCodeName ?? "—"}</td>
-                      <td className="px-5 py-3 text-right font-medium" style={{ color: li.invoiceable ? "#081D3A" : "#94A3B8" }}>
+                      <td className="px-5 py-3 text-right font-medium" style={{ color: li.invoiceable ? "var(--color-foreground)" : "#94A3B8" }}>
                         {li.invoiceable
                           ? fmt(li.price)
                           : <span className="text-xs" style={{ color: "#94A3B8" }}>Niet factureerbaar</span>}
@@ -315,7 +315,7 @@ export default async function QuoteDetailPage({ params }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
               Offertebedrag
             </p>
-            <p className="text-3xl font-bold" style={{ color: "#081D3A" }}>
+            <p className="text-3xl font-bold" style={{ color: "var(--color-foreground)" }}>
               {fmt(quote.amount)}
             </p>
             <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>Exclusief btw</p>

@@ -83,7 +83,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
     <div className="space-y-4">
       {(!capabilities.customRoles || resetError) && (
         <div className="veele-card border-l-4" style={{ borderLeftColor: capabilities.customRoles ? "#F59E0B" : "#CBD5E1" }}>
-          <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
             Custom rollen: {capabilities.customRoles ? "beschikbaar" : "niet beschikbaar"}
           </p>
           <p className="mt-1 text-sm" style={{ color: resetError ? "#DC2626" : "#64748B" }}>
@@ -144,10 +144,10 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
               <tr key={role.id} style={{ borderBottom: "1px solid #F8FAFC" }} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 flex-shrink-0" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
-                    <span className="font-medium" style={{ color: "#081D3A" }}>{role.name}</span>
+                    <Shield className="h-4 w-4 flex-shrink-0" style={{ color: "var(--color-primary)" }} strokeWidth={1.5} />
+                    <span className="font-medium" style={{ color: "var(--color-foreground)" }}>{role.name}</span>
                     {role.isSystem && (
-                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs" style={{ backgroundColor: "#E0FAFB", color: "#00B7B3" }}>
+                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs" style={{ backgroundColor: "#E0FAFB", color: "var(--color-primary)" }}>
                         <Lock className="h-2.5 w-2.5" />
                         Systeem
                       </span>

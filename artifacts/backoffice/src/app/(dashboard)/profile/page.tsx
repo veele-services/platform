@@ -38,7 +38,7 @@ export default async function ProfilePage() {
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-lg font-semibold" style={{ color: "var(--color-foreground)" }}>
               {name || "Gebruiker"}
             </h2>
             <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -53,7 +53,7 @@ export default async function ProfilePage() {
         </div>
 
         <div className="mt-6 border-t pt-6" style={{ borderColor: "#E2E8F0" }}>
-          <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+          <h3 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>
             Persoonlijke gegevens
           </h3>
           <p className="mb-4 mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
           <Link
             href="/settings"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition hover:bg-slate-50"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           >
             <Settings className="h-4 w-4" />
             Naar instellingen
@@ -92,7 +92,7 @@ function ProfileInfo({
         {icon}
         {label}
       </div>
-      <p className="truncate text-sm font-semibold" style={{ color: "#081D3A" }}>
+      <p className="truncate text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
         {value}
       </p>
     </div>

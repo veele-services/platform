@@ -104,7 +104,7 @@ function AttachmentPreview({ attachment }: { attachment: ReportNoteAttachment })
           // eslint-disable-next-line @next/next/no-img-element
           <img src={attachment.signedUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-[#00B7B3]">
+          <span className="flex h-full w-full items-center justify-center text-[var(--color-accent-accessible)]">
             {kind === "video" ? <Video size={24} strokeWidth={2.2} /> : <ImageIcon size={24} strokeWidth={2.2} />}
           </span>
         )}
@@ -153,7 +153,7 @@ function LocalFileRow({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-[#00B7B3]">
+          <span className="flex h-full w-full items-center justify-center text-[var(--color-accent-accessible)]">
             {kind === "video" ? <Video size={20} strokeWidth={2.2} /> : <FileText size={20} strokeWidth={2.2} />}
           </span>
         )}

@@ -184,7 +184,7 @@ export function InvoiceBatchPaymentPanel({
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggle(invoice.id)}
-                          className="h-4 w-4 accent-[#00B7B3]"
+                          className="h-4 w-4 accent-[var(--color-accent)]"
                         />
                         <span className="min-w-0 flex-1">
                           <span

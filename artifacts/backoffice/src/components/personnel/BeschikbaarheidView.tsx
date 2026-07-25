@@ -216,7 +216,7 @@ export function BeschikbaarheidView({
           <div>
             <h2
               className="font-heading text-sm font-semibold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               Weekrooster
             </h2>
@@ -248,7 +248,7 @@ export function BeschikbaarheidView({
                   style={{
                     width: "36px",
                     height: "20px",
-                    backgroundColor: cfg.enabled ? "#00B7B3" : "#CBD5E1",
+                    backgroundColor: cfg.enabled ? "var(--color-primary)" : "#CBD5E1",
                     cursor: canWrite ? "pointer" : "default",
                   }}
                   role="switch"
@@ -268,7 +268,7 @@ export function BeschikbaarheidView({
 
                 <span
                   className="w-24 text-sm font-medium flex-shrink-0"
-                  style={{ color: cfg.enabled ? "#081D3A" : "#94A3B8" }}
+                  style={{ color: cfg.enabled ? "var(--color-foreground)" : "#94A3B8" }}
                 >
                   {label}
                 </span>
@@ -316,7 +316,7 @@ export function BeschikbaarheidView({
               onClick={handleSaveSchedule}
               disabled={schedulePending}
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#081D3A" }}
+              style={{ backgroundColor: "var(--color-foreground)" }}
             >
               <Save className="h-3.5 w-3.5" />
               {schedulePending ? "Opslaan…" : "Rooster opslaan"}
@@ -348,7 +348,7 @@ export function BeschikbaarheidView({
         <div className="flex items-center justify-between mb-4">
           <h2
             className="font-heading text-sm font-semibold"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
             Verlof &amp; afwezigheid
           </h2>
@@ -360,7 +360,7 @@ export function BeschikbaarheidView({
                 setEditingLeaveId(null);
               }}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: "#00B7B3" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               <Plus className="h-3.5 w-3.5" />
               Periode toevoegen
@@ -440,13 +440,13 @@ export function BeschikbaarheidView({
                   <tr key={lp.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
                     <td
                       className="py-2.5 pr-4"
-                      style={{ color: isPast ? "#94A3B8" : "#081D3A" }}
+                      style={{ color: isPast ? "#94A3B8" : "var(--color-foreground)" }}
                     >
                       {formatDate(lp.startDate)}
                     </td>
                     <td
                       className="py-2.5 pr-4"
-                      style={{ color: isPast ? "#94A3B8" : "#081D3A" }}
+                      style={{ color: isPast ? "#94A3B8" : "var(--color-foreground)" }}
                     >
                       {lp.endDate ? (
                         formatDate(lp.endDate)
@@ -674,7 +674,7 @@ function LeaveForm({
       className="rounded-lg p-4 space-y-3"
       style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
     >
-      <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
         {isEdit ? "Verlofperiode bewerken" : "Nieuwe verlofperiode"}
       </p>
 
@@ -778,7 +778,7 @@ function LeaveForm({
           type="submit"
           disabled={isPending || !startDate || (endDateRequired && !endDate)}
           className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-          style={{ backgroundColor: "#081D3A" }}
+          style={{ backgroundColor: "var(--color-foreground)" }}
         >
           {isPending
             ? isEdit

@@ -155,7 +155,7 @@ export function NotificatiesView({
             <div>
               <h2
                 className="text-sm font-semibold"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
                 Automatische meldingen
               </h2>
@@ -188,7 +188,7 @@ export function NotificatiesView({
                       style={{
                         borderColor:
                           event.eventKey === selectedEvent?.eventKey
-                            ? "#00B7B3"
+                            ? "var(--color-primary)"
                             : "#E2E8F0",
                         background:
                           event.eventKey === selectedEvent?.eventKey
@@ -198,7 +198,7 @@ export function NotificatiesView({
                     >
                       <span
                         className="block text-sm font-semibold"
-                        style={{ color: "#081D3A" }}
+                        style={{ color: "var(--color-foreground)" }}
                       >
                         {event.title}
                       </span>
@@ -316,7 +316,7 @@ function MetricCard({
         >
           {title}
         </p>
-        <p className="mt-1 text-2xl font-bold" style={{ color: "#081D3A" }}>
+        <p className="mt-1 text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
           {value}
         </p>
         <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
@@ -380,7 +380,7 @@ function EventTemplateEditor({
           </p>
           <h2
             className="mt-1 text-lg font-semibold"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
             {event.title}
           </h2>
@@ -567,7 +567,7 @@ function ManualNotificationPanel({
           <Send className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             Handmatige melding sturen
           </h2>
           <p
@@ -629,13 +629,13 @@ function ManualNotificationPanel({
             onClick={() => setChannels((current) => toggle(current, key))}
             className="rounded-xl border p-3 text-left disabled:opacity-60"
             style={{
-              borderColor: channels.includes(key) ? "#00B7B3" : "#E2E8F0",
+              borderColor: channels.includes(key) ? "var(--color-primary)" : "#E2E8F0",
               background: channels.includes(key) ? "#F0FDFA" : "#fff",
             }}
           >
             <span
               className="flex items-center gap-2 text-sm font-semibold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               <Icon className="h-4 w-4" />
               {label}
@@ -737,7 +737,7 @@ function ManualNotificationPanel({
           disabled={!canWrite || isPending}
           onClick={submit}
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: "#081D3A" }}
+          style={{ background: "var(--color-foreground)" }}
         >
           <Send className="h-4 w-4" />
           {isPending ? "Versturen..." : "Notificatie versturen"}
@@ -758,10 +758,10 @@ function EmailStylePanel({
   const [isPending, startTransition] = useTransition();
   const [notice, setNotice] = useState<Notice>(null);
   const [brandColor, setBrandColor] = useState(
-    settings?.emailTemplateBrandColor ?? "#081D3A",
+    settings?.emailTemplateBrandColor ?? "var(--color-foreground)",
   );
   const [accentColor, setAccentColor] = useState(
-    settings?.emailTemplateAccentColor ?? "#00B7B3",
+    settings?.emailTemplateAccentColor ?? "var(--color-primary)",
   );
   const [footerText, setFooterText] = useState(
     settings?.emailTemplateFooterText ?? "",
@@ -794,7 +794,7 @@ function EmailStylePanel({
           <Palette className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             E-mail huisstijl
           </h2>
           <p
@@ -856,7 +856,7 @@ function EmailStylePanel({
 function ShortcodesPanel() {
   return (
     <section className="veele-card">
-      <h2 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+      <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
         Shortcodes
       </h2>
       <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
@@ -902,11 +902,11 @@ function ToggleCard({
       onClick={() => onChange(!checked)}
       className="rounded-xl border p-3 text-left disabled:opacity-60"
       style={{
-        borderColor: checked ? "#00B7B3" : "#E2E8F0",
+        borderColor: checked ? "var(--color-primary)" : "#E2E8F0",
         background: checked ? "#F0FDFA" : "#fff",
       }}
     >
-      <span className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+      <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
         {label}
       </span>
       <span

@@ -74,13 +74,13 @@ export default async function ObjectsPage({ searchParams }: Props) {
       icon:  Building2,
       label: "Totaal objecten",
       value: stats.totalObjects,
-      color: "#081D3A",
+      color: "var(--color-foreground)",
     },
     {
       icon:  CheckCircle2,
       label: "Actieve opdrachten",
       value: stats.activeAssignments,
-      color: "#00B7B3",
+      color: "var(--color-primary)",
     },
     {
       icon:  ClipboardList,
@@ -119,7 +119,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
             </div>
             <div className="min-w-0">
               <p className="text-xs truncate" style={{ color: "#94A3B8" }}>{label}</p>
-              <p className="text-lg font-bold leading-tight" style={{ color: "#081D3A" }}>
+              <p className="text-lg font-bold leading-tight" style={{ color: "var(--color-foreground)" }}>
                 {value}
               </p>
             </div>

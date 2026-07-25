@@ -275,7 +275,7 @@ export function GebruikersView({
                 >
                   <td
                     className="px-4 py-3 font-medium"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     {user.name ?? <span style={{ color: "#94A3B8" }}>-</span>}
                   </td>

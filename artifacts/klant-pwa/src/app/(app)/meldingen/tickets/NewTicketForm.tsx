@@ -77,7 +77,7 @@ export function NewTicketForm({
           <Send size={21} strokeWidth={2.4} />
         </span>
         <div>
-          <h2 className="text-lg font-black text-[#081D3A]">
+          <h2 className="text-lg font-black text-[var(--color-primary)]">
             Nieuw contactverzoek
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
@@ -95,7 +95,7 @@ export function NewTicketForm({
         <Field label="Afdeling">
           <SelectAdapter
             name="department"
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             defaultValue={department}
           >
             {DEPARTMENT_OPTIONS.map((option) => (
@@ -108,7 +108,7 @@ export function NewTicketForm({
         <Field label="Prioriteit">
           <SelectAdapter
             name="priority"
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             defaultValue={priority}
           >
             {PRIORITY_OPTIONS.map((option) => (
@@ -126,7 +126,7 @@ export function NewTicketForm({
             name="subject"
             maxLength={180}
             defaultValue={initialSubject}
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             placeholder="Bijvoorbeeld: Vraag over factuur of object"
           />
         </Field>
@@ -136,7 +136,7 @@ export function NewTicketForm({
             rows={4}
             maxLength={4000}
             defaultValue={initialBody}
-            className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             placeholder="Beschrijf uw vraag of melding zo concreet mogelijk."
           />
         </Field>
@@ -167,7 +167,7 @@ export function NewTicketForm({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
         Ticket versturen

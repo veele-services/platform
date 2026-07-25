@@ -84,7 +84,7 @@ export function NotificationsInbox({
           <BellRing size={21} strokeWidth={2.4} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-black text-[#081D3A]">
+          <h2 className="text-lg font-black text-[var(--color-primary)]">
             Inbox meldingen
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
@@ -143,7 +143,7 @@ export function NotificationsInbox({
 
       {selected.length > 0 ? (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-[#D8E8F3] bg-[#F8FBFE] px-3 py-2.5">
-          <p className="mr-auto text-xs font-black text-[#081D3A]">
+          <p className="mr-auto text-xs font-black text-[var(--color-primary)]">
             {selected.length} geselecteerd
           </p>
           <button
@@ -174,7 +174,7 @@ export function NotificationsInbox({
                   ),
               )
             }
-            className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#081D3A] shadow-sm disabled:opacity-50"
+            className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[var(--color-primary)] shadow-sm disabled:opacity-50"
           >
             Wissel gelezen
           </button>
@@ -235,7 +235,7 @@ export function NotificationsInbox({
                   <Link href={item.href ?? "/meldingen"} className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-black text-[#081D3A]">
+                        <p className="line-clamp-2 text-sm font-black text-[var(--color-primary)]">
                           {item.title}
                         </p>
                         {item.body ? (
@@ -311,7 +311,7 @@ export function NotificationsInbox({
         ) : (
           <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] px-4 py-10 text-center">
             <MailOpen className="mx-auto text-slate-400" size={30} />
-            <p className="mt-3 text-sm font-black text-[#081D3A]">
+            <p className="mt-3 text-sm font-black text-[var(--color-primary)]">
               Geen meldingen
             </p>
             <p className="mt-1 text-sm font-medium text-slate-500">

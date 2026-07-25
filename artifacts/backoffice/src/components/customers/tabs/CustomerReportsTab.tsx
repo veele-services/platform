@@ -17,7 +17,7 @@ export function CustomerReportsTab({ customerId, reports }: Props) {
         <Link
           href={`/reports?customerId=${customerId}`}
           className="text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle bekijken -&gt;
         </Link>
@@ -51,11 +51,11 @@ export function CustomerReportsTab({ customerId, reports }: Props) {
                       style={{ borderBottom: i < reports.length - 1 ? "1px solid #F1F5F9" : undefined }}
                     >
                       <td className="px-5 py-3 text-sm font-mono font-medium">
-                        <Link href={`/reports/${report.id}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                        <Link href={`/reports/${report.id}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                           {report.assignmentCode}
                         </Link>
                       </td>
-                      <td className="px-5 py-3 text-sm" style={{ color: "#081D3A" }}>{report.assignmentTitle}</td>
+                      <td className="px-5 py-3 text-sm" style={{ color: "var(--color-foreground)" }}>{report.assignmentTitle}</td>
                       <td className="px-5 py-3">
                         <ProcessStatusBadge kind="report" status={report.status} />
                       </td>

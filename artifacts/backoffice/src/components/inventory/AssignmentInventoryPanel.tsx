@@ -267,9 +267,9 @@ export function AssignmentInventoryPanel({
         <div>
           <h2
             className="font-heading text-base font-semibold flex items-center gap-2"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
-            <PackageSearch className="h-4 w-4" style={{ color: "#00B7B3" }} />
+            <PackageSearch className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
             Inventaris op werkbon
           </h2>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -313,7 +313,7 @@ export function AssignmentInventoryPanel({
                   }))
                 }
                 className="rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
               >
                 {availableItems.length === 0 ? (
                   <option value="">Geen inventaris beschikbaar</option>
@@ -345,7 +345,7 @@ export function AssignmentInventoryPanel({
                   }))
                 }
                 className="rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
               >
                 {Object.entries(USAGE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -373,7 +373,7 @@ export function AssignmentInventoryPanel({
                   }))
                 }
                 className="rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -392,7 +392,7 @@ export function AssignmentInventoryPanel({
                   }))
                 }
                 className="rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                 placeholder="bijv. daghuur"
               />
             </label>
@@ -402,7 +402,7 @@ export function AssignmentInventoryPanel({
                 pendingAction === "attach" || !attachForm.inventoryItemId
               }
               className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60 lg:self-end"
-              style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+              style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
             >
               {pendingAction === "attach" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -426,7 +426,7 @@ export function AssignmentInventoryPanel({
               }
               rows={2}
               className="rounded-lg border px-3 py-2 text-sm outline-none"
-              style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+              style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
             />
           </label>
           {error ? (
@@ -482,7 +482,7 @@ export function AssignmentInventoryPanel({
                     </div>
                     <p
                       className="mt-2 text-sm font-semibold"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       {row.inventoryName}
                     </p>
@@ -511,7 +511,7 @@ export function AssignmentInventoryPanel({
                     </p>
                     <p
                       className="text-sm font-bold"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       {formatEur(lineTotal)}
                     </p>
@@ -542,7 +542,7 @@ export function AssignmentInventoryPanel({
                           })
                         }
                         className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                        style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                        style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                       />
                     </label>
                     <label className="flex flex-col gap-1">
@@ -564,7 +564,7 @@ export function AssignmentInventoryPanel({
                           })
                         }
                         className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                        style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                        style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                       />
                     </label>
                     <label className="flex flex-col gap-1">
@@ -587,7 +587,7 @@ export function AssignmentInventoryPanel({
                           })
                         }
                         className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                        style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                        style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                       />
                     </label>
                     <label
@@ -655,7 +655,7 @@ export function AssignmentInventoryPanel({
                       }
                       rows={2}
                       className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                      style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                      style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                       placeholder="Bijv. verhuur doorbelast, intern gebruik op EUR 0,00, of klantzichtbaar volgens afspraak."
                     />
                   </label>

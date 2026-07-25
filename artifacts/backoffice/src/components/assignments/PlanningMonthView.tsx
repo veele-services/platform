@@ -147,7 +147,7 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
         {/* Navigation bar */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h2 className="font-heading text-lg font-bold" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-lg font-bold" style={{ color: "var(--color-foreground)" }}>
               {monthLabel}
             </h2>
             <p className="text-sm mt-0.5" style={{ color: "#64748B" }}>
@@ -207,7 +207,7 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
                 disabled
                 className="px-3 py-1.5 text-xs font-medium"
                 style={{
-                  color:      "#00B7B3",
+                  color:      "var(--color-primary)",
                   background: "#F0FDFC",
                   borderLeft: "1px solid #E2E8F0",
                   outline:    "none",
@@ -273,9 +273,9 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
                     className="flex items-center justify-center rounded-full w-6 h-6 text-xs font-semibold transition-colors group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-slate-300"
                     style={
                       isToday
-                        ? { background: "#00B7B3", color: "#fff" }
+                        ? { background: "var(--color-primary)", color: "#fff" }
                         : inMonth
-                          ? { color: "#081D3A" }
+                          ? { color: "var(--color-foreground)" }
                           : { color: "#CBD5E1" }
                     }
                   >

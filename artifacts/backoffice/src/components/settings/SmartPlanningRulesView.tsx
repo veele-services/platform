@@ -205,7 +205,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
           <div className="max-w-4xl">
             <h2
               className="font-heading text-lg font-semibold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               Sectorregels voor slimme planning
             </h2>
@@ -248,7 +248,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3
                         className="font-heading text-base font-semibold"
-                        style={{ color: "#081D3A" }}
+                        style={{ color: "var(--color-foreground)" }}
                       >
                         {rule.sectorName}
                       </h3>
@@ -340,7 +340,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                         <div>
                           <Label
                             className="text-sm font-semibold"
-                            style={{ color: "#081D3A" }}
+                            style={{ color: "var(--color-foreground)" }}
                           >
                             {field.label}
                           </Label>
@@ -380,7 +380,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                             Number(event.target.value),
                           )
                         }
-                        className="mt-4 w-full accent-[#00B7B3]"
+                        className="mt-4 w-full accent-primary"
                         aria-label={field.label}
                       />
                     </div>
@@ -391,7 +391,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                   <div className="rounded-lg border bg-slate-50 p-4">
                     <h4
                       className="text-sm font-semibold"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       Rondes & drempels
                     </h4>
@@ -507,7 +507,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                         <span>
                           <span
                             className="block font-semibold"
-                            style={{ color: "#081D3A" }}
+                            style={{ color: "var(--color-foreground)" }}
                           >
                             Spoed mag anti-spam overschrijven
                           </span>
@@ -527,7 +527,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                   <div className="rounded-lg border bg-white p-4">
                     <h4
                       className="text-sm font-semibold"
-                      style={{ color: "#081D3A" }}
+                      style={{ color: "var(--color-foreground)" }}
                     >
                       Wat gebeurt er met deze score?
                     </h4>

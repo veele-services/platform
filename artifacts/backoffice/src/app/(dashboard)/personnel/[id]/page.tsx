@@ -231,7 +231,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
       >
       {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
       <section id="availability" className="mb-6 scroll-mt-24">
-        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
+        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
           Beschikbaarheid &amp; verlof
         </h2>
         <BeschikbaarheidView
@@ -248,7 +248,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
           {/* Contact */}
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
               Contact
             </h2>
             <dl className="space-y-3">
@@ -256,7 +256,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 icon={<Mail className="h-4 w-4" />}
                 label="E-mail"
                 value={
-                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                     {person.email}
                   </a>
                 }
@@ -266,7 +266,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   icon={<Phone className="h-4 w-4" />}
                   label="Telefoon"
                   value={
-                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                       {person.phone}
                     </a>
                   }
@@ -308,7 +308,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {/* Qualifications */}
           <div className="veele-card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+              <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                 Kwalificaties
               </h2>
               {canWrite && (
@@ -356,8 +356,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {person.contractInfo && (
             <div className="veele-card">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                   Contractgegevens
                 </h2>
               </div>
@@ -402,7 +402,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
         {/* ── Right column ─────────────────────────────── */}
         <div className="flex flex-col gap-5">
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
               Gegevens
             </h2>
             <dl className="space-y-3">
@@ -415,11 +415,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
               />
               <InfoRow
                 icon={person.isAvailable
-                  ? <CheckCircle2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  ? <CheckCircle2 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   : <XCircle     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
                 label="Beschikbaar voor planning"
                 value={
-                  <span style={{ color: person.isAvailable ? "#00B7B3" : "#94A3B8" }}>
+                  <span style={{ color: person.isAvailable ? "var(--color-primary)" : "#94A3B8" }}>
                     {person.isAvailable ? "Ja" : "Nee"}
                   </span>
                 }
@@ -441,8 +441,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {canReadObjects && linkedObjects.length > 0 && (
             <div className="veele-card">
               <div className="flex items-center gap-2 mb-4">
-                <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                <Building2 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                   Gekoppelde objecten
                 </h2>
               </div>
@@ -456,7 +456,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   >
                     <Building2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                         {obj.objectName}
                       </p>
                       <p className="text-xs truncate" style={{ color: "#94A3B8" }}>
@@ -478,9 +478,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
             <div className="flex items-center justify-between px-5 py-4">
               <h2
                 className="font-heading text-sm font-semibold flex items-center gap-2"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
-                <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                <ClipboardList className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                 Opdrachten
                 <span className="text-xs font-normal" style={{ color: "#94A3B8" }}>
                   (laatste 10)
@@ -489,7 +489,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
               <Link
                 href={`/assignments?personnelId=${person.id}`}
                 className="text-xs font-medium hover:underline"
-                style={{ color: "#00B7B3" }}
+                style={{ color: "var(--color-primary)" }}
               >
                 Alle bekijken →
               </Link>

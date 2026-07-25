@@ -48,7 +48,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
         <p className="text-xs font-medium uppercase tracking-wider mb-0.5" style={{ color: "#94A3B8" }}>
           {label}
         </p>
-        <div className="text-sm" style={{ color: "#081D3A" }}>{value}</div>
+        <div className="text-sm" style={{ color: "var(--color-foreground)" }}>{value}</div>
       </div>
     </div>
   );
@@ -68,9 +68,9 @@ function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
       <div className="veele-card">
         <h2
           className="font-heading text-base font-semibold mb-2 flex items-center gap-2"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
-          <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
           Rapportagenotities
         </h2>
         <p className="text-sm" style={{ color: "#64748B" }}>
@@ -84,9 +84,9 @@ function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
     <div className="veele-card">
       <h2
         className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Rapportagenotities
       </h2>
 
@@ -108,7 +108,7 @@ function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
                 })}
               </span>
               <span aria-hidden="true">-</span>
-              <span className="font-semibold" style={{ color: "#081D3A" }}>
+              <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
                 {note.authorName}
               </span>
               {note.authorEmail ? <span>({note.authorEmail})</span> : null}
@@ -132,7 +132,7 @@ function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
                       target={attachment.signedUrl ? "_blank" : undefined}
                       rel="noreferrer"
                       className="block rounded-lg border px-3 py-2 text-sm"
-                      style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "#081D3A" }}
+                      style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "var(--color-foreground)" }}
                     >
                       <span className="font-medium">{attachment.fileName}</span>
                       {meta ? (
@@ -230,7 +230,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 <Link
                   href={`/assignments/${report.assignmentId}`}
                   className="hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   {report.assignmentTitle}
                 </Link>
@@ -307,9 +307,9 @@ export default async function ReportDetailPage({ params }: Props) {
           <div id="content" className="veele-card scroll-mt-24">
             <h2
               className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
-              <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+              <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
               Rapportinhoud
             </h2>
             <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: "#374151" }}>
@@ -390,7 +390,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 <Link
                   href={`/invoices/${invoiceProposal.id}`}
                   className="mb-3 inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-                  style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+                  style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
                 >
                   Factuurvoorstel openen
                 </Link>
@@ -404,7 +404,7 @@ export default async function ReportDetailPage({ params }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-                style={{ backgroundColor: "#081D3A", color: "#FFFFFF" }}
+                style={{ backgroundColor: "var(--color-foreground)", color: "#FFFFFF" }}
               >
                 <Download className="h-4 w-4" />
                 Download PDF
@@ -419,7 +419,7 @@ export default async function ReportDetailPage({ params }: Props) {
             <Link
               href={`/assignments/${report.assignmentId}`}
               className="text-sm hover:underline block"
-              style={{ color: "#00B7B3" }}
+              style={{ color: "var(--color-primary)" }}
             >
               ↗ Opdracht openen
             </Link>

@@ -9,7 +9,7 @@ import {
   PersonnelSettingsSaveBar,
 } from "@/components/SettingsShell";
 
-const STRENGTH_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#00B7B3", "#10B981"];
+const STRENGTH_COLORS = ["#EF4444", "#F97316", "#F59E0B", "var(--color-accent)", "#10B981"];
 
 export function SecurityPasswordForm() {
   const [state, formAction, isPending] = useActionState(
@@ -100,7 +100,7 @@ function PasswordField({
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
           autoComplete="new-password"
-          className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#081D3A] outline-none"
+          className="min-w-0 flex-1 bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
         />
         {onToggleVisible ? (
           <button

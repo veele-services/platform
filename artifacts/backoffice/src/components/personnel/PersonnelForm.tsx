@@ -373,7 +373,7 @@ export function PersonnelForm({
       <div className="flex items-center justify-center py-16">
         <Loader2
           className="h-6 w-6 animate-spin"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         />
       </div>
     );
@@ -461,7 +461,7 @@ export function PersonnelForm({
               <div>
                 <p
                   className="text-sm font-semibold"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
                   Huisadres
                 </p>
@@ -579,7 +579,7 @@ export function PersonnelForm({
           style={{ borderColor: "#E2E8F0" }}
         >
           <div>
-            <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
               Spoedsbeschikbaar
             </p>
             <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -713,7 +713,7 @@ export function PersonnelForm({
             style={{ borderColor: "#E2E8F0" }}
           >
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                 Beschikbaar voor planning
               </p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -729,7 +729,7 @@ export function PersonnelForm({
             style={{ borderColor: "#E2E8F0" }}
           >
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                 Actief
               </p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -817,7 +817,7 @@ export function PersonnelForm({
                 <label
                   htmlFor="autoInvite"
                   className="text-sm font-medium cursor-pointer"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
                   Direct uitnodigen na aanmaken
                 </label>

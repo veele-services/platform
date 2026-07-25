@@ -73,7 +73,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="veele-card">
-        <p className="mb-3 text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="mb-3 text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Logo
         </p>
         <div className="flex items-center gap-4">
@@ -121,7 +121,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Basisgegevens
         </p>
         <Field label="Organisatienaam" htmlFor="naam" required>
@@ -178,7 +178,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             <CalendarCheck className="h-5 w-5" strokeWidth={2.2} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               Personeelsinstellingen
             </p>
             <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -206,7 +206,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             <Clock className="h-5 w-5" strokeWidth={2.2} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Planning tijdvakken</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>Planning tijdvakken</p>
             <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
               Bepaal welke tijdvakken zichtbaar zijn op het planbord; werkbonnen blijven per 5 minuten planbaar.
             </p>
@@ -223,7 +223,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Factuurinstellingen
         </p>
         <Field label="Standaard betalingstermijn (dagen)" htmlFor="betaaltermijnDagen">

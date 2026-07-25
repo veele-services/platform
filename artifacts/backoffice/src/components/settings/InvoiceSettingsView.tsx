@@ -132,8 +132,8 @@ function CompanyCard({ settings, canWrite }: Props) {
         phone: text(fd, "phone"),
         website: text(fd, "website"),
         logoUrl: text(fd, "logoUrl"),
-        primaryColor: text(fd, "primaryColor") || "#081D3A",
-        secondaryColor: text(fd, "secondaryColor") || "#00B7B3",
+        primaryColor: text(fd, "primaryColor") || "var(--color-foreground)",
+        secondaryColor: text(fd, "secondaryColor") || "var(--color-primary)",
         defaultPaymentTermDays: number(fd, "defaultPaymentTermDays", 30),
       });
       if (result.success) {
@@ -444,8 +444,8 @@ function TemplateCard({ settings, canWrite }: Props) {
     startTransition(async () => {
       const result = await updateInvoiceTemplateSettings({
         logoUrl: text(fd, "logoUrl"),
-        primaryColor: text(fd, "primaryColor") || "#081D3A",
-        secondaryColor: text(fd, "secondaryColor") || "#00B7B3",
+        primaryColor: text(fd, "primaryColor") || "var(--color-foreground)",
+        secondaryColor: text(fd, "secondaryColor") || "var(--color-primary)",
         introText: text(fd, "introText"),
         footerText: text(fd, "footerText"),
         paymentInstruction: text(fd, "paymentInstruction"),
@@ -980,7 +980,7 @@ function Checkbox({
         type="checkbox"
         defaultChecked={defaultChecked}
         disabled={disabled}
-        className="h-4 w-4 accent-[#00B7B3]"
+        className="h-4 w-4 accent-primary"
       />
       {label}
     </label>

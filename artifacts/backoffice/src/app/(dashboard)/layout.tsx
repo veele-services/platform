@@ -48,7 +48,7 @@ function NoActiveTenantAccess() {
       <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1
           className="font-heading text-2xl font-semibold"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
           Geen actieve organisatietoegang
         </h1>

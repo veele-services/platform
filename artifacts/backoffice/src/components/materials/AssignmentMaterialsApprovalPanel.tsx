@@ -149,9 +149,9 @@ export function AssignmentMaterialsApprovalPanel({
       <section className="veele-card">
         <h2
           className="font-heading text-base font-semibold flex items-center gap-2"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
-          <PackageCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          <PackageCheck className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
           Materiaal en inventaris
         </h2>
         <p className="mt-2 text-sm" style={{ color: "#64748B" }}>
@@ -170,9 +170,9 @@ export function AssignmentMaterialsApprovalPanel({
         <div>
           <h2
             className="font-heading text-base font-semibold flex items-center gap-2"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
-            <PackageCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
+            <PackageCheck className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
             Materiaal en inventaris
           </h2>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -236,7 +236,7 @@ export function AssignmentMaterialsApprovalPanel({
                   </div>
                   <p
                     className="mt-2 text-sm font-semibold"
-                    style={{ color: "#081D3A" }}
+                    style={{ color: "var(--color-foreground)" }}
                   >
                     {row.registeredName}
                   </p>
@@ -255,7 +255,7 @@ export function AssignmentMaterialsApprovalPanel({
                   >
                     Regeltotaal
                   </p>
-                  <p className="text-sm font-bold" style={{ color: "#081D3A" }}>
+                  <p className="text-sm font-bold" style={{ color: "var(--color-foreground)" }}>
                     {formatEur(lineTotal)}
                   </p>
                   <p className="text-[11px]" style={{ color: "#64748B" }}>
@@ -279,7 +279,7 @@ export function AssignmentMaterialsApprovalPanel({
                       updateForm(row.id, { approvedName: event.target.value })
                     }
                     className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                    style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -301,7 +301,7 @@ export function AssignmentMaterialsApprovalPanel({
                       })
                     }
                     className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                    style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -320,7 +320,7 @@ export function AssignmentMaterialsApprovalPanel({
                       })
                     }
                     className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                    style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -342,7 +342,7 @@ export function AssignmentMaterialsApprovalPanel({
                       })
                     }
                     className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                    style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -365,7 +365,7 @@ export function AssignmentMaterialsApprovalPanel({
                       })
                     }
                     className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                    style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                    style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   />
                 </label>
                 <label
@@ -427,7 +427,7 @@ export function AssignmentMaterialsApprovalPanel({
                   }
                   rows={2}
                   className="rounded-lg border px-3 py-2 text-sm outline-none disabled:bg-slate-50"
-                  style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+                  style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
                   placeholder="Bijv. prijs op EUR 0,00 gezet voor service, of doorbelasten volgens afspraak."
                 />
               </label>

@@ -28,3 +28,18 @@ Status: canonical for the UI/UX modernization program.
 ## Change policy
 
 Reversible implementation details may be selected autonomously when they preserve these decisions. Changes to product truth, authorization, tenant boundaries, public package identifiers, signing ownership or the primary brand require explicit product-owner approval.
+
+## Literal brand-colour exceptions
+
+Released React surfaces use semantic CSS tokens. Literal Fieldgrid navy and
+teal values remain allowed only where CSS variables cannot represent the
+output:
+
+- persisted default branding and website-theme values;
+- generated PDF, QR, e-mail and news-artwork output;
+- PWA metadata, native status-bar and splash-screen configuration;
+- canvas signature rendering;
+- validation copy that demonstrates the expected hexadecimal format.
+
+The exact file allowlist lives in `scripts/fieldgrid-uiux-master-gate.mjs`.
+Adding an exception requires updating this decision and the gate together.

@@ -525,7 +525,7 @@ export function NotificationSettingsForm({
               <Icon size={20} strokeWidth={2.4} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-[#081D3A]">
+              <span className="block text-sm font-black text-[var(--color-primary)]">
                 {label}
               </span>
               <span className="block text-xs font-semibold text-slate-500">
@@ -543,7 +543,7 @@ export function NotificationSettingsForm({
             <span
               className="relative h-8 w-14 shrink-0 rounded-full transition-colors"
               style={{
-                backgroundColor: active ? "#00B7B3" : "#CBD5E1",
+                backgroundColor: active ? "var(--color-accent)" : "#CBD5E1",
               }}
             >
               {isPushOption && isPushBusy ? (

@@ -237,7 +237,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h2 className="font-heading text-lg font-bold" style={{ color: "#081D3A" }}>
+          <h2 className="font-heading text-lg font-bold" style={{ color: "var(--color-foreground)" }}>
             {weekLabel}
           </h2>
           <p className="text-sm mt-0.5" style={{ color: "#64748B" }}>
@@ -315,7 +315,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               disabled
               className="px-3 py-1.5 text-xs font-medium"
               style={{
-                color:      "#00B7B3",
+                color:      "var(--color-primary)",
                 background: "#F0FDFC",
                 outline:    "none",
               }}
@@ -361,7 +361,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               >
                 <span
                   className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: day.isToday ? "#00B7B3" : "#64748B" }}
+                  style={{ color: day.isToday ? "var(--color-primary)" : "#64748B" }}
                 >
                   {day.label}
                 </span>
@@ -369,8 +369,8 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
                   className="font-heading text-xl font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full transition-colors group-hover:ring-2"
                   style={
                     day.isToday
-                      ? { background: "#00B7B3", color: "#fff" }
-                      : { color: "#081D3A" }
+                      ? { background: "var(--color-primary)", color: "#fff" }
+                      : { color: "var(--color-foreground)" }
                   }
                 >
                   {day.date.getDate()}
@@ -382,7 +382,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
                 className="flex flex-col gap-2 rounded-lg transition-colors min-h-[40px]"
                 style={
                   isDragTarget
-                    ? { background: "rgba(0,183,179,0.06)", outline: "2px dashed #00B7B3", outlineOffset: "2px" }
+                    ? { background: "rgba(0,183,179,0.06)", outline: "2px dashed var(--color-primary)", outlineOffset: "2px" }
                     : undefined
                 }
               >
@@ -519,7 +519,7 @@ function AssignmentCardContent({ a }: { a: WeekAssignment }) {
       <div className="flex items-start justify-between gap-1 mb-1">
         <p
           className="text-xs font-semibold leading-snug line-clamp-2 flex-1 min-w-0"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
           {a.title}
         </p>

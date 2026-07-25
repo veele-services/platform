@@ -27,7 +27,7 @@ function toneStyle(tone: string) {
   if (tone === "danger") return { borderColor: "#FCA5A5", backgroundColor: "#FEF2F2", color: "#B91C1C" };
   if (tone === "warn") return { borderColor: "#FCD34D", backgroundColor: "#FFFBEB", color: "#B45309" };
   if (tone === "success") return { borderColor: "#A7F3D0", backgroundColor: "#ECFDF5", color: "#047857" };
-  return { borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", color: "#081D3A" };
+  return { borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", color: "var(--color-foreground)" };
 }
 
 function formatDate(value: string | null): string {
@@ -118,7 +118,7 @@ export function InventoryDashboardView({ data }: { data: InventoryDashboardData 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <section className="veele-card overflow-hidden p-0">
           <div className="px-5 py-4">
-            <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Statusverdeling</h2>
+            <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Statusverdeling</h2>
             <p className="text-sm" style={{ color: "#64748B" }}>Aantal items per inventarisstatus.</p>
           </div>
           <div className="border-t" style={{ borderColor: "#E2E8F0" }}>
@@ -137,7 +137,7 @@ export function InventoryDashboardView({ data }: { data: InventoryDashboardData 
           <div className="flex items-center gap-2 px-5 py-4">
             <AlertTriangle className="h-4 w-4" style={{ color: "#B45309" }} />
             <div>
-              <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Open storingen</h2>
+              <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Open storingen</h2>
               <p className="text-sm" style={{ color: "#64748B" }}>Urgente en lopende storingen per item.</p>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function InventoryDashboardView({ data }: { data: InventoryDashboardData 
                 ) : data.openIssues.map((row) => (
                   <tr key={row.issueId} className="hover:bg-slate-50/70">
                     <td className="px-4 py-3">
-                      <Link href={`/inventory/issues/${row.issueId}`} className="font-medium hover:underline" style={{ color: "#081D3A" }}>{row.inventoryCode}</Link>
+                      <Link href={`/inventory/issues/${row.issueId}`} className="font-medium hover:underline" style={{ color: "var(--color-foreground)" }}>{row.inventoryCode}</Link>
                       <p className="text-xs" style={{ color: "#64748B" }}>{row.inventoryName}</p>
                     </td>
                     <td className="px-4 py-3" style={{ color: "#475569" }}>{row.objectName ?? row.personnelName ?? "Geen context"}</td>
@@ -176,7 +176,7 @@ export function InventoryDashboardView({ data }: { data: InventoryDashboardData 
           <div className="flex items-center gap-2 px-5 py-4">
             <Wrench className="h-4 w-4" style={{ color: "#0F766E" }} />
             <div>
-              <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Onderhoud en keuring</h2>
+              <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Onderhoud en keuring</h2>
               <p className="text-sm" style={{ color: "#64748B" }}>Verlopen of binnen 30 dagen nodig.</p>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function InventoryDashboardView({ data }: { data: InventoryDashboardData 
 
         <section className="veele-card overflow-hidden p-0">
           <div className="px-5 py-4">
-            <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Werkbongebruik en verhuur</h2>
+            <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Werkbongebruik en verhuur</h2>
             <p className="text-sm" style={{ color: "#64748B" }}>Inventarisregels voor rapportage en facturatiecontrole.</p>
           </div>
           <SimpleTable
@@ -221,7 +221,7 @@ function SimpleTable({ rows, emptyText }: { rows: Array<{ id: string; href: stri
       ) : rows.map((row) => (
         <div key={row.id} className="grid gap-2 border-b px-5 py-3 text-sm md:grid-cols-[1fr_auto]" style={{ borderColor: "#F1F5F9" }}>
           <div className="min-w-0">
-            <Link href={row.href} className="truncate font-medium hover:underline" style={{ color: "#081D3A" }}>{row.main}</Link>
+            <Link href={row.href} className="truncate font-medium hover:underline" style={{ color: "var(--color-foreground)" }}>{row.main}</Link>
             <p className="text-xs" style={{ color: "#64748B" }}>{row.sub}</p>
           </div>
           <span className="text-xs" style={{ color: "#475569" }}>{row.meta}</span>

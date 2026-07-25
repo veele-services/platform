@@ -55,11 +55,15 @@ test("W14 visual plan separates every required authorization persona", () => {
   ]);
 });
 
-test("released sources do not add direct Radix imports or browser dialogs", () => {
+test("released sources do not add forbidden interaction or brand literals", () => {
   const findings = scanReleasedSources();
   assert.deepEqual(
     findings.filter((finding) =>
-      ["DIRECT_RADIX_IMPORT", "BROWSER_DIALOG"].includes(finding.rule),
+      [
+        "DIRECT_RADIX_IMPORT",
+        "BROWSER_DIALOG",
+        "HARDCODED_BRAND_COLOR",
+      ].includes(finding.rule),
     ),
     [],
   );

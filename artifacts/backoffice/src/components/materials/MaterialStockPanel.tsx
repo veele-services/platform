@@ -31,7 +31,7 @@ export function MaterialStockPanel({
     <div className="veele-card overflow-hidden p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div>
-          <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             {title}
           </h2>
           <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -91,13 +91,13 @@ export function MaterialStockPanel({
                 return (
                   <tr key={row.balanceId} className="hover:bg-slate-50/70">
                     <td className="px-4 py-3">
-                      <p className="font-medium" style={{ color: "#081D3A" }}>{row.materialName}</p>
+                      <p className="font-medium" style={{ color: "var(--color-foreground)" }}>{row.materialName}</p>
                       <p className="font-mono text-xs" style={{ color: "#64748B" }}>{row.materialCode}</p>
                     </td>
                     <td className="px-4 py-3" style={{ color: "#475569" }}>
                       {row.stockLocationName}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium" style={{ color: row.status === "negative" ? "#B91C1C" : "#081D3A" }}>
+                    <td className="px-4 py-3 text-right font-medium" style={{ color: row.status === "negative" ? "#B91C1C" : "var(--color-foreground)" }}>
                       {formatQuantity(row.quantity, row.unit)}
                     </td>
                     <td className="px-4 py-3">

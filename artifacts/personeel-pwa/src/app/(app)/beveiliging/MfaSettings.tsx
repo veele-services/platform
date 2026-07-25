@@ -181,7 +181,7 @@ export function MfaSettings() {
 
       {enrollment ? (
         <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] p-3">
-          <div className="mb-3 flex items-center gap-2 text-sm font-black text-[#081D3A]">
+          <div className="mb-3 flex items-center gap-2 text-sm font-black text-[var(--color-primary)]">
             <QrCode size={18} strokeWidth={2.4} className="text-[#009E9A]" />
             Authenticator koppelen
           </div>
@@ -202,7 +202,7 @@ export function MfaSettings() {
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={6}
-              className="mt-1 w-full bg-transparent text-xl font-black tracking-[0.35em] text-[#081D3A] outline-none"
+              className="mt-1 w-full bg-transparent text-xl font-black tracking-[0.35em] text-[var(--color-primary)] outline-none"
               placeholder="000000"
             />
           </label>
@@ -210,7 +210,7 @@ export function MfaSettings() {
             type="button"
             onClick={handleVerify}
             disabled={loading}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
           >
             {loading ? <Loader2 size={19} className="animate-spin" /> : null}
             2FA bevestigen
@@ -243,7 +243,7 @@ export function MfaSettings() {
           type="button"
           onClick={handleEnroll}
           disabled={loading || Boolean(enrollment)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
         >
           {loading ? (
             <Loader2 size={19} className="animate-spin" />

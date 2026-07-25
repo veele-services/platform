@@ -229,7 +229,7 @@ export function MaterialsView({
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Zoek op naam, code of barcode"
               className="h-10 w-full rounded-md border bg-white pl-9 pr-3 text-sm outline-none focus:border-teal-500"
-              style={{ borderColor: "#CBD5E1", color: "#081D3A" }}
+              style={{ borderColor: "#CBD5E1", color: "var(--color-foreground)" }}
             />
           </div>
           <button
@@ -250,7 +250,7 @@ export function MaterialsView({
               applyFilters({ categoryId: event.target.value || undefined })
             }
             className="h-10 rounded-md border bg-white px-3 text-sm"
-            style={{ borderColor: "#CBD5E1", color: "#081D3A" }}
+            style={{ borderColor: "#CBD5E1", color: "var(--color-foreground)" }}
           >
             <option value="">Alle categorieen</option>
             {options.categories.map((category) => (
@@ -270,7 +270,7 @@ export function MaterialsView({
               })
             }
             className="h-10 rounded-md border bg-white px-3 text-sm"
-            style={{ borderColor: "#CBD5E1", color: "#081D3A" }}
+            style={{ borderColor: "#CBD5E1", color: "var(--color-foreground)" }}
           >
             <option value="active">Actief</option>
             <option value="inactive">Inactief</option>
@@ -312,7 +312,7 @@ export function MaterialsView({
           <div>
             <h2
               className="font-heading text-base font-semibold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               Materiaalcatalogus
             </h2>
@@ -396,7 +396,7 @@ export function MaterialsView({
                         {row.code}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-medium" style={{ color: "#081D3A" }}>
+                        <p className="font-medium" style={{ color: "var(--color-foreground)" }}>
                           {row.name}
                         </p>
                         <p className="text-xs" style={{ color: "#64748B" }}>
@@ -415,7 +415,7 @@ export function MaterialsView({
                           color:
                             row.negativeLocationsCount > 0
                               ? "#B91C1C"
-                              : "#081D3A",
+                              : "var(--color-foreground)",
                         }}
                       >
                         {formatNumber(row.totalStock)} {row.unit}

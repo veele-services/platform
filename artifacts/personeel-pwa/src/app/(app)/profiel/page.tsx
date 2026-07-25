@@ -82,7 +82,7 @@ export default async function ProfielPage() {
         <ProfileForm profile={profile} />
 
         <PersonnelSettingsCard>
-          <h2 className="text-lg font-black text-[#081D3A]">Werkgegevens</h2>
+          <h2 className="text-lg font-black text-[var(--color-primary)]">Werkgegevens</h2>
           <div className="mt-3 space-y-3">
             {workFields.map(({ label, value, Icon }) => (
               <div key={label} className="flex items-center gap-3">
@@ -93,7 +93,7 @@ export default async function ProfielPage() {
                   <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
                     {label}
                   </span>
-                  <span className="block break-words text-sm font-bold text-[#081D3A]">
+                  <span className="block break-words text-sm font-bold text-[var(--color-primary)]">
                     {value}
                   </span>
                 </span>
@@ -106,7 +106,7 @@ export default async function ProfielPage() {
           <PersonnelSettingsCard>
             <div className="mb-3 flex items-center gap-2">
               <Award size={18} className="text-[#009E9A]" />
-              <h2 className="text-lg font-black text-[#081D3A]">
+              <h2 className="text-lg font-black text-[var(--color-primary)]">
                 Kwalificaties
               </h2>
             </div>

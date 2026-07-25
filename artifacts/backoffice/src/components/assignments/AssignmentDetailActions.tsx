@@ -199,7 +199,7 @@ export function AssignmentDetailActions({
           className="veele-card flex items-center gap-3 p-4 flex-wrap"
           style={{ background: "#F8FAFC" }}
         >
-          <span className="text-sm font-medium" style={{ color: "#081D3A" }}>
+          <span className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
             Statuswijziging
           </span>
           <div className="flex items-center gap-2 ml-auto flex-wrap">
@@ -235,9 +235,9 @@ export function AssignmentDetailActions({
       <div className="veele-card">
         <h3
           className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
-          <UserPlus className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          <UserPlus className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
           Medewerkers
         </h3>
 
@@ -249,7 +249,7 @@ export function AssignmentDetailActions({
           <ul className="divide-y mb-4" style={{ borderColor: "#F1F5F9" }}>
             {personnel.map((p) => (
               <li key={p.id} className="flex items-center justify-between py-2">
-                <span className="text-sm" style={{ color: "#081D3A" }}>
+                <span className="text-sm" style={{ color: "var(--color-foreground)" }}>
                   {p.firstName} {p.lastName}
                   {p.linkStatus === "suggested" && (
                     <span
@@ -453,7 +453,7 @@ export function AssignmentTaskManager({
       <section className="veele-card">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+            <h3 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>
               Takenoverzicht
             </h3>
             <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -478,7 +478,7 @@ export function AssignmentTaskManager({
                     {index + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                       {task.taskCodeCode && (
                         <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs" style={{ color: "#64748B" }}>
                           {task.taskCodeCode}
@@ -516,8 +516,8 @@ export function AssignmentTaskManager({
       </section>
 
       <aside className="veele-card h-fit">
-        <h3 className="font-heading text-base font-semibold flex items-center gap-2" style={{ color: "#081D3A" }}>
-          <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <h3 className="font-heading text-base font-semibold flex items-center gap-2" style={{ color: "var(--color-foreground)" }}>
+          <ClipboardList className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
           Taak toevoegen
         </h3>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>

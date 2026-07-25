@@ -50,9 +50,9 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
     <div className="veele-card">
       <h3
         className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Rapport indienen
       </h3>
 
@@ -95,7 +95,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
             style={{
               borderColor: fieldErrors.content ? "#DC2626" : "#E2E8F0",
-              color: "#081D3A",
+              color: "var(--color-foreground)",
             }}
           />
           {fieldErrors.content && (
@@ -117,7 +117,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
             onChange={(e) => setHoursWorked(e.target.value)}
             placeholder="bijv. 2.5"
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
@@ -132,7 +132,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
             placeholder="Aanvullende opmerkingen voor de beheerder…"
             rows={2}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
@@ -140,7 +140,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
           type="submit"
           disabled={loading}
           className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-          style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+          style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -102,7 +102,7 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
         className="flex items-center justify-between px-5 py-4 sticky top-0 z-10"
         style={{ backgroundColor: "#FAFBFD", borderBottom: "1px solid #E2E8F0" }}
       >
-        <span className="text-sm font-semibold" style={{ color: "#081D3A" }}>Slim profiel</span>
+        <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>Slim profiel</span>
         <button
           type="button"
           onClick={onClose}
@@ -119,7 +119,7 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
         <div className="flex items-start gap-3">
           <Initials firstName={person.firstName} lastName={person.lastName} />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-base leading-tight" style={{ color: "#081D3A" }}>
+            <p className="font-semibold text-base leading-tight" style={{ color: "var(--color-foreground)" }}>
               {person.firstName} {person.lastName}
             </p>
             <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>{person.code}</p>
@@ -278,7 +278,7 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
                 >
                   <Building2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate" style={{ color: "#081D3A" }}>{obj.objectName}</p>
+                    <p className="font-medium truncate" style={{ color: "var(--color-foreground)" }}>{obj.objectName}</p>
                     <p className="truncate" style={{ color: "#94A3B8" }}>{obj.customerName}</p>
                   </div>
                 </Link>

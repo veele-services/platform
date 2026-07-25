@@ -28,7 +28,7 @@ import {
 function PaymentHistoryReadOnly({ paymentHistory }: { paymentHistory: PaymentRecord[] }) {
   return (
     <div className="veele-card">
-      <h3 className="font-heading text-sm font-semibold mb-3" style={{ color: "#081D3A" }}>
+      <h3 className="font-heading text-sm font-semibold mb-3" style={{ color: "var(--color-foreground)" }}>
         Betalingshistorie
       </h3>
       <div className="flex flex-col gap-2">
@@ -45,7 +45,7 @@ function PaymentHistoryReadOnly({ paymentHistory }: { paymentHistory: PaymentRec
               style={{ background: "#F8FAFC", border: "1px solid #F1F5F9" }}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold" style={{ color: "#081D3A" }}>{amountStr}</span>
+                <span className="text-xs font-semibold" style={{ color: "var(--color-foreground)" }}>{amountStr}</span>
                 <ProcessStatusBadge kind="payment" status={p.status} size="xs" />
               </div>
               <p className="text-xs font-mono" style={{ color: "#94A3B8" }}>{p.molliePaymentId}</p>
@@ -81,7 +81,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
         <p className="text-xs font-medium uppercase tracking-wider mb-0.5" style={{ color: "#94A3B8" }}>
           {label}
         </p>
-        <div className="text-sm" style={{ color: "#081D3A" }}>
+        <div className="text-sm" style={{ color: "var(--color-foreground)" }}>
           {value}
         </div>
       </div>
@@ -190,7 +190,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                 <Link
                   href={`/customers/${invoice.customerId}`}
                   className="hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   {invoice.customerName}
                 </Link>
@@ -228,7 +228,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                   <Link
                     href={`/assignments/${invoice.assignmentId}`}
                     className="hover:underline"
-                    style={{ color: "#00B7B3" }}
+                    style={{ color: "var(--color-primary)" }}
                   >
                     {invoice.assignmentTitle}
                   </Link>
@@ -270,9 +270,9 @@ export default async function InvoiceDetailPage({ params }: Props) {
             <div id="lines" className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
-                <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                <Receipt className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                 Regeloverzicht
               </h2>
               <div className="overflow-x-auto">
@@ -311,7 +311,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                             <span className="ml-2 text-xs" style={{ color: "#94A3B8" }}>(niet factureerbaar)</span>
                           )}
                         </td>
-                        <td className="py-2.5 text-right font-medium" style={{ color: item.invoiceable ? "#081D3A" : "#94A3B8" }}>
+                        <td className="py-2.5 text-right font-medium" style={{ color: item.invoiceable ? "var(--color-foreground)" : "#94A3B8" }}>
                           {item.price ? formatEur(item.price) : "—"}
                         </td>
                       </tr>
@@ -326,9 +326,9 @@ export default async function InvoiceDetailPage({ params }: Props) {
           <div id="finance" className="veele-card scroll-mt-24">
             <h2
               className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
-              <Euro className="h-4 w-4" style={{ color: "#00B7B3" }} />
+              <Euro className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
               Financieel overzicht
             </h2>
             <div className="space-y-2">
@@ -342,7 +342,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
               </div>
               <div
                 className="flex justify-between text-base font-bold pt-3 mt-2"
-                style={{ borderTop: "2px solid #F1F5F9", color: "#081D3A" }}
+                style={{ borderTop: "2px solid #F1F5F9", color: "var(--color-foreground)" }}
               >
                 <span>Totaal incl. BTW</span>
                 <span>{formatEur(invoice.totalAmount)}</span>
@@ -379,7 +379,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                 <p className="text-xs" style={{ color: "#94A3B8" }}>Vervaldatum</p>
                 <p
                   className="text-sm font-semibold"
-                  style={{ color: isOverdue ? "#DC2626" : "#081D3A" }}
+                  style={{ color: isOverdue ? "#DC2626" : "var(--color-foreground)" }}
                 >
                   {formatDate(invoice.dueDate)}
                 </p>
@@ -432,9 +432,9 @@ export default async function InvoiceDetailPage({ params }: Props) {
                     <li key={i} className={`pl-4 ${isLast ? "" : "pb-4"}`}>
                       <span
                         className="absolute -left-1.5 flex items-center justify-center w-3 h-3 rounded-full"
-                        style={{ backgroundColor: isLast ? "#00B7B3" : "#CBD5E1" }}
+                        style={{ backgroundColor: isLast ? "var(--color-primary)" : "#CBD5E1" }}
                       />
-                      <p className="text-xs font-semibold" style={{ color: "#081D3A" }}>
+                      <p className="text-xs font-semibold" style={{ color: "var(--color-foreground)" }}>
                         {event.label}
                       </p>
                       <p className="text-xs" style={{ color: "#94A3B8" }}>

@@ -157,7 +157,7 @@ export function PersonnelDetailActions({
         {/* ── Invite / account section ────────────────────────────────── */}
         {canManagePortal && (hasPortalAccount ? (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "#00B7B3" }}>
+            <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--color-primary)" }}>
               <CheckCircle2 className="h-4 w-4" />
               Portaal actief
             </div>

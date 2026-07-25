@@ -120,7 +120,7 @@ const STATUS_BLOCK_BG: Record<string, string> = {
   scheduled:         "#DBEAFE",
   seen:              "#DBEAFE",
   en_route:          "#CCFBF1",
-  in_progress:       "#00B7B3",
+  in_progress:       "var(--color-primary)",
   not_completed:     "#FEE2E2",
   completed:         "#D1FAE5",
   report_submitted:  "#E0E7FF",
@@ -365,15 +365,15 @@ export function PlanningDayView({
             <div
               className="flex items-center justify-center rounded-xl w-12 h-12 flex-shrink-0"
               style={isToday
-                ? { background: "#00B7B3", color: "#fff" }
-                : { background: "#F1F5F9", color: "#081D3A" }}
+                ? { background: "var(--color-primary)", color: "#fff" }
+                : { background: "#F1F5F9", color: "var(--color-foreground)" }}
             >
               <span className="font-heading text-xl font-bold">{dayNum}</span>
             </div>
             <div>
               <h2
                 className="font-heading text-xl font-bold capitalize"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
                 {label}
               </h2>
@@ -454,7 +454,7 @@ export function PlanningDayView({
                 style={{ border: "1px solid #E2E8F0", background: "#FAFAFA" }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                     {a.title}
                   </p>
                   <p className="text-xs" style={{ color: "#64748B" }}>{a.customerName}</p>
@@ -481,9 +481,9 @@ export function PlanningDayView({
         <div className="veele-card overflow-x-auto" style={{ opacity: isPending ? 0.85 : 1, transition: "opacity 0.15s" }}>
           <h3
             className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
-            <Clock className="h-4 w-4" style={{ color: "#00B7B3" }} />
+            <Clock className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
             Tijdlijn per medewerker
           </h3>
 
@@ -538,7 +538,7 @@ export function PlanningDayView({
                     {/* Name column */}
                     <div
                       className="flex-shrink-0 pr-3 py-2 text-sm font-medium truncate"
-                      style={{ width: "160px", color: "#081D3A" }}
+                      style={{ width: "160px", color: "var(--color-foreground)" }}
                       title={`${row.firstName} ${row.lastName}`}
                     >
                       {row.lastName}, {row.firstName}
@@ -550,7 +550,7 @@ export function PlanningDayView({
                       style={{
                         minHeight: "44px",
                         cursor: canWrite && draggingId ? "copy" : undefined,
-                        outline: isGhostRow ? "1px dashed #00B7B3" : undefined,
+                        outline: isGhostRow ? "1px dashed var(--color-primary)" : undefined,
                         outlineOffset: isGhostRow ? "-1px" : undefined,
                         borderRadius: "4px",
                         background:   isGhostRow ? "rgba(0,183,179,0.04)" : undefined,
@@ -569,12 +569,12 @@ export function PlanningDayView({
                             width:   `${ghostInfo.widthPct}%`,
                             minWidth: "40px",
                             background: "rgba(0,183,179,0.18)",
-                            border: "2px dashed #00B7B3",
+                            border: "2px dashed var(--color-primary)",
                           }}
                         >
                           <span
                             className="text-xs font-semibold px-1 truncate"
-                            style={{ color: "#00B7B3" }}
+                            style={{ color: "var(--color-primary)" }}
                           >
                             {ghostInfo.label}
                           </span>
@@ -588,7 +588,7 @@ export function PlanningDayView({
                           : a.effectiveEnd;
                         const block = timeBlock(a.effectiveStart, displayEnd);
                         const bg    = STATUS_BLOCK_BG[a.status] ?? "#F1F5F9";
-                        const text  = STATUS_BLOCK_TEXT[a.status] ?? "#081D3A";
+                        const text  = STATUS_BLOCK_TEXT[a.status] ?? "var(--color-foreground)";
                         const isBeingDragged = draggingId === a.id;
                         const isMovable = canWrite && isTimelineMovable(a.status);
                         const timeLabel = `${a.effectiveStart ?? "?"}–${

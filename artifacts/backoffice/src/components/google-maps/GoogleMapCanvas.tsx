@@ -440,7 +440,7 @@ export function GoogleMapCanvas({
         const line = new (window.google as GoogleMapsApi).maps.Polyline({
           path: polyline.path,
           geodesic: true,
-          strokeColor: polyline.color ?? "#00B7B3",
+          strokeColor: polyline.color ?? "var(--color-primary)",
           strokeOpacity: 0.78,
           strokeWeight: 4,
           map,

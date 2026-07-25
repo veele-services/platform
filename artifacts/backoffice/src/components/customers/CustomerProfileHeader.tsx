@@ -39,10 +39,10 @@ function KpiCard({ icon, label, value, sub }: KpiCardProps) {
       style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
     >
       <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "#64748B" }}>
-        <span style={{ color: "#00B7B3" }}>{icon}</span>
+        <span style={{ color: "var(--color-primary)" }}>{icon}</span>
         {label}
       </div>
-      <div className="text-lg font-bold font-heading" style={{ color: "#081D3A" }}>
+      <div className="text-lg font-bold font-heading" style={{ color: "var(--color-foreground)" }}>
         {value}
       </div>
       {sub && (
@@ -69,14 +69,14 @@ export function CustomerProfileHeader({ customer, kpis }: Props) {
           {/* Avatar / monogram */}
           <div
             className="flex-shrink-0 flex items-center justify-center rounded-2xl w-14 h-14 text-xl font-bold font-heading"
-            style={{ backgroundColor: "#00B7B3", color: "#fff" }}
+            style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}
           >
             {customer.name.charAt(0).toUpperCase()}
           </div>
 
           <div>
             <div className="flex items-center flex-wrap gap-2 mb-1">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
+              <h1 className="font-heading text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
                 {customer.name}
               </h1>
               {customer.code && (
@@ -111,7 +111,7 @@ export function CustomerProfileHeader({ customer, kpis }: Props) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   <Globe className="h-3.5 w-3.5" />
                   {customer.website.replace(/^https?:\/\//, "")}

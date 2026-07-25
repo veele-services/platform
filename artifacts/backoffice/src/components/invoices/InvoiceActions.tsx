@@ -179,7 +179,7 @@ export function InvoiceActions({
       <div className="veele-card flex flex-col gap-3">
         <h3
           className="font-heading text-sm font-semibold"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
           Acties
         </h3>
@@ -210,7 +210,7 @@ export function InvoiceActions({
                 disabled={loading !== null}
                 onClick={() => handleAction("finalize")}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-                style={{ backgroundColor: "#081D3A", color: "#FFFFFF" }}
+                style={{ backgroundColor: "var(--color-foreground)", color: "#FFFFFF" }}
               >
                 {loading === "finalize" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -224,7 +224,7 @@ export function InvoiceActions({
               disabled={loading !== null}
               onClick={() => handleAction("sent")}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-              style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+              style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
             >
               {loading === "sent" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -243,7 +243,7 @@ export function InvoiceActions({
               disabled={loading !== null}
               onClick={handleCreatePaymentLink}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-              style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+              style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
             >
               {loading === "payment" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -376,7 +376,7 @@ export function InvoiceActions({
                   className="font-mono text-sm rounded-lg px-3 py-2"
                   style={{
                     background: "#F8FAFC",
-                    color: "#081D3A",
+                    color: "var(--color-foreground)",
                     border: "1px solid #E2E8F0",
                   }}
                 >
@@ -393,7 +393,7 @@ export function InvoiceActions({
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleEmailInvoice}
-              style={{ backgroundColor: "#081D3A", color: "#fff" }}
+              style={{ backgroundColor: "var(--color-foreground)", color: "#fff" }}
             >
               Versturen
             </AlertDialogAction>
@@ -414,7 +414,7 @@ export function InvoiceActions({
                 <label
                   htmlFor="invoice-cancellation-reason"
                   className="text-sm font-semibold"
-                  style={{ color: "#081D3A" }}
+                  style={{ color: "var(--color-foreground)" }}
                 >
                   Reden
                 </label>
@@ -426,7 +426,7 @@ export function InvoiceActions({
                   maxLength={500}
                   placeholder="Beschrijf waarom deze factuur wordt geannuleerd"
                   className="w-full rounded-lg border px-3 py-2 text-sm"
-                  style={{ borderColor: "#CBD5E1", color: "#081D3A" }}
+                  style={{ borderColor: "#CBD5E1", color: "var(--color-foreground)" }}
                 />
               </div>
             </AlertDialogDescription>
@@ -459,7 +459,7 @@ function PaymentHistoryCard({
     <div className="veele-card">
       <h3
         className="font-heading text-sm font-semibold mb-3"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
         Betalingshistorie
       </h3>
@@ -473,7 +473,7 @@ function PaymentHistoryCard({
             <div className="flex items-center justify-between gap-2">
               <span
                 className="text-xs font-semibold"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
                 {formatEur(p.amountCents)}
               </span>

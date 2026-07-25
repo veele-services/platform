@@ -90,9 +90,9 @@ export function CreateInvoiceForm({
     <div className="veele-card">
       <h3
         className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <Receipt className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Factuurconcept
       </h3>
 
@@ -129,7 +129,7 @@ export function CreateInvoiceForm({
                 </span>
                 <span
                   className="text-xs font-medium"
-                  style={{ color: item.invoiceable ? "#081D3A" : "#94A3B8" }}
+                  style={{ color: item.invoiceable ? "var(--color-foreground)" : "#94A3B8" }}
                 >
                   {item.price ? formatEur(item.price) : "—"}
                 </span>
@@ -164,7 +164,7 @@ export function CreateInvoiceForm({
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
             style={{
               borderColor: fieldErrors.amount ? "#DC2626" : "#E2E8F0",
-              color: "#081D3A",
+              color: "var(--color-foreground)",
             }}
           />
           {fieldErrors.amount && (
@@ -187,7 +187,7 @@ export function CreateInvoiceForm({
             value={vatPercentage}
             onChange={(e) => setVat(e.target.value)}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
@@ -232,7 +232,7 @@ export function CreateInvoiceForm({
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
             style={{
               borderColor: fieldErrors.dueDate ? "#DC2626" : "#E2E8F0",
-              color: "#081D3A",
+              color: "var(--color-foreground)",
             }}
           />
           {fieldErrors.dueDate && (
@@ -256,7 +256,7 @@ export function CreateInvoiceForm({
             placeholder="Aanvullende informatie voor de factuur…"
             rows={2}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
@@ -272,7 +272,7 @@ export function CreateInvoiceForm({
             <span className="text-xs font-medium" style={{ color: "#374151" }}>
               <LinkIcon
                 className="inline h-3.5 w-3.5 mr-1"
-                style={{ color: "#00B7B3" }}
+                style={{ color: "var(--color-primary)" }}
               />
               Direct doorsturen naar factuurpagina
             </span>
@@ -287,7 +287,7 @@ export function CreateInvoiceForm({
           type="submit"
           disabled={loading}
           className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-          style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+          style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

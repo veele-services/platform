@@ -50,7 +50,7 @@ type FieldProps = {
 function fieldClass(error?: string) {
   return [
     "w-full rounded-2xl border bg-white px-4 py-3 text-sm font-semibold outline-none transition",
-    "focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10",
+    "focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)]/10",
     error ? "border-red-300" : "border-slate-200",
   ].join(" ");
 }

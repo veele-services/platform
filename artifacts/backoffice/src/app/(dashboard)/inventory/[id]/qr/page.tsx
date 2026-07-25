@@ -99,7 +99,7 @@ export default async function InventoryQrLabelPage({ params }: Props) {
             </p>
             <h1
               className="mt-2 font-heading text-3xl font-bold"
-              style={{ color: "#081D3A" }}
+              style={{ color: "var(--color-foreground)" }}
             >
               {item.name}
             </h1>
@@ -119,7 +119,7 @@ export default async function InventoryQrLabelPage({ params }: Props) {
               </dt>
               <dd
                 className="mt-1 font-mono font-semibold"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
                 {item.code}
               </dd>
@@ -131,7 +131,7 @@ export default async function InventoryQrLabelPage({ params }: Props) {
               >
                 Status
               </dt>
-              <dd className="mt-1 font-semibold" style={{ color: "#081D3A" }}>
+              <dd className="mt-1 font-semibold" style={{ color: "var(--color-foreground)" }}>
                 {item.status}
               </dd>
             </div>

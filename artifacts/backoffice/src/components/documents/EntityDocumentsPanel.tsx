@@ -182,9 +182,9 @@ export function EntityDocumentsPanel({
       <div className="flex items-center justify-between">
         <h2
           className="font-heading flex items-center gap-2 text-base font-semibold"
-          style={{ color: "#081D3A" }}
+          style={{ color: "var(--color-foreground)" }}
         >
-          <Paperclip className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          <Paperclip className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
           Bijlagen
           {documents.length > 0 && (
             <span
@@ -199,7 +199,7 @@ export function EntityDocumentsPanel({
           <button
             onClick={() => setShowUpload(true)}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-            style={{ backgroundColor: "#081D3A" }}
+            style={{ backgroundColor: "var(--color-foreground)" }}
           >
             <Plus className="h-3.5 w-3.5" />
             Bijlage toevoegen
@@ -243,7 +243,7 @@ export function EntityDocumentsPanel({
             <button
               onClick={() => setShowUpload(true)}
               className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium"
-              style={{ color: "#00B7B3" }}
+              style={{ color: "var(--color-primary)" }}
             >
               <Upload className="h-3 w-3" />
               Bijlage toevoegen
@@ -256,7 +256,7 @@ export function EntityDocumentsPanel({
             <li key={doc.id} className="flex items-center gap-3 py-2.5">
               {getMimeIcon(doc.mimeType)}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium" style={{ color: "#081D3A" }} title={doc.name}>
+                <p className="truncate text-sm font-medium" style={{ color: "var(--color-foreground)" }} title={doc.name}>
                   {doc.name}
                 </p>
                 <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -272,7 +272,7 @@ export function EntityDocumentsPanel({
                 >
                   <Download
                     className="h-3.5 w-3.5"
-                    style={{ color: downloadingId === doc.id ? "#94A3B8" : "#00B7B3" }}
+                    style={{ color: downloadingId === doc.id ? "#94A3B8" : "var(--color-primary)" }}
                   />
                 </button>
                 {canWrite && (

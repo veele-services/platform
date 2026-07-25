@@ -51,7 +51,7 @@ function ToolbarButton({
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-md border text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         active
-          ? "border-[#00B7B3] bg-[#E0FAFB] text-[#081D3A]"
+          ? "border-primary bg-[#E0FAFB] text-foreground"
           : "border-[#E2E8F0] bg-white text-[#475569] hover:border-[#94A3B8]",
       )}
     >
