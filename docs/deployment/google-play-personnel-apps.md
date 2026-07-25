@@ -3,8 +3,12 @@
 Versie van dit voorbereidingsdocument: 25 juli 2026.
 
 Dit pakket vertaalt het bestaande VeyoCast-publicatieproces naar twee mobiele
-personeelsapps. De Android-artefacten zijn lokaal gebouwd en ondertekend, maar
-er is vanuit deze sprint niets geüpload, gepusht of gepubliceerd.
+personeelsapps. De Android-artefacten zijn lokaal gebouwd, ondertekend en
+technisch gecontroleerd, maar er is vanuit deze sprint niets geüpload, gepusht
+of gepubliceerd. **Veele doorstaat de live runtimecheck. Fieldgrid is nog niet
+uploadgereed:** `https://fieldgrid.nl/personeel` stuurt door naar
+`https://www.fieldgrid.nl/personeel` en die bestemming gaf tijdens de preflight
+HTTP 502. Los dit eerst op en laat de preflight daarna volledig groen worden.
 
 ## 1. Gereed resultaat
 
@@ -21,7 +25,9 @@ Lokale output:
 
 De map bevat ook `manifest.json` met bestandsgrootte en SHA-256 per artefact.
 De `.aab` is het bestand voor Play Console. De `.apk` is alleen voor lokale
-installatie en apparaattests.
+installatie en apparaattests. Gebruik alleen artefacten waarvan het manifest
+`sourceDirty: false` vermeldt en waarvan `sourceCommit` gelijk is aan de
+definitief beoordeelde lokale commit.
 
 ## 2. Beslissingen die vóór de eerste upload definitief moeten zijn
 
@@ -36,6 +42,16 @@ Een eerste AAB-upload maakt de pakketnaam onveranderlijk. Bevestig daarom:
 
 Een wijziging na internal testing vraagt een nieuw Play-apprecord en een nieuwe
 installatie bij alle testers.
+
+Er is daarnaast een product-/beleidskeuze met grote invloed: Google kan twee
+vrijwel identieke white-label-apps als repetitieve content beoordelen. Upload
+beide apps pas nadat bewust is gekozen tussen:
+
+- twee aantoonbaar verschillend gepositioneerde en gebrande apps; of
+- één algemene Fieldgrid-app met tenantselectie/branding.
+
+De lokale sprint legt geen onomkeerbare keuze vast en uploadt daarom geen van
+beide apprecords.
 
 ## 3. Ontwikkelaarsaccount
 
@@ -167,15 +183,21 @@ De uiteindelijke verklaring moet overeenkomen met productie, Supabase, server-
 en e-maillogs, FCM, crash/monitoring-SDK’s en bewaartermijnen. Voor de huidige
 app is dit de veilige conceptinventaris:
 
-| Gegevenstype                                | Waarom                            | Delen                                | Opmerking                                  |
-| ------------------------------------------- | --------------------------------- | ------------------------------------ | ------------------------------------------ |
-| Naam, e-mail, telefoon en profielgegevens   | account, identificatie en contact | niet verkopen                        | tenant en geautoriseerde verwerkers        |
-| Werkadres en locatiegegevens van opdrachten | uitvoering en planning            | niet verkopen                        | geen continue GPS-tracking vastgesteld     |
-| Foto’s/bestanden/rapportages/handtekening   | bewijs en werkbonproces           | niet verkopen                        | kan klant- of objectinformatie bevatten    |
-| Berichten en supportinhoud                  | samenwerking en support           | niet verkopen                        | tenant-scoped                              |
-| Apparaat- en push-tokengegevens             | native meldingen                  | met Google/Firebase als ingeschakeld | FCM nog extern te configureren             |
-| Diagnostiek, IP- en beveiligingslogs        | beveiliging en betrouwbaarheid    | met hosting/verwerkers               | exacte retentie bevestigen                 |
-| Offline wachtrij en lokale appdata          | continuïteit                      | niet verkopen                        | beveiligde appcontext, Android-back-up uit |
+| Gegevenstype                                | Waarom                            | Mogelijke overdracht                  | Opmerking                                  |
+| ------------------------------------------- | --------------------------------- | ------------------------------------- | ------------------------------------------ |
+| Naam, e-mail, telefoon en profielgegevens   | account, identificatie en contact | tenant en geautoriseerde verwerkers   | verkoop en delen apart juridisch toetsen   |
+| Werkadres en locatiegegevens van opdrachten | uitvoering en planning            | tenant en hostingverwerkers           | geen continue GPS-tracking vastgesteld     |
+| Foto’s/bestanden/rapportages/handtekening   | bewijs en werkbonproces           | tenant en opslagverwerkers            | kan klant- of objectinformatie bevatten    |
+| Berichten en supportinhoud                  | samenwerking en support           | tenant en support-/hostingverwerkers  | tenant-scoped                              |
+| Apparaat- en push-tokengegevens             | native meldingen                  | Google/Firebase als ingeschakeld      | FCM nog extern te configureren             |
+| Diagnostiek, IP- en beveiligingslogs        | beveiliging en betrouwbaarheid    | hosting-/beveiligingsverwerkers       | exacte retentie bevestigen                 |
+| Offline wachtrij en lokale appdata          | continuïteit                      | normaliter alleen apparaat en runtime | Android-back-up en apparaatoverdracht uit  |
+
+“Niet verkopen” betekent in de Google-vragenlijst niet automatisch “niet
+delen”. Beoordeel per gegevenstype volgens Googles actuele definities of een
+overdracht aan een dienstverlener als verzameld of gedeeld moet worden
+aangegeven. Laat de definitieve antwoorden juridisch én technisch controleren;
+kopieer de concepttabel niet blind naar Play Console.
 
 Te bevestigen vóór bredere publicatie:
 
@@ -221,6 +243,10 @@ Benodigd:
 - fysieke test dat elk merk alleen de juiste tenantmelding ontvangt;
 - test van intrekken, tokenrotatie, logout en opnieuw installeren.
 
+De backend ondersteunt afzonderlijke `FCM_VEELE_*`- en
+`FCM_FIELDGRID_*`-credentials. Een algemene `FCM_*`-fallback is alleen passend
+wanneer beide appidentiteiten bewust in hetzelfde Firebase-project staan.
+
 Zonder deze bestanden kan de eerste appversie wel worden getest en gebruikt,
 maar native push is dan niet publicatiegereed. Bestaande in-app- en
 browsermeldingen zijn geen bewijs dat native FCM werkt.
@@ -236,6 +262,23 @@ Publiceer per host `/.well-known/assetlinks.json` met:
 Test daarna op een fysiek Android-apparaat dat een `/personeel`-link direct in
 de juiste app opent. Houd Veele en Fieldgrid volledig gescheiden. Een
 uploadcertificaat alleen is na Play-distributie onvoldoende.
+
+Voer vóór upload vanuit `artifacts/personeel-pwa` uit:
+
+```bash
+pnpm android:preflight:runtime
+```
+
+Voer na ontvangst van beide Play app-signing SHA-256-certificaten uit:
+
+```bash
+export VEELE_PLAY_APP_SIGNING_SHA256='AA:BB:...'
+export FIELDGRID_PLAY_APP_SIGNING_SHA256='CC:DD:...'
+pnpm android:preflight:play
+```
+
+Beide opdrachten moeten volledig slagen. De huidige Fieldgrid-host faalt nog
+door de cross-hostredirect en daaropvolgende 502.
 
 ## 12. Eerste internal release
 
@@ -284,6 +327,7 @@ authenticatiefouten of niet-idempotente offline mutaties.
 Pas doorgaan wanneer:
 
 - privacy- en supportpagina’s publiek en definitief zijn;
+- vanuit de app een werkende link naar de toepasselijke privacytekst staat;
 - Data safety juridisch en technisch klopt;
 - reviewaccount stabiel is;
 - assets en screenshots gereed zijn;
@@ -302,8 +346,13 @@ niet voordat de eerste handmatige internal upload en review aantoonbaar werken.
 ## 15. Open externe opdrachten
 
 - definitieve pakketnamen en appnamen bevestigen;
+- beslissen en onderbouwen of twee bijna identieke merkapps voldoen aan het
+  repetitieve-contentbeleid, of kiezen voor één algemene app;
+- de Fieldgrid-runtime op `https://fieldgrid.nl/personeel` zonder cross-host
+  redirect en zonder HTTP 502 beschikbaar maken;
 - juridisch organisatieprofiel invullen;
 - privacy-, support- en verwijder-URL’s publiceren;
+- de definitieve privacylink in het Instellingen-/Meer-scherm opnemen;
 - listingassets en geanonimiseerde screenshots maken;
 - twee Play-apprecords aanmaken;
 - AAB’s handmatig naar internal uploaden;

@@ -20,7 +20,7 @@ personeelsapp. Dat is nodig omdat de app Next.js server actions, Supabase SSR,
 tenant-RBAC en server-side sessies gebruikt. De wrapper:
 
 - staat alleen HTTPS toe;
-- schakelt Android back-ups van appdata uit;
+- sluit alle appdata uit van Android-cloudback-ups en apparaatoverdracht;
 - opent uitsluitend de eigen `/personeel` App Link;
 - gebruikt aparte Android product flavors voor Veele en Fieldgrid;
 - deelt geen signingmateriaal via Git;
@@ -82,6 +82,8 @@ nooit via chat, e-mail, tickets of Git.
 export JAVA_HOME=/pad/naar/jdk-21
 export ANDROID_HOME=/pad/naar/android-sdk
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export FIELDGRID_VERSION_CODE=1
+export FIELDGRID_VERSION_NAME=1.0.0
 
 cd artifacts/personeel-pwa
 pnpm android:build:play
@@ -99,9 +101,16 @@ De collector kopieert de vier bestanden standaard naar:
 /home/codex/output/fieldgrid-play/
 ```
 
-Bij iedere nieuwe release moeten `versionCode` en zo nodig `versionName` in
-`android/app/build.gradle` worden verhoogd. Play accepteert nooit tweemaal
-dezelfde versionCode.
+De releasebuild stopt wanneer één signingprofiel ontbreekt. De collector stopt
+wanneer de Git-worktree niet schoon is, wanneer broncommit en `HEAD` verschillen
+of wanneer pakketnaam, label, versie, target SDK, Capacitor-runtimeconfig of
+handtekening niet exact kloppen. Hij schrijft daarna een controleerbaar
+`manifest.json` met SHA-256-bestandshashes en certificaatvingerafdrukken.
+
+Bij iedere nieuwe release moet `FIELDGRID_VERSION_CODE` worden verhoogd en kan
+`FIELDGRID_VERSION_NAME` worden aangepast. Play accepteert nooit tweemaal
+dezelfde versionCode. Zet beide waarden expliciet in de releaseomgeving; de
+standaard `1` en `1.0.0` zijn alleen geschikt voor de eerste interne build.
 
 ## Flavorconfiguratie
 
@@ -124,11 +133,29 @@ Android valideert:
 - `https://veeleservices.fieldgrid.nl/personeel/...` voor Veele;
 - `https://fieldgrid.nl/personeel/...` voor Fieldgrid.
 
+De runtime mag niet naar een andere host doorsturen: een geïnstalleerde app
+vertrouwt alleen de host die in de betreffende flavor is vastgelegd. Controleer
+dit vóór iedere release:
+
+```bash
+cd artifacts/personeel-pwa
+pnpm android:preflight:runtime
+```
+
 Voor echte verified App Links moet op elk domein een publiek
 `/.well-known/assetlinks.json` staan. Na inschrijving voor Play App Signing
 moet daarin het SHA-256-certificaat van de **Play app-signing key** staan, niet
 alleen dat van de lokale uploadkey. Dit is een server-/DNS-acceptatiestap en
 wordt niet door een lokale APK-build uitgerold.
+
+Controleer runtime en App Links samen nadat Google de twee app-signing
+SHA-256-vingerafdrukken toont:
+
+```bash
+export VEELE_PLAY_APP_SIGNING_SHA256='AA:BB:...'
+export FIELDGRID_PLAY_APP_SIGNING_SHA256='CC:DD:...'
+pnpm android:preflight:play
+```
 
 ## Native push
 
@@ -143,10 +170,19 @@ Android-flavorbestanden moeten onder de bijbehorende flavor worden geplaatst.
 Signingcertificaten, pakketnaam en Firebase-app moeten exact bij elkaar horen.
 
 Server-side FCM gebruikt bij voorkeur
-`FCM_SERVICE_ACCOUNT_JSON_BASE64`. Alternatief zijn `FCM_PROJECT_ID`,
-`FCM_CLIENT_EMAIL` en `FCM_PRIVATE_KEY`. Zet `FCM_ENABLED=true` pas wanneer de
-productieconfiguratie compleet is. Zonder Firebase blijft de app bruikbaar; de
-native pushfunctie blijft dan bewust uit.
+`FCM_VEELE_SERVICE_ACCOUNT_JSON_BASE64` en
+`FCM_FIELDGRID_SERVICE_ACCOUNT_JSON_BASE64`. Alternatief zijn de
+app-specifieke `PROJECT_ID`, `CLIENT_EMAIL` en `PRIVATE_KEY`-varianten. De
+algemene `FCM_SERVICE_ACCOUNT_JSON_BASE64` blijft een bewuste fallback wanneer
+beide Android-apps aantoonbaar in hetzelfde Firebase-project staan. Zet
+`FCM_ENABLED=true` pas wanneer de productieconfiguratie compleet en fysiek
+getest is. Zonder Firebase blijft de app bruikbaar; native push blijft dan
+bewust uit.
+
+De native app registreert pakketnaam en appversie bij ieder token. Uitloggen
+trekt het lokale token in en markeert het server-token inactief. Server-side
+verzending selecteert de FCM-configuratie op de gevalideerde pakketnaam, zodat
+Veele- en Fieldgrid-apparaten niet stilzwijgend dezelfde appidentiteit krijgen.
 
 ## Broncontrole
 
@@ -162,6 +198,9 @@ apksigner verify --verbose --print-certs app.apk
 aapt2 dump badging app.apk
 jarsigner -verify app.aab
 ```
+
+De collector voert deze controles zelfstandig uit; de losse commando's zijn
+bedoeld als handmatige tweede controle.
 
 De volledige Play Console-procedure en open externe acties staan in
 `docs/deployment/google-play-personnel-apps.md`.
