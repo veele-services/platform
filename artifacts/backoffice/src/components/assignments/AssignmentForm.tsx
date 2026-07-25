@@ -5,12 +5,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
+import { validateTimeRange } from "@workspace/db/form-time-range";
 import { Button } from "@/components/ui/button";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { TimeRangeField } from "@/components/ui/time-range-field";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import {
   Select,
   SelectContent,
@@ -61,6 +65,15 @@ const formSchema = z.object({
     .min(1, "Minimaal 1 medewerker")
     .max(50, "Maximaal 50 medewerkers"),
   customerSignatureRequired: z.boolean(),
+}).superRefine((value, context) => {
+  const range = validateTimeRange(value.scheduledStart, value.scheduledEnd);
+  if (!range.valid) {
+    context.addIssue({
+      code: "custom",
+      path: ["scheduledEnd"],
+      message: range.message,
+    });
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -122,14 +135,19 @@ export function AssignmentForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
 
   const customerIdVal = watch("customerId");
   const objectIdVal   = watch("objectId") || "NONE";
   const statusVal     = watch("status")   || "requested";
   const priorityVal   = watch("priority") || "normal";
+  const scheduledStartVal = watch("scheduledStart") || "";
+  const scheduledEndVal = watch("scheduledEnd") || "";
   const signatureRequiredVal = watch("customerSignatureRequired") || false;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    isDirty && !pending,
+  );
 
   const updateRegionNames = (next: string[]) => {
     setRegionTouched(true);
@@ -283,7 +301,7 @@ export function AssignmentForm({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -377,8 +395,8 @@ export function AssignmentForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Planning
         </p>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-3 space-y-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1 sm:col-span-3">
             <Label htmlFor="scheduledDate">Geplande datum</Label>
             <Input
               id="scheduledDate"
@@ -386,23 +404,30 @@ export function AssignmentForm({
               {...register("scheduledDate")}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="scheduledStart">Starttijd</Label>
-            <Input
-              id="scheduledStart"
-              type="time"
-              {...register("scheduledStart")}
-              placeholder="08:00"
+          <div className="sm:col-span-2">
+            <TimeRangeField
+              start={scheduledStartVal}
+              end={scheduledEndVal}
+              startId="scheduledStart"
+              endId="scheduledEnd"
+              onStartChange={(value) =>
+                setValue("scheduledStart", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              onEndChange={(value) =>
+                setValue("scheduledEnd", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
             />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="scheduledEnd">Eindtijd</Label>
-            <Input
-              id="scheduledEnd"
-              type="time"
-              {...register("scheduledEnd")}
-              placeholder="17:00"
-            />
+            {errors.scheduledEnd ? (
+              <p className="mt-1 text-xs text-destructive">
+                {errors.scheduledEnd.message}
+              </p>
+            ) : null}
           </div>
           <div className="space-y-1">
             <Label htmlFor="requiredPersonnelCount">Benodigd</Label>
@@ -417,7 +442,7 @@ export function AssignmentForm({
               <p className="text-xs text-destructive">{errors.requiredPersonnelCount.message}</p>
             )}
           </div>
-          <div className="col-span-3 space-y-1">
+          <div className="space-y-1 sm:col-span-3">
             <RegionMultiSelect
               value={regionNames}
               onChange={updateRegionNames}
@@ -490,15 +515,21 @@ export function AssignmentForm({
         </div>
       </section>
 
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Opdracht aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }

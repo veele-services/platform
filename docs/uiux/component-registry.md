@@ -22,12 +22,17 @@
 | Command       | `artifacts/backoffice/src/components/ui/command.tsx`                                  | Dialog adapter | global command/search palette                                 | dialog, popover      | canonical |
 | Table         | `artifacts/backoffice/src/components/ui/table.tsx`                                    | semantic table | desktop data view                                             | density              | canonical |
 | Form fields   | `field.tsx`, `form.tsx`, `input.tsx`, `textarea.tsx`, `label.tsx`                     | Label/Slot     | labeled form composition                                      | state, density       | canonical |
+| Form grid     | `artifacts/backoffice/src/components/ui/form-grid.tsx`                                | n/a            | one-column-first responsive form layout                       | 1-4 columns          | canonical |
+| Form actions  | `artifacts/backoffice/src/components/ui/form-actions.tsx`                             | n/a            | sticky save/cancel actions with safe-area and feedback         | status               | canonical |
+| Time range    | `artifacts/backoffice/src/components/ui/time-range-field.tsx`                         | native time    | paired start/end input with duration and validation            | default              | canonical |
+| Unsaved guard | `artifacts/backoffice/src/components/ui/unsaved-changes-guard.tsx`                    | AlertDialog    | before-unload and explicit in-product discard confirmation     | default              | canonical |
+| Bulk actions  | `artifacts/backoffice/src/components/ui/bulk-action-bar.tsx`                          | n/a            | responsive selection summary and grouped actions               | default              | canonical |
 | Feedback      | `alert.tsx`, `toast.tsx`, `sonner.tsx`, `progress.tsx`, `skeleton.tsx`, `spinner.tsx` | Toast/Progress | pending, success, error and loading state                     | tone                 | canonical |
 | Status        | `status-badge.tsx`, `badge.tsx`                                                       | n/a            | text-plus-color status                                        | tone                 | canonical |
 
 ## Approved composition layer
 
-The W04-W06 migration may add Fieldgrid-owned compositions for `PageHeader`, `FieldgridDataView`, `FilterBar`, `BulkActionBar`, `MutationFeedback`, `ResponsiveActionSheet`, `UnsavedChangesGuard` and planning controls. Every addition must be registered here before product routes adopt it.
+The W04-W06 migration may add Fieldgrid-owned compositions for `PageHeader`, `FieldgridDataView`, `FilterBar`, `MutationFeedback`, `ResponsiveActionSheet` and planning controls. Every addition must be registered here before product routes adopt it.
 
 ## Exceptions
 

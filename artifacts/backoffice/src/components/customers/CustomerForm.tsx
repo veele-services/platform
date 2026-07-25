@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 import {
   getCustomer,
@@ -129,8 +131,11 @@ export function CustomerForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    isDirty && !pending,
+  );
 
   const sectorIdValue        = watch("sectorId")        || "NONE";
   const customerTypeValue    = watch("customerTypeId")   || "NONE";
@@ -260,7 +265,7 @@ export function CustomerForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Algemene info
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="name">
               Naam <span className="text-destructive">*</span>
@@ -358,7 +363,7 @@ export function CustomerForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Bedrijfsgegevens
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="legalEntity">Rechtsvorm</Label>
             <Input id="legalEntity" {...register("legalEntity")} placeholder="B.V., N.V., Eenmanszaak..." />
@@ -385,7 +390,7 @@ export function CustomerForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Primair contact
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="contactName">Contactpersoon</Label>
             <Input id="contactName" {...register("contactName")} placeholder="Volledige naam" aria-invalid={!!errors.contactName} />
@@ -445,7 +450,7 @@ export function CustomerForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Adres
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2">
             <AddressAutocomplete
               label="Adres zoeken"
@@ -491,15 +496,21 @@ export function CustomerForm({
       )}
 
       {/* ── Actions ───────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Klant aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }

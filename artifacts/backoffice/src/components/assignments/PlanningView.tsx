@@ -484,7 +484,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
       {/* Create assignment sheet */}
       {canWrite && (
         <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
-          <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+          <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
             <SheetHeader>
               <SheetTitle>Nieuwe opdracht aanmaken</SheetTitle>
               <SheetDescription>

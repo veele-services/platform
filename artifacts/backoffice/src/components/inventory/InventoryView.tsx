@@ -333,11 +333,11 @@ function CreateInventorySheet({
         </SheetHeader>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <input name="name" required placeholder="Naam" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="type" placeholder="Type" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="serialNumber" placeholder="Serienummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="brand" placeholder="Merk" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="model" placeholder="Model" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
@@ -350,11 +350,11 @@ function CreateInventorySheet({
             </select>
           </label>
           <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="purchaseDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="purchaseValue" inputMode="decimal" placeholder="Aanschafwaarde" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <select name="status" defaultValue="available" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
               {INVENTORY_STATUS_OPTIONS.filter((status) => status !== "archived").map((status) => <option key={status} value={status}>{STATUS_LABELS[status] ?? status}</option>)}
             </select>
@@ -387,7 +387,7 @@ function CreateInventorySheet({
               {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="inspectionIntervalDays" inputMode="numeric" placeholder="Keuringsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="maintenanceIntervalDays" inputMode="numeric" placeholder="Onderhoudsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>

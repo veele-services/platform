@@ -158,7 +158,7 @@ export function CustomerDetailActions({
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="right"
-          className="w-[560px] sm:max-w-[560px] overflow-y-auto"
+          className="w-full overflow-y-auto sm:max-w-[560px]"
         >
           <SheetHeader>
             <SheetTitle>Klant bewerken</SheetTitle>

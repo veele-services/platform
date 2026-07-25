@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import {
   Select,
   SelectContent,
@@ -107,8 +109,11 @@ export function TaskCodeForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    isDirty && !pending,
+  );
 
   const sectorIdValue     = watch("sectorId")    || "NONE";
   const requiredRoleValue = watch("requiredRoleId") || "NONE";
@@ -207,7 +212,7 @@ export function TaskCodeForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Identificatie
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="code">
               Code <span className="text-destructive">*</span>
@@ -277,7 +282,7 @@ export function TaskCodeForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Prijs &amp; Duur
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="price">Prijs (€)</Label>
             <Input
@@ -403,15 +408,21 @@ export function TaskCodeForm({
       </section>
 
       {/* ── Actions ────────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Taakcode aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }

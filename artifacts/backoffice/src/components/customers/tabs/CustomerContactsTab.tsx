@@ -234,7 +234,7 @@ export function CustomerContactsTab({ customerId, contacts: initialContacts, can
           <DialogHeader>
             <DialogTitle>{editingId ? "Contact bewerken" : "Contact toevoegen"}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 gap-3 py-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="firstName">Voornaam <span className="text-destructive">*</span></Label>
               <Input

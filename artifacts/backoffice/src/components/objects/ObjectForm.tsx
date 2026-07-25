@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
 import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
@@ -151,8 +153,11 @@ export function ObjectForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    isDirty && !pending,
+  );
 
   const customerIdValue      = watch("customerId");
   const sectorIdValue        = watch("sectorId") || "NONE";
@@ -349,7 +354,7 @@ export function ObjectForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Algemene info
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2 space-y-1">
             <Label>
               Naam <span className="text-destructive">*</span>
@@ -434,7 +439,7 @@ export function ObjectForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Adres
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="relative col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
@@ -450,7 +455,7 @@ export function ObjectForm({
               description="Kies een adres om de velden automatisch te vullen."
               onSelect={applyAddressSelection}
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="objectAddress">Straat &amp; huisnummer</Label>
                 <Input
@@ -494,7 +499,7 @@ export function ObjectForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Primair contactpersoon
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="col-span-2 space-y-1">
             <Label>Naam</Label>
             <Input {...register("contactName")} placeholder="Jan Jansen" />
@@ -588,15 +593,21 @@ export function ObjectForm({
       </section>
 
       {/* ── Actions ───────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Object aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }

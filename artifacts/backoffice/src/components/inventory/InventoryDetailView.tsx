@@ -316,11 +316,11 @@ function EditInventorySheet({
         </SheetHeader>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <input name="name" defaultValue={item.name} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="type" defaultValue={item.type ?? ""} placeholder="Type" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="serialNumber" defaultValue={item.serialNumber ?? ""} placeholder="Serienummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="brand" defaultValue={item.brand ?? ""} placeholder="Merk" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="model" defaultValue={item.model ?? ""} placeholder="Model" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
@@ -330,11 +330,11 @@ function EditInventorySheet({
             <option value="__new">Nieuwe categorie</option>
           </select>
           <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="purchaseDate" type="date" defaultValue={item.purchaseDate ?? ""} className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="purchaseValue" defaultValue={item.purchaseValue ?? ""} inputMode="decimal" placeholder="Aanschafwaarde" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <select name="status" defaultValue={item.status} className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
               {INVENTORY_STATUS_OPTIONS.filter((statusOption) => statusOption !== "archived").map((statusOption) => <option key={statusOption} value={statusOption}>{STATUS_LABELS[statusOption] ?? statusOption}</option>)}
             </select>
@@ -367,11 +367,11 @@ function EditInventorySheet({
               {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="lastInspectionDate" type="date" defaultValue={item.lastInspectionDate ?? ""} className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="warrantyUntil" type="date" defaultValue={item.warrantyUntil ?? ""} className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="inspectionIntervalDays" defaultValue={item.inspectionIntervalDays ?? ""} inputMode="numeric" placeholder="Keuringsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="maintenanceIntervalDays" defaultValue={item.maintenanceIntervalDays ?? ""} inputMode="numeric" placeholder="Onderhoudsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>

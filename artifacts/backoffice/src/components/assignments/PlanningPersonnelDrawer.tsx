@@ -477,7 +477,7 @@ export function PlanningPersonnelDrawer({
     <Sheet open={assignmentId !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent
         side="right"
-        className="w-[440px] sm:max-w-[440px] overflow-y-auto flex flex-col"
+        className="flex w-full flex-col overflow-y-auto sm:max-w-[440px]"
       >
         <SheetHeader className="pb-4">
           <SheetTitle style={{ color: "#081D3A" }}>Personeel inplannen</SheetTitle>

@@ -393,7 +393,7 @@ function CreateMaterialSheet({
             Naam
             <input name="name" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium" style={{ color: "#334155" }}>
               Eenheid
               <input name="unit" required placeholder="stuks" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
@@ -412,11 +412,11 @@ function CreateMaterialSheet({
             </select>
           </label>
           <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="costPrice" inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="salePrice" inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="minStock" inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="maxStock" inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
@@ -476,7 +476,7 @@ function StockMovementSheet({
               {activeRows.map((row) => <option key={row.id} value={row.id}>{row.code} - {row.name}</option>)}
             </select>
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium" style={{ color: "#334155" }}>
               Type
               <select

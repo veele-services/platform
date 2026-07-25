@@ -452,7 +452,7 @@ export function TaskCodesView({
       )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[560px] overflow-y-auto sm:max-w-[560px]">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
           <SheetHeader>
             <SheetTitle>{editingId ? "Taakcode bewerken" : "Nieuwe taakcode"}</SheetTitle>
             <SheetDescription>

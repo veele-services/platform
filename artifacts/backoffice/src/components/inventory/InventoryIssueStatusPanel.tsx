@@ -132,7 +132,7 @@ export function InventoryIssueStatusPanel({
                 <h2 className="text-sm font-semibold text-foreground">Onderhoud / keuring</h2>
               </div>
               <div className="mt-4 flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <select name="eventType" defaultValue="repair" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
                     {MAINTENANCE_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
@@ -140,7 +140,7 @@ export function InventoryIssueStatusPanel({
                     {MAINTENANCE_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input name="dueDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
                   <input name="performedAt" type="datetime-local" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
                 </div>

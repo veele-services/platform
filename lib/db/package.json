@@ -21,6 +21,7 @@
     "./interest-selection-staffing": "./src/interest-selection-staffing.ts",
     "./staffing-lifecycle": "./src/staffing-lifecycle.ts",
     "./brand-color-contrast": "./src/brand-color-contrast.ts",
+    "./form-time-range": "./src/form-time-range.ts",
     "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts",
     "./website-public-runtime": "./src/website-public-runtime.ts"
   },

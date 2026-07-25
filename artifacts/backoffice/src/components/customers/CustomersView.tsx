@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -142,6 +143,7 @@ export function CustomersView({
   const [exportPending,    setExportPending]    = useState(false);
   const [exportPdfPending, setExportPdfPending] = useState(false);
   const [bulkPending,      startBulkTransition] = useTransition();
+  const [bulkDeactivateOpen, setBulkDeactivateOpen] = useState(false);
 
   const [filterCity,             setFilterCity]             = useState(initialCity);
   const [filterCountry,          setFilterCountry]          = useState(initialCountry);
@@ -645,21 +647,15 @@ export function CustomersView({
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canWrite && (
-        <div
-          className="flex items-center gap-3 px-4 py-2 mb-4 rounded-lg text-sm"
-          style={{ backgroundColor: "#E0FAFB", border: "1px solid #00B7B3" }}
-        >
-          <span style={{ color: "#081D3A" }}>{selected.size} geselecteerd</span>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
-              <ToggleRight className="mr-1.5 h-3.5 w-3.5" /> Activeren
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(false)} disabled={bulkPending}>
-              <ToggleLeft className="mr-1.5 h-3.5 w-3.5" /> Deactiveren
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Wissen</Button>
-          </div>
-        </div>
+        <BulkActionBar count={selected.size} className="mb-4">
+          <Button variant="outline" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
+            <ToggleRight className="mr-1.5 h-4 w-4" /> Activeren
+          </Button>
+          <Button variant="outline" onClick={() => setBulkDeactivateOpen(true)} disabled={bulkPending}>
+            <ToggleLeft className="mr-1.5 h-4 w-4" /> Deactiveren
+          </Button>
+          <Button variant="ghost" onClick={() => setSelected(new Set())}>Wissen</Button>
+        </BulkActionBar>
       )}
 
       {/* Table */}
@@ -805,7 +801,7 @@ export function CustomersView({
 
       {/* Advanced filter drawer */}
       <Sheet open={false} onOpenChange={() => undefined}>
-        <SheetContent side="right" className="w-[360px] sm:max-w-[360px] overflow-y-auto">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[360px]">
           <SheetHeader>
             <SheetTitle>Geavanceerde filters</SheetTitle>
             <SheetDescription>
@@ -892,7 +888,7 @@ export function CustomersView({
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
           <SheetHeader>
             <SheetTitle>{editingId ? "Klant bewerken" : "Nieuwe klant"}</SheetTitle>
             <SheetDescription>
@@ -911,6 +907,16 @@ export function CustomersView({
           />
         </SheetContent>
       </Sheet>
+
+      <TenantConfirmDialog
+        open={bulkDeactivateOpen}
+        onOpenChange={setBulkDeactivateOpen}
+        title={`${selected.size} klanten deactiveren?`}
+        description="De geselecteerde klanten worden niet meer als actief getoond. Je kunt ze later opnieuw activeren."
+        confirmLabel={bulkPending ? "Deactiveren..." : "Deactiveren"}
+        destructive
+        onConfirm={() => handleBulkStatus(false)}
+      />
 
       <TenantConfirmDialog
         open={!!deleteTarget}

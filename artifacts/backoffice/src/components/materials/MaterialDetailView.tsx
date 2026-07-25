@@ -272,7 +272,7 @@ function EditMaterialSheet({
         </SheetHeader>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <input name="name" defaultValue={material.name} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="unit" defaultValue={material.unit} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="vatRate" defaultValue={material.vatRate ?? ""} inputMode="decimal" placeholder="BTW %" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
@@ -282,11 +282,11 @@ function EditMaterialSheet({
             <option value="__new">Nieuwe categorie</option>
           </select>
           <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="costPrice" defaultValue={material.costPrice ?? ""} inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="salePrice" defaultValue={material.salePrice ?? ""} inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input name="minStock" defaultValue={material.minStock ?? ""} inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
             <input name="maxStock" defaultValue={material.maxStock ?? ""} inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>

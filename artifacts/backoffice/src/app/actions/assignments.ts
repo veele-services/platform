@@ -41,6 +41,7 @@ import {
   getSmartPlanningRoundDefaults,
 } from "@workspace/db/planning-intelligence";
 import { selectInterestCandidateCanonically } from "@workspace/db/interest-selection-staffing";
+import { validateTimeRange } from "@workspace/db/form-time-range";
 import {
   eq,
   ilike,
@@ -3269,6 +3270,18 @@ export async function createAssignment(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const timeRange = validateTimeRange(
+    data.scheduledStart ?? "",
+    data.scheduledEnd ?? "",
+  );
+  if (!timeRange.valid) {
+    return {
+      success: false,
+      message: "Validatie mislukt.",
+      fieldErrors: { scheduledEnd: timeRange.message },
+    };
+  }
+
   const [customer] = await db
     .select({ id: customersTable.id })
     .from(customersTable)
@@ -3354,6 +3367,18 @@ export async function updateAssignment(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const timeRange = validateTimeRange(
+    data.scheduledStart ?? "",
+    data.scheduledEnd ?? "",
+  );
+  if (!timeRange.valid) {
+    return {
+      success: false,
+      message: "Validatie mislukt.",
+      fieldErrors: { scheduledEnd: timeRange.message },
+    };
+  }
 
   const [currentAssignment] = await db
     .select({ status: assignmentsTable.status })

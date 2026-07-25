@@ -19,6 +19,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -242,6 +243,7 @@ export function PersonnelView({
   const [deleteTarget,   setDeleteTarget]   = useState<{ id: string; name: string } | null>(null);
   const [slimProfiel,    setSlimProfiel]    = useState<PersonnelRow | null>(null);
   const [bulkPending,    startBulkTransition] = useTransition();
+  const [bulkDeactivateOpen, setBulkDeactivateOpen] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -517,21 +519,15 @@ export function PersonnelView({
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canWrite && (
-        <div
-          className="flex items-center gap-3 px-4 py-2 mb-4 rounded-lg text-sm"
-          style={{ backgroundColor: "#E0FAFB", border: "1px solid #00B7B3" }}
-        >
-          <span style={{ color: "#081D3A" }}>{selected.size} geselecteerd</span>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(true)}  disabled={bulkPending}>
-              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />Activeren
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(false)} disabled={bulkPending}>
-              <ToggleLeft  className="mr-1.5 h-3.5 w-3.5" />Deactiveren
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Wissen</Button>
-          </div>
-        </div>
+        <BulkActionBar count={selected.size} className="mb-4">
+          <Button variant="outline" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
+            <ToggleRight className="mr-1.5 h-4 w-4" />Activeren
+          </Button>
+          <Button variant="outline" onClick={() => setBulkDeactivateOpen(true)} disabled={bulkPending}>
+            <ToggleLeft className="mr-1.5 h-4 w-4" />Deactiveren
+          </Button>
+          <Button variant="ghost" onClick={() => setSelected(new Set())}>Wissen</Button>
+        </BulkActionBar>
       )}
 
       {/* Table + Slim profiel panel side-by-side */}
@@ -787,6 +783,16 @@ export function PersonnelView({
           />
         </SheetContent>
       </Sheet>
+
+      <TenantConfirmDialog
+        open={bulkDeactivateOpen}
+        onOpenChange={setBulkDeactivateOpen}
+        title={`${selected.size} personeelsleden deactiveren?`}
+        description="De geselecteerde personeelsleden worden inactief. Je kunt ze later opnieuw activeren."
+        confirmLabel={bulkPending ? "Deactiveren..." : "Deactiveren"}
+        destructive
+        onConfirm={() => handleBulkStatus(false)}
+      />
 
       <TenantConfirmDialog
         open={!!deleteTarget}

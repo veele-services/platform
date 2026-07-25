@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 import {
   Select,
@@ -154,8 +156,11 @@ export function PersonnelForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    isDirty && !pending,
+  );
 
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
@@ -316,7 +321,7 @@ export function PersonnelForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Persoonlijke gegevens
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="firstName">Voornaam <span className="text-destructive">*</span></Label>
             <Input id="firstName" {...register("firstName")} placeholder="Voornaam" aria-invalid={!!errors.firstName} />
@@ -355,7 +360,7 @@ export function PersonnelForm({
               description="Kies een adres om de velden automatisch te vullen."
               onSelect={applyAddressSelection}
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="addressStreet">Straat en huisnummer</Label>
                 <Input
@@ -584,7 +589,7 @@ export function PersonnelForm({
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Contractgegevens
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="contractStartDate">Startdatum contract</Label>
             <Input
@@ -660,15 +665,21 @@ export function PersonnelForm({
       )}
 
       {/* ── Actions ────────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Personeelslid aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }
