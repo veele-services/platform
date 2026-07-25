@@ -12,6 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@radix-ui/react-checkbox": "^1.1.5",
+    "@radix-ui/react-popover": "^1.1.7",
+    "@radix-ui/react-select": "^2.1.7",
     "@workspace/website-core": "workspace:*",
     "clsx": "catalog:",
     "tailwind-merge": "catalog:"
