@@ -18,7 +18,8 @@ import {
   Undo2,
   Unlink,
 } from "lucide-react";
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -49,31 +50,6 @@ function isSafeLink(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-function setLink(editor: Editor | null) {
-  if (!editor) return;
-  const previous = editor.getAttributes("link").href as string | undefined;
-  const rawValue = window.prompt(
-    "Link (intern pad, https://, mailto: of tel:)",
-    previous ?? "https://",
-  );
-  if (rawValue === null) return;
-  const href = rawValue.trim();
-  if (!href) {
-    editor.chain().focus().unsetLink().run();
-    return;
-  }
-  if (!isSafeLink(href)) {
-    window.alert("Gebruik een intern pad, HTTPS-, e-mail- of telefoonlink.");
-    return;
-  }
-  editor
-    .chain()
-    .focus()
-    .extendMarkRange("link")
-    .setLink({ href, target: href.startsWith("https://") ? "_blank" : null })
-    .run();
 }
 
 function ToolButton({
@@ -114,6 +90,7 @@ export function WebsiteRichTextEditor({
   placeholder = "Begin met schrijven…",
   ariaLabel = "Tekstinhoud",
 }: Props) {
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const handleUpdate = useCallback(
     ({ editor }: { editor: Editor }) => onChange(editorDocument(editor)),
     [onChange],
@@ -148,6 +125,21 @@ export function WebsiteRichTextEditor({
     onUpdate: handleUpdate,
   });
   const inactive = disabled || !editor;
+
+  function applyLink(values: Readonly<Record<string, string>>) {
+    if (!editor) return;
+    const href = (values.href ?? "").trim();
+    if (!href) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange("link")
+      .setLink({ href, target: href.startsWith("https://") ? "_blank" : null })
+      .run();
+  }
 
   return (
     <div className="rounded-xl bg-white transition focus-within:ring-2 focus-within:ring-cyan-100">
@@ -217,7 +209,7 @@ export function WebsiteRichTextEditor({
           title="Link toevoegen"
           disabled={inactive}
           active={editor?.isActive("link")}
-          onClick={() => setLink(editor)}
+          onClick={() => setLinkDialogOpen(true)}
         >
           <Link2 className="h-4 w-4" />
         </ToolButton>
@@ -245,6 +237,30 @@ export function WebsiteRichTextEditor({
         </ToolButton>
       </div>
       <EditorContent editor={editor} />
+      <PromptDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        title="Link toevoegen"
+        description="Gebruik een intern pad, HTTPS-, e-mail- of telefoonlink. Laat het veld leeg om de link te verwijderen."
+        fields={[
+          {
+            name: "href",
+            label: "Link",
+            initialValue:
+              (editor?.getAttributes("link").href as string | undefined) ??
+              "https://",
+            placeholder: "https://voorbeeld.nl",
+          },
+        ]}
+        confirmLabel="Link toepassen"
+        validate={(values) => {
+          const href = (values.href ?? "").trim();
+          return !href || isSafeLink(href)
+            ? null
+            : "Gebruik een intern pad, HTTPS-, e-mail- of telefoonlink.";
+        }}
+        onConfirm={applyLink}
+      />
     </div>
   );
 }

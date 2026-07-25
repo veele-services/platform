@@ -26,6 +26,7 @@
 | Form actions  | `artifacts/backoffice/src/components/ui/form-actions.tsx`                             | n/a            | sticky save/cancel actions with safe-area and feedback         | status               | canonical |
 | Time range    | `artifacts/backoffice/src/components/ui/time-range-field.tsx`                         | native time    | paired start/end input with duration and validation            | default              | canonical |
 | Unsaved guard | `artifacts/backoffice/src/components/ui/unsaved-changes-guard.tsx`                    | AlertDialog    | before-unload and explicit in-product discard confirmation     | default              | canonical |
+| Prompt dialog | `artifacts/backoffice/src/components/ui/prompt-dialog.tsx`                           | Dialog         | validated text input formerly handled by browser prompts       | 1-n fields           | canonical |
 | Bulk actions  | `artifacts/backoffice/src/components/ui/bulk-action-bar.tsx`                          | n/a            | responsive selection summary and grouped actions               | default              | canonical |
 | Feedback      | `alert.tsx`, `toast.tsx`, `sonner.tsx`, `progress.tsx`, `skeleton.tsx`, `spinner.tsx` | Toast/Progress | pending, success, error and loading state                     | tone                 | canonical |
 | Status        | `status-badge.tsx`, `badge.tsx`                                                       | n/a            | text-plus-color status                                        | tone                 | canonical |

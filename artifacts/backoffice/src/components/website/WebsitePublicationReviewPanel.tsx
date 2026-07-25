@@ -10,6 +10,7 @@ import {
   prepareWebsitePublicationAction,
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 type PublicationCandidate = NonNullable<
   WebsitePublicationReview["readyPublication"]
@@ -32,6 +33,7 @@ export function WebsitePublicationReviewPanel({
   );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false);
   const draftPages = initialReview.pages.filter(
     (page) => page.status === "draft",
   );
@@ -131,13 +133,6 @@ export function WebsitePublicationReviewPanel({
 
   function activatePublication() {
     if (!candidate || !candidateIsCurrent) return;
-    if (
-      !window.confirm(
-        `Publicatie #${candidate.sequence} nu activeren? Dit vervangt uitsluitend de actieve managed publicatie en wijzigt geen custom delivery.`,
-      )
-    ) {
-      return;
-    }
     resetFeedback();
     startTransition(async () => {
       const result = await activateWebsitePublicationAction({
@@ -384,12 +379,25 @@ export function WebsitePublicationReviewPanel({
               initialReview.deliveryMode !== "managed_cms" ||
               !candidateIsCurrent
             }
-            onClick={activatePublication}
+            onClick={() => setActivationDialogOpen(true)}
           >
             Gereviewde publicatie activeren
           </Button>
         </div>
       </section>
+      <TenantConfirmDialog
+        open={activationDialogOpen}
+        onOpenChange={setActivationDialogOpen}
+        title={
+          candidate
+            ? `Publicatie #${candidate.sequence} activeren?`
+            : "Publicatie activeren?"
+        }
+        description="Dit vervangt uitsluitend de actieve managed publicatie en wijzigt geen custom delivery."
+        confirmLabel="Publicatie activeren"
+        confirmDisabled={!candidateIsCurrent || isPending}
+        onConfirm={activatePublication}
+      />
     </div>
   );
 }

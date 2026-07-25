@@ -16,6 +16,7 @@ import {
   updateWebsiteBlogPostAction,
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 import { WebsiteRichTextEditor } from "./WebsiteRichTextEditor";
 
 type TipTapDocument = Extract<WebsiteRichTextDocument, { schemaVersion: 2 }>;
@@ -79,6 +80,9 @@ export function WebsiteBlogPostEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    "publish" | "archive" | null
+  >(null);
   const taxonomy = useMemo(
     () => ({
       categories: categories.filter(
@@ -157,8 +161,7 @@ export function WebsiteBlogPostEditor({
   }
 
   function publish() {
-    if (!post || !window.confirm("Dit blogbericht expliciet publiceren?"))
-      return;
+    if (!post) return;
     if (dirty) {
       setError("Sla de huidige wijzigingen eerst als concept op.");
       return;
@@ -189,7 +192,7 @@ export function WebsiteBlogPostEditor({
   }
 
   function archive() {
-    if (!post || !window.confirm("Dit blogbericht archiveren?")) return;
+    if (!post) return;
     feedback();
     startTransition(async () => {
       const result = await archiveWebsiteBlogPostAction({
@@ -391,7 +394,7 @@ export function WebsiteBlogPostEditor({
             type="button"
             variant="outline"
             disabled={isPending}
-            onClick={archive}
+            onClick={() => setConfirmAction("archive")}
           >
             <Archive className="mr-2 h-4 w-4" />
             Archiveren
@@ -411,13 +414,40 @@ export function WebsiteBlogPostEditor({
                 ? "Sla de huidige wijzigingen eerst als concept op"
                 : undefined
             }
-            onClick={publish}
+            onClick={() => setConfirmAction("publish")}
           >
             <Send className="mr-2 h-4 w-4" />
             Expliciet publiceren
           </Button>
         ) : null}
       </div>
+      <TenantConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+        title={
+          confirmAction === "archive"
+            ? "Blogbericht archiveren?"
+            : "Blogbericht publiceren?"
+        }
+        description={
+          confirmAction === "archive"
+            ? "Het bericht verdwijnt uit de publiceerbare bloginhoud."
+            : "Het bericht wordt publiceerbaar. De websitepublicatie moet daarna nog afzonderlijk worden geactiveerd."
+        }
+        confirmLabel={
+          confirmAction === "archive" ? "Archiveren" : "Publiceren"
+        }
+        destructive={confirmAction === "archive"}
+        confirmDisabled={isPending}
+        onConfirm={() => {
+          const action = confirmAction;
+          setConfirmAction(null);
+          if (action === "archive") archive();
+          if (action === "publish") publish();
+        }}
+      />
     </form>
   );
 }

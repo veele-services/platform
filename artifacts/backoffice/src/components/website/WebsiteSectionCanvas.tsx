@@ -36,6 +36,7 @@ import {
   updateWebsiteSectionAction,
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 import { cn } from "@/lib/utils";
 import { WebsiteRichTextEditor } from "./WebsiteRichTextEditor";
 import {
@@ -488,6 +489,7 @@ function WebsiteSectionCard({
 }) {
   const [draft, setDraft] = useState<WebsiteSection>(section);
   const [expanded, setExpanded] = useState(true);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const disabled = !canWrite || busy || isPending;
 
@@ -521,7 +523,6 @@ function WebsiteSectionCard({
   }
 
   function remove() {
-    if (!window.confirm("Deze sectie uit het concept verwijderen?")) return;
     startTransition(async () => {
       const result = await deleteWebsiteSectionAction({
         siteId,
@@ -662,7 +663,7 @@ function WebsiteSectionCard({
             <button
               type="button"
               disabled={disabled}
-              onClick={remove}
+              onClick={() => setRemoveDialogOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -684,6 +685,16 @@ function WebsiteSectionCard({
           </footer>
         </div>
       )}
+      <TenantConfirmDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        title="Sectie verwijderen?"
+        description="Deze sectie wordt uit het concept verwijderd. Niet-opgeslagen inhoud in deze sectie gaat verloren."
+        confirmLabel="Verwijderen"
+        destructive
+        confirmDisabled={disabled}
+        onConfirm={remove}
+      />
     </article>
   );
 }
