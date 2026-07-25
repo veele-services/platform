@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
@@ -71,15 +75,23 @@ test("branding asset uploads are tenant-scoped and reject svg", () => {
     "MAX_BRAND_ASSET_BYTES = 2 * 1024 * 1024",
     "image/svg+xml",
     "SVG-bestanden zijn voor branding nog niet toegestaan",
-    "buildTenantBrandingAssetStoragePath(tenantId",
+    "buildTenantBrandingAssetStoragePath",
     "buildPlatformBrandingAssetStoragePath",
     "BRANDING_BUCKET = \"org-assets\"",
   ], "theme upload actions");
+  assert.match(
+    themeActions,
+    /buildTenantBrandingAssetStoragePath\(\s*tenantId,/u,
+  );
   assertIncludes(settingsActions, [
-    "buildTenantBrandingAssetStoragePath(tenantId, \"logo\"",
+    "buildTenantBrandingAssetStoragePath",
     "SVG-logo's zijn nog niet toegestaan",
     ".where(eq(organizationSettingsTable.tenantId, tenantId))",
   ], "legacy org logo upload");
+  assert.match(
+    settingsActions,
+    /buildTenantBrandingAssetStoragePath\(\s*tenantId,\s*"logo",/u,
+  );
   assert.ok(!orgForm.includes("image/svg+xml"), "organization logo input should not accept SVG");
 });
 

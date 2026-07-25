@@ -5,40 +5,48 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { signIn, type AuthFormState } from "@/app/actions/auth";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Eye, EyeOff, Loader2, Zap } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Zap,
+} from "lucide-react";
 
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
 const DEV_ACCOUNTS = [
-  { label: "Management",    email: "admin@fieldgrid.nl",       password: "Test1234!", bg: "#081D3A", color: "#fff" },
-  { label: "Planner",       email: "planner@fieldgrid.nl",     password: "Test1234!", bg: "#0E7490", color: "#fff" },
-  { label: "Administratie", email: "administratie@fieldgrid.nl", password: "Test1234!", bg: "#475569", color: "#fff" },
+  { label: "Management", email: "admin@fieldgrid.nl", password: "Test1234!" },
+  { label: "Planner", email: "planner@fieldgrid.nl", password: "Test1234!" },
+  { label: "Administratie", email: "administratie@fieldgrid.nl", password: "Test1234!" },
 ];
 
 // ─── Submit button ────────────────────────────────────────────────────────────
 
-function SubmitButton({ disabled, accentColor = "#00B7B3" }: { disabled?: boolean; accentColor?: string }) {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   const isDisabled = pending || disabled;
 
   return (
-    <button
+    <Button
       type="submit"
       disabled={isDisabled}
-      className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
-      style={{
-        fontFamily: "var(--font-inter), Inter, sans-serif",
-        fontSize: "14px",
-        backgroundColor: isDisabled ? "#94A3B8" : accentColor,
-        cursor: isDisabled ? "not-allowed" : "pointer",
-        letterSpacing: "0.01em",
-      }}
+      className="w-full"
+      aria-busy={pending}
     >
-      {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-      {pending ? "Bezig met inloggen..." : "Inloggen"}
-    </button>
+      {pending && (
+        <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+      )}
+      {pending ? "Bezig met inloggen…" : "Inloggen"}
+    </Button>
   );
 }
 
@@ -48,18 +56,12 @@ interface LoginFormProps {
   supabaseConfigured: boolean;
   successMessage?: string;
   nextPath?: string;
-  accentColor?: string;
-  textColor?: string;
-  mutedColor?: string;
 }
 
 export function LoginForm({
   supabaseConfigured,
   successMessage,
   nextPath = "/",
-  accentColor = "#00B7B3",
-  textColor = "#081D3A",
-  mutedColor = "#64748B",
 }: LoginFormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
   const [showPassword, setShowPassword] = useState(false);
@@ -82,57 +84,21 @@ export function LoginForm({
       <input type="hidden" name="next" value={nextPath} />
 
       {successMessage && (
-        <div
-          className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-          style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
-          role="status"
-        >
-          <p
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "13px",
-              color: "#15803D",
-              lineHeight: "1.4",
-            }}
-          >
-            {successMessage}
-          </p>
-        </div>
+        <Alert className="border-primary/30 bg-primary/5" role="status">
+          <CheckCircle2 className="size-4 text-primary" />
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
       )}
 
       {state.error && (
-        <div
-          className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-          style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
-          role="alert"
-        >
-          <AlertCircle
-            className="flex-shrink-0 mt-0.5"
-            style={{ width: "15px", height: "15px", color: "#EF4444" }}
-          />
-          <p
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "13px",
-              color: "#B91C1C",
-              lineHeight: "1.4",
-            }}
-          >
-            {state.error}
-          </p>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
       )}
 
       <div className="space-y-1.5">
-        <Label
-          htmlFor="email"
-          style={{
-            fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontSize: "13px",
-            fontWeight: 500,
-            color: textColor,
-          }}
-        >
+        <Label htmlFor="email">
           E-mailadres
         </Label>
         <Input
@@ -145,20 +111,12 @@ export function LoginForm({
           required
           disabled={!supabaseConfigured}
           placeholder="jij@bedrijf.nl"
-          style={{ fontSize: "14px" }}
+          className="min-h-11"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label
-          htmlFor="password"
-          style={{
-            fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontSize: "13px",
-            fontWeight: 500,
-            color: textColor,
-          }}
-        >
+        <Label htmlFor="password">
           Wachtwoord
         </Label>
         <div className="relative">
@@ -171,27 +129,28 @@ export function LoginForm({
             required
             disabled={!supabaseConfigured}
             placeholder="••••••••"
-            style={{ fontSize: "14px", paddingRight: "42px" }}
+            className="min-h-11 pr-12"
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label={showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
             onClick={() => setShowPassword((value) => !value)}
             disabled={!supabaseConfigured}
-            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
-            <PasswordIcon className="h-4 w-4" />
-          </button>
+            <PasswordIcon className="size-4" />
+          </Button>
         </div>
       </div>
 
-      <SubmitButton disabled={!supabaseConfigured} accentColor={accentColor} />
+      <SubmitButton disabled={!supabaseConfigured} />
 
       <div className="text-center">
         <Link
           href="/wachtwoord-vergeten"
-          className="text-sm transition-colors hover:underline"
-          style={{ color: mutedColor }}
+          className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline"
         >
           Wachtwoord vergeten?
         </Link>
@@ -199,26 +158,24 @@ export function LoginForm({
 
       {/* ── DEV only: quick-access buttons ────────────────────────────── */}
       {isDev && (
-        <div
-          className="rounded-lg p-3 space-y-2"
-          style={{ background: "#FFF7ED", border: "1px dashed #FCD34D" }}
-        >
-          <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
+        <div className="space-y-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-900">
             <Zap className="h-3 w-3" />
             DEV - Snel inloggen
           </p>
           <div className="flex flex-col gap-1.5">
             {DEV_ACCOUNTS.map((a) => (
-              <button
+              <Button
                 key={a.email}
                 type="button"
                 onClick={() => fillAndSubmit(a.email, a.password)}
-                className="w-full rounded-md px-3 py-2 text-xs font-medium text-left transition-opacity hover:opacity-80"
-                style={{ background: a.bg, color: a.color }}
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-left"
               >
                 {a.label}
                 <span className="ml-2 opacity-60">{a.email}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

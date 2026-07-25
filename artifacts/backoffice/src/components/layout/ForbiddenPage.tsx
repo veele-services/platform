@@ -1,55 +1,44 @@
-import { ShieldX } from "lucide-react";
 import Link from "next/link";
+import { ShieldX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 /**
- * Rendered by any Server Component page when the current user lacks the
- * required permission.  Never silently degrade — always show an explicit
- * access-denied response.
+ * Rendered when the authenticated user lacks the required permission.
+ * Resource and action remain function inputs for fail-closed call-site clarity,
+ * but implementation identifiers are intentionally not exposed in the UI.
  */
 export function ForbiddenPage({
-  resource,
-  action,
+  resource: _resource,
+  action: _action,
 }: {
   resource: string;
   action: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 p-8">
-      <div
-        className="flex items-center justify-center rounded-full"
-        style={{ width: "56px", height: "56px", backgroundColor: "#FEF2F2" }}
-      >
-        <ShieldX
-          style={{ width: "24px", height: "24px", color: "#EF4444" }}
-          strokeWidth={1.75}
-        />
-      </div>
-
-      <div className="text-center">
-        <h2
-          className="font-heading text-xl font-semibold mb-2"
-          style={{ color: "#081D3A" }}
-        >
-          Toegang geweigerd
-        </h2>
-        <p
-          className="text-sm max-w-xs"
-          style={{ color: "#64748B", lineHeight: "1.5" }}
-        >
-          U heeft geen toestemming om deze pagina te bekijken.{" "}
-          <span style={{ color: "#94A3B8", fontSize: "12px" }}>
-            ({resource}:{action})
-          </span>
-        </p>
-      </div>
-
-      <Link
-        href="/"
-        className="text-sm font-medium transition-colors"
-        style={{ color: "#00B7B3" }}
-      >
-        ← Terug naar dashboard
-      </Link>
-    </div>
+    <Empty className="min-h-[60dvh] border-0">
+      <EmptyHeader>
+        <EmptyMedia variant="icon" className="text-red-700">
+          <ShieldX aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>Geen toegang tot deze pagina</EmptyTitle>
+        <EmptyDescription>
+          Uw rol heeft geen toestemming voor dit onderdeel. Vraag een beheerder
+          om uw rol te controleren als u hier wel moet kunnen werken.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button asChild variant="outline">
+          <Link href="/">Terug naar het dashboard</Link>
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }

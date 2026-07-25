@@ -89,7 +89,10 @@ test("platform admin exposes provider-agnostic email settings and testmail", () 
   assert.match(action, /platform_email_provider_updated/u);
   assert.match(action, /platform_email_test_sent/u);
   assert.match(page, /PlatformEmailProviderForm/u);
-  assert.match(page, /updatePlatformEmailProviderSettingsAction\(formData:\s*FormData\)/u);
+  assert.match(
+    page,
+    /updatePlatformEmailProviderSettingsAction\(\s*formData:\s*FormData,\s*\)/u,
+  );
   assert.match(form, /event\.preventDefault\(\)/u);
   assert.match(form, /useTransition/u);
   assert.match(form, /setState\(result\)/u);

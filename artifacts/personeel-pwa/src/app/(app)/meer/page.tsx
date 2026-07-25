@@ -14,7 +14,7 @@ import {
   Plane,
   Settings,
 } from "lucide-react";
-import { signOut } from "@/actions/auth";
+import { NativeAwareSignOutButton } from "@/components/NativeAwareSignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -83,16 +83,15 @@ export default async function MeerPage({ searchParams }: Props) {
         ))}
       </div>
 
-      <form action={signOut} className="mt-5">
-        <button
-          type="submit"
+      <div className="mt-5">
+        <NativeAwareSignOutButton
           className="flex w-full items-center justify-center gap-2 rounded-[20px] border bg-white p-4 text-sm font-black shadow-sm"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <LogOut size={20} strokeWidth={2.3} />
           Uitloggen
-        </button>
-      </form>
+        </NativeAwareSignOutButton>
+      </div>
     </div>
   );
 }

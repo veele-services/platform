@@ -5,11 +5,13 @@ import React, { createContext, useContext } from "react";
 type PermissionsContextValue = {
   permissions: Set<string>;
   tenantId: string | null;
+  principalId: string | null;
 };
 
 const PermissionsContext = createContext<PermissionsContextValue>({
   permissions: new Set(),
   tenantId: null,
+  principalId: null,
 });
 
 /**
@@ -25,15 +27,17 @@ const PermissionsContext = createContext<PermissionsContextValue>({
 export function PermissionsProvider({
   permissions,
   tenantId,
+  principalId,
   children,
 }: {
   permissions: string[];
   tenantId: string;
+  principalId: string;
   children: React.ReactNode;
 }) {
   const value = React.useMemo<PermissionsContextValue>(
-    () => ({ permissions: new Set(permissions), tenantId }),
-    [permissions, tenantId],
+    () => ({ permissions: new Set(permissions), tenantId, principalId }),
+    [permissions, principalId, tenantId],
   );
 
   return (
@@ -51,4 +55,9 @@ export function usePermissions(): Set<string> {
 /** Read the tenant ID that the current permissions were resolved for. */
 export function usePermissionsTenantId(): string | null {
   return useContext(PermissionsContext).tenantId;
+}
+
+/** Read the opaque authenticated principal ID used for browser-local scoping. */
+export function usePermissionsPrincipalId(): string | null {
+  return useContext(PermissionsContext).principalId;
 }

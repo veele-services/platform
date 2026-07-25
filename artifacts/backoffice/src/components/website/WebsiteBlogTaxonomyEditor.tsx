@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteBlogCategoryDraftItem,
   WebsiteBlogTagDraftItem,
@@ -200,7 +201,7 @@ function TaxonomyGroup<
                 }
               />
               <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
+                <CheckboxAdapter
                   type="checkbox"
                   checked={item.isActive}
                   disabled={disabled}

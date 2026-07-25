@@ -5,6 +5,7 @@ import {
   formatPlanboardActualTime,
   planboardDateKey,
   planboardMinuteOfDay,
+  planboardRelativeTimestampMinute,
   planboardTimestampMinute,
 } from "../../artifacts/backoffice/src/components/assignments/planboard-assignment-states.ts";
 
@@ -160,7 +161,7 @@ test("planboard cards use persisted actual timestamps and stop at the actual com
   assert.match(planboardStates, /PLANBOARD_TIME_ZONE\s*=\s*"Europe\/Amsterdam"/u);
   assert.match(
     planningBoard,
-    /const block = actualBlock \?\? effectiveBlock \?\? plannedBlock/u,
+    /const block =\s*actualBlock\s*\?\?\s*effectiveBlock\s*\?\?\s*plannedBlock/u,
   );
   assert.doesNotMatch(planningBoard, /unionTimeBlocks/u);
 });
@@ -176,4 +177,33 @@ test("planboard actual timestamps use Europe/Amsterdam for labels, dates and tim
   assert.equal(planboardDateKey(afterMidnightInAmsterdam), "2026-07-22");
   assert.equal(planboardTimestampMinute(afterMidnightInAmsterdam, "2026-07-21"), null);
   assert.equal(planboardTimestampMinute(afterMidnightInAmsterdam, "2026-07-22"), 15);
+  assert.equal(
+    planboardRelativeTimestampMinute(
+      afterMidnightInAmsterdam,
+      "2026-07-21",
+    ),
+    24 * 60 + 15,
+  );
+  assert.equal(
+    planboardRelativeTimestampMinute(
+      "2026-07-20T21:15:00.000Z",
+      "2026-07-21",
+    ),
+    -45,
+  );
+  assert.equal(
+    planboardRelativeTimestampMinute(
+      "2026-10-25T22:30:00.000Z",
+      "2026-10-25",
+    ),
+    23 * 60 + 30,
+  );
+  assert.match(
+    planningBoard,
+    /planboardRelativeTimestampMinute\(\s*assignment\.actualCompletedAt/u,
+  );
+  assert.match(
+    planningBoard,
+    /assignment\.isRunning\s*\?\s*liveRelativeMinute/u,
+  );
 });

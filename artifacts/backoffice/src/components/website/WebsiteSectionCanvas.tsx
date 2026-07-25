@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteAction,
   WebsiteEditorSectionKey,
@@ -36,6 +38,7 @@ import {
   updateWebsiteSectionAction,
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 import { cn } from "@/lib/utils";
 import { WebsiteRichTextEditor } from "./WebsiteRichTextEditor";
 import {
@@ -488,6 +491,7 @@ function WebsiteSectionCard({
 }) {
   const [draft, setDraft] = useState<WebsiteSection>(section);
   const [expanded, setExpanded] = useState(true);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const disabled = !canWrite || busy || isPending;
 
@@ -521,7 +525,6 @@ function WebsiteSectionCard({
   }
 
   function remove() {
-    if (!window.confirm("Deze sectie uit het concept verwijderen?")) return;
     startTransition(async () => {
       const result = await deleteWebsiteSectionAction({
         siteId,
@@ -618,7 +621,7 @@ function WebsiteSectionCard({
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <label className="text-xs font-medium text-slate-500">
               Weergave
-              <select
+              <SelectAdapter
                 value={draft.variant}
                 disabled={disabled}
                 onChange={(event) =>
@@ -634,7 +637,7 @@ function WebsiteSectionCard({
                     {VARIANT_LABELS[variant] ?? variant}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <span className="text-xs text-slate-400">
               Revisie {section.authoringRevision}
@@ -662,7 +665,7 @@ function WebsiteSectionCard({
             <button
               type="button"
               disabled={disabled}
-              onClick={remove}
+              onClick={() => setRemoveDialogOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -684,6 +687,16 @@ function WebsiteSectionCard({
           </footer>
         </div>
       )}
+      <TenantConfirmDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        title="Sectie verwijderen?"
+        description="Deze sectie wordt uit het concept verwijderd. Niet-opgeslagen inhoud in deze sectie gaat verloren."
+        confirmLabel="Verwijderen"
+        destructive
+        confirmDisabled={disabled}
+        onConfirm={remove}
+      />
     </article>
   );
 }
@@ -1294,7 +1307,7 @@ function SectionCollectionEditor({
                     className={cn(FLAT_INPUT, "resize-y")}
                   />
                 ) : field.kind === "icon" ? (
-                  <select
+                  <SelectAdapter
                     value={text(item[field.key])}
                     disabled={disabled}
                     onChange={(event) =>
@@ -1319,7 +1332,7 @@ function SectionCollectionEditor({
                         {icon.replaceAll("_", " ")}
                       </option>
                     ))}
-                  </select>
+                  </SelectAdapter>
                 ) : field.kind === "boolean" ? (
                   <Toggle
                     label={field.label}
@@ -1505,7 +1518,7 @@ function ActionEditor({
         )}
       </div>
       <div className="space-y-2">
-        <select
+        <SelectAdapter
           value={action.kind}
           disabled={disabled}
           onChange={(event) =>
@@ -1526,7 +1539,7 @@ function ActionEditor({
             <option value="email">E-mailadres</option>
           )}
           {action.kind === "page" && <option value="page">Pagina-ID</option>}
-        </select>
+        </SelectAdapter>
         <input
           value={action.label}
           disabled={disabled}
@@ -1566,7 +1579,7 @@ function Toggle({
 }) {
   return (
     <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-      <input
+      <CheckboxAdapter
         type="checkbox"
         checked={checked}
         disabled={disabled}

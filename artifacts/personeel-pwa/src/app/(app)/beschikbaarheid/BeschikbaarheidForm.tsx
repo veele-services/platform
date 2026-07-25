@@ -31,6 +31,7 @@ import {
   type AvailabilityDayEntry,
   type AvailabilityRepeat,
 } from "@/actions/availability";
+import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 
 const WEEKDAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const REPEAT_OPTIONS: Array<{ value: AvailabilityRepeat; label: string }> = [
@@ -193,6 +194,7 @@ export function BeschikbaarheidForm({
   const [selectedDate, setSelectedDate] = useState(data.today);
   const [viewMonth, setViewMonth] = useState(firstOfMonth(data.today));
   const [editorOpen, setEditorOpen] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>(() => defaultEditor(null));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +266,16 @@ export function BeschikbaarheidForm({
   }
 
   function closeEditor() {
-    if (editorIsDirty && !confirm("Je hebt niet-opgeslagen wijzigingen. Sluiten zonder opslaan?")) return;
+    if (editorIsDirty) {
+      setDiscardDialogOpen(true);
+      return;
+    }
+    setEditorOpen(false);
+  }
+
+  function discardEditorChanges() {
+    setDiscardDialogOpen(false);
+    setEditorInitial(null);
     setEditorOpen(false);
   }
 
@@ -573,6 +584,16 @@ export function BeschikbaarheidForm({
           </div>
         </div>
       ) : null}
+
+      <PersonnelConfirmDialog
+        open={discardDialogOpen}
+        title="Wijzigingen niet opslaan?"
+        description="Je wijzigingen in deze beschikbaarheid gaan verloren."
+        confirmLabel="Wijzigingen verwerpen"
+        tone="danger"
+        onConfirm={discardEditorChanges}
+        onClose={() => setDiscardDialogOpen(false)}
+      />
     </div>
   );
 }

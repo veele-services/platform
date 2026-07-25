@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -599,7 +600,7 @@ function QuoteFilterForm({
         >
           Status
         </label>
-        <select
+        <SelectAdapter
           id="quote-filter-status"
           name="filter"
           defaultValue={filter}
@@ -615,7 +616,7 @@ function QuoteFilterForm({
           <option value="approved">Goedgekeurd</option>
           <option value="rejected">Afgewezen</option>
           <option value="expired">Verlopen</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link

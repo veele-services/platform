@@ -20,7 +20,7 @@ export function ObjectServicesTab({ objectId, assignments }: Props) {
         <Link
           href={`/assignments?objectId=${objectId}`}
           className="mt-4 text-sm font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle opdrachten bekijken →
         </Link>
@@ -37,7 +37,7 @@ export function ObjectServicesTab({ objectId, assignments }: Props) {
         <Link
           href={`/assignments?objectId=${objectId}`}
           className="text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle bekijken →
         </Link>
@@ -74,7 +74,7 @@ export function ObjectServicesTab({ objectId, assignments }: Props) {
                     {a.code}
                   </Link>
                 </td>
-                <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>
+                <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                   {a.title ?? "—"}
                 </td>
                 <td className="px-5 py-3">

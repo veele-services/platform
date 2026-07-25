@@ -3,9 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { FormActions } from "@/components/ui/form-actions";
+import { FormGrid } from "@/components/ui/form-grid";
+import { FormSection } from "@/components/ui/form-section";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,24 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Separator } from "@/components/ui/separator";
+import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
-import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
-import { cn } from "@/lib/utils";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSelection,
+} from "@/components/google-maps/AddressAutocomplete";
 import {
   getObject,
   createObject,
@@ -51,24 +45,27 @@ import type { SectorOption } from "@/app/actions/customers";
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
 
 const objectFormSchema = z.object({
-  customerId:           z.string().min(1, "Klant is verplicht"),
-  sectorId:             z.string(),
-  name:                 z.string().min(1, "Naam is verplicht").max(255, "Naam mag maximaal 255 tekens bevatten"),
-  address:              z.string(),
-  city:                 z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
-  postalCode:           z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
-  description:          z.string(),
-  contactName:          z.string(),
-  contactFunction:      z.string(),
-  contactPhone:         z.string(),
-  contactEmail:         z.string(),
-  serviceType:          z.string(),
-  accessInfo:           z.string(),
-  keyInfo:              z.string(),
-  alarmInfo:            z.string(),
-  fixedInstructions:    z.string(),
-  specialNotes:         z.string(),
-  requiredRoles:        z.array(z.string()),
+  customerId: z.string().min(1, "Klant is verplicht"),
+  sectorId: z.string(),
+  name: z
+    .string()
+    .min(1, "Naam is verplicht")
+    .max(255, "Naam mag maximaal 255 tekens bevatten"),
+  address: z.string(),
+  city: z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
+  postalCode: z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
+  description: z.string(),
+  contactName: z.string(),
+  contactFunction: z.string(),
+  contactPhone: z.string(),
+  contactEmail: z.string(),
+  serviceType: z.string(),
+  accessInfo: z.string(),
+  keyInfo: z.string(),
+  alarmInfo: z.string(),
+  fixedInstructions: z.string(),
+  specialNotes: z.string(),
+  requiredRoles: z.array(z.string()),
   requiredCertificates: z.array(z.string()),
 });
 
@@ -101,24 +98,24 @@ interface ObjectFormProps {
 }
 
 const DEFAULTS: FormValues = {
-  customerId:           "",
-  sectorId:             "",
-  name:                 "",
-  address:              "",
-  city:                 "",
-  postalCode:           "",
-  description:          "",
-  contactName:          "",
-  contactFunction:      "",
-  contactPhone:         "",
-  contactEmail:         "",
-  serviceType:          "",
-  accessInfo:           "",
-  keyInfo:              "",
-  alarmInfo:            "",
-  fixedInstructions:    "",
-  specialNotes:         "",
-  requiredRoles:        [],
+  customerId: "",
+  sectorId: "",
+  name: "",
+  address: "",
+  city: "",
+  postalCode: "",
+  description: "",
+  contactName: "",
+  contactFunction: "",
+  contactPhone: "",
+  contactEmail: "",
+  serviceType: "",
+  accessInfo: "",
+  keyInfo: "",
+  alarmInfo: "",
+  fixedInstructions: "",
+  specialNotes: "",
+  requiredRoles: [],
   requiredCertificates: [],
 };
 
@@ -132,12 +129,13 @@ export function ObjectForm({
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
-  const [loading, setLoading]             = useState(mode === "edit");
-  const [pending, startTransition]        = useTransition();
-  const [customerOpen, setCustomerOpen]   = useState(false);
+  const [loading, setLoading] = useState(mode === "edit");
+  const [pending, startTransition] = useTransition();
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
-  const [regionNames, setRegionNames]     = useState<string[]>([]);
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
+  const [regionNames, setRegionNames] = useState<string[]>([]);
+  const [regionsDirty, setRegionsDirty] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] =
+    useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -151,15 +149,21 @@ export function ObjectForm({
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+  const { requestNavigation, guard } = useUnsavedChangesGuard(
+    (isDirty || regionsDirty) && !pending,
+  );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("objects", "object");
 
-  const customerIdValue      = watch("customerId");
-  const sectorIdValue        = watch("sectorId") || "NONE";
-  const requiredRoles        = watch("requiredRoles");
+  const customerIdValue = watch("customerId");
+  const sectorIdValue = watch("sectorId") || "NONE";
+  const requiredRoles = watch("requiredRoles");
   const requiredCertificates = watch("requiredCertificates");
-
-  const selectedCustomer = customers.find((c) => c.id === customerIdValue);
 
   useEffect(() => {
     if (mode !== "edit" || !objectId) return;
@@ -168,68 +172,89 @@ export function ObjectForm({
       .then(([o, linkedRegions]) => {
         if (o) {
           setGeneratedCode(o.code ?? null);
-          setValue("customerId",           o.customerId            ?? "");
-          setValue("sectorId",             o.sectorId              ?? "");
-          setValue("name",                 o.name                  ?? "");
-          setValue("address",              o.address               ?? "");
-          setValue("city",                 o.city                  ?? "");
-          setValue("postalCode",           o.postalCode            ?? "");
-          setValue("description",          o.description           ?? "");
-          setValue("contactName",          o.contactName           ?? "");
-          setValue("contactFunction",      o.contactFunction       ?? "");
-          setValue("contactPhone",         o.contactPhone          ?? "");
-          setValue("contactEmail",         o.contactEmail          ?? "");
-          setValue("serviceType",          o.serviceType           ?? "");
-          setValue("accessInfo",           o.accessInfo            ?? "");
-          setValue("keyInfo",              o.keyInfo               ?? "");
-          setValue("alarmInfo",            o.alarmInfo             ?? "");
-          setValue("fixedInstructions",    o.fixedInstructions     ?? "");
-          setValue("specialNotes",         o.specialNotes          ?? "");
-          setValue("requiredRoles",        o.requiredRoles         ?? []);
-          setValue("requiredCertificates", o.requiredCertificates  ?? []);
+          setValue("customerId", o.customerId ?? "");
+          setValue("sectorId", o.sectorId ?? "");
+          setValue("name", o.name ?? "");
+          setValue("address", o.address ?? "");
+          setValue("city", o.city ?? "");
+          setValue("postalCode", o.postalCode ?? "");
+          setValue("description", o.description ?? "");
+          setValue("contactName", o.contactName ?? "");
+          setValue("contactFunction", o.contactFunction ?? "");
+          setValue("contactPhone", o.contactPhone ?? "");
+          setValue("contactEmail", o.contactEmail ?? "");
+          setValue("serviceType", o.serviceType ?? "");
+          setValue("accessInfo", o.accessInfo ?? "");
+          setValue("keyInfo", o.keyInfo ?? "");
+          setValue("alarmInfo", o.alarmInfo ?? "");
+          setValue("fixedInstructions", o.fixedInstructions ?? "");
+          setValue("specialNotes", o.specialNotes ?? "");
+          setValue("requiredRoles", o.requiredRoles ?? []);
+          setValue("requiredCertificates", o.requiredCertificates ?? []);
           setRegionNames(linkedRegions);
+          setRegionsDirty(false);
         }
       })
       .finally(() => setLoading(false));
   }, [mode, objectId, setValue]);
 
-  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
-    setValue("address", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
-    setValue("postalCode", place.postalCode ?? "");
-    setValue("city", place.city ?? "");
+  function applyAddressSelection({
+    suggestion,
+    place,
+  }: AddressAutocompleteSelection) {
+    setValue(
+      "address",
+      place.addressLine1 ?? suggestion.mainText ?? suggestion.label,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    setValue("postalCode", place.postalCode ?? "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue("city", place.city ?? "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
     setSelectedGooglePlace(place);
   }
 
   const onSubmit = handleSubmit((data) => {
     const parsed = objectFormSchema.safeParse(data);
     if (!parsed.success) {
+      trackMutationError("validation");
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".");
-        if (path) setError(path as keyof FormValues, { message: issue.message });
+        if (path)
+          setError(path as keyof FormValues, { message: issue.message });
       }
       return;
     }
 
     startTransition(async () => {
-      const googlePlaceStillMatches = selectedGooglePlace && (
-        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.address || "") &&
-        (selectedGooglePlace.postalCode ?? "") === (parsed.data.postalCode || "") &&
-        (selectedGooglePlace.city ?? "") === (parsed.data.city || "")
-      );
+      const googlePlaceStillMatches =
+        selectedGooglePlace &&
+        (selectedGooglePlace.addressLine1 ?? "") ===
+          (parsed.data.address || "") &&
+        (selectedGooglePlace.postalCode ?? "") ===
+          (parsed.data.postalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.city || "");
       const input: ObjectFormInput = {
         ...parsed.data,
-        sectorId:             parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
-        contactName:          parsed.data.contactName          || undefined,
-        contactFunction:      parsed.data.contactFunction      || undefined,
-        contactPhone:         parsed.data.contactPhone         || undefined,
-        contactEmail:         parsed.data.contactEmail         || undefined,
-        serviceType:          parsed.data.serviceType          || undefined,
-        accessInfo:           parsed.data.accessInfo           || undefined,
-        keyInfo:              parsed.data.keyInfo              || undefined,
-        alarmInfo:            parsed.data.alarmInfo            || undefined,
-        fixedInstructions:    parsed.data.fixedInstructions    || undefined,
-        specialNotes:         parsed.data.specialNotes         || undefined,
-        googlePlace:          googlePlaceStillMatches ? selectedGooglePlace : undefined,
+        sectorId:
+          parsed.data.sectorId === "NONE"
+            ? undefined
+            : parsed.data.sectorId || undefined,
+        contactName: parsed.data.contactName || undefined,
+        contactFunction: parsed.data.contactFunction || undefined,
+        contactPhone: parsed.data.contactPhone || undefined,
+        contactEmail: parsed.data.contactEmail || undefined,
+        serviceType: parsed.data.serviceType || undefined,
+        accessInfo: parsed.data.accessInfo || undefined,
+        keyInfo: parsed.data.keyInfo || undefined,
+        alarmInfo: parsed.data.alarmInfo || undefined,
+        fixedInstructions: parsed.data.fixedInstructions || undefined,
+        specialNotes: parsed.data.specialNotes || undefined,
+        googlePlace: googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -238,6 +263,7 @@ export function ObjectForm({
           : await updateObject(objectId!, input);
 
       if (!result.success) {
+        trackMutationError("server");
         if ("fieldErrors" in result && result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, message]) => {
             setError(field as keyof FormValues, { message });
@@ -253,12 +279,16 @@ export function ObjectForm({
       if (id) {
         const regionResult = await syncObjectRegions(id, regionNames);
         if (!regionResult.success) {
+          trackMutationError("server");
           toast.error(regionResult.message);
           return;
         }
       }
 
-      toast.success(mode === "create" ? "Object aangemaakt" : "Object bijgewerkt");
+      toast.success(
+        mode === "create" ? "Object aangemaakt" : "Object bijgewerkt",
+      );
+      trackFormComplete();
       onSuccess(id);
     });
   });
@@ -266,95 +296,66 @@ export function ObjectForm({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00B7B3" }} />
+        <Loader2 className="size-6 animate-spin text-primary motion-reduce:animate-none" />
+        <span className="sr-only">Objectgegevens laden…</span>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6 py-4">
-
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
+      className="flex flex-col gap-4 py-4"
+    >
       {/* ── Customer ──────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Klant
-        </p>
+      <FormSection
+        title="Klant"
+        description="Koppel het object aan de organisatie waarvoor het werk wordt uitgevoerd."
+      >
         <div className="space-y-1">
-          <Label>
+          <Label htmlFor="object-customer">
             Klant <span className="text-destructive">*</span>
           </Label>
-          <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                aria-expanded={customerOpen}
-                className={cn(
-                  "w-full justify-between",
-                  !customerIdValue && "text-muted-foreground",
-                  errors.customerId && "border-destructive",
-                )}
-              >
-                {selectedCustomer
-                  ? `${selectedCustomer.name}${selectedCustomer.code ? ` (${selectedCustomer.code})` : ""}`
-                  : "Selecteer klant..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[320px] p-0">
-              <Command>
-                <CommandInput placeholder="Zoek klanten..." />
-                <CommandList>
-                  <CommandEmpty>Geen klanten gevonden.</CommandEmpty>
-                  <CommandGroup>
-                    {customers.map((c) => (
-                      <CommandItem
-                        key={c.id}
-                        value={`${c.name} ${c.code ?? ""}`}
-                        onSelect={() => {
-                          setValue("customerId", c.id);
-                          setCustomerOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            customerIdValue === c.id ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm">{c.name}</span>
-                          {c.code && (
-                            <span className="text-xs text-muted-foreground">{c.code}</span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <Combobox
+            id="object-customer"
+            value={customerIdValue}
+            onValueChange={(value) =>
+              setValue("customerId", value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            options={customers.map((customer) => ({
+              value: customer.id,
+              label: customer.name,
+              searchValue: `${customer.name} ${customer.code ?? ""}`,
+              description: customer.code || undefined,
+            }))}
+            placeholder="Selecteer klant…"
+            searchPlaceholder="Zoek op klantnaam of code…"
+            emptyLabel="Geen klanten gevonden."
+            ariaLabel="Klant selecteren"
+            invalid={Boolean(errors.customerId)}
+            className="min-h-11"
+          />
           {errors.customerId && (
-            <p className="text-xs text-destructive">{errors.customerId.message}</p>
+            <p className="text-xs text-destructive" role="alert">
+              {errors.customerId.message}
+            </p>
           )}
         </div>
-      </section>
-
-      <Separator />
+      </FormSection>
 
       {/* ── General Info ──────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Algemene info
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1">
-            <Label>
+      <FormSection title="Algemene informatie">
+        <FormGrid columns="two">
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="object-name">
               Naam <span className="text-destructive">*</span>
             </Label>
             <Input
+              id="object-name"
               {...register("name")}
               placeholder="Objectnaam"
               aria-invalid={!!errors.name}
@@ -365,7 +366,7 @@ export function ObjectForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Code</Label>
+            <Label htmlFor="object-code">Code</Label>
             <div className="flex items-center h-9 px-3 rounded-md border bg-muted/40">
               {generatedCode ? (
                 <span className="font-mono text-sm">{generatedCode}</span>
@@ -378,14 +379,16 @@ export function ObjectForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Sector</Label>
+            <Label htmlFor="object-sector">Sector</Label>
             <Select
               value={sectorIdValue}
               onValueChange={(val) =>
-                setValue("sectorId", val === "NONE" ? "" : val)
+                setValue("sectorId", val === "NONE" ? "" : val, {
+                  shouldDirty: true,
+                })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="object-sector">
                 <SelectValue placeholder="Selecteer sector..." />
               </SelectTrigger>
               <SelectContent>
@@ -399,48 +402,48 @@ export function ObjectForm({
             </Select>
           </div>
 
-          <div className="col-span-2 space-y-1">
-            <Label>Diensttype</Label>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="object-service-type">Diensttype</Label>
             <Input
+              id="object-service-type"
               {...register("serviceType")}
               placeholder="Bijv. Schoonmaak, Beveiliging, Onderhoud..."
             />
           </div>
-        </div>
-      </section>
-
-      <Separator />
+        </FormGrid>
+      </FormSection>
 
       {/* ── Regions ───────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Regio&apos;s
-        </p>
+      <FormSection
+        title="Regio’s"
+        description="Gebruik regio’s later als standaard bij nieuwe opdrachten en planningfilters."
+      >
         <RegionMultiSelect
           value={regionNames}
-          onChange={setRegionNames}
+          onChange={(nextRegions) => {
+            setRegionNames(nextRegions);
+            setRegionsDirty(true);
+          }}
           options={regionOptions}
           placeholder="Selecteer of maak regio's..."
         />
-        <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
-          Objectregio&apos;s kunnen later als standaard dienen bij nieuwe opdrachten en planningfilters.
-        </p>
-      </section>
-
-      <Separator />
+      </FormSection>
 
       {/* ── Address ───────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Adres
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="relative col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
+      <FormSection
+        title="Adres"
+        description="Dit adres wordt gebruikt voor kaartweergave en reistijdberekening."
+      >
+        <FormGrid columns="two">
+          <div className="relative rounded-lg border border-border p-3 sm:col-span-2">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Objectadres</p>
-                <p className="text-xs" style={{ color: "#64748B" }}>
-                  Wordt gebruikt voor kaartweergave en reistijd vanaf het huisadres van de medewerker.
+                <p className="text-sm font-semibold text-foreground">
+                  Objectadres
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Wordt gebruikt voor kaartweergave en reistijd vanaf het
+                  huisadres van de medewerker.
                 </p>
               </div>
             </div>
@@ -450,8 +453,8 @@ export function ObjectForm({
               description="Kies een adres om de velden automatisch te vullen."
               onSelect={applyAddressSelection}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1">
+            <FormGrid columns="two">
+              <div className="space-y-1 sm:col-span-2">
                 <Label htmlFor="objectAddress">Straat &amp; huisnummer</Label>
                 <Input
                   id="objectAddress"
@@ -469,7 +472,11 @@ export function ObjectForm({
                   autoComplete="address-level2"
                   aria-invalid={!!errors.city}
                 />
-                {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
+                {errors.city && (
+                  <p className="text-xs text-destructive">
+                    {errors.city.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="objectPostalCode">Postcode</Label>
@@ -480,123 +487,182 @@ export function ObjectForm({
                   autoComplete="postal-code"
                   aria-invalid={!!errors.postalCode}
                 />
-                {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
+                {errors.postalCode && (
+                  <p className="text-xs text-destructive">
+                    {errors.postalCode.message}
+                  </p>
+                )}
               </div>
-            </div>
+            </FormGrid>
           </div>
-        </div>
-      </section>
-
-      <Separator />
+        </FormGrid>
+      </FormSection>
 
       {/* ── Primary contact ───────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Primair contactpersoon
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1">
-            <Label>Naam</Label>
-            <Input {...register("contactName")} placeholder="Jan Jansen" />
+      <FormSection title="Primair contactpersoon">
+        <FormGrid columns="two">
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="object-contact-name">Naam</Label>
+            <Input
+              id="object-contact-name"
+              {...register("contactName")}
+              placeholder="Jan Jansen"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Functie</Label>
-            <Input {...register("contactFunction")} placeholder="Facilitair manager" />
+            <Label htmlFor="object-contact-function">Functie</Label>
+            <Input
+              id="object-contact-function"
+              {...register("contactFunction")}
+              placeholder="Facilitair manager"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Telefoon</Label>
-            <Input {...register("contactPhone")} placeholder="+31 6 00 00 00 00" />
+            <Label htmlFor="object-contact-phone">Telefoon</Label>
+            <Input
+              id="object-contact-phone"
+              {...register("contactPhone")}
+              placeholder="+31 6 00 00 00 00"
+            />
           </div>
-          <div className="col-span-2 space-y-1">
-            <Label>E-mail</Label>
-            <Input {...register("contactEmail")} type="email" placeholder="jan@bedrijf.nl" />
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="object-contact-email">E-mail</Label>
+            <Input
+              id="object-contact-email"
+              {...register("contactEmail")}
+              type="email"
+              placeholder="jan@bedrijf.nl"
+            />
           </div>
-        </div>
-      </section>
-
-      <Separator />
+        </FormGrid>
+      </FormSection>
 
       {/* ── Access & security ─────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Toegang &amp; beveiliging
-        </p>
+      <FormSection
+        title="Toegang en beveiliging"
+        description="Alleen zichtbaar voor gebruikers met toegang tot dit object."
+      >
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label>Toegangsinformatie</Label>
-            <Textarea {...register("accessInfo")} placeholder="Sleutelkast code, toegangspas, portiek..." rows={2} className="resize-none" />
+            <Label htmlFor="object-access-info">Toegangsinformatie</Label>
+            <Textarea
+              id="object-access-info"
+              {...register("accessInfo")}
+              placeholder="Sleutelkast code, toegangspas, portiek..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Sleutelinformatie</Label>
-            <Textarea {...register("keyInfo")} placeholder="Sleutelnummer, bewaarplaats, retourprocedure..." rows={2} className="resize-none" />
+            <Label htmlFor="object-key-info">Sleutelinformatie</Label>
+            <Textarea
+              id="object-key-info"
+              {...register("keyInfo")}
+              placeholder="Sleutelnummer, bewaarplaats, retourprocedure..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Alarmgegevens</Label>
-            <Textarea {...register("alarmInfo")} placeholder="Alarmcode, contactpersoon bij alarm..." rows={2} className="resize-none" />
+            <Label htmlFor="object-alarm-info">Alarmgegevens</Label>
+            <Textarea
+              id="object-alarm-info"
+              {...register("alarmInfo")}
+              placeholder="Alarmcode, contactpersoon bij alarm..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
         </div>
-      </section>
-
-      <Separator />
+      </FormSection>
 
       {/* ── Instructions ──────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Instructies &amp; bijzonderheden
-        </p>
+      <FormSection title="Instructies en bijzonderheden">
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label>Vaste instructies</Label>
-            <Textarea {...register("fixedInstructions")} placeholder="Vaste werkinstructies die altijd van toepassing zijn..." rows={3} className="resize-none" />
+            <Label htmlFor="object-fixed-instructions">Vaste instructies</Label>
+            <Textarea
+              id="object-fixed-instructions"
+              {...register("fixedInstructions")}
+              placeholder="Vaste werkinstructies die altijd van toepassing zijn..."
+              rows={3}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Bijzonderheden</Label>
-            <Textarea {...register("specialNotes")} placeholder="Bijzondere omstandigheden, aandachtspunten, gevaren..." rows={2} className="resize-none" />
+            <Label htmlFor="object-special-notes">Bijzonderheden</Label>
+            <Textarea
+              id="object-special-notes"
+              {...register("specialNotes")}
+              placeholder="Bijzondere omstandigheden, aandachtspunten, gevaren..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
-            <Label>Omschrijving</Label>
-            <Textarea {...register("description")} placeholder="Optionele omschrijving van dit object..." rows={2} className="resize-none" />
+            <Label htmlFor="object-description">Omschrijving</Label>
+            <Textarea
+              id="object-description"
+              {...register("description")}
+              placeholder="Optionele omschrijving van dit object..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
         </div>
-      </section>
-
-      <Separator />
+      </FormSection>
 
       {/* ── Qualifications ────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Vereiste kwalificaties
-        </p>
+      <FormSection
+        title="Vereiste kwalificaties"
+        description="Deze eisen worden gebruikt bij personeels- en planningscontroles."
+      >
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label>Vereiste functies</Label>
+            <Label htmlFor="object-required-roles">Vereiste functies</Label>
             <TagInput
+              id="object-required-roles"
               value={requiredRoles}
-              onChange={(tags) => setValue("requiredRoles", tags)}
+              onChange={(tags) =>
+                setValue("requiredRoles", tags, { shouldDirty: true })
+              }
               placeholder="Typ functie en druk Enter..."
             />
           </div>
           <div className="space-y-1">
-            <Label>Vereiste certificaten</Label>
+            <Label htmlFor="object-required-certificates">
+              Vereiste certificaten
+            </Label>
             <TagInput
+              id="object-required-certificates"
               value={requiredCertificates}
-              onChange={(tags) => setValue("requiredCertificates", tags)}
+              onChange={(tags) =>
+                setValue("requiredCertificates", tags, {
+                  shouldDirty: true,
+                })
+              }
               placeholder="Bijv. VCA, BHV..."
             />
           </div>
         </div>
-      </section>
+      </FormSection>
 
       {/* ── Actions ───────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+      <FormActions status={pending ? "pending" : "idle"}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestNavigation(onCancel)}
+          disabled={pending}
+        >
           Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Object aanmaken" : "Wijzigingen opslaan"}
         </Button>
-      </div>
+      </FormActions>
+      {guard}
     </form>
   );
 }

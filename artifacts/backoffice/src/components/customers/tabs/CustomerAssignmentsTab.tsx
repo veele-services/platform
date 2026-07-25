@@ -17,7 +17,7 @@ export function CustomerAssignmentsTab({ customerId, assignments }: Props) {
         <Link
           href={`/assignments?customerId=${customerId}`}
           className="text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle bekijken →
         </Link>

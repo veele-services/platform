@@ -10,7 +10,10 @@ export type CanonicalPlanningEligibilityResult = SmartPlanningCapacityResult;
  * or qualification predicates in UI-specific actions.
  */
 export async function getCanonicalPlanningEligibility(
+  tenantId: string,
   assignmentId: string,
 ): Promise<CanonicalPlanningEligibilityResult | null> {
-  return calculateAssignmentCapacity(assignmentId, { persist: false });
+  return calculateAssignmentCapacity(tenantId, assignmentId, {
+    persist: false,
+  });
 }

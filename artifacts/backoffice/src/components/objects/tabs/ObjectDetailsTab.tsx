@@ -27,8 +27,8 @@ function SectionCard({
   return (
     <div className="veele-card">
       <div className="flex items-center gap-2 mb-4">
-        <Icon className="h-4 w-4" style={{ color: "#00B7B3" }} />
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>{title}</p>
+        <Icon className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>{title}</p>
       </div>
       {children}
     </div>

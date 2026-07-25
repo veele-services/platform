@@ -41,7 +41,7 @@ export function InventoryItemsPanel({
     <div className="veele-card overflow-hidden p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div>
-          <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             {title}
           </h2>
           <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -82,7 +82,7 @@ export function InventoryItemsPanel({
                   <tr key={row.id} className="hover:bg-slate-50/70">
                     <td className="px-4 py-3 font-mono text-xs" style={{ color: "#475569" }}>{row.code}</td>
                     <td className="px-4 py-3">
-                      <p className="font-medium" style={{ color: "#081D3A" }}>{row.name}</p>
+                      <p className="font-medium" style={{ color: "var(--color-foreground)" }}>{row.name}</p>
                       <p className="text-xs" style={{ color: "#64748B" }}>{itemSubtitle(row)}</p>
                       {row.serialNumber ? <p className="font-mono text-xs" style={{ color: "#94A3B8" }}>{row.serialNumber}</p> : null}
                     </td>

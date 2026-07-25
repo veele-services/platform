@@ -57,7 +57,7 @@ export function AssignmentHistoryTable({
                 <Link
                   href={`/assignments/${row.id}`}
                   className="text-sm font-medium hover:underline"
-                  style={{ color: "#00B7B3" }}
+                  style={{ color: "var(--color-primary)" }}
                 >
                   {row.title}
                 </Link>

@@ -20,9 +20,15 @@ function assertContains(content, phrases, label) {
 }
 
 test("phase 5 adds a platform accelerator surface with auditable actions", () => {
-  const action = read("artifacts/backoffice/src/app/actions/platform-accelerators.ts");
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/accelerators/page.tsx");
-  const platformPage = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+  const action = read(
+    "artifacts/backoffice/src/app/actions/platform-accelerators.ts",
+  );
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/accelerators/page.tsx",
+  );
+  const platformPage = read(
+    "artifacts/backoffice/src/app/(platform)/platform/page.tsx",
+  );
 
   assertContains(
     `${action}\n${page}\n${platformPage}`,
@@ -46,9 +52,15 @@ test("phase 5 adds a platform accelerator surface with auditable actions", () =>
 });
 
 test("phase 5 exports cover platform tenant health and billing", () => {
-  const tenantExport = read("artifacts/backoffice/src/app/api/platform/exports/tenants/route.ts");
-  const billingExport = read("artifacts/backoffice/src/app/api/platform/billing/export/route.ts");
-  const action = read("artifacts/backoffice/src/app/actions/platform-accelerators.ts");
+  const tenantExport = read(
+    "artifacts/backoffice/src/app/api/platform/exports/tenants/route.ts",
+  );
+  const billingExport = read(
+    "artifacts/backoffice/src/app/api/platform/billing/export/route.ts",
+  );
+  const action = read(
+    "artifacts/backoffice/src/app/actions/platform-accelerators.ts",
+  );
 
   assertContains(
     `${tenantExport}\n${billingExport}\n${action}`,
@@ -68,11 +80,19 @@ test("phase 5 exports cover platform tenant health and billing", () => {
 });
 
 test("phase 5 visual regression plan covers backoffice and portals", () => {
-  assert.equal(FIELDGRID_VISUAL_REGRESSION_VERSION, "fieldgrid-visual-regression-snapshots-v1");
-  assert.equal(visualRegressionViewports.length, 3);
+  assert.equal(
+    FIELDGRID_VISUAL_REGRESSION_VERSION,
+    "fieldgrid-visual-regression-snapshots-v1",
+  );
+  assert.equal(visualRegressionViewports.length, 9);
   assert.deepEqual(
     visualRegressionTargetGroups.map((group) => group.id),
-    ["platform-backoffice", "tenant-backoffice", "customer-portal", "personnel-portal"],
+    [
+      "platform-backoffice",
+      "tenant-backoffice",
+      "customer-portal",
+      "personnel-portal",
+    ],
   );
 
   const plan = buildVisualRegressionPlan(
@@ -80,14 +100,22 @@ test("phase 5 visual regression plan covers backoffice and portals", () => {
       FIELDGRID_BACKOFFICE_BASE_URL: "https://admin.fieldgrid.nl",
       FIELDGRID_TENANT_BACKOFFICE_BASE_URL: "https://demo-a.fieldgrid.nl",
       FIELDGRID_CUSTOMER_PORTAL_BASE_URL: "https://demo-a.fieldgrid.nl/klant",
-      FIELDGRID_PERSONNEL_PORTAL_BASE_URL: "https://demo-a.fieldgrid.nl/personeel",
+      FIELDGRID_PERSONNEL_PORTAL_BASE_URL:
+        "https://demo-a.fieldgrid.nl/personeel",
     },
     { target: "all", artifactDir: "artifacts/visual-regression" },
   );
 
   assert.deepEqual(plan.errors, []);
   assert.equal(plan.groups.length, 4);
-  assert.ok(plan.groups.find((group) => group.id === "platform-backoffice")?.routes.includes("/admin/platform/accelerators"));
+  const platform = plan.groups.find(
+    (group) => group.id === "platform-backoffice",
+  );
+  assert.ok(platform?.routes.includes("/admin/platform/accelerators"));
+  assert.deepEqual(
+    platform?.personas.map((persona) => persona.id),
+    ["platform-owner", "platform-admin", "platform-support"],
+  );
 });
 
 test("phase 5 scripts and docs publish the accelerator contract", () => {
@@ -114,10 +142,14 @@ test("phase 5 scripts and docs publish the accelerator contract", () => {
 });
 
 test("phase 5 visual regression check command validates its contract", () => {
-  const output = execFileSync("node", ["scripts/fieldgrid-visual-regression-snapshots.mjs", "--check"], {
-    cwd: new URL("..", import.meta.url),
-    encoding: "utf8",
-  });
+  const output = execFileSync(
+    "node",
+    ["scripts/fieldgrid-visual-regression-snapshots.mjs", "--check"],
+    {
+      cwd: new URL("..", import.meta.url),
+      encoding: "utf8",
+    },
+  );
 
   assert.match(output, /fieldgrid-visual-regression-snapshots-v1/u);
   assert.match(output, /platform-backoffice/u);

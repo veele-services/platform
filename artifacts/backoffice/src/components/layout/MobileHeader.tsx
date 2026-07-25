@@ -9,7 +9,7 @@ export function MobileHeader() {
   return (
     <header
       className="sticky top-0 z-40 flex h-14 flex-shrink-0 items-center gap-3 border-b px-4 lg:hidden"
-      style={{ backgroundColor: "#081D3A", borderColor: "rgba(255,255,255,0.1)" }}
+      style={{ backgroundColor: "var(--color-foreground)", borderColor: "rgba(255,255,255,0.1)" }}
     >
       <button
         type="button"

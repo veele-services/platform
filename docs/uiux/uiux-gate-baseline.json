@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Temporary W00 inventory. Check mode rejects new findings; strict mode rejects every finding.",
+  "findings": []
+}

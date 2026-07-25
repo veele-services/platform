@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should contain ${phrase}`,
+    );
   }
 }
 
@@ -47,14 +51,14 @@ test("sprint 14 tenant detail renders readiness, channel previews and limits", (
   assertContains(
     tenantPage,
     [
-      "Operational readiness",
+      "Gereedheid",
       "tenant.operationalReadiness.score",
       "tenant.operationalReadiness.signals",
       "statusChipClass(readinessTone(signal.status))",
       "tenant.brandingPreview.surfaces",
       "Downloads/PDF",
       "Planlimieten",
-      "Legacy storagepaden",
+      "Verouderde opslagpaden",
       "tenant.usageLimits",
       "tenant.usage.downloadAuditEvents",
       "tenant.usage.tenantPrefixedDocuments",

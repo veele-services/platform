@@ -3,11 +3,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const serverUrl =
   process.env.CAPACITOR_SERVER_URL ??
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://staging.veele.dgwebservices.nl/personeel";
+  "https://veeleservices.fieldgrid.nl/personeel";
 
 const config: CapacitorConfig = {
-  appId: "nl.veeleservices.personeel",
-  appName: "Fieldgrid Personeel",
+  appId: process.env.CAPACITOR_APP_ID ?? "nl.veeleservices.personeel",
+  appName: process.env.CAPACITOR_APP_NAME ?? "Veele Personeel",
   webDir: "native/www",
   server: {
     url: serverUrl,

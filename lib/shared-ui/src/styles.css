@@ -11,12 +11,37 @@
   --color-status-danger-foreground: #b91c1c;
 }
 @layer base {
-  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  :root {
+    --z-dropdown: 60;
+    --z-sticky: 50;
+    --z-overlay: 80;
+    --z-modal: 90;
+    --z-toast: 100;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
     outline: 2px solid var(--color-ring, var(--color-accent, #00b7b3));
     outline-offset: 2px;
   }
-  :where(button, [role="button"], input, select, textarea) { min-height: 44px; }
+  :where(button, [role="button"], input, select, textarea) {
+    min-height: 44px;
+  }
   @media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

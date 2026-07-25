@@ -5,6 +5,8 @@ export type PlanboardTimeWindowInput = {
   actualCompletedAt?: string | null;
   effectiveStart?: string | null;
   effectiveEnd?: string | null;
+  endMode?: "planned" | "actual" | "now" | "unknown";
+  isRunning?: boolean;
 };
 
 export type PlanboardStaffingInput = {
@@ -87,6 +89,37 @@ export function planboardTimestampMinute(value: string | null, boardDate: string
   return parts?.date === boardDate ? parts.minuteOfDay : null;
 }
 
+function planboardDateOrdinal(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return Math.trunc(date.getTime() / 86_400_000);
+}
+
+export function planboardRelativeTimestampMinute(
+  value: string | Date | null,
+  boardDate: string,
+): number | null {
+  if (!value) return null;
+  const parts = planboardTimestampParts(value);
+  const boardOrdinal = planboardDateOrdinal(boardDate);
+  const valueOrdinal = parts ? planboardDateOrdinal(parts.date) : null;
+  if (!parts || boardOrdinal === null || valueOrdinal === null) return null;
+
+  return (valueOrdinal - boardOrdinal) * 24 * 60 + parts.minuteOfDay;
+}
+
 function normalizeCount(value: number | null | undefined): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.trunc(value ?? 0));
@@ -143,11 +176,16 @@ export function planboardDisplayWindow(input: PlanboardTimeWindowInput): Planboa
   if (input.actualStartedAt || input.actualCompletedAt) {
     const actualStart = formatPlanboardActualTime(input.actualStartedAt);
     const actualEnd = formatPlanboardActualTime(input.actualCompletedAt);
+    const displayEnd =
+      actualEnd ??
+      (input.endMode === "now" || input.isRunning
+        ? "nu"
+        : (input.effectiveEnd ?? null));
     return {
       kind: "actual",
       start: actualStart,
-      end: actualEnd,
-      label: formatPlanboardTimeRange(actualStart, actualEnd),
+      end: displayEnd,
+      label: formatPlanboardTimeRange(actualStart, displayEnd),
     };
   }
 

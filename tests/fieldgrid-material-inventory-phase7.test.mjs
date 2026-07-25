@@ -53,7 +53,7 @@ test("phase 7 manual code fallback and login form keep redirects safe", () => {
   const loginForm = read("artifacts/personeel-pwa/src/components/LoginForm.tsx");
 
   assertContains(manualPage, ["resolveInventoryScanCode", "Inventariscode", "I000001", "/login?next=", "Details worden pas getoond na login en autorisatie"], "manual scan page");
-  assertContains(authAction, ["sanitizeRedirectPath", "startsWith(\"//\")", "startsWith(\"/login\")", "redirect(next ?? \"/\")"], "auth redirect sanitization");
+  assertContains(authAction, ["sanitizeRedirectPath", "startsWith(\"//\")", "isLoginPath(trimmed)", "redirect(next ?? \"/\")"], "auth redirect sanitization");
   assertContains(loginPage, ["safeNext", "next?: string", "<LoginForm next={redirectPath} />"], "login page next wiring");
   assertContains(loginForm, ["next?: string | null", "type=\"hidden\" name=\"next\" value={next}"], "login form hidden next field");
 });

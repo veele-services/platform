@@ -194,7 +194,7 @@ export function ProcessStepper({
     <div className={className}>
       {showMobileSummary && (
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs sm:hidden">
-          <span className="font-semibold" style={{ color: "#081D3A" }}>
+          <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
             Actuele status: {active.shortLabel ?? active.label}
           </span>
           <span style={{ color: "#64748B" }}>
@@ -204,7 +204,7 @@ export function ProcessStepper({
       )}
       {showDesktopSummary && (
         <div className="mb-2 hidden flex-wrap items-center justify-between gap-2 text-xs sm:flex">
-          <span className="font-semibold" style={{ color: "#081D3A" }}>
+          <span className="font-semibold" style={{ color: "var(--color-foreground)" }}>
             Actuele status: {active.shortLabel ?? active.label}
           </span>
           <span style={{ color: "#64748B" }}>

@@ -32,8 +32,10 @@ test("phase 13 replaces open assignment confirmations with bottom sheets and fee
   for (const marker of [
     "type SheetAction",
     "function ResponseBottomSheet",
-    'role="dialog"',
-    'aria-modal="true"',
+    "Dialog",
+    "DialogContent",
+    "DialogTitle",
+    "DialogDescription",
     "Vraag via bericht",
     "setFeedback",
     "Ticket bekijken",
@@ -42,6 +44,7 @@ test("phase 13 replaces open assignment confirmations with bottom sheets and fee
     assert.match(applyButton, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "u"));
   }
 
+  assert.match(applyButton, /from "@workspace\/shared-ui"/u);
   assert.doesNotMatch(applyButton, /window\.confirm/u);
   assert.doesNotMatch(applyButton, /\bconfirm\s*\(/u);
 });

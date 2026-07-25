@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -18,6 +18,7 @@ import {
   Unlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 
 type EditorJson = Record<string, unknown>;
 
@@ -50,7 +51,7 @@ function ToolbarButton({
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-md border text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         active
-          ? "border-[#00B7B3] bg-[#E0FAFB] text-[#081D3A]"
+          ? "border-primary bg-[#E0FAFB] text-foreground"
           : "border-[#E2E8F0] bg-white text-[#475569] hover:border-[#94A3B8]",
       )}
     >
@@ -59,16 +60,18 @@ function ToolbarButton({
   );
 }
 
-function setLink(editor: Editor | null) {
-  if (!editor) return;
-  const previous = editor.getAttributes("link").href as string | undefined;
-  const url = window.prompt("Link URL", previous ?? "https://");
-  if (url === null) return;
-  if (url.trim() === "") {
-    editor.chain().focus().unsetLink().run();
-    return;
+function safeNewsLink(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    return ["https:", "http:", "mailto:", "tel:"].includes(url.protocol)
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
   }
-  editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
 }
 
 export function TipTapNewsEditor({
@@ -77,6 +80,7 @@ export function TipTapNewsEditor({
   disabled = false,
   onChange,
 }: TipTapNewsEditorProps) {
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const handleUpdate = useCallback(({ editor }: { editor: Editor }) => {
     onChange(editor.getHTML(), editor.getJSON() as EditorJson);
   }, [onChange]);
@@ -108,6 +112,16 @@ export function TipTapNewsEditor({
   });
 
   const inactive = disabled || !editor;
+
+  function applyLink(values: Readonly<Record<string, string>>) {
+    if (!editor) return;
+    const href = safeNewsLink(values.href ?? "");
+    if (!href) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
@@ -165,7 +179,7 @@ export function TipTapNewsEditor({
           title="Link toevoegen"
           disabled={inactive}
           active={editor?.isActive("link")}
-          onClick={() => setLink(editor)}
+          onClick={() => setLinkDialogOpen(true)}
         >
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
@@ -194,6 +208,28 @@ export function TipTapNewsEditor({
       </div>
 
       <EditorContent editor={editor} className="news-editor" />
+      <PromptDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        title="Link toevoegen"
+        description="Gebruik een veilige web-, e-mail-, telefoon- of interne link."
+        fields={[
+          {
+            name: "href",
+            label: "Link",
+            initialValue:
+              (editor?.getAttributes("link").href as string | undefined) ??
+              "https://",
+          },
+        ]}
+        confirmLabel="Link toepassen"
+        validate={(values) =>
+          safeNewsLink(values.href ?? "") === null
+            ? "Gebruik een veilige link: https, http, mailto, tel, /pad of #anker."
+            : null
+        }
+        onConfirm={applyLink}
+      />
     </div>
   );
 }

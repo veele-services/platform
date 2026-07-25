@@ -50,7 +50,7 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.match(mapView, /min-h-\[620px\]/);
   assert.match(mapView, /Adresgegevens/);
   assert.match(mapView, /Opdrachtinformatie/);
-  assert.match(mapView, />Routecontext</);
+  assert.match(mapView, />\s*Routecontext\s*</);
   assert.match(mapView, /OverlayChip/);
   assert.match(mapView, /werkbonnen/);
   assert.match(mapView, /waarschuwingen/);

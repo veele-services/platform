@@ -172,7 +172,7 @@ export function AddressAutocomplete({
           aria-controls={listId}
           aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
           placeholder={placeholder}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10"
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)]/10"
           style={{ color: "var(--color-primary)" }}
         />
       </label>
@@ -204,7 +204,7 @@ export function AddressAutocomplete({
           )}
         </div>
       ) : null}
-      {loading ? <p className="mt-2 text-xs font-semibold text-[#00B7B3]">Adres zoeken...</p> : null}
+      {loading ? <p className="mt-2 text-xs font-semibold text-[var(--color-accent-accessible)]">Adres zoeken...</p> : null}
       <p className="mt-2 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>Geen passend resultaat? Vul de velden hieronder handmatig in.</p>
     </div>
   );

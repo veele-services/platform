@@ -173,7 +173,7 @@ export function DocumentAttachmentPanel({
     <section className="veele-card space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
+          <h2 className="font-heading text-lg font-semibold" style={{ color: "var(--color-foreground)" }}>
             {title}
           </h2>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
@@ -236,7 +236,7 @@ export function DocumentAttachmentPanel({
                   <td className="px-3 py-3">
                     <div className="flex min-w-0 items-center gap-2">
                       {getDocumentIcon(row.mimeType)}
-                      <span className="truncate font-medium" style={{ color: "#081D3A" }} title={row.name}>
+                      <span className="truncate font-medium" style={{ color: "var(--color-foreground)" }} title={row.name}>
                         {row.name}
                       </span>
                     </div>

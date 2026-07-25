@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { useActionState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -8,9 +9,7 @@ import {
   TICKET_DEPARTMENT_OPTIONS,
   TICKET_PRIORITY_OPTIONS,
 } from "@/lib/ticket-options";
-import {
-  createMyTicket,
-} from "@/actions/messages";
+import { createMyTicket } from "@/actions/messages";
 
 export function NewTicketForm() {
   const router = useRouter();
@@ -37,9 +36,7 @@ export function NewTicketForm() {
           <Send size={21} strokeWidth={2.4} />
         </span>
         <div>
-          <h2 className="text-lg font-black text-[#081D3A]">
-            Nieuw bericht
-          </h2>
+          <h2 className="text-lg font-black text-[var(--color-primary)]">Nieuw bericht</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
             Start een ticket bij de juiste afdeling.
           </p>
@@ -48,9 +45,9 @@ export function NewTicketForm() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Afdeling">
-          <select
+          <SelectAdapter
             name="department"
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             defaultValue="planning"
           >
             {TICKET_DEPARTMENT_OPTIONS.map((option) => (
@@ -58,12 +55,12 @@ export function NewTicketForm() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </Field>
         <Field label="Prioriteit">
-          <select
+          <SelectAdapter
             name="priority"
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             defaultValue="normal"
           >
             {TICKET_PRIORITY_OPTIONS.map((option) => (
@@ -71,7 +68,7 @@ export function NewTicketForm() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectAdapter>
         </Field>
       </div>
 
@@ -80,7 +77,7 @@ export function NewTicketForm() {
           <input
             name="subject"
             maxLength={180}
-            className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             placeholder="Bijvoorbeeld: Vraag over dienst maandag"
           />
         </Field>
@@ -89,7 +86,7 @@ export function NewTicketForm() {
             name="body"
             rows={4}
             maxLength={4000}
-            className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[#081D3A] outline-none"
+            className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[var(--color-primary)] outline-none"
             placeholder="Beschrijf wat je nodig hebt of wilt doorgeven."
           />
         </Field>
@@ -110,7 +107,7 @@ export function NewTicketForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
         Bericht versturen
@@ -119,13 +116,7 @@ export function NewTicketForm() {
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
       <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">

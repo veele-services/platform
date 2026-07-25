@@ -26,7 +26,10 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/80", className)}
+    className={cn(
+      "fixed inset-0 z-[var(--z-modal)] bg-black/70 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none",
+      className,
+    )}
     {...props}
   />
 ))
@@ -41,12 +44,15 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className
+        "fixed inset-x-0 bottom-0 z-[var(--z-modal)] mt-24 flex max-h-[calc(100dvh-1rem)] flex-col overflow-y-auto rounded-t-[var(--radius-overlay)] border bg-background pb-[env(safe-area-inset-bottom)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom motion-reduce:animate-none",
+        className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      <div
+        aria-hidden="true"
+        className="mx-auto mt-3 h-1.5 w-20 shrink-0 rounded-full bg-muted"
+      />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>

@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { WebsiteSiteSettings } from "@workspace/db";
 import {
   WEBSITE_TEMPLATE_KEYS,
@@ -13,6 +15,7 @@ import {
   updateWebsiteSettingsAction,
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type WebsiteSettingsFormProps = {
   initialSettings: WebsiteSiteSettings;
@@ -205,7 +208,15 @@ export function WebsiteSettingsForm({
           title="Kies een starttemplate"
           description="De template maakt één bewerkbaar concept met pagina's, secties en navigatie. Er wordt niets gepubliceerd en later wisselen overschrijft nooit bestaande inhoud."
         >
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <RadioGroup
+            name="templateKey"
+            value={templateKey}
+            disabled={disabled}
+            onValueChange={(value) =>
+              setTemplateKey(value as WebsiteTemplateKey)
+            }
+            className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+          >
             {WEBSITE_TEMPLATE_KEYS.map((key) => {
               const template = WEBSITE_TEMPLATE_REGISTRY[key];
               const selected = templateKey === key;
@@ -218,15 +229,7 @@ export function WebsiteSettingsForm({
                       : "border-slate-200 bg-white hover:border-cyan-200"
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="templateKey"
-                    value={key}
-                    checked={selected}
-                    disabled={disabled}
-                    onChange={() => setTemplateKey(key)}
-                    className="sr-only"
-                  />
+                  <RadioGroupItem value={key} className="sr-only" />
                   <span className="block text-sm font-semibold text-slate-950">
                     {template.label}
                   </span>
@@ -240,7 +243,7 @@ export function WebsiteSettingsForm({
                 </label>
               );
             })}
-          </div>
+          </RadioGroup>
           <p className="text-xs text-slate-500">
             Custom Next.js is een afzonderlijke enterprise-deliverymodus en is
             daarom geen templateoptie.
@@ -265,7 +268,7 @@ export function WebsiteSettingsForm({
             />
           </Field>
           <Field label="Standaardtaal" htmlFor="website-locale" required>
-            <select
+            <SelectAdapter
               id="website-locale"
               name="defaultLocale"
               defaultValue={initialSettings.defaultLocale}
@@ -275,7 +278,7 @@ export function WebsiteSettingsForm({
               <option value="nl-NL">Nederlands (Nederland)</option>
               <option value="en-GB">English (United Kingdom)</option>
               <option value="de-DE">Deutsch (Deutschland)</option>
-            </select>
+            </SelectAdapter>
           </Field>
         </div>
       </WebsiteFormSection>
@@ -543,7 +546,7 @@ export function WebsiteSettingsForm({
             />
           </Field>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               name="indexable"
               defaultChecked={initialSettings.defaultSeo.indexable}
@@ -590,7 +593,7 @@ export function WebsiteSettingsForm({
           />
           <div className="flex items-end pb-2">
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input
+              <CheckboxAdapter
                 type="checkbox"
                 name="structuredDataEnabled"
                 defaultChecked={
@@ -791,7 +794,7 @@ function SelectField({
 }) {
   return (
     <Field label={label} htmlFor={id}>
-      <select
+      <SelectAdapter
         id={id}
         name={name}
         defaultValue={value}
@@ -803,7 +806,7 @@ function SelectField({
             {optionLabel}
           </option>
         ))}
-      </select>
+      </SelectAdapter>
     </Field>
   );
 }

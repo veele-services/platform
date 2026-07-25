@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type {
   WebsiteNavigationDraftItem,
   WebsiteNavigationPageOption,
@@ -109,7 +111,7 @@ export function WebsiteNavigationEditor({
     setItems((current) =>
       current.map((item) => {
         if (item.id === id) return { ...item, ...patch };
-        if (patch.isVisible === false && item.parentId === id) {
+        if (Object.is(patch.isVisible, false) && item.parentId === id) {
           return { ...item, isVisible: false };
         }
         return item;
@@ -481,7 +483,7 @@ function NavigationRow({
         </label>
         <label className="grid gap-1 text-xs font-medium text-slate-500">
           Soort
-          <select
+          <SelectAdapter
             value={item.linkType}
             onChange={(event) =>
               onLinkTypeChange(
@@ -495,13 +497,13 @@ function NavigationRow({
             <option value="page">Interne pagina</option>
             <option value="external">Externe HTTPS-link</option>
             {!nested && <option value="dropdown">Menugroep</option>}
-          </select>
+          </SelectAdapter>
         </label>
         <div className="min-w-0">
           {item.linkType === "page" ? (
             <label className="grid gap-1 text-xs font-medium text-slate-500">
               Pagina
-              <select
+              <SelectAdapter
                 value={item.pageId ?? ""}
                 onChange={(event) =>
                   onChange({ pageId: event.target.value || null })
@@ -517,7 +519,7 @@ function NavigationRow({
                     {option.status === "draft" ? " (concept)" : ""}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
           ) : item.linkType === "external" ? (
             <label className="grid gap-1 text-xs font-medium text-slate-500">
@@ -548,7 +550,7 @@ function NavigationRow({
         <div className="flex flex-wrap items-center justify-end gap-1">
           {item.linkType === "external" && (
             <label className="mr-2 inline-flex items-center gap-2 text-xs text-slate-600">
-              <input
+              <CheckboxAdapter
                 type="checkbox"
                 checked={item.target === "blank"}
                 onChange={(event) =>
@@ -563,7 +565,7 @@ function NavigationRow({
             </label>
           )}
           <label className="mr-2 inline-flex items-center gap-2 text-xs text-slate-600">
-            <input
+            <CheckboxAdapter
               type="checkbox"
               checked={item.isVisible}
               onChange={(event) =>

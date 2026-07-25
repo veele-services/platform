@@ -14,7 +14,7 @@ function toneStyle(tone: string) {
   if (tone === "danger") return { borderColor: "#FCA5A5", backgroundColor: "#FEF2F2", color: "#B91C1C" };
   if (tone === "warn") return { borderColor: "#FCD34D", backgroundColor: "#FFFBEB", color: "#B45309" };
   if (tone === "success") return { borderColor: "#A7F3D0", backgroundColor: "#ECFDF5", color: "#047857" };
-  return { borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", color: "#081D3A" };
+  return { borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", color: "var(--color-foreground)" };
 }
 
 function formatDate(value: string | null): string {
@@ -107,7 +107,7 @@ export function MaterialsDashboardView({ data }: { data: MaterialsDashboardData 
           <div className="flex items-center gap-2 px-5 py-4">
             <AlertTriangle className="h-4 w-4" style={{ color: "#B45309" }} />
             <div>
-              <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Voorraadrisico's</h2>
+              <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Voorraadrisico's</h2>
               <p className="text-sm" style={{ color: "#64748B" }}>Negatieve en lage voorraad per locatie.</p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export function MaterialsDashboardView({ data }: { data: MaterialsDashboardData 
                   return (
                     <tr key={`${row.materialId}-${row.stockLocationName}`} className="hover:bg-slate-50/70">
                       <td className="px-4 py-3">
-                        <Link href={`/materials/${row.materialId}`} className="font-medium hover:underline" style={{ color: "#081D3A" }}>{row.materialCode}</Link>
+                        <Link href={`/materials/${row.materialId}`} className="font-medium hover:underline" style={{ color: "var(--color-foreground)" }}>{row.materialCode}</Link>
                         <p className="text-xs" style={{ color: "#64748B" }}>{row.materialName}</p>
                       </td>
                       <td className="px-4 py-3" style={{ color: "#475569" }}>
@@ -156,7 +156,7 @@ export function MaterialsDashboardView({ data }: { data: MaterialsDashboardData 
           <div className="flex items-center gap-2 px-5 py-4">
             <PackageCheck className="h-4 w-4" style={{ color: "#0F766E" }} />
             <div>
-              <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Te keuren materiaal</h2>
+              <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Te keuren materiaal</h2>
               <p className="text-sm" style={{ color: "#64748B" }}>Werkbonregels die management nog financieel moet beoordelen.</p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function MaterialsDashboardView({ data }: { data: MaterialsDashboardData 
 
       <section className="veele-card overflow-hidden p-0">
         <div className="px-5 py-4">
-          <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Klantzichtbare materiaalrapportage</h2>
+          <h2 className="font-heading text-base font-semibold" style={{ color: "var(--color-foreground)" }}>Klantzichtbare materiaalrapportage</h2>
           <p className="text-sm" style={{ color: "#64748B" }}>Alleen goedgekeurde regels met klantzichtbaarheid aan.</p>
         </div>
         <UsageTable rows={data.customerVisibleUsage} emptyText="Geen klantzichtbare materiaalregels gevonden." />
@@ -194,7 +194,7 @@ function UsageTable({ rows, emptyText }: { rows: MaterialsDashboardData["pending
           ) : rows.map((row) => (
             <tr key={row.usageId} className="hover:bg-slate-50/70">
               <td className="px-4 py-3">
-                <Link href={`/assignments/${row.assignmentId}`} className="font-medium hover:underline" style={{ color: "#081D3A" }}>
+                <Link href={`/assignments/${row.assignmentId}`} className="font-medium hover:underline" style={{ color: "var(--color-foreground)" }}>
                   {row.assignmentCode ?? "Werkbon"}
                 </Link>
                 <p className="text-xs" style={{ color: "#64748B" }}>{row.assignmentTitle ?? "Geen titel"}</p>

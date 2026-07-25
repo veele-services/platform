@@ -131,7 +131,7 @@ export function CustomerTypesManager({ initialTypes, canWrite }: Props) {
   return (
     <div className="veele-card overflow-hidden p-0">
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
-        <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
           {types.length} klanttype{types.length !== 1 ? "s" : ""}
         </p>
         {canWrite && (
@@ -170,7 +170,7 @@ export function CustomerTypesManager({ initialTypes, canWrite }: Props) {
                 className="transition-colors hover:bg-slate-50/60"
                 style={{ borderBottom: index < types.length - 1 ? "1px solid #F1F5F9" : undefined }}
               >
-                <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>{type.name}</td>
+                <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{type.name}</td>
                 <td className="px-5 py-3 font-mono text-sm" style={{ color: "#64748B" }}>{type.slug}</td>
                 <td className="px-5 py-3">
                   <span

@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -42,7 +43,9 @@ function normalizeService(value?: string): string {
 }
 
 function objectAddress(object: CustomerObject) {
-  return [object.address, object.postalCode, object.city].filter(Boolean).join(" ");
+  return [object.address, object.postalCode, object.city]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function matchesObjectSearch(object: CustomerObject, query: string) {
@@ -76,7 +79,9 @@ function filterObjects(
     const matchesService =
       service === "all" || (object.serviceType ?? "Geen dienst") === service;
 
-    return matchesStatus && matchesService && matchesObjectSearch(object, query);
+    return (
+      matchesStatus && matchesService && matchesObjectSearch(object, query)
+    );
   });
 }
 
@@ -135,7 +140,11 @@ function objectColumns(): Array<PortalDataColumn<CustomerObject>> {
       render: (object) => (
         <span
           className="block min-w-[14rem] text-sm font-semibold leading-5"
-          style={{ color: objectAddress(object) ? "var(--color-secondary)" : "var(--color-muted-fg)" }}
+          style={{
+            color: objectAddress(object)
+              ? "var(--color-secondary)"
+              : "var(--color-muted-fg)",
+          }}
         >
           {objectAddress(object) || "Niet ingevuld"}
         </span>
@@ -149,7 +158,9 @@ function objectColumns(): Array<PortalDataColumn<CustomerObject>> {
           <span
             className="block truncate text-sm font-bold"
             style={{
-              color: object.contactName ? "var(--color-primary)" : "var(--color-muted-fg)",
+              color: object.contactName
+                ? "var(--color-primary)"
+                : "var(--color-muted-fg)",
             }}
           >
             {object.contactName ?? "Geen contactpersoon"}
@@ -169,7 +180,11 @@ function objectColumns(): Array<PortalDataColumn<CustomerObject>> {
       render: (object) => (
         <span
           className="block min-w-[8rem] truncate text-sm font-semibold"
-          style={{ color: object.serviceType ? "var(--color-primary)" : "var(--color-muted-fg)" }}
+          style={{
+            color: object.serviceType
+              ? "var(--color-primary)"
+              : "var(--color-muted-fg)",
+          }}
         >
           {object.serviceType ?? "Niet ingesteld"}
         </span>
@@ -189,7 +204,9 @@ function objectColumns(): Array<PortalDataColumn<CustomerObject>> {
           <PortalActionMenuLink href={`/objecten/${object.id}`}>
             Details bekijken
           </PortalActionMenuLink>
-          <PortalActionMenuLink href={`/opdrachten/aanvragen?object=${object.id}`}>
+          <PortalActionMenuLink
+            href={`/opdrachten/aanvragen?object=${object.id}`}
+          >
             Opdracht aanvragen
           </PortalActionMenuLink>
         </PortalActionMenu>
@@ -232,18 +249,28 @@ export default async function ObjectenPage({
           href: filterHref({ query, status, service, remove: "service" }),
         }
       : null,
-  ].filter((filter): filter is { label: string; href: string } => Boolean(filter));
+  ].filter((filter): filter is { label: string; href: string } =>
+    Boolean(filter),
+  );
 
   return (
     <PortalPageShell
       title="Mijn objecten"
       subtitle="Uw locaties, contactpersonen en toegangsinformatie."
-      status={{ label: `${objects.length} objecten`, tone: objects.length > 0 ? "accent" : "neutral" }}
+      status={{
+        label: `${objects.length} objecten`,
+        tone: objects.length > 0 ? "accent" : "neutral",
+      }}
       primaryAction={{ label: "Object toevoegen", href: "/objecten/nieuw" }}
     >
       <PortalToolbar
         resultLabel={`${visibleObjects.length} van ${objects.length} objecten`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/objecten" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/objecten"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Objectfilters"
@@ -259,13 +286,20 @@ export default async function ObjectenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/objecten" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/objecten"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek object, code of plaats"
           />
-          <PortalToolbarSelect name="status" label="Status" defaultValue={status}>
+          <PortalToolbarSelect
+            name="status"
+            label="Status"
+            defaultValue={status}
+          >
             <option value="all">Alle statussen</option>
             <option value="active">Actief</option>
             <option value="inactive">Inactief</option>
@@ -288,7 +322,10 @@ export default async function ObjectenPage({
         tableLabel="Objecten"
         emptyState={{
           icon: <MapPin size={34} style={{ color: "var(--color-accent)" }} />,
-          title: activeFilters.length > 0 ? "Geen objecten gevonden" : "Nog geen objecten",
+          title:
+            activeFilters.length > 0
+              ? "Geen objecten gevonden"
+              : "Nog geen objecten",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de objecten opnieuw te bekijken."
@@ -314,7 +351,10 @@ export default async function ObjectenPage({
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-black" style={{ color: "var(--color-primary)" }}>
+                    <p
+                      className="truncate font-black"
+                      style={{ color: "var(--color-primary)" }}
+                    >
                       {object.name}
                     </p>
                     <p
@@ -386,7 +426,9 @@ export default async function ObjectenPage({
                     <PortalActionMenuLink href={`/objecten/${object.id}`}>
                       Details bekijken
                     </PortalActionMenuLink>
-                    <PortalActionMenuLink href={`/opdrachten/aanvragen?object=${object.id}`}>
+                    <PortalActionMenuLink
+                      href={`/opdrachten/aanvragen?object=${object.id}`}
+                    >
                       Opdracht aanvragen
                     </PortalActionMenuLink>
                   </PortalActionMenu>
@@ -421,29 +463,38 @@ function ObjectFilterForm({
           defaultValue={query}
           placeholder="Object, code, plaats of contact"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </FilterField>
       <FilterField label="Status" id="object-filter-status">
-        <select
+        <SelectAdapter
           id="object-filter-status"
           name="status"
           defaultValue={status}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle statussen</option>
           <option value="active">Actief</option>
           <option value="inactive">Inactief</option>
-        </select>
+        </SelectAdapter>
       </FilterField>
       <FilterField label="Dienst" id="object-filter-service">
-        <select
+        <SelectAdapter
           id="object-filter-service"
           name="service"
           defaultValue={service}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle diensten</option>
           {serviceOptions.map((option) => (
@@ -451,13 +502,16 @@ function ObjectFilterForm({
               {option}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </FilterField>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/objecten"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>
@@ -484,7 +538,11 @@ function FilterField({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+      <label
+        htmlFor={id}
+        className="text-xs font-black"
+        style={{ color: "var(--color-secondary)" }}
+      >
         {label}
       </label>
       {children}

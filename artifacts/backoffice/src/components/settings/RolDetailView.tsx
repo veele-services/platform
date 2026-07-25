@@ -184,7 +184,7 @@ function RoleMetadataForm({
             type="submit"
             disabled={isPending || !name.trim()}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ backgroundColor: "#081D3A" }}
+            style={{ backgroundColor: "var(--color-foreground)" }}
           >
             <Save className="h-4 w-4" />
             {isPending ? "Opslaan…" : "Opslaan"}
@@ -218,7 +218,7 @@ function ResourceRow({
   return (
     <div className="flex items-center px-4 py-3 gap-4">
       <div className="w-32 flex-shrink-0">
-        <span className="text-sm font-medium" style={{ color: "#081D3A" }}>
+        <span className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
           {resourceLabel(resource)}
         </span>
       </div>
@@ -289,7 +289,7 @@ function PermissionToggle({
           ${isPending ? "opacity-50" : ""}
         `}
         style={{
-          backgroundColor: checked ? "#00B7B3" : "#F8FAFC",
+          backgroundColor: checked ? "var(--color-primary)" : "#F8FAFC",
         }}
       >
         {checked && (

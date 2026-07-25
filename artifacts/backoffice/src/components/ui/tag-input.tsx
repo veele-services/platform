@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 interface TagInputProps {
   value:        string[];
   onChange:     (tags: string[]) => void;
+  id?:          string;
+  ariaLabel?:   string;
   placeholder?: string;
   disabled?:    boolean;
   className?:   string;
@@ -15,7 +17,9 @@ interface TagInputProps {
 export function TagInput({
   value,
   onChange,
-  placeholder = "Type and press Enter…",
+  id,
+  ariaLabel,
+  placeholder = "Typ een waarde en druk op Enter…",
   disabled,
   className,
 }: TagInputProps) {
@@ -45,27 +49,25 @@ export function TagInput({
   return (
     <div
       className={cn(
-        "flex flex-wrap gap-1.5 min-h-[38px] px-3 py-2 rounded-md border bg-background",
+        "flex min-h-11 flex-wrap gap-1.5 rounded-md border border-border bg-background px-3 py-2",
         "focus-within:ring-1 focus-within:ring-ring focus-within:border-ring",
         "transition-colors",
         disabled && "cursor-not-allowed opacity-50",
         className,
       )}
-      style={{ borderColor: "#E2E8F0" }}
     >
       {value.map((tag, i) => (
         <span
-          key={i}
-          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
-          style={{ backgroundColor: "#E0FAFB", color: "#0A7E7A" }}
+          key={tag}
+          className="inline-flex min-h-8 items-center gap-1 rounded bg-accent py-0.5 pl-2 text-xs font-medium text-accent-foreground"
         >
           {tag}
           {!disabled && (
             <button
               type="button"
               onClick={() => removeTag(i)}
-              className="rounded hover:bg-black/10 focus:outline-none flex-shrink-0"
-              aria-label={`Remove ${tag}`}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-sm hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7"
+              aria-label={`${tag} verwijderen`}
             >
               <X className="h-2.5 w-2.5" />
             </button>
@@ -74,12 +76,14 @@ export function TagInput({
       ))}
       {!disabled && (
         <input
+          id={id}
+          aria-label={ariaLabel}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={addTag}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="min-h-10 min-w-[120px] flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       )}
     </div>

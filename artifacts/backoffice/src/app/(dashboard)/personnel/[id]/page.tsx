@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft, Mail, Phone, MapPin, Calendar,
+  Mail, Phone, MapPin, Calendar,
   CheckCircle2, XCircle, ClipboardList, Building2,
   Briefcase, AlertCircle, FileText, Route,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isCurrentTenantModuleEnabled } from "@/lib/auth/modules";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
@@ -77,14 +78,26 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadMaterials, canReadInventory] = await Promise.all([
+  const [
+    canWrite,
+    canReadAssignments,
+    canReadObjects,
+    canReadDocuments,
+    canWriteDocuments,
+    canReadMaterials,
+    canReadInventory,
+    personnelPortalEnabled,
+  ] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
+    hasPermission("objects", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
+    isCurrentTenantModuleEnabled("personnel_portal"),
   ]);
+  const canManagePortal = canWrite && personnelPortalEnabled;
 
   const [
     person,
@@ -101,14 +114,16 @@ export default async function PersonnelDetailPage({ params }: Props) {
     inventoryItems,
   ] = await Promise.all([
     getPersonnel(id),
-    listRoles(),
-    listSectors(),
+    canWrite ? listRoles() : Promise.resolve([]),
+    canWrite ? listSectors() : Promise.resolve([]),
     getAvailabilityWindows(id),
     listLeavePeriods(id),
-    listAssignmentsForPersonnel(id),
-    listDocuments({ entityType: "personnel", entityId: id }),
-    getPersonnelAuthStatus(id),
-    getLinkedObjects(id),
+    canReadAssignments ? listAssignmentsForPersonnel(id) : Promise.resolve([]),
+    canReadDocuments
+      ? listDocuments({ entityType: "personnel", entityId: id })
+      : Promise.resolve([]),
+    canManagePortal ? getPersonnelAuthStatus(id) : Promise.resolve("none" as const),
+    canReadObjects ? getLinkedObjects(id) : Promise.resolve([]),
     listPersonnelQualifications(id),
     canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
@@ -176,10 +191,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
         items={[
           { label: "Beschikbaarheid", href: "#availability", active: true },
           { label: "Profiel", href: "#profile" },
-          { label: "Opdrachten", href: "#assignments", count: assignmentHistory.length },
-          { label: "Materiaal", href: "#materials", count: materialStock.length },
-          { label: "Inventaris", href: "#inventory", count: inventoryItems.length },
-          { label: "Documenten", href: "#documents", count: documents.length },
+          ...(canReadAssignments
+            ? [{ label: "Opdrachten", href: "#assignments", count: assignmentHistory.length }]
+            : []),
+          ...(canReadMaterials
+            ? [{ label: "Materiaal", href: "#materials", count: materialStock.length }]
+            : []),
+          ...(canReadInventory
+            ? [{ label: "Inventaris", href: "#inventory", count: inventoryItems.length }]
+            : []),
+          ...(canReadDocuments
+            ? [{ label: "Documenten", href: "#documents", count: documents.length }]
+            : []),
         ]}
       />
 
@@ -200,87 +223,15 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 authStatus={authStatus}
                 roles={roles}
                 sectors={sectors}
+                canManagePortal={canManagePortal}
               />
             </TenantDetailActionPanel>
           ) : undefined
         }
       >
-      {/* ── Header ──────────────────────────────────────── */}
-      <div className="hidden">
-        <div className="flex items-start gap-4">
-          <Link
-            href="/personnel"
-            className="mt-1 flex items-center gap-1 text-sm transition-colors hover:underline"
-            style={{ color: "#64748B" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Personeel
-          </Link>
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-                {fullName}
-              </h1>
-              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                {person.code}
-              </span>
-              {typeLabel && typeColor && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: typeColor.bg, color: typeColor.color }}
-                >
-                  {typeLabel}
-                </span>
-              )}
-              {person.roleName && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
-                >
-                  {formatPersonnelRoleName(person.roleName)}
-                </span>
-              )}
-              {person.sectorName && (
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
-                >
-                  {person.sectorName}
-                </span>
-              )}
-              <StatusBadge isActive={person.isActive} />
-              {person.emergencyAvailable && (
-                <span
-                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
-                >
-                  <AlertCircle className="h-3 w-3" />
-                  Spoedsbeschikbaar
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 text-sm" style={{ color: "#64748B" }}>{person.email}</p>
-          </div>
-        </div>
-
-        {canWrite && (
-          <PersonnelDetailActions
-            personnelId={person.id}
-            personnelName={fullName}
-            personnelEmail={person.email}
-            isActive={person.isActive}
-            userId={person.userId}
-            inviteSentAt={person.inviteSentAt}
-            authStatus={authStatus}
-            roles={roles}
-            sectors={sectors}
-          />
-        )}
-      </div>
-
       {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
       <section id="availability" className="mb-6 scroll-mt-24">
-        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
+        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
           Beschikbaarheid &amp; verlof
         </h2>
         <BeschikbaarheidView
@@ -297,7 +248,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
           {/* Contact */}
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
               Contact
             </h2>
             <dl className="space-y-3">
@@ -305,7 +256,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 icon={<Mail className="h-4 w-4" />}
                 label="E-mail"
                 value={
-                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                     {person.email}
                   </a>
                 }
@@ -315,7 +266,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   icon={<Phone className="h-4 w-4" />}
                   label="Telefoon"
                   value={
-                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                       {person.phone}
                     </a>
                   }
@@ -357,7 +308,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {/* Qualifications */}
           <div className="veele-card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+              <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                 Kwalificaties
               </h2>
               {canWrite && (
@@ -405,8 +356,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {person.contractInfo && (
             <div className="veele-card">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                <FileText className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                   Contractgegevens
                 </h2>
               </div>
@@ -451,7 +402,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
         {/* ── Right column ─────────────────────────────── */}
         <div className="flex flex-col gap-5">
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
               Gegevens
             </h2>
             <dl className="space-y-3">
@@ -464,11 +415,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
               />
               <InfoRow
                 icon={person.isAvailable
-                  ? <CheckCircle2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  ? <CheckCircle2 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                   : <XCircle     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
                 label="Beschikbaar voor planning"
                 value={
-                  <span style={{ color: person.isAvailable ? "#00B7B3" : "#94A3B8" }}>
+                  <span style={{ color: person.isAvailable ? "var(--color-primary)" : "#94A3B8" }}>
                     {person.isAvailable ? "Ja" : "Nee"}
                   </span>
                 }
@@ -477,7 +428,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           </div>
 
           {/* Portaal-toegang */}
-          {canWrite && (
+          {canManagePortal && (
             <PersonnelPortalAccessCard
               personnelId={person.id}
               personnelEmail={person.email}
@@ -487,11 +438,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
           )}
 
           {/* Gekoppelde objecten */}
-          {linkedObjects.length > 0 && (
+          {canReadObjects && linkedObjects.length > 0 && (
             <div className="veele-card">
               <div className="flex items-center gap-2 mb-4">
-                <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                <Building2 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                   Gekoppelde objecten
                 </h2>
               </div>
@@ -505,7 +456,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   >
                     <Building2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                         {obj.objectName}
                       </p>
                       <p className="text-xs truncate" style={{ color: "#94A3B8" }}>
@@ -527,9 +478,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
             <div className="flex items-center justify-between px-5 py-4">
               <h2
                 className="font-heading text-sm font-semibold flex items-center gap-2"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
-                <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                <ClipboardList className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                 Opdrachten
                 <span className="text-xs font-normal" style={{ color: "#94A3B8" }}>
                   (laatste 10)
@@ -538,7 +489,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
               <Link
                 href={`/assignments?personnelId=${person.id}`}
                 className="text-xs font-medium hover:underline"
-                style={{ color: "#00B7B3" }}
+                style={{ color: "var(--color-primary)" }}
               >
                 Alle bekijken →
               </Link>

@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should mention ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should mention ${phrase}`,
+    );
   }
 }
 
@@ -176,7 +180,7 @@ test("backoffice support mode is platform-host bound and visible in the dashboar
     page,
     [
       "listCurrentSupportAccessGrants",
-      "Open supportmodus",
+      "Supportomgeving openen",
       "supportGrantStatus",
       "Je ziet alleen supportgrants",
     ],

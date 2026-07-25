@@ -35,7 +35,7 @@ export function PersonnelCompetenciesEditButton({ personnelId, personnelName, ro
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[540px] sm:max-w-[540px] overflow-y-auto">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[540px]">
           <SheetHeader>
             <SheetTitle>Kwalificaties bewerken</SheetTitle>
             <SheetDescription>

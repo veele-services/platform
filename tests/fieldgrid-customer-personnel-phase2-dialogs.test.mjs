@@ -48,13 +48,15 @@ test("phase 2 removes raw browser dialogs from customer and personnel production
 test("phase 2 provides an accessible personnel confirm dialog pattern", () => {
   const dialog = read("artifacts/personeel-pwa/src/components/PersonnelConfirmDialog.tsx");
 
-  assert.match(dialog, /role="dialog"/u);
-  assert.match(dialog, /aria-modal="true"/u);
-  assert.match(dialog, /aria-labelledby/u);
-  assert.match(dialog, /aria-describedby/u);
-  assert.match(dialog, /event\.key === "Escape"/u);
-  assert.match(dialog, /cancelButtonRef\.current\?\.focus/u);
-  assert.match(dialog, /sm:items-center/u);
+  assert.match(dialog, /from "@workspace\/shared-ui"/u);
+  assert.match(dialog, /<AlertDialog/u);
+  assert.match(dialog, /<AlertDialogContent/u);
+  assert.match(dialog, /<AlertDialogTitle/u);
+  assert.match(dialog, /<AlertDialogDescription/u);
+  assert.match(dialog, /<AlertDialogCancel/u);
+  assert.match(dialog, /<AlertDialogAction/u);
+  assert.match(dialog, /onOpenChange=/u);
+  assert.doesNotMatch(dialog, /role="dialog"|aria-modal=/u);
 });
 
 test("phase 2 replaces risky personnel actions with app confirm dialogs", () => {

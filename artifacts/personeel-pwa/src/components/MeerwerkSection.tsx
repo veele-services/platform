@@ -1,7 +1,18 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { useState, useRef, useTransition } from "react";
-import { Plus, Trash2, Camera, X, Loader2, ChevronDown, ChevronUp, ImageIcon, Pencil } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Camera,
+  X,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+  Pencil,
+} from "lucide-react";
 import {
   addExtraWork,
   updateExtraWork,
@@ -23,21 +34,26 @@ import {
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface PhotoState {
-  id:          string;
+  id: string;
   storagePath: string;
-  previewUrl:  string; // objectURL for new uploads, signedUrl for existing
+  previewUrl: string; // objectURL for new uploads, signedUrl for existing
 }
 
 interface ItemState extends Omit<ExtraWorkItem, "photos"> {
   photos: PhotoState[];
 }
 
-const EMPTY_FORM: ExtraWorkInput & { taskCodeId: string; taskCodeName: string; hours: string; price: string } = {
-  taskCodeId:   "",
+const EMPTY_FORM: ExtraWorkInput & {
+  taskCodeId: string;
+  taskCodeName: string;
+  hours: string;
+  price: string;
+} = {
+  taskCodeId: "",
   taskCodeName: "",
-  description:  "",
-  hours:        "",
-  price:        "",
+  description: "",
+  hours: "",
+  price: "",
 };
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -45,35 +61,40 @@ const EMPTY_FORM: ExtraWorkInput & { taskCodeId: string; taskCodeName: string; h
 interface Props {
   assignmentId: string;
   initialItems: ExtraWorkItem[];
-  taskCodes:    TaskCodeOption[];
-  canEdit:      boolean;
+  taskCodes: TaskCodeOption[];
+  canEdit: boolean;
 }
 
-export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit }: Props) {
+export function MeerwerkSection({
+  assignmentId,
+  initialItems,
+  taskCodes,
+  canEdit,
+}: Props) {
   const [items, setItems] = useState<ItemState[]>(
     initialItems.map((i) => ({
       ...i,
       photos: i.photos.map((p) => ({
-        id:          p.id,
+        id: p.id,
         storagePath: p.storagePath,
-        previewUrl:  p.signedUrl ?? "",
+        previewUrl: p.signedUrl ?? "",
       })),
     })),
   );
 
-  const [showAddForm, setShowAddForm]   = useState(false);
-  const [addForm, setAddForm]           = useState({ ...EMPTY_FORM });
-  const [addError, setAddError]         = useState<string | null>(null);
-  const [isAdding, startAdd]            = useTransition();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({ ...EMPTY_FORM });
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isAdding, startAdd] = useTransition();
 
-  const [editingId, setEditingId]       = useState<string | null>(null);
-  const [editForm, setEditForm]         = useState({ ...EMPTY_FORM });
-  const [editError, setEditError]       = useState<string | null>(null);
-  const [isSavingEdit, startSaveEdit]   = useTransition();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ ...EMPTY_FORM });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, startSaveEdit] = useTransition();
 
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
-  const [deletingId, setDeletingId]     = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -83,9 +104,9 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
     const code = taskCodes.find((c) => c.id === codeId);
     setAddForm((f) => ({
       ...f,
-      taskCodeId:   codeId,
+      taskCodeId: codeId,
       taskCodeName: code?.name ?? "",
-      price:        f.price || (code?.price ?? ""),
+      price: f.price || (code?.price ?? ""),
     }));
   }
 
@@ -100,11 +121,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
 
     startAdd(async () => {
       const result = await addExtraWork(assignmentId, {
-        taskCodeId:   addForm.taskCodeId || null,
+        taskCodeId: addForm.taskCodeId || null,
         taskCodeName: addForm.taskCodeName || null,
-        description:  addForm.description,
-        hours:        addForm.hours || null,
-        price:        addForm.price || null,
+        description: addForm.description,
+        hours: addForm.hours || null,
+        price: addForm.price || null,
       });
 
       if (!result.success || !result.id) {
@@ -115,14 +136,14 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
       setItems((prev) => [
         ...prev,
         {
-          id:           result.id!,
-          taskCodeId:   addForm.taskCodeId || null,
+          id: result.id!,
+          taskCodeId: addForm.taskCodeId || null,
           taskCodeName: addForm.taskCodeName || null,
-          description:  addForm.description,
-          hours:        addForm.hours || null,
-          price:        addForm.price || null,
-          createdBy:    "",
-          photos:       [],
+          description: addForm.description,
+          hours: addForm.hours || null,
+          price: addForm.price || null,
+          createdBy: "",
+          photos: [],
         },
       ]);
       setAddForm({ ...EMPTY_FORM });
@@ -135,11 +156,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
   function startEditing(item: ItemState) {
     setEditingId(item.id);
     setEditForm({
-      taskCodeId:   item.taskCodeId ?? "",
+      taskCodeId: item.taskCodeId ?? "",
       taskCodeName: item.taskCodeName ?? "",
-      description:  item.description,
-      hours:        item.hours ?? "",
-      price:        item.price ?? "",
+      description: item.description,
+      hours: item.hours ?? "",
+      price: item.price ?? "",
     });
     setEditError(null);
   }
@@ -148,9 +169,9 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
     const code = taskCodes.find((c) => c.id === codeId);
     setEditForm((f) => ({
       ...f,
-      taskCodeId:   codeId,
+      taskCodeId: codeId,
       taskCodeName: code?.name ?? "",
-      price:        f.price || (code?.price ?? ""),
+      price: f.price || (code?.price ?? ""),
     }));
   }
 
@@ -168,11 +189,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
 
     startSaveEdit(async () => {
       const result = await updateExtraWork(currentId, assignmentId, {
-        taskCodeId:   editForm.taskCodeId || null,
+        taskCodeId: editForm.taskCodeId || null,
         taskCodeName: editForm.taskCodeName || null,
-        description:  editForm.description,
-        hours:        editForm.hours || null,
-        price:        editForm.price || null,
+        description: editForm.description,
+        hours: editForm.hours || null,
+        price: editForm.price || null,
       });
 
       if (!result.success) {
@@ -185,11 +206,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
           item.id === currentId
             ? {
                 ...item,
-                taskCodeId:   editForm.taskCodeId || null,
+                taskCodeId: editForm.taskCodeId || null,
                 taskCodeName: editForm.taskCodeName || null,
-                description:  editForm.description,
-                hours:        editForm.hours || null,
-                price:        editForm.price || null,
+                description: editForm.description,
+                hours: editForm.hours || null,
+                price: editForm.price || null,
               }
             : item,
         ),
@@ -221,11 +242,15 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
     setUploadingFor(itemId);
     setUploadErrors((current) => ({ ...current, [itemId]: "" }));
     try {
-      const initialValidation = validateAssignmentMediaFile(file, { allowVideos: false });
+      const initialValidation = validateAssignmentMediaFile(file, {
+        allowVideos: false,
+      });
       if (!initialValidation.valid) throw new Error(initialValidation.error);
 
       const uploadFile = await compressImageIfUseful(file);
-      const validation = validateAssignmentMediaFile(uploadFile, { allowVideos: false });
+      const validation = validateAssignmentMediaFile(uploadFile, {
+        allowVideos: false,
+      });
       if (!validation.valid) throw new Error(validation.error);
 
       const prepared = await prepareExtraWorkPhotoUpload(assignmentId, itemId, {
@@ -239,7 +264,7 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
       }
 
       const supabase = createClient();
-      const path     = prepared.upload.storagePath;
+      const path = prepared.upload.storagePath;
 
       const { error: uploadError } = await supabase.storage
         .from(ASSIGNMENT_MEDIA_BUCKET)
@@ -263,7 +288,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                 ...item,
                 photos: [
                   ...item.photos,
-                  { id: result.photoId!, storagePath: path, previewUrl: localUrl },
+                  {
+                    id: result.photoId!,
+                    storagePath: path,
+                    previewUrl: localUrl,
+                  },
                 ],
               }
             : item,
@@ -290,7 +319,10 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
         setItems((prev) =>
           prev.map((item) =>
             item.id === itemId
-              ? { ...item, photos: item.photos.filter((p) => p.id !== photo.id) }
+              ? {
+                  ...item,
+                  photos: item.photos.filter((p) => p.id !== photo.id),
+                }
               : item,
           ),
         );
@@ -332,7 +364,10 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                 className="space-y-3 rounded-xl border p-3"
                 style={{ borderColor: "var(--color-accent)" }}
               >
-                <p className="text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+                <p
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--color-accent)" }}
+                >
                   Meerwerk bewerken
                 </p>
                 <InlineFormFields
@@ -342,8 +377,10 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                   onCodeChange={handleEditCodeChange}
                 />
                 {editError && (
-                  <p className="rounded-xl px-3 py-2 text-xs font-medium"
-                    style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                  <p
+                    className="rounded-xl px-3 py-2 text-xs font-medium"
+                    style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
+                  >
                     {editError}
                   </p>
                 )}
@@ -352,7 +389,10 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                     type="button"
                     onClick={() => setEditingId(null)}
                     className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
-                    style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
+                    style={{
+                      borderColor: "var(--color-border)",
+                      color: "var(--color-secondary)",
+                    }}
                   >
                     Annuleren
                   </button>
@@ -362,7 +402,9 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium text-white disabled:opacity-60"
                     style={{ backgroundColor: "var(--color-accent)" }}
                   >
-                    {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {isSavingEdit ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
                     Opslaan
                   </button>
                 </div>
@@ -388,8 +430,13 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
       )}
 
       {items.length === 0 && !showAddForm && (
-        <p className="py-3 text-center text-sm" style={{ color: "var(--color-muted-fg)" }}>
-          {canEdit ? "Nog geen meerwerk toegevoegd." : "Geen meerwerk geregistreerd."}
+        <p
+          className="py-3 text-center text-sm"
+          style={{ color: "var(--color-muted-fg)" }}
+        >
+          {canEdit
+            ? "Nog geen meerwerk toegevoegd."
+            : "Geen meerwerk geregistreerd."}
         </p>
       )}
 
@@ -407,17 +454,26 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
             onCodeChange={handleAddCodeChange}
           />
           {addError && (
-            <p className="rounded-xl px-3 py-2 text-xs font-medium"
-              style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+            <p
+              className="rounded-xl px-3 py-2 text-xs font-medium"
+              style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
+            >
               {addError}
             </p>
           )}
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => { setShowAddForm(false); setAddForm({ ...EMPTY_FORM }); setAddError(null); }}
+              onClick={() => {
+                setShowAddForm(false);
+                setAddForm({ ...EMPTY_FORM });
+                setAddError(null);
+              }}
               className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
+              style={{
+                borderColor: "var(--color-border)",
+                color: "var(--color-secondary)",
+              }}
             >
               Annuleren
             </button>
@@ -427,7 +483,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
-              {isAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {isAdding ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Plus size={14} />
+              )}
               Opslaan
             </button>
           </div>
@@ -440,11 +500,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
 // ─── Shared form fields ────────────────────────────────────────────────────────
 
 type FormState = {
-  taskCodeId:   string;
+  taskCodeId: string;
   taskCodeName: string;
-  description:  string;
-  hours:        string;
-  price:        string;
+  description: string;
+  hours: string;
+  price: string;
 };
 
 function InlineFormFields({
@@ -453,23 +513,30 @@ function InlineFormFields({
   taskCodes,
   onCodeChange,
 }: {
-  form:         FormState;
-  setForm:      React.Dispatch<React.SetStateAction<FormState>>;
-  taskCodes:    TaskCodeOption[];
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  taskCodes: TaskCodeOption[];
   onCodeChange: (id: string) => void;
 }) {
   return (
     <>
       {/* Taakcode */}
       <div>
-        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-primary)" }}>
-          Taakcode <span style={{ color: "var(--color-muted-fg)" }}>(optioneel)</span>
+        <label
+          className="mb-1 block text-xs font-medium"
+          style={{ color: "var(--color-primary)" }}
+        >
+          Taakcode{" "}
+          <span style={{ color: "var(--color-muted-fg)" }}>(optioneel)</span>
         </label>
-        <select
+        <SelectAdapter
           value={form.taskCodeId}
           onChange={(e) => onCodeChange(e.target.value)}
           className="w-full rounded-xl border px-3 py-3 text-sm outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="">— Geen taakcode —</option>
           {taskCodes.map((tc) => (
@@ -477,28 +544,39 @@ function InlineFormFields({
               {tc.code} · {tc.name}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
 
       {/* Omschrijving */}
       <div>
-        <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+        <label
+          className="mb-1 block text-xs font-medium"
+          style={{ color: "var(--color-primary)" }}
+        >
           Omschrijving <span style={{ color: "#EF4444" }}>*</span>
         </label>
         <textarea
           value={form.description}
-          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, description: e.target.value }))
+          }
           rows={2}
           placeholder="Beschrijf het meerwerk…"
           className="w-full resize-none rounded-xl border px-3 py-2.5 text-sm outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
 
       {/* Uren + Prijs */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-primary)" }}
+          >
             Uren
           </label>
           <input
@@ -510,11 +588,17 @@ function InlineFormFields({
             onChange={(e) => setForm((f) => ({ ...f, hours: e.target.value }))}
             placeholder="bijv. 1.5"
             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+          <label
+            className="mb-1 block text-xs font-medium"
+            style={{ color: "var(--color-primary)" }}
+          >
             Prijs (€)
           </label>
           <input
@@ -525,7 +609,10 @@ function InlineFormFields({
             onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
             placeholder="bijv. 75.00"
             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           />
         </div>
       </div>
@@ -547,25 +634,28 @@ function MeerwerkItemKaart({
   onDeletePhoto,
   onDeleteItem,
 }: {
-  item:         ItemState;
-  canEdit:      boolean;
+  item: ItemState;
+  canEdit: boolean;
   uploadingFor: string | null;
-  uploadError:  string;
-  deletingId:   string | null;
-  fileRefs:     React.MutableRefObject<Record<string, HTMLInputElement | null>>;
-  onEdit:       () => void;
-  onUpload:     (itemId: string, files: FileList | null) => void;
-  onDeletePhoto:(itemId: string, photo: PhotoState) => void;
+  uploadError: string;
+  deletingId: string | null;
+  fileRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onEdit: () => void;
+  onUpload: (itemId: string, files: FileList | null) => void;
+  onDeletePhoto: (itemId: string, photo: PhotoState) => void;
   onDeleteItem: (itemId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const isDeleting  = deletingId === item.id;
+  const isDeleting = deletingId === item.id;
   const isUploading = uploadingFor === item.id;
 
   return (
     <div
       className="rounded-xl border"
-      style={{ borderColor: "var(--color-border)", opacity: isDeleting ? 0.5 : 1 }}
+      style={{
+        borderColor: "var(--color-border)",
+        opacity: isDeleting ? 0.5 : 1,
+      }}
     >
       {/* Header */}
       <div className="flex items-start gap-2 px-3 py-2.5">
@@ -582,16 +672,25 @@ function MeerwerkItemKaart({
           {item.taskCodeName && (
             <span
               className="mb-0.5 inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-bold"
-              style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
+              style={{
+                backgroundColor: "rgba(0,183,179,0.1)",
+                color: "var(--color-accent)",
+              }}
             >
               {item.taskCodeName}
             </span>
           )}
-          <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+          <p
+            className="text-sm font-medium"
+            style={{ color: "var(--color-primary)" }}
+          >
             {item.description}
           </p>
           {(item.hours || item.price) && (
-            <p className="mt-0.5 text-xs" style={{ color: "var(--color-secondary)" }}>
+            <p
+              className="mt-0.5 text-xs"
+              style={{ color: "var(--color-secondary)" }}
+            >
               {item.hours ? `${item.hours} uur` : ""}
               {item.hours && item.price ? " · " : ""}
               {item.price ? `€ ${item.price}` : ""}
@@ -616,7 +715,11 @@ function MeerwerkItemKaart({
               style={{ color: "#EF4444" }}
               aria-label="Verwijderen"
             >
-              {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              {isDeleting ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Trash2 size={13} />
+              )}
             </button>
           </div>
         )}
@@ -624,7 +727,10 @@ function MeerwerkItemKaart({
 
       {/* Photos section */}
       {expanded && (
-        <div className="border-t px-3 pb-3 pt-2.5" style={{ borderColor: "var(--color-border)" }}>
+        <div
+          className="border-t px-3 pb-3 pt-2.5"
+          style={{ borderColor: "var(--color-border)" }}
+        >
           {item.photos.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {item.photos.map((photo) => (
@@ -641,7 +747,10 @@ function MeerwerkItemKaart({
                       className="flex h-20 w-20 items-center justify-center rounded-xl"
                       style={{ backgroundColor: "var(--color-muted)" }}
                     >
-                      <ImageIcon size={20} style={{ color: "var(--color-muted-fg)" }} />
+                      <ImageIcon
+                        size={20}
+                        style={{ color: "var(--color-muted-fg)" }}
+                      />
                     </div>
                   )}
                   {canEdit && (
@@ -651,9 +760,11 @@ function MeerwerkItemKaart({
                       className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow"
                       aria-label="Foto verwijderen"
                     >
-                      {deletingId === photo.id
-                        ? <Loader2 size={10} className="animate-spin" />
-                        : <X size={10} />}
+                      {deletingId === photo.id ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        <X size={10} />
+                      )}
                     </button>
                   )}
                 </div>
@@ -664,7 +775,9 @@ function MeerwerkItemKaart({
           {canEdit && item.photos.length < 5 && (
             <>
               <input
-                ref={(el) => { fileRefs.current[item.id] = el; }}
+                ref={(el) => {
+                  fileRefs.current[item.id] = el;
+                }}
                 type="file"
                 accept="image/*"
                 capture="environment"
@@ -675,15 +788,23 @@ function MeerwerkItemKaart({
                 onClick={() => fileRefs.current[item.id]?.click()}
                 disabled={isUploading}
                 className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium"
-                style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
+                style={{
+                  borderColor: "var(--color-accent)",
+                  color: "var(--color-accent)",
+                }}
               >
-                {isUploading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <Camera size={13} />}
+                {isUploading ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Camera size={13} />
+                )}
                 {isUploading ? "Uploaden…" : "Foto toevoegen"}
               </button>
               {uploadError ? (
-                <p className="mt-2 rounded-xl px-3 py-2 text-xs font-medium" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                <p
+                  className="mt-2 rounded-xl px-3 py-2 text-xs font-medium"
+                  style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
+                >
                   {uploadError}
                 </p>
               ) : null}

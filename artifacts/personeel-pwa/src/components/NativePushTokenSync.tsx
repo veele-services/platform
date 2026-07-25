@@ -3,7 +3,10 @@
 import { useEffect } from "react";
 import { saveMyNativePushToken } from "@/actions/push";
 import { isNativeCapacitorRuntime } from "@/lib/capacitor";
-import { getLocalNativePushState } from "@/lib/native-push";
+import {
+  getLocalNativePushState,
+  getNativePushAppMetadata,
+} from "@/lib/native-push";
 
 export function NativePushTokenSync({ enabled }: { enabled: boolean }) {
   useEffect(() => {
@@ -15,10 +18,15 @@ export function NativePushTokenSync({ enabled }: { enabled: boolean }) {
       .then(async (state) => {
         if (cancelled || !state.supported || !state.token) return;
 
+        const metadata = await getNativePushAppMetadata();
+        if (!metadata) return;
+
         await saveMyNativePushToken({
           token: state.token,
           platform: state.platform,
-          appId: "nl.veeleservices.personeel",
+          appId: metadata.appId,
+          appVersion: metadata.appVersion,
+          appBuild: metadata.appBuild,
           userAgent: navigator.userAgent,
         });
       })

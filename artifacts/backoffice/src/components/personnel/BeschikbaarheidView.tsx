@@ -1,7 +1,19 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useState, useTransition } from "react";
-import { Save, Plus, Trash2, Pencil, X, AlertCircle, CheckCircle2, Calendar, Check, XCircle } from "lucide-react";
+import {
+  Save,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Calendar,
+  Check,
+  XCircle,
+} from "lucide-react";
 import {
   setAvailabilityWindows,
   addLeavePeriod,
@@ -31,13 +43,15 @@ const DAYS = [
 
 const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
   vakantie: "Vakantie",
-  ziekte:   "Ziekte",
-  overig:   "Overig",
+  ziekte: "Ziekte",
+  overig: "Overig",
 };
 
 type DayConfig = { enabled: boolean; startTime: string; endTime: string };
 
-function windowsToDayConfig(windows: AvailabilityWindow[]): Record<number, DayConfig> {
+function windowsToDayConfig(
+  windows: AvailabilityWindow[],
+): Record<number, DayConfig> {
   const map: Record<number, DayConfig> = {};
   for (const { dow } of DAYS) {
     const w = windows.find((w) => w.dayOfWeek === dow);
@@ -51,10 +65,10 @@ function windowsToDayConfig(windows: AvailabilityWindow[]): Record<number, DayCo
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
-  personnelId:  string;
-  windows:      AvailabilityWindow[];
+  personnelId: string;
+  windows: AvailabilityWindow[];
   leavePeriods: LeavePeriod[];
-  canWrite:     boolean;
+  canWrite: boolean;
 }
 
 export function BeschikbaarheidView({
@@ -63,20 +77,22 @@ export function BeschikbaarheidView({
   leavePeriods: initialLeave,
   canWrite,
 }: Props) {
-  const [dayConfig, setDayConfig]         = useState(() => windowsToDayConfig(initialWindows));
-  const [leavePeriods, setLeavePeriods]   = useState(initialLeave);
-  const [showAddLeave, setShowAddLeave]   = useState(false);
+  const [dayConfig, setDayConfig] = useState(() =>
+    windowsToDayConfig(initialWindows),
+  );
+  const [leavePeriods, setLeavePeriods] = useState(initialLeave);
+  const [showAddLeave, setShowAddLeave] = useState(false);
   const [editingLeaveId, setEditingLeaveId] = useState<string | null>(null);
   const [deleteLeaveId, setDeleteLeaveId] = useState<string | null>(null);
   const [rejectLeaveId, setRejectLeaveId] = useState<string | null>(null);
 
   const [scheduleSaved, setScheduleSaved] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  const [leaveError, setLeaveError]       = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
-  const [schedulePending, startSchedule]    = useTransition();
-  const [leavePending, startLeave]          = useTransition();
-  const [approvalPending, startApproval]    = useTransition();
+  const [schedulePending, startSchedule] = useTransition();
+  const [leavePending, startLeave] = useTransition();
+  const [approvalPending, startApproval] = useTransition();
 
   // ─── Weekschema ────────────────────────────────────────────────────────────
 
@@ -87,7 +103,11 @@ export function BeschikbaarheidView({
     }));
   }
 
-  function updateTime(dow: number, field: "startTime" | "endTime", value: string) {
+  function updateTime(
+    dow: number,
+    field: "startTime" | "endTime",
+    value: string,
+  ) {
     setDayConfig((prev) => ({
       ...prev,
       [dow]: { ...prev[dow]!, [field]: value },
@@ -97,13 +117,11 @@ export function BeschikbaarheidView({
   function handleSaveSchedule() {
     setScheduleError(null);
     setScheduleSaved(false);
-    const wins = DAYS
-      .filter((d) => dayConfig[d.dow]?.enabled)
-      .map((d) => ({
-        dayOfWeek: d.dow,
-        startTime: dayConfig[d.dow]!.startTime,
-        endTime:   dayConfig[d.dow]!.endTime,
-      }));
+    const wins = DAYS.filter((d) => dayConfig[d.dow]?.enabled).map((d) => ({
+      dayOfWeek: d.dow,
+      startTime: dayConfig[d.dow]!.startTime,
+      endTime: dayConfig[d.dow]!.endTime,
+    }));
 
     startSchedule(async () => {
       const result = await setAvailabilityWindows(personnelId, wins);
@@ -111,7 +129,9 @@ export function BeschikbaarheidView({
         setScheduleSaved(true);
         setTimeout(() => setScheduleSaved(false), 2500);
       } else {
-        setScheduleError((result as { message?: string }).message ?? "Opslaan mislukt.");
+        setScheduleError(
+          (result as { message?: string }).message ?? "Opslaan mislukt.",
+        );
       }
     });
   }
@@ -125,7 +145,9 @@ export function BeschikbaarheidView({
       if (result.success) {
         setLeavePeriods((prev) => prev.filter((l) => l.id !== id));
       } else {
-        setLeaveError((result as { message?: string }).message ?? "Verwijderen mislukt.");
+        setLeaveError(
+          (result as { message?: string }).message ?? "Verwijderen mislukt.",
+        );
       }
       setDeleteLeaveId(null);
     });
@@ -144,10 +166,14 @@ export function BeschikbaarheidView({
       const result = await approveLeavePeriod(id, personnelId);
       if (result.success) {
         setLeavePeriods((prev) =>
-          prev.map((l) => l.id === id ? { ...l, status: "approved" as LeaveStatus } : l),
+          prev.map((l) =>
+            l.id === id ? { ...l, status: "approved" as LeaveStatus } : l,
+          ),
         );
       } else {
-        setLeaveError((result as { message?: string }).message ?? "Goedkeuren mislukt.");
+        setLeaveError(
+          (result as { message?: string }).message ?? "Goedkeuren mislukt.",
+        );
       }
     });
   }
@@ -158,10 +184,14 @@ export function BeschikbaarheidView({
       const result = await rejectLeavePeriod(id, personnelId);
       if (result.success) {
         setLeavePeriods((prev) =>
-          prev.map((l) => l.id === id ? { ...l, status: "rejected" as LeaveStatus } : l),
+          prev.map((l) =>
+            l.id === id ? { ...l, status: "rejected" as LeaveStatus } : l,
+          ),
         );
       } else {
-        setLeaveError((result as { message?: string }).message ?? "Afwijzen mislukt.");
+        setLeaveError(
+          (result as { message?: string }).message ?? "Afwijzen mislukt.",
+        );
       }
       setRejectLeaveId(null);
     });
@@ -184,7 +214,10 @@ export function BeschikbaarheidView({
       <div className="veele-card">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <h2
+              className="font-heading text-sm font-semibold"
+              style={{ color: "var(--color-foreground)" }}
+            >
               Weekrooster
             </h2>
             <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
@@ -201,7 +234,9 @@ export function BeschikbaarheidView({
                 key={dow}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
                 style={{
-                  backgroundColor: cfg.enabled ? "rgba(0,183,179,0.04)" : "transparent",
+                  backgroundColor: cfg.enabled
+                    ? "rgba(0,183,179,0.04)"
+                    : "transparent",
                   border: `1px solid ${cfg.enabled ? "rgba(0,183,179,0.2)" : "#F1F5F9"}`,
                 }}
               >
@@ -211,8 +246,9 @@ export function BeschikbaarheidView({
                   disabled={!canWrite}
                   className="relative flex-shrink-0 rounded-full transition-colors"
                   style={{
-                    width: "36px", height: "20px",
-                    backgroundColor: cfg.enabled ? "#00B7B3" : "#CBD5E1",
+                    width: "36px",
+                    height: "20px",
+                    backgroundColor: cfg.enabled ? "var(--color-primary)" : "#CBD5E1",
                     cursor: canWrite ? "pointer" : "default",
                   }}
                   role="switch"
@@ -221,15 +257,18 @@ export function BeschikbaarheidView({
                   <span
                     className="absolute top-0.5 left-0.5 rounded-full bg-white transition-transform"
                     style={{
-                      width: "16px", height: "16px",
-                      transform: cfg.enabled ? "translateX(16px)" : "translateX(0)",
+                      width: "16px",
+                      height: "16px",
+                      transform: cfg.enabled
+                        ? "translateX(16px)"
+                        : "translateX(0)",
                     }}
                   />
                 </button>
 
                 <span
                   className="w-24 text-sm font-medium flex-shrink-0"
-                  style={{ color: cfg.enabled ? "#081D3A" : "#94A3B8" }}
+                  style={{ color: cfg.enabled ? "var(--color-foreground)" : "#94A3B8" }}
                 >
                   {label}
                 </span>
@@ -239,16 +278,22 @@ export function BeschikbaarheidView({
                     <input
                       type="time"
                       value={cfg.startTime}
-                      onChange={(e) => updateTime(dow, "startTime", e.target.value)}
+                      onChange={(e) =>
+                        updateTime(dow, "startTime", e.target.value)
+                      }
                       disabled={!canWrite}
                       className="veele-input w-28 text-sm"
                       style={{ padding: "4px 8px" }}
                     />
-                    <span className="text-sm" style={{ color: "#94A3B8" }}>t/m</span>
+                    <span className="text-sm" style={{ color: "#94A3B8" }}>
+                      t/m
+                    </span>
                     <input
                       type="time"
                       value={cfg.endTime}
-                      onChange={(e) => updateTime(dow, "endTime", e.target.value)}
+                      onChange={(e) =>
+                        updateTime(dow, "endTime", e.target.value)
+                      }
                       disabled={!canWrite}
                       className="veele-input w-28 text-sm"
                       style={{ padding: "4px 8px" }}
@@ -271,19 +316,27 @@ export function BeschikbaarheidView({
               onClick={handleSaveSchedule}
               disabled={schedulePending}
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#081D3A" }}
+              style={{ backgroundColor: "var(--color-foreground)" }}
             >
               <Save className="h-3.5 w-3.5" />
               {schedulePending ? "Opslaan…" : "Rooster opslaan"}
             </button>
             {scheduleSaved && (
-              <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#059669" }}>
-                <CheckCircle2 className="h-4 w-4" />Opgeslagen
+              <span
+                className="inline-flex items-center gap-1.5 text-sm"
+                style={{ color: "#059669" }}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Opgeslagen
               </span>
             )}
             {scheduleError && (
-              <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}>
-                <AlertCircle className="h-4 w-4" />{scheduleError}
+              <span
+                className="inline-flex items-center gap-1.5 text-sm"
+                style={{ color: "#DC2626" }}
+              >
+                <AlertCircle className="h-4 w-4" />
+                {scheduleError}
               </span>
             )}
           </div>
@@ -293,15 +346,21 @@ export function BeschikbaarheidView({
       {/* ── Verlofperiodes ───────────────────────────────────────────────── */}
       <div className="veele-card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <h2
+            className="font-heading text-sm font-semibold"
+            style={{ color: "var(--color-foreground)" }}
+          >
             Verlof &amp; afwezigheid
           </h2>
           {canWrite && !showAddLeave && (
             <button
               type="button"
-              onClick={() => { setShowAddLeave(true); setEditingLeaveId(null); }}
+              onClick={() => {
+                setShowAddLeave(true);
+                setEditingLeaveId(null);
+              }}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: "#00B7B3" }}
+              style={{ backgroundColor: "var(--color-primary)" }}
             >
               <Plus className="h-3.5 w-3.5" />
               Periode toevoegen
@@ -339,20 +398,22 @@ export function BeschikbaarheidView({
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                {["Begindatum", "Einddatum", "Type", "Status", "Reden", ""].map((h) => (
-                  <th
-                    key={h}
-                    className="pb-2 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: "#94A3B8" }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Begindatum", "Einddatum", "Type", "Status", "Reden", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="pb-2 text-left text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: "#94A3B8" }}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {leavePeriods.map((lp) => {
-                const isPast    = lp.endDate !== null && lp.endDate < today;
+                const isPast = lp.endDate !== null && lp.endDate < today;
                 const isCurrent =
                   lp.startDate <= today &&
                   (lp.endDate === null || lp.endDate >= today);
@@ -377,12 +438,25 @@ export function BeschikbaarheidView({
 
                 return (
                   <tr key={lp.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
-                    <td className="py-2.5 pr-4" style={{ color: isPast ? "#94A3B8" : "#081D3A" }}>
+                    <td
+                      className="py-2.5 pr-4"
+                      style={{ color: isPast ? "#94A3B8" : "var(--color-foreground)" }}
+                    >
                       {formatDate(lp.startDate)}
                     </td>
-                    <td className="py-2.5 pr-4" style={{ color: isPast ? "#94A3B8" : "#081D3A" }}>
-                      {lp.endDate ? formatDate(lp.endDate) : (
-                        <span style={{ color: isCurrent ? "#EF4444" : "#94A3B8", fontStyle: "italic" }}>
+                    <td
+                      className="py-2.5 pr-4"
+                      style={{ color: isPast ? "#94A3B8" : "var(--color-foreground)" }}
+                    >
+                      {lp.endDate ? (
+                        formatDate(lp.endDate)
+                      ) : (
+                        <span
+                          style={{
+                            color: isCurrent ? "#EF4444" : "#94A3B8",
+                            fontStyle: "italic",
+                          }}
+                        >
                           Doorlopend
                         </span>
                       )}
@@ -393,7 +467,10 @@ export function BeschikbaarheidView({
                     <td className="py-2.5 pr-4">
                       <LeaveStatusBadge status={lp.status} />
                     </td>
-                    <td className="py-2.5 pr-4 max-w-xs truncate" style={{ color: "#64748B" }}>
+                    <td
+                      className="py-2.5 pr-4 max-w-xs truncate"
+                      style={{ color: "#64748B" }}
+                    >
                       {lp.reason ?? <span style={{ color: "#CBD5E1" }}>—</span>}
                     </td>
                     <td className="py-2.5 text-right">
@@ -406,7 +483,10 @@ export function BeschikbaarheidView({
                               onClick={() => handleApprove(lp.id)}
                               disabled={approvalPending}
                               className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
-                              style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
+                              style={{
+                                backgroundColor: "#DCFCE7",
+                                color: "#15803D",
+                              }}
                               title="Goedkeuren"
                             >
                               <Check className="h-3 w-3" />
@@ -417,7 +497,10 @@ export function BeschikbaarheidView({
                               onClick={() => setRejectLeaveId(lp.id)}
                               disabled={approvalPending}
                               className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
-                              style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
+                              style={{
+                                backgroundColor: "#FEE2E2",
+                                color: "#991B1B",
+                              }}
                               title="Afwijzen"
                             >
                               <XCircle className="h-3 w-3" />
@@ -430,12 +513,18 @@ export function BeschikbaarheidView({
                           <>
                             <button
                               type="button"
-                              onClick={() => { setEditingLeaveId(lp.id); setShowAddLeave(false); }}
+                              onClick={() => {
+                                setEditingLeaveId(lp.id);
+                                setShowAddLeave(false);
+                              }}
                               disabled={leavePending}
                               className="rounded p-1 hover:bg-slate-100 transition-colors disabled:opacity-40"
                               title="Bewerken"
                             >
-                              <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
+                              <Pencil
+                                className="h-3.5 w-3.5"
+                                style={{ color: "#64748B" }}
+                              />
                             </button>
                             <button
                               type="button"
@@ -444,7 +533,10 @@ export function BeschikbaarheidView({
                               className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-40"
                               title="Verwijderen"
                             >
-                              <Trash2 className="h-3.5 w-3.5" style={{ color: "#EF4444" }} />
+                              <Trash2
+                                className="h-3.5 w-3.5"
+                                style={{ color: "#EF4444" }}
+                              />
                             </button>
                           </>
                         )}
@@ -500,22 +592,24 @@ function LeaveForm({
   onCancel,
   onError,
 }: {
-  personnelId:     string;
-  initial?:        LeavePeriod;
-  isPending:       boolean;
+  personnelId: string;
+  initial?: LeavePeriod;
+  isPending: boolean;
   startTransition: (fn: () => Promise<void>) => void;
-  onSave:          (period: LeavePeriod) => void;
-  onCancel:        () => void;
-  onError:         (msg: string) => void;
+  onSave: (period: LeavePeriod) => void;
+  onCancel: () => void;
+  onError: (msg: string) => void;
 }) {
-  const today   = new Date().toISOString().slice(0, 10);
-  const isEdit  = !!initial;
+  const today = new Date().toISOString().slice(0, 10);
+  const isEdit = !!initial;
 
   const [startDate, setStartDate] = useState(initial?.startDate ?? today);
-  const [endDate,   setEndDate]   = useState(initial?.endDate   ?? "");
-  const [leaveType, setLeaveType] = useState<LeaveType>(initial?.leaveType ?? "vakantie");
-  const [reason,    setReason]    = useState(initial?.reason    ?? "");
-  const [error,     setError]     = useState<string | null>(null);
+  const [endDate, setEndDate] = useState(initial?.endDate ?? "");
+  const [leaveType, setLeaveType] = useState<LeaveType>(
+    initial?.leaveType ?? "vakantie",
+  );
+  const [reason, setReason] = useState(initial?.reason ?? "");
+  const [error, setError] = useState<string | null>(null);
 
   const endDateRequired = leaveType !== "ziekte";
 
@@ -527,20 +621,21 @@ function LeaveForm({
       if (isEdit) {
         const result = await updateLeavePeriod(initial!.id, personnelId, {
           startDate,
-          endDate:   endDate || undefined,
+          endDate: endDate || undefined,
           leaveType,
-          reason:    reason || undefined,
+          reason: reason || undefined,
         });
         if (result.success) {
           onSave({
             ...initial!,
             startDate,
-            endDate:  endDate || null,
+            endDate: endDate || null,
             leaveType,
-            reason:   reason || null,
+            reason: reason || null,
           });
         } else {
-          const msg = (result as { message?: string }).message ?? "Bijwerken mislukt.";
+          const msg =
+            (result as { message?: string }).message ?? "Bijwerken mislukt.";
           setError(msg);
           onError(msg);
         }
@@ -548,23 +643,24 @@ function LeaveForm({
         const result = await addLeavePeriod({
           personnelId,
           startDate,
-          endDate:  endDate || undefined,
+          endDate: endDate || undefined,
           leaveType,
-          reason:   reason || undefined,
+          reason: reason || undefined,
         });
         if (result.success && result.data) {
           onSave({
-            id:          result.data.id,
+            id: result.data.id,
             personnelId,
             startDate,
-            endDate:     endDate || null,
+            endDate: endDate || null,
             leaveType,
-            reason:      reason || null,
-            status:      "approved",
-            createdAt:   new Date().toISOString(),
+            reason: reason || null,
+            status: "approved",
+            createdAt: new Date().toISOString(),
           });
         } else {
-          const msg = (result as { message?: string }).message ?? "Toevoegen mislukt.";
+          const msg =
+            (result as { message?: string }).message ?? "Toevoegen mislukt.";
           setError(msg);
           onError(msg);
         }
@@ -578,13 +674,16 @@ function LeaveForm({
       className="rounded-lg p-4 space-y-3"
       style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
     >
-      <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
         {isEdit ? "Verlofperiode bewerken" : "Nieuwe verlofperiode"}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium mb-1"
+            style={{ color: "#374151" }}
+          >
             Begindatum <span style={{ color: "#DC2626" }}>*</span>
           </label>
           <input
@@ -597,9 +696,14 @@ function LeaveForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium mb-1"
+            style={{ color: "#374151" }}
+          >
             Einddatum
-            {endDateRequired ? <span style={{ color: "#DC2626" }}> *</span> : (
+            {endDateRequired ? (
+              <span style={{ color: "#DC2626" }}> *</span>
+            ) : (
               <span style={{ color: "#94A3B8" }}> (optioneel)</span>
             )}
           </label>
@@ -614,10 +718,13 @@ function LeaveForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium mb-1"
+            style={{ color: "#374151" }}
+          >
             Type <span style={{ color: "#DC2626" }}>*</span>
           </label>
-          <select
+          <SelectAdapter
             value={leaveType}
             onChange={(e) => {
               setLeaveType(e.target.value as LeaveType);
@@ -629,12 +736,17 @@ function LeaveForm({
             className="veele-input w-full text-sm"
           >
             {LEAVE_TYPES.map((t) => (
-              <option key={t} value={t}>{LEAVE_TYPE_LABELS[t]}</option>
+              <option key={t} value={t}>
+                {LEAVE_TYPE_LABELS[t]}
+              </option>
             ))}
-          </select>
+          </SelectAdapter>
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
+          <label
+            className="block text-xs font-medium mb-1"
+            style={{ color: "#374151" }}
+          >
             Reden
           </label>
           <input
@@ -650,20 +762,31 @@ function LeaveForm({
 
       {leaveType === "ziekte" && !endDate && (
         <p className="text-xs" style={{ color: "#D97706" }}>
-          Geen einddatum ingevuld — ziekmelding wordt als doorlopend geregistreerd.
+          Geen einddatum ingevuld — ziekmelding wordt als doorlopend
+          geregistreerd.
         </p>
       )}
 
-      {error && <p className="text-xs" style={{ color: "#DC2626" }}>{error}</p>}
+      {error && (
+        <p className="text-xs" style={{ color: "#DC2626" }}>
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={isPending || !startDate || (endDateRequired && !endDate)}
           className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-          style={{ backgroundColor: "#081D3A" }}
+          style={{ backgroundColor: "var(--color-foreground)" }}
         >
-          {isPending ? (isEdit ? "Bijwerken…" : "Toevoegen…") : (isEdit ? "Bijwerken" : "Toevoegen")}
+          {isPending
+            ? isEdit
+              ? "Bijwerken…"
+              : "Toevoegen…"
+            : isEdit
+              ? "Bijwerken"
+              : "Toevoegen"}
         </button>
         <button
           type="button"
@@ -684,13 +807,18 @@ function LeaveForm({
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y!, m! - 1, d!).toLocaleDateString("nl-NL", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function LeaveStatusBadge({ status }: { status: LeaveStatus }) {
-  const styles: Record<LeaveStatus, { bg: string; color: string; label: string }> = {
-    pending:  { bg: "#FEF9C3", color: "#A16207", label: "In afwachting" },
+  const styles: Record<
+    LeaveStatus,
+    { bg: string; color: string; label: string }
+  > = {
+    pending: { bg: "#FEF9C3", color: "#A16207", label: "In afwachting" },
     approved: { bg: "#DCFCE7", color: "#15803D", label: "Goedgekeurd" },
     rejected: { bg: "#FEE2E2", color: "#991B1B", label: "Afgewezen" },
   };
@@ -705,11 +833,17 @@ function LeaveStatusBadge({ status }: { status: LeaveStatus }) {
   );
 }
 
-function LeaveBadge({ type, isCurrent }: { type: LeaveType; isCurrent: boolean }) {
+function LeaveBadge({
+  type,
+  isCurrent,
+}: {
+  type: LeaveType;
+  isCurrent: boolean;
+}) {
   const styles: Record<LeaveType, { bg: string; color: string }> = {
     vakantie: { bg: "#DBEAFE", color: "#1D4ED8" },
-    ziekte:   { bg: "#FEE2E2", color: "#991B1B" },
-    overig:   { bg: "#F3F4F6", color: "#374151" },
+    ziekte: { bg: "#FEE2E2", color: "#991B1B" },
+    overig: { bg: "#F3F4F6", color: "#374151" },
   };
   const s = styles[type];
   return (

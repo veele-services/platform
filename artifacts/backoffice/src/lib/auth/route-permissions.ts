@@ -1,35 +1,31 @@
+import {
+  TENANT_ROUTES,
+  permissionParts,
+  type FieldgridRouteDefinition,
+} from "@/lib/navigation/route-registry";
+
 /**
- * Canonical mapping from URL path prefix to the required permission.
+ * Middleware projection of the canonical route registry.
  *
- * Used by:
- * - `src/middleware.ts`  — fast route-level redirect
- * - Each dashboard page — authoritative server-side permission check
- *
- * Dashboard root (/) requires authentication only, no extra permission.
+ * Page-level server checks remain authoritative. This mapping avoids a second,
+ * stale navigation/permission list in middleware.
  */
 export interface RoutePermission {
-  prefix:   string;
+  prefix: string;
   resource: string;
-  action:   string;
+  action: string;
 }
 
-export const ROUTE_PERMISSIONS: RoutePermission[] = [
-  { prefix: "/planning",    resource: "planning",    action: "read" },
-  { prefix: "/assignments", resource: "assignments", action: "read" },
-  { prefix: "/customers",   resource: "customers",   action: "read" },
-  { prefix: "/objects",     resource: "objects",     action: "read" },
-  { prefix: "/personnel",   resource: "personnel",   action: "read" },
-  { prefix: "/materials",   resource: "materials",   action: "view" },
-  { prefix: "/inventory",   resource: "inventory",   action: "view" },
-  { prefix: "/reports",     resource: "reports",     action: "read" },
-  { prefix: "/invoices",    resource: "invoices",    action: "read" },
-  { prefix: "/quotes",      resource: "quotes",      action: "read" },
-  { prefix: "/documents",      resource: "documents", action: "read" },
-  { prefix: "/tickets",        resource: "tickets",   action: "read" },
-  { prefix: "/settings/checklists", resource: "checklists", action: "read" },
-  { prefix: "/settings",       resource: "settings",  action: "read" },
-  { prefix: "/instellingen",   resource: "settings",  action: "read" },
-];
+export const ROUTE_PERMISSIONS: RoutePermission[] = (
+  TENANT_ROUTES as readonly FieldgridRouteDefinition[]
+)
+  .flatMap((route) => {
+    const permission = permissionParts(route.permission);
+    if (!permission || route.href === "/") return [];
+    const prefixes = route.matchPrefixes ?? [route.href];
+    return prefixes.map((prefix) => ({ prefix, ...permission }));
+  })
+  .sort((a, b) => b.prefix.length - a.prefix.length);
 
 /**
  * Returns the required permission for the given pathname,

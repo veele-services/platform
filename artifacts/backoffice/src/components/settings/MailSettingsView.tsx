@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useState, useTransition } from "react";
 import {
   AlertCircle,
@@ -12,7 +14,10 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { sendTestMailSettings, updateMailSettings } from "@/app/actions/settings";
+import {
+  sendTestMailSettings,
+  updateMailSettings,
+} from "@/app/actions/settings";
 import type { OrgSettings } from "@/app/actions/settings";
 import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
 
@@ -25,7 +30,11 @@ type Encryption = "none" | "starttls" | "tls";
 type Transport = "platform" | "smtp" | "api";
 type ApiProvider = "resend";
 
-const ENCRYPTION_OPTIONS: Array<{ value: Encryption; label: string; hint: string }> = [
+const ENCRYPTION_OPTIONS: Array<{
+  value: Encryption;
+  label: string;
+  hint: string;
+}> = [
   { value: "starttls", label: "STARTTLS", hint: "Meestal poort 587" },
   { value: "tls", label: "TLS", hint: "Meestal poort 465" },
   { value: "none", label: "Geen", hint: "Alleen intern of test" },
@@ -36,26 +45,48 @@ export function MailSettingsView({ settings, canWrite }: Props) {
   const [emailTransport, setEmailTransport] = useState<Transport>(
     settings?.emailTransport ?? (settings?.smtpEnabled ? "smtp" : "platform"),
   );
-  const [emailApiProvider, setEmailApiProvider] = useState<ApiProvider>(settings?.emailApiProvider ?? "resend");
+  const [emailApiProvider, setEmailApiProvider] = useState<ApiProvider>(
+    settings?.emailApiProvider ?? "resend",
+  );
   const [emailApiKey, setEmailApiKey] = useState("");
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(settings?.emailApiKeyConfigured ?? false);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(
+    settings?.emailApiKeyConfigured ?? false,
+  );
   const [clearApiKey, setClearApiKey] = useState(false);
-  const [emailApiSendingDomain, setEmailApiSendingDomain] = useState(settings?.emailApiSendingDomain ?? "");
+  const [emailApiSendingDomain, setEmailApiSendingDomain] = useState(
+    settings?.emailApiSendingDomain ?? "",
+  );
   const [smtpHost, setSmtpHost] = useState(settings?.smtpHost ?? "");
   const [smtpPort, setSmtpPort] = useState(String(settings?.smtpPort ?? 587));
-  const [smtpEncryption, setSmtpEncryption] = useState<Encryption>(settings?.smtpEncryption ?? "starttls");
-  const [smtpUsername, setSmtpUsername] = useState(settings?.smtpUsername ?? "");
+  const [smtpEncryption, setSmtpEncryption] = useState<Encryption>(
+    settings?.smtpEncryption ?? "starttls",
+  );
+  const [smtpUsername, setSmtpUsername] = useState(
+    settings?.smtpUsername ?? "",
+  );
   const [smtpPassword, setSmtpPassword] = useState("");
-  const [passwordConfigured, setPasswordConfigured] = useState(settings?.smtpPasswordConfigured ?? false);
+  const [passwordConfigured, setPasswordConfigured] = useState(
+    settings?.smtpPasswordConfigured ?? false,
+  );
   const [clearPassword, setClearPassword] = useState(false);
-  const [smtpFromName, setSmtpFromName] = useState(settings?.smtpFromName ?? settings?.naam ?? "Organisatie");
-  const [smtpFromEmail, setSmtpFromEmail] = useState(settings?.smtpFromEmail ?? "");
+  const [smtpFromName, setSmtpFromName] = useState(
+    settings?.smtpFromName ?? settings?.naam ?? "Organisatie",
+  );
+  const [smtpFromEmail, setSmtpFromEmail] = useState(
+    settings?.smtpFromEmail ?? "",
+  );
   const [smtpReplyTo, setSmtpReplyTo] = useState(settings?.smtpReplyTo ?? "");
-  const [testEmail, setTestEmail] = useState(settings?.emailAfzender ?? settings?.smtpFromEmail ?? "");
-  const [testTemplate, setTestTemplate] = useState<"basic" | "account_activation">("account_activation");
+  const [testEmail, setTestEmail] = useState(
+    settings?.emailAfzender ?? settings?.smtpFromEmail ?? "",
+  );
+  const [testTemplate, setTestTemplate] = useState<
+    "basic" | "account_activation"
+  >("account_activation");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [testStatus, setTestStatus] = useState<
+    "idle" | "sending" | "ok" | "error"
+  >("idle");
   const [testMessage, setTestMessage] = useState<string | null>(null);
 
   const disabled = !canWrite || isPending;
@@ -140,12 +171,15 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             <Mail className="h-5 w-5" strokeWidth={1.75} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               E-mailtransport
             </p>
-            <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "#64748B" }}>
-              Kies of deze organisatie de centrale platformprovider gebruikt, eigen SMTP gebruikt of via een API-provider
-              verstuurt.
+            <p
+              className="mt-0.5 text-xs leading-relaxed"
+              style={{ color: "#64748B" }}
+            >
+              Kies of deze organisatie de centrale platformprovider gebruikt,
+              eigen SMTP gebruikt of via een API-provider verstuurt.
             </p>
           </div>
         </div>
@@ -183,8 +217,16 @@ export function MailSettingsView({ settings, canWrite }: Props) {
         <div
           className="rounded-lg border px-3 py-2 text-xs"
           style={{
-            borderColor: apiEnabled ? "#BFDBFE" : smtpEnabled ? "#99F6E4" : "#E2E8F0",
-            backgroundColor: apiEnabled ? "#EFF6FF" : smtpEnabled ? "#F0FDFA" : "#F8FAFC",
+            borderColor: apiEnabled
+              ? "#BFDBFE"
+              : smtpEnabled
+                ? "#99F6E4"
+                : "#E2E8F0",
+            backgroundColor: apiEnabled
+              ? "#EFF6FF"
+              : smtpEnabled
+                ? "#F0FDFA"
+                : "#F8FAFC",
             color: apiEnabled ? "#1D4ED8" : smtpEnabled ? "#0F766E" : "#64748B",
           }}
         >
@@ -200,26 +242,36 @@ export function MailSettingsView({ settings, canWrite }: Props) {
       {apiEnabled && (
         <div className="veele-card space-y-4">
           <div className="flex items-center gap-2">
-            <Cloud className="h-4 w-4" style={{ color: "#64748B" }} strokeWidth={1.75} />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <Cloud
+              className="h-4 w-4"
+              style={{ color: "#64748B" }}
+              strokeWidth={1.75}
+            />
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               API-provider
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-[240px_1fr]">
             <Field label="Provider" htmlFor="emailApiProvider" required>
-              <select
+              <SelectAdapter
                 id="emailApiProvider"
                 value={emailApiProvider}
-                onChange={(e) => setEmailApiProvider(e.target.value as ApiProvider)}
+                onChange={(e) =>
+                  setEmailApiProvider(e.target.value as ApiProvider)
+                }
                 disabled={disabled}
                 className="veele-input w-full"
               >
                 <option value="resend">Resend</option>
-              </select>
+              </SelectAdapter>
             </Field>
 
-            <Field label={apiKeyConfigured ? "Nieuwe API key" : "API key"} htmlFor="emailApiKey" required={!apiKeyConfigured}>
+            <Field
+              label={apiKeyConfigured ? "Nieuwe API key" : "API key"}
+              htmlFor="emailApiKey"
+              required={!apiKeyConfigured}
+            >
               <input
                 id="emailApiKey"
                 type="password"
@@ -227,7 +279,11 @@ export function MailSettingsView({ settings, canWrite }: Props) {
                 onChange={(e) => setEmailApiKey(e.target.value)}
                 disabled={disabled || clearApiKey}
                 className="veele-input w-full"
-                placeholder={apiKeyConfigured ? `${settings?.emailApiKeyMasked ?? "Opgeslagen key"} - leeg laten om te behouden` : "re_..."}
+                placeholder={
+                  apiKeyConfigured
+                    ? `${settings?.emailApiKeyMasked ?? "Opgeslagen key"} - leeg laten om te behouden`
+                    : "re_..."
+                }
                 autoComplete="new-password"
               />
             </Field>
@@ -246,13 +302,16 @@ export function MailSettingsView({ settings, canWrite }: Props) {
           </Field>
 
           <p className="text-xs leading-relaxed" style={{ color: "#64748B" }}>
-            De API key wordt versleuteld opgeslagen en nooit volledig teruggetoond. Laat het veld leeg om de
-            opgeslagen key te behouden.
+            De API key wordt versleuteld opgeslagen en nooit volledig
+            teruggetoond. Laat het veld leeg om de opgeslagen key te behouden.
           </p>
 
           {apiKeyConfigured && (
-            <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#475569" }}>
-              <input
+            <label
+              className="inline-flex items-center gap-2 text-xs"
+              style={{ color: "#475569" }}
+            >
+              <CheckboxAdapter
                 type="checkbox"
                 checked={clearApiKey}
                 onChange={(e) => setClearApiKey(e.target.checked)}
@@ -269,8 +328,12 @@ export function MailSettingsView({ settings, canWrite }: Props) {
       {smtpEnabled && (
         <div className="veele-card space-y-4">
           <div className="flex items-center gap-2">
-            <Server className="h-4 w-4" style={{ color: "#64748B" }} strokeWidth={1.75} />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <Server
+              className="h-4 w-4"
+              style={{ color: "#64748B" }}
+              strokeWidth={1.75}
+            />
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               Serververbinding
             </p>
           </div>
@@ -303,10 +366,12 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             </Field>
 
             <Field label="Beveiliging" htmlFor="smtpEncryption">
-              <select
+              <SelectAdapter
                 id="smtpEncryption"
                 value={smtpEncryption}
-                onChange={(e) => setSmtpEncryption(e.target.value as Encryption)}
+                onChange={(e) =>
+                  setSmtpEncryption(e.target.value as Encryption)
+                }
                 disabled={disabled}
                 className="veele-input w-full"
               >
@@ -315,7 +380,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
                     {option.label} - {option.hint}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </Field>
           </div>
         </div>
@@ -324,8 +389,12 @@ export function MailSettingsView({ settings, canWrite }: Props) {
       {smtpEnabled && (
         <div className="veele-card space-y-4">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4" style={{ color: "#64748B" }} strokeWidth={1.75} />
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <KeyRound
+              className="h-4 w-4"
+              style={{ color: "#64748B" }}
+              strokeWidth={1.75}
+            />
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               SMTP-authenticatie
             </p>
           </div>
@@ -344,7 +413,10 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               />
             </Field>
 
-            <Field label={passwordConfigured ? "Nieuw wachtwoord" : "Wachtwoord"} htmlFor="smtpPassword">
+            <Field
+              label={passwordConfigured ? "Nieuw wachtwoord" : "Wachtwoord"}
+              htmlFor="smtpPassword"
+            >
               <input
                 id="smtpPassword"
                 type="password"
@@ -352,15 +424,22 @@ export function MailSettingsView({ settings, canWrite }: Props) {
                 onChange={(e) => setSmtpPassword(e.target.value)}
                 disabled={disabled || clearPassword}
                 className="veele-input w-full"
-                placeholder={passwordConfigured ? "Leeg laten om huidig wachtwoord te behouden" : "SMTP-wachtwoord"}
+                placeholder={
+                  passwordConfigured
+                    ? "Leeg laten om huidig wachtwoord te behouden"
+                    : "SMTP-wachtwoord"
+                }
                 autoComplete="new-password"
               />
             </Field>
           </div>
 
           {passwordConfigured && (
-            <label className="inline-flex items-center gap-2 text-xs" style={{ color: "#475569" }}>
-              <input
+            <label
+              className="inline-flex items-center gap-2 text-xs"
+              style={{ color: "#475569" }}
+            >
+              <CheckboxAdapter
                 type="checkbox"
                 checked={clearPassword}
                 onChange={(e) => setClearPassword(e.target.checked)}
@@ -376,8 +455,12 @@ export function MailSettingsView({ settings, canWrite }: Props) {
 
       <div className="veele-card space-y-4">
         <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4" style={{ color: "#64748B" }} strokeWidth={1.75} />
-          <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+          <Mail
+            className="h-4 w-4"
+            style={{ color: "#64748B" }}
+            strokeWidth={1.75}
+          />
+          <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
             Afzender
           </p>
         </div>
@@ -395,7 +478,11 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             />
           </Field>
 
-          <Field label="Afzender e-mailadres" htmlFor="smtpFromEmail" required={senderRequired}>
+          <Field
+            label="Afzender e-mailadres"
+            htmlFor="smtpFromEmail"
+            required={senderRequired}
+          >
             <input
               id="smtpFromEmail"
               type="email"
@@ -422,7 +509,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Testmail
         </p>
         <div className="grid gap-3 sm:grid-cols-[1fr_220px_auto]">
@@ -434,21 +521,23 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             className="veele-input flex-1"
             placeholder="test@tenant.nl"
           />
-          <select
+          <SelectAdapter
             value={testTemplate}
-            onChange={(e) => setTestTemplate(e.target.value as "basic" | "account_activation")}
+            onChange={(e) =>
+              setTestTemplate(e.target.value as "basic" | "account_activation")
+            }
             disabled={!canWrite || testStatus === "sending"}
             className="veele-input"
           >
             <option value="account_activation">Accountactivatie</option>
             <option value="basic">Basis testmail</option>
-          </select>
+          </SelectAdapter>
           <button
             type="button"
             onClick={handleTest}
             disabled={!canWrite || testStatus === "sending"}
             className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-60"
-            style={{ backgroundColor: "#081D3A" }}
+            style={{ backgroundColor: "var(--color-foreground)" }}
           >
             <Send className="h-4 w-4" />
             {testStatus === "sending" ? "Versturen..." : "Test versturen"}
@@ -459,7 +548,11 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             className="inline-flex items-center gap-1.5 text-sm"
             style={{ color: testStatus === "error" ? "#DC2626" : "#059669" }}
           >
-            {testStatus === "error" ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+            {testStatus === "error" ? (
+              <AlertCircle className="h-4 w-4" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
             {testMessage}
           </p>
         )}
@@ -501,21 +594,27 @@ function TransportOption({
       onClick={() => onSelect(value)}
       className="rounded-lg border p-3 text-left transition disabled:opacity-60"
       style={{
-        borderColor: active ? "#00B7B3" : "#E2E8F0",
+        borderColor: active ? "var(--color-primary)" : "#E2E8F0",
         backgroundColor: active ? "#ECFEFF" : "#FFFFFF",
-        color: "#081D3A",
+        color: "var(--color-foreground)",
       }}
     >
       <span className="mb-2 flex items-center gap-2 text-sm font-semibold">
         <span
           className="flex h-7 w-7 items-center justify-center rounded-md"
-          style={{ backgroundColor: active ? "#CCFBF1" : "#F1F5F9", color: active ? "#0F766E" : "#64748B" }}
+          style={{
+            backgroundColor: active ? "#CCFBF1" : "#F1F5F9",
+            color: active ? "#0F766E" : "#64748B",
+          }}
         >
           {icon}
         </span>
         {title}
       </span>
-      <span className="block text-xs leading-relaxed" style={{ color: "#64748B" }}>
+      <span
+        className="block text-xs leading-relaxed"
+        style={{ color: "#64748B" }}
+      >
         {description}
       </span>
     </button>
@@ -535,7 +634,11 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium" style={{ color: "#374151" }}>
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-xs font-medium"
+        style={{ color: "#374151" }}
+      >
         {label}
         {required && (
           <span className="ml-0.5" style={{ color: "#DC2626" }}>

@@ -128,7 +128,7 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
 
       {/* Edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
           <SheetHeader>
             <SheetTitle>Object bewerken</SheetTitle>
             <SheetDescription>Werk de objectgegevens bij.</SheetDescription>

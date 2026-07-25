@@ -21,6 +21,7 @@ import {
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
+  tenantsTable,
   tenantUsersTable,
   toSafeStorageSegment,
 } from "@workspace/db";
@@ -57,6 +58,7 @@ import {
   type TenantEmailTransport,
 } from "@workspace/db/email-service";
 import type { ActionResult } from "./customers";
+import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 
 export type { ActionResult };
 
@@ -73,6 +75,7 @@ export type OrgSettings = {
   availabilityAdvanceDays: number;
   planningWorkdayStart: string;
   planningTimeSlotMinutes: number;
+  personnelLoginCode: string;
   emailAfzender: string | null;
   smtpEnabled: boolean;
   smtpHost: string | null;
@@ -241,14 +244,23 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
   await requirePermission("settings", "read");
   const tenantId = await requireCurrentTenantId();
 
-  const rows = await db
-    .select()
-    .from(organizationSettingsTable)
-    .where(eq(organizationSettingsTable.tenantId, tenantId))
-    .limit(1);
+  const [rows, tenantRows] = await Promise.all([
+    db
+      .select()
+      .from(organizationSettingsTable)
+      .where(eq(organizationSettingsTable.tenantId, tenantId))
+      .limit(1),
+    db
+      .select({ personnelLoginCode: tenantsTable.personnelLoginCode })
+      .from(tenantsTable)
+      .where(eq(tenantsTable.id, tenantId))
+      .limit(1),
+  ]);
 
   if (rows.length === 0) return null;
   const r = rows[0];
+  const tenant = tenantRows[0];
+  if (!tenant) return null;
   const emailApiConfig = readTenantEmailApiConfig(r.emailApiKeyEncrypted);
   return {
     id: r.id,
@@ -261,6 +273,7 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     availabilityAdvanceDays: r.availabilityAdvanceDays,
     planningWorkdayStart: r.planningWorkdayStart,
     planningTimeSlotMinutes: r.planningTimeSlotMinutes,
+    personnelLoginCode: tenant.personnelLoginCode,
     emailAfzender: r.emailAfzender,
     smtpEnabled: r.smtpEnabled,
     smtpHost: r.smtpHost,
@@ -1276,12 +1289,18 @@ export async function uploadOrgLogo(
     ["image/png", "png"],
     ["image/jpeg", "jpg"],
     ["image/webp", "webp"],
-    ["image/svg+xml", "svg"],
   ]);
 
-  const ext = allowedTypes.get(mimeType) ?? (extension === "svg" ? "svg" : null);
+  if (mimeType === "image/svg+xml" || extension === "svg") {
+    return {
+      success: false,
+      message: "SVG-logo's zijn nog niet toegestaan",
+    };
+  }
+
+  const ext = allowedTypes.get(mimeType) ?? null;
   if (!ext) {
-    return { success: false, message: "Upload een PNG, JPG, WebP of SVG-logo." };
+    return { success: false, message: "Upload een PNG-, JPG- of WebP-logo." };
   }
 
   const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);
@@ -2287,16 +2306,22 @@ export async function sendTestMailSettings(
   const {
     buildTenantMailSettingsTestEmail,
     buildAccountActivationEmail,
-    personeelPortalUrl,
     sendEmailWithResult,
   } = await import("@/lib/email");
 
+  const activationUrl =
+    template === "account_activation"
+      ? await personnelTenantEntryUrl(
+          tenantId,
+          "/wachtwoord-vergeten?doel=activatie",
+        )
+      : null;
   const message =
     template === "account_activation"
       ? buildAccountActivationEmail({
           recipientName: "Testgebruiker",
           portalName: "Personeelsportaal",
-          activationUrl: `${personeelPortalUrl()}/wachtwoord-vergeten?doel=activatie`,
+          activationUrl: activationUrl!,
           code: "12345678",
         })
       : buildTenantMailSettingsTestEmail();

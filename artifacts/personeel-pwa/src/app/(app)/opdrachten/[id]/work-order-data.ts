@@ -12,6 +12,14 @@ export type AssignmentView = Pick<
   | "scheduledDate"
   | "scheduledStart"
   | "scheduledEnd"
+  | "effectiveDate"
+  | "effectiveStart"
+  | "effectiveEnd"
+  | "endMode"
+  | "timeSource"
+  | "isRunning"
+  | "hasTimeDeviation"
+  | "timeDataQualityWarning"
   | "seenAt"
   | "enRouteAt"
   | "actualStartedAt"
@@ -96,13 +104,22 @@ export function formatDateTimeTime(value: string | null | undefined): string | n
   }).format(date);
 }
 
-export function getDisplayedTimeSlot(assignment: Pick<AssignmentView, "scheduledStart" | "scheduledEnd" | "actualStartedAt" | "actualCompletedAt">): string {
-  const actualStart = formatDateTimeTime(assignment.actualStartedAt);
-  const actualEnd = formatDateTimeTime(assignment.actualCompletedAt);
-  const planned = formatTimeSlot(assignment.scheduledStart, assignment.scheduledEnd);
-
-  if (!actualStart && !actualEnd) return planned;
-  return ["Werkelijk", formatTimeSlot(actualStart, actualEnd), "· gepland", planned].join(" ");
+export function getDisplayedTimeSlot(
+  assignment: Pick<
+    AssignmentView,
+    | "scheduledStart"
+    | "scheduledEnd"
+    | "effectiveStart"
+    | "effectiveEnd"
+    | "isRunning"
+  >,
+): string {
+  return formatTimeSlot(
+    assignment.effectiveStart ?? assignment.scheduledStart,
+    assignment.isRunning
+      ? "nu"
+      : (assignment.effectiveEnd ?? assignment.scheduledEnd),
+  );
 }
 
 export function getHeaderStatus(status: string): { label: string; background: string; color: string } {

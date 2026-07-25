@@ -105,7 +105,7 @@ export function ReportActions({ reportId, approveDisabledReason = null }: Props)
             placeholder="Reden voor afwijzing…"
             rows={3}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
           <div className="flex gap-2">
             <button

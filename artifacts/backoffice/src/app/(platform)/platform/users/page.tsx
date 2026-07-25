@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import {
   invitePlatformUserFromForm,
   listPlatformUsers,
@@ -12,10 +13,26 @@ export const metadata = {
   title: "Platformgebruikers",
 };
 
-const ROLE_OPTIONS: Array<{ value: PlatformRole; label: string; description: string }> = [
-  { value: "owner", label: "Owner", description: "Kan admins en support beheren." },
-  { value: "admin", label: "Admin", description: "Kan platformbeheer doen, behalve owners wijzigen." },
-  { value: "support", label: "Support", description: "Kan supporttaken uitvoeren zonder gebruikersbeheer." },
+const ROLE_OPTIONS: Array<{
+  value: PlatformRole;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "owner",
+    label: "Owner",
+    description: "Kan admins en support beheren.",
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    description: "Kan platformbeheer doen, behalve owners wijzigen.",
+  },
+  {
+    value: "support",
+    label: "Support",
+    description: "Kan supporttaken uitvoeren zonder gebruikersbeheer.",
+  },
 ];
 
 const STATUS_OPTIONS: Array<{ value: PlatformUserStatus; label: string }> = [
@@ -40,7 +57,9 @@ async function updatePlatformUserAction(formData: FormData): Promise<void> {
   await updatePlatformUserFromForm(formData);
 }
 
-async function resetPlatformUserPasswordAction(formData: FormData): Promise<void> {
+async function resetPlatformUserPasswordAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await sendPlatformUserPasswordResetFromForm(formData);
 }
@@ -95,11 +114,16 @@ export default async function PlatformUsersPage() {
     <main className="platform-page min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
-          <p className="text-sm font-medium text-slate-500">Fieldgrid platform</p>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Platformgebruikers</h1>
+          <p className="text-sm font-medium text-slate-500">
+            Fieldgrid platform
+          </p>
+          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">
+            Platformgebruikers
+          </h1>
           <p className="max-w-3xl text-sm text-slate-600">
-            Beheer owner-, admin- en supportaccounts. Rol wijzigen, status wijzigen, uitnodigen en last seen zijn auditbaar.
-            MFA-status wordt alleen getoond zodra de feature actief en meetbaar is.
+            Beheer owner-, admin- en supportaccounts. Rol wijzigen, status
+            wijzigen, uitnodigen en last seen zijn auditbaar. MFA-status wordt
+            alleen getoond zodra de feature actief en meetbaar is.
           </p>
         </header>
 
@@ -112,11 +136,17 @@ export default async function PlatformUsersPage() {
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Uitnodigen</h2>
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+              Uitnodigen
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Verstuur een eenmalige Fieldgrid-activatiecode en koppel de gebruiker direct aan een platformrol.
+              Verstuur een eenmalige Fieldgrid-activatiecode en koppel de
+              gebruiker direct aan een platformrol.
             </p>
-            <form action={invitePlatformUserAction} className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
+            <form
+              action={invitePlatformUserAction}
+              className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px_auto]"
+            >
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 E-mailadres
                 <input
@@ -129,37 +159,54 @@ export default async function PlatformUsersPage() {
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Rol
-                <select name="role" defaultValue="support" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                <SelectAdapter
+                  name="role"
+                  defaultValue="support"
+                  className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+                >
                   {ROLE_OPTIONS.map((role) => (
                     <option key={role.value} value={role.value}>
                       {role.label}
                     </option>
                   ))}
-                </select>
+                </SelectAdapter>
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Status
-                <select name="status" defaultValue="active" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                <SelectAdapter
+                  name="status"
+                  defaultValue="active"
+                  className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+                >
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status.value} value={status.value}>
                       {status.label}
                     </option>
                   ))}
-                </select>
+                </SelectAdapter>
               </label>
-              <button type="submit" className="mt-auto min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700">
+              <button
+                type="submit"
+                className="mt-auto min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700"
+              >
                 Uitnodigen
               </button>
             </form>
           </div>
 
           <aside className="rounded border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Rollen</h2>
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+              Rollen
+            </h2>
             <div className="mt-4 grid gap-3">
               {ROLE_OPTIONS.map((role) => (
                 <div key={role.value} className="rounded bg-slate-50 px-3 py-2">
-                  <p className="text-sm font-semibold text-slate-950">{role.label}</p>
-                  <p className="mt-1 text-xs text-slate-600">{role.description}</p>
+                  <p className="text-sm font-semibold text-slate-950">
+                    {role.label}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {role.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -168,69 +215,124 @@ export default async function PlatformUsersPage() {
 
         <section className="grid gap-4">
           {users.map((user) => (
-            <article key={user.id} className="rounded border border-slate-200 bg-white p-4 shadow-sm">
+            <article
+              key={user.id}
+              className="rounded border border-slate-200 bg-white p-4 shadow-sm"
+            >
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_520px] lg:items-start">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="break-all text-base font-semibold tracking-normal text-slate-950">{user.email ?? user.userId}</h2>
-                    <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(user.status)}`}>
-                      {STATUS_OPTIONS.find((status) => status.value === user.status)?.label ?? user.status}
+                    <h2 className="break-all text-base font-semibold tracking-normal text-slate-950">
+                      {user.email ?? user.userId}
+                    </h2>
+                    <span
+                      className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(user.status)}`}
+                    >
+                      {STATUS_OPTIONS.find(
+                        (status) => status.value === user.status,
+                      )?.label ?? user.status}
                     </span>
-                    <span className={`rounded border px-2 py-1 text-xs font-semibold ${authStatusClass(user.authStatus)}`}>
+                    <span
+                      className={`rounded border px-2 py-1 text-xs font-semibold ${authStatusClass(user.authStatus)}`}
+                    >
                       {AUTH_STATUS_LABELS[user.authStatus]}
                     </span>
                   </div>
                   <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                     <div className="rounded bg-slate-50 px-3 py-2">
-                      <dt className="text-xs font-medium uppercase text-slate-500">User ID</dt>
-                      <dd className="mt-1 break-all font-medium text-slate-900">{user.userId}</dd>
+                      <dt className="text-xs font-medium uppercase text-slate-500">
+                        User ID
+                      </dt>
+                      <dd className="mt-1 break-all font-medium text-slate-900">
+                        {user.userId}
+                      </dd>
                     </div>
                     <div className="rounded bg-slate-50 px-3 py-2">
-                      <dt className="text-xs font-medium uppercase text-slate-500">Laatst gezien</dt>
-                      <dd className="mt-1 font-medium text-slate-900">{formatDate(user.lastSeenAt)}</dd>
+                      <dt className="text-xs font-medium uppercase text-slate-500">
+                        Laatst gezien
+                      </dt>
+                      <dd className="mt-1 font-medium text-slate-900">
+                        {formatDate(user.lastSeenAt)}
+                      </dd>
                     </div>
                     <div className="rounded bg-slate-50 px-3 py-2">
-                      <dt className="text-xs font-medium uppercase text-slate-500">Laatste login</dt>
-                      <dd className="mt-1 font-medium text-slate-900">{formatDate(user.lastSignInAt)}</dd>
+                      <dt className="text-xs font-medium uppercase text-slate-500">
+                        Laatste login
+                      </dt>
+                      <dd className="mt-1 font-medium text-slate-900">
+                        {formatDate(user.lastSignInAt)}
+                      </dd>
                     </div>
                     <div className="rounded bg-slate-50 px-3 py-2">
-                      <dt className="text-xs font-medium uppercase text-slate-500">MFA</dt>
-                      <dd className="mt-1 font-medium text-slate-900">Niet actief</dd>
+                      <dt className="text-xs font-medium uppercase text-slate-500">
+                        MFA
+                      </dt>
+                      <dd className="mt-1 font-medium text-slate-900">
+                        Niet actief
+                      </dd>
                     </div>
                   </dl>
                 </div>
 
                 <div className="grid gap-3">
-                  <form action={updatePlatformUserAction} className="grid gap-3 rounded bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <input type="hidden" name="platformUserId" value={user.id} />
+                  <form
+                    action={updatePlatformUserAction}
+                    className="grid gap-3 rounded bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <input
+                      type="hidden"
+                      name="platformUserId"
+                      value={user.id}
+                    />
                     <label className="grid gap-1 text-sm font-medium text-slate-700">
                       Rol wijzigen
-                      <select name="role" defaultValue={user.role} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                      <SelectAdapter
+                        name="role"
+                        defaultValue={user.role}
+                        className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+                      >
                         {ROLE_OPTIONS.map((role) => (
                           <option key={role.value} value={role.value}>
                             {role.label}
                           </option>
                         ))}
-                      </select>
+                      </SelectAdapter>
                     </label>
                     <label className="grid gap-1 text-sm font-medium text-slate-700">
                       Status wijzigen
-                      <select name="status" defaultValue={user.status} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                      <SelectAdapter
+                        name="status"
+                        defaultValue={user.status}
+                        className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+                      >
                         {STATUS_OPTIONS.map((status) => (
                           <option key={status.value} value={status.value}>
                             {status.label}
                           </option>
                         ))}
-                      </select>
+                      </SelectAdapter>
                     </label>
-                    <button type="submit" className="mt-auto min-h-11 rounded border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                    <button
+                      type="submit"
+                      className="mt-auto min-h-11 rounded border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
                       Opslaan
                     </button>
                   </form>
                   {user.email && (
-                    <form action={resetPlatformUserPasswordAction} className="flex justify-end">
-                      <input type="hidden" name="platformUserId" value={user.id} />
-                      <button type="submit" className="min-h-10 rounded border border-cyan-200 bg-cyan-50 px-4 text-sm font-semibold text-cyan-800 hover:bg-cyan-100">
+                    <form
+                      action={resetPlatformUserPasswordAction}
+                      className="flex justify-end"
+                    >
+                      <input
+                        type="hidden"
+                        name="platformUserId"
+                        value={user.id}
+                      />
+                      <button
+                        type="submit"
+                        className="min-h-10 rounded border border-cyan-200 bg-cyan-50 px-4 text-sm font-semibold text-cyan-800 hover:bg-cyan-100"
+                      >
                         Resetcode mailen
                       </button>
                     </form>

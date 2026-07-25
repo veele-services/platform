@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, FileText, Receipt, Link as LinkIcon } from "lucide-react";
@@ -8,35 +9,47 @@ import type { AssignmentInvoiceData } from "@/app/actions/invoices";
 
 interface Props {
   assignmentId: string;
-  prefill:      AssignmentInvoiceData;
+  prefill: AssignmentInvoiceData;
   defaultPaymentTermDays?: number;
 }
 
 function formatEur(value: string): string {
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(parseFloat(value) || 0);
+  return new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  }).format(parseFloat(value) || 0);
 }
 
 function defaultDueDate(paymentTermDays = 30): string {
   const d = new Date();
-  const days = Number.isFinite(paymentTermDays) ? Math.min(365, Math.max(1, Math.round(paymentTermDays))) : 30;
+  const days = Number.isFinite(paymentTermDays)
+    ? Math.min(365, Math.max(1, Math.round(paymentTermDays)))
+    : 30;
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
-export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDays = 30 }: Props) {
-  const router     = useRouter();
+export function CreateInvoiceForm({
+  assignmentId,
+  prefill,
+  defaultPaymentTermDays = 30,
+}: Props) {
+  const router = useRouter();
   const [, startT] = useTransition();
 
-  const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors]       = useState<Record<string, string>>({});
-  const [amount, setAmount]                 = useState(prefill.suggestedAmount);
-  const [vatPercentage, setVat]             = useState("21");
-  const [dueDate, setDueDate]               = useState(defaultDueDate(defaultPaymentTermDays));
-  const [notes, setNotes]                   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [amount, setAmount] = useState(prefill.suggestedAmount);
+  const [vatPercentage, setVat] = useState("21");
+  const [dueDate, setDueDate] = useState(
+    defaultDueDate(defaultPaymentTermDays),
+  );
+  const [notes, setNotes] = useState("");
   const [goToPayment, setGoToPayment] = useState(true);
 
-  const vatAmount   = (parseFloat(amount || "0") * parseFloat(vatPercentage || "0") / 100);
+  const vatAmount =
+    (parseFloat(amount || "0") * parseFloat(vatPercentage || "0")) / 100;
   const totalAmount = parseFloat(amount || "0") + vatAmount;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,7 +58,12 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
     setFieldErrors({});
     setLoading(true);
 
-    const result = await createInvoice(assignmentId, { amount, vatPercentage, dueDate, notes });
+    const result = await createInvoice(assignmentId, {
+      amount,
+      vatPercentage,
+      dueDate,
+      notes,
+    });
 
     if (!result.success) {
       setLoading(false);
@@ -56,9 +74,10 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
       return;
     }
 
-    const invoiceId = result.success && "data" in result
-      ? (result as { success: true; data: { id: string } }).data?.id
-      : null;
+    const invoiceId =
+      result.success && "data" in result
+        ? (result as { success: true; data: { id: string } }).data?.id
+        : null;
 
     setLoading(false);
     startT(() => {
@@ -71,16 +90,22 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
     <div className="veele-card">
       <h3
         className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-        style={{ color: "#081D3A" }}
+        style={{ color: "var(--color-foreground)" }}
       >
-        <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        <Receipt className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
         Factuurconcept
       </h3>
 
       {/* Line items preview */}
       {prefill.lineItems.length > 0 && (
-        <div className="mb-4 rounded-lg p-3" style={{ background: "#F8FAFC", border: "1px solid #F1F5F9" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#94A3B8" }}>
+        <div
+          className="mb-4 rounded-lg p-3"
+          style={{ background: "#F8FAFC", border: "1px solid #F1F5F9" }}
+        >
+          <p
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: "#94A3B8" }}
+          >
             Voorstelregels opdracht
           </p>
           <ul className="divide-y" style={{ borderColor: "#F1F5F9" }}>
@@ -97,10 +122,15 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
                   )}
                   {item.taskCodeName ?? "—"}
                   {!item.invoiceable && (
-                    <span className="ml-1 text-xs" style={{ color: "#94A3B8" }}>(niet factureerbaar)</span>
+                    <span className="ml-1 text-xs" style={{ color: "#94A3B8" }}>
+                      (niet factureerbaar)
+                    </span>
                   )}
                 </span>
-                <span className="text-xs font-medium" style={{ color: item.invoiceable ? "#081D3A" : "#94A3B8" }}>
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: item.invoiceable ? "var(--color-foreground)" : "#94A3B8" }}
+                >
                   {item.price ? formatEur(item.price) : "—"}
                 </span>
               </li>
@@ -111,7 +141,10 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
-          <p className="text-xs rounded-lg px-3 py-2" style={{ background: "#FEE2E2", color: "#991B1B" }}>
+          <p
+            className="text-xs rounded-lg px-3 py-2"
+            style={{ background: "#FEE2E2", color: "#991B1B" }}
+          >
             {error}
           </p>
         )}
@@ -129,10 +162,15 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
             onChange={(e) => setAmount(e.target.value)}
             required
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{ borderColor: fieldErrors.amount ? "#DC2626" : "#E2E8F0", color: "#081D3A" }}
+            style={{
+              borderColor: fieldErrors.amount ? "#DC2626" : "#E2E8F0",
+              color: "var(--color-foreground)",
+            }}
           />
           {fieldErrors.amount && (
-            <p className="text-xs" style={{ color: "#DC2626" }}>{fieldErrors.amount}</p>
+            <p className="text-xs" style={{ color: "#DC2626" }}>
+              {fieldErrors.amount}
+            </p>
           )}
         </div>
 
@@ -149,21 +187,33 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
             value={vatPercentage}
             onChange={(e) => setVat(e.target.value)}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
         {/* Totaaloverzicht */}
-        <div className="rounded-lg p-3" style={{ background: "#F0FDFA", border: "1px solid #99F6E4" }}>
-          <div className="flex justify-between text-xs mb-1" style={{ color: "#374151" }}>
+        <div
+          className="rounded-lg p-3"
+          style={{ background: "#F0FDFA", border: "1px solid #99F6E4" }}
+        >
+          <div
+            className="flex justify-between text-xs mb-1"
+            style={{ color: "#374151" }}
+          >
             <span>Subtotaal</span>
             <span>{formatEur(amount || "0")}</span>
           </div>
-          <div className="flex justify-between text-xs mb-2" style={{ color: "#374151" }}>
+          <div
+            className="flex justify-between text-xs mb-2"
+            style={{ color: "#374151" }}
+          >
             <span>BTW ({vatPercentage}%)</span>
             <span>{formatEur(vatAmount.toFixed(2))}</span>
           </div>
-          <div className="flex justify-between text-sm font-semibold pt-2" style={{ borderTop: "1px solid #99F6E4", color: "#065F46" }}>
+          <div
+            className="flex justify-between text-sm font-semibold pt-2"
+            style={{ borderTop: "1px solid #99F6E4", color: "#065F46" }}
+          >
             <span>Totaal incl. BTW</span>
             <span>{formatEur(totalAmount.toFixed(2))}</span>
           </div>
@@ -180,17 +230,25 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
             onChange={(e) => setDueDate(e.target.value)}
             required
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{ borderColor: fieldErrors.dueDate ? "#DC2626" : "#E2E8F0", color: "#081D3A" }}
+            style={{
+              borderColor: fieldErrors.dueDate ? "#DC2626" : "#E2E8F0",
+              color: "var(--color-foreground)",
+            }}
           />
           {fieldErrors.dueDate && (
-            <p className="text-xs" style={{ color: "#DC2626" }}>{fieldErrors.dueDate}</p>
+            <p className="text-xs" style={{ color: "#DC2626" }}>
+              {fieldErrors.dueDate}
+            </p>
           )}
         </div>
 
         {/* Notities */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium" style={{ color: "#374151" }}>
-            Notities <span className="font-normal" style={{ color: "#94A3B8" }}>(optioneel)</span>
+            Notities{" "}
+            <span className="font-normal" style={{ color: "#94A3B8" }}>
+              (optioneel)
+            </span>
           </label>
           <textarea
             value={notes}
@@ -198,13 +256,13 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
             placeholder="Aanvullende informatie voor de factuur…"
             rows={2}
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
-            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+            style={{ borderColor: "#E2E8F0", color: "var(--color-foreground)" }}
           />
         </div>
 
         {/* Optie: meteen betaallink aanmaken */}
         <label className="flex items-start gap-2.5 cursor-pointer select-none">
-          <input
+          <CheckboxAdapter
             type="checkbox"
             checked={goToPayment}
             onChange={(e) => setGoToPayment(e.target.checked)}
@@ -212,11 +270,15 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
           />
           <span className="flex flex-col gap-0.5">
             <span className="text-xs font-medium" style={{ color: "#374151" }}>
-              <LinkIcon className="inline h-3.5 w-3.5 mr-1" style={{ color: "#00B7B3" }} />
+              <LinkIcon
+                className="inline h-3.5 w-3.5 mr-1"
+                style={{ color: "var(--color-primary)" }}
+              />
               Direct doorsturen naar factuurpagina
             </span>
             <span className="text-xs" style={{ color: "#94A3B8" }}>
-              Na bewaren wordt u doorgestuurd naar de factuurpagina om de factuur te finaliseren en te versturen.
+              Na bewaren wordt u doorgestuurd naar de factuurpagina om de
+              factuur te finaliseren en te versturen.
             </span>
           </span>
         </label>
@@ -225,7 +287,7 @@ export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDay
           type="submit"
           disabled={loading}
           className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-          style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+          style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

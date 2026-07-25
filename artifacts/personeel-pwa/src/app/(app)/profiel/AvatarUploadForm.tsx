@@ -55,14 +55,14 @@ export function AvatarUploadForm({
       </div>
 
       <div className="min-w-0 flex-1 text-center sm:text-left">
-        <p className="break-words text-2xl font-black leading-tight text-[#081D3A]">
+        <p className="break-words text-2xl font-black leading-tight text-[var(--color-primary)]">
           {fullName}
         </p>
         <p className="mt-1 break-words text-sm font-semibold text-slate-500">
           {subtitle}
         </p>
         <div className="mt-3 grid gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
-          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2 text-xs font-black text-[#081D3A] shadow-sm sm:min-h-0">
+          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2 text-xs font-black text-[var(--color-primary)] shadow-sm sm:min-h-0">
             <Camera size={16} strokeWidth={2.4} className="text-[#009E9A]" />
             Kies foto
             <input
@@ -83,7 +83,7 @@ export function AvatarUploadForm({
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-2xl bg-[#00B7B3] px-3 py-2 text-xs font-black text-white shadow-sm disabled:opacity-60 sm:min-h-0"
+            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-2xl bg-[var(--color-accent)] px-3 py-2 text-xs font-black text-white shadow-sm disabled:opacity-60 sm:min-h-0"
           >
             {isPending ? (
               <Loader2 size={14} className="animate-spin" />

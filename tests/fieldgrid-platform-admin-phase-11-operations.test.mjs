@@ -13,7 +13,9 @@ function assertContains(content, phrases, label) {
 }
 
 test("phase 11 exposes a platform operations dashboard action", () => {
-  const operations = read("artifacts/backoffice/src/app/actions/platform-operations.ts");
+  const operations = read(
+    "artifacts/backoffice/src/app/actions/platform-operations.ts",
+  );
 
   assertContains(
     operations,
@@ -21,7 +23,7 @@ test("phase 11 exposes a platform operations dashboard action", () => {
       "getPlatformOperationsDashboard",
       "getPlatformStagingSmokeDashboard",
       "PlatformOperationsHealthCheck",
-      "\"backoffice\" | \"api\" | \"klant-pwa\" | \"personeel-pwa\" | \"database\" | \"storage\" | \"mail\"",
+      '"backoffice" | "api" | "klant-pwa" | "personeel-pwa" | "database" | "storage" | "mail"',
       "fetchHealthEndpoint",
       "API_INTERNAL_URL",
       "KLANT_PORT",
@@ -37,7 +39,9 @@ test("phase 11 exposes a platform operations dashboard action", () => {
 });
 
 test("phase 11 operations page covers health, migration smoke, final gate and reruns", () => {
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/operations/page.tsx");
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/operations/page.tsx",
+  );
 
   assertContains(
     page,
@@ -59,14 +63,36 @@ test("phase 11 operations page covers health, migration smoke, final gate and re
 });
 
 test("phase 11 adds API and navigation for operations", () => {
-  const route = read("artifacts/backoffice/src/app/api/platform/operations/route.ts");
-  const shell = read("artifacts/backoffice/src/components/platform/PlatformShell.tsx");
-  const dashboard = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+  const route = read(
+    "artifacts/backoffice/src/app/api/platform/operations/route.ts",
+  );
+  const registry = read(
+    "artifacts/backoffice/src/lib/navigation/route-registry.ts",
+  );
+  const dashboard = read(
+    "artifacts/backoffice/src/app/(platform)/platform/page.tsx",
+  );
 
-  assertContains(route, ["getPlatformOperationsDashboard", "Cache-Control", "no-store"], "operations API route");
-  assertContains(shell, ["/platform/operations", "Operations"], "platform shell navigation");
-  assertContains(shell, ["/platform/accelerators", "Versnellers"], "platform accelerators navigation");
-  assertContains(dashboard, ["/platform/operations"], "platform dashboard operations links");
+  assertContains(
+    route,
+    ["getPlatformOperationsDashboard", "Cache-Control", "no-store"],
+    "operations API route",
+  );
+  assertContains(
+    registry,
+    ["/platform/operations", "Operations"],
+    "platform operations route",
+  );
+  assertContains(
+    registry,
+    ["/platform/accelerators", "Platformversnellers"],
+    "platform accelerators route",
+  );
+  assertContains(
+    dashboard,
+    ["/platform/operations"],
+    "platform dashboard operations links",
+  );
   assert.doesNotMatch(dashboard, /min-h-36/);
   assert.doesNotMatch(dashboard, /Open platformtickets/);
   assert.doesNotMatch(dashboard, /Platformmeldingen/);

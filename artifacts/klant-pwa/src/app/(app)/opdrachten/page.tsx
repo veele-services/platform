@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -22,7 +23,12 @@ import {
 } from "@/components/portal-ui";
 
 type CustomerAssignment = Awaited<ReturnType<typeof getMyAssignments>>[number];
-type AssignmentFilter = "all" | "action_required" | "active" | "open" | "history";
+type AssignmentFilter =
+  | "all"
+  | "action_required"
+  | "active"
+  | "open"
+  | "history";
 
 const ACTIVE_STATUSES = new Set([
   "scheduled",
@@ -69,7 +75,10 @@ function formatActualTime(value: string | null): string | null {
 }
 
 function AssignmentTiming({ assignment }: { assignment: CustomerAssignment }) {
-  const actualWindow = [formatActualTime(assignment.actualStartedAt), formatActualTime(assignment.actualCompletedAt)]
+  const actualWindow = [
+    formatActualTime(assignment.actualStartedAt),
+    formatActualTime(assignment.actualCompletedAt),
+  ]
     .filter(Boolean)
     .join(" - ");
   const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
@@ -78,16 +87,26 @@ function AssignmentTiming({ assignment }: { assignment: CustomerAssignment }) {
     .join(" - ");
 
   if (!assignment.scheduledDate) {
-    return <span style={{ color: "var(--color-muted-fg)" }}>Nog niet gepland</span>;
+    return (
+      <span style={{ color: "var(--color-muted-fg)" }}>Nog niet gepland</span>
+    );
   }
 
   return (
-    <span className="block min-w-[10rem] text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+    <span
+      className="block min-w-[10rem] text-sm font-semibold"
+      style={{ color: "var(--color-primary)" }}
+    >
       <span className="block">{formatDate(assignment.scheduledDate)}</span>
       {actualWindow ? (
         <>
           <span className="block font-black">Werkelijk {actualWindow}</span>
-          <span className="block text-xs" style={{ color: "var(--color-muted-fg)" }}>Gepland {plannedWindow || "tijd onbekend"}</span>
+          <span
+            className="block text-xs"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
+            Gepland {plannedWindow || "tijd onbekend"}
+          </span>
         </>
       ) : (
         <span className="block">{plannedWindow || "Tijd nog niet bekend"}</span>
@@ -132,7 +151,10 @@ function assignmentFilterLabel(value: AssignmentFilter) {
   return labels[value];
 }
 
-function matchesAssignmentSearch(assignment: CustomerAssignment, query: string) {
+function matchesAssignmentSearch(
+  assignment: CustomerAssignment,
+  query: string,
+) {
   if (!query) return true;
   const haystack = [
     assignment.code,
@@ -155,7 +177,8 @@ function filterAssignments(
   filter: AssignmentFilter,
 ) {
   return assignments.filter((assignment) => {
-    const matchesFilter = filter === "all" || assignmentFilterFor(assignment) === filter;
+    const matchesFilter =
+      filter === "all" || assignmentFilterFor(assignment) === filter;
     return matchesFilter && matchesAssignmentSearch(assignment, query);
   });
 }
@@ -182,7 +205,10 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
       key: "code",
       header: "Werkbon",
       render: (assignment) => (
-        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="font-mono text-xs font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {assignment.code}
         </span>
       ),
@@ -192,7 +218,10 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
       header: "Opdracht",
       render: (assignment) => (
         <span className="block min-w-[18rem]">
-          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="block truncate text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {assignment.title}
           </span>
           <span
@@ -230,7 +259,10 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
             Details bekijken
           </PortalActionMenuLink>
           {assignment.quoteId ? (
-            <PortalActionMenuLink href={`/api/offerte/${assignment.quoteId}/pdf`} external>
+            <PortalActionMenuLink
+              href={`/api/offerte/${assignment.quoteId}/pdf`}
+              external
+            >
               Offerte PDF downloaden
             </PortalActionMenuLink>
           ) : null}
@@ -255,7 +287,9 @@ export default async function OpdrachtenPage({
   const filter = normalizeFilter(params.filter);
   const assignments = await getMyAssignments();
   const visibleAssignments = filterAssignments(assignments, query, filter);
-  const actionRequired = assignments.filter((assignment) => assignment.status === "awaiting_approval");
+  const actionRequired = assignments.filter(
+    (assignment) => assignment.status === "awaiting_approval",
+  );
 
   const activeFilters = [
     query
@@ -277,14 +311,25 @@ export default async function OpdrachtenPage({
       title="Opdrachten"
       subtitle="Aanvragen, geplande opdrachten en afgeronde werkbonnen."
       status={{
-        label: actionRequired.length > 0 ? `${actionRequired.length} actie vereist` : `${assignments.length} opdrachten`,
+        label:
+          actionRequired.length > 0
+            ? `${actionRequired.length} actie vereist`
+            : `${assignments.length} opdrachten`,
         tone: actionRequired.length > 0 ? "warning" : "accent",
       }}
-      primaryAction={{ label: "Opdracht aanvragen", href: "/opdrachten/aanvragen" }}
+      primaryAction={{
+        label: "Opdracht aanvragen",
+        href: "/opdrachten/aanvragen",
+      }}
     >
       <PortalToolbar
         resultLabel={`${visibleAssignments.length} van ${assignments.length} opdrachten`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/opdrachten" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/opdrachten"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Opdrachtfilters"
@@ -295,13 +340,20 @@ export default async function OpdrachtenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/opdrachten" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/opdrachten"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek opdracht, werkbon of object"
           />
-          <PortalToolbarSelect name="filter" label="Statusgroep" defaultValue={filter}>
+          <PortalToolbarSelect
+            name="filter"
+            label="Statusgroep"
+            defaultValue={filter}
+          >
             <option value="all">Alle opdrachten</option>
             <option value="action_required">Actie vereist</option>
             <option value="active">In uitvoering</option>
@@ -328,10 +380,16 @@ export default async function OpdrachtenPage({
               <FileText size={18} />
             </span>
             <div>
-              <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+              <h2
+                className="text-base font-black"
+                style={{ color: "var(--color-primary)" }}
+              >
                 Offertes met actie vereist
               </h2>
-              <p className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: "var(--color-secondary)" }}
+              >
                 Controleer de offerte en keur deze digitaal goed of af.
               </p>
             </div>
@@ -345,15 +403,28 @@ export default async function OpdrachtenPage({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-mono text-xs font-black" style={{ color: "var(--color-muted-fg)" }}>
+                    <p
+                      className="font-mono text-xs font-black"
+                      style={{ color: "var(--color-muted-fg)" }}
+                    >
                       {assignment.quoteNumber ?? assignment.code}
                     </p>
-                    <h3 className="mt-1 truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                    <h3
+                      className="mt-1 truncate text-sm font-black"
+                      style={{ color: "var(--color-primary)" }}
+                    >
                       {assignment.title}
                     </h3>
-                    <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
-                      {assignment.quoteAmount ? formatAmount(assignment.quoteAmount) : "Offertebedrag volgt"}
-                      {assignment.quoteValidityDate ? ` - geldig t/m ${formatDate(assignment.quoteValidityDate)}` : ""}
+                    <p
+                      className="mt-1 text-sm font-semibold"
+                      style={{ color: "var(--color-secondary)" }}
+                    >
+                      {assignment.quoteAmount
+                        ? formatAmount(assignment.quoteAmount)
+                        : "Offertebedrag volgt"}
+                      {assignment.quoteValidityDate
+                        ? ` - geldig t/m ${formatDate(assignment.quoteValidityDate)}`
+                        : ""}
                     </p>
                   </div>
                   <AssignmentStatusBadge assignment={assignment} />
@@ -364,13 +435,19 @@ export default async function OpdrachtenPage({
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
-                    style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                    style={{
+                      borderColor: "var(--color-border)",
+                      color: "var(--color-primary)",
+                    }}
                   >
                     <Download size={16} />
                     Offerte PDF
                   </Link>
                 ) : null}
-                <OfferteActieButtons assignmentId={assignment.id} title={assignment.title} />
+                <OfferteActieButtons
+                  assignmentId={assignment.id}
+                  title={assignment.title}
+                />
               </article>
             ))}
           </div>
@@ -383,8 +460,16 @@ export default async function OpdrachtenPage({
         getItemKey={(assignment) => assignment.id}
         tableLabel="Opdrachten"
         emptyState={{
-          icon: <ClipboardList size={32} style={{ color: "var(--color-muted-fg)" }} />,
-          title: activeFilters.length > 0 ? "Geen opdrachten gevonden" : "Nog geen opdrachten",
+          icon: (
+            <ClipboardList
+              size={32}
+              style={{ color: "var(--color-muted-fg)" }}
+            />
+          ),
+          title:
+            activeFilters.length > 0
+              ? "Geen opdrachten gevonden"
+              : "Nog geen opdrachten",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de opdrachtlijst opnieuw te bekijken."
@@ -413,11 +498,17 @@ export default async function OpdrachtenPage({
                 >
                   {assignment.code}
                 </span>
-                <h3 className="mt-2 truncate font-black" style={{ color: "var(--color-primary)" }}>
+                <h3
+                  className="mt-2 truncate font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {assignment.title}
                 </h3>
                 {assignment.objectName ? (
-                  <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+                  <p
+                    className="mt-0.5 truncate text-xs font-semibold"
+                    style={{ color: "var(--color-muted-fg)" }}
+                  >
                     {assignment.objectName}
                     {assignment.objectCity ? ` - ${assignment.objectCity}` : ""}
                   </p>
@@ -432,7 +523,10 @@ export default async function OpdrachtenPage({
               <AssignmentStatusBadge assignment={assignment} />
             </div>
             {assignment.status === "awaiting_approval" ? (
-              <OfferteActieButtons assignmentId={assignment.id} title={assignment.title} />
+              <OfferteActieButtons
+                assignmentId={assignment.id}
+                title={assignment.title}
+              />
             ) : null}
             <div
               className="mt-3 flex items-center justify-between border-t pt-3"
@@ -450,12 +544,17 @@ export default async function OpdrachtenPage({
                   Details bekijken
                 </PortalActionMenuLink>
                 {assignment.quoteId ? (
-                  <PortalActionMenuLink href={`/api/offerte/${assignment.quoteId}/pdf`} external>
+                  <PortalActionMenuLink
+                    href={`/api/offerte/${assignment.quoteId}/pdf`}
+                    external
+                  >
                     Offerte PDF downloaden
                   </PortalActionMenuLink>
                 ) : null}
                 {assignment.status === "awaiting_approval" ? (
-                  <PortalActionMenuLink href="/offertes">Naar offertes</PortalActionMenuLink>
+                  <PortalActionMenuLink href="/offertes">
+                    Naar offertes
+                  </PortalActionMenuLink>
                 ) : null}
               </PortalActionMenu>
             </div>
@@ -476,7 +575,11 @@ function AssignmentFilterForm({
   return (
     <form action="/opdrachten" className="space-y-4">
       <div>
-        <label htmlFor="assignment-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="assignment-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -486,32 +589,45 @@ function AssignmentFilterForm({
           defaultValue={query}
           placeholder="Opdracht, werkbon of object"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="assignment-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="assignment-filter-status"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Statusgroep
         </label>
-        <select
+        <SelectAdapter
           id="assignment-filter-status"
           name="filter"
           defaultValue={filter}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle opdrachten</option>
           <option value="action_required">Actie vereist</option>
           <option value="active">In uitvoering</option>
           <option value="open">Lopende aanvragen</option>
           <option value="history">Historie</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/opdrachten"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>
@@ -528,7 +644,9 @@ function AssignmentFilterForm({
 }
 
 function QuoteCell({ assignment }: { assignment: CustomerAssignment }) {
-  const quoteBadge = assignment.quoteStatus ? QUOTE_STATUS_BADGE[assignment.quoteStatus] : null;
+  const quoteBadge = assignment.quoteStatus
+    ? QUOTE_STATUS_BADGE[assignment.quoteStatus]
+    : null;
 
   if (quoteBadge) {
     return (
@@ -543,21 +661,34 @@ function QuoteCell({ assignment }: { assignment: CustomerAssignment }) {
 
   if (assignment.quoteAmount) {
     return (
-      <span className="text-sm font-bold" style={{ color: "var(--color-primary)" }}>
+      <span
+        className="text-sm font-bold"
+        style={{ color: "var(--color-primary)" }}
+      >
         {formatAmount(assignment.quoteAmount)}
       </span>
     );
   }
 
   return (
-    <span className="text-sm font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+    <span
+      className="text-sm font-semibold"
+      style={{ color: "var(--color-muted-fg)" }}
+    >
       -
     </span>
   );
 }
 
-function AssignmentStatusBadge({ assignment }: { assignment: CustomerAssignment }) {
-  const style = STATUS_COLOR[assignment.status] ?? { bg: "#F1F5F9", color: "#64748B" };
+function AssignmentStatusBadge({
+  assignment,
+}: {
+  assignment: CustomerAssignment;
+}) {
+  const style = STATUS_COLOR[assignment.status] ?? {
+    bg: "#F1F5F9",
+    color: "#64748B",
+  };
   return (
     <span
       className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black"

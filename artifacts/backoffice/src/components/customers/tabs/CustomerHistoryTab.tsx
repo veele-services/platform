@@ -65,7 +65,7 @@ export function CustomerHistoryTab({ history }: Props) {
                       style={{ borderBottom: i < history.length - 1 ? "1px solid #F1F5F9" : undefined }}
                     >
                       <td className="px-5 py-3">
-                        <div className="text-sm font-medium" style={{ color: "#081D3A" }}>
+                        <div className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                           {ACTION_LABELS[entry.action] ?? entry.action}
                         </div>
                         <div className="text-xs font-mono mt-0.5" style={{ color: "#94A3B8" }}>

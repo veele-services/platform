@@ -1,9 +1,20 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
+import { RadioGroup, RadioGroupItem } from "@workspace/shared-ui";
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Building2, Check, KeyRound, Loader2, MapPin, ShieldCheck, UserRound } from "lucide-react";
+import {
+  AlertTriangle,
+  Building2,
+  Check,
+  KeyRound,
+  Loader2,
+  MapPin,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import {
   createCustomerObject,
   updateCustomerObject,
@@ -11,32 +22,35 @@ import {
   type CustomerSectorOption,
   type ObjectMutationState,
 } from "@/actions/objects";
-import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSelection,
+} from "@/components/google-maps/AddressAutocomplete";
 
 const INITIAL_STATE: ObjectMutationState = { success: false, error: "" };
 
 type Props = {
-  mode:     "create" | "edit";
-  sectors:  CustomerSectorOption[];
-  object?:  CustomerObjectDetail;
+  mode: "create" | "edit";
+  sectors: CustomerSectorOption[];
+  object?: CustomerObjectDetail;
 };
 
 type FieldProps = {
-  label:       string;
-  name:        string;
-  required?:   boolean;
-  type?:       string;
-  maxLength?:  number;
+  label: string;
+  name: string;
+  required?: boolean;
+  type?: string;
+  maxLength?: number;
   placeholder?: string;
   defaultValue?: string | null;
-  error?:      string;
+  error?: string;
   autoComplete?: string;
 };
 
 function fieldClass(error?: string) {
   return [
     "w-full rounded-2xl border bg-white px-4 py-3 text-sm font-semibold outline-none transition",
-    "focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10",
+    "focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)]/10",
     error ? "border-red-300" : "border-slate-200",
   ].join(" ");
 }
@@ -54,8 +68,12 @@ function Field({
 }: FieldProps) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-black uppercase tracking-[0.04em]" style={{ color: "var(--color-secondary)" }}>
-        {label}{required ? <span className="text-red-500"> *</span> : null}
+      <span
+        className="text-xs font-black uppercase tracking-[0.04em]"
+        style={{ color: "var(--color-secondary)" }}
+      >
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
       </span>
       <input
         name={name}
@@ -68,7 +86,9 @@ function Field({
         className={fieldClass(error)}
         style={{ color: "var(--color-primary)" }}
       />
-      {error ? <span className="block text-xs font-bold text-red-600">{error}</span> : null}
+      {error ? (
+        <span className="block text-xs font-bold text-red-600">{error}</span>
+      ) : null}
     </label>
   );
 }
@@ -92,7 +112,10 @@ function TextArea({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-black uppercase tracking-[0.04em]" style={{ color: "var(--color-secondary)" }}>
+      <span
+        className="text-xs font-black uppercase tracking-[0.04em]"
+        style={{ color: "var(--color-secondary)" }}
+      >
         {label}
       </span>
       <textarea
@@ -104,7 +127,9 @@ function TextArea({
         className={`${fieldClass(error)} resize-none leading-6`}
         style={{ color: "var(--color-primary)" }}
       />
-      {error ? <span className="block text-xs font-bold text-red-600">{error}</span> : null}
+      {error ? (
+        <span className="block text-xs font-bold text-red-600">{error}</span>
+      ) : null}
     </label>
   );
 }
@@ -121,16 +146,28 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border bg-white p-4 shadow-sm md:p-5" style={{ borderColor: "var(--color-border)" }}>
+    <section
+      className="rounded-[24px] border bg-white p-4 shadow-sm md:p-5"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       <div className="mb-5 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA]" style={{ color: "var(--color-accent)" }}>
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA]"
+          style={{ color: "var(--color-accent)" }}
+        >
           {icon}
         </span>
         <span>
-          <h2 className="text-lg font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+          <h2
+            className="text-lg font-black leading-tight"
+            style={{ color: "var(--color-primary)" }}
+          >
             {title}
           </h2>
-          <p className="mt-1 text-sm font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+          <p
+            className="mt-1 text-sm font-semibold leading-5"
+            style={{ color: "var(--color-secondary)" }}
+          >
             {description}
           </p>
         </span>
@@ -142,17 +179,21 @@ function Section({
 
 export function CustomerObjectForm({ mode, sectors, object }: Props) {
   const router = useRouter();
-  const action: (state: ObjectMutationState, formData: FormData) => Promise<ObjectMutationState> =
+  const action: (
+    state: ObjectMutationState,
+    formData: FormData,
+  ) => Promise<ObjectMutationState> =
     mode === "edit" && object
       ? updateCustomerObject.bind(null, object.id)
       : createCustomerObject;
 
-  const [state, formAction, pending] = useActionState<ObjectMutationState, FormData>(
-    action,
-    INITIAL_STATE,
-  );
+  const [state, formAction, pending] = useActionState<
+    ObjectMutationState,
+    FormData
+  >(action, INITIAL_STATE);
   const formRef = useRef<HTMLFormElement>(null);
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
+  const [selectedGooglePlace, setSelectedGooglePlace] =
+    useState<SelectedGooglePlace | null>(null);
 
   useEffect(() => {
     if (!state.success) return;
@@ -167,12 +208,22 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
 
   const errors = state.success ? undefined : state.fieldErrors;
 
-  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+  function applyAddressSelection({
+    suggestion,
+    place,
+  }: AddressAutocompleteSelection) {
     setSelectedGooglePlace(place);
-    const address = formRef.current?.querySelector<HTMLInputElement>('input[name="address"]');
-    const postalCode = formRef.current?.querySelector<HTMLInputElement>('input[name="postalCode"]');
-    const city = formRef.current?.querySelector<HTMLInputElement>('input[name="city"]');
-    if (address) address.value = place.addressLine1 ?? suggestion.mainText ?? suggestion.label;
+    const address = formRef.current?.querySelector<HTMLInputElement>(
+      'input[name="address"]',
+    );
+    const postalCode = formRef.current?.querySelector<HTMLInputElement>(
+      'input[name="postalCode"]',
+    );
+    const city =
+      formRef.current?.querySelector<HTMLInputElement>('input[name="city"]');
+    if (address)
+      address.value =
+        place.addressLine1 ?? suggestion.mainText ?? suggestion.label;
     if (postalCode) postalCode.value = place.postalCode ?? "";
     if (city) city.value = place.city ?? "";
   }
@@ -181,16 +232,56 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
     <form ref={formRef} action={formAction} className="space-y-4">
       {selectedGooglePlace ? (
         <>
-          <input type="hidden" name="googlePlaceId" value={selectedGooglePlace.googlePlaceId} />
-          <input type="hidden" name="googleFormattedAddress" value={selectedGooglePlace.formattedAddress ?? ""} />
-          <input type="hidden" name="googleAddressLine1" value={selectedGooglePlace.addressLine1 ?? ""} />
-          <input type="hidden" name="googleAddressLine2" value={selectedGooglePlace.addressLine2 ?? ""} />
-          <input type="hidden" name="googlePostalCode" value={selectedGooglePlace.postalCode ?? ""} />
-          <input type="hidden" name="googleCity" value={selectedGooglePlace.city ?? ""} />
-          <input type="hidden" name="googleStateOrRegion" value={selectedGooglePlace.stateOrRegion ?? ""} />
-          <input type="hidden" name="googleCountryCode" value={selectedGooglePlace.countryCode} />
-          <input type="hidden" name="googleLatitude" value={selectedGooglePlace.latitude ?? ""} />
-          <input type="hidden" name="googleLongitude" value={selectedGooglePlace.longitude ?? ""} />
+          <input
+            type="hidden"
+            name="googlePlaceId"
+            value={selectedGooglePlace.googlePlaceId}
+          />
+          <input
+            type="hidden"
+            name="googleFormattedAddress"
+            value={selectedGooglePlace.formattedAddress ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleAddressLine1"
+            value={selectedGooglePlace.addressLine1 ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleAddressLine2"
+            value={selectedGooglePlace.addressLine2 ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googlePostalCode"
+            value={selectedGooglePlace.postalCode ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleCity"
+            value={selectedGooglePlace.city ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleStateOrRegion"
+            value={selectedGooglePlace.stateOrRegion ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleCountryCode"
+            value={selectedGooglePlace.countryCode}
+          />
+          <input
+            type="hidden"
+            name="googleLatitude"
+            value={selectedGooglePlace.latitude ?? ""}
+          />
+          <input
+            type="hidden"
+            name="googleLongitude"
+            value={selectedGooglePlace.longitude ?? ""}
+          />
         </>
       ) : null}
       {mode === "create" ? (
@@ -199,7 +290,11 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
           title="Review en activering"
           description="Kies hoe dit object na opslaan behandeld moet worden. Zo wordt een nieuwe locatie niet ongemerkt operationeel actief."
         >
-          <div className="grid gap-3 md:grid-cols-3">
+          <RadioGroup
+            name="reviewMode"
+            defaultValue="review"
+            className="grid gap-3 md:grid-cols-3"
+          >
             {[
               {
                 value: "concept",
@@ -222,24 +317,24 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
                 className="flex cursor-pointer gap-3 rounded-2xl border bg-white p-4"
                 style={{ borderColor: "var(--color-border)" }}
               >
-                <input
-                  type="radio"
-                  name="reviewMode"
-                  value={option.value}
-                  defaultChecked={option.value === "review"}
-                  className="mt-1 h-4 w-4 accent-[#00B7B3]"
-                />
+                <RadioGroupItem value={option.value} className="mt-1" />
                 <span className="min-w-0">
-                  <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="block text-sm font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {option.title}
                   </span>
-                  <span className="mt-1 block text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                  <span
+                    className="mt-1 block text-xs font-semibold leading-5"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
                     {option.text}
                   </span>
                 </span>
               </label>
             ))}
-          </div>
+          </RadioGroup>
         </Section>
       ) : null}
 
@@ -259,10 +354,13 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
             error={errors?.name}
           />
           <label className="block space-y-1.5">
-            <span className="text-xs font-black uppercase tracking-[0.04em]" style={{ color: "var(--color-secondary)" }}>
+            <span
+              className="text-xs font-black uppercase tracking-[0.04em]"
+              style={{ color: "var(--color-secondary)" }}
+            >
               Sector
             </span>
-            <select
+            <SelectAdapter
               name="sectorId"
               defaultValue={object?.sectorId ?? ""}
               className={fieldClass(errors?.sectorId)}
@@ -274,8 +372,12 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
                   {sector.name}
                 </option>
               ))}
-            </select>
-            {errors?.sectorId ? <span className="block text-xs font-bold text-red-600">{errors.sectorId}</span> : null}
+            </SelectAdapter>
+            {errors?.sectorId ? (
+              <span className="block text-xs font-bold text-red-600">
+                {errors.sectorId}
+              </span>
+            ) : null}
           </label>
           <Field
             label="Dienstverlening"
@@ -461,15 +563,26 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
         </div>
       ) : null}
 
-      <div className="sticky bottom-[calc(5.6rem+var(--safe-bottom))] z-10 rounded-[24px] border bg-white/95 p-3 shadow-lg backdrop-blur md:static md:flex md:items-center md:justify-end md:shadow-none" style={{ borderColor: "var(--color-border)" }}>
+      <div
+        className="sticky bottom-[calc(5.6rem+var(--safe-bottom))] z-10 rounded-[24px] border bg-white/95 p-3 shadow-lg backdrop-blur md:static md:flex md:items-center md:justify-end md:shadow-none"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         <button
           type="submit"
           disabled={pending}
           className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white disabled:opacity-60 md:w-auto"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
-          {pending ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
-          {pending ? "Opslaan..." : mode === "create" ? "Object aanmaken" : "Object opslaan"}
+          {pending ? (
+            <Loader2 size={17} className="animate-spin" />
+          ) : (
+            <Check size={17} />
+          )}
+          {pending
+            ? "Opslaan..."
+            : mode === "create"
+              ? "Object aanmaken"
+              : "Object opslaan"}
         </button>
       </div>
     </form>

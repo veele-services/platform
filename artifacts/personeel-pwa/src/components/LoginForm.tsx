@@ -9,7 +9,7 @@ import { Eye, EyeOff, Zap } from "lucide-react";
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
 const DEV_ACCOUNTS = [
-  { label: "Medewerker",  email: "medewerker@test.nl",  password: "Test1234!", bg: "#081D3A", color: "#fff" },
+  { label: "Medewerker",  email: "medewerker@test.nl",  password: "Test1234!", bg: "var(--color-primary)", color: "#fff" },
   { label: "Teamlead",    email: "teamlead@test.nl",    password: "Test1234!", bg: "#0E7490", color: "#fff" },
   { label: "Flex",        email: "flex@test.nl",        password: "Test1234!", bg: "#475569", color: "#fff" },
 ];

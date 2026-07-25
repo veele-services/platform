@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -73,11 +74,15 @@ function SortHeader({
         type="button"
         onClick={() => onSort(columnKey)}
         className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80"
-        style={{ color: active ? "#00B7B3" : "#64748B" }}
+        style={{ color: active ? "var(--color-primary)" : "#64748B" }}
       >
         {label}
         {active ? (
-          currentDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+          currentDir === "asc" ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )
         ) : (
           <ChevronsUpDown className="h-3 w-3 opacity-40" />
         )}
@@ -136,7 +141,10 @@ export function TaskCodesView({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(initialSearch);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -166,11 +174,14 @@ export function TaskCodesView({
 
   function handleSearchSubmit(event: React.FormEvent) {
     event.preventDefault();
-    router.replace(buildUrl({ search: searchInput || undefined, page: undefined }));
+    router.replace(
+      buildUrl({ search: searchInput || undefined, page: undefined }),
+    );
   }
 
   function handleSort(column: string) {
-    const nextDir = initialSort === column && initialDir === "asc" ? "desc" : "asc";
+    const nextDir =
+      initialSort === column && initialDir === "asc" ? "desc" : "asc";
     router.replace(buildUrl({ sort: column, dir: nextDir, page: undefined }));
   }
 
@@ -208,12 +219,21 @@ export function TaskCodesView({
   }
 
   const activeFilters = [
-    initialSearch ? { id: "search", label: "Zoeken", value: initialSearch, onRemove: () => applyFilter("search", "") } : null,
+    initialSearch
+      ? {
+          id: "search",
+          label: "Zoeken",
+          value: initialSearch,
+          onRemove: () => applyFilter("search", ""),
+        }
+      : null,
     initialSectorId
       ? {
           id: "sector",
           label: "Sector",
-          value: sectors.find((sector) => sector.id === initialSectorId)?.name ?? initialSectorId,
+          value:
+            sectors.find((sector) => sector.id === initialSectorId)?.name ??
+            initialSectorId,
           onRemove: () => applyFilter("sectorId", ""),
         }
       : null,
@@ -221,7 +241,8 @@ export function TaskCodesView({
       ? {
           id: "invoice",
           label: "Facturatie",
-          value: initialInvoice === "yes" ? "Factureerbaar" : "Niet factureerbaar",
+          value:
+            initialInvoice === "yes" ? "Factureerbaar" : "Niet factureerbaar",
           onRemove: () => applyFilter("invoice", ""),
         }
       : null,
@@ -250,7 +271,11 @@ export function TaskCodesView({
                 {
                   id: "status",
                   label: row.isActive ? "Deactiveren" : "Activeren",
-                  icon: row.isActive ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />,
+                  icon: row.isActive ? (
+                    <ToggleLeft className="h-4 w-4" />
+                  ) : (
+                    <ToggleRight className="h-4 w-4" />
+                  ),
                   disabled: pending,
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
@@ -261,7 +286,11 @@ export function TaskCodesView({
                   icon: <Trash2 className="h-4 w-4" />,
                   destructive: true,
                   separatorBefore: true,
-                  onSelect: () => setDeleteTarget({ id: row.id, label: `${row.code} - ${row.name}` }),
+                  onSelect: () =>
+                    setDeleteTarget({
+                      id: row.id,
+                      label: `${row.code} - ${row.name}`,
+                    }),
                 },
               ]
             : []
@@ -274,54 +303,83 @@ export function TaskCodesView({
     <>
       <TenantToolbar
         search={
-          <form onSubmit={handleSearchSubmit} className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex min-w-0 flex-1 gap-2 sm:max-w-md"
+          >
             <TenantToolbarSearch
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Zoek code of naam..."
               wrapperClassName="max-w-none"
             />
-            <Button type="submit" variant="outline" size="sm">Zoeken</Button>
+            <Button type="submit" variant="outline" size="sm">
+              Zoeken
+            </Button>
           </form>
         }
         actions={
           <>
-            <TenantFilterDrawer activeCount={activeFilters.length} title="Taakcodefilters">
+            <TenantFilterDrawer
+              activeCount={activeFilters.length}
+              title="Taakcodefilters"
+            >
               <div className="space-y-4">
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium text-foreground">Sector</span>
-                  <select
+                  <SelectAdapter
                     value={initialSectorId || "ALL"}
-                    onChange={(event) => applyFilter("sectorId", event.target.value === "ALL" ? "" : event.target.value)}
+                    onChange={(event) =>
+                      applyFilter(
+                        "sectorId",
+                        event.target.value === "ALL" ? "" : event.target.value,
+                      )
+                    }
                     className="veele-input"
                   >
                     <option value="ALL">Alle sectoren</option>
-                    {sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
-                  </select>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </SelectAdapter>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-foreground">Facturatie</span>
-                  <select
+                  <span className="font-medium text-foreground">
+                    Facturatie
+                  </span>
+                  <SelectAdapter
                     value={initialInvoice || "all"}
-                    onChange={(event) => applyFilter("invoice", event.target.value === "all" ? "" : event.target.value)}
+                    onChange={(event) =>
+                      applyFilter(
+                        "invoice",
+                        event.target.value === "all" ? "" : event.target.value,
+                      )
+                    }
                     className="veele-input"
                   >
                     <option value="all">Alle</option>
                     <option value="yes">Factureerbaar</option>
                     <option value="no">Niet factureerbaar</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium text-foreground">Status</span>
-                  <select
+                  <SelectAdapter
                     value={initialStatus || "all"}
-                    onChange={(event) => applyFilter("status", event.target.value === "all" ? "" : event.target.value)}
+                    onChange={(event) =>
+                      applyFilter(
+                        "status",
+                        event.target.value === "all" ? "" : event.target.value,
+                      )
+                    }
                     className="veele-input"
                   >
                     <option value="all">Alle statussen</option>
                     <option value="active">Actief</option>
                     <option value="inactive">Inactief</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
               </div>
             </TenantFilterDrawer>
@@ -343,12 +401,19 @@ export function TaskCodesView({
       ) : (
         <div className="mt-4 grid gap-3 md:hidden">
           {rows.map((row) => (
-            <article key={row.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <article
+              key={row.id}
+              className="rounded-lg border border-border bg-card p-4 shadow-card"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <span className="inline-flex rounded bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-slate-600">{row.code}</span>
+                  <span className="inline-flex rounded bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-slate-600">
+                    {row.code}
+                  </span>
                   <p className="mt-2 font-medium text-foreground">{row.name}</p>
-                  <p className="text-sm text-muted-foreground">{row.sectorName ?? "Geen sector"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {row.sectorName ?? "Geen sector"}
+                  </p>
                 </div>
                 {renderRowActions(row)}
               </div>
@@ -356,7 +421,9 @@ export function TaskCodesView({
                 <StatusBadge isActive={row.isActive} />
                 <span>{formatPrice(row.price)}</span>
                 <span>{formatDuration(row.durationMinutes)}</span>
-                <span>{row.invoiceable ? "Factureerbaar" : "Niet factureerbaar"}</span>
+                <span>
+                  {row.invoiceable ? "Factureerbaar" : "Niet factureerbaar"}
+                </span>
               </div>
             </article>
           ))}
@@ -368,20 +435,63 @@ export function TaskCodesView({
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
-                <SortHeader label="Code" columnKey="code" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Naam" columnKey="name" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                <SortHeader label="Prijs" columnKey="price" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Duur" columnKey="durationMinutes" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Factureerbaar</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
+                <SortHeader
+                  label="Code"
+                  columnKey="code"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <SortHeader
+                  label="Naam"
+                  columnKey="name"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
+                  Sector
+                </th>
+                <SortHeader
+                  label="Prijs"
+                  columnKey="price"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <SortHeader
+                  label="Duur"
+                  columnKey="durationMinutes"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
+                  Factureerbaar
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
+                  Status
+                </th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-sm" style={{ color: "#94A3B8" }}>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-12 text-center text-sm"
+                    style={{ color: "#94A3B8" }}
+                  >
                     Geen taakcodes gevonden
                   </td>
                 </tr>
@@ -390,30 +500,55 @@ export function TaskCodesView({
                   <tr
                     key={row.id}
                     className="transition-colors hover:bg-slate-50/60"
-                    style={{ borderBottom: index < rows.length - 1 ? "1px solid #F1F5F9" : undefined }}
+                    style={{
+                      borderBottom:
+                        index < rows.length - 1
+                          ? "1px solid #F1F5F9"
+                          : undefined,
+                    }}
                   >
                     <td className="px-4 py-3">
-                      <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-slate-600">{row.code}</span>
+                      <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-slate-600">
+                        {row.code}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-foreground">{row.name}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">
+                      {row.name}
+                    </td>
                     <td className="px-4 py-3">
                       {row.sectorName ? (
-                        <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{row.sectorName}</span>
+                        <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          {row.sectorName}
+                        </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatPrice(row.price)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDuration(row.durationMinutes)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {formatPrice(row.price)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {formatDuration(row.durationMinutes)}
+                    </td>
                     <td className="px-4 py-3">
                       {row.invoiceable ? (
-                        <span className="flex items-center gap-1 text-xs text-primary"><CheckCircle2 className="h-3.5 w-3.5" />Ja</span>
+                        <span className="flex items-center gap-1 text-xs text-primary">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Ja
+                        </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="h-3.5 w-3.5" />Nee</span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <XCircle className="h-3.5 w-3.5" />
+                          Nee
+                        </span>
                       )}
                     </td>
-                    <td className="px-4 py-3"><StatusBadge isActive={row.isActive} /></td>
-                    <td className="pr-4 py-3 text-right">{renderRowActions(row)}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge isActive={row.isActive} />
+                    </td>
+                    <td className="pr-4 py-3 text-right">
+                      {renderRowActions(row)}
+                    </td>
                   </tr>
                 ))
               )}
@@ -425,7 +560,8 @@ export function TaskCodesView({
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}-{Math.min(page * PAGE_SIZE, total)} van {total}
+            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}-
+            {Math.min(page * PAGE_SIZE, total)} van {total}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -433,17 +569,23 @@ export function TaskCodesView({
               size="sm"
               className="h-8 w-8 p-0"
               disabled={page <= 1}
-              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}
+              onClick={() =>
+                router.replace(buildUrl({ page: String(page - 1) }))
+              }
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3 text-foreground">{page} / {totalPages}</span>
+            <span className="px-3 text-foreground">
+              {page} / {totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
               className="h-8 w-8 p-0"
               disabled={page >= totalPages}
-              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}
+              onClick={() =>
+                router.replace(buildUrl({ page: String(page + 1) }))
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -452,9 +594,14 @@ export function TaskCodesView({
       )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[560px] overflow-y-auto sm:max-w-[560px]">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-[560px]"
+        >
           <SheetHeader>
-            <SheetTitle>{editingId ? "Taakcode bewerken" : "Nieuwe taakcode"}</SheetTitle>
+            <SheetTitle>
+              {editingId ? "Taakcode bewerken" : "Nieuwe taakcode"}
+            </SheetTitle>
             <SheetDescription>
               {editingId
                 ? "Werk de taakcodegegevens bij."
@@ -478,7 +625,11 @@ export function TaskCodesView({
           if (!open) setDeleteTarget(null);
         }}
         title="Taakcode verwijderen?"
-        description={deleteTarget ? `Dit verwijdert permanent ${deleteTarget.label}. Deze actie kan niet ongedaan worden gemaakt.` : undefined}
+        description={
+          deleteTarget
+            ? `Dit verwijdert permanent ${deleteTarget.label}. Deze actie kan niet ongedaan worden gemaakt.`
+            : undefined
+        }
         confirmLabel="Verwijderen"
         destructive
         onConfirm={handleConfirmDelete}

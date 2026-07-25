@@ -31,7 +31,10 @@ test("automatic seen transition serializes the first user mutation on its canoni
   assert.match(marker, /setAssignmentStatus\(assignmentId, "seen", \{ expectedParticipantVersion \}\)/u);
   assert.match(marker, /finally\(\(\) => router\.refresh\(\)\)/u);
   assert.match(progress, /const awaitingSeenRefresh/u);
-  assert.match(progress, /const canMarkEnRoute = !workOrderLocked[\s\S]*&& !awaitingSeenRefresh/u);
+  assert.match(
+    progress,
+    /const canMarkEnRoute\s*=\s*!workOrderLocked\s*&&\s*!awaitingSeenRefresh/u,
+  );
 });
 
 test("browser SQLSTATE injection is explicit, E2E-only and production-disabled", () => {

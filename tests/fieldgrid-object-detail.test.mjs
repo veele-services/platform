@@ -34,7 +34,10 @@ test("object detail page uses staging-safe object loader", () => {
   const tabConfig = read("artifacts/backoffice/src/components/objects/object-tabs.ts");
 
   assert.match(page, /getObjectForDetailPage/u);
-  assert.match(page, /safeOptional\("object", id, \(\) => getObjectForDetailPage\(id\), null\)/u);
+  assert.match(
+    page,
+    /safeOptional\(\s*"object",\s*id,\s*\(\) => getObjectForDetailPage\(id\),\s*null,\s*\)/u,
+  );
   assert.match(page, /@\/components\/objects\/object-tabs/u);
   assert.doesNotMatch(page, /@\/components\/objects\/ObjectDetailTabs/u);
   assert.match(tabConfig, /export const OBJECT_TAB_KEYS/u);

@@ -51,7 +51,7 @@ export function CustomerDetailObjectCreate({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="w-[520px] sm:max-w-[520px] overflow-y-auto"
+          className="w-full overflow-y-auto sm:max-w-[520px]"
         >
           <SheetHeader>
             <SheetTitle>Nieuw object</SheetTitle>

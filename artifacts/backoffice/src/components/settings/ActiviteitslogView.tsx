@@ -283,7 +283,7 @@ export function ActiviteitslogView({
                       {formatDateTime(e.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-sm" style={{ color: "#081D3A" }}>
+                      <div className="font-medium text-sm" style={{ color: "var(--color-foreground)" }}>
                         {e.userName ?? <span style={{ color: "#94A3B8" }}>Onbekend</span>}
                       </div>
                       <div className="text-xs" style={{ color: "#94A3B8" }}>{e.userEmail}</div>
@@ -337,7 +337,7 @@ export function ActiviteitslogView({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3" style={{ color: "#081D3A" }}>
+            <span className="px-3" style={{ color: "var(--color-foreground)" }}>
               {page} / {totalPages}
             </span>
             <Button

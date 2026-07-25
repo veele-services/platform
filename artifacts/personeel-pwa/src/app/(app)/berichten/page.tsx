@@ -80,7 +80,7 @@ function TicketInboxCard({ ticket }: { ticket: TicketListItem }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-start gap-2">
             <span className="min-w-0 flex-1">
-              <span className="line-clamp-1 text-sm font-black text-[#081D3A]">
+              <span className="line-clamp-1 text-sm font-black text-[var(--color-primary)]">
                 {ticket.subject}
               </span>
               <span className="mt-1 block line-clamp-2 text-xs font-semibold text-slate-500">
@@ -178,7 +178,7 @@ export default async function BerichtenPage() {
                   <Inbox size={21} strokeWidth={2.4} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-black text-[#081D3A]">
+                  <h2 className="text-lg font-black text-[var(--color-primary)]">
                     Mijn inbox
                   </h2>
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -208,7 +208,7 @@ export default async function BerichtenPage() {
               ) : (
                 <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] px-4 py-10 text-center">
                   <Inbox className="mx-auto text-slate-400" size={30} />
-                  <p className="mt-3 text-sm font-black text-[#081D3A]">
+                  <p className="mt-3 text-sm font-black text-[var(--color-primary)]">
                     Geen tickets
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -226,7 +226,7 @@ export default async function BerichtenPage() {
                   <Send size={19} strokeWidth={2.4} />
                 </span>
                 <div>
-                  <h2 className="text-[15px] font-black text-[#081D3A]">
+                  <h2 className="text-[15px] font-black text-[var(--color-primary)]">
                     Nieuw bericht
                   </h2>
                   <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-500">

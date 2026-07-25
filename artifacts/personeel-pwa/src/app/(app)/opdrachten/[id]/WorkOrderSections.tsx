@@ -184,7 +184,7 @@ export function AssignmentQuestionCard({
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             rows={4}
-            className="w-full resize-none rounded-2xl border px-4 py-3 text-[14px] font-semibold outline-none focus:border-[#00B7B3]"
+            className="w-full resize-none rounded-2xl border px-4 py-3 text-[14px] font-semibold outline-none focus:border-[var(--color-accent)]"
             placeholder={`Vraag over ${assignment.code}...`}
           />
           {error ? (

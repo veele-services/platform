@@ -48,7 +48,7 @@ export default function InstellingenPage() {
                 <Icon size={21} strokeWidth={2.4} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-black text-[#081D3A]">
+                <span className="block text-sm font-black text-[var(--color-primary)]">
                   {label}
                 </span>
                 <span className="line-clamp-2 text-xs font-semibold leading-5 text-slate-500">

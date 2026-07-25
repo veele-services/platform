@@ -7,13 +7,19 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
 test("platform onboarding v2 adds preflight, workspace and rollback actions", () => {
-  const action = read("artifacts/backoffice/src/app/actions/platform-provisioning.ts");
+  const action = read(
+    "artifacts/backoffice/src/app/actions/platform-provisioning.ts",
+  );
 
   assertIncludes(
     action,
@@ -34,12 +40,18 @@ test("platform onboarding v2 adds preflight, workspace and rollback actions", ()
 });
 
 test("platform onboarding v2 has a dedicated mobile-safe platform route", () => {
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx");
-  const shell = read("artifacts/backoffice/src/components/platform/PlatformShell.tsx");
-  const dashboard = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx",
+  );
+  const registry = read(
+    "artifacts/backoffice/src/lib/navigation/route-registry.ts",
+  );
+  const dashboard = read(
+    "artifacts/backoffice/src/app/(platform)/platform/page.tsx",
+  );
 
   assertIncludes(
-    `${page}\n${shell}\n${dashboard}`,
+    `${page}\n${registry}\n${dashboard}`,
     [
       "Onboarding en provisioning 2.0",
       "Fieldgrid subdomain",
@@ -49,8 +61,8 @@ test("platform onboarding v2 has a dedicated mobile-safe platform route", () => 
       "Concept opslaan",
       "Provisioning runs",
       "Rollback provisioning",
-      "href=\"/platform/onboarding\"",
-      "Open Onboarding 2.0",
+      'href="/platform/onboarding"',
+      "Organisatie inrichten",
     ],
     "platform onboarding v2 route",
   );

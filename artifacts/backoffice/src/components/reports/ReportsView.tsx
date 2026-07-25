@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
@@ -43,7 +44,13 @@ const STATUS_OPTIONS = [
   { value: "draft", label: processStatusLabel("report", "draft") },
 ];
 
-export function ReportsView({ rows, total, page, search, statusFilter }: Props) {
+export function ReportsView({
+  rows,
+  total,
+  page,
+  search,
+  statusFilter,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -73,12 +80,21 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
   }
 
   const activeFilters = [
-    search ? { id: "search", label: "Zoeken", value: search, onRemove: () => push({ search: "" }) } : null,
+    search
+      ? {
+          id: "search",
+          label: "Zoeken",
+          value: search,
+          onRemove: () => push({ search: "" }),
+        }
+      : null,
     statusFilter
       ? {
           id: "status",
           label: "Status",
-          value: STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? statusFilter,
+          value:
+            STATUS_OPTIONS.find((option) => option.value === statusFilter)
+              ?.label ?? statusFilter,
           onRemove: () => push({ status: "" }),
         }
       : null,
@@ -89,7 +105,10 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
       id: "assignment",
       header: "Opdracht",
       cell: (row) => (
-        <Link href={`/reports/${row.id}`} className="flex items-center gap-1.5 font-medium text-foreground hover:underline">
+        <Link
+          href={`/reports/${row.id}`}
+          className="flex items-center gap-1.5 font-medium text-foreground hover:underline"
+        >
           <span className="flex-shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
             {row.assignmentCode}
           </span>
@@ -110,17 +129,27 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
     {
       id: "hours",
       header: "Uren",
-      cell: (row) => <span className="font-mono text-xs text-slate-700">{row.hoursWorked ? `${row.hoursWorked}u` : "-"}</span>,
+      cell: (row) => (
+        <span className="font-mono text-xs text-slate-700">
+          {row.hoursWorked ? `${row.hoursWorked}u` : "-"}
+        </span>
+      ),
     },
     {
       id: "submittedBy",
       header: "Ingediend door",
-      cell: (row) => <span className="text-slate-700">{row.submittedByName}</span>,
+      cell: (row) => (
+        <span className="text-slate-700">{row.submittedByName}</span>
+      ),
     },
     {
       id: "submittedAt",
       header: "Ingediend op",
-      cell: (row) => <span className="text-muted-foreground">{formatDate(row.submittedAt)}</span>,
+      cell: (row) => (
+        <span className="text-muted-foreground">
+          {formatDate(row.submittedAt)}
+        </span>
+      ),
     },
     {
       id: "actions",
@@ -153,16 +182,23 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
         }
         actions={
           <>
-            <TenantFilterDrawer activeCount={activeFilters.length} title="Rapportagefilters">
+            <TenantFilterDrawer
+              activeCount={activeFilters.length}
+              title="Rapportagefilters"
+            >
               <label className="flex flex-col gap-1 text-sm">
                 <span className="font-medium text-foreground">Status</span>
-                <select value={statusFilter} onChange={(event) => push({ status: event.target.value })} className="veele-input">
+                <SelectAdapter
+                  value={statusFilter}
+                  onChange={(event) => push({ status: event.target.value })}
+                  className="veele-input"
+                >
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </SelectAdapter>
               </label>
             </TenantFilterDrawer>
             <span className="text-sm text-muted-foreground">
@@ -186,8 +222,12 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
                 <span className="inline-flex rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                   {row.assignmentCode}
                 </span>
-                <p className="font-medium text-foreground">{row.assignmentTitle}</p>
-                <p className="text-sm text-muted-foreground">{row.customerName}</p>
+                <p className="font-medium text-foreground">
+                  {row.assignmentTitle}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {row.customerName}
+                </p>
               </Link>
               <TenantActionMenu
                 actions={[
@@ -202,7 +242,9 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <ReportStatusBadge status={row.status} />
-              <span>{row.hoursWorked ? `${row.hoursWorked}u` : "Geen uren"}</span>
+              <span>
+                {row.hoursWorked ? `${row.hoursWorked}u` : "Geen uren"}
+              </span>
               <span>{formatDate(row.submittedAt)}</span>
             </div>
           </article>

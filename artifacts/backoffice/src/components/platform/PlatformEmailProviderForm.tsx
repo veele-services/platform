@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
@@ -15,7 +17,9 @@ type Props = {
   action: (formData: FormData) => Promise<PlatformEmailProviderFormState>;
 };
 
-function providerLabel(providerType: PlatformEmailProviderAdminView["providerType"]): string {
+function providerLabel(
+  providerType: PlatformEmailProviderAdminView["providerType"],
+): string {
   return providerType === "resend_api" ? "Resend API" : "SMTP";
 }
 
@@ -26,7 +30,9 @@ function SubmitButton({ label, pending }: { label: string; pending: boolean }) {
       disabled={pending}
       className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-cyan-300"
     >
-      {pending && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
+      {pending && (
+        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+      )}
       {pending ? "Opslaan..." : label}
     </button>
   );
@@ -47,7 +53,8 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
 
     if (resendApiKey instanceof HTMLInputElement) resendApiKey.value = "";
     if (smtpPassword instanceof HTMLInputElement) smtpPassword.value = "";
-    if (clearSmtpPassword instanceof HTMLInputElement) clearSmtpPassword.checked = false;
+    if (clearSmtpPassword instanceof HTMLInputElement)
+      clearSmtpPassword.checked = false;
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -66,45 +73,89 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="grid gap-4 rounded border border-slate-200 bg-slate-50 p-4">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="grid gap-4 rounded border border-slate-200 bg-slate-50 p-4"
+    >
       <input type="hidden" name="providerType" value={provider.providerType} />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-950">{label}</p>
           <p className="mt-1 text-xs text-slate-500">
-            {provider.configured ? `Secret ${provider.maskedSecret ?? "geconfigureerd"}` : "Nog geen secret opgeslagen"}
-            {provider.lastTestedAt ? ` - Laatste test ${new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(provider.lastTestedAt))}` : ""}
+            {provider.configured
+              ? `Secret ${provider.maskedSecret ?? "geconfigureerd"}`
+              : "Nog geen secret opgeslagen"}
+            {provider.lastTestedAt
+              ? ` - Laatste test ${new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(provider.lastTestedAt))}`
+              : ""}
           </p>
-          {provider.lastTestError && <p className="mt-1 text-xs text-rose-700">{provider.lastTestError}</p>}
+          {provider.lastTestError && (
+            <p className="mt-1 text-xs text-rose-700">
+              {provider.lastTestError}
+            </p>
+          )}
         </div>
         <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <input name="isActive" type="checkbox" defaultChecked={provider.isActive} className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+          <CheckboxAdapter
+            name="isActive"
+            type="checkbox"
+            defaultChecked={provider.isActive}
+            className="h-4 w-4 rounded border-slate-300 text-cyan-600"
+          />
           Actief
         </label>
       </div>
 
       <label className="grid gap-1 text-sm font-medium text-slate-700">
         Provider
-        <select name="name" defaultValue={provider.name} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+        <SelectAdapter
+          name="name"
+          defaultValue={provider.name}
+          className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+        >
           <option value={label}>{label}</option>
-          <option value="SendGrid" disabled>SendGrid later</option>
-          <option value="Postmark" disabled>Postmark later</option>
-          <option value="Mailgun" disabled>Mailgun later</option>
-        </select>
+          <option value="SendGrid" disabled>
+            SendGrid later
+          </option>
+          <option value="Postmark" disabled>
+            Postmark later
+          </option>
+          <option value="Mailgun" disabled>
+            Mailgun later
+          </option>
+        </SelectAdapter>
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           From name
-          <input name="fromName" defaultValue={provider.fromName} placeholder="Fieldgrid" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+          <input
+            name="fromName"
+            defaultValue={provider.fromName}
+            placeholder="Fieldgrid"
+            className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+          />
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           From e-mail
-          <input name="fromEmail" type="email" defaultValue={provider.fromEmail} placeholder="noreply@fieldgrid.nl" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+          <input
+            name="fromEmail"
+            type="email"
+            defaultValue={provider.fromEmail}
+            placeholder="noreply@fieldgrid.nl"
+            className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+          />
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
           Reply-to e-mail
-          <input name="replyToEmail" type="email" defaultValue={provider.replyToEmail} placeholder="support@fieldgrid.nl" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+          <input
+            name="replyToEmail"
+            type="email"
+            defaultValue={provider.replyToEmail}
+            placeholder="support@fieldgrid.nl"
+            className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+          />
         </label>
       </div>
 
@@ -112,41 +163,92 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
         <div className="grid gap-3">
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Resend API key
-            <input name="resendApiKey" type="password" placeholder={provider.configured ? `${provider.maskedSecret} - leeg laten om te behouden` : "re_..."} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" autoComplete="new-password" />
+            <input
+              name="resendApiKey"
+              type="password"
+              placeholder={
+                provider.configured
+                  ? `${provider.maskedSecret} - leeg laten om te behouden`
+                  : "re_..."
+              }
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+              autoComplete="new-password"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Sending domain
-            <input name="sendingDomain" defaultValue={provider.config.sendingDomain} placeholder="fieldgrid.nl" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+            <input
+              name="sendingDomain"
+              defaultValue={provider.config.sendingDomain}
+              placeholder="fieldgrid.nl"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            />
           </label>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
             SMTP host
-            <input name="smtpHost" defaultValue={provider.config.smtpHost} placeholder="smtp.provider.nl" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+            <input
+              name="smtpHost"
+              defaultValue={provider.config.smtpHost}
+              placeholder="smtp.provider.nl"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Poort
-            <input name="smtpPort" type="number" min={1} max={65535} defaultValue={provider.config.smtpPort ?? ""} placeholder="587" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+            <input
+              name="smtpPort"
+              type="number"
+              min={1}
+              max={65535}
+              defaultValue={provider.config.smtpPort ?? ""}
+              placeholder="587"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Beveiliging
-            <select name="smtpEncryption" defaultValue={provider.config.smtpEncryption} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+            <SelectAdapter
+              name="smtpEncryption"
+              defaultValue={provider.config.smtpEncryption}
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            >
               <option value="starttls">STARTTLS</option>
               <option value="tls">TLS</option>
               <option value="none">Geen</option>
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Gebruikersnaam
-            <input name="smtpUsername" defaultValue={provider.config.smtpUsername} placeholder="apikey" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+            <input
+              name="smtpUsername"
+              defaultValue={provider.config.smtpUsername}
+              placeholder="apikey"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Wachtwoord
-            <input name="smtpPassword" type="password" placeholder={provider.config.smtpPasswordConfigured ? "Ingesteld, leeg laten om te behouden" : "Nog niet ingesteld"} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" autoComplete="new-password" />
+            <input
+              name="smtpPassword"
+              type="password"
+              placeholder={
+                provider.config.smtpPasswordConfigured
+                  ? "Ingesteld, leeg laten om te behouden"
+                  : "Nog niet ingesteld"
+              }
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+              autoComplete="new-password"
+            />
           </label>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input name="clearSmtpPassword" type="checkbox" className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+            <CheckboxAdapter
+              name="clearSmtpPassword"
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-cyan-600"
+            />
             SMTP-wachtwoord wissen
           </label>
         </div>
@@ -156,11 +258,28 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
         <p
           role={state.success ? "status" : "alert"}
           className={`inline-flex items-start gap-2 rounded border px-3 py-2 text-sm ${
-            state.success ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"
+            state.success
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-rose-200 bg-rose-50 text-rose-800"
           }`}
         >
-          {state.success ? <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" /> : <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />}
-          <span>{state.message ?? (state.success ? "Platform e-mailprovider opgeslagen." : "Opslaan mislukt.")}</span>
+          {state.success ? (
+            <CheckCircle2
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0"
+            />
+          ) : (
+            <AlertCircle
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0"
+            />
+          )}
+          <span>
+            {state.message ??
+              (state.success
+                ? "Platform e-mailprovider opgeslagen."
+                : "Opslaan mislukt.")}
+          </span>
         </p>
       )}
 

@@ -1,8 +1,13 @@
 "use client";
 
-import { getCapacitorPlatform, isNativeCapacitorRuntime } from "@/lib/capacitor";
+import {
+  getCapacitorPlatform,
+  getNativeAppInfo,
+  isNativeCapacitorRuntime,
+} from "@/lib/capacitor";
+import { isPersonnelNativeAppId } from "@/lib/native-navigation";
 
-const STORAGE_KEY = "veele-native-fcm-token";
+const STORAGE_KEY = "fieldgrid-native-fcm-token";
 const PERMISSION_TIMEOUT_MS = 5000;
 const REGISTRATION_TIMEOUT_MS = 12000;
 
@@ -41,6 +46,9 @@ export type NativePushState =
 export type NativePushRegistration = {
   token: string;
   platform: "android" | "ios";
+  appId: string;
+  appVersion: string;
+  appBuild: string;
 };
 
 function getStoredToken(): string | null {
@@ -170,13 +178,22 @@ export async function ensureNativePushRegistration(): Promise<NativePushRegistra
     );
   }
 
+  const appInfo = await getNativeAppInfo();
+  if (!appInfo || !isPersonnelNativeAppId(appInfo.id)) {
+    throw new Error("De identiteit van deze personeelsapp is ongeldig.");
+  }
+
   if (normalizePlatform(getCapacitorPlatform()) === "android") {
+    const channelId =
+      appInfo.id === "nl.fieldgrid.personeel"
+        ? "fieldgrid_operations"
+        : "veele_operations";
     await bridge.createChannel?.({
-      id: "veele_operations",
+      id: channelId,
       name: "Meldingen",
       description: "Planning, werkbonnen en urgente operationele meldingen.",
       importance: 5,
-      visibility: 1,
+      visibility: 0,
       vibration: true,
       sound: "default",
     }).catch(() => undefined);
@@ -218,6 +235,23 @@ export async function ensureNativePushRegistration(): Promise<NativePushRegistra
   return {
     token,
     platform: normalizePlatform(getCapacitorPlatform()),
+    appId: appInfo.id,
+    appVersion: appInfo.version,
+    appBuild: appInfo.build,
+  };
+}
+
+export async function getNativePushAppMetadata(): Promise<{
+  appId: string;
+  appVersion: string;
+  appBuild: string;
+} | null> {
+  const appInfo = await getNativeAppInfo();
+  if (!appInfo || !isPersonnelNativeAppId(appInfo.id)) return null;
+  return {
+    appId: appInfo.id,
+    appVersion: appInfo.version,
+    appBuild: appInfo.build,
   };
 }
 

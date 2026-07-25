@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectAdapter } from "@workspace/shared-ui";
 import { useActionState, useRef } from "react";
 import { requestLeave } from "@/actions/leave";
 
@@ -25,17 +26,20 @@ export function VerlofForm() {
         <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
           Type verlof <span className="text-red-500">*</span>
         </label>
-        <select
+        <SelectAdapter
           name="leaveType"
           required
           className="w-full rounded-2xl border px-3.5 py-3 text-sm font-bold outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="">Kies type...</option>
           <option value="vakantie">Vakantie</option>
           <option value="ziekte">Ziekte</option>
           <option value="overig">Overig</option>
-        </select>
+        </SelectAdapter>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -48,7 +52,10 @@ export function VerlofForm() {
             name="startDate"
             required
             className="w-full rounded-2xl border px-3 py-3 text-sm font-bold outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           />
         </div>
 
@@ -60,7 +67,10 @@ export function VerlofForm() {
             type="date"
             name="endDate"
             className="w-full rounded-2xl border px-3 py-3 text-sm font-bold outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           />
         </div>
       </div>
@@ -74,7 +84,10 @@ export function VerlofForm() {
           rows={2}
           placeholder="Toelichting..."
           className="w-full resize-none rounded-2xl border px-3.5 py-3 text-sm font-semibold outline-none"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
 

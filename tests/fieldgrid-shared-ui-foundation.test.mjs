@@ -3,13 +3,17 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const source = readFileSync(new URL('../lib/shared-ui/src/index.tsx', import.meta.url), 'utf8');
+const modal = readFileSync(new URL('../lib/shared-ui/src/radix-adapters/modal.tsx', import.meta.url), 'utf8');
 const status = readFileSync(new URL('../lib/shared-ui/src/status.ts', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../lib/shared-ui/src/styles.css', import.meta.url), 'utf8');
 const docs = readFileSync(new URL('../docs/phase-2/shared-ui-foundation.md', import.meta.url), 'utf8');
 
 test('shared UI exports required primitives', () => {
-  for (const name of ['SkipLink','PageContainer','PageHeader','SectionHeader','FilterBar','StatusBadge','MetricCard','DataTableShell','MobileCardList','EmptyState','ErrorState','LoadingSkeleton','FormField','ConfirmDialog','ResponsiveDrawer','Timeline','TimelineItem','MetadataRow','InlineFeedback','ToastRegion','IconOnlyButton']) {
+  for (const name of ['SkipLink','PageContainer','PageHeader','SectionHeader','FilterBar','StatusBadge','MetricCard','DataTableShell','MobileCardList','EmptyState','ErrorState','LoadingSkeleton','FormField','Timeline','TimelineItem','MetadataRow','InlineFeedback','ToastRegion','IconOnlyButton']) {
     assert.match(source, new RegExp(`export function ${name}\\b`), `${name} must be exported`);
+  }
+  for (const name of ['Dialog','DialogContent','DialogDescription','DialogTitle','AlertDialog','AlertDialogContent','AlertDialogDescription','AlertDialogTitle']) {
+    assert.match(source, new RegExp(`\\b${name}\\b`), `${name} must be exported`);
   }
 });
 
@@ -21,9 +25,12 @@ test('semantic status usage is centralized', () => {
 });
 
 test('accessibility attributes and states are present', () => {
-  assert.match(source, /role="alertdialog"/);
-  assert.match(source, /aria-modal="true"/);
-  assert.match(source, /aria-labelledby/);
+  assert.match(modal, /@radix-ui\/react-alert-dialog/);
+  assert.match(modal, /@radix-ui\/react-dialog/);
+  assert.match(modal, /AlertDialogPrimitive\.Content/);
+  assert.match(modal, /DialogPrimitive\.Content/);
+  assert.match(modal, /AlertDialogPrimitive\.Title/);
+  assert.match(modal, /AlertDialogPrimitive\.Description/);
   assert.match(source, /role="status"/);
   assert.match(source, /role=\{tone === "danger" \? "alert" : "status"\}/);
   assert.match(source, /aria-describedby/);
@@ -31,9 +38,12 @@ test('accessibility attributes and states are present', () => {
 });
 
 test('responsive variants cover mobile, tablet, laptop and wide desktop', () => {
-  for (const token of ['px-4','sm:px-6','lg:px-8','max-w-7xl','md:hidden','md:inset-y-0']) {
+  for (const token of ['px-4','sm:px-6','lg:px-8','max-w-7xl','md:hidden']) {
     assert.match(source, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${token} must be represented`);
   }
+  assert.match(modal, /bottom-0/);
+  assert.match(modal, /sm:top-1\/2/);
+  assert.match(modal, /sm:rounded-2xl/);
 });
 
 test('icon-only controls require accessible labels', () => {

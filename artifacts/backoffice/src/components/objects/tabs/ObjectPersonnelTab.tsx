@@ -76,7 +76,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
     <div>
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
-          <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
             Vaste teams &amp; voorkeursmedewerkers
           </p>
           <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>
@@ -150,7 +150,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                   className="transition-colors hover:bg-slate-50/60"
                   style={{ borderBottom: i < personnel.length - 1 ? "1px solid #F1F5F9" : undefined }}
                 >
-                  <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>
+                  <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
                     {p.firstName} {p.lastName}
                   </td>
                   <td className="px-5 py-3">
@@ -162,7 +162,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                     {formatPersonnelRoleName(p.roleName) || "-"}
                   </td>
                   <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
-                    <span className="font-medium" style={{ color: "#081D3A" }}>{p.assignmentCount}</span>
+                    <span className="font-medium" style={{ color: "var(--color-foreground)" }}>{p.assignmentCount}</span>
                     <span className="text-xs"> inzet{p.assignmentCount !== 1 ? "ten" : ""}</span>
                     {p.completedCount > 0 && (
                       <span className="block text-xs" style={{ color: "#0A7E7A" }}>

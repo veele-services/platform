@@ -59,7 +59,7 @@ export default async function PersonnelMaterialsPage({ params }: Props) {
         <div className="flex flex-wrap items-center gap-3">
           <PackageCheck className="h-5 w-5" style={{ color: "#0F766E" }} />
           <div>
-            <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
+            <h1 className="font-heading text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
               Materiaal / Voorraad
             </h1>
             <p className="mt-1 text-sm" style={{ color: "#64748B" }}>

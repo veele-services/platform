@@ -48,7 +48,7 @@ test("dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback", () =>
   assert.doesNotMatch(layout, /tenantOptions\[0\]\?\.id/u);
   assert.match(layout, /const tenantId = currentTenantId;/u);
   assert.match(layout, /if \(!tenantId\) \{\s*return <NoActiveTenantAccess \/>;/u);
-  assert.match(layout, /Geen actieve tenanttoegang/u);
+  assert.match(layout, /Geen actieve organisatietoegang/u);
 });
 
 test("backoffice tenant selection is host-first before switcher cookie", () => {

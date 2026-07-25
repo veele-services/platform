@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import { FormEvent, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -51,7 +53,13 @@ type Props = {
 
 const TYPE_META: Record<
   QualificationType,
-  { label: string; plural: string; icon: typeof ShieldCheck; color: string; bg: string }
+  {
+    label: string;
+    plural: string;
+    icon: typeof ShieldCheck;
+    color: string;
+    bg: string;
+  }
 > = {
   certificate: {
     label: "Certificaat",
@@ -82,15 +90,35 @@ function optionLabel(item: QualificationItemRow): string {
 
 function linkStatusStyle(status: QualificationLinkRow["expiryStatus"]) {
   if (status === "expired") {
-    return { label: "Verlopen", color: "#DC2626", bg: "#FEF2F2", icon: XCircle };
+    return {
+      label: "Verlopen",
+      color: "#DC2626",
+      bg: "#FEF2F2",
+      icon: XCircle,
+    };
   }
   if (status === "expiring") {
-    return { label: "Verloopt binnenkort", color: "#B45309", bg: "#FFFBEB", icon: AlertTriangle };
+    return {
+      label: "Verloopt binnenkort",
+      color: "#B45309",
+      bg: "#FFFBEB",
+      icon: AlertTriangle,
+    };
   }
   if (status === "valid") {
-    return { label: "Geldig", color: "#059669", bg: "#ECFDF5", icon: CheckCircle2 };
+    return {
+      label: "Geldig",
+      color: "#059669",
+      bg: "#ECFDF5",
+      icon: CheckCircle2,
+    };
   }
-  return { label: "Geen verloopdatum", color: "#64748B", bg: "#F8FAFC", icon: CheckCircle2 };
+  return {
+    label: "Geen verloopdatum",
+    color: "#64748B",
+    bg: "#F8FAFC",
+    icon: CheckCircle2,
+  };
 }
 
 function getSelectValue(form: FormData, key: string): string {
@@ -103,7 +131,12 @@ export function QualificationsView({ data, canWrite }: Props) {
   const [isPending, startTransition] = useTransition();
   const activeItems = data.items.filter((item) => item.isActive);
   const itemOptions = useMemo(
-    () => activeItems.map((item) => ({ id: item.id, label: optionLabel(item), type: item.type })),
+    () =>
+      activeItems.map((item) => ({
+        id: item.id,
+        label: optionLabel(item),
+        type: item.type,
+      })),
     [activeItems],
   );
 
@@ -192,7 +225,10 @@ export function QualificationsView({ data, canWrite }: Props) {
     });
   }
 
-  function run(action: () => Promise<{ success: boolean; message?: string }>, successMessage: string) {
+  function run(
+    action: () => Promise<{ success: boolean; message?: string }>,
+    successMessage: string,
+  ) {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
@@ -206,19 +242,41 @@ export function QualificationsView({ data, canWrite }: Props) {
   return (
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-3">
-        <SummaryCard label="Kwalificaties" value={data.items.length} description="Certificaten, diploma's en kennis" />
-        <SummaryCard label="Verloopt binnenkort" value={data.expiringCount} description="Binnen 60 dagen" tone="warning" />
-        <SummaryCard label="Verlopen" value={data.expiredCount} description="Actie nodig voor planning" tone="danger" />
+        <SummaryCard
+          label="Kwalificaties"
+          value={data.items.length}
+          description="Certificaten, diploma's en kennis"
+        />
+        <SummaryCard
+          label="Verloopt binnenkort"
+          value={data.expiringCount}
+          description="Binnen 60 dagen"
+          tone="warning"
+        />
+        <SummaryCard
+          label="Verlopen"
+          value={data.expiredCount}
+          description="Actie nodig voor planning"
+          tone="danger"
+        />
       </div>
 
       <section className="veele-card p-0">
-        <div className="flex items-start justify-between gap-4 px-5 py-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
+        <div
+          className="flex items-start justify-between gap-4 px-5 py-4"
+          style={{ borderBottom: "1px solid #E2E8F0" }}
+        >
           <div>
-            <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+            <h2
+              className="font-heading text-base font-semibold"
+              style={{ color: "var(--color-foreground)" }}
+            >
               Kwalificatiecatalogus
             </h2>
             <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-              Beheer de vaste lijst met certificaten, diploma's en kennisgebieden. Deze lijst stuurt personeelsprofielen, taakcodes en planningfilters.
+              Beheer de vaste lijst met certificaten, diploma's en
+              kennisgebieden. Deze lijst stuurt personeelsprofielen, taakcodes
+              en planningfilters.
             </p>
           </div>
           {canWrite && (
@@ -230,36 +288,75 @@ export function QualificationsView({ data, canWrite }: Props) {
           )}
         </div>
         <div className="grid gap-5 p-5 lg:grid-cols-3">
-          {(["certificate", "diploma", "knowledge"] as QualificationType[]).map((type) => (
-            <QualificationGroup
-              key={type}
-              type={type}
-              items={data.items.filter((item) => item.type === type)}
-              canWrite={canWrite}
-              isPending={isPending}
-              onToggle={(item) => run(() => setQualificationStatus(item.id, !item.isActive), item.isActive ? "Kwalificatie gedeactiveerd" : "Kwalificatie geactiveerd")}
-              onDelete={(item) => run(() => deleteQualificationItem(item.id), "Kwalificatie verwijderd")}
-            />
-          ))}
+          {(["certificate", "diploma", "knowledge"] as QualificationType[]).map(
+            (type) => (
+              <QualificationGroup
+                key={type}
+                type={type}
+                items={data.items.filter((item) => item.type === type)}
+                canWrite={canWrite}
+                isPending={isPending}
+                onToggle={(item) =>
+                  run(
+                    () => setQualificationStatus(item.id, !item.isActive),
+                    item.isActive
+                      ? "Kwalificatie gedeactiveerd"
+                      : "Kwalificatie geactiveerd",
+                  )
+                }
+                onDelete={(item) =>
+                  run(
+                    () => deleteQualificationItem(item.id),
+                    "Kwalificatie verwijderd",
+                  )
+                }
+              />
+            ),
+          )}
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr]">
         <section className="veele-card">
-          <SectionHeader title="Koppelen aan medewerkers" description="Registreer wie welk certificaat, diploma of kennisgebied bezit. Verloopdatums worden zichtbaar als waarschuwing." />
+          <SectionHeader
+            title="Koppelen aan medewerkers"
+            description="Registreer wie welk certificaat, diploma of kennisgebied bezit. Verloopdatums worden zichtbaar als waarschuwing."
+          />
           {canWrite && (
-            <form onSubmit={handlePersonnelLink} className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 lg:grid-cols-2">
-              <FieldSelect name="personnelId" label="Medewerker" options={data.personnel.map((p) => ({ id: p.id, label: `${p.label}${p.roleName ? ` - ${formatPersonnelRoleName(p.roleName)}` : ""}` }))} />
-              <FieldSelect name="qualificationId" label="Kwalificatie" options={itemOptions} />
+            <form
+              onSubmit={handlePersonnelLink}
+              className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 lg:grid-cols-2"
+            >
+              <FieldSelect
+                name="personnelId"
+                label="Medewerker"
+                options={data.personnel.map((p) => ({
+                  id: p.id,
+                  label: `${p.label}${p.roleName ? ` - ${formatPersonnelRoleName(p.roleName)}` : ""}`,
+                }))}
+              />
+              <FieldSelect
+                name="qualificationId"
+                label="Kwalificatie"
+                options={itemOptions}
+              />
               <FieldInput name="issuedAt" label="Afgiftedatum" type="date" />
               <FieldInput name="expiresAt" label="Verloopdatum" type="date" />
               <div className="lg:col-span-2">
                 <Label>Notitie</Label>
-                <Textarea name="notes" className="mt-1 min-h-9" placeholder="Bijv. kopie aanwezig in dossier" />
+                <Textarea
+                  name="notes"
+                  className="mt-1 min-h-9"
+                  placeholder="Bijv. kopie aanwezig in dossier"
+                />
               </div>
               <div className="lg:col-span-2">
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
                   Koppelen
                 </Button>
               </div>
@@ -269,20 +366,46 @@ export function QualificationsView({ data, canWrite }: Props) {
             rows={data.personnelLinks}
             empty="Nog geen kwalificaties aan medewerkers gekoppeld."
             canWrite={canWrite}
-            onRemove={(row) => run(() => removePersonnelQualification(row.id), "Medewerkerskwalificatie verwijderd")}
+            onRemove={(row) =>
+              run(
+                () => removePersonnelQualification(row.id),
+                "Medewerkerskwalificatie verwijderd",
+              )
+            }
             showExpiry
           />
         </section>
 
         <section className="veele-card">
-          <SectionHeader title="Koppelen aan functies" description="Functie-eisen worden meegenomen in slimme planning wanneer een taakcode een functie vereist." />
+          <SectionHeader
+            title="Koppelen aan functies"
+            description="Functie-eisen worden meegenomen in slimme planning wanneer een taakcode een functie vereist."
+          />
           {canWrite && (
-            <form onSubmit={handleRoleLink} className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4">
-              <FieldSelect name="roleId" label="Functie/rol" options={data.roles.map((role) => ({ id: role.id, label: formatPersonnelRoleName(role.name) }))} />
-              <FieldSelect name="qualificationId" label="Vereiste kwalificatie" options={itemOptions} />
+            <form
+              onSubmit={handleRoleLink}
+              className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4"
+            >
+              <FieldSelect
+                name="roleId"
+                label="Functie/rol"
+                options={data.roles.map((role) => ({
+                  id: role.id,
+                  label: formatPersonnelRoleName(role.name),
+                }))}
+              />
+              <FieldSelect
+                name="qualificationId"
+                label="Vereiste kwalificatie"
+                options={itemOptions}
+              />
               <CheckField name="required" label="Hard vereiste" />
               <Button type="submit" disabled={isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
                 Koppelen
               </Button>
             </form>
@@ -291,21 +414,47 @@ export function QualificationsView({ data, canWrite }: Props) {
             rows={data.roleLinks}
             empty="Nog geen functie-eisen gekoppeld."
             canWrite={canWrite}
-            onRemove={(row) => run(() => removeRoleQualification(row.id), "Functie-eis verwijderd")}
+            onRemove={(row) =>
+              run(
+                () => removeRoleQualification(row.id),
+                "Functie-eis verwijderd",
+              )
+            }
           />
         </section>
       </div>
 
       <section className="veele-card">
-        <SectionHeader title="Koppelen aan taakcodes" description="Taakcode-eisen blokkeren medewerkers die het certificaat, diploma of kennisgebied missen. De bestaande taakcodevelden blijven automatisch gesynchroniseerd." />
+        <SectionHeader
+          title="Koppelen aan taakcodes"
+          description="Taakcode-eisen blokkeren medewerkers die het certificaat, diploma of kennisgebied missen. De bestaande taakcodevelden blijven automatisch gesynchroniseerd."
+        />
         {canWrite && (
-          <form onSubmit={handleTaskCodeLink} className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 lg:grid-cols-[1.5fr_1.5fr_auto_auto]">
-            <FieldSelect name="taskCodeId" label="Taakcode" options={data.taskCodes.map((task) => ({ id: task.id, label: `${task.label}${task.sectorName ? ` - ${task.sectorName}` : ""}` }))} />
-            <FieldSelect name="qualificationId" label="Vereiste kwalificatie" options={itemOptions} />
+          <form
+            onSubmit={handleTaskCodeLink}
+            className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 lg:grid-cols-[1.5fr_1.5fr_auto_auto]"
+          >
+            <FieldSelect
+              name="taskCodeId"
+              label="Taakcode"
+              options={data.taskCodes.map((task) => ({
+                id: task.id,
+                label: `${task.label}${task.sectorName ? ` - ${task.sectorName}` : ""}`,
+              }))}
+            />
+            <FieldSelect
+              name="qualificationId"
+              label="Vereiste kwalificatie"
+              options={itemOptions}
+            />
             <CheckField name="required" label="Hard vereiste" />
             <div className="flex items-end">
               <Button type="submit" disabled={isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
                 Koppelen
               </Button>
             </div>
@@ -315,7 +464,12 @@ export function QualificationsView({ data, canWrite }: Props) {
           rows={data.taskCodeLinks}
           empty="Nog geen taakcode-eisen gekoppeld."
           canWrite={canWrite}
-          onRemove={(row) => run(() => removeTaskCodeQualification(row.id), "Taakcode-eis verwijderd")}
+          onRemove={(row) =>
+            run(
+              () => removeTaskCodeQualification(row.id),
+              "Taakcode-eis verwijderd",
+            )
+          }
         />
       </section>
     </div>
@@ -333,21 +487,44 @@ function SummaryCard({
   description: string;
   tone?: "neutral" | "warning" | "danger";
 }) {
-  const color = tone === "danger" ? "#DC2626" : tone === "warning" ? "#B45309" : "#081D3A";
+  const color =
+    tone === "danger" ? "#DC2626" : tone === "warning" ? "#B45309" : "var(--color-foreground)";
   return (
     <div className="veele-card">
-      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>{label}</p>
-      <p className="mt-2 text-3xl font-bold" style={{ color }}>{value}</p>
-      <p className="mt-1 text-sm" style={{ color: "#64748B" }}>{description}</p>
+      <p
+        className="text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "#64748B" }}
+      >
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-bold" style={{ color }}>
+        {value}
+      </p>
+      <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+        {description}
+      </p>
     </div>
   );
 }
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
+function SectionHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <div>
-      <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>{title}</h2>
-      <p className="mt-1 text-sm" style={{ color: "#64748B" }}>{description}</p>
+      <h2
+        className="font-heading text-base font-semibold"
+        style={{ color: "var(--color-foreground)" }}
+      >
+        {title}
+      </h2>
+      <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+        {description}
+      </p>
     </div>
   );
 }
@@ -372,16 +549,22 @@ function CreateQualificationSheet({
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>Kwalificatie toevoegen</SheetTitle>
-          <SheetDescription>Voeg een certificaat, diploma of kennisgebied toe aan de catalogus.</SheetDescription>
+          <SheetDescription>
+            Voeg een certificaat, diploma of kennisgebied toe aan de catalogus.
+          </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="mt-6 grid gap-4">
           <div className="space-y-1">
             <Label>Type</Label>
-            <select name="type" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="certificate">
+            <SelectAdapter
+              name="type"
+              className="h-9 w-full rounded-md border bg-white px-3 text-sm"
+              defaultValue="certificate"
+            >
               <option value="certificate">Certificaat</option>
               <option value="diploma">Diploma</option>
               <option value="knowledge">Kennisgebied</option>
-            </select>
+            </SelectAdapter>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
@@ -390,7 +573,13 @@ function CreateQualificationSheet({
             </div>
             <div className="space-y-1">
               <Label>Geldig maanden</Label>
-              <Input name="validityMonths" type="number" min={1} max={240} placeholder="36" />
+              <Input
+                name="validityMonths"
+                type="number"
+                min={1}
+                max={240}
+                placeholder="36"
+              />
             </div>
           </div>
           <div className="space-y-1">
@@ -399,19 +588,33 @@ function CreateQualificationSheet({
           </div>
           <div className="space-y-1">
             <Label>Sector</Label>
-            <select name="sectorId" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="">
+            <SelectAdapter
+              name="sectorId"
+              className="h-9 w-full rounded-md border bg-white px-3 text-sm"
+              defaultValue=""
+            >
               <option value="">Alle sectoren</option>
               {data.sectors.map((sector) => (
-                <option key={sector.id} value={sector.id}>{sector.name}</option>
+                <option key={sector.id} value={sector.id}>
+                  {sector.name}
+                </option>
               ))}
-            </select>
+            </SelectAdapter>
           </div>
           <div className="space-y-1">
             <Label>Omschrijving</Label>
-            <Textarea name="description" className="min-h-24" placeholder="Waar is deze kwalificatie voor nodig?" />
+            <Textarea
+              name="description"
+              className="min-h-24"
+              placeholder="Waar is deze kwalificatie voor nodig?"
+            />
           </div>
           <Button type="submit" disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Toevoegen
           </Button>
         </form>
@@ -440,27 +643,52 @@ function QualificationGroup({
   return (
     <div className="rounded-lg border bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: meta.bg, color: meta.color }}>
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-full"
+          style={{ backgroundColor: meta.bg, color: meta.color }}
+        >
           <Icon className="h-4 w-4" />
         </span>
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: "#081D3A" }}>{meta.plural}</h3>
-          <p className="text-xs" style={{ color: "#94A3B8" }}>{items.length} item(s)</p>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+            {meta.plural}
+          </h3>
+          <p className="text-xs" style={{ color: "#94A3B8" }}>
+            {items.length} item(s)
+          </p>
         </div>
       </div>
       <div className="space-y-2">
         {items.length === 0 ? (
-          <p className="rounded-md bg-slate-50 p-3 text-sm" style={{ color: "#94A3B8" }}>Nog geen items.</p>
+          <p
+            className="rounded-md bg-slate-50 p-3 text-sm"
+            style={{ color: "#94A3B8" }}
+          >
+            Nog geen items.
+          </p>
         ) : (
           items.map((item) => (
             <div key={item.id} className="rounded-md border p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>{item.name}</p>
-                  <p className="text-xs" style={{ color: "#64748B" }}>
-                    {item.code}{item.sectorName ? ` - ${item.sectorName}` : ""}{item.validityMonths ? ` - ${item.validityMonths} maanden geldig` : ""}
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--color-foreground)" }}
+                  >
+                    {item.name}
                   </p>
-                  {item.description && <p className="mt-1 text-xs" style={{ color: "#64748B" }}>{item.description}</p>}
+                  <p className="text-xs" style={{ color: "#64748B" }}>
+                    {item.code}
+                    {item.sectorName ? ` - ${item.sectorName}` : ""}
+                    {item.validityMonths
+                      ? ` - ${item.validityMonths} maanden geldig`
+                      : ""}
+                  </p>
+                  {item.description && (
+                    <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
+                      {item.description}
+                    </p>
+                  )}
                 </div>
                 <span
                   className="rounded-full px-2 py-0.5 text-xs font-medium"
@@ -474,10 +702,22 @@ function QualificationGroup({
               </div>
               {canWrite && (
                 <div className="mt-2 flex gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" disabled={isPending} onClick={() => onToggle(item)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={isPending}
+                    onClick={() => onToggle(item)}
+                  >
                     {item.isActive ? "Deactiveren" : "Activeren"}
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-red-600" disabled={isPending} onClick={() => onDelete(item)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-red-600"
+                    disabled={isPending}
+                    onClick={() => onDelete(item)}
+                  >
                     <Trash2 className="h-3 w-3" />
                     Verwijderen
                   </Button>
@@ -503,17 +743,34 @@ function FieldSelect({
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
-      <select name={name} className="h-9 w-full rounded-md border bg-white px-3 text-sm" required defaultValue="">
-        <option value="" disabled>Kies...</option>
+      <SelectAdapter
+        name={name}
+        className="h-9 w-full rounded-md border bg-white px-3 text-sm"
+        required
+        defaultValue=""
+      >
+        <option value="" disabled>
+          Kies...
+        </option>
         {options.map((option) => (
-          <option key={option.id} value={option.id}>{option.label}</option>
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
         ))}
-      </select>
+      </SelectAdapter>
     </div>
   );
 }
 
-function FieldInput({ name, label, type = "text" }: { name: string; label: string; type?: string }) {
+function FieldInput({
+  name,
+  label,
+  type = "text",
+}: {
+  name: string;
+  label: string;
+  type?: string;
+}) {
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
@@ -524,8 +781,16 @@ function FieldInput({ name, label, type = "text" }: { name: string; label: strin
 
 function CheckField({ name, label }: { name: string; label: string }) {
   return (
-    <label className="flex items-end gap-2 pb-2 text-sm font-medium" style={{ color: "#475569" }}>
-      <input name={name} type="checkbox" defaultChecked className="mb-0.5 h-4 w-4 rounded border-slate-300" />
+    <label
+      className="flex items-end gap-2 pb-2 text-sm font-medium"
+      style={{ color: "#475569" }}
+    >
+      <CheckboxAdapter
+        name={name}
+        type="checkbox"
+        defaultChecked
+        className="mb-0.5 h-4 w-4 rounded border-slate-300"
+      />
       {label}
     </label>
   );
@@ -547,40 +812,74 @@ function LinkList({
   return (
     <div className="mt-4 space-y-2">
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-6 text-center text-sm" style={{ color: "#94A3B8" }}>{empty}</p>
+        <p
+          className="rounded-lg border border-dashed p-6 text-center text-sm"
+          style={{ color: "#94A3B8" }}
+        >
+          {empty}
+        </p>
       ) : (
         rows.map((row) => {
           const meta = TYPE_META[row.qualificationType];
           const expiry = linkStatusStyle(row.expiryStatus);
           const ExpiryIcon = expiry.icon;
           return (
-            <div key={row.id} className="flex items-start justify-between gap-3 rounded-lg border bg-white p-3">
+            <div
+              key={row.id}
+              className="flex items-start justify-between gap-3 rounded-lg border bg-white p-3"
+            >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: meta.bg, color: meta.color }}>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{ backgroundColor: meta.bg, color: meta.color }}
+                  >
                     {meta.label}
                   </span>
                   {row.required !== undefined && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium" style={{ color: "#475569" }}>
+                    <span
+                      className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium"
+                      style={{ color: "#475569" }}
+                    >
                       {row.required ? "Hard vereiste" : "Voorkeur"}
                     </span>
                   )}
                   {showExpiry && (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: expiry.bg, color: expiry.color }}>
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: expiry.bg,
+                        color: expiry.color,
+                      }}
+                    >
                       <ExpiryIcon className="h-3 w-3" />
                       {expiry.label}
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm font-semibold" style={{ color: "#081D3A" }}>{formatPersonnelRoleName(row.targetLabel)}</p>
+                <p
+                  className="mt-1 text-sm font-semibold"
+                  style={{ color: "var(--color-foreground)" }}
+                >
+                  {formatPersonnelRoleName(row.targetLabel)}
+                </p>
                 <p className="text-xs" style={{ color: "#64748B" }}>
                   {row.qualificationName} ({row.qualificationCode})
-                  {row.secondaryLabel ? ` - ${formatPersonnelRoleName(row.secondaryLabel)}` : ""}
-                  {row.expiresAt ? ` - verloopt ${new Date(`${row.expiresAt}T00:00:00`).toLocaleDateString("nl-NL")}` : ""}
+                  {row.secondaryLabel
+                    ? ` - ${formatPersonnelRoleName(row.secondaryLabel)}`
+                    : ""}
+                  {row.expiresAt
+                    ? ` - verloopt ${new Date(`${row.expiresAt}T00:00:00`).toLocaleDateString("nl-NL")}`
+                    : ""}
                 </p>
               </div>
               {canWrite && (
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-red-600" onClick={() => onRemove(row)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-red-600"
+                  onClick={() => onRemove(row)}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}

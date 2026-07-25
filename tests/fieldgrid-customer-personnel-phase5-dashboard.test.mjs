@@ -61,5 +61,8 @@ test("phase 5 makes urgent assignment requests explicit", () => {
   assert.match(requestPage, /searchParams: Promise<\{ prioriteit\?: string \}>/u);
   assert.match(requestPage, /initialPriorityFromSearch\(prioriteit\)/u);
   assert.match(requestForm, /initialPriority\?: "low" \| "normal" \| "high" \| "urgent"/u);
-  assert.match(requestForm, /useState<"low" \| "normal" \| "high" \| "urgent">\(initialPriority\)/u);
+  assert.match(
+    requestForm,
+    /useState<\s*"low"\s*\|\s*"normal"\s*\|\s*"high"\s*\|\s*"urgent"\s*>\(initialPriority\)/u,
+  );
 });

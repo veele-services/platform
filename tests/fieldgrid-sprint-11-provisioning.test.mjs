@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
@@ -62,7 +66,7 @@ test("sprint 11 exports transaction-safe provisioning service contracts", () => 
 
 test("sprint 11 platform flow requires owner invite and exposes run status", () => {
   const action = read("artifacts/backoffice/src/app/actions/platform-provisioning.ts");
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+  const page = read("artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx");
 
   assertIncludes(
     action,
@@ -81,14 +85,15 @@ test("sprint 11 platform flow requires owner invite and exposes run status", () 
     page,
     [
       "createPlatformTenant",
-      "listTenantProvisioningRuns",
+      "getPlatformOnboardingWorkspace",
       "name=\"ownerEmail\"",
-      "required className",
       "Provisioning runs",
       "ownerInviteStatus",
+      "RunHistory",
     ],
     "platform provisioning page",
   );
+  assert.match(page, /<TextInput[\s\S]*?name="ownerEmail"[\s\S]*?\brequired\b/u);
 });
 
 test("sprint 11 adds tenant first-run checklist foundation", () => {

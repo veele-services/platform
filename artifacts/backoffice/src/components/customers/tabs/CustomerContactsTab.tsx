@@ -173,10 +173,10 @@ export function CustomerContactsTab({ customerId, contacts: initialContacts, can
             <div
               key={c.id}
               className="rounded-xl p-4 relative"
-              style={{ border: `1px solid ${c.isPrimary ? "#00B7B3" : "#E2E8F0"}`, backgroundColor: c.isPrimary ? "#F0FDFD" : "#FAFCFF" }}
+              style={{ border: `1px solid ${c.isPrimary ? "var(--color-primary)" : "#E2E8F0"}`, backgroundColor: c.isPrimary ? "#F0FDFD" : "#FAFCFF" }}
             >
               {c.isPrimary && (
-                <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "#00B7B3" }}>
+                <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "var(--color-primary)" }}>
                   <Star className="h-3 w-3 fill-current" /> Primair
                 </span>
               )}
@@ -189,7 +189,7 @@ export function CustomerContactsTab({ customerId, contacts: initialContacts, can
                 </span>
               )}
               <div className="mb-2 pr-16">
-                <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
                   {c.firstName} {c.lastName}
                 </p>
                 {c.function && (
@@ -198,7 +198,7 @@ export function CustomerContactsTab({ customerId, contacts: initialContacts, can
               </div>
               <div className="space-y-1">
                 {c.email && (
-                  <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-xs hover:underline" style={{ color: "#00B7B3" }}>
+                  <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-xs hover:underline" style={{ color: "var(--color-primary)" }}>
                     <Mail className="h-3 w-3" /> {c.email}
                   </a>
                 )}
@@ -234,7 +234,7 @@ export function CustomerContactsTab({ customerId, contacts: initialContacts, can
           <DialogHeader>
             <DialogTitle>{editingId ? "Contact bewerken" : "Contact toevoegen"}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 gap-3 py-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="firstName">Voornaam <span className="text-destructive">*</span></Label>
               <Input

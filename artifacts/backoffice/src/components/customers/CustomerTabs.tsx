@@ -62,8 +62,8 @@ export function CustomerTabs({ activeTab, counts }: Props) {
             onClick={() => navigate(tab)}
             className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px"
             style={{
-              borderBottomColor: active ? "#00B7B3" : "transparent",
-              color:             active ? "#00B7B3" : "#64748B",
+              borderBottomColor: active ? "var(--color-primary)" : "transparent",
+              color:             active ? "var(--color-primary)" : "#64748B",
               backgroundColor:   "transparent",
             }}
           >
@@ -72,7 +72,7 @@ export function CustomerTabs({ activeTab, counts }: Props) {
               <span
                 className="inline-flex items-center justify-center rounded-full text-xs px-1.5 min-w-[18px] h-[18px]"
                 style={{
-                  backgroundColor: active ? "#00B7B3" : "#E2E8F0",
+                  backgroundColor: active ? "var(--color-primary)" : "#E2E8F0",
                   color:           active ? "#fff"     : "#64748B",
                 }}
               >

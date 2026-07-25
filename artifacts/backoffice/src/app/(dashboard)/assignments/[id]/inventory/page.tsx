@@ -58,8 +58,8 @@ export default async function AssignmentInventoryPage({ params }: Props) {
 
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
-            <h1 className="font-heading flex items-center gap-2 text-2xl font-bold" style={{ color: "#081D3A" }}>
-              <PackageSearch className="h-6 w-6" style={{ color: "#00B7B3" }} />
+            <h1 className="font-heading flex items-center gap-2 text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
+              <PackageSearch className="h-6 w-6" style={{ color: "var(--color-primary)" }} />
               Inventaris op werkbon
             </h1>
             <p className="mt-2 text-sm" style={{ color: "#64748B" }}>
@@ -69,7 +69,7 @@ export default async function AssignmentInventoryPage({ params }: Props) {
           <Link
             href="/inventory"
             className="inline-flex w-fit items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ backgroundColor: "#F1F5F9", color: "#081D3A" }}
+            style={{ backgroundColor: "#F1F5F9", color: "var(--color-foreground)" }}
           >
             Inventarisregister
           </Link>

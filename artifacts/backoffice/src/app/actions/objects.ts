@@ -17,14 +17,14 @@ import {
   assignmentPersonnelTable,
   assignmentPhotosTable,
   assignmentReportNoteAttachmentsTable,
-  customerMessageThreadsTable,
   documentsTable,
   reportsTable,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, ne, sql } from "drizzle-orm";
+import { OBJECT_ACTIVE_ASSIGNMENT_STATUSES } from "@workspace/db/object-metrics";
+import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePermission } from "@/lib/auth/permissions";
+import { hasPermission, requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import {
   geocodeAddress,
@@ -172,12 +172,11 @@ export type PersonnelOption = {
 };
 
 export type ObjectStats = {
-  total: number;
-  active: number;
+  totalObjects: number;
   activeAssignments: number;
-  periodicTasks: number;
-  openAlerts: number;
-  contracts: number;
+  distinctServiceTypes: number;
+  inactiveObjects: number;
+  objectDocuments: number;
 };
 
 export type ObjectPerformance = {
@@ -187,7 +186,6 @@ export type ObjectPerformance = {
   notCompletedAssignments: number;
   reportsSubmitted: number;
   reportsApproved: number;
-  openTickets: number;
   mediaItems: number;
   documents: number;
   fixedPersonnel: number;
@@ -199,7 +197,7 @@ export type ObjectPerformance = {
 
 export type ObjectHistoryEntry = {
   id: string;
-  type: "assignment" | "report" | "ticket" | "media" | "document";
+  type: "assignment" | "report" | "media" | "document";
   title: string;
   description: string | null;
   status: string | null;
@@ -498,11 +496,16 @@ export async function getObjectStats(): Promise<ObjectStats> {
   const tenantId = await requireCurrentTenantId();
 
   try {
-    const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
+    const [totalRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
       db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.tenantId, tenantId)),
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true))),
       db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
-        .where(and(eq(assignmentsTable.tenantId, tenantId), sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`)),
+        .where(
+          and(
+            eq(assignmentsTable.tenantId, tenantId),
+            sql`${assignmentsTable.objectId} IS NOT NULL`,
+            inArray(assignmentsTable.status, [...OBJECT_ACTIVE_ASSIGNMENT_STATUSES]),
+          ),
+        ),
       db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
         .where(and(eq(objectsTable.tenantId, tenantId), sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`)),
       db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, false))),
@@ -516,22 +519,20 @@ export async function getObjectStats(): Promise<ObjectStats> {
     ]);
 
     return {
-      total:             totalRow[0]?.count        ?? 0,
-      active:            activeRow[0]?.count       ?? 0,
-      activeAssignments: assignmentRow[0]?.count   ?? 0,
-      periodicTasks:     serviceTypeRow[0]?.count  ?? 0,
-      openAlerts:        inactiveRow[0]?.count     ?? 0,
-      contracts:         documentRow[0]?.count     ?? 0,
+      totalObjects:         totalRow[0]?.count       ?? 0,
+      activeAssignments:    assignmentRow[0]?.count  ?? 0,
+      distinctServiceTypes: serviceTypeRow[0]?.count ?? 0,
+      inactiveObjects:      inactiveRow[0]?.count    ?? 0,
+      objectDocuments:      documentRow[0]?.count    ?? 0,
     };
   } catch (err) {
     console.error("Object statistics failed", err);
     return {
-      total: 0,
-      active: 0,
+      totalObjects: 0,
       activeAssignments: 0,
-      periodicTasks: 0,
-      openAlerts: 0,
-      contracts: 0,
+      distinctServiceTypes: 0,
+      inactiveObjects: 0,
+      objectDocuments: 0,
     };
   }
 }
@@ -604,6 +605,12 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
 export async function getObjectPerformance(objectId: string): Promise<ObjectPerformance> {
   await requirePermission("objects", "read");
   const tenantId = await requireCurrentTenantId();
+  const [canReadAssignments, canReadReports, canReadDocuments] =
+    await Promise.all([
+      hasPermission("assignments", "read"),
+      hasPermission("reports", "read"),
+      hasPermission("documents", "read"),
+    ]);
 
   const scope = await getObjectScope(objectId);
   if (!scope || scope.tenantId !== tenantId) {
@@ -614,7 +621,6 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
       notCompletedAssignments: 0,
       reportsSubmitted: 0,
       reportsApproved: 0,
-      openTickets: 0,
       mediaItems: 0,
       documents: 0,
       fixedPersonnel: 0,
@@ -631,18 +637,17 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
     photoStats,
     noteAttachmentStats,
     documentStats,
-    ticketStats,
     fixedPersonnelStats,
   ] = await Promise.all([
-    db
+    canReadAssignments ? db
       .select({
         total: sql<number>`count(*)::int`,
-        active: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('requested','review','quote_preparation','awaiting_approval','approved','plannable','scheduled','seen','in_progress','report_submitted','report_approved','invoice_ready'))::int`,
+        active: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('approved','plannable','scheduled','seen','en_route','in_progress'))::int`,
         completed: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('completed','report_submitted','report_approved','invoice_ready','invoiced','paid','closed'))::int`,
         notCompleted: sql<number>`count(*) filter (where ${assignmentsTable.status} = 'not_completed')::int`,
-        openActions: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('requested','review','awaiting_approval','not_completed','report_submitted'))::int`,
-        lastServiceDate: sql<string | null>`max(${assignmentsTable.scheduledDate}) filter (where ${assignmentsTable.scheduledDate} <= to_char(current_date, 'YYYY-MM-DD'))`,
-        nextServiceDate: sql<string | null>`min(${assignmentsTable.scheduledDate}) filter (where ${assignmentsTable.scheduledDate} >= to_char(current_date, 'YYYY-MM-DD') and ${assignmentsTable.status} in ('approved','plannable','scheduled','seen','in_progress'))`,
+        openActions: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('requested','review','quote_preparation','awaiting_approval','not_completed','report_submitted'))::int`,
+        lastServiceDate: sql<string | null>`max(${assignmentsTable.actualCompletedAt}) filter (where ${assignmentsTable.actualCompletedAt} is not null and ${assignmentsTable.status} in ('completed','report_submitted','report_approved','invoice_ready','invoiced','paid','closed'))::text`,
+        nextServiceDate: sql<string | null>`min(${assignmentsTable.scheduledDate}) filter (where ${assignmentsTable.scheduledDate} >= to_char(current_date, 'YYYY-MM-DD') and ${assignmentsTable.status} in ('approved','plannable','scheduled','seen','en_route','in_progress'))`,
       })
       .from(assignmentsTable)
       .where(
@@ -650,8 +655,8 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
           eq(assignmentsTable.objectId, objectId),
           eq(assignmentsTable.tenantId, scope.tenantId),
         ),
-      ),
-    db
+      ) : Promise.resolve([]),
+    canReadReports ? db
       .select({
         submitted: sql<number>`count(*) filter (where ${reportsTable.status} = 'submitted')::int`,
         approved: sql<number>`count(*) filter (where ${reportsTable.status} = 'approved')::int`,
@@ -663,8 +668,8 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
           eq(assignmentsTable.objectId, objectId),
           eq(assignmentsTable.tenantId, scope.tenantId),
         ),
-      ),
-    db
+      ) : Promise.resolve([]),
+    canReadAssignments ? db
       .select({ count: sql<number>`count(*)::int` })
       .from(assignmentPhotosTable)
       .innerJoin(assignmentsTable, eq(assignmentPhotosTable.assignmentId, assignmentsTable.id))
@@ -673,8 +678,8 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
           eq(assignmentsTable.objectId, objectId),
           eq(assignmentsTable.tenantId, scope.tenantId),
         ),
-      ),
-    db
+      ) : Promise.resolve([]),
+    canReadReports ? db
       .select({ count: sql<number>`count(*)::int` })
       .from(assignmentReportNoteAttachmentsTable)
       .innerJoin(assignmentsTable, eq(assignmentReportNoteAttachmentsTable.assignmentId, assignmentsTable.id))
@@ -683,8 +688,8 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
           eq(assignmentsTable.objectId, objectId),
           eq(assignmentsTable.tenantId, scope.tenantId),
         ),
-      ),
-    db
+      ) : Promise.resolve([]),
+    canReadDocuments ? db
       .select({ count: sql<number>`count(*)::int` })
       .from(documentsTable)
       .where(
@@ -693,17 +698,7 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
           eq(documentsTable.entityType, "object"),
           eq(documentsTable.entityId, objectId),
         ),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(customerMessageThreadsTable)
-      .where(
-        and(
-          eq(customerMessageThreadsTable.customerId, scope.customerId),
-          eq(customerMessageThreadsTable.tenantId, scope.tenantId),
-          ne(customerMessageThreadsTable.status, "closed"),
-        ),
-      ),
+      ) : Promise.resolve([]),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(objectPersonnelTable)
@@ -723,14 +718,10 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
     notCompletedAssignments: notCompleted,
     reportsSubmitted: reports?.submitted ?? 0,
     reportsApproved: reports?.approved ?? 0,
-    openTickets: ticketStats[0]?.count ?? 0,
     mediaItems: (photoStats[0]?.count ?? 0) + (noteAttachmentStats[0]?.count ?? 0),
     documents: documentStats[0]?.count ?? 0,
     fixedPersonnel: fixedPersonnelStats[0]?.count ?? 0,
-    openActions:
-      (assignments?.openActions ?? 0) +
-      (reports?.submitted ?? 0) +
-      (ticketStats[0]?.count ?? 0),
+    openActions: assignments?.openActions ?? 0,
     completionRate: completionBase > 0 ? Math.round((completed / completionBase) * 100) : 0,
     lastServiceDate: toNullableDate(assignments?.lastServiceDate),
     nextServiceDate: toNullableDate(assignments?.nextServiceDate),
@@ -743,12 +734,18 @@ export async function listObjectHistory(
 ): Promise<ObjectHistoryEntry[]> {
   await requirePermission("objects", "read");
   const tenantId = await requireCurrentTenantId();
+  const [canReadAssignments, canReadReports, canReadDocuments] =
+    await Promise.all([
+      hasPermission("assignments", "read"),
+      hasPermission("reports", "read"),
+      hasPermission("documents", "read"),
+    ]);
 
   const scope = await getObjectScope(objectId);
   if (!scope || scope.tenantId !== tenantId) return [];
 
-  const [assignments, reports, photos, noteAttachments, documents, tickets] = await Promise.all([
-    db
+  const [assignments, reports, photos, noteAttachments, documents] = await Promise.all([
+    canReadAssignments ? db
       .select({
         id: assignmentsTable.id,
         code: assignmentsTable.code,
@@ -765,8 +762,8 @@ export async function listObjectHistory(
         ),
       )
       .orderBy(desc(assignmentsTable.createdAt))
-      .limit(limit),
-    db
+      .limit(limit) : Promise.resolve([]),
+    canReadReports ? db
       .select({
         id: reportsTable.id,
         status: reportsTable.status,
@@ -784,8 +781,8 @@ export async function listObjectHistory(
         ),
       )
       .orderBy(desc(reportsTable.submittedAt))
-      .limit(limit),
-    db
+      .limit(limit) : Promise.resolve([]),
+    canReadAssignments ? db
       .select({
         id: assignmentPhotosTable.id,
         createdAt: assignmentPhotosTable.createdAt,
@@ -801,8 +798,8 @@ export async function listObjectHistory(
         ),
       )
       .orderBy(desc(assignmentPhotosTable.createdAt))
-      .limit(limit),
-    db
+      .limit(limit) : Promise.resolve([]),
+    canReadReports ? db
       .select({
         id: assignmentReportNoteAttachmentsTable.id,
         fileName: assignmentReportNoteAttachmentsTable.fileName,
@@ -819,8 +816,8 @@ export async function listObjectHistory(
         ),
       )
       .orderBy(desc(assignmentReportNoteAttachmentsTable.createdAt))
-      .limit(limit),
-    db
+      .limit(limit) : Promise.resolve([]),
+    canReadDocuments ? db
       .select({
         id: documentsTable.id,
         name: documentsTable.name,
@@ -835,24 +832,7 @@ export async function listObjectHistory(
         ),
       )
       .orderBy(desc(documentsTable.createdAt))
-      .limit(limit),
-    db
-      .select({
-        id: customerMessageThreadsTable.id,
-        subject: customerMessageThreadsTable.subject,
-        status: customerMessageThreadsTable.status,
-        priority: customerMessageThreadsTable.priority,
-        lastMessageAt: customerMessageThreadsTable.lastMessageAt,
-      })
-      .from(customerMessageThreadsTable)
-      .where(
-        and(
-          eq(customerMessageThreadsTable.customerId, scope.customerId),
-          eq(customerMessageThreadsTable.tenantId, scope.tenantId),
-        ),
-      )
-      .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
-      .limit(10),
+      .limit(limit) : Promise.resolve([]),
   ]);
 
   const entries: ObjectHistoryEntry[] = [
@@ -905,16 +885,6 @@ export async function listObjectHistory(
       occurredAt: toIso(row.createdAt),
       href: "/documents",
       badge: "Document",
-    })),
-    ...tickets.map((row) => ({
-      id: `ticket-${row.id}`,
-      type: "ticket" as const,
-      title: row.subject,
-      description: "Klantbreed ticket bij dezelfde klant",
-      status: row.status,
-      occurredAt: toIso(row.lastMessageAt),
-      href: `/tickets/customer/${row.id}`,
-      badge: row.priority === "urgent" ? "Incident" : "Ticket",
     })),
   ];
 

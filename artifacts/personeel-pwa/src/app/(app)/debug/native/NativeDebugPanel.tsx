@@ -156,7 +156,9 @@ export function NativeDebugPanel() {
       const saveResult = await saveMyNativePushToken({
         token: result.token,
         platform: result.platform,
-        appId: "nl.veeleservices.personeel",
+        appId: result.appId,
+        appVersion: result.appVersion,
+        appBuild: result.appBuild,
         userAgent: navigator.userAgent,
       });
 
@@ -185,7 +187,7 @@ export function NativeDebugPanel() {
             <Smartphone size={21} strokeWidth={2.4} />
           </span>
           <div>
-            <h2 className="text-lg font-black text-[#081D3A]">Native runtime</h2>
+            <h2 className="text-lg font-black text-[var(--color-primary)]">Native runtime</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
               Controleert of de Capacitor bridge en pushplugin zichtbaar zijn in de app.
             </p>
@@ -201,7 +203,7 @@ export function NativeDebugPanel() {
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
                 {label}
               </p>
-              <p className="mt-1 break-words text-sm font-bold text-[#081D3A]">
+              <p className="mt-1 break-words text-sm font-bold text-[var(--color-primary)]">
                 {valueLabel(value)}
               </p>
             </div>
@@ -213,7 +215,7 @@ export function NativeDebugPanel() {
             type="button"
             onClick={refresh}
             disabled={isRefreshing}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-[#BDEDEA] bg-white px-4 py-3 text-sm font-black text-[#081D3A] shadow-sm disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-2xl border border-[#BDEDEA] bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] shadow-sm disabled:opacity-60"
           >
             {isRefreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
             Opnieuw controleren
@@ -222,7 +224,7 @@ export function NativeDebugPanel() {
             type="button"
             onClick={testRegistration}
             disabled={isRegistering}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-60"
           >
             {isRegistering ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
             Pushregistratie testen

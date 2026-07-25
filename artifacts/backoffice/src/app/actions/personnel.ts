@@ -25,7 +25,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
-import { personeelPortalUrl } from "@/lib/email";
+import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
@@ -348,13 +348,17 @@ async function sendPersonnelActivationInvite(person: {
   tenantId: string;
 }): Promise<{ userId: string; created: boolean }> {
   const fullName = `${person.firstName} ${person.lastName}`.trim();
+  const activationUrl = await personnelTenantEntryUrl(
+    person.tenantId,
+    "/wachtwoord-vergeten?doel=activatie",
+  );
   const invite = await provisionPortalUserForActivation({
     email: person.email,
     fullName,
     portal: "personnel",
     tenantId: person.tenantId,
     portalName: "Personeelsportaal",
-    activationUrl: `${personeelPortalUrl()}/wachtwoord-vergeten?doel=activatie`,
+    activationUrl,
   });
   return { userId: invite.user.id, created: invite.created };
 }

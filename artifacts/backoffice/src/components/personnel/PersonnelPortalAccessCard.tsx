@@ -147,7 +147,7 @@ export function PersonnelPortalAccessCard({
 
   return (
     <div className="veele-card">
-      <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+      <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>
         Portaal-toegang
       </h2>
 
@@ -205,7 +205,7 @@ export function PersonnelPortalAccessCard({
               >
                 {isPending
                   ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <Check className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  : <Check className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
                 }
               </Button>
               <Button

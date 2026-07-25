@@ -36,7 +36,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
   const displayName = branding?.displayName || "Fieldgrid";
   const platformName = branding ? branding.platformName.trim() : "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
-  const accentColor = branding?.accentColor || "#00B7B3";
+  const accentColor = branding?.accentColor || "var(--color-accent)";
 
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label={`${displayName} home`}>
@@ -125,7 +125,7 @@ export function HeaderActions({
             <div className="border-b px-3.5 py-3" style={{ borderColor: "var(--color-border)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-black text-[#081D3A]">Meldingen</p>
+                  <p className="font-black text-[var(--color-primary)]">Meldingen</p>
                   <p className="mt-0.5 text-xs font-semibold text-slate-500">
                     {notificationSummary.unreadCount} actueel
                   </p>
@@ -148,7 +148,7 @@ export function HeaderActions({
                     className="block border-b px-3.5 py-3 last:border-b-0"
                     style={{ borderColor: "var(--color-border)" }}
                   >
-                    <p className="line-clamp-1 text-sm font-black text-[#081D3A]">
+                    <p className="line-clamp-1 text-sm font-black text-[var(--color-primary)]">
                       {item.title}
                     </p>
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">

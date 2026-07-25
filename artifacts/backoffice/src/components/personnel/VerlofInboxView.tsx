@@ -58,7 +58,7 @@ function VerlofRow({ request, onAction }: RowProps) {
       <td className="py-3 pr-4">
         <span
           className="font-medium"
-          style={{ color: "#081D3A", fontFamily: "var(--font-inter)", fontSize: "13px" }}
+          style={{ color: "var(--color-foreground)", fontFamily: "var(--font-inter)", fontSize: "13px" }}
         >
           {request.firstName} {request.lastName}
         </span>
@@ -161,8 +161,8 @@ export function VerlofInboxView({ initialRequests }: VerlofInboxViewProps) {
         className="flex flex-col items-center justify-center rounded-xl py-20 text-center"
         style={{ background: "#fff", border: "1px solid #E2E8F0" }}
       >
-        <CheckCircle2 style={{ width: "40px", height: "40px", color: "#00B7B3", marginBottom: "12px" }} />
-        <p className="font-medium" style={{ color: "#081D3A", fontSize: "15px" }}>
+        <CheckCircle2 style={{ width: "40px", height: "40px", color: "var(--color-primary)", marginBottom: "12px" }} />
+        <p className="font-medium" style={{ color: "var(--color-foreground)", fontSize: "15px" }}>
           Geen openstaande verlofaanvragen
         </p>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>

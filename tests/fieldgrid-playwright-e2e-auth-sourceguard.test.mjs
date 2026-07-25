@@ -203,6 +203,10 @@ test("staffing lifecycle evidence binds mutations to durable state before render
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'en_route'\)/u);
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'in_progress'\)/u);
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'completed'\)/u);
+  assert.equal(
+    (spec.match(/getByRole\('alertdialog'\)\.getByRole\('button'/gu) ?? []).length,
+    2,
+  );
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
 });

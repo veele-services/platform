@@ -1,7 +1,12 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { customDomainVerificationValue, FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS } from "@workspace/db";
+import {
+  customDomainVerificationValue,
+  FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS,
+} from "@workspace/db";
 import {
   Activity,
   Bell,
@@ -67,9 +72,16 @@ import {
   rollbackPlatformWebsiteDeliveryAction,
 } from "@/app/actions/platform-websites";
 import type { PlatformWebsiteDeliveryView } from "@workspace/db";
+import {
+  PlatformTenantDetailNav,
+  type PlatformTenantDetailTab,
+} from "@/components/platform/PlatformTenantDetailNav";
+import { PlatformLifecycleAction } from "@/components/platform/PlatformLifecycleAction";
+import { PlatformSupportAccessPanel } from "@/components/platform/PlatformSupportAccessPanel";
+import { requirePlatformAdmin } from "@/lib/auth/platform";
 
 export const metadata = {
-  title: "Tenantbeheer",
+  title: "Organisatiebeheer",
 };
 
 type Props = {
@@ -77,7 +89,9 @@ type Props = {
   searchParams: Promise<{ tab?: string }>;
 };
 
-type TenantDomainRow = Awaited<ReturnType<typeof listPlatformTenantDomains>>[number];
+type TenantDomainRow = Awaited<
+  ReturnType<typeof listPlatformTenantDomains>
+>[number];
 
 const TENANT_TABS = [
   { id: "overview", label: "Overzicht", icon: Building2 },
@@ -98,69 +112,95 @@ const TENANT_TABS = [
 
 type TenantTabId = (typeof TENANT_TABS)[number]["id"];
 
-async function updatePlatformTenantLifecycleFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantLifecycleFormAction(
+  formData: FormData,
+): Promise<Awaited<ReturnType<typeof updatePlatformTenantLifecycle>>> {
   "use server";
-  await updatePlatformTenantLifecycle(formData);
+  return updatePlatformTenantLifecycle(formData);
 }
 
-async function updatePlatformTenantPlanFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantPlanFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantPlan(formData);
 }
 
-async function addPlatformTenantDomainFormAction(formData: FormData): Promise<void> {
+async function addPlatformTenantDomainFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await addPlatformTenantDomain(formData);
 }
 
-async function updatePlatformTenantDomainFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantDomainFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantDomain(formData);
 }
 
-async function updatePlatformTenantModuleFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantModuleFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantModule(formData);
 }
 
-async function updatePlatformTenantSectorPolicyFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantSectorPolicyFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantSectorPolicy(formData);
 }
 
-async function updatePlatformTenantSectorFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantSectorFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantSector(formData);
 }
 
-async function addPlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+async function addPlatformTenantAdminFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await addPlatformTenantAdmin(formData);
 }
 
-async function updatePlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantAdminFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantAdmin(formData);
 }
 
-async function deletePlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+async function deletePlatformTenantAdminFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await deletePlatformTenantAdmin(formData);
 }
 
-async function sendPlatformTenantAdminPasswordResetFormAction(formData: FormData): Promise<void> {
+async function sendPlatformTenantAdminPasswordResetFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await sendPlatformTenantAdminPasswordReset(formData);
 }
 
-async function updatePlatformTenantOwnerInviteFormAction(formData: FormData): Promise<void> {
+async function updatePlatformTenantOwnerInviteFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformTenantOwnerInvite(formData);
 }
 
-async function createSupportAccessGrantFormAction(formData: FormData): Promise<void> {
+async function createSupportAccessGrantFormAction(
+  formData: FormData,
+): Promise<Awaited<ReturnType<typeof createSupportAccessGrantFromForm>>> {
   "use server";
-  await createSupportAccessGrantFromForm(formData);
+  return createSupportAccessGrantFromForm(formData);
 }
 
 async function enterSupportModeFormAction(formData: FormData): Promise<void> {
@@ -168,18 +208,32 @@ async function enterSupportModeFormAction(formData: FormData): Promise<void> {
   await enterSupportMode(formData);
 }
 
-async function revokeSupportAccessGrantFormAction(formData: FormData): Promise<void> {
+async function revokeSupportAccessGrantFormAction(
+  formData: FormData,
+): Promise<Awaited<ReturnType<typeof revokeSupportAccessGrantFromForm>>> {
   "use server";
-  await revokeSupportAccessGrantFromForm(formData);
+  return revokeSupportAccessGrantFromForm(formData);
 }
 
-async function retryPlatformTenantProvisioningFormAction(formData: FormData): Promise<void> {
+async function retryPlatformTenantProvisioningFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await retryPlatformTenantProvisioning(formData);
 }
 
 function normalizeTab(value: string | undefined): TenantTabId {
-  return TENANT_TABS.some((tab) => tab.id === value) ? value as TenantTabId : "overview";
+  const groupDefaults: Record<string, TenantTabId> = {
+    plan: "subscription",
+    domain: "domains",
+    access: "users",
+    operations: "usage",
+    communication: "tickets",
+  };
+  if (value && groupDefaults[value]) return groupDefaults[value];
+  return TENANT_TABS.some((tab) => tab.id === value)
+    ? (value as TenantTabId)
+    : "overview";
 }
 
 function formatDate(value: string | null): string {
@@ -203,15 +257,19 @@ function formatBytes(value: number): string {
 }
 
 function initials(value: string): string {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "FG";
+  return (
+    value
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "FG"
+  );
 }
 
-function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" | "Verlopen" | "Ingetrokken" {
+function supportGrantStatus(
+  grant: SupportAccessGrantRow,
+): "Actief" | "Gepland" | "Verlopen" | "Ingetrokken" {
   const now = Date.now();
   if (grant.revokedAt) return "Ingetrokken";
   if (new Date(grant.startsAt).getTime() > now) return "Gepland";
@@ -219,21 +277,28 @@ function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" 
   return "Actief";
 }
 
-function statusChipClass(tone: "neutral" | "good" | "warning" | "danger"): string {
-  if (tone === "good") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+function statusChipClass(
+  tone: "neutral" | "good" | "warning" | "danger",
+): string {
+  if (tone === "good")
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
   if (tone === "danger") return "border-rose-200 bg-rose-50 text-rose-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
-function tenantStatusTone(status: PlatformTenantDetail["status"]): "neutral" | "good" | "warning" | "danger" {
+function tenantStatusTone(
+  status: PlatformTenantDetail["status"],
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "active") return "good";
   if (status === "trial" || status === "provisioning") return "warning";
   if (status === "suspended" || status === "archived") return "danger";
   return "neutral";
 }
 
-function readinessTone(status: "ready" | "warning" | "blocked"): "neutral" | "good" | "warning" | "danger" {
+function readinessTone(
+  status: "ready" | "warning" | "blocked",
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "ready") return "good";
   if (status === "warning") return "warning";
   return "danger";
@@ -246,30 +311,60 @@ function readinessStatusLabel(status: "ready" | "warning" | "blocked"): string {
 }
 
 function tenantHasCustomDomains(tenant: PlatformTenantDetail): boolean {
-  return tenant.planKey === "enterprise" || tenant.usageLimits.some((limit) => limit.key === "custom_domains" && limit.isEnabled);
+  return (
+    tenant.planKey === "enterprise" ||
+    tenant.usageLimits.some(
+      (limit) => limit.key === "custom_domains" && limit.isEnabled,
+    )
+  );
 }
 
 function domainTypeLabel(type: string): string {
-  if (type === "custom_domain") return "Custom domain";
+  if (type === "custom_domain") return "Eigen domein";
   if (type === "platform_reserved") return "Platform";
-  return "Fieldgrid subdomain";
+  return "Fieldgrid-subdomein";
 }
 
-function domainStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+function tenantStatusLabel(status: PlatformTenantDetail["status"]): string {
+  if (status === "provisioning") return "Wordt ingericht";
+  if (status === "trial") return "Proefperiode";
+  if (status === "active") return "Actief";
+  if (status === "suspended") return "Gepauzeerd";
+  return "Gearchiveerd";
+}
+
+function domainStatusTone(
+  status: string,
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "verified" || status === "active") return "good";
-  if (status === "failed" || status === "disabled" || status === "disabled_plan") return "danger";
-  if (status === "pending" || status === "pending_dns" || status === "dns_seen" || status === "tls_pending") return "warning";
+  if (
+    status === "failed" ||
+    status === "disabled" ||
+    status === "disabled_plan"
+  )
+    return "danger";
+  if (
+    status === "pending" ||
+    status === "pending_dns" ||
+    status === "dns_seen" ||
+    status === "tls_pending"
+  )
+    return "warning";
   return "neutral";
 }
 
-function subscriptionStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+function subscriptionStatusTone(
+  status: string,
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "active") return "good";
   if (status === "trial" || status === "past_due") return "warning";
   if (status === "canceled" || status === "expired") return "danger";
   return "neutral";
 }
 
-function tlsStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+function tlsStatusTone(
+  status: string,
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "active") return "good";
   if (status === "failed" || status === "disabled") return "danger";
   if (status === "pending") return "warning";
@@ -284,47 +379,101 @@ function fieldgridPublicIpv6(): string | null {
   return process.env.FIELDGRID_PUBLIC_IPV6?.trim() || null;
 }
 
-function fieldgridCnameTarget(tenant: PlatformTenantDetail, domain: TenantDomainRow): string {
+function fieldgridCnameTarget(
+  tenant: PlatformTenantDetail,
+  domain: TenantDomainRow,
+): string {
   return domain.dnsTarget || `${tenant.slug}.fieldgrid.nl`;
 }
 
 function canRouteDomain(domain: TenantDomainRow): boolean {
-  return domain.verificationStatus === "verified" || domain.verificationStatus === "active";
+  return (
+    domain.verificationStatus === "verified" ||
+    domain.verificationStatus === "active"
+  );
 }
 
-function preferredTenantAdminRoleIds(roles: Awaited<ReturnType<typeof listPlatformTenantUsersAndOwner>>["roles"]): string[] {
-  const preferredNames = ["Admin", "Administrator", "Administration", "Beheerder", "Management", "Owner", "Eigenaar"];
-  const role = preferredNames
-    .map((name) => roles.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase()))
-    .find(Boolean) ?? roles[0] ?? null;
+function preferredTenantAdminRoleIds(
+  roles: Awaited<ReturnType<typeof listPlatformTenantUsersAndOwner>>["roles"],
+): string[] {
+  const preferredNames = [
+    "Admin",
+    "Administrator",
+    "Administration",
+    "Beheerder",
+    "Management",
+    "Owner",
+    "Eigenaar",
+  ];
+  const role =
+    preferredNames
+      .map((name) =>
+        roles.find(
+          (candidate) => candidate.name.toLowerCase() === name.toLowerCase(),
+        ),
+      )
+      .find(Boolean) ??
+    roles[0] ??
+    null;
   return role ? [role.id] : [];
 }
 
-function Section({ title, children, helper }: { title: string; helper?: string; children: ReactNode }) {
+function Section({
+  title,
+  children,
+  helper,
+}: {
+  title: string;
+  helper?: string;
+  children: ReactNode;
+}) {
   return (
     <section className="rounded border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold tracking-normal text-slate-950">{title}</h2>
-        {helper && <p className="mt-1 text-sm leading-6 text-slate-500">{helper}</p>}
+        <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+          {title}
+        </h2>
+        {helper && (
+          <p className="mt-1 text-sm leading-6 text-slate-500">{helper}</p>
+        )}
       </div>
       {children}
     </section>
   );
 }
 
-function Stat({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
+function Stat({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string | number;
+  detail?: string;
+}) {
   return (
     <div className="rounded border border-slate-200 bg-white px-4 py-3">
       <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">{value}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
+        {value}
+      </p>
       {detail && <p className="mt-1 text-xs text-slate-500">{detail}</p>}
     </div>
   );
 }
 
-function TenantTabs({ tenantId, activeTab }: { tenantId: string; activeTab: TenantTabId }) {
+function TenantTabs({
+  tenantId,
+  activeTab,
+}: {
+  tenantId: string;
+  activeTab: TenantTabId;
+}) {
   return (
-    <nav className="platform-scroll-x -mx-4 px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Tenantdetail tabs">
+    <nav
+      className="platform-scroll-x -mx-4 px-4 pb-1 sm:mx-0 sm:px-0"
+      aria-label="Tenantdetail tabs"
+    >
       <div className="platform-tab-strip flex min-w-max gap-2 border-b border-slate-200">
         {TENANT_TABS.map((tab) => {
           const Icon = tab.icon;
@@ -352,8 +501,8 @@ function TenantTabs({ tenantId, activeTab }: { tenantId: string; activeTab: Tena
 function TenantOpenLinks({ tenant }: { tenant: PlatformTenantDetail }) {
   const host = tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`;
   const links = [
-    { label: "Tenant root", path: "" },
-    { label: "Tenant backoffice", path: "/admin" },
+    { label: "Organisatiewebsite", path: "" },
+    { label: "Backoffice", path: "/admin" },
     { label: "Klantenportaal", path: "/klant" },
     { label: "Personeelsportaal", path: "/personeel" },
   ];
@@ -369,7 +518,10 @@ function TenantOpenLinks({ tenant }: { tenant: PlatformTenantDetail }) {
           className="group flex items-center justify-between gap-3 rounded border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:border-slate-300"
         >
           <span className="min-w-0 truncate">{link.label}</span>
-          <ExternalLink className="size-4 shrink-0 text-slate-300 group-hover:text-slate-500" aria-hidden="true" />
+          <ExternalLink
+            className="size-4 shrink-0 text-slate-300 group-hover:text-slate-500"
+            aria-hidden="true"
+          />
         </a>
       ))}
     </div>
@@ -378,59 +530,73 @@ function TenantOpenLinks({ tenant }: { tenant: PlatformTenantDetail }) {
 
 function LifecycleActions({ tenant }: { tenant: PlatformTenantDetail }) {
   const actions = [
-    { value: "suspend", label: "Suspend", tone: "warning", hidden: tenant.status === "suspended" || tenant.status === "archived" },
-    { value: "reactivate", label: "Reactiveren", tone: "good", hidden: tenant.status === "active" },
-    { value: "archive", label: "Archiveren", tone: "danger", hidden: tenant.status === "archived" },
+    {
+      value: "suspend",
+      hidden: tenant.status === "suspended" || tenant.status === "archived",
+    },
+    { value: "reactivate", hidden: tenant.status === "active" },
+    { value: "archive", hidden: tenant.status === "archived" },
   ] as const;
 
   return (
     <div className="flex flex-wrap gap-2">
-      {actions.filter((action) => !action.hidden).map((action) => (
-        <form key={action.value} action={updatePlatformTenantLifecycleFormAction}>
-          <input type="hidden" name="tenantId" value={tenant.id} />
-          <input type="hidden" name="lifecycleAction" value={action.value} />
-          <button
-            type="submit"
-            className={`rounded border px-3 py-2 text-sm font-medium ${statusChipClass(action.tone)}`}
-          >
-            {action.label}
-          </button>
-        </form>
-      ))}
+      {actions
+        .filter((action) => !action.hidden)
+        .map((action) => (
+          <PlatformLifecycleAction
+            key={action.value}
+            tenantId={tenant.id}
+            lifecycleAction={action.value}
+            action={updatePlatformTenantLifecycleFormAction}
+          />
+        ))}
     </div>
   );
 }
 
 function StatusPanel({ tenant }: { tenant: PlatformTenantDetail }) {
-  const blockingSignals = tenant.operationalReadiness.signals.filter((signal) => signal.status === "blocked").length;
+  const blockingSignals = tenant.operationalReadiness.signals.filter(
+    (signal) => signal.status === "blocked",
+  ).length;
 
   return (
     <section className="rounded border border-slate-200 bg-white p-5">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(tenantStatusTone(tenant.status))}`}>
-              {tenant.status}
+            <span
+              className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(tenantStatusTone(tenant.status))}`}
+            >
+              {tenantStatusLabel(tenant.status)}
             </span>
             <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
               {tenant.planName} via {tenant.planSource}
             </span>
-            <span className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(blockingSignals === 0 ? "good" : "danger")}`}>
-              readiness {tenant.operationalReadiness.score}%
+            <span
+              className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(blockingSignals === 0 ? "good" : "danger")}`}
+            >
+              gereedheid {tenant.operationalReadiness.score}%
             </span>
           </div>
-          <h1 className="mt-3 break-words text-3xl font-semibold tracking-normal text-slate-950">{tenant.name}</h1>
+          <h1 className="mt-3 break-words text-3xl font-semibold tracking-normal text-slate-950">
+            {tenant.name}
+          </h1>
           <p className="mt-2 break-all text-sm text-slate-500">
-            {tenant.slug} - host {tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`}
+            {tenant.slug} - host{" "}
+            {tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`}
           </p>
         </div>
         <LifecycleActions tenant={tenant} />
       </div>
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Readiness" value={`${tenant.operationalReadiness.score}%`} detail={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} klaar`} />
+        <Stat
+          label="Gereedheid"
+          value={`${tenant.operationalReadiness.score}%`}
+          detail={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} klaar`}
+        />
         <Stat label="Gebruikers" value={tenant.usage.users} />
         <Stat label="Actieve modules" value={tenant.usage.enabledModules} />
-        <Stat label="Support grants" value={tenant.usage.activeSupportGrants} />
+        <Stat label="Supporttoegang" value={tenant.usage.activeSupportGrants} />
       </div>
       <div className="mt-5">
         <TenantOpenLinks tenant={tenant} />
@@ -451,46 +617,76 @@ function OverviewTab({
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid gap-5">
-        <Section title="Status en lifecycle" helper="Lifecycle acties controleren platformrol server-side en schrijven auditregels.">
+        <Section
+          title="Status en levenscyclus"
+          helper="Wijzigingen controleren de platformrol en worden vastgelegd in de beveiligingslog."
+        >
           <dl className="grid gap-3 text-sm md:grid-cols-2">
             {[
-              ["Tenant ID", tenant.id],
+              ["Organisatie-ID", tenant.id],
               ["Slug", tenant.slug],
+              ["Personeelsapp-code", tenant.personnelLoginCode],
               ["Plan", `${tenant.planName} (${tenant.planKey})`],
-              ["Primaire host", tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`],
+              [
+                "Primaire host",
+                tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`,
+              ],
               ["Aangemaakt", formatDate(tenant.createdAt)],
               ["Bijgewerkt", formatDate(tenant.updatedAt)],
-              ["Suspended", formatDate(tenant.suspendedAt)],
-              ["Archived", formatDate(tenant.archivedAt)],
+              ["Gepauzeerd", formatDate(tenant.suspendedAt)],
+              ["Gearchiveerd", formatDate(tenant.archivedAt)],
             ].map(([label, value]) => (
               <div key={label} className="rounded bg-slate-50 px-3 py-2">
-                <dt className="text-xs font-medium uppercase text-slate-500">{label}</dt>
-                <dd className="mt-1 break-all font-medium text-slate-950">{value}</dd>
+                <dt className="text-xs font-medium uppercase text-slate-500">
+                  {label}
+                </dt>
+                <dd className="mt-1 break-all font-medium text-slate-950">
+                  {value}
+                </dd>
               </div>
             ))}
           </dl>
         </Section>
 
-        <Section title="Open tenant" helper="Host-first links voor tenant root, backoffice en beide portalen.">
+        <Section
+          title="Organisatie openen"
+          helper="Veilige links naar de website, backoffice en beide portalen."
+        >
           <TenantOpenLinks tenant={tenant} />
         </Section>
 
-        <Section title="Rollbackbare provisioning retry" helper="Mislukte of teruggedraaide provisioning runs kunnen opnieuw via dezelfde retry-action.">
+        <Section
+          title="Inrichting opnieuw proberen"
+          helper="Mislukte of teruggedraaide inrichtingsruns kunnen gecontroleerd opnieuw worden uitgevoerd."
+        >
           {retryableRuns.length > 0 ? (
             <div className="grid gap-3">
               {retryableRuns.map((run) => (
-                <form key={run.id} action={retryPlatformTenantProvisioningFormAction} className="rounded border border-amber-200 bg-amber-50 p-4">
+                <form
+                  key={run.id}
+                  action={retryPlatformTenantProvisioningFormAction}
+                  className="rounded border border-amber-200 bg-amber-50 p-4"
+                >
                   <input type="hidden" name="sourceRunId" value={run.id} />
-                  <p className="font-medium text-amber-950">{run.name} - {run.status}</p>
-                  <p className="mt-1 text-sm text-amber-900">{run.errorMessage ?? run.rollbackPath}</p>
-                  <button type="submit" className="mt-3 rounded border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900">
-                    Retry provisioning
+                  <p className="font-medium text-amber-950">
+                    {run.name} - {run.status}
+                  </p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    {run.errorMessage ?? run.rollbackPath}
+                  </p>
+                  <button
+                    type="submit"
+                    className="mt-3 rounded border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900"
+                  >
+                    Inrichting opnieuw proberen
                   </button>
                 </form>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Geen retrybare provisioning runs voor deze tenant.</p>
+            <p className="text-sm text-slate-500">
+              Geen inrichtingsruns die opnieuw kunnen worden uitgevoerd.
+            </p>
           )}
         </Section>
       </div>
@@ -503,16 +699,27 @@ function OverviewTab({
 function ReadinessColumn({ tenant }: { tenant: PlatformTenantDetail }) {
   return (
     <aside className="grid gap-5">
-      <Section title="Operational readiness" helper={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} signalen klaar`}>
+      <Section
+        title="Operationele gereedheid"
+        helper={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} signalen klaar`}
+      >
         <div className="h-2 overflow-hidden rounded bg-slate-100">
-          <div className="h-full bg-sky-500" style={{ width: `${tenant.operationalReadiness.score}%` }} />
+          <div
+            className="h-full bg-sky-500"
+            style={{ width: `${tenant.operationalReadiness.score}%` }}
+          />
         </div>
         <div className="mt-4 grid gap-2 text-sm">
           {tenant.operationalReadiness.signals.map((signal) => (
-            <div key={signal.id} className="rounded border border-slate-200 px-3 py-2">
+            <div
+              key={signal.id}
+              className="rounded border border-slate-200 px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">{signal.label}</p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(readinessTone(signal.status))}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(readinessTone(signal.status))}`}
+                >
                   {readinessStatusLabel(signal.status)}
                 </span>
               </div>
@@ -522,16 +729,27 @@ function ReadinessColumn({ tenant }: { tenant: PlatformTenantDetail }) {
         </div>
       </Section>
 
-      <Section title="First-run" helper={`${tenant.firstRun.completedSteps}/${tenant.firstRun.totalSteps} stappen klaar`}>
+      <Section
+        title="First-run"
+        helper={`${tenant.firstRun.completedSteps}/${tenant.firstRun.totalSteps} stappen klaar`}
+      >
         <div className="h-2 overflow-hidden rounded bg-slate-100">
-          <div className="h-full bg-emerald-500" style={{ width: `${tenant.firstRun.completionPercent}%` }} />
+          <div
+            className="h-full bg-emerald-500"
+            style={{ width: `${tenant.firstRun.completionPercent}%` }}
+          />
         </div>
         <div className="mt-4 grid gap-2 text-sm">
           {tenant.firstRun.steps.map((step) => (
-            <div key={step.id} className="rounded border border-slate-200 px-3 py-2">
+            <div
+              key={step.id}
+              className="rounded border border-slate-200 px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">{step.label}</p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(step.completed ? "good" : "warning")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(step.completed ? "good" : "warning")}`}
+                >
                   {step.completed ? "Klaar" : "Open"}
                 </span>
               </div>
@@ -544,49 +762,105 @@ function ReadinessColumn({ tenant }: { tenant: PlatformTenantDetail }) {
   );
 }
 
-function WebsiteDeliveryTab({ tenantId, delivery }: { tenantId: string; delivery: PlatformWebsiteDeliveryView }) {
+function WebsiteDeliveryTab({
+  tenantId,
+  delivery,
+}: {
+  tenantId: string;
+  delivery: PlatformWebsiteDeliveryView;
+}) {
   if (!delivery.site) {
     return (
-      <Section title="Website delivery" helper="Initialiseer eerst de managed website voor deze tenant.">
-        <p className="text-sm text-slate-500">Er bestaat nog geen primaire website-site. Custom deploymentbeheer blijft daarom geblokkeerd.</p>
+      <Section
+        title="Website delivery"
+        helper="Initialiseer eerst de managed website voor deze tenant."
+      >
+        <p className="text-sm text-slate-500">
+          Er bestaat nog geen primaire website-site. Custom deploymentbeheer
+          blijft daarom geblokkeerd.
+        </p>
       </Section>
     );
   }
 
   const { site } = delivery;
-  const routeTone = delivery.routeConfiguration === "ready" ? "good" : delivery.routeConfiguration === "invalid" ? "danger" : "warning";
+  const routeTone =
+    delivery.routeConfiguration === "ready"
+      ? "good"
+      : delivery.routeConfiguration === "invalid"
+        ? "danger"
+        : "warning";
 
   return (
     <div className="grid gap-5">
-      <Section title="Enterprise website delivery" helper="Staging-only registratie, health, goedkeuring, exact-revision activatie en expliciete rollback. Production is hier technisch uitgeschakeld.">
+      <Section
+        title="Enterprise website delivery"
+        helper="Staging-only registratie, health, goedkeuring, exact-revision activatie en expliciete rollback. Production is hier technisch uitgeschakeld."
+      >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Stat label="Mode" value={site.deliveryMode} />
           <Stat label="Delivery revision" value={site.deliveryRevision} />
-          <Stat label="Routeconfig" value={delivery.routeConfiguration} detail={delivery.routeConfigurationError ?? undefined} />
-          <Stat label="Canonical host" value={site.canonicalHostname ?? "ontbreekt"} detail={site.canonicalDomainActive ? "actief en verified" : "niet actief"} />
+          <Stat
+            label="Routeconfig"
+            value={delivery.routeConfiguration}
+            detail={delivery.routeConfigurationError ?? undefined}
+          />
+          <Stat
+            label="Canonical host"
+            value={site.canonicalHostname ?? "ontbreekt"}
+            detail={
+              site.canonicalDomainActive ? "actief en verified" : "niet actief"
+            }
+          />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(routeTone)}`}>{delivery.routeConfiguration === "ready" ? "Routable stagingconfig" : "Fail-closed"}</span>
-          <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">Active target {site.activeTargetId ?? "geen"}</span>
-          <span className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">Production disabled</span>
+          <span
+            className={`rounded border px-2.5 py-1 text-xs font-medium ${statusChipClass(routeTone)}`}
+          >
+            {delivery.routeConfiguration === "ready"
+              ? "Routable stagingconfig"
+              : "Fail-closed"}
+          </span>
+          <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Active target {site.activeTargetId ?? "geen"}
+          </span>
+          <span className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">
+            Production disabled
+          </span>
         </div>
       </Section>
 
-      <Section title="Code-owned kandidaten" helper="Origins komen uitsluitend uit operator-owned stagingconfiguratie. Tenantvelden kunnen nooit een origin of secret aanleveren.">
+      <Section
+        title="Code-owned kandidaten"
+        helper="Origins komen uitsluitend uit operator-owned stagingconfiguratie. Tenantvelden kunnen nooit een origin of secret aanleveren."
+      >
         <div className="grid gap-3">
           {delivery.candidates.map((candidate) => {
-            const matchingHost = site.canonicalHostname && candidate.expectedHosts.includes(site.canonicalHostname);
+            const matchingHost =
+              site.canonicalHostname &&
+              candidate.expectedHosts.includes(site.canonicalHostname);
             return (
-              <div key={`${candidate.providerKey}:${candidate.routeKey}:${candidate.releaseId}`} className="rounded border border-slate-200 p-4">
+              <div
+                key={`${candidate.providerKey}:${candidate.routeKey}:${candidate.releaseId}`}
+                className="rounded border border-slate-200 p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-950">{candidate.routeKey}</p>
+                    <p className="font-semibold text-slate-950">
+                      {candidate.routeKey}
+                    </p>
                     <p className="mt-1 break-all text-xs text-slate-500">
                       {candidate.providerKey} · {candidate.releaseId}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">{candidate.expectedHosts.join(", ")}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {candidate.expectedHosts.join(", ")}
+                    </p>
                   </div>
-                  <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(candidate.status === "routable" ? "good" : "warning")}`}>{candidate.status}</span>
+                  <span
+                    className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(candidate.status === "routable" ? "good" : "warning")}`}
+                  >
+                    {candidate.status}
+                  </span>
                 </div>
                 {candidate.blockers.length > 0 && (
                   <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-800">
@@ -596,19 +870,52 @@ function WebsiteDeliveryTab({ tenantId, delivery }: { tenantId: string; delivery
                   </ul>
                 )}
                 {matchingHost && (
-                  <form action={registerPlatformWebsiteDeploymentAction} className="mt-4 flex flex-wrap items-end gap-3">
+                  <form
+                    action={registerPlatformWebsiteDeploymentAction}
+                    className="mt-4 flex flex-wrap items-end gap-3"
+                  >
                     <input type="hidden" name="tenantId" value={tenantId} />
                     <input type="hidden" name="siteId" value={site.id} />
-                    <input type="hidden" name="providerKey" value={candidate.providerKey} />
-                    <input type="hidden" name="routeKey" value={candidate.routeKey} />
-                    <input type="hidden" name="releaseId" value={candidate.releaseId} />
-                    <input type="hidden" name="expectedHost" value={site.canonicalHostname ?? ""} />
-                    <input type="hidden" name="healthPath" value={candidate.healthPath} />
+                    <input
+                      type="hidden"
+                      name="providerKey"
+                      value={candidate.providerKey}
+                    />
+                    <input
+                      type="hidden"
+                      name="routeKey"
+                      value={candidate.routeKey}
+                    />
+                    <input
+                      type="hidden"
+                      name="releaseId"
+                      value={candidate.releaseId}
+                    />
+                    <input
+                      type="hidden"
+                      name="expectedHost"
+                      value={site.canonicalHostname ?? ""}
+                    />
+                    <input
+                      type="hidden"
+                      name="healthPath"
+                      value={candidate.healthPath}
+                    />
                     <label className="grid min-w-64 flex-1 gap-1 text-sm">
-                      <span className="font-medium text-slate-700">Change reference</span>
-                      <input required name="changeReference" placeholder="FG-WEB-9/register" className="rounded border border-slate-300 px-3 py-2" />
+                      <span className="font-medium text-slate-700">
+                        Change reference
+                      </span>
+                      <input
+                        required
+                        name="changeReference"
+                        placeholder="FG-WEB-9/register"
+                        className="rounded border border-slate-300 px-3 py-2"
+                      />
                     </label>
-                    <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+                    <button
+                      type="submit"
+                      className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+                    >
                       Registreer exact candidate
                     </button>
                   </form>
@@ -616,110 +923,242 @@ function WebsiteDeliveryTab({ tenantId, delivery }: { tenantId: string; delivery
               </div>
             );
           })}
-          {delivery.candidates.length === 0 && <p className="text-sm text-slate-500">Geen operator-owned stagingkandidaten geconfigureerd.</p>}
+          {delivery.candidates.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Geen operator-owned stagingkandidaten geconfigureerd.
+            </p>
+          )}
         </div>
       </Section>
 
-      <Section title="Geregistreerde deployments" helper="Volgorde: health uitvoeren, exact bewijs goedkeuren en daarna pas met de actuele revision activeren.">
+      <Section
+        title="Geregistreerde deployments"
+        helper="Volgorde: health uitvoeren, exact bewijs goedkeuren en daarna pas met de actuele revision activeren."
+      >
         <div className="grid gap-4">
           {delivery.deployments.map((deployment) => (
-            <div key={deployment.id} className="rounded border border-slate-200 p-4">
+            <div
+              key={deployment.id}
+              className="rounded border border-slate-200 p-4"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-slate-950">{deployment.routeKey}</p>
-                  <p className="mt-1 break-all text-xs text-slate-500">{deployment.releaseId}</p>
+                  <p className="font-semibold text-slate-950">
+                    {deployment.routeKey}
+                  </p>
+                  <p className="mt-1 break-all text-xs text-slate-500">
+                    {deployment.releaseId}
+                  </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {deployment.expectedHost} · health {deployment.lastCheckedAt ?? "niet uitgevoerd"}
+                    {deployment.expectedHost} · health{" "}
+                    {deployment.lastCheckedAt ?? "niet uitgevoerd"}
                   </p>
                 </div>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(deployment.status === "active" || deployment.status === "ready" ? "good" : deployment.status === "failed" ? "danger" : "warning")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(deployment.status === "active" || deployment.status === "ready" ? "good" : deployment.status === "failed" ? "danger" : "warning")}`}
+                >
                   {deployment.status} · {deployment.healthStatus}
                 </span>
               </div>
 
               <div className="mt-4 grid gap-3 xl:grid-cols-3">
-                <form action={checkPlatformWebsiteDeploymentHealthAction} className="grid gap-2 rounded bg-slate-50 p-3">
+                <form
+                  action={checkPlatformWebsiteDeploymentHealthAction}
+                  className="grid gap-2 rounded bg-slate-50 p-3"
+                >
                   <input type="hidden" name="tenantId" value={tenantId} />
                   <input type="hidden" name="siteId" value={site.id} />
-                  <input type="hidden" name="deploymentId" value={deployment.id} />
-                  <input required name="changeReference" placeholder="FG-WEB-9/health" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-                  <button type="submit" className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+                  <input
+                    type="hidden"
+                    name="deploymentId"
+                    value={deployment.id}
+                  />
+                  <input
+                    required
+                    name="changeReference"
+                    placeholder="FG-WEB-9/health"
+                    className="rounded border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
+                  >
                     Run strict health
                   </button>
                 </form>
-                <form action={approvePlatformWebsiteDeploymentAction} className="grid gap-2 rounded bg-slate-50 p-3">
+                <form
+                  action={approvePlatformWebsiteDeploymentAction}
+                  className="grid gap-2 rounded bg-slate-50 p-3"
+                >
                   <input type="hidden" name="tenantId" value={tenantId} />
                   <input type="hidden" name="siteId" value={site.id} />
-                  <input type="hidden" name="deploymentId" value={deployment.id} />
-                  <input required name="changeReference" placeholder="FG-WEB-9/approve" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-                  <button type="submit" className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+                  <input
+                    type="hidden"
+                    name="deploymentId"
+                    value={deployment.id}
+                  />
+                  <input
+                    required
+                    name="changeReference"
+                    placeholder="FG-WEB-9/approve"
+                    className="rounded border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
+                  >
                     Approve exact evidence
                   </button>
                 </form>
-                <form action={activatePlatformWebsiteDeploymentAction} className="grid gap-2 rounded border border-emerald-200 bg-emerald-50 p-3">
+                <form
+                  action={activatePlatformWebsiteDeploymentAction}
+                  className="grid gap-2 rounded border border-emerald-200 bg-emerald-50 p-3"
+                >
                   <input type="hidden" name="tenantId" value={tenantId} />
                   <input type="hidden" name="siteId" value={site.id} />
-                  <input type="hidden" name="deploymentId" value={deployment.id} />
-                  <input type="hidden" name="expectedDeliveryRevision" value={site.deliveryRevision} />
-                  <input type="hidden" name="expectedMode" value={site.deliveryMode} />
-                  <input type="hidden" name="expectedTargetId" value={site.activeTargetId ?? ""} />
-                  <input required name="changeReference" placeholder="FG-WEB-9/activate" className="rounded border border-emerald-300 bg-white px-3 py-2 text-sm" />
-                  <textarea required minLength={10} name="reason" placeholder="Waarom deze exacte stagingrelease activeren?" className="min-h-20 rounded border border-emerald-300 bg-white px-3 py-2 text-sm" />
-                  <button type="submit" className="rounded bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">
+                  <input
+                    type="hidden"
+                    name="deploymentId"
+                    value={deployment.id}
+                  />
+                  <input
+                    type="hidden"
+                    name="expectedDeliveryRevision"
+                    value={site.deliveryRevision}
+                  />
+                  <input
+                    type="hidden"
+                    name="expectedMode"
+                    value={site.deliveryMode}
+                  />
+                  <input
+                    type="hidden"
+                    name="expectedTargetId"
+                    value={site.activeTargetId ?? ""}
+                  />
+                  <input
+                    required
+                    name="changeReference"
+                    placeholder="FG-WEB-9/activate"
+                    className="rounded border border-emerald-300 bg-white px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    required
+                    minLength={10}
+                    name="reason"
+                    placeholder="Waarom deze exacte stagingrelease activeren?"
+                    className="min-h-20 rounded border border-emerald-300 bg-white px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"
+                  >
                     Activeer exact op staging
                   </button>
                 </form>
               </div>
             </div>
           ))}
-          {delivery.deployments.length === 0 && <p className="text-sm text-slate-500">Nog geen deployments geregistreerd.</p>}
+          {delivery.deployments.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Nog geen deployments geregistreerd.
+            </p>
+          )}
         </div>
       </Section>
 
-      <Section title="Expliciete rollback" helper="Rollback leest het vorige target uit de append-only activatiehistorie en weigert stale mode, target of revision.">
-        <form action={rollbackPlatformWebsiteDeliveryAction} className="grid gap-3 rounded border border-amber-200 bg-amber-50 p-4 md:grid-cols-2">
+      <Section
+        title="Expliciete rollback"
+        helper="Rollback leest het vorige target uit de append-only activatiehistorie en weigert stale mode, target of revision."
+      >
+        <form
+          action={rollbackPlatformWebsiteDeliveryAction}
+          className="grid gap-3 rounded border border-amber-200 bg-amber-50 p-4 md:grid-cols-2"
+        >
           <input type="hidden" name="tenantId" value={tenantId} />
           <input type="hidden" name="siteId" value={site.id} />
-          <input type="hidden" name="expectedDeliveryRevision" value={site.deliveryRevision} />
+          <input
+            type="hidden"
+            name="expectedDeliveryRevision"
+            value={site.deliveryRevision}
+          />
           <input type="hidden" name="expectedMode" value={site.deliveryMode} />
-          <input type="hidden" name="expectedTargetId" value={site.activeTargetId ?? ""} />
+          <input
+            type="hidden"
+            name="expectedTargetId"
+            value={site.activeTargetId ?? ""}
+          />
           <label className="grid gap-1 text-sm">
             <span className="font-medium text-amber-950">Change reference</span>
-            <input required name="changeReference" placeholder="FG-WEB-9/rollback" className="rounded border border-amber-300 bg-white px-3 py-2" />
+            <input
+              required
+              name="changeReference"
+              placeholder="FG-WEB-9/rollback"
+              className="rounded border border-amber-300 bg-white px-3 py-2"
+            />
           </label>
           <label className="grid gap-1 text-sm">
             <span className="font-medium text-amber-950">Reden</span>
-            <textarea required minLength={10} name="reason" placeholder="Waarom terug naar het exact vorige target?" className="min-h-20 rounded border border-amber-300 bg-white px-3 py-2" />
+            <textarea
+              required
+              minLength={10}
+              name="reason"
+              placeholder="Waarom terug naar het exact vorige target?"
+              className="min-h-20 rounded border border-amber-300 bg-white px-3 py-2"
+            />
           </label>
-          <button type="submit" className="rounded bg-amber-800 px-4 py-2 text-sm font-semibold text-white md:col-span-2">
+          <button
+            type="submit"
+            className="rounded bg-amber-800 px-4 py-2 text-sm font-semibold text-white md:col-span-2"
+          >
             Rollback naar vorige activatie
           </button>
         </form>
       </Section>
 
-      <Section title="Operationele historie" helper="Append-only, secretvrije activatie- en rollbackevidence.">
+      <Section
+        title="Operationele historie"
+        helper="Append-only, secretvrije activatie- en rollbackevidence."
+      >
         <div className="grid gap-2">
           {delivery.operations.map((operation) => (
-            <div key={operation.id} className="rounded border border-slate-200 px-3 py-2 text-sm">
+            <div
+              key={operation.id}
+              className="rounded border border-slate-200 px-3 py-2 text-sm"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium text-slate-950">
-                  {operation.operationType} · {operation.fromMode} → {operation.toMode}
+                  {operation.operationType} · {operation.fromMode} →{" "}
+                  {operation.toMode}
                 </p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(operation.status === "succeeded" ? "good" : "danger")}`}>{operation.status}</span>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(operation.status === "succeeded" ? "good" : "danger")}`}
+                >
+                  {operation.status}
+                </span>
               </div>
               <p className="mt-1 break-all text-xs text-slate-500">
-                revision {operation.expectedRevision} → {operation.newRevision ?? "blocked"} · {operation.changeReference} · {formatDate(operation.createdAt)}
+                revision {operation.expectedRevision} →{" "}
+                {operation.newRevision ?? "blocked"} ·{" "}
+                {operation.changeReference} · {formatDate(operation.createdAt)}
               </p>
-              {operation.errorCode && <p className="mt-1 text-xs text-rose-700">{operation.errorCode}</p>}
+              {operation.errorCode && (
+                <p className="mt-1 text-xs text-rose-700">
+                  {operation.errorCode}
+                </p>
+              )}
             </div>
           ))}
-          {delivery.operations.length === 0 && <p className="text-sm text-slate-500">Nog geen delivery-operaties.</p>}
+          {delivery.operations.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Nog geen delivery-operaties.
+            </p>
+          )}
         </div>
       </Section>
     </div>
   );
 }
-
 
 function SubscriptionTab({
   tenant,
@@ -734,47 +1173,85 @@ function SubscriptionTab({
 }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Actief abonnement" helper="Planwissels zijn transactioneel en schrijven een audit-event. Billingstatus wordt handmatig beheerd totdat automatische facturatie is gekoppeld.">
+      <Section
+        title="Actief abonnement"
+        helper="Planwissels zijn transactioneel en schrijven een audit-event. Billingstatus wordt handmatig beheerd totdat automatische facturatie is gekoppeld."
+      >
         {customDomainCount > 0 && tenant.planKey === "enterprise" && (
           <p className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Downgrade naar Starter/Professional schakelt {customDomainCount} custom domain(s) uit.
+            Downgrade naar Starter/Professional schakelt {customDomainCount}{" "}
+            custom domain(s) uit.
           </p>
         )}
-        <form action={updatePlatformTenantPlanFormAction} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)_auto] lg:items-end">
+        <form
+          action={updatePlatformTenantPlanFormAction}
+          className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)_auto] lg:items-end"
+        >
           <input type="hidden" name="tenantId" value={tenant.id} />
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Plan
-            <select name="planKey" defaultValue={tenant.planKey} className="h-10 rounded border border-slate-300 px-3 text-sm">
+            <SelectAdapter
+              name="planKey"
+              defaultValue={tenant.planKey}
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            >
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.key}>
-                  {plan.name}{plan.customDomains ? " - custom domeinen" : plan.customRoles ? " - custom rollen" : ""}
+                  {plan.name}
+                  {plan.customDomains
+                    ? " - custom domeinen"
+                    : plan.customRoles
+                      ? " - custom rollen"
+                      : ""}
                 </option>
               ))}
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Periode-einde
-            <input name="currentPeriodEndsAt" type="datetime-local" className="h-10 rounded border border-slate-300 px-3 text-sm" />
+            <input
+              name="currentPeriodEndsAt"
+              type="datetime-local"
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Billing referentie
-            <input name="billingReference" className="h-10 rounded border border-slate-300 px-3 text-sm" />
+            <input
+              name="billingReference"
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            />
           </label>
-          <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">
+          <button
+            type="submit"
+            className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white"
+          >
             Plan opslaan
           </button>
           <label className="grid gap-1 text-sm font-medium text-slate-700 lg:col-span-4">
             Handmatige billingnotities
-            <textarea name="manualBillingNotes" rows={2} className="rounded border border-slate-300 px-3 py-2 text-sm" />
+            <textarea
+              name="manualBillingNotes"
+              rows={2}
+              className="rounded border border-slate-300 px-3 py-2 text-sm"
+            />
           </label>
         </form>
 
         <div className="mt-5 grid gap-2 text-sm md:grid-cols-3">
           {plans.map((plan) => (
-            <div key={plan.id} className="rounded border border-slate-200 px-3 py-2">
+            <div
+              key={plan.id}
+              className="rounded border border-slate-200 px-3 py-2"
+            >
               <p className="font-medium text-slate-950">{plan.name}</p>
-              <p className="mt-1 text-xs text-slate-500">{plan.supportLevel} support - {plan.maxSeats ?? "contract"} seats</p>
-              <p className="mt-1 text-xs text-slate-500">{plan.limitSummary ?? "geen expliciete limits"}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {plan.supportLevel} support - {plan.maxSeats ?? "contract"}{" "}
+                seats
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {plan.limitSummary ?? "geen expliciete limits"}
+              </p>
             </div>
           ))}
         </div>
@@ -794,40 +1271,77 @@ function SubscriptionTab({
             <tbody>
               {subscriptions.map((subscription) => (
                 <tr key={subscription.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-medium">{subscription.planName}</td>
+                  <td className="px-3 py-2 font-medium">
+                    {subscription.planName}
+                  </td>
                   <td className="px-3 py-2">
-                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(subscriptionStatusTone(subscription.status))}`}>
+                    <span
+                      className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(subscriptionStatusTone(subscription.status))}`}
+                    >
                       {subscription.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-slate-600">{subscription.source}</td>
-                  <td className="px-3 py-2 text-slate-600">{formatDate(subscription.currentPeriodStartsAt)} - {formatDate(subscription.currentPeriodEndsAt)}</td>
-                  <td className="px-3 py-2 text-slate-600">{subscription.billingReference ?? subscription.manualBillingNotes ?? "-"}</td>
-                  <td className="px-3 py-2 text-slate-600">{formatDate(subscription.updatedAt)}</td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {subscription.source}
+                  </td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {formatDate(subscription.currentPeriodStartsAt)} -{" "}
+                    {formatDate(subscription.currentPeriodEndsAt)}
+                  </td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {subscription.billingReference ??
+                      subscription.manualBillingNotes ??
+                      "-"}
+                  </td>
+                  <td className="px-3 py-2 text-slate-600">
+                    {formatDate(subscription.updatedAt)}
+                  </td>
                 </tr>
               ))}
               {subscriptions.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">Geen abonnementen gevonden.</td></tr>
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-3 py-8 text-center text-slate-500"
+                  >
+                    Geen abonnementen gevonden.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </Section>
 
-      <Section title="Planlimieten" helper={`${tenant.usageLimits.length} limiet(en) gekoppeld aan ${tenant.planName}.`}>
+      <Section
+        title="Planlimieten"
+        helper={`${tenant.usageLimits.length} limiet(en) gekoppeld aan ${tenant.planName}.`}
+      >
         <div className="grid gap-2 text-sm">
           {tenant.usageLimits.map((limit) => (
-            <div key={limit.key} className="rounded border border-slate-200 px-3 py-2">
+            <div
+              key={limit.key}
+              className="rounded border border-slate-200 px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">{limit.key}</p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(limit.isEnabled ? "good" : "neutral")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(limit.isEnabled ? "good" : "neutral")}`}
+                >
                   {limit.isEnabled ? "Aan" : "Uit"}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{limit.description ?? "Geen omschrijving"} - waarde {limit.limitValue ?? "onbeperkt"}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {limit.description ?? "Geen omschrijving"} - waarde{" "}
+                {limit.limitValue ?? "onbeperkt"}
+              </p>
             </div>
           ))}
-          {tenant.usageLimits.length === 0 && <p className="text-sm text-slate-500">Geen expliciete planlimieten voor dit pakket.</p>}
+          {tenant.usageLimits.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Geen expliciete planlimieten voor dit pakket.
+            </p>
+          )}
         </div>
       </Section>
     </div>
@@ -846,24 +1360,46 @@ function DomainsTab({
   const ipv6Target = fieldgridPublicIpv6();
 
   return (
-    <Section title="Domeinen" helper="Platformbeheer koppelt tenantdomeinen, verifieert DNS en activeert routing per tenant. Custom domains zijn Enterprise-only.">
-      <form action={addPlatformTenantDomainFormAction} className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_110px_auto] md:items-end">
+    <Section
+      title="Domeinen"
+      helper="Platformbeheer koppelt tenantdomeinen, verifieert DNS en activeert routing per tenant. Custom domains zijn Enterprise-only."
+    >
+      <form
+        action={addPlatformTenantDomainFormAction}
+        className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_110px_auto] md:items-end"
+      >
         <input type="hidden" name="tenantId" value={tenant.id} />
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Domein
-          <input name="domain" required placeholder={`${tenant.slug}.fieldgrid.nl`} className="h-10 rounded border border-slate-300 px-3 text-sm" />
+          <input
+            name="domain"
+            required
+            placeholder={`${tenant.slug}.fieldgrid.nl`}
+            className="h-10 rounded border border-slate-300 px-3 text-sm"
+          />
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Type
-          <select name="type" defaultValue="fieldgrid_subdomain" className="h-10 rounded border border-slate-300 px-3 text-sm">
+          <SelectAdapter
+            name="type"
+            defaultValue="fieldgrid_subdomain"
+            className="h-10 rounded border border-slate-300 px-3 text-sm"
+          >
             <option value="fieldgrid_subdomain">Fieldgrid subdomain</option>
-            <option value="custom_domain" disabled={!customDomainsEnabled}>Custom domain</option>
-          </select>
+            <option value="custom_domain" disabled={!customDomainsEnabled}>
+              Custom domain
+            </option>
+          </SelectAdapter>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
-          <input type="checkbox" name="isPrimary" /> Primair
+          <CheckboxAdapter type="checkbox" name="isPrimary" /> Primair
         </label>
-        <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">Toevoegen</button>
+        <button
+          type="submit"
+          className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white"
+        >
+          Toevoegen
+        </button>
       </form>
       {!customDomainsEnabled && (
         <p className="mb-5 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -876,44 +1412,100 @@ function DomainsTab({
           const isCustomDomain = domain.type === "custom_domain";
           const isPlatformDomain = domain.type === "platform_reserved";
           const routeReady = canRouteDomain(domain);
-          const actions: Array<{ action: string; label: string; danger?: boolean; disabled?: boolean }> = isPlatformDomain
+          const actions: Array<{
+            action: string;
+            label: string;
+            danger?: boolean;
+            disabled?: boolean;
+          }> = isPlatformDomain
             ? []
             : [
-                { action: isCustomDomain ? "check_dns" : "verify", label: isCustomDomain ? "Check DNS" : "Verifieer" },
-                ...(isCustomDomain ? [{ action: "check_tls", label: "Check TLS", disabled: !routeReady }] : []),
-                { action: "activate", label: "Activeer", disabled: !routeReady || domain.verificationStatus === "active" },
-                { action: "primary", label: "Primair", disabled: !routeReady || domain.isPrimary },
-                { action: "disable", label: "Uitschakelen", danger: true, disabled: domain.verificationStatus === "disabled" || domain.verificationStatus === "disabled_plan" },
+                {
+                  action: isCustomDomain ? "check_dns" : "verify",
+                  label: isCustomDomain ? "Check DNS" : "Verifieer",
+                },
+                ...(isCustomDomain
+                  ? [
+                      {
+                        action: "check_tls",
+                        label: "Check TLS",
+                        disabled: !routeReady,
+                      },
+                    ]
+                  : []),
+                {
+                  action: "activate",
+                  label: "Activeer",
+                  disabled:
+                    !routeReady || domain.verificationStatus === "active",
+                },
+                {
+                  action: "primary",
+                  label: "Primair",
+                  disabled: !routeReady || domain.isPrimary,
+                },
+                {
+                  action: "disable",
+                  label: "Uitschakelen",
+                  danger: true,
+                  disabled:
+                    domain.verificationStatus === "disabled" ||
+                    domain.verificationStatus === "disabled_plan",
+                },
                 { action: "remove", label: "Verwijder", danger: true },
               ];
 
           return (
-            <div key={domain.id} className="rounded border border-slate-200 p-4">
+            <div
+              key={domain.id}
+              className="rounded border border-slate-200 p-4"
+            >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <p className="platform-long-text font-medium text-slate-950">{domain.domain}</p>
+                  <p className="platform-long-text font-medium text-slate-950">
+                    {domain.domain}
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{domainTypeLabel(domain.type)}</span>
-                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(domainStatusTone(domain.verificationStatus))}`}>
+                    <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
+                      {domainTypeLabel(domain.type)}
+                    </span>
+                    <span
+                      className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(domainStatusTone(domain.verificationStatus))}`}
+                    >
                       {domain.verificationStatus}
                     </span>
-                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(tlsStatusTone(domain.tlsStatus))}`}>
+                    <span
+                      className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(tlsStatusTone(domain.tlsStatus))}`}
+                    >
                       TLS {domain.tlsStatus}
                     </span>
-                    {domain.isPrimary && <span className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">primair</span>}
+                    {domain.isPrimary && (
+                      <span className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">
+                        primair
+                      </span>
+                    )}
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    DNS check: {formatDate(domain.dnsLastCheckedAt)} - TLS check: {formatDate(domain.tlsLastCheckedAt)} - actief: {formatDate(domain.activatedAt)}
+                    DNS check: {formatDate(domain.dnsLastCheckedAt)} - TLS
+                    check: {formatDate(domain.tlsLastCheckedAt)} - actief:{" "}
+                    {formatDate(domain.activatedAt)}
                   </p>
-                  {(domain.dnsLastError || domain.tlsLastError || domain.disabledReason) && (
+                  {(domain.dnsLastError ||
+                    domain.tlsLastError ||
+                    domain.disabledReason) && (
                     <p className="platform-long-text mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                      {domain.dnsLastError || domain.tlsLastError || domain.disabledReason}
+                      {domain.dnsLastError ||
+                        domain.tlsLastError ||
+                        domain.disabledReason}
                     </p>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {actions.map(({ action, label, danger, disabled }) => (
-                    <form key={action} action={updatePlatformTenantDomainFormAction}>
+                    <form
+                      key={action}
+                      action={updatePlatformTenantDomainFormAction}
+                    >
                       <input type="hidden" name="tenantId" value={tenant.id} />
                       <input type="hidden" name="domainId" value={domain.id} />
                       <input type="hidden" name="domainAction" value={action} />
@@ -921,7 +1513,9 @@ function DomainsTab({
                         type="submit"
                         disabled={disabled}
                         className={`rounded border px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
-                          danger ? "border-rose-300 text-rose-800" : "border-slate-300 text-slate-700"
+                          danger
+                            ? "border-rose-300 text-rose-800"
+                            : "border-slate-300 text-slate-700"
                         }`}
                       >
                         {label}
@@ -934,9 +1528,13 @@ function DomainsTab({
               {isCustomDomain && (
                 <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-950">DNS instructies</p>
+                    <p className="text-sm font-semibold text-slate-950">
+                      DNS instructies
+                    </p>
                     <span className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
-                      {customDomainsEnabled ? "Enterprise actief" : "Enterprise vereist"}
+                      {customDomainsEnabled
+                        ? "Enterprise actief"
+                        : "Enterprise vereist"}
                     </span>
                   </div>
                   <div className="grid gap-2 text-xs sm:grid-cols-[90px_minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -944,28 +1542,51 @@ function DomainsTab({
                     <p className="font-semibold text-slate-500">Naam</p>
                     <p className="font-semibold text-slate-500">Waarde</p>
                     <p className="font-medium text-slate-700">TXT</p>
-                    <p className="platform-long-text text-slate-600">{domain.dnsTxtName || `_fieldgrid-verification.${domain.domain}`}</p>
-                    <p className="platform-long-text text-slate-950">{domain.verificationToken ? customDomainVerificationValue(domain.verificationToken) : "-"}</p>
+                    <p className="platform-long-text text-slate-600">
+                      {domain.dnsTxtName ||
+                        `_fieldgrid-verification.${domain.domain}`}
+                    </p>
+                    <p className="platform-long-text text-slate-950">
+                      {domain.verificationToken
+                        ? customDomainVerificationValue(
+                            domain.verificationToken,
+                          )
+                        : "-"}
+                    </p>
                     <p className="font-medium text-slate-700">A</p>
-                    <p className="platform-long-text text-slate-600">{domain.domain}</p>
-                    <p className="platform-long-text text-slate-950">{ipv4Target}</p>
+                    <p className="platform-long-text text-slate-600">
+                      {domain.domain}
+                    </p>
+                    <p className="platform-long-text text-slate-950">
+                      {ipv4Target}
+                    </p>
                     {ipv6Target && (
                       <>
                         <p className="font-medium text-slate-700">AAAA</p>
-                        <p className="platform-long-text text-slate-600">{domain.domain}</p>
-                        <p className="platform-long-text text-slate-950">{ipv6Target}</p>
+                        <p className="platform-long-text text-slate-600">
+                          {domain.domain}
+                        </p>
+                        <p className="platform-long-text text-slate-950">
+                          {ipv6Target}
+                        </p>
                       </>
                     )}
                     <p className="font-medium text-slate-700">CNAME</p>
-                    <p className="platform-long-text text-slate-600">www of subdomein</p>
-                    <p className="platform-long-text text-slate-950">{fieldgridCnameTarget(tenant, domain)}</p>
+                    <p className="platform-long-text text-slate-600">
+                      www of subdomein
+                    </p>
+                    <p className="platform-long-text text-slate-950">
+                      {fieldgridCnameTarget(tenant, domain)}
+                    </p>
                   </div>
                 </div>
               )}
             </div>
           );
         })}
-        {domains.length === 0 && <p className="text-sm text-slate-500">Nog geen domeinen gekoppeld.</p>}
+        {domains.length === 0 && (
+          <p className="text-sm text-slate-500">Nog geen domeinen gekoppeld.</p>
+        )}
       </div>
     </Section>
   );
@@ -979,7 +1600,10 @@ function ModulesTab({
   modules: Awaited<ReturnType<typeof listPlatformTenantModules>>;
 }) {
   return (
-    <Section title="Modules" helper="Manual overrides winnen van plan/default. Dependency inspectie voorkomt onveilige modulewissels.">
+    <Section
+      title="Modules"
+      helper="Manual overrides winnen van plan/default. Dependency inspectie voorkomt onveilige modulewissels."
+    >
       <div className="grid gap-3 lg:grid-cols-2">
         {modules.map((module) => {
           const moduleToggleBlocked = module.effectiveEnabled
@@ -987,35 +1611,72 @@ function ModulesTab({
             : module.missingDependencyKeys.length > 0;
 
           return (
-            <div key={module.id} className="rounded border border-slate-200 p-4">
+            <div
+              key={module.id}
+              className="rounded border border-slate-200 p-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold text-slate-950">{module.name}</h3>
-                  <p className="mt-1 text-xs text-slate-500">{module.key} - {module.category}</p>
+                  <h3 className="font-semibold text-slate-950">
+                    {module.name}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {module.key} - {module.category}
+                  </p>
                 </div>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(module.effectiveEnabled ? "good" : "neutral")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(module.effectiveEnabled ? "good" : "neutral")}`}
+                >
                   {module.effectiveEnabled ? "Aan" : "Uit"}
                 </span>
               </div>
-              {module.description && <p className="mt-2 text-sm text-slate-600">{module.description}</p>}
+              {module.description && (
+                <p className="mt-2 text-sm text-slate-600">
+                  {module.description}
+                </p>
+              )}
               <p className="mt-2 text-xs text-slate-500">
-                Plan: {module.planIncluded === null ? "default" : module.planIncluded ? "aan" : "uit"} - Override: {module.tenantOverride === null ? "geen" : module.tenantOverride ? "aan" : "uit"}
+                Plan:{" "}
+                {module.planIncluded === null
+                  ? "default"
+                  : module.planIncluded
+                    ? "aan"
+                    : "uit"}{" "}
+                - Override:{" "}
+                {module.tenantOverride === null
+                  ? "geen"
+                  : module.tenantOverride
+                    ? "aan"
+                    : "uit"}
               </p>
-              {module.dependencyKeys.length > 0 && <p className="mt-1 text-xs text-slate-500">Vereist: {module.dependencyKeys.join(", ")}</p>}
+              {module.dependencyKeys.length > 0 && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Vereist: {module.dependencyKeys.join(", ")}
+                </p>
+              )}
               {module.missingDependencyKeys.length > 0 && (
                 <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
-                  Aanzetten geblokkeerd door: {module.missingDependencyKeys.join(", ")}
+                  Aanzetten geblokkeerd door:{" "}
+                  {module.missingDependencyKeys.join(", ")}
                 </p>
               )}
               {module.enabledDependentKeys.length > 0 && (
                 <p className="mt-2 rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-800">
-                  Uitzetten geblokkeerd door actieve modules: {module.enabledDependentKeys.join(", ")}
+                  Uitzetten geblokkeerd door actieve modules:{" "}
+                  {module.enabledDependentKeys.join(", ")}
                 </p>
               )}
-              <form action={updatePlatformTenantModuleFormAction} className="mt-3">
+              <form
+                action={updatePlatformTenantModuleFormAction}
+                className="mt-3"
+              >
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="moduleId" value={module.id} />
-                <input type="hidden" name="enabled" value={module.effectiveEnabled ? "false" : "true"} />
+                <input
+                  type="hidden"
+                  name="enabled"
+                  value={module.effectiveEnabled ? "false" : "true"}
+                />
                 <button
                   type="submit"
                   disabled={moduleToggleBlocked}
@@ -1041,49 +1702,102 @@ function SectorsAndRegionsTab({
   sectorsModel: Awaited<ReturnType<typeof listPlatformTenantSectors>>;
   regions: PlatformTenantRegionRow[];
 }) {
-  const enabledSectors = sectorsModel.sectors.filter((sector) => sector.tenantEnabled);
+  const enabledSectors = sectorsModel.sectors.filter(
+    (sector) => sector.tenantEnabled,
+  );
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Sectorbeleid" helper="Beheer tenantsectoren, defaultsector en single/multi policy.">
-        <form action={updatePlatformTenantSectorPolicyFormAction} className="mb-5 grid gap-3 md:grid-cols-[150px_120px_1fr_170px_auto] md:items-end">
+      <Section
+        title="Sectorbeleid"
+        helper="Beheer tenantsectoren, defaultsector en single/multi policy."
+      >
+        <form
+          action={updatePlatformTenantSectorPolicyFormAction}
+          className="mb-5 grid gap-3 md:grid-cols-[150px_120px_1fr_170px_auto] md:items-end"
+        >
           <input type="hidden" name="tenantId" value={tenant.id} />
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Modus
-            <select name="mode" defaultValue={sectorsModel.policy.mode} className="h-10 rounded border border-slate-300 px-3 text-sm">
+            <SelectAdapter
+              name="mode"
+              defaultValue={sectorsModel.policy.mode}
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            >
               <option value="multi">Multi</option>
               <option value="single">Single</option>
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Max
-            <input name="maxSectors" type="number" min="1" defaultValue={sectorsModel.policy.maxSectors ?? ""} className="h-10 rounded border border-slate-300 px-3 text-sm" />
+            <input
+              name="maxSectors"
+              type="number"
+              min="1"
+              defaultValue={sectorsModel.policy.maxSectors ?? ""}
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Default
-            <select name="defaultSectorId" defaultValue={sectorsModel.policy.defaultSectorId ?? ""} className="h-10 rounded border border-slate-300 px-3 text-sm">
+            <SelectAdapter
+              name="defaultSectorId"
+              defaultValue={sectorsModel.policy.defaultSectorId ?? ""}
+              className="h-10 rounded border border-slate-300 px-3 text-sm"
+            >
               <option value="">Geen default</option>
-              {enabledSectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
-            </select>
+              {enabledSectors.map((sector) => (
+                <option key={sector.id} value={sector.id}>
+                  {sector.name}
+                </option>
+              ))}
+            </SelectAdapter>
           </label>
           <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
-            <input type="checkbox" name="enforceSectorScope" defaultChecked={sectorsModel.policy.enforceSectorScope} /> Afdwingen
+            <CheckboxAdapter
+              type="checkbox"
+              name="enforceSectorScope"
+              defaultChecked={sectorsModel.policy.enforceSectorScope}
+            />{" "}
+            Afdwingen
           </label>
-          <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">Opslaan</button>
+          <button
+            type="submit"
+            className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white"
+          >
+            Opslaan
+          </button>
         </form>
 
         <div className="grid gap-3 md:grid-cols-2">
           {sectorsModel.sectors.map((sector) => (
-            <div key={sector.id} className="flex items-center justify-between gap-3 rounded border border-slate-200 px-4 py-3">
+            <div
+              key={sector.id}
+              className="flex items-center justify-between gap-3 rounded border border-slate-200 px-4 py-3"
+            >
               <div className="min-w-0">
-                <p className="truncate font-medium text-slate-950">{sector.name}{sector.isDefault ? " - default" : ""}</p>
-                <p className="text-xs text-slate-500">{sector.globallyActive ? "Globaal actief" : "Globaal inactief"}</p>
+                <p className="truncate font-medium text-slate-950">
+                  {sector.name}
+                  {sector.isDefault ? " - default" : ""}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {sector.globallyActive
+                    ? "Globaal actief"
+                    : "Globaal inactief"}
+                </p>
               </div>
               <form action={updatePlatformTenantSectorFormAction}>
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="sectorId" value={sector.id} />
-                <input type="hidden" name="enabled" value={sector.tenantEnabled ? "false" : "true"} />
-                <button type="submit" className="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700">
+                <input
+                  type="hidden"
+                  name="enabled"
+                  value={sector.tenantEnabled ? "false" : "true"}
+                />
+                <button
+                  type="submit"
+                  className="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
+                >
                   {sector.tenantEnabled ? "Uitzetten" : "Aanzetten"}
                 </button>
               </form>
@@ -1092,20 +1806,34 @@ function SectorsAndRegionsTab({
         </div>
       </Section>
 
-      <Section title="Regio's" helper="Actieve regio's bepalen planning- en scopefilters. Mutaties volgen in de onboarding/operations fases.">
+      <Section
+        title="Regio's"
+        helper="Actieve regio's bepalen planning- en scopefilters. Mutaties volgen in de onboarding/operations fases."
+      >
         <div className="grid gap-2 text-sm">
           {regions.map((region) => (
-            <div key={region.id} className="rounded border border-slate-200 px-3 py-2">
+            <div
+              key={region.id}
+              className="rounded border border-slate-200 px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">{region.name}</p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(region.isActive ? "good" : "neutral")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(region.isActive ? "good" : "neutral")}`}
+                >
                   {region.isActive ? "Actief" : "Uit"}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{region.source} - sort {region.sortOrder}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {region.source} - sort {region.sortOrder}
+              </p>
             </div>
           ))}
-          {regions.length === 0 && <p className="text-sm text-slate-500">Nog geen regio's ingesteld.</p>}
+          {regions.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Nog geen regio's ingesteld.
+            </p>
+          )}
         </div>
       </Section>
     </div>
@@ -1117,20 +1845,32 @@ function UsersTab({
   tenantUsersAndOwner,
 }: {
   tenant: PlatformTenantDetail;
-  tenantUsersAndOwner: Awaited<ReturnType<typeof listPlatformTenantUsersAndOwner>>;
+  tenantUsersAndOwner: Awaited<
+    ReturnType<typeof listPlatformTenantUsersAndOwner>
+  >;
 }) {
-  const defaultAdminRoleIds = preferredTenantAdminRoleIds(tenantUsersAndOwner.roles);
+  const defaultAdminRoleIds = preferredTenantAdminRoleIds(
+    tenantUsersAndOwner.roles,
+  );
   const hasTenantRoles = tenantUsersAndOwner.roles.length > 0;
 
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Section title="Tenant admins" helper="Voeg tenantbeheerders toe, wijzig rollen/status of verwijder tenanttoegang. Wachtwoorden en resetcodes worden door Fieldgrid gemaild.">
+      <Section
+        title="Tenant admins"
+        helper="Voeg tenantbeheerders toe, wijzig rollen/status of verwijder tenanttoegang. Wachtwoorden en resetcodes worden door Fieldgrid gemaild."
+      >
         <div className="grid gap-3">
-          <form action={addPlatformTenantAdminFormAction} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+          <form
+            action={addPlatformTenantAdminFormAction}
+            className="rounded border border-slate-200 bg-slate-50 p-3 text-sm"
+          >
             <input type="hidden" name="tenantId" value={tenant.id} />
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <label className="grid gap-1">
-                <span className="text-xs font-medium uppercase text-slate-500">Nieuwe tenant admin</span>
+                <span className="text-xs font-medium uppercase text-slate-500">
+                  Nieuwe tenant admin
+                </span>
                 <input
                   type="email"
                   name="email"
@@ -1149,8 +1889,11 @@ function UsersTab({
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {tenantUsersAndOwner.roles.map((role) => (
-                <label key={role.id} className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2">
-                  <input
+                <label
+                  key={role.id}
+                  className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2"
+                >
+                  <CheckboxAdapter
                     type="checkbox"
                     name="tenantRoleIds"
                     value={role.id}
@@ -1158,42 +1901,73 @@ function UsersTab({
                     className="mt-1"
                   />
                   <span>
-                    <span className="block font-medium text-slate-800">{role.name}</span>
-                    {role.description && <span className="block text-xs leading-5 text-slate-500">{role.description}</span>}
+                    <span className="block font-medium text-slate-800">
+                      {role.name}
+                    </span>
+                    {role.description && (
+                      <span className="block text-xs leading-5 text-slate-500">
+                        {role.description}
+                      </span>
+                    )}
                   </span>
                 </label>
               ))}
             </div>
-            {!hasTenantRoles && <p className="mt-2 text-xs text-amber-700">Deze tenant heeft nog geen rollen; rond provisioning/rolseed eerst af.</p>}
+            {!hasTenantRoles && (
+              <p className="mt-2 text-xs text-amber-700">
+                Deze tenant heeft nog geen rollen; rond provisioning/rolseed
+                eerst af.
+              </p>
+            )}
           </form>
 
           {tenantUsersAndOwner.users.map((user) => (
-            <div key={user.id} className="rounded border border-slate-200 p-3 text-sm">
+            <div
+              key={user.id}
+              className="rounded border border-slate-200 p-3 text-sm"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="max-w-full truncate font-medium text-slate-950">{user.email ?? user.userId}</p>
-                  <p className="mt-0.5 truncate text-xs text-slate-500">{user.userId}</p>
+                  <p className="max-w-full truncate font-medium text-slate-950">
+                    {user.email ?? user.userId}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {user.userId}
+                  </p>
                 </div>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(user.status === "active" ? "good" : "neutral")}`}>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(user.status === "active" ? "good" : "neutral")}`}
+                >
                   {user.status}
                 </span>
               </div>
               <p className="mt-2 text-slate-500">
-                Basisrol {user.role} - Auth {user.authStatus} - bijgewerkt {formatDate(user.updatedAt)}
+                Basisrol {user.role} - Auth {user.authStatus} - bijgewerkt{" "}
+                {formatDate(user.updatedAt)}
               </p>
               {user.tenantRoles.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {user.tenantRoles.map((role) => (
-                    <span key={role.id} className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{role.name}</span>
+                    <span
+                      key={role.id}
+                      className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600"
+                    >
+                      {role.name}
+                    </span>
                   ))}
                 </div>
               )}
-              <form action={updatePlatformTenantAdminFormAction} className="mt-3 grid gap-3 rounded bg-slate-50 p-3">
+              <form
+                action={updatePlatformTenantAdminFormAction}
+                className="mt-3 grid gap-3 rounded bg-slate-50 p-3"
+              >
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="userId" value={user.userId} />
                 <label className="grid gap-1">
-                  <span className="text-xs font-medium uppercase text-slate-500">Status</span>
-                  <select
+                  <span className="text-xs font-medium uppercase text-slate-500">
+                    Status
+                  </span>
+                  <SelectAdapter
                     name="status"
                     defaultValue={user.status}
                     className="h-10 rounded border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
@@ -1201,69 +1975,121 @@ function UsersTab({
                     <option value="active">Actief</option>
                     <option value="inactive">Inactief</option>
                     <option value="suspended">Geschorst</option>
-                  </select>
+                  </SelectAdapter>
                 </label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {tenantUsersAndOwner.roles.map((role) => (
-                    <label key={role.id} className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2">
-                      <input
+                    <label
+                      key={role.id}
+                      className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2"
+                    >
+                      <CheckboxAdapter
                         type="checkbox"
                         name="tenantRoleIds"
                         value={role.id}
-                        defaultChecked={user.tenantRoles.some((assignedRole) => assignedRole.id === role.id)}
+                        defaultChecked={user.tenantRoles.some(
+                          (assignedRole) => assignedRole.id === role.id,
+                        )}
                         className="mt-1"
                       />
                       <span>
-                        <span className="block font-medium text-slate-800">{role.name}</span>
-                        {role.description && <span className="block text-xs leading-5 text-slate-500">{role.description}</span>}
+                        <span className="block font-medium text-slate-800">
+                          {role.name}
+                        </span>
+                        {role.description && (
+                          <span className="block text-xs leading-5 text-slate-500">
+                            {role.description}
+                          </span>
+                        )}
                       </span>
                     </label>
                   ))}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  <button type="submit" className="rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white">Opslaan</button>
+                  <button
+                    type="submit"
+                    className="rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    Opslaan
+                  </button>
                 </div>
               </form>
               <div className="mt-2 flex flex-wrap justify-end gap-2">
                 <form action={sendPlatformTenantAdminPasswordResetFormAction}>
                   <input type="hidden" name="tenantId" value={tenant.id} />
                   <input type="hidden" name="userId" value={user.userId} />
-                  <button type="submit" className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">
+                  <button
+                    type="submit"
+                    className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
+                  >
                     Resetcode mailen
                   </button>
                 </form>
                 <form action={deletePlatformTenantAdminFormAction}>
                   <input type="hidden" name="tenantId" value={tenant.id} />
                   <input type="hidden" name="userId" value={user.userId} />
-                  <button type="submit" className="rounded border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                  <button
+                    type="submit"
+                    className="rounded border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                  >
                     Tenanttoegang verwijderen
                   </button>
                 </form>
               </div>
             </div>
           ))}
-          {tenantUsersAndOwner.users.length === 0 && <p className="text-sm text-slate-500">Geen tenantgebruikers gevonden.</p>}
+          {tenantUsersAndOwner.users.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Geen tenantgebruikers gevonden.
+            </p>
+          )}
         </div>
       </Section>
 
-      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur opnieuw een eenmalige Fieldgrid-activatiecode. De owner krijgt direct tenant owner-toegang.">
+      <Section
+        title="Owner invites"
+        helper="Corrigeer een verkeerd owner e-mailadres en verstuur opnieuw een eenmalige Fieldgrid-activatiecode. De owner krijgt direct tenant owner-toegang."
+      >
         <div className="grid gap-3">
           {tenantUsersAndOwner.ownerInvites.map((invite) => (
-            <div key={invite.id} className="rounded border border-slate-200 p-3 text-sm">
+            <div
+              key={invite.id}
+              className="rounded border border-slate-200 p-3 text-sm"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="max-w-full truncate font-medium text-slate-950">{invite.email}</p>
-                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(invite.status === "accepted" ? "good" : invite.status === "failed" ? "danger" : "warning")}`}>
+                <p className="max-w-full truncate font-medium text-slate-950">
+                  {invite.email}
+                </p>
+                <span
+                  className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(invite.status === "accepted" ? "good" : invite.status === "failed" ? "danger" : "warning")}`}
+                >
                   {invite.status}
                 </span>
               </div>
-              <p className="mt-1 text-slate-500">Verstuurd {formatDate(invite.inviteSentAt)} - bijgewerkt {formatDate(invite.updatedAt)}</p>
-              {invite.userId && <p className="mt-1 truncate text-xs text-slate-500">Auth user {invite.userId}</p>}
-              {invite.errorMessage && <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{invite.errorMessage}</p>}
-              <form action={updatePlatformTenantOwnerInviteFormAction} className="mt-3 grid gap-2 rounded bg-slate-50 p-3">
+              <p className="mt-1 text-slate-500">
+                Verstuurd {formatDate(invite.inviteSentAt)} - bijgewerkt{" "}
+                {formatDate(invite.updatedAt)}
+              </p>
+              {invite.userId && (
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  Auth user {invite.userId}
+                </p>
+              )}
+              {invite.errorMessage && (
+                <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                  {invite.errorMessage}
+                </p>
+              )}
+              <form
+                action={updatePlatformTenantOwnerInviteFormAction}
+                className="mt-3 grid gap-2 rounded bg-slate-50 p-3"
+              >
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="inviteId" value={invite.id} />
                 <label className="grid gap-1">
-                  <span className="text-xs font-medium uppercase text-slate-500">Owner e-mail</span>
+                  <span className="text-xs font-medium uppercase text-slate-500">
+                    Owner e-mail
+                  </span>
                   <input
                     type="email"
                     name="email"
@@ -1283,10 +2109,15 @@ function UsersTab({
             </div>
           ))}
           {tenantUsersAndOwner.ownerInvites.length === 0 && (
-            <form action={updatePlatformTenantOwnerInviteFormAction} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+            <form
+              action={updatePlatformTenantOwnerInviteFormAction}
+              className="rounded border border-slate-200 bg-slate-50 p-3 text-sm"
+            >
               <input type="hidden" name="tenantId" value={tenant.id} />
               <label className="grid gap-1">
-                <span className="text-xs font-medium uppercase text-slate-500">Owner e-mail</span>
+                <span className="text-xs font-medium uppercase text-slate-500">
+                  Owner e-mail
+                </span>
                 <input
                   type="email"
                   name="email"
@@ -1313,30 +2144,62 @@ function UsersTab({
 function BrandingTab({ tenant }: { tenant: PlatformTenantDetail }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Branding preview" helper="Preview van tenantnaam, kleuren en e-mail/PDF uitstraling.">
+      <Section
+        title="Branding preview"
+        helper="Preview van tenantnaam, kleuren en e-mail/PDF uitstraling."
+      >
         <div className="overflow-hidden rounded border border-slate-200">
-          <div className="p-5 text-white" style={{ backgroundColor: tenant.brandingPreview.primaryColor }}>
+          <div
+            className="p-5 text-white"
+            style={{ backgroundColor: tenant.brandingPreview.primaryColor }}
+          >
             <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded bg-white text-sm font-semibold" style={{ color: tenant.brandingPreview.primaryColor }}>
-                {tenant.brandingPreview.logoUrl ? "Logo" : initials(tenant.brandingPreview.displayName)}
+              <div
+                className="flex size-12 items-center justify-center rounded bg-white text-sm font-semibold"
+                style={{ color: tenant.brandingPreview.primaryColor }}
+              >
+                {tenant.brandingPreview.logoUrl
+                  ? "Logo"
+                  : initials(tenant.brandingPreview.displayName)}
               </div>
               <div>
-                <p className="text-sm opacity-80">{tenant.brandingPreview.platformName}</p>
-                <p className="text-xl font-semibold">{tenant.brandingPreview.displayName}</p>
+                <p className="text-sm opacity-80">
+                  {tenant.brandingPreview.platformName}
+                </p>
+                <p className="text-xl font-semibold">
+                  {tenant.brandingPreview.displayName}
+                </p>
               </div>
             </div>
           </div>
           <div className="grid gap-4 bg-white p-5 text-sm">
             <div className="flex gap-2">
-              <span className="size-7 rounded border border-slate-200" style={{ backgroundColor: tenant.brandingPreview.primaryColor }} />
-              <span className="size-7 rounded border border-slate-200" style={{ backgroundColor: tenant.brandingPreview.accentColor }} />
-              <span className="text-slate-500">{tenant.brandingPreview.customBrandingEnabled ? "Custom branding toegestaan" : "Fieldgrid branding"}</span>
+              <span
+                className="size-7 rounded border border-slate-200"
+                style={{ backgroundColor: tenant.brandingPreview.primaryColor }}
+              />
+              <span
+                className="size-7 rounded border border-slate-200"
+                style={{ backgroundColor: tenant.brandingPreview.accentColor }}
+              />
+              <span className="text-slate-500">
+                {tenant.brandingPreview.customBrandingEnabled
+                  ? "Custom branding toegestaan"
+                  : "Fieldgrid branding"}
+              </span>
             </div>
             <div className="rounded bg-slate-50 p-4">
               <p className="font-medium text-slate-950">Voorbeeldbericht</p>
-              <p className="mt-1 text-slate-600">Uw rapportage staat klaar voor beoordeling.</p>
-              <div className="mt-3 h-1.5 rounded" style={{ backgroundColor: tenant.brandingPreview.accentColor }} />
-              <p className="mt-3 whitespace-pre-line text-xs text-slate-500">{tenant.brandingPreview.emailSignature}</p>
+              <p className="mt-1 text-slate-600">
+                Uw rapportage staat klaar voor beoordeling.
+              </p>
+              <div
+                className="mt-3 h-1.5 rounded"
+                style={{ backgroundColor: tenant.brandingPreview.accentColor }}
+              />
+              <p className="mt-3 whitespace-pre-line text-xs text-slate-500">
+                {tenant.brandingPreview.emailSignature}
+              </p>
             </div>
           </div>
         </div>
@@ -1345,12 +2208,22 @@ function BrandingTab({ tenant }: { tenant: PlatformTenantDetail }) {
       <Section title="Surfaces" helper="Waar deze branding zichtbaar wordt.">
         <div className="grid gap-2">
           {tenant.brandingPreview.surfaces.map((surface) => (
-            <div key={surface.surface} className="rounded border border-slate-200 bg-white p-3">
+            <div
+              key={surface.surface}
+              className="rounded border border-slate-200 bg-white p-3"
+            >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium uppercase text-slate-500">{surface.surface}</p>
-                <span className="size-3 rounded-full" style={{ backgroundColor: surface.accentColor }} />
+                <p className="text-xs font-medium uppercase text-slate-500">
+                  {surface.surface}
+                </p>
+                <span
+                  className="size-3 rounded-full"
+                  style={{ backgroundColor: surface.accentColor }}
+                />
               </div>
-              <p className="mt-2 font-medium text-slate-950">{surface.headline}</p>
+              <p className="mt-2 font-medium text-slate-950">
+                {surface.headline}
+              </p>
               <p className="mt-1 text-xs text-slate-500">{surface.body}</p>
             </div>
           ))}
@@ -1368,24 +2241,36 @@ function UsageTab({ tenant }: { tenant: PlatformTenantDetail }) {
     ["Personeel", tenant.usage.personnel],
     ["Opdrachten", tenant.usage.assignments],
     ["Documenten", tenant.usage.documents],
-    ["Storage", formatBytes(tenant.usage.storageBytes)],
+    ["Opslag", formatBytes(tenant.usage.storageBytes)],
     ["Downloads/PDF", tenant.usage.downloadAuditEvents],
     ["Domeinen", tenant.usage.domains],
     ["Actieve modules", tenant.usage.enabledModules],
     ["Actieve sectoren", tenant.usage.enabledSectors],
     ["Regio's", tenant.usage.activeRegions],
-    ["Supportgrants", tenant.usage.activeSupportGrants],
-    ["Tenant-prefixed documenten", `${tenant.usage.tenantPrefixedDocuments}/${tenant.usage.documents}`],
-    ["Legacy storagepaden", tenant.usage.legacyDocumentPaths],
-    ["Audit events", tenant.usage.auditEvents + tenant.usage.supportAuditEvents],
+    ["Actieve supporttoegang", tenant.usage.activeSupportGrants],
+    [
+      "Documenten in organisatieopslag",
+      `${tenant.usage.tenantPrefixedDocuments}/${tenant.usage.documents}`,
+    ],
+    ["Verouderde opslagpaden", tenant.usage.legacyDocumentPaths],
+    [
+      "Beveiligingsgebeurtenissen",
+      tenant.usage.auditEvents + tenant.usage.supportAuditEvents,
+    ],
   ] as const;
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Usage" helper="Usage voor beheer, supporttriage en toekomstige limieten.">
+      <Section
+        title="Gebruik"
+        helper="Gebruikscijfers voor beheer, support en abonnementsgrenzen."
+      >
         <dl className="grid gap-2 text-sm md:grid-cols-2">
           {usageRows.map(([key, value]) => (
-            <div key={key} className="flex justify-between gap-4 rounded bg-slate-50 px-3 py-2">
+            <div
+              key={key}
+              className="flex justify-between gap-4 rounded bg-slate-50 px-3 py-2"
+            >
               <dt className="text-slate-500">{key}</dt>
               <dd className="font-medium text-slate-950">{value}</dd>
             </div>
@@ -1407,83 +2292,15 @@ function SupportTab({
   tenantSupportGrants: SupportAccessGrantRow[];
 }) {
   return (
-    <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <Section title="Nieuwe support grant" helper="Break-glass toegang vereist reden en expiry.">
-        <form action={createSupportAccessGrantFormAction} className="grid gap-3">
-          <input type="hidden" name="tenantId" value={tenant.id} />
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Platformgebruiker
-            <select name="platformUserId" required className="h-10 rounded border border-slate-300 px-3 text-sm">
-              <option value="">Kies gebruiker</option>
-              {platformUsers.map((user) => (
-                <option key={user.id} value={user.id}>{user.role} - {user.userId}</option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Reden
-            <input name="reason" required className="h-10 rounded border border-slate-300 px-3 text-sm" placeholder="Ondersteuning bij inrichting" />
-          </label>
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Scope
-            <select name="scope" required defaultValue="tenant" className="h-10 rounded border border-slate-300 px-3 text-sm">
-              <option value="tenant">Tenant support</option>
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Start
-            <input name="startsAt" type="datetime-local" className="h-10 rounded border border-slate-300 px-3 text-sm" />
-          </label>
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Verloopt
-            <input name="expiresAt" type="datetime-local" required className="h-10 rounded border border-slate-300 px-3 text-sm" />
-          </label>
-          <label className="grid gap-1 text-sm font-medium text-slate-700 xl:col-span-2">
-            Toegestane handelingen
-            <select name="permissions" required multiple size={7} className="rounded border border-slate-300 px-3 py-2 text-sm">
-              {FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.map((permission) => (
-                <option key={permission} value={permission}>{permission}</option>
-              ))}
-            </select>
-            <span className="text-xs font-normal text-slate-500">Selecteer alleen de noodzakelijke capabilities.</span>
-          </label>
-          <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">Grant maken</button>
-        </form>
-      </Section>
-
-      <Section title="Support grants" helper="Actieve grants kunnen supportmodus openen of worden ingetrokken.">
-        <div className="grid gap-3">
-          {tenantSupportGrants.map((grant) => {
-            const status = supportGrantStatus(grant);
-            return (
-              <div key={grant.id} className="rounded border border-slate-200 p-4 text-sm">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-medium text-slate-950">{status} - verloopt {formatDate(grant.expiresAt)}</p>
-                    <p className="mt-1 text-slate-600">{grant.reason}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {status === "Actief" && (
-                      <form action={enterSupportModeFormAction}>
-                        <input type="hidden" name="tenantId" value={tenant.id} />
-                        <button type="submit" className="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700">Open</button>
-                      </form>
-                    )}
-                    {!grant.revokedAt && (
-                      <form action={revokeSupportAccessGrantFormAction}>
-                        <input type="hidden" name="grantId" value={grant.id} />
-                        <button type="submit" className="rounded border border-red-300 px-3 py-2 text-xs font-medium text-red-800">Revoke</button>
-                      </form>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {tenantSupportGrants.length === 0 && <p className="text-sm text-slate-500">Nog geen supportgrants voor deze tenant.</p>}
-        </div>
-      </Section>
-    </div>
+    <PlatformSupportAccessPanel
+      tenant={{ id: tenant.id, name: tenant.name }}
+      platformUsers={platformUsers}
+      grants={tenantSupportGrants}
+      permissionKeys={FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS}
+      createAction={createSupportAccessGrantFormAction}
+      revokeAction={revokeSupportAccessGrantFormAction}
+      enterAction={enterSupportModeFormAction}
+    />
   );
 }
 
@@ -1498,7 +2315,10 @@ function PlaceholderTab({
 }) {
   return (
     <Section title={title} helper={helper}>
-      <Link href={href} className="inline-flex items-center gap-2 rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+      <Link
+        href={href}
+        className="inline-flex items-center gap-2 rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+      >
         Open platformpagina
         <ChevronRight className="size-4" aria-hidden="true" />
       </Link>
@@ -1508,19 +2328,34 @@ function PlaceholderTab({
 
 function AuditTab({ events }: { events: PlatformSecurityEventRow[] }) {
   return (
-    <Section title="Audit" helper="Gecombineerde support_access_audit_log en audit_log events voor deze tenant.">
+    <Section
+      title="Audit"
+      helper="Gecombineerde support_access_audit_log en audit_log events voor deze tenant."
+    >
       <div className="grid gap-3">
         {events.slice(0, 60).map((event) => (
-          <div key={`${event.source}:${event.id}`} className="rounded border border-slate-200 p-4 text-sm">
+          <div
+            key={`${event.source}:${event.id}`}
+            className="rounded border border-slate-200 p-4 text-sm"
+          >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{event.source}</span>
-              <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{event.scope}</span>
+              <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
+                {event.source}
+              </span>
+              <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
+                {event.scope}
+              </span>
               <p className="font-medium text-slate-950">{event.action}</p>
             </div>
-            <p className="mt-2 text-xs text-slate-500">{formatDate(event.createdAt)} - {event.resource ?? "-"} - {event.resourceId ?? "-"}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              {formatDate(event.createdAt)} - {event.resource ?? "-"} -{" "}
+              {event.resourceId ?? "-"}
+            </p>
           </div>
         ))}
-        {events.length === 0 && <p className="text-sm text-slate-500">Nog geen auditregels.</p>}
+        {events.length === 0 && (
+          <p className="text-sm text-slate-500">Nog geen auditregels.</p>
+        )}
       </div>
     </Section>
   );
@@ -1528,43 +2363,70 @@ function AuditTab({ events }: { events: PlatformSecurityEventRow[] }) {
 
 function ProvisioningTab({ runs }: { runs: PlatformProvisioningRunRow[] }) {
   return (
-    <Section title="Provisioning" helper="Runstatus, retry en rollbackpad blijven zichtbaar per tenant.">
+    <Section
+      title="Inrichtingsruns"
+      helper="Status, opnieuw proberen en herstelpad blijven zichtbaar per organisatie."
+    >
       <div className="grid gap-3">
         {runs.map((run) => (
           <div key={run.id} className="rounded border border-slate-200 p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="font-medium text-slate-950">{run.name} - {run.status}</p>
-                <p className="mt-1 text-sm text-slate-500">{run.slug} - {run.currentStep} - {formatDate(run.startedAt)}</p>
-                <p className="mt-2 text-sm text-slate-600">{run.errorMessage ?? run.rollbackPath}</p>
+                <p className="font-medium text-slate-950">
+                  {run.name} - {run.status}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {run.slug} - {run.currentStep} - {formatDate(run.startedAt)}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {run.errorMessage ?? run.rollbackPath}
+                </p>
                 <p className="mt-2 text-xs text-slate-500">
-                  Owner {run.ownerEmail ?? "-"} - {run.ownerInviteStatus} - {run.moduleKeys.length} module(s), {run.sectorIds.length} sector(en), {run.regionNames.length} regio(s)
+                  Eigenaar {run.ownerEmail ?? "-"} - {run.ownerInviteStatus} -{" "}
+                  {run.moduleKeys.length} module(s), {run.sectorIds.length}{" "}
+                  sector(en), {run.regionNames.length} regio(s)
                 </p>
               </div>
               {run.canRetry && (
                 <form action={retryPlatformTenantProvisioningFormAction}>
                   <input type="hidden" name="sourceRunId" value={run.id} />
-                  <button type="submit" className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                    Retry
+                  <button
+                    type="submit"
+                    className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
+                  >
+                    Opnieuw proberen
                   </button>
                 </form>
               )}
             </div>
           </div>
         ))}
-        {runs.length === 0 && <p className="text-sm text-slate-500">Geen provisioning runs voor deze tenant.</p>}
+        {runs.length === 0 && (
+          <p className="text-sm text-slate-500">
+            Geen provisioning runs voor deze tenant.
+          </p>
+        )}
       </div>
     </Section>
   );
 }
 
-export default async function PlatformTenantDetailPage({ params, searchParams }: Props) {
+export default async function PlatformTenantDetailPage({
+  params,
+  searchParams,
+}: Props) {
+  await requirePlatformAdmin();
   const { tenantId } = await params;
   const { tab } = await searchParams;
   const activeTab = normalizeTab(tab);
 
+  const tenant = await getPlatformTenantDetail(tenantId);
+  if (!tenant) notFound();
+
+  const needsDomains = activeTab === "subscription" || activeTab === "domains";
+  const needsProvisioning =
+    activeTab === "overview" || activeTab === "provisioning";
   const [
-    tenant,
     domains,
     modules,
     sectorsModel,
@@ -1578,72 +2440,120 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
     provisioningRuns,
     websiteDelivery,
   ] = await Promise.all([
-    getPlatformTenantDetail(tenantId),
-    listPlatformTenantDomains(tenantId),
-    listPlatformTenantModules(tenantId),
-    listPlatformTenantSectors(tenantId),
-    listPlatformTenantRegions(tenantId),
-    listPlatformPlans(),
-    listPlatformTenantSubscriptions(tenantId),
-    listPlatformTenantUsersAndOwner(tenantId),
-    listPlatformUsers(),
-    listSupportAccessGrants(),
-    listPlatformSecurityDashboard({ tenantId, limit: 120 }),
-    listTenantProvisioningRuns(50),
+    needsDomains ? listPlatformTenantDomains(tenantId) : Promise.resolve([]),
+    activeTab === "modules"
+      ? listPlatformTenantModules(tenantId)
+      : Promise.resolve([]),
+    activeTab === "sectors"
+      ? listPlatformTenantSectors(tenantId)
+      : Promise.resolve(null),
+    activeTab === "sectors"
+      ? listPlatformTenantRegions(tenantId)
+      : Promise.resolve([]),
+    activeTab === "subscription" ? listPlatformPlans() : Promise.resolve([]),
+    activeTab === "subscription"
+      ? listPlatformTenantSubscriptions(tenantId)
+      : Promise.resolve([]),
+    activeTab === "users"
+      ? listPlatformTenantUsersAndOwner(tenantId)
+      : Promise.resolve(null),
+    activeTab === "support" ? listPlatformUsers() : Promise.resolve([]),
+    activeTab === "support" ? listSupportAccessGrants() : Promise.resolve([]),
+    activeTab === "audit"
+      ? listPlatformSecurityDashboard({ tenantId, limit: 120 })
+      : Promise.resolve(null),
+    needsProvisioning ? listTenantProvisioningRuns(50) : Promise.resolve([]),
     activeTab === "website-delivery"
       ? getPlatformWebsiteDeliveryAction(tenantId)
       : Promise.resolve(null),
   ]);
 
-  if (!tenant) notFound();
-
-  const tenantSupportGrants = supportGrants.filter((grant) => grant.tenantId === tenantId);
-  const tenantProvisioningRuns = provisioningRuns.filter((run) => run.tenantId === tenantId);
+  const tenantSupportGrants = supportGrants.filter(
+    (grant) => grant.tenantId === tenantId,
+  );
+  const tenantProvisioningRuns = provisioningRuns.filter(
+    (run) => run.tenantId === tenantId,
+  );
 
   return (
     <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-5">
-          <Link href="/platform/tenants" className="w-fit text-sm text-slate-500 underline-offset-2 hover:underline">
-            Platformbeheer / Tenants
+          <Link
+            href="/platform/tenants"
+            className="w-fit text-sm text-slate-500 underline-offset-2 hover:underline"
+          >
+            Platformbeheer / Organisaties
           </Link>
           <StatusPanel tenant={tenant} />
         </header>
 
-        <TenantTabs tenantId={tenant.id} activeTab={activeTab} />
+        <PlatformTenantDetailNav
+          tenantId={tenant.id}
+          activeTab={activeTab as PlatformTenantDetailTab}
+        />
 
-        {activeTab === "overview" && <OverviewTab tenant={tenant} provisioningRuns={tenantProvisioningRuns} />}
+        {activeTab === "overview" && (
+          <OverviewTab
+            tenant={tenant}
+            provisioningRuns={tenantProvisioningRuns}
+          />
+        )}
         {activeTab === "subscription" && (
           <SubscriptionTab
             tenant={tenant}
             plans={plans}
             subscriptions={subscriptions}
-            customDomainCount={domains.filter((domain) => domain.type === "custom_domain").length}
+            customDomainCount={
+              domains.filter((domain) => domain.type === "custom_domain").length
+            }
           />
         )}
-        {activeTab === "domains" && <DomainsTab tenant={tenant} domains={domains} />}
-        {activeTab === "modules" && <ModulesTab tenant={tenant} modules={modules} />}
-        {activeTab === "sectors" && <SectorsAndRegionsTab tenant={tenant} sectorsModel={sectorsModel} regions={regions} />}
-        {activeTab === "users" && <UsersTab tenant={tenant} tenantUsersAndOwner={tenantUsersAndOwner} />}
+        {activeTab === "domains" && (
+          <DomainsTab tenant={tenant} domains={domains} />
+        )}
+        {activeTab === "modules" && (
+          <ModulesTab tenant={tenant} modules={modules} />
+        )}
+        {activeTab === "sectors" && sectorsModel && (
+          <SectorsAndRegionsTab
+            tenant={tenant}
+            sectorsModel={sectorsModel}
+            regions={regions}
+          />
+        )}
+        {activeTab === "users" && tenantUsersAndOwner && (
+          <UsersTab tenant={tenant} tenantUsersAndOwner={tenantUsersAndOwner} />
+        )}
         {activeTab === "branding" && <BrandingTab tenant={tenant} />}
         {activeTab === "usage" && <UsageTab tenant={tenant} />}
-        {activeTab === "support" && <SupportTab tenant={tenant} platformUsers={platformUsers} tenantSupportGrants={tenantSupportGrants} />}
+        {activeTab === "support" && (
+          <SupportTab
+            tenant={tenant}
+            platformUsers={platformUsers}
+            tenantSupportGrants={tenantSupportGrants}
+          />
+        )}
         {activeTab === "tickets" && (
           <PlaceholderTab
             title="Tickets"
-            helper="Tenantgekoppelde platformtickets volgen in fase 8. Deze tab houdt de detailomgeving alvast compleet."
+            helper="Open het ticketoverzicht om supportvragen, incidenten en opvolging voor deze organisatie te beheren."
             href="/platform/tickets"
           />
         )}
         {activeTab === "notifications" && (
           <PlaceholderTab
             title="Meldingen"
-            helper="Tenantcommunicatie en platformmeldingen volgen in fase 9. Selectie en audit blijven platform-scoped."
+            helper="Open het meldingencentrum om gecontroleerde communicatie aan organisatie-eigenaren te beheren."
             href="/platform/notifications"
           />
         )}
-        {activeTab === "audit" && <AuditTab events={securityDashboard.events} />}
-        {activeTab === "provisioning" && <ProvisioningTab runs={tenantProvisioningRuns} />}
+        {activeTab === "audit" && securityDashboard && (
+          <AuditTab events={securityDashboard.events} />
+        )}
+        {activeTab === "provisioning" && (
+          <ProvisioningTab runs={tenantProvisioningRuns} />
+        )}
         {activeTab === "website-delivery" && websiteDelivery && (
           <WebsiteDeliveryTab tenantId={tenant.id} delivery={websiteDelivery} />
         )}

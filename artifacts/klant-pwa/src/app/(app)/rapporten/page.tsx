@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -106,9 +107,12 @@ function filterReports({
   return reports.filter((report) => {
     const matchesFilter =
       filter === "all" ||
-      (filter === "hours" ? Boolean(report.hoursWorked) : Boolean(report.customerVisibleSummary));
+      (filter === "hours"
+        ? Boolean(report.hoursWorked)
+        : Boolean(report.customerVisibleSummary));
     const matchesObject = objectId === "all" || report.objectId === objectId;
-    const matchesAssignment = assignmentId === "all" || report.assignmentId === assignmentId;
+    const matchesAssignment =
+      assignmentId === "all" || report.assignmentId === assignmentId;
     return (
       matchesFilter &&
       matchesObject &&
@@ -138,16 +142,20 @@ function filterHref({
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "filter" && filter !== "all") params.set("filter", filter);
   if (remove !== "object" && objectId !== "all") params.set("object", objectId);
-  if (remove !== "assignment" && assignmentId !== "all") params.set("assignment", assignmentId);
+  if (remove !== "assignment" && assignmentId !== "all")
+    params.set("assignment", assignmentId);
   if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
   return value ? `/rapporten?${value}` : "/rapporten";
 }
 
-function uniqueOptions(items: Array<{ id: string | null; label: string | null }>) {
+function uniqueOptions(
+  items: Array<{ id: string | null; label: string | null }>,
+) {
   const map = new Map<string, string>();
   for (const item of items) {
-    if (item.id && item.label && !map.has(item.id)) map.set(item.id, item.label);
+    if (item.id && item.label && !map.has(item.id))
+      map.set(item.id, item.label);
   }
   return [...map.entries()]
     .map(([id, label]) => ({ id, label }))
@@ -161,11 +169,18 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
       header: "Rapport",
       render: (report) => (
         <span className="block min-w-[18rem]">
-          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="block truncate text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {report.assignmentTitle}
           </span>
-          <span className="mt-0.5 block text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
-            {report.assignmentCode} {report.objectName ? `- ${report.objectName}` : ""}
+          <span
+            className="mt-0.5 block text-xs font-semibold"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
+            {report.assignmentCode}{" "}
+            {report.objectName ? `- ${report.objectName}` : ""}
           </span>
         </span>
       ),
@@ -174,7 +189,10 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
       key: "date",
       header: "Datum",
       render: (report) => (
-        <span className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatDate(report.submittedAt)}
         </span>
       ),
@@ -183,7 +201,10 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
       key: "hours",
       header: "Uren",
       render: (report) => (
-        <span className="text-sm font-bold" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-sm font-bold"
+          style={{ color: "var(--color-primary)" }}
+        >
           {formatHours(report.hoursWorked)}
         </span>
       ),
@@ -205,7 +226,9 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
       header: "Acties",
       align: "right",
       render: (report) => (
-        <PortalActionMenu label={`Acties voor rapport ${report.assignmentTitle}`}>
+        <PortalActionMenu
+          label={`Acties voor rapport ${report.assignmentTitle}`}
+        >
           <PortalActionMenuLink href={`/opdrachten/${report.assignmentId}`}>
             Opdracht bekijken
           </PortalActionMenuLink>
@@ -218,7 +241,13 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
 export default async function RapportenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; filter?: string; object?: string; assignment?: string; date?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    filter?: string;
+    object?: string;
+    assignment?: string;
+    date?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
@@ -236,7 +265,10 @@ export default async function RapportenPage({
     date: selectedDate,
   });
   const objectOptions = uniqueOptions(
-    reports.map((report) => ({ id: report.objectId, label: report.objectName })),
+    reports.map((report) => ({
+      id: report.objectId,
+      label: report.objectName,
+    })),
   );
   const assignmentOptions = uniqueOptions(
     reports.map((report) => ({
@@ -245,11 +277,14 @@ export default async function RapportenPage({
     })),
   );
   const selectedObjectLabel =
-    objectOptions.find((option) => option.id === selectedObject)?.label ?? "Object";
+    objectOptions.find((option) => option.id === selectedObject)?.label ??
+    "Object";
   const selectedAssignmentLabel =
-    assignmentOptions.find((option) => option.id === selectedAssignment)?.label ?? "Opdracht";
+    assignmentOptions.find((option) => option.id === selectedAssignment)
+      ?.label ?? "Opdracht";
   const selectedDateLabel =
-    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)?.label ?? "Alle datums";
+    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)
+      ?.label ?? "Alle datums";
 
   const activeFilters = [
     query
@@ -323,11 +358,19 @@ export default async function RapportenPage({
     <PortalPageShell
       title="Rapporten"
       subtitle="Goedgekeurde werkrapportages en bijbehorende informatie."
-      status={{ label: `${reports.length} rapporten`, tone: reports.length > 0 ? "accent" : "neutral" }}
+      status={{
+        label: `${reports.length} rapporten`,
+        tone: reports.length > 0 ? "accent" : "neutral",
+      }}
     >
       <PortalToolbar
         resultLabel={`${visibleReports.length} van ${reports.length} rapporten`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/rapporten" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/rapporten"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Rapportfilters"
@@ -346,20 +389,33 @@ export default async function RapportenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/rapporten" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/rapporten"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek rapport of opdracht"
           />
-          <PortalToolbarSelect name="filter" label="Filter" defaultValue={filter}>
+          <PortalToolbarSelect
+            name="filter"
+            label="Filter"
+            defaultValue={filter}
+          >
             <option value="all">Alle rapporten</option>
             <option value="hours">Met uren</option>
             <option value="summary">Met samenvatting</option>
           </PortalToolbarSelect>
-          {selectedObject !== "all" ? <input type="hidden" name="object" value={selectedObject} /> : null}
-          {selectedAssignment !== "all" ? <input type="hidden" name="assignment" value={selectedAssignment} /> : null}
-          {selectedDate !== "all" ? <input type="hidden" name="date" value={selectedDate} /> : null}
+          {selectedObject !== "all" ? (
+            <input type="hidden" name="object" value={selectedObject} />
+          ) : null}
+          {selectedAssignment !== "all" ? (
+            <input type="hidden" name="assignment" value={selectedAssignment} />
+          ) : null}
+          {selectedDate !== "all" ? (
+            <input type="hidden" name="date" value={selectedDate} />
+          ) : null}
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
@@ -376,8 +432,13 @@ export default async function RapportenPage({
         getItemKey={(report) => report.id}
         tableLabel="Rapporten"
         emptyState={{
-          icon: <FileCheck2 size={32} style={{ color: "var(--color-muted-fg)" }} />,
-          title: activeFilters.length > 0 ? "Geen rapporten gevonden" : "Nog geen goedgekeurde rapporten",
+          icon: (
+            <FileCheck2 size={32} style={{ color: "var(--color-muted-fg)" }} />
+          ),
+          title:
+            activeFilters.length > 0
+              ? "Geen rapporten gevonden"
+              : "Nog geen goedgekeurde rapporten",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de rapporten opnieuw te bekijken."
@@ -390,19 +451,31 @@ export default async function RapportenPage({
                 <FileCheck2 size={18} />
               </span>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-black leading-snug" style={{ color: "var(--color-primary)" }}>
+                <h3
+                  className="text-sm font-black leading-snug"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {report.assignmentTitle}
                 </h3>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                <div
+                  className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-semibold"
+                  style={{ color: "var(--color-secondary)" }}
+                >
                   <span>{report.assignmentCode}</span>
                   {report.objectName ? <span>{report.objectName}</span> : null}
                   <span>{formatDate(report.submittedAt)}</span>
                   <span>{formatHours(report.hoursWorked)}</span>
                 </div>
-                <p className="mt-2 line-clamp-3 text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                <p
+                  className="mt-2 line-clamp-3 text-xs font-semibold leading-5"
+                  style={{ color: "var(--color-secondary)" }}
+                >
                   {report.customerVisibleSummary}
                 </p>
-                <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
+                <div
+                  className="mt-3 flex items-center justify-between border-t pt-3"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
                   <Link
                     href={`/opdrachten/${report.assignmentId}`}
                     className="text-xs font-black"
@@ -410,8 +483,12 @@ export default async function RapportenPage({
                   >
                     Opdracht bekijken
                   </Link>
-                  <PortalActionMenu label={`Acties voor rapport ${report.assignmentTitle}`}>
-                    <PortalActionMenuLink href={`/opdrachten/${report.assignmentId}`}>
+                  <PortalActionMenu
+                    label={`Acties voor rapport ${report.assignmentTitle}`}
+                  >
+                    <PortalActionMenuLink
+                      href={`/opdrachten/${report.assignmentId}`}
+                    >
                       Opdracht bekijken
                     </PortalActionMenuLink>
                   </PortalActionMenu>
@@ -445,7 +522,11 @@ function ReportFilterForm({
   return (
     <form action="/rapporten" className="space-y-4">
       <div>
-        <label htmlFor="report-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="report-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -455,35 +536,52 @@ function ReportFilterForm({
           defaultValue={query}
           placeholder="Rapport of opdracht"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="report-filter-kind" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="report-filter-kind"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Type
         </label>
-        <select
+        <SelectAdapter
           id="report-filter-kind"
           name="filter"
           defaultValue={filter}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle rapporten</option>
           <option value="hours">Met uren</option>
           <option value="summary">Met samenvatting</option>
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="report-filter-object" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="report-filter-object"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Object
         </label>
-        <select
+        <SelectAdapter
           id="report-filter-object"
           name="object"
           defaultValue={selectedObject}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle objecten</option>
           {objectOptions.map((option) => (
@@ -491,18 +589,25 @@ function ReportFilterForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="report-filter-assignment" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="report-filter-assignment"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Opdracht
         </label>
-        <select
+        <SelectAdapter
           id="report-filter-assignment"
           name="assignment"
           defaultValue={selectedAssignment}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle opdrachten</option>
           {assignmentOptions.map((option) => (
@@ -510,31 +615,41 @@ function ReportFilterForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div>
-        <label htmlFor="report-filter-date" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="report-filter-date"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Datum
         </label>
-        <select
+        <SelectAdapter
           id="report-filter-date"
           name="date"
           defaultValue={selectedDate}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           {DATE_FILTER_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/rapporten"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>

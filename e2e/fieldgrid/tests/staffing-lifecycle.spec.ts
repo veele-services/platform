@@ -78,14 +78,14 @@ async function goEnRouteAndStart(page: Page, personnelId: string) {
     const enRouteButton = page.getByRole('button', { name: 'Onderweg' });
     await eventually(enRouteButton).toBeEnabled();
     await enRouteButton.click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Onderweg melden' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Onderweg melden' }).click();
     await waitForParticipantStatus(personnelId, 'en_route');
     await loadPersonnelAssignment(page);
   }
   await eventually(page.getByRole('button', { name: 'Start' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Start' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Start werkzaamheden' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Start werkzaamheden' }).click();
   await waitForParticipantStatus(personnelId, 'in_progress');
   await loadPersonnelAssignment(page);
   await eventually(page.locator('main')).toContainText(/Gestart|Werkelijk/);

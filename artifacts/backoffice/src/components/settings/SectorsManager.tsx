@@ -157,7 +157,7 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
     <div className="veele-card overflow-hidden p-0">
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
         <div>
-          <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
             {sectors.length} sector{sectors.length !== 1 ? "en" : ""}
           </p>
           <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -201,7 +201,7 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
                   style={{ borderBottom: index < sectors.length - 1 ? "1px solid #F1F5F9" : undefined }}
                 >
                   <td className="px-5 py-3">
-                    <p className="text-sm font-medium" style={{ color: "#081D3A" }}>{sector.name}</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{sector.name}</p>
                     <p className="mt-0.5 max-w-xl text-xs" style={{ color: "#64748B" }}>
                       {sector.description || "Geen omschrijving"}
                     </p>

@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertIncludes(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should include ${phrase}`,
+    );
   }
 }
 
@@ -39,17 +43,18 @@ test("sprint 12 platform provisioning actions support catalog, draft, resume and
 });
 
 test("sprint 12 platform page renders the full onboarding wizard and run controls", () => {
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+  const page = read("artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx");
 
   assertIncludes(
     page,
     [
-      "Tenant onboarding wizard",
+      "Onboarding 2.0 wizard",
       "Tenantgegevens",
-      "Domein en plan",
-      "Modules, sectoren en first-run",
-      "Owner invite en branding",
-      "Review, runstatus en rollback",
+      "Fieldgrid subdomain",
+      "Modules",
+      "Owner invite",
+      "Review",
+      "Provisioning run",
       "name=\"moduleKeys\"",
       "name=\"sectorIds\"",
       "name=\"regionNames\"",

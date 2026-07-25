@@ -31,7 +31,9 @@ const sectionCanvas = read(
 const richTextEditor = read(
   "artifacts/backoffice/src/components/website/WebsiteRichTextEditor.tsx",
 );
-const sidebar = read("artifacts/backoffice/src/components/layout/Sidebar.tsx");
+const routeRegistry = read(
+  "artifacts/backoffice/src/lib/navigation/route-registry.ts",
+);
 
 test("website admin reads and writes stay explicitly tenant scoped", () => {
   assert.match(service, /WHERE tenant_id = \$1 AND id = \$2/u);
@@ -62,7 +64,7 @@ test("direct server-action invocation enforces module-backed granular permission
   }
   assert.match(actions, /requireCurrentTenantId\(\)/u);
   assert.match(actions, /requireActorId\(\)/u);
-  assert.match(sidebar, /permission: "website:read"/u);
+  assert.match(routeRegistry, /permission: "website:read"/u);
 });
 
 test("every authoring mutation rejects stale revisions", () => {

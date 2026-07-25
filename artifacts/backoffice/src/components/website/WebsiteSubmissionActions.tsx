@@ -10,6 +10,7 @@ import {
   transitionWebsiteSubmissionAction,
 } from "@/app/actions/website-forms";
 import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 export function WebsiteSubmissionActions({
   submission,
@@ -24,6 +25,7 @@ export function WebsiteSubmissionActions({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [redactDialogOpen, setRedactDialogOpen] = useState(false);
 
   function run(
     operation: () => Promise<
@@ -76,13 +78,6 @@ export function WebsiteSubmissionActions({
   }
 
   function redact() {
-    if (
-      !window.confirm(
-        "Contactgegevens en formulierinhoud definitief wissen? De audit-tijdlijn en eventuele lead blijven behouden.",
-      )
-    ) {
-      return;
-    }
     run(
       () => redactWebsiteSubmissionAction({ submissionId: submission.id }),
       "Persoonsgegevens zijn gewist.",
@@ -175,7 +170,7 @@ export function WebsiteSubmissionActions({
             type="button"
             variant="destructive"
             disabled={isPending}
-            onClick={redact}
+            onClick={() => setRedactDialogOpen(true)}
           >
             Persoonsgegevens wissen
           </Button>
@@ -191,6 +186,16 @@ export function WebsiteSubmissionActions({
           {error}
         </p>
       ) : null}
+      <TenantConfirmDialog
+        open={redactDialogOpen}
+        onOpenChange={setRedactDialogOpen}
+        title="Persoonsgegevens definitief wissen?"
+        description="Contactgegevens en formulierinhoud worden permanent verwijderd. De audit-tijdlijn en eventuele lead blijven behouden."
+        confirmLabel="Definitief wissen"
+        destructive
+        confirmDisabled={isPending}
+        onConfirm={redact}
+      />
     </section>
   );
 }

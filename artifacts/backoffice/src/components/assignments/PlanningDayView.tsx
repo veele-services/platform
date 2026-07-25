@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, Plus, CalendarDays, Users, AlertTriangle, X } from "lucide-react";
@@ -67,6 +67,22 @@ function minToTime(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function amsterdamMinuteOfDay(now: Date): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Amsterdam",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+
+function isTimelineMovable(status: TimelineAssignment["status"]): boolean {
+  return status === "plannable" || status === "scheduled";
+}
+
 function timeBlock(start: string | null, end: string | null): { left: number; width: number } | null {
   const s = parseTimeMin(start);
   const e = parseTimeMin(end);
@@ -104,7 +120,7 @@ const STATUS_BLOCK_BG: Record<string, string> = {
   scheduled:         "#DBEAFE",
   seen:              "#DBEAFE",
   en_route:          "#CCFBF1",
-  in_progress:       "#00B7B3",
+  in_progress:       "var(--color-primary)",
   not_completed:     "#FEE2E2",
   completed:         "#D1FAE5",
   report_submitted:  "#E0E7FF",
@@ -175,7 +191,22 @@ export function PlanningDayView({
   const [optimisticShifts, setOptimisticShifts] = useState<Map<string, { start: string; end: string }>>(new Map());
   const [conflictWarning,  setConflictWarning]  = useState<string | null>(null);
   const [isPending,        startTransition]     = useTransition();
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const dragRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setClockNow(Date.now());
+    const delayUntilNextMinute = 60_000 - (Date.now() % 60_000) + 25;
+    let intervalId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
+      updateClock();
+      intervalId = window.setInterval(updateClock, 60_000);
+    }, delayUntilNextMinute);
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== null) window.clearInterval(intervalId);
+    };
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const date    = new Date(dateStr + "T00:00:00");
@@ -194,6 +225,7 @@ export function PlanningDayView({
   const weekStr  = getWeekMonday(dateStr);
   const prevDay  = addDaysLocal(dateStr, -1);
   const nextDay  = addDaysLocal(dateStr,  1);
+  const liveMinute = amsterdamMinuteOfDay(new Date(clockNow));
 
   // Apply optimistic shifts to the rows
   const effectiveRows: TimelinePersonnelRow[] = rows.map((row) => ({
@@ -201,7 +233,13 @@ export function PlanningDayView({
     assignments: row.assignments.map((a) => {
       const shift = optimisticShifts.get(a.id);
       if (!shift) return a;
-      return { ...a, scheduledStart: shift.start, scheduledEnd: shift.end };
+      return {
+        ...a,
+        scheduledStart: shift.start,
+        scheduledEnd: shift.end,
+        effectiveStart: shift.start,
+        effectiveEnd: shift.end,
+      };
     }),
   }));
 
@@ -210,7 +248,7 @@ export function PlanningDayView({
   // ── Drag handlers ──────────────────────────────────────────────────────────
 
   function handleDragStart(e: React.DragEvent, a: TimelineAssignment) {
-    if (!canWrite) return;
+    if (!canWrite || !isTimelineMovable(a.status)) return;
     const s = parseTimeMin(a.scheduledStart);
     const end = parseTimeMin(a.scheduledEnd);
     const duration = (s !== null && end !== null) ? Math.max(15, end - s) : 60;
@@ -327,15 +365,15 @@ export function PlanningDayView({
             <div
               className="flex items-center justify-center rounded-xl w-12 h-12 flex-shrink-0"
               style={isToday
-                ? { background: "#00B7B3", color: "#fff" }
-                : { background: "#F1F5F9", color: "#081D3A" }}
+                ? { background: "var(--color-primary)", color: "#fff" }
+                : { background: "#F1F5F9", color: "var(--color-foreground)" }}
             >
               <span className="font-heading text-xl font-bold">{dayNum}</span>
             </div>
             <div>
               <h2
                 className="font-heading text-xl font-bold capitalize"
-                style={{ color: "#081D3A" }}
+                style={{ color: "var(--color-foreground)" }}
               >
                 {label}
               </h2>
@@ -416,18 +454,18 @@ export function PlanningDayView({
                 style={{ border: "1px solid #E2E8F0", background: "#FAFAFA" }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--color-foreground)" }}>
                     {a.title}
                   </p>
                   <p className="text-xs" style={{ color: "#64748B" }}>{a.customerName}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {(a.scheduledStart || a.scheduledEnd) && (
+                  {(a.effectiveStart || a.effectiveEnd) && (
                     <span className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
                       <Clock className="h-3 w-3" />
-                      {a.scheduledStart ?? ""}
-                      {a.scheduledStart && a.scheduledEnd ? " – " : ""}
-                      {a.scheduledEnd ?? ""}
+                      {a.effectiveStart ?? ""}
+                      {a.effectiveStart && (a.effectiveEnd || a.isRunning) ? " – " : ""}
+                      {a.isRunning ? "nu" : (a.effectiveEnd ?? "")}
                     </span>
                   )}
                   <AssignmentStatusBadge status={a.status} />
@@ -443,9 +481,9 @@ export function PlanningDayView({
         <div className="veele-card overflow-x-auto" style={{ opacity: isPending ? 0.85 : 1, transition: "opacity 0.15s" }}>
           <h3
             className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
-            style={{ color: "#081D3A" }}
+            style={{ color: "var(--color-foreground)" }}
           >
-            <Clock className="h-4 w-4" style={{ color: "#00B7B3" }} />
+            <Clock className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
             Tijdlijn per medewerker
           </h3>
 
@@ -500,7 +538,7 @@ export function PlanningDayView({
                     {/* Name column */}
                     <div
                       className="flex-shrink-0 pr-3 py-2 text-sm font-medium truncate"
-                      style={{ width: "160px", color: "#081D3A" }}
+                      style={{ width: "160px", color: "var(--color-foreground)" }}
                       title={`${row.firstName} ${row.lastName}`}
                     >
                       {row.lastName}, {row.firstName}
@@ -512,7 +550,7 @@ export function PlanningDayView({
                       style={{
                         minHeight: "44px",
                         cursor: canWrite && draggingId ? "copy" : undefined,
-                        outline: isGhostRow ? "1px dashed #00B7B3" : undefined,
+                        outline: isGhostRow ? "1px dashed var(--color-primary)" : undefined,
                         outlineOffset: isGhostRow ? "-1px" : undefined,
                         borderRadius: "4px",
                         background:   isGhostRow ? "rgba(0,183,179,0.04)" : undefined,
@@ -531,12 +569,12 @@ export function PlanningDayView({
                             width:   `${ghostInfo.widthPct}%`,
                             minWidth: "40px",
                             background: "rgba(0,183,179,0.18)",
-                            border: "2px dashed #00B7B3",
+                            border: "2px dashed var(--color-primary)",
                           }}
                         >
                           <span
                             className="text-xs font-semibold px-1 truncate"
-                            style={{ color: "#00B7B3" }}
+                            style={{ color: "var(--color-primary)" }}
                           >
                             {ghostInfo.label}
                           </span>
@@ -545,10 +583,17 @@ export function PlanningDayView({
 
                       {/* Assignment blocks */}
                       {row.assignments.map((a) => {
-                        const block = timeBlock(a.scheduledStart, a.scheduledEnd);
+                        const displayEnd = a.isRunning
+                          ? minToTime(liveMinute)
+                          : a.effectiveEnd;
+                        const block = timeBlock(a.effectiveStart, displayEnd);
                         const bg    = STATUS_BLOCK_BG[a.status] ?? "#F1F5F9";
-                        const text  = STATUS_BLOCK_TEXT[a.status] ?? "#081D3A";
+                        const text  = STATUS_BLOCK_TEXT[a.status] ?? "var(--color-foreground)";
                         const isBeingDragged = draggingId === a.id;
+                        const isMovable = canWrite && isTimelineMovable(a.status);
+                        const timeLabel = `${a.effectiveStart ?? "?"}–${
+                          a.isRunning ? "nu" : (a.effectiveEnd ?? "?")
+                        }`;
 
                         if (!block) {
                           // No time set — show as inline tag (not draggable)
@@ -600,10 +645,10 @@ export function PlanningDayView({
                         const blockEl = (
                           <div
                             key={a.id}
-                            draggable={canWrite}
-                            onDragStart={canWrite ? (e) => handleDragStart(e, a) : undefined}
-                            onDragEnd={canWrite ? handleDragEnd : undefined}
-                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            draggable={isMovable}
+                            onDragStart={isMovable ? (e) => handleDragStart(e, a) : undefined}
+                            onDragEnd={isMovable ? handleDragEnd : undefined}
+                            title={`${a.title} · ${timeLabel} · gepland ${a.scheduledStart ?? "?"}–${a.scheduledEnd ?? "?"} · ${a.customerName}`}
                             className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
                             style={{
                               left:    `${block.left}%`,
@@ -612,7 +657,7 @@ export function PlanningDayView({
                               background:  bg,
                               color:       text,
                               border: "1px solid rgba(0,0,0,0.06)",
-                              cursor: canWrite ? (isBeingDragged ? "grabbing" : "grab") : "default",
+                              cursor: isMovable ? (isBeingDragged ? "grabbing" : "grab") : "default",
                               opacity: isBeingDragged ? 0.35 : 1,
                               transition: "opacity 0.15s",
                               zIndex: isBeingDragged ? 0 : 1,
@@ -624,13 +669,13 @@ export function PlanningDayView({
                         );
 
                         // Wrap with a link-on-click when NOT actively dragging
-                        return canWrite ? (
+                        return isMovable ? (
                           blockEl
                         ) : (
                           <Link
                             key={a.id}
                             href={`/assignments/${a.id}`}
-                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            title={`${a.title} · ${timeLabel} · gepland ${a.scheduledStart ?? "?"}–${a.scheduledEnd ?? "?"} · ${a.customerName}`}
                             className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
                             style={{
                               left:    `${block.left}%`,
@@ -658,7 +703,7 @@ export function PlanningDayView({
       {/* ── Create assignment sheet ──────────────────────────────────── */}
       {canWrite && (
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-          <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+          <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
             <SheetHeader>
               <SheetTitle>Nieuwe opdracht aanmaken</SheetTitle>
               <SheetDescription>{`Datum: ${label}`}</SheetDescription>

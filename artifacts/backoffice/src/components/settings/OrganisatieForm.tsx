@@ -73,7 +73,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="veele-card">
-        <p className="mb-3 text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="mb-3 text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Logo
         </p>
         <div className="flex items-center gap-4">
@@ -97,7 +97,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                accept="image/png,image/jpeg,image/webp"
                 className="hidden"
                 onChange={handleLogoChange}
               />
@@ -121,7 +121,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Basisgegevens
         </p>
         <Field label="Organisatienaam" htmlFor="naam" required>
@@ -146,7 +146,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             placeholder={"Straat 1\n1234 AB Stad"}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="KVK-nummer" htmlFor="kvkNummer">
             <input
               id="kvkNummer"
@@ -178,7 +178,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             <CalendarCheck className="h-5 w-5" strokeWidth={2.2} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
               Personeelsinstellingen
             </p>
             <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -198,6 +198,19 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             className="veele-input w-32"
           />
         </Field>
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Code algemene personeelsapp
+          </p>
+          <p className="mt-2 font-mono text-2xl font-bold tracking-[0.3em] text-foreground">
+            {s?.personnelLoginCode ?? "------"}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            Medewerkers van algemene Fieldgrid-klanten vullen deze unieke code
+            in voordat zij hun e-mailadres en wachtwoord zien. Enterprise-apps
+            met een eigen organisatiehost slaan deze stap over.
+          </p>
+        </div>
       </div>
 
       <div className="veele-card space-y-4">
@@ -206,7 +219,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             <Clock className="h-5 w-5" strokeWidth={2.2} />
           </span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Planning tijdvakken</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>Planning tijdvakken</p>
             <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
               Bepaal welke tijdvakken zichtbaar zijn op het planbord; werkbonnen blijven per 5 minuten planbaar.
             </p>
@@ -223,7 +236,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
       </div>
 
       <div className="veele-card space-y-4">
-        <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
           Factuurinstellingen
         </p>
         <Field label="Standaard betalingstermijn (dagen)" htmlFor="betaaltermijnDagen">

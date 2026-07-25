@@ -132,7 +132,7 @@ export function PersonnelSettingsSaveBar({
       <button
         type="submit"
         disabled={pending}
-        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3 text-base font-black text-white shadow-lg disabled:opacity-60 md:min-h-0 md:py-2.5 md:text-sm"
+        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3 text-base font-black text-white shadow-lg disabled:opacity-60 md:min-h-0 md:py-2.5 md:text-sm"
       >
         {pending ? (
           <Loader2 size={19} className="animate-spin" />

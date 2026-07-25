@@ -40,6 +40,8 @@ import {
   type SmartPlanningScoreBreakdown,
   type SmartPlanningScoreWeights,
 } from "./index";
+import { resolveRequiredSlots } from "./staffing-invariants";
+import { resolveCandidateQualificationRequirements } from "./planning-qualification-requirements";
 
 export type SmartPlanningCandidateResult = {
   personnelId: string;
@@ -206,6 +208,7 @@ function adviceFor(input: {
 }
 
 export async function calculateAssignmentCapacity(
+  tenantId: string,
   assignmentId: string,
   options: { persist?: boolean; actorUserId?: string | null } = {},
 ): Promise<SmartPlanningCapacityResult | null> {
@@ -230,9 +233,26 @@ export async function calculateAssignmentCapacity(
       objectSectorId: objectsTable.sectorId,
     })
     .from(assignmentsTable)
-    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .innerJoin(
+      customersTable,
+      and(
+        eq(assignmentsTable.customerId, customersTable.id),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(assignmentsTable.objectId, objectsTable.id),
+        eq(objectsTable.tenantId, tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!assignment) return null;
@@ -251,7 +271,13 @@ export async function calculateAssignmentCapacity(
       sectorId: taskCodesTable.sectorId,
     })
     .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
+    .leftJoin(
+      taskCodesTable,
+      and(
+        eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+        eq(taskCodesTable.tenantId, tenantId),
+      ),
+    )
     .leftJoin(rolesTable, eq(taskCodesTable.requiredRoleId, rolesTable.id))
     .where(eq(assignmentTasksTable.assignmentId, assignmentId));
 
@@ -273,7 +299,9 @@ export async function calculateAssignmentCapacity(
           .where(
             and(
               inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.tenantId, tenantId),
               eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.tenantId, tenantId),
               eq(qualificationItemsTable.isActive, true),
             ),
           )
@@ -306,10 +334,9 @@ export async function calculateAssignmentCapacity(
     assignment.customerSectorId ??
     taskSectorIds[0] ??
     null;
-  const requiredSlots = Math.max(
-    assignment.requiredPersonnelCount ?? 1,
-    requiredRoleIds.length,
-    1,
+  const requiredSlots = resolveRequiredSlots(
+    assignment.requiredPersonnelCount,
+    requiredRoleIds,
   );
   const estimatedDurationMinutes = estimatedMinutesForRows(taskRows);
 
@@ -320,10 +347,14 @@ export async function calculateAssignmentCapacity(
       .where(
         sectorId
           ? and(
-              eq(planningSectorRulesTable.sectorId, sectorId),
+            eq(planningSectorRulesTable.sectorId, sectorId),
+            eq(planningSectorRulesTable.tenantId, tenantId),
+            eq(planningSectorRulesTable.isActive, true),
+          )
+          : and(
+              eq(planningSectorRulesTable.tenantId, tenantId),
               eq(planningSectorRulesTable.isActive, true),
-            )
-          : eq(planningSectorRulesTable.isActive, true),
+            ),
       )
       .limit(1),
     db
@@ -447,6 +478,7 @@ export async function calculateAssignmentCapacity(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
               ne(assignmentPersonnelTable.assignmentId, assignmentId),
+              eq(assignmentsTable.tenantId, tenantId),
               eq(assignmentsTable.scheduledDate, scheduledDate),
               hasFullMoment
                 ? sql<boolean>`${assignmentsTable.scheduledStart} < ${assignment.scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${assignment.scheduledStart}`
@@ -470,6 +502,7 @@ export async function calculateAssignmentCapacity(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
               ne(assignmentsTable.id, assignmentId),
+              eq(assignmentsTable.tenantId, tenantId),
               or(
                 assignment.objectId
                   ? eq(assignmentsTable.objectId, assignment.objectId)
@@ -523,6 +556,7 @@ export async function calculateAssignmentCapacity(
             and(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
+              eq(assignmentsTable.tenantId, tenantId),
               gte(assignmentsTable.scheduledDate, week.start),
               lte(assignmentsTable.scheduledDate, week.end),
             ),
@@ -537,6 +571,7 @@ export async function calculateAssignmentCapacity(
       .from(assignmentInterestResponsesTable)
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
           inArray(assignmentInterestResponsesTable.status, [
             "interested",
@@ -568,6 +603,15 @@ export async function calculateAssignmentCapacity(
     const personCertificates = certNames(person.certificates);
     const personDiplomas = stringArray(person.diplomas);
     const personKnowledge = stringArray(person.knowledge);
+    const candidateRequirements =
+      resolveCandidateQualificationRequirements(
+        taskRows,
+        roleQualificationRows,
+        person.roleId ?? null,
+      );
+    const candidateRequiredCertificates = candidateRequirements.certificates;
+    const candidateRequiredDiplomas = candidateRequirements.diplomas;
+    const candidateRequiredKnowledge = candidateRequirements.knowledge;
     const preferredRegions = stringArray(person.preferredRegions);
     const leaveType = leaveByPersonnel.get(person.id) ?? null;
     const dayEntry = dayEntryByPersonnel.get(person.id) ?? null;
@@ -652,7 +696,7 @@ export async function calculateAssignmentCapacity(
       positives.push("Juiste sector");
     }
 
-    const missingCertificates = requiredCertificates.filter(
+    const missingCertificates = candidateRequiredCertificates.filter(
       (cert) => !personCertificates.includes(cert),
     );
     if (missingCertificates.length > 0) {
@@ -663,11 +707,11 @@ export async function calculateAssignmentCapacity(
         "block",
       );
       negatives.push("Certificaat ontbreekt");
-    } else if (requiredCertificates.length > 0) {
+    } else if (candidateRequiredCertificates.length > 0) {
       positives.push("Certificaten geldig");
     }
 
-    const missingDiplomas = requiredDiplomas.filter(
+    const missingDiplomas = candidateRequiredDiplomas.filter(
       (diploma) => !personDiplomas.includes(diploma),
     );
     if (missingDiplomas.length > 0) {
@@ -678,11 +722,11 @@ export async function calculateAssignmentCapacity(
         "block",
       );
       negatives.push("Diploma ontbreekt");
-    } else if (requiredDiplomas.length > 0) {
+    } else if (candidateRequiredDiplomas.length > 0) {
       positives.push("Diploma match");
     }
 
-    const missingKnowledge = requiredKnowledge.filter(
+    const missingKnowledge = candidateRequiredKnowledge.filter(
       (knowledge) => !personKnowledge.includes(knowledge),
     );
     if (missingKnowledge.length > 0) {
@@ -693,7 +737,7 @@ export async function calculateAssignmentCapacity(
         "block",
       );
       negatives.push("Kennis ontbreekt");
-    } else if (requiredKnowledge.length > 0) {
+    } else if (candidateRequiredKnowledge.length > 0) {
       positives.push("Kennis match");
     }
 
@@ -758,7 +802,10 @@ export async function calculateAssignmentCapacity(
         weight: weights.qualifications,
         awarded: qualificationsPass ? weights.qualifications : 0,
         label:
-          requiredCertificates.length + requiredDiplomas.length + requiredKnowledge.length === 0
+          candidateRequiredCertificates.length +
+              candidateRequiredDiplomas.length +
+              candidateRequiredKnowledge.length ===
+            0
             ? "Geen extra kwalificaties vereist"
             : qualificationsPass
               ? "Certificaten/diploma's/kennis matchen"
@@ -1037,6 +1084,7 @@ export async function getLatestAssignmentCapacity(
 }
 
 export async function getSmartPlanningRoundDefaults(
+  tenantId: string,
   assignmentId: string,
 ): Promise<{
   roundSize: number;
@@ -1053,9 +1101,26 @@ export async function getSmartPlanningRoundDefaults(
       customerSectorId: customersTable.sectorId,
     })
     .from(assignmentsTable)
-    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .innerJoin(
+      customersTable,
+      and(
+        eq(assignmentsTable.customerId, customersTable.id),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(assignmentsTable.objectId, objectsTable.id),
+        eq(objectsTable.tenantId, tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const sectorId = assignment?.objectSectorId ?? assignment?.customerSectorId ?? null;
@@ -1066,9 +1131,13 @@ export async function getSmartPlanningRoundDefaults(
       sectorId
         ? and(
             eq(planningSectorRulesTable.sectorId, sectorId),
+            eq(planningSectorRulesTable.tenantId, tenantId),
             eq(planningSectorRulesTable.isActive, true),
           )
-        : eq(planningSectorRulesTable.isActive, true),
+        : and(
+            eq(planningSectorRulesTable.tenantId, tenantId),
+            eq(planningSectorRulesTable.isActive, true),
+          ),
     )
     .limit(1);
 

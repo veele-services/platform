@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should contain ${phrase}`,
+    );
   }
 }
 
@@ -53,9 +57,10 @@ test("phase 7 keeps active subscription status leading for entitlements", () => 
     helper,
     [
       "ACTIVE_SUBSCRIPTION_STATUSES",
-      "latestSubscription",
+      "const [subscription]",
       "DEFAULT_PLAN_KEY",
-      'source: "default"',
+      'source: "subscription"',
+      'source: tenant ? "tenant_plan_key" : "default"',
       "custom_domains",
     ],
     "tenant entitlement helper",

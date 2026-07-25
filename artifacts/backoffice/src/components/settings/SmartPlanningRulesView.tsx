@@ -1,8 +1,15 @@
 "use client";
 
+import { CheckboxAdapter } from "@/components/ui/checkbox-adapter";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BrainCircuit, Loader2, RotateCcw, Save, SlidersHorizontal } from "lucide-react";
+import {
+  BrainCircuit,
+  Loader2,
+  RotateCcw,
+  Save,
+  SlidersHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,47 +36,56 @@ const WEIGHT_FIELDS: Array<{
   {
     key: "availability",
     label: "Beschikbaarheid",
-    description: "Hoe zwaar volledige beschikbaarheid binnen het gewenste tijdvak meetelt.",
+    description:
+      "Hoe zwaar volledige beschikbaarheid binnen het gewenste tijdvak meetelt.",
   },
   {
     key: "role",
     label: "Functie",
-    description: "Of de medewerker de vereiste rol of functie voor deze taak heeft.",
+    description:
+      "Of de medewerker de vereiste rol of functie voor deze taak heeft.",
   },
   {
     key: "qualifications",
     label: "Certificaten, diploma's en kennis",
-    description: "Verplichte kwalificaties uit functies en taakcodes, zoals Beveiliger 2 of VCA.",
+    description:
+      "Verplichte kwalificaties uit functies en taakcodes, zoals Beveiliger 2 of VCA.",
   },
   {
     key: "region",
     label: "Afstand en regio",
-    description: "Match met objectregio, voorkeursregio en praktische reistijd.",
+    description:
+      "Match met objectregio, voorkeursregio en praktische reistijd.",
   },
   {
     key: "objectExperience",
     label: "Object- en klantervaring",
-    description: "Eerdere opdrachten bij dezelfde klant of op hetzelfde object.",
+    description:
+      "Eerdere opdrachten bij dezelfde klant of op hetzelfde object.",
   },
   {
     key: "workload",
     label: "Urenbelasting",
-    description: "Voorkomt overbelasting en helpt uren eerlijker over het team te verdelen.",
+    description:
+      "Voorkomt overbelasting en helpt uren eerlijker over het team te verdelen.",
   },
   {
     key: "emergency",
     label: "Spoedbeschikbaarheid",
-    description: "Extra waarde voor medewerkers die expliciet spoedbeschikbaar zijn.",
+    description:
+      "Extra waarde voor medewerkers die expliciet spoedbeschikbaar zijn.",
   },
   {
     key: "fixedTeams",
     label: "Vaste teams",
-    description: "Geeft vaste of voorkeursmedewerkers voor een object meer gewicht.",
+    description:
+      "Geeft vaste of voorkeursmedewerkers voor een object meer gewicht.",
   },
   {
     key: "preferences",
     label: "Voorkeuren medewerker",
-    description: "Neemt voorkeuren zoals regio of bekende werkcontext mee in de eindscore.",
+    description:
+      "Neemt voorkeuren zoals regio of bekende werkcontext mee in de eindscore.",
   },
 ];
 
@@ -111,7 +127,8 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const sortedRules = useMemo(
-    () => [...rules].sort((a, b) => a.sectorName.localeCompare(b.sectorName, "nl")),
+    () =>
+      [...rules].sort((a, b) => a.sectorName.localeCompare(b.sectorName, "nl")),
     [rules],
   );
 
@@ -120,7 +137,9 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
     updater: (rule: SmartPlanningSectorRuleRow) => SmartPlanningSectorRuleRow,
   ) {
     setRules((current) =>
-      current.map((rule) => (rule.sectorId === sectorId ? updater(rule) : rule)),
+      current.map((rule) =>
+        rule.sectorId === sectorId ? updater(rule) : rule,
+      ),
     );
   }
 
@@ -184,12 +203,20 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
             <BrainCircuit className="h-5 w-5" />
           </span>
           <div className="max-w-4xl">
-            <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
+            <h2
+              className="font-heading text-lg font-semibold"
+              style={{ color: "var(--color-foreground)" }}
+            >
               Sectorregels voor slimme planning
             </h2>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: "#64748B" }}>
-              Deze instellingen bepalen hoe kandidaten binnen een sector worden gerangschikt nadat harde filters al zijn toegepast.
-              Harde filters zoals actief, geen verlof/ziekte, geen overlap, juiste sector, functie en verplichte kwalificaties blijven altijd blokkerend.
+            <p
+              className="mt-1 text-sm leading-relaxed"
+              style={{ color: "#64748B" }}
+            >
+              Deze instellingen bepalen hoe kandidaten binnen een sector worden
+              gerangschikt nadat harde filters al zijn toegepast. Harde filters
+              zoals actief, geen verlof/ziekte, geen overlap, juiste sector,
+              functie en verplichte kwalificaties blijven altijd blokkerend.
             </p>
           </div>
         </div>
@@ -202,7 +229,10 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
           const pending = isPending && pendingSectorId === rule.sectorId;
 
           return (
-            <section key={rule.sectorId} className="veele-card overflow-hidden p-0">
+            <section
+              key={rule.sectorId}
+              className="veele-card overflow-hidden p-0"
+            >
               <div
                 className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-start lg:justify-between"
                 style={{ borderBottom: "1px solid #E2E8F0" }}
@@ -216,13 +246,18 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                   </span>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+                      <h3
+                        className="font-heading text-base font-semibold"
+                        style={{ color: "var(--color-foreground)" }}
+                      >
                         {rule.sectorName}
                       </h3>
                       <span
                         className="rounded-full px-2 py-0.5 text-xs font-semibold"
                         style={{
-                          backgroundColor: rule.isActive ? "#ECFDF5" : "#F8FAFC",
+                          backgroundColor: rule.isActive
+                            ? "#ECFDF5"
+                            : "#F8FAFC",
                           color: rule.isActive ? "#047857" : "#64748B",
                         }}
                       >
@@ -240,7 +275,8 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     </p>
                     {rule.updatedAt && (
                       <p className="mt-1 text-xs" style={{ color: "#94A3B8" }}>
-                        Laatst bijgewerkt: {new Date(rule.updatedAt).toLocaleString("nl-NL")}
+                        Laatst bijgewerkt:{" "}
+                        {new Date(rule.updatedAt).toLocaleString("nl-NL")}
                       </p>
                     )}
                   </div>
@@ -251,7 +287,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     className="inline-flex h-9 items-center gap-2 rounded-md border bg-white px-3 text-sm font-medium"
                     style={{ color: "#475569" }}
                   >
-                    <input
+                    <CheckboxAdapter
                       type="checkbox"
                       checked={rule.isActive}
                       disabled={!canWrite || pending}
@@ -271,11 +307,23 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     disabled={!canWrite || pending}
                     onClick={() => resetRule(rule)}
                   >
-                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                    {pending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
                     Reset
                   </Button>
-                  <Button type="button" disabled={!canWrite || pending} onClick={() => saveRule(rule)}>
-                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  <Button
+                    type="button"
+                    disabled={!canWrite || pending}
+                    onClick={() => saveRule(rule)}
+                  >
+                    {pending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Opslaan
                   </Button>
                 </div>
@@ -284,13 +332,22 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
               <div className="grid gap-6 p-5 xl:grid-cols-[1fr_320px]">
                 <div className="grid gap-4 lg:grid-cols-2">
                   {WEIGHT_FIELDS.map((field) => (
-                    <div key={field.key} className="rounded-lg border bg-white p-4">
+                    <div
+                      key={field.key}
+                      className="rounded-lg border bg-white p-4"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <Label className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                          <Label
+                            className="text-sm font-semibold"
+                            style={{ color: "var(--color-foreground)" }}
+                          >
                             {field.label}
                           </Label>
-                          <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
+                          <p
+                            className="mt-1 text-xs leading-relaxed"
+                            style={{ color: "#64748B" }}
+                          >
                             {field.description}
                           </p>
                         </div>
@@ -301,7 +358,11 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                           value={rule.weights[field.key]}
                           disabled={!canWrite || pending}
                           onChange={(event) =>
-                            updateWeight(rule.sectorId, field.key, Number(event.target.value))
+                            updateWeight(
+                              rule.sectorId,
+                              field.key,
+                              Number(event.target.value),
+                            )
                           }
                           className="h-9 w-20 text-right"
                         />
@@ -313,9 +374,13 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                         value={rule.weights[field.key]}
                         disabled={!canWrite || pending}
                         onChange={(event) =>
-                          updateWeight(rule.sectorId, field.key, Number(event.target.value))
+                          updateWeight(
+                            rule.sectorId,
+                            field.key,
+                            Number(event.target.value),
+                          )
                         }
-                        className="mt-4 w-full accent-[#00B7B3]"
+                        className="mt-4 w-full accent-primary"
                         aria-label={field.label}
                       />
                     </div>
@@ -324,11 +389,19 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
 
                 <aside className="space-y-4">
                   <div className="rounded-lg border bg-slate-50 p-4">
-                    <h4 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                    <h4
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--color-foreground)" }}
+                    >
                       Rondes & drempels
                     </h4>
-                    <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
-                      Deze waarden worden gebruikt voor topmatches en interessepeilingen. De uitgebreide rondegeschiedenis hoort bij TAAK-10.
+                    <p
+                      className="mt-1 text-xs leading-relaxed"
+                      style={{ color: "#64748B" }}
+                    >
+                      Deze waarden worden gebruikt voor topmatches en
+                      interessepeilingen. De uitgebreide rondegeschiedenis hoort
+                      bij TAAK-10.
                     </p>
                     <div className="mt-4 space-y-3">
                       <NumberField
@@ -419,7 +492,7 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                         className="flex items-start gap-3 rounded-lg border bg-white p-3 text-sm"
                         style={{ color: "#475569" }}
                       >
-                        <input
+                        <CheckboxAdapter
                           type="checkbox"
                           checked={rule.allowEmergencyOverride}
                           disabled={!canWrite || pending}
@@ -432,11 +505,19 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                           className="mt-0.5 h-4 w-4 rounded border-slate-300"
                         />
                         <span>
-                          <span className="block font-semibold" style={{ color: "#081D3A" }}>
+                          <span
+                            className="block font-semibold"
+                            style={{ color: "var(--color-foreground)" }}
+                          >
                             Spoed mag anti-spam overschrijven
                           </span>
-                          <span className="mt-0.5 block text-xs leading-relaxed" style={{ color: "#64748B" }}>
-                            Bij spoedrondes mag planning daglimiet en cooldown overslaan. Overlap met bestaande planning blijft altijd geblokkeerd.
+                          <span
+                            className="mt-0.5 block text-xs leading-relaxed"
+                            style={{ color: "#64748B" }}
+                          >
+                            Bij spoedrondes mag planning daglimiet en cooldown
+                            overslaan. Overlap met bestaande planning blijft
+                            altijd geblokkeerd.
                           </span>
                         </span>
                       </label>
@@ -444,14 +525,31 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                   </div>
 
                   <div className="rounded-lg border bg-white p-4">
-                    <h4 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                    <h4
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--color-foreground)" }}
+                    >
                       Wat gebeurt er met deze score?
                     </h4>
-                    <ul className="mt-3 space-y-2 text-xs leading-relaxed" style={{ color: "#64748B" }}>
-                      <li>1. Eerst vallen medewerkers af op harde blokkades.</li>
-                      <li>2. Daarna krijgt elke geschikte medewerker een uitlegbare score.</li>
-                      <li>3. Planning ziet topmatches bovenaan bij capaciteit en planbord.</li>
-                      <li>4. Bij wijzigen worden nieuwe capaciteitschecks met deze weging berekend.</li>
+                    <ul
+                      className="mt-3 space-y-2 text-xs leading-relaxed"
+                      style={{ color: "#64748B" }}
+                    >
+                      <li>
+                        1. Eerst vallen medewerkers af op harde blokkades.
+                      </li>
+                      <li>
+                        2. Daarna krijgt elke geschikte medewerker een
+                        uitlegbare score.
+                      </li>
+                      <li>
+                        3. Planning ziet topmatches bovenaan bij capaciteit en
+                        planbord.
+                      </li>
+                      <li>
+                        4. Bij wijzigen worden nieuwe capaciteitschecks met deze
+                        weging berekend.
+                      </li>
                     </ul>
                   </div>
                 </aside>
@@ -469,7 +567,11 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     disabled={!canWrite || pending}
                     onClick={() => resetRule(rule)}
                   >
-                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                    {pending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
                     Reset
                   </Button>
                 </SettingsStickySaveBar>
@@ -511,7 +613,9 @@ function NumberField({
           max={max}
           value={value}
           disabled={disabled}
-          onChange={(event) => onChange(clampNumber(Number(event.target.value), min, max))}
+          onChange={(event) =>
+            onChange(clampNumber(Number(event.target.value), min, max))
+          }
           className="h-9 flex-1"
         />
         <span className="w-24 text-xs" style={{ color: "#94A3B8" }}>

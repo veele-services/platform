@@ -28,7 +28,7 @@ export function CustomerPaymentsTab({ customerId, payments }: Props) {
         <Link
           href={`/payments?customerId=${customerId}`}
           className="text-xs font-medium hover:underline"
-          style={{ color: "#00B7B3" }}
+          style={{ color: "var(--color-primary)" }}
         >
           Alle bekijken →
         </Link>
@@ -63,12 +63,12 @@ export function CustomerPaymentsTab({ customerId, payments }: Props) {
                       style={{ borderBottom: i < payments.length - 1 ? "1px solid #F1F5F9" : undefined }}
                     >
                       <td className="px-5 py-3 text-xs font-mono" style={{ color: "#64748B" }}>{p.molliePaymentId ?? "-"}</td>
-                      <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>{amount}</td>
+                      <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{amount}</td>
                       <td className="px-5 py-3">
                         <ProcessStatusBadge kind="payment" status={p.status} />
                       </td>
                       <td className="px-5 py-3 text-sm font-mono" style={{ color: "#64748B" }}>
-                        <Link href={`/invoices/${p.invoiceId}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                        <Link href={`/invoices/${p.invoiceId}`} className="hover:underline" style={{ color: "var(--color-primary)" }}>
                           {p.invoiceNumber}
                         </Link>
                       </td>

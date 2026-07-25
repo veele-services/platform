@@ -2,12 +2,14 @@ import { Buffer } from "node:buffer";
 import { importPKCS8, SignJWT } from "jose";
 import type { WebPushPayload, WebPushUrgency } from "./web-push";
 
-type FcmConfig = {
+export type FcmConfig = {
   projectId: string;
   clientEmail: string;
   privateKey: string;
   androidChannelId: string | null;
 };
+
+export type FcmEnvironment = Readonly<Record<string, string | undefined>>;
 
 export type FcmPushSendResult =
   | { success: true; status: number; messageId: string | null }
@@ -19,11 +21,27 @@ export type FcmPushSendResult =
       configurationMissing?: boolean;
     };
 
-let cachedAccessToken: { token: string; expiresAt: number } | null = null;
+const cachedAccessTokens = new Map<
+  string,
+  { token: string; expiresAt: number }
+>();
 
-function readServiceAccountFromEnv(): Partial<FcmConfig> | null {
-  const encoded = process.env["FCM_SERVICE_ACCOUNT_JSON_BASE64"];
-  const rawJson = process.env["FCM_SERVICE_ACCOUNT_JSON"];
+function appConfigPrefix(appId: string | null | undefined): string | null {
+  if (appId === "nl.veeleservices.personeel") return "VEELE";
+  if (appId === "nl.fieldgrid.personeel") return "FIELDGRID";
+  return null;
+}
+
+function envName(prefix: string | null, suffix: string): string {
+  return prefix ? `FCM_${prefix}_${suffix}` : `FCM_${suffix}`;
+}
+
+function readServiceAccountFromEnv(
+  prefix: string | null,
+  environment: FcmEnvironment,
+): Partial<FcmConfig> | null {
+  const encoded = environment[envName(prefix, "SERVICE_ACCOUNT_JSON_BASE64")];
+  const rawJson = environment[envName(prefix, "SERVICE_ACCOUNT_JSON")];
 
   const source = encoded
     ? Buffer.from(encoded, "base64").toString("utf8")
@@ -52,24 +70,34 @@ function normalizePrivateKey(value: string): string {
   return value.replace(/\\n/g, "\n").trim();
 }
 
-function getFcmConfig(): FcmConfig | null {
-  if (process.env["FCM_ENABLED"]?.toLowerCase() === "false") return null;
+function defaultAndroidChannel(prefix: string | null): string {
+  return prefix === "FIELDGRID" ? "fieldgrid_operations" : "veele_operations";
+}
 
-  const serviceAccount = readServiceAccountFromEnv();
+function readFcmConfig(
+  prefix: string | null,
+  environment: FcmEnvironment,
+  androidChannelId?: string,
+): FcmConfig | null {
+  if (environment[envName(prefix, "ENABLED")]?.toLowerCase() === "false") {
+    return null;
+  }
+
+  const serviceAccount = readServiceAccountFromEnv(prefix, environment);
   const projectId =
     serviceAccount?.projectId ??
-    process.env["FCM_PROJECT_ID"] ??
-    process.env["FIREBASE_PROJECT_ID"] ??
+    environment[envName(prefix, "PROJECT_ID")] ??
+    (!prefix ? environment["FIREBASE_PROJECT_ID"] : undefined) ??
     "";
   const clientEmail =
     serviceAccount?.clientEmail ??
-    process.env["FCM_CLIENT_EMAIL"] ??
-    process.env["FIREBASE_CLIENT_EMAIL"] ??
+    environment[envName(prefix, "CLIENT_EMAIL")] ??
+    (!prefix ? environment["FIREBASE_CLIENT_EMAIL"] : undefined) ??
     "";
   const privateKey =
     serviceAccount?.privateKey ??
-    process.env["FCM_PRIVATE_KEY"] ??
-    process.env["FIREBASE_PRIVATE_KEY"] ??
+    environment[envName(prefix, "PRIVATE_KEY")] ??
+    (!prefix ? environment["FIREBASE_PRIVATE_KEY"] : undefined) ??
     "";
 
   if (!projectId || !clientEmail || !privateKey) return null;
@@ -78,16 +106,71 @@ function getFcmConfig(): FcmConfig | null {
     projectId,
     clientEmail,
     privateKey: normalizePrivateKey(privateKey),
-    androidChannelId: process.env["FCM_ANDROID_CHANNEL_ID"] || "veele_operations",
+    androidChannelId:
+      androidChannelId ??
+      environment[envName(prefix, "ANDROID_CHANNEL_ID")] ??
+      defaultAndroidChannel(prefix),
   };
 }
 
-export function isFcmConfigured(): boolean {
-  return getFcmConfig() !== null;
+const FCM_CREDENTIAL_SUFFIXES = [
+  "SERVICE_ACCOUNT_JSON_BASE64",
+  "SERVICE_ACCOUNT_JSON",
+  "PROJECT_ID",
+  "CLIENT_EMAIL",
+  "PRIVATE_KEY",
+] as const;
+
+function hasAppSpecificCredentialValues(
+  prefix: string,
+  environment: FcmEnvironment,
+): boolean {
+  return FCM_CREDENTIAL_SUFFIXES.some((suffix) =>
+    Boolean(environment[envName(prefix, suffix)]?.trim()),
+  );
+}
+
+export function resolveFcmConfigForApp(
+  environment: FcmEnvironment,
+  appId?: string | null,
+): FcmConfig | null {
+  if (environment["FCM_ENABLED"]?.toLowerCase() === "false") return null;
+
+  const prefix = appConfigPrefix(appId);
+  if (!prefix) return readFcmConfig(null, environment);
+  if (environment[envName(prefix, "ENABLED")]?.toLowerCase() === "false") {
+    return null;
+  }
+
+  const appChannel =
+    environment[envName(prefix, "ANDROID_CHANNEL_ID")]?.trim() ||
+    defaultAndroidChannel(prefix);
+  const appConfig = readFcmConfig(prefix, environment, appChannel);
+  if (appConfig) return appConfig;
+
+  if (hasAppSpecificCredentialValues(prefix, environment)) return null;
+  return readFcmConfig(null, environment, appChannel);
+}
+
+function getFcmConfig(appId?: string | null): FcmConfig | null {
+  return resolveFcmConfigForApp(process.env, appId);
+}
+
+export function isFcmConfigured(appId?: string | null): boolean {
+  if (typeof appId === "undefined") {
+    return Boolean(
+      resolveFcmConfigForApp(process.env, "nl.veeleservices.personeel") ??
+      resolveFcmConfigForApp(process.env, "nl.fieldgrid.personeel") ??
+      resolveFcmConfigForApp(process.env, null),
+    );
+  }
+  return getFcmConfig(appId) !== null;
 }
 
 async function createAccessToken(config: FcmConfig): Promise<string> {
   const now = Date.now();
+  const cacheKey = `${config.projectId}:${config.clientEmail}`;
+  const cachedAccessToken = cachedAccessTokens.get(cacheKey);
   if (cachedAccessToken && cachedAccessToken.expiresAt - 60_000 > now) {
     return cachedAccessToken.token;
   }
@@ -113,7 +196,7 @@ async function createAccessToken(config: FcmConfig): Promise<string> {
     }),
   });
 
-  const body = await response.json().catch(() => ({})) as {
+  const body = (await response.json().catch(() => ({}))) as {
     access_token?: string;
     expires_in?: number;
     error?: string;
@@ -122,22 +205,26 @@ async function createAccessToken(config: FcmConfig): Promise<string> {
 
   if (!response.ok || !body.access_token) {
     throw new Error(
-      body.error_description || body.error || `OAuth token request failed with HTTP ${response.status}`,
+      body.error_description ||
+        body.error ||
+        `OAuth token request failed with HTTP ${response.status}`,
     );
   }
 
-  cachedAccessToken = {
+  const nextAccessToken = {
     token: body.access_token,
     expiresAt: now + (body.expires_in ?? 3600) * 1000,
   };
+  cachedAccessTokens.set(cacheKey, nextAccessToken);
 
-  return cachedAccessToken.token;
+  return nextAccessToken.token;
 }
 
 function stringifyDataValue(value: unknown): string {
   if (value === null || typeof value === "undefined") return "";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   return JSON.stringify(value);
 }
 
@@ -152,7 +239,9 @@ function buildData(payload: WebPushPayload): Record<string, string> {
   return {
     ...data,
     href: stringifyDataValue(payload.href ?? "/personeel/meldingen"),
-    priority: stringifyDataValue(payload.priority ?? payload.urgency ?? "normal"),
+    priority: stringifyDataValue(
+      payload.priority ?? payload.urgency ?? "normal",
+    ),
   };
 }
 
@@ -162,7 +251,8 @@ function isHighPriority(urgency: WebPushUrgency | unknown): boolean {
 
 function fcmErrorMessage(body: unknown, fallback: string): string {
   if (!body || typeof body !== "object") return fallback;
-  const error = (body as { error?: { message?: string; status?: string } }).error;
+  const error = (body as { error?: { message?: string; status?: string } })
+    .error;
   return error?.message || error?.status || fallback;
 }
 
@@ -178,14 +268,14 @@ export async function sendFcmPush(
   token: string,
   payload: WebPushPayload,
   urgency: WebPushUrgency = "normal",
+  appId?: string | null,
 ): Promise<FcmPushSendResult> {
-  const config = getFcmConfig();
+  const config = getFcmConfig(appId);
   if (!config) {
     return {
       success: false,
       status: 0,
-      error:
-        "FCM is niet geconfigureerd. Stel FCM_SERVICE_ACCOUNT_JSON_BASE64 of FCM_PROJECT_ID/FCM_CLIENT_EMAIL/FCM_PRIVATE_KEY in.",
+      error: `FCM is niet geconfigureerd voor app ${appId || "onbekend"}. Stel app-specifieke of algemene FCM-credentials in.`,
       permanent: false,
       configurationMissing: true,
     };
@@ -197,7 +287,9 @@ export async function sendFcmPush(
     const androidNotification: Record<string, unknown> = {
       sound: "default",
       defaultVibrateTimings: true,
-      notificationPriority: isHighPriority(urgency) ? "PRIORITY_HIGH" : "PRIORITY_DEFAULT",
+      notificationPriority: isHighPriority(urgency)
+        ? "PRIORITY_HIGH"
+        : "PRIORITY_DEFAULT",
     };
 
     if (config.androidChannelId) {
@@ -229,10 +321,14 @@ export async function sendFcmPush(
       },
     );
 
-    const body = await response.json().catch(() => ({})) as { name?: string };
+    const body = (await response.json().catch(() => ({}))) as { name?: string };
 
     if (response.ok) {
-      return { success: true, status: response.status, messageId: body.name ?? null };
+      return {
+        success: true,
+        status: response.status,
+        messageId: body.name ?? null,
+      };
     }
 
     return {

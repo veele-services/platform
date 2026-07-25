@@ -1,7 +1,12 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { resolve4, resolve6, resolveCname, resolveTxt } from "node:dns/promises";
+import {
+  resolve4,
+  resolve6,
+  resolveCname,
+  resolveTxt,
+} from "node:dns/promises";
 import {
   auditLogTable,
   canTenantUseCustomDomains,
@@ -52,7 +57,10 @@ import {
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
+import {
+  requirePlatformAdmin,
+  writeSupportAccessAuditLog,
+} from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
@@ -61,19 +69,77 @@ import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 import { backofficePath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
-const TENANT_STATUS_FILTERS = ["provisioning", "trial", "active", "suspended", "archived"] as const;
-const TENANT_SUBSCRIPTION_STATUS_VALUES = ["trial", "active", "past_due", "canceled", "expired"] as const;
+const TENANT_STATUS_FILTERS = [
+  "provisioning",
+  "trial",
+  "active",
+  "suspended",
+  "archived",
+] as const;
+const TENANT_SUBSCRIPTION_STATUS_VALUES = [
+  "trial",
+  "active",
+  "past_due",
+  "canceled",
+  "expired",
+] as const;
 const DOMAIN_TYPES = ["fieldgrid_subdomain", "custom_domain"] as const;
-const DOMAIN_VERIFICATION_STATUSES = ["pending", "pending_dns", "dns_seen", "verified", "tls_pending", "active", "failed", "disabled", "disabled_plan"] as const;
-const TENANT_LIST_DOMAIN_STATUSES = ["missing", "pending", "verified", "failed"] as const;
+const DOMAIN_VERIFICATION_STATUSES = [
+  "pending",
+  "pending_dns",
+  "dns_seen",
+  "verified",
+  "tls_pending",
+  "active",
+  "failed",
+  "disabled",
+  "disabled_plan",
+] as const;
+const TENANT_LIST_DOMAIN_STATUSES = [
+  "missing",
+  "pending",
+  "verified",
+  "failed",
+] as const;
 const TENANT_LIST_READINESS_STATUSES = ["ready", "warning", "blocked"] as const;
+const TENANT_LIST_SAVED_VIEWS = [
+  "domain_problems",
+  "past_due",
+  "provisioning_blocked",
+  "expiring_trial",
+] as const;
 const ROUTABLE_DOMAIN_STATUSES = ["verified", "active"] as const;
 const CUSTOM_DOMAIN_TOKEN_BYTES = 24;
-const TENANT_OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] as const;
-const TENANT_ADMIN_ROLE_NAMES = ["Admin", "Administrator", "Administration", "Beheerder", "Management", "Owner", "Eigenaar"] as const;
+const TENANT_OWNER_ROLE_NAMES = [
+  "Management",
+  "Owner",
+  "Eigenaar",
+  "Administration",
+] as const;
+const TENANT_ADMIN_ROLE_NAMES = [
+  "Admin",
+  "Administrator",
+  "Administration",
+  "Beheerder",
+  "Management",
+  "Owner",
+  "Eigenaar",
+] as const;
 
-export type PlatformTenantListDomainStatus = (typeof TENANT_LIST_DOMAIN_STATUSES)[number];
-export type PlatformTenantListReadinessStatus = (typeof TENANT_LIST_READINESS_STATUSES)[number];
+const TENANT_STATUS_LABELS: Record<TenantStatus, string> = {
+  provisioning: "Wordt ingericht",
+  trial: "Proefperiode",
+  active: "Actief",
+  suspended: "Gepauzeerd",
+  archived: "Gearchiveerd",
+};
+
+export type PlatformTenantListDomainStatus =
+  (typeof TENANT_LIST_DOMAIN_STATUSES)[number];
+export type PlatformTenantListReadinessStatus =
+  (typeof TENANT_LIST_READINESS_STATUSES)[number];
+export type PlatformTenantListSavedView =
+  (typeof TENANT_LIST_SAVED_VIEWS)[number];
 
 export type PlatformTenantListFilters = {
   q?: string;
@@ -84,6 +150,7 @@ export type PlatformTenantListFilters = {
   region?: string;
   domainStatus?: PlatformTenantListDomainStatus | "all";
   readiness?: PlatformTenantListReadinessStatus | "all";
+  view?: PlatformTenantListSavedView | "all";
   page?: number;
   pageSize?: number;
 };
@@ -120,7 +187,22 @@ export type PlatformTenantListResult = {
     domainStatuses: PlatformTenantListFacetOption[];
     readinessStatuses: PlatformTenantListFacetOption[];
   };
-  filters: Required<Pick<PlatformTenantListFilters, "q" | "status" | "plan" | "module" | "sector" | "region" | "domainStatus" | "readiness" | "page" | "pageSize">>;
+  filters: Required<
+    Pick<
+      PlatformTenantListFilters,
+      | "q"
+      | "status"
+      | "plan"
+      | "module"
+      | "sector"
+      | "region"
+      | "domainStatus"
+      | "readiness"
+      | "view"
+      | "page"
+      | "pageSize"
+    >
+  >;
   pagination: {
     total: number;
     page: number;
@@ -225,6 +307,7 @@ export type PlatformTenantOperationalReadiness = {
 };
 
 export type PlatformTenantDetail = PlatformTenantRow & {
+  personnelLoginCode: string;
   suspendedAt: string | null;
   archivedAt: string | null;
   updatedAt: string;
@@ -401,11 +484,17 @@ export type PlatformTenantRegionRow = {
 };
 
 function normalizeSlug(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function normalizePlanKey(value: string): TenantPlanKey {
-  return TENANT_PLAN_KEYS.includes(value as TenantPlanKey) ? (value as TenantPlanKey) : "starter";
+  return TENANT_PLAN_KEYS.includes(value as TenantPlanKey)
+    ? (value as TenantPlanKey)
+    : "starter";
 }
 
 function revalidatePlatformTenant(tenantId: string): void {
@@ -437,13 +526,19 @@ function booleanValue(formData: FormData, name: string): boolean {
   return formData.get(name) === "on" || formData.get(name) === "true";
 }
 
-function textValue(formData: FormData, name: string, maxLength = 1000): string | null {
+function textValue(
+  formData: FormData,
+  name: string,
+  maxLength = 1000,
+): string | null {
   const value = actionValue(formData, name);
   return value ? value.slice(0, maxLength) : null;
 }
 
 function normalizeSubscriptionStatus(value: string): TenantSubscriptionStatus {
-  return TENANT_SUBSCRIPTION_STATUS_VALUES.includes(value as TenantSubscriptionStatus)
+  return TENANT_SUBSCRIPTION_STATUS_VALUES.includes(
+    value as TenantSubscriptionStatus,
+  )
     ? (value as TenantSubscriptionStatus)
     : "active";
 }
@@ -455,7 +550,9 @@ function optionalDateValue(formData: FormData, name: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function subscriptionIsRuntimeActive(status: TenantSubscriptionStatus): boolean {
+function subscriptionIsRuntimeActive(
+  status: TenantSubscriptionStatus,
+): boolean {
   return status === "trial" || status === "active";
 }
 
@@ -463,10 +560,16 @@ function randomVerificationToken(): string {
   return randomBytes(CUSTOM_DOMAIN_TOKEN_BYTES).toString("base64url");
 }
 
-function normalizeDomainType(value: string, domain: string): typeof DOMAIN_TYPES[number] {
-  if (value === "fieldgrid_subdomain" || value === "subdomain") return "fieldgrid_subdomain";
+function normalizeDomainType(
+  value: string,
+  domain: string,
+): (typeof DOMAIN_TYPES)[number] {
+  if (value === "fieldgrid_subdomain" || value === "subdomain")
+    return "fieldgrid_subdomain";
   if (value === "custom_domain" || value === "custom") return "custom_domain";
-  return domain.endsWith(".fieldgrid.nl") ? "fieldgrid_subdomain" : "custom_domain";
+  return domain.endsWith(".fieldgrid.nl")
+    ? "fieldgrid_subdomain"
+    : "custom_domain";
 }
 
 function publicIpv4Target(): string | null {
@@ -478,23 +581,42 @@ function publicIpv6Target(): string | null {
 }
 
 function customDomainCnameTarget(tenantSlug: string): string {
-  return normalizeHost(process.env.FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET ?? `${tenantSlug}.fieldgrid.nl`);
+  return normalizeHost(
+    process.env.FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET ??
+      `${tenantSlug}.fieldgrid.nl`,
+  );
 }
 
-function domainStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+function domainStatusTone(
+  status: string,
+): "neutral" | "good" | "warning" | "danger" {
   if (status === "verified" || status === "active") return "good";
-  if (status === "failed" || status === "disabled" || status === "disabled_plan") return "danger";
+  if (
+    status === "failed" ||
+    status === "disabled" ||
+    status === "disabled_plan"
+  )
+    return "danger";
   return "warning";
 }
 
 function domainCanRoute(status: string): boolean {
-  return ROUTABLE_DOMAIN_STATUSES.includes(status as typeof ROUTABLE_DOMAIN_STATUSES[number]);
+  return ROUTABLE_DOMAIN_STATUSES.includes(
+    status as (typeof ROUTABLE_DOMAIN_STATUSES)[number],
+  );
 }
 
 async function tenantCustomDomainGate(tenantId: string): Promise<{
   allowed: boolean;
   detail: string;
-  tenant: { id: string; slug: string; name: string; isActive: boolean; status: TenantStatus; planKey: TenantPlanKey } | null;
+  tenant: {
+    id: string;
+    slug: string;
+    name: string;
+    isActive: boolean;
+    status: TenantStatus;
+    planKey: TenantPlanKey;
+  } | null;
 }> {
   const [tenant] = await db
     .select({
@@ -509,15 +631,22 @@ async function tenantCustomDomainGate(tenantId: string): Promise<{
     .where(eq(tenantsTable.id, tenantId))
     .limit(1);
 
-  if (!tenant) return { allowed: false, detail: "Tenant niet gevonden.", tenant: null };
+  if (!tenant)
+    return { allowed: false, detail: "Tenant niet gevonden.", tenant: null };
   if (!isTenantRuntimeActive(tenant)) {
-    return { allowed: false, detail: "Custom domains vereisen een actieve tenant.", tenant };
+    return {
+      allowed: false,
+      detail: "Custom domains vereisen een actieve tenant.",
+      tenant,
+    };
   }
 
   const allowed = await canTenantUseCustomDomains(tenantId);
   return {
     allowed,
-    detail: allowed ? "Enterprise custom domains toegestaan." : "Custom domains zijn beschikbaar voor Enterprise tenants.",
+    detail: allowed
+      ? "Enterprise custom domains toegestaan."
+      : "Custom domains zijn beschikbaar voor Enterprise tenants.",
     tenant,
   };
 }
@@ -614,7 +743,9 @@ async function resolveCnameValues(domain: string): Promise<string[]> {
   }
 }
 
-function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBranding>>): PlatformTenantBrandingPreview {
+function buildBrandingPreview(
+  branding: Awaited<ReturnType<typeof getTenantBranding>>,
+): PlatformTenantBrandingPreview {
   const customized =
     Boolean(branding.logoUrl) ||
     branding.primaryColor !== FIELDGRID_BRAND_DEFAULTS.primaryColor ||
@@ -657,7 +788,8 @@ function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBrand
       },
       {
         surface: "E-mail",
-        headline: branding.emailSignature || `${branding.displayName} notificatie`,
+        headline:
+          branding.emailSignature || `${branding.displayName} notificatie`,
         body: branding.emailFooterText,
         primaryColor: branding.primaryColor,
         accentColor: branding.accentColor,
@@ -673,7 +805,9 @@ function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBrand
   };
 }
 
-function readinessSignal(input: PlatformTenantReadinessSignal): PlatformTenantReadinessSignal {
+function readinessSignal(
+  input: PlatformTenantReadinessSignal,
+): PlatformTenantReadinessSignal {
   return input;
 }
 
@@ -685,37 +819,59 @@ function buildOperationalReadiness(input: {
     readinessSignal({
       id: "host",
       label: "Host",
-      status: input.primaryDomain || input.usage.domains > 0 ? "ready" : "blocked",
-      detail: input.primaryDomain ?? (input.usage.domains > 0 ? "Domein aanwezig, primair/verified nog controleren." : "Geen tenantdomein gekoppeld."),
+      status:
+        input.primaryDomain || input.usage.domains > 0 ? "ready" : "blocked",
+      detail:
+        input.primaryDomain ??
+        (input.usage.domains > 0
+          ? "Domein aanwezig, primair/verified nog controleren."
+          : "Geen tenantdomein gekoppeld."),
     }),
     readinessSignal({
       id: "login",
       label: "Login",
       status: input.usage.users > 0 ? "ready" : "blocked",
-      detail: input.usage.users > 0 ? `${input.usage.users} actieve gebruiker(s).` : "Geen actieve tenantgebruiker gevonden.",
+      detail:
+        input.usage.users > 0
+          ? `${input.usage.users} actieve gebruiker(s).`
+          : "Geen actieve tenantgebruiker gevonden.",
     }),
     readinessSignal({
       id: "modules",
       label: "Modules",
       status: input.usage.enabledModules > 0 ? "ready" : "blocked",
-      detail: input.usage.enabledModules > 0 ? `${input.usage.enabledModules} module(s) actief.` : "Nog geen actieve tenantmodules.",
+      detail:
+        input.usage.enabledModules > 0
+          ? `${input.usage.enabledModules} module(s) actief.`
+          : "Nog geen actieve tenantmodules.",
     }),
     readinessSignal({
       id: "sectors",
       label: "Sectoren",
       status: input.usage.enabledSectors > 0 ? "ready" : "blocked",
-      detail: input.usage.enabledSectors > 0 ? `${input.usage.enabledSectors} sector(en) actief.` : "Tenantsectoren ontbreken of staan uit.",
+      detail:
+        input.usage.enabledSectors > 0
+          ? `${input.usage.enabledSectors} sector(en) actief.`
+          : "Tenantsectoren ontbreken of staan uit.",
     }),
     readinessSignal({
       id: "regions",
       label: "Regio's",
       status: input.usage.activeRegions > 0 ? "ready" : "warning",
-      detail: input.usage.activeRegions > 0 ? `${input.usage.activeRegions} actieve regio(s).` : "Geen actieve tenantregio's gevonden.",
+      detail:
+        input.usage.activeRegions > 0
+          ? `${input.usage.activeRegions} actieve regio(s).`
+          : "Geen actieve tenantregio's gevonden.",
     }),
     readinessSignal({
       id: "storage",
       label: "Storage",
-      status: input.usage.documents === 0 ? "warning" : input.usage.legacyDocumentPaths === 0 ? "ready" : "warning",
+      status:
+        input.usage.documents === 0
+          ? "warning"
+          : input.usage.legacyDocumentPaths === 0
+            ? "ready"
+            : "warning",
       detail:
         input.usage.documents === 0
           ? "Nog geen documenten om storagepaden te bewijzen."
@@ -739,7 +895,10 @@ function buildOperationalReadiness(input: {
     readinessSignal({
       id: "audit",
       label: "Audit",
-      status: input.usage.auditEvents + input.usage.supportAuditEvents > 0 ? "ready" : "warning",
+      status:
+        input.usage.auditEvents + input.usage.supportAuditEvents > 0
+          ? "ready"
+          : "warning",
       detail: `${input.usage.auditEvents} tenant/platform audit-event(s), ${input.usage.supportAuditEvents} support-event(s).`,
     }),
   ];
@@ -768,30 +927,45 @@ function buildFirstRunStatus(input: {
       id: "domain",
       label: "Domein gekoppeld",
       completed: Boolean(input.primaryDomain) || input.usage.domains > 0,
-      detail: input.primaryDomain ?? (input.usage.domains > 0 ? "Domein aanwezig, nog geen geverifieerd primair domein." : "Koppel of verifieer een tenantdomein."),
+      detail:
+        input.primaryDomain ??
+        (input.usage.domains > 0
+          ? "Domein aanwezig, nog geen geverifieerd primair domein."
+          : "Koppel of verifieer een tenantdomein."),
     },
     {
       id: "owner",
       label: "Owner actief",
       completed: input.usage.users > 0,
-      detail: input.usage.users > 0 ? `${input.usage.users} actieve gebruiker(s).` : "Nodig de tenant-owner uit.",
+      detail:
+        input.usage.users > 0
+          ? `${input.usage.users} actieve gebruiker(s).`
+          : "Nodig de tenant-owner uit.",
     },
     {
       id: "modules",
       label: "Modules ingesteld",
       completed: input.usage.enabledModules > 0,
-      detail: input.usage.enabledModules > 0 ? `${input.usage.enabledModules} module(s) actief.` : "Zet de eerste modules aan.",
+      detail:
+        input.usage.enabledModules > 0
+          ? `${input.usage.enabledModules} module(s) actief.`
+          : "Zet de eerste modules aan.",
     },
     {
       id: "sectors",
       label: "Sectoren ingesteld",
       completed: input.usage.enabledSectors > 0,
-      detail: input.usage.enabledSectors > 0 ? `${input.usage.enabledSectors} sector(en) actief.` : "Kies tenantsectoren en defaultbeleid.",
+      detail:
+        input.usage.enabledSectors > 0
+          ? `${input.usage.enabledSectors} sector(en) actief.`
+          : "Kies tenantsectoren en defaultbeleid.",
     },
     {
       id: "branding",
       label: "Branding beoordeeld",
-      completed: input.brandingPreview.customBrandingEnabled ? input.brandingPreview.customized : true,
+      completed: input.brandingPreview.customBrandingEnabled
+        ? input.brandingPreview.customized
+        : true,
       detail: input.brandingPreview.customBrandingEnabled
         ? input.brandingPreview.customized
           ? "Custom branding is ingesteld."
@@ -801,7 +975,12 @@ function buildFirstRunStatus(input: {
     {
       id: "first-data",
       label: "Eerste data aanwezig",
-      completed: input.usage.customers + input.usage.objects + input.usage.personnel + input.usage.assignments > 0,
+      completed:
+        input.usage.customers +
+          input.usage.objects +
+          input.usage.personnel +
+          input.usage.assignments >
+        0,
       detail: "Controleer eerste klant, object, medewerker of opdracht.",
     },
   ];
@@ -853,13 +1032,18 @@ type TenantAuthUserInviteResult = {
   deliveryMessage: string | null;
 };
 
-async function platformTenantAuthUsersById(userIds: string[]): Promise<Map<string, TenantAuthUserSnapshot>> {
+async function platformTenantAuthUsersById(
+  userIds: string[],
+): Promise<Map<string, TenantAuthUserSnapshot>> {
   const requestedIds = new Set(userIds.filter(Boolean));
   if (requestedIds.size === 0) return new Map();
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const { data, error } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
     if (error) return new Map();
 
     const users = new Map<string, TenantAuthUserSnapshot>();
@@ -878,13 +1062,23 @@ async function platformTenantAuthUsersById(userIds: string[]): Promise<Map<strin
   }
 }
 
-async function findPlatformTenantAuthUserByEmail(email: string): Promise<{ id: string; email: string | null } | null> {
+async function findPlatformTenantAuthUserByEmail(
+  email: string,
+): Promise<{ id: string; email: string | null } | null> {
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) throw new Error(`Auth-gebruiker kon niet worden opgezocht: ${error.message}`);
+  const { data, error } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  if (error)
+    throw new Error(
+      `Auth-gebruiker kon niet worden opgezocht: ${error.message}`,
+    );
 
   const normalizedEmail = normalizeEmail(email);
-  const user = data.users.find((candidate) => normalizeEmail(candidate.email ?? "") === normalizedEmail);
+  const user = data.users.find(
+    (candidate) => normalizeEmail(candidate.email ?? "") === normalizedEmail,
+  );
   return user ? { id: user.id, email: user.email ?? null } : null;
 }
 
@@ -897,15 +1091,29 @@ async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
   const [domain] = await db
     .select({ domain: tenantDomainsTable.domain })
     .from(tenantDomainsTable)
-    .where(and(eq(tenantDomainsTable.tenantId, tenantId), inArray(tenantDomainsTable.verificationStatus, ["verified", "active"])))
-    .orderBy(desc(tenantDomainsTable.isPrimary), asc(tenantDomainsTable.createdAt))
+    .where(
+      and(
+        eq(tenantDomainsTable.tenantId, tenantId),
+        inArray(tenantDomainsTable.verificationStatus, ["verified", "active"]),
+      ),
+    )
+    .orderBy(
+      desc(tenantDomainsTable.isPrimary),
+      asc(tenantDomainsTable.createdAt),
+    )
     .limit(1);
 
-  const host = domain?.domain ?? (tenant?.slug ? `${tenant.slug}.fieldgrid.nl` : "admin.fieldgrid.nl");
+  const host =
+    domain?.domain ??
+    (tenant?.slug ? `${tenant.slug}.fieldgrid.nl` : "admin.fieldgrid.nl");
   return `https://${host}/admin/login`;
 }
 
-async function inviteOrFindTenantAuthUser(email: string, tenantId: string, actorUserId: string): Promise<TenantAuthUserInviteResult> {
+async function inviteOrFindTenantAuthUser(
+  email: string,
+  tenantId: string,
+  actorUserId: string,
+): Promise<TenantAuthUserInviteResult> {
   const loginUrl = await tenantAdminLoginUrl(tenantId);
   const invite = await provisionPortalUserForActivation({
     email,
@@ -913,18 +1121,25 @@ async function inviteOrFindTenantAuthUser(email: string, tenantId: string, actor
     portal: "tenant-admin",
     tenantId,
     portalName: "Tenant backoffice",
-    activationUrl: loginUrl.replace(/\/admin\/login$/u, "/admin/wachtwoord-vergeten?doel=activatie"),
+    activationUrl: loginUrl.replace(
+      /\/admin\/login$/u,
+      "/admin/wachtwoord-vergeten?doel=activatie",
+    ),
     actorUserId,
     allowExistingActive: true,
   });
   return {
     userId: invite.user.id,
     deliveryStatus: "sent",
-    deliveryMessage: invite.created ? null : "Nieuwe eenmalige activatiecode verstuurd naar bestaand auth-account.",
+    deliveryMessage: invite.created
+      ? null
+      : "Nieuwe eenmalige activatiecode verstuurd naar bestaand auth-account.",
   };
 }
 
-async function listTenantRoleOptions(tenantId: string): Promise<PlatformTenantRoleOption[]> {
+async function listTenantRoleOptions(
+  tenantId: string,
+): Promise<PlatformTenantRoleOption[]> {
   return db
     .select({
       id: tenantRolesTable.id,
@@ -938,9 +1153,14 @@ async function listTenantRoleOptions(tenantId: string): Promise<PlatformTenantRo
     .orderBy(desc(tenantRolesTable.isSystem), asc(tenantRolesTable.name));
 }
 
-function preferredRoleId(roles: PlatformTenantRoleOption[], preferredNames: readonly string[]): string | null {
+function preferredRoleId(
+  roles: PlatformTenantRoleOption[],
+  preferredNames: readonly string[],
+): string | null {
   const preferred = preferredNames
-    .map((name) => roles.find((role) => role.name.toLowerCase() === name.toLowerCase()))
+    .map((name) =>
+      roles.find((role) => role.name.toLowerCase() === name.toLowerCase()),
+    )
     .find(Boolean);
   return preferred?.id ?? roles[0]?.id ?? null;
 }
@@ -949,14 +1169,22 @@ async function resolveTenantRoleSelection(
   tenantId: string,
   requestedRoleIds: string[],
   preferredNames: readonly string[],
-): Promise<{ roleIds: string[]; roleNames: string[]; roles: PlatformTenantRoleOption[] }> {
+): Promise<{
+  roleIds: string[];
+  roleNames: string[];
+  roles: PlatformTenantRoleOption[];
+}> {
   const roles = await listTenantRoleOptions(tenantId);
-  if (roles.length === 0) throw new Error("Deze tenant heeft nog geen tenantrollen.");
+  if (roles.length === 0)
+    throw new Error("Deze tenant heeft nog geen tenantrollen.");
 
   const requested = [...new Set(requestedRoleIds.filter(Boolean))];
-  const selectedRoleIds = requested.length > 0
-    ? requested
-    : [preferredRoleId(roles, preferredNames)].filter((value): value is string => Boolean(value));
+  const selectedRoleIds =
+    requested.length > 0
+      ? requested
+      : [preferredRoleId(roles, preferredNames)].filter(
+          (value): value is string => Boolean(value),
+        );
 
   const validRoles = roles.filter((role) => selectedRoleIds.includes(role.id));
   if (validRoles.length !== selectedRoleIds.length) {
@@ -970,10 +1198,18 @@ async function resolveTenantRoleSelection(
   };
 }
 
-function tenantAccessRoleFromRoleNames(roleNames: string[]): "owner" | "admin" | "member" {
+function tenantAccessRoleFromRoleNames(
+  roleNames: string[],
+): "owner" | "admin" | "member" {
   const normalized = new Set(roleNames.map((name) => name.toLowerCase()));
-  if (["owner", "eigenaar", "management"].some((name) => normalized.has(name))) return "owner";
-  if (["admin", "administrator", "administration", "beheerder"].some((name) => normalized.has(name))) return "admin";
+  if (["owner", "eigenaar", "management"].some((name) => normalized.has(name)))
+    return "owner";
+  if (
+    ["admin", "administrator", "administration", "beheerder"].some((name) =>
+      normalized.has(name),
+    )
+  )
+    return "admin";
   return "member";
 }
 
@@ -981,7 +1217,10 @@ function normalizeTenantUserStatus(value: string): string {
   return ["active", "inactive", "suspended"].includes(value) ? value : "active";
 }
 
-async function countTenantSectorUsage(tenantId: string, sectorId: string): Promise<number> {
+async function countTenantSectorUsage(
+  tenantId: string,
+  sectorId: string,
+): Promise<number> {
   const [usage] = await db
     .select({
       total: sql<number>`(
@@ -991,7 +1230,12 @@ async function countTenantSectorUsage(tenantId: string, sectorId: string): Promi
       )::int`,
     })
     .from(tenantSectorsTable)
-    .where(and(eq(tenantSectorsTable.tenantId, tenantId), eq(tenantSectorsTable.sectorId, sectorId)))
+    .where(
+      and(
+        eq(tenantSectorsTable.tenantId, tenantId),
+        eq(tenantSectorsTable.sectorId, sectorId),
+      ),
+    )
     .limit(1);
 
   return Number(usage?.total ?? 0);
@@ -1002,15 +1246,30 @@ function compactListFilterValue(value: string | undefined): string {
   return compacted === "all" ? "" : compacted;
 }
 
-function normalizeTenantListFilters(filters: PlatformTenantListFilters = {}): PlatformTenantListResult["filters"] {
+function normalizeTenantListFilters(
+  filters: PlatformTenantListFilters = {},
+): PlatformTenantListResult["filters"] {
   const q = compactListFilterValue(filters.q).slice(0, 120);
-  const status = TENANT_STATUS_FILTERS.includes(filters.status as TenantStatus) ? filters.status as TenantStatus : "all";
-  const plan = TENANT_PLAN_KEYS.includes(filters.plan as TenantPlanKey) ? filters.plan as TenantPlanKey : "all";
-  const domainStatus = TENANT_LIST_DOMAIN_STATUSES.includes(filters.domainStatus as PlatformTenantListDomainStatus)
-    ? filters.domainStatus as PlatformTenantListDomainStatus
+  const status = TENANT_STATUS_FILTERS.includes(filters.status as TenantStatus)
+    ? (filters.status as TenantStatus)
     : "all";
-  const readiness = TENANT_LIST_READINESS_STATUSES.includes(filters.readiness as PlatformTenantListReadinessStatus)
-    ? filters.readiness as PlatformTenantListReadinessStatus
+  const plan = TENANT_PLAN_KEYS.includes(filters.plan as TenantPlanKey)
+    ? (filters.plan as TenantPlanKey)
+    : "all";
+  const domainStatus = TENANT_LIST_DOMAIN_STATUSES.includes(
+    filters.domainStatus as PlatformTenantListDomainStatus,
+  )
+    ? (filters.domainStatus as PlatformTenantListDomainStatus)
+    : "all";
+  const readiness = TENANT_LIST_READINESS_STATUSES.includes(
+    filters.readiness as PlatformTenantListReadinessStatus,
+  )
+    ? (filters.readiness as PlatformTenantListReadinessStatus)
+    : "all";
+  const view = TENANT_LIST_SAVED_VIEWS.includes(
+    filters.view as PlatformTenantListSavedView,
+  )
+    ? (filters.view as PlatformTenantListSavedView)
     : "all";
   const pageSize = Number.isFinite(filters.pageSize ?? NaN)
     ? Math.max(10, Math.min(50, Math.round(filters.pageSize!)))
@@ -1028,6 +1287,7 @@ function normalizeTenantListFilters(filters: PlatformTenantListFilters = {}): Pl
     region: compactListFilterValue(filters.region),
     domainStatus,
     readiness,
+    view,
     page,
     pageSize,
   };
@@ -1116,15 +1376,22 @@ function tenantListLatestActivitySql(): SQL<Date> {
   return sql<Date>`${tenantsTable.updatedAt}`;
 }
 
-function dateLikeToIsoString(value: Date | string | null | undefined, fallback: Date | string = new Date()): string {
+function dateLikeToIsoString(
+  value: Date | string | null | undefined,
+  fallback: Date | string = new Date(),
+): string {
   const candidate = value ?? fallback;
   if (candidate instanceof Date) return candidate.toISOString();
   const parsed = new Date(candidate);
   if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
-  return fallback instanceof Date ? fallback.toISOString() : new Date(fallback).toISOString();
+  return fallback instanceof Date
+    ? fallback.toISOString()
+    : new Date(fallback).toISOString();
 }
 
-function platformTenantListConditions(filters: PlatformTenantListResult["filters"]): SQL[] {
+function platformTenantListConditions(
+  filters: PlatformTenantListResult["filters"],
+): SQL[] {
   const conditions: SQL[] = [];
 
   if (filters.q) {
@@ -1145,8 +1412,10 @@ function platformTenantListConditions(filters: PlatformTenantListResult["filters
     )`);
   }
 
-  if (filters.status !== "all") conditions.push(eq(tenantsTable.status, filters.status));
-  if (filters.plan !== "all") conditions.push(eq(tenantsTable.planKey, filters.plan));
+  if (filters.status !== "all")
+    conditions.push(eq(tenantsTable.status, filters.status));
+  if (filters.plan !== "all")
+    conditions.push(eq(tenantsTable.planKey, filters.plan));
 
   if (filters.module) {
     conditions.push(sql`EXISTS (
@@ -1180,11 +1449,43 @@ function platformTenantListConditions(filters: PlatformTenantListResult["filters
   }
 
   if (filters.domainStatus !== "all") {
-    conditions.push(sql`${tenantListDomainStatusSql()} = ${filters.domainStatus}`);
+    conditions.push(
+      sql`${tenantListDomainStatusSql()} = ${filters.domainStatus}`,
+    );
   }
 
   if (filters.readiness !== "all") {
     conditions.push(sql`${tenantListReadinessSql()} = ${filters.readiness}`);
+  }
+
+  if (filters.view === "domain_problems") {
+    conditions.push(
+      sql`${tenantListDomainStatusSql()} IN ('missing', 'pending', 'failed')`,
+    );
+  } else if (filters.view === "past_due") {
+    conditions.push(sql`EXISTS (
+      SELECT 1
+      FROM ${tenantSubscriptionsTable} sub
+      WHERE sub.tenant_id = ${tenantsTable.id}
+        AND sub.status = 'past_due'
+    )`);
+  } else if (filters.view === "provisioning_blocked") {
+    conditions.push(sql`EXISTS (
+      SELECT 1
+      FROM ${tenantProvisioningRunsTable} run
+      WHERE run.tenant_id = ${tenantsTable.id}
+        AND run.status IN ('failed', 'rolled_back')
+    )`);
+  } else if (filters.view === "expiring_trial") {
+    conditions.push(sql`EXISTS (
+      SELECT 1
+      FROM ${tenantSubscriptionsTable} sub
+      WHERE sub.tenant_id = ${tenantsTable.id}
+        AND sub.status = 'trial'
+        AND sub.current_period_ends_at IS NOT NULL
+        AND sub.current_period_ends_at >= now()
+        AND sub.current_period_ends_at <= now() + interval '14 days'
+    )`);
   }
 
   return conditions;
@@ -1202,7 +1503,8 @@ function tenantListOpenActions(row: {
   subscriptionStatus: string | null;
 }): string[] {
   const actions = new Set<string>();
-  if (row.status === "suspended" || row.status === "archived") actions.add("Lifecycle");
+  if (row.status === "suspended" || row.status === "archived")
+    actions.add("Lifecycle");
   if (row.domainStatus === "missing") actions.add("Domein ontbreekt");
   if (row.domainStatus === "pending") actions.add("Domein pending");
   if (row.domainStatus === "failed") actions.add("Domein fout");
@@ -1216,7 +1518,9 @@ function tenantListOpenActions(row: {
   return [...actions].slice(0, 5);
 }
 
-async function listPlatformTenantListFacets(): Promise<PlatformTenantListResult["facets"]> {
+async function listPlatformTenantListFacets(): Promise<
+  PlatformTenantListResult["facets"]
+> {
   const [plans, modules, sectors, regions] = await Promise.all([
     db
       .select({ value: plansTable.key, label: plansTable.name })
@@ -1241,21 +1545,33 @@ async function listPlatformTenantListFacets(): Promise<PlatformTenantListResult[
   ]);
 
   return {
-    statuses: TENANT_STATUS_FILTERS.map((status) => ({ value: status, label: status })),
+    statuses: TENANT_STATUS_FILTERS.map((status) => ({
+      value: status,
+      label: TENANT_STATUS_LABELS[status],
+    })),
     plans: plans.map((plan) => ({ value: plan.value, label: plan.label })),
-    modules: modules.map((module) => ({ value: module.value, label: module.label })),
-    sectors: sectors.map((sector) => ({ value: sector.value, label: sector.label })),
-    regions: regions.map((region) => ({ value: region.value, label: region.label })),
+    modules: modules.map((module) => ({
+      value: module.value,
+      label: module.label,
+    })),
+    sectors: sectors.map((sector) => ({
+      value: sector.value,
+      label: sector.label,
+    })),
+    regions: regions.map((region) => ({
+      value: region.value,
+      label: region.label,
+    })),
     domainStatuses: [
       { value: "missing", label: "Geen domein" },
-      { value: "pending", label: "Pending" },
-      { value: "verified", label: "Verified" },
-      { value: "failed", label: "Failed" },
+      { value: "pending", label: "In afwachting" },
+      { value: "verified", label: "Geverifieerd" },
+      { value: "failed", label: "Mislukt" },
     ],
     readinessStatuses: [
-      { value: "ready", label: "Ready" },
+      { value: "ready", label: "Klaar" },
       { value: "warning", label: "Aandacht" },
-      { value: "blocked", label: "Blocked" },
+      { value: "blocked", label: "Geblokkeerd" },
     ],
   };
 }
@@ -1297,32 +1613,37 @@ export async function listPlatformTenants(): Promise<PlatformTenantRow[]> {
   }));
 }
 
-export async function listPlatformTenantList(filters: PlatformTenantListFilters = {}): Promise<PlatformTenantListResult> {
+export async function listPlatformTenantList(
+  filters: PlatformTenantListFilters = {},
+): Promise<PlatformTenantListResult> {
   await requirePlatformAdmin();
 
   const normalizedFilters = normalizeTenantListFilters(filters);
   try {
-  const conditions = platformTenantListConditions(normalizedFilters);
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const domainStatus = tenantListDomainStatusSql();
-  const readinessStatus = tenantListReadinessSql();
-  const latestActivityAt = tenantListLatestActivitySql();
+    const conditions = platformTenantListConditions(normalizedFilters);
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const domainStatus = tenantListDomainStatusSql();
+    const readinessStatus = tenantListReadinessSql();
+    const latestActivityAt = tenantListLatestActivitySql();
 
-  const [countRows, facets] = await Promise.all([
-    db
-      .select({ total: sql<number>`COUNT(*)::int` })
-      .from(tenantsTable)
-      .where(where),
-    listPlatformTenantListFacets(),
-  ]);
+    const [countRows, facets] = await Promise.all([
+      db
+        .select({ total: sql<number>`COUNT(*)::int` })
+        .from(tenantsTable)
+        .where(where),
+      listPlatformTenantListFacets(),
+    ]);
 
-  const total = Number(countRows[0]?.total ?? 0);
-  const totalPages = Math.max(1, Math.ceil(total / normalizedFilters.pageSize));
-  const page = Math.min(normalizedFilters.page, totalPages);
-  const offset = (page - 1) * normalizedFilters.pageSize;
+    const total = Number(countRows[0]?.total ?? 0);
+    const totalPages = Math.max(
+      1,
+      Math.ceil(total / normalizedFilters.pageSize),
+    );
+    const page = Math.min(normalizedFilters.page, totalPages);
+    const offset = (page - 1) * normalizedFilters.pageSize;
 
-  const rows = await db
-    .select({
+    const rows = await db
+      .select({
         id: tenantsTable.id,
         slug: tenantsTable.slug,
         name: tenantsTable.name,
@@ -1435,36 +1756,44 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
       .limit(normalizedFilters.pageSize)
       .offset(offset);
 
-  return {
-    rows: rows.map((row) => {
-      const normalizedRow = {
-        ...row,
-        createdAt: dateLikeToIsoString(row.createdAt),
-        latestActivityAt: dateLikeToIsoString(row.latestActivityAt, row.createdAt),
-      };
-      return {
-        ...normalizedRow,
-        openActions: tenantListOpenActions(normalizedRow),
-      };
-    }),
-    facets,
-    filters: { ...normalizedFilters, page },
-    pagination: {
-      total,
-      page,
-      pageSize: normalizedFilters.pageSize,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1,
-    },
-  };
+    return {
+      rows: rows.map((row) => {
+        const normalizedRow = {
+          ...row,
+          createdAt: dateLikeToIsoString(row.createdAt),
+          latestActivityAt: dateLikeToIsoString(
+            row.latestActivityAt,
+            row.createdAt,
+          ),
+        };
+        return {
+          ...normalizedRow,
+          openActions: tenantListOpenActions(normalizedRow),
+        };
+      }),
+      facets,
+      filters: { ...normalizedFilters, page },
+      pagination: {
+        total,
+        page,
+        pageSize: normalizedFilters.pageSize,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
   } catch (error) {
-    console.error("[platform-tenants] Rijke tenantlijst kon niet laden; basislijst wordt gebruikt.", error);
+    console.error(
+      "[platform-tenants] Rijke tenantlijst kon niet laden; basislijst wordt gebruikt.",
+      error,
+    );
     return listPlatformTenantListFallback(normalizedFilters);
   }
 }
 
-async function listPlatformTenantUsageLimits(planId: string | null): Promise<PlatformTenantUsageLimit[]> {
+async function listPlatformTenantUsageLimits(
+  planId: string | null,
+): Promise<PlatformTenantUsageLimit[]> {
   if (!planId) return [];
 
   const rows = await db
@@ -1486,13 +1815,16 @@ async function listPlatformTenantUsageLimits(planId: string | null): Promise<Pla
   }));
 }
 
-export async function getPlatformTenantDetail(tenantId: string): Promise<PlatformTenantDetail | null> {
+export async function getPlatformTenantDetail(
+  tenantId: string,
+): Promise<PlatformTenantDetail | null> {
   await requirePlatformAdmin();
 
   const [tenant] = await db
     .select({
       id: tenantsTable.id,
       slug: tenantsTable.slug,
+      personnelLoginCode: tenantsTable.personnelLoginCode,
       name: tenantsTable.name,
       isActive: tenantsTable.isActive,
       status: tenantsTable.status,
@@ -1544,12 +1876,18 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
     planName: plan.planName,
     planSource: plan.source,
     brandingPreview,
-    firstRun: buildFirstRunStatus({ primaryDomain: tenant.primaryDomain, usage, brandingPreview }),
+    firstRun: buildFirstRunStatus({
+      primaryDomain: tenant.primaryDomain,
+      usage,
+      brandingPreview,
+    }),
     operationalReadiness,
   };
 }
 
-export async function getPlatformTenantUsage(tenantId: string): Promise<PlatformTenantUsage> {
+export async function getPlatformTenantUsage(
+  tenantId: string,
+): Promise<PlatformTenantUsage> {
   await requirePlatformAdmin();
 
   const [usage] = await db
@@ -1721,7 +2059,9 @@ export async function listPlatformPlans(): Promise<PlatformPlanRow[]> {
   return rows;
 }
 
-export async function listPlatformTenantSubscriptions(tenantId: string): Promise<PlatformTenantSubscriptionRow[]> {
+export async function listPlatformTenantSubscriptions(
+  tenantId: string,
+): Promise<PlatformTenantSubscriptionRow[]> {
   await requirePlatformAdmin();
 
   const rows = await db
@@ -1796,7 +2136,10 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
       })
       .from(tenantSubscriptionsTable)
       .innerJoin(plansTable, eq(tenantSubscriptionsTable.planId, plansTable.id))
-      .innerJoin(tenantsTable, eq(tenantSubscriptionsTable.tenantId, tenantsTable.id))
+      .innerJoin(
+        tenantsTable,
+        eq(tenantSubscriptionsTable.tenantId, tenantsTable.id),
+      )
       .orderBy(desc(tenantSubscriptionsTable.updatedAt))
       .limit(250),
     db
@@ -1808,7 +2151,9 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
       .groupBy(tenantSubscriptionsTable.status),
   ]);
 
-  const statusTotals = new Map(statusRows.map((row) => [row.status, Number(row.total)]));
+  const statusTotals = new Map(
+    statusRows.map((row) => [row.status, Number(row.total)]),
+  );
 
   return {
     plans,
@@ -1818,9 +2163,10 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
         ...row,
         customDomainCount,
         activeCustomDomainCount: Number(row.activeCustomDomainCount ?? 0),
-        downgradeImpact: row.planKey === "enterprise" && customDomainCount > 0
-          ? `${customDomainCount} custom domain(s) worden uitgeschakeld bij downgrade naar Starter/Professional.`
-          : null,
+        downgradeImpact:
+          row.planKey === "enterprise" && customDomainCount > 0
+            ? `${customDomainCount} custom domain(s) worden uitgeschakeld bij downgrade naar Starter/Professional.`
+            : null,
         startsAt: row.startsAt.toISOString(),
         currentPeriodStartsAt: row.currentPeriodStartsAt?.toISOString() ?? null,
         currentPeriodEndsAt: row.currentPeriodEndsAt?.toISOString() ?? null,
@@ -1830,7 +2176,10 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
       };
     }),
     stats: {
-      totalSubscriptions: [...statusTotals.values()].reduce((total, value) => total + value, 0),
+      totalSubscriptions: [...statusTotals.values()].reduce(
+        (total, value) => total + value,
+        0,
+      ),
       trial: statusTotals.get("trial") ?? 0,
       active: statusTotals.get("active") ?? 0,
       pastDue: statusTotals.get("past_due") ?? 0,
@@ -1840,7 +2189,9 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
   };
 }
 
-export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise<PlatformTenantUsersAndOwner> {
+export async function listPlatformTenantUsersAndOwner(
+  tenantId: string,
+): Promise<PlatformTenantUsersAndOwner> {
   await requirePlatformAdmin();
 
   const [users, ownerInvites, roles, roleAssignments] = await Promise.all([
@@ -1882,11 +2233,16 @@ export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise
         isCustom: tenantRolesTable.isCustom,
       })
       .from(tenantUserRolesTable)
-      .innerJoin(tenantRolesTable, eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id))
+      .innerJoin(
+        tenantRolesTable,
+        eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id),
+      )
       .where(eq(tenantUserRolesTable.tenantId, tenantId))
       .orderBy(asc(tenantRolesTable.name)),
   ]);
-  const authUsers = await platformTenantAuthUsersById(users.map((row) => row.userId));
+  const authUsers = await platformTenantAuthUsersById(
+    users.map((row) => row.userId),
+  );
   const rolesByUser = new Map<string, PlatformTenantRoleOption[]>();
   for (const role of roleAssignments) {
     const existing = rolesByUser.get(role.userId) ?? [];
@@ -1923,21 +2279,32 @@ export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise
 
 function staticPlatformTenantListFacets(): PlatformTenantListResult["facets"] {
   return {
-    statuses: TENANT_STATUS_FILTERS.map((status) => ({ value: status, label: status })),
-    plans: TENANT_PLAN_KEYS.map((plan) => ({ value: plan, label: plan })),
+    statuses: TENANT_STATUS_FILTERS.map((status) => ({
+      value: status,
+      label: TENANT_STATUS_LABELS[status],
+    })),
+    plans: TENANT_PLAN_KEYS.map((plan) => ({
+      value: plan,
+      label:
+        plan === "starter"
+          ? "Starter"
+          : plan === "professional"
+            ? "Professional"
+            : "Enterprise",
+    })),
     modules: [],
     sectors: [],
     regions: [],
     domainStatuses: [
       { value: "missing", label: "Geen domein" },
-      { value: "pending", label: "Pending" },
-      { value: "verified", label: "Verified" },
-      { value: "failed", label: "Failed" },
+      { value: "pending", label: "In afwachting" },
+      { value: "verified", label: "Geverifieerd" },
+      { value: "failed", label: "Mislukt" },
     ],
     readinessStatuses: [
-      { value: "ready", label: "Ready" },
+      { value: "ready", label: "Klaar" },
       { value: "warning", label: "Aandacht" },
-      { value: "blocked", label: "Blocked" },
+      { value: "blocked", label: "Geblokkeerd" },
     ],
   };
 }
@@ -1954,8 +2321,40 @@ async function listPlatformTenantListFallback(
       OR lower(${tenantsTable.slug}) LIKE ${pattern}
     )`);
   }
-  if (filters.status !== "all") conditions.push(eq(tenantsTable.status, filters.status));
-  if (filters.plan !== "all") conditions.push(eq(tenantsTable.planKey, filters.plan));
+  if (filters.status !== "all")
+    conditions.push(eq(tenantsTable.status, filters.status));
+  if (filters.plan !== "all")
+    conditions.push(eq(tenantsTable.planKey, filters.plan));
+  if (filters.view === "domain_problems") {
+    conditions.push(sql`NOT EXISTS (
+      SELECT 1
+      FROM ${tenantDomainsTable} td
+      WHERE td.tenant_id = ${tenantsTable.id}
+        AND td.type <> 'platform_reserved'
+        AND td.verification_status IN ('verified', 'active')
+    )`);
+  } else if (filters.view === "past_due") {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM ${tenantSubscriptionsTable} sub
+      WHERE sub.tenant_id = ${tenantsTable.id}
+        AND sub.status = 'past_due'
+    )`);
+  } else if (filters.view === "provisioning_blocked") {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM ${tenantProvisioningRunsTable} run
+      WHERE run.tenant_id = ${tenantsTable.id}
+        AND run.status IN ('failed', 'rolled_back')
+    )`);
+  } else if (filters.view === "expiring_trial") {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM ${tenantSubscriptionsTable} sub
+      WHERE sub.tenant_id = ${tenantsTable.id}
+        AND sub.status = 'trial'
+        AND sub.current_period_ends_at IS NOT NULL
+        AND sub.current_period_ends_at >= now()
+        AND sub.current_period_ends_at <= now() + interval '14 days'
+    )`);
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const [countRows, rows] = await Promise.all([
@@ -2002,9 +2401,14 @@ async function listPlatformTenantListFallback(
 
   return {
     rows: rows.map((row) => {
-      const domainStatus: PlatformTenantListDomainStatus = row.primaryDomain ? "verified" : "missing";
+      const domainStatus: PlatformTenantListDomainStatus = row.primaryDomain
+        ? "verified"
+        : "missing";
       const readinessStatus: PlatformTenantListReadinessStatus =
-        row.status === "suspended" || row.status === "archived" || !row.primaryDomain || Number(row.userCount ?? 0) === 0
+        row.status === "suspended" ||
+        row.status === "archived" ||
+        !row.primaryDomain ||
+        Number(row.userCount ?? 0) === 0
           ? "blocked"
           : "warning";
       const normalizedRow = {
@@ -2049,22 +2453,38 @@ async function listPlatformTenantListFallback(
   };
 }
 
-export async function addPlatformTenantAdmin(formData: FormData): Promise<void> {
+export async function addPlatformTenantAdmin(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const email = normalizeEmail(actionValue(formData, "email"));
   if (!tenantId) throw new Error("Tenant ontbreekt.");
-  if (!email || !isValidEmail(email)) throw new Error("Vul een geldig e-mailadres in.");
+  if (!email || !isValidEmail(email))
+    throw new Error("Vul een geldig e-mailadres in.");
 
   await assertTenantExists(tenantId);
-  const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email, tenantId, actor.userId);
+  const roleSelection = await resolveTenantRoleSelection(
+    tenantId,
+    actionValues(formData, "tenantRoleIds"),
+    TENANT_ADMIN_ROLE_NAMES,
+  );
+  const invite = await inviteOrFindTenantAuthUser(
+    email,
+    tenantId,
+    actor.userId,
+  );
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
     await tx
       .insert(tenantUsersTable)
-      .values({ tenantId, userId: invite.userId, role: accessRole, status: "active" })
+      .values({
+        tenantId,
+        userId: invite.userId,
+        role: accessRole,
+        status: "active",
+      })
       .onConflictDoUpdate({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
         set: { role: accessRole, status: "active", updatedAt: new Date() },
@@ -2072,11 +2492,22 @@ export async function addPlatformTenantAdmin(formData: FormData): Promise<void> 
 
     await tx
       .delete(tenantUserRolesTable)
-      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, invite.userId)));
+      .where(
+        and(
+          eq(tenantUserRolesTable.tenantId, tenantId),
+          eq(tenantUserRolesTable.userId, invite.userId),
+        ),
+      );
 
     await tx
       .insert(tenantUserRolesTable)
-      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId: invite.userId, tenantRoleId })))
+      .values(
+        roleSelection.roleIds.map((tenantRoleId) => ({
+          tenantId,
+          userId: invite.userId,
+          tenantRoleId,
+        })),
+      )
       .onConflictDoNothing();
   });
 
@@ -2100,7 +2531,9 @@ export async function addPlatformTenantAdmin(formData: FormData): Promise<void> 
   redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
-export async function updatePlatformTenantAdmin(formData: FormData): Promise<void> {
+export async function updatePlatformTenantAdmin(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const userId = actionValue(formData, "userId");
@@ -2111,26 +2544,51 @@ export async function updatePlatformTenantAdmin(formData: FormData): Promise<voi
   const [tenantUser] = await db
     .select({ id: tenantUsersTable.id })
     .from(tenantUsersTable)
-    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .where(
+      and(
+        eq(tenantUsersTable.tenantId, tenantId),
+        eq(tenantUsersTable.userId, userId),
+      ),
+    )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
 
-  const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
+  const roleSelection = await resolveTenantRoleSelection(
+    tenantId,
+    actionValues(formData, "tenantRoleIds"),
+    TENANT_ADMIN_ROLE_NAMES,
+  );
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
     await tx
       .update(tenantUsersTable)
       .set({ role: accessRole, status, updatedAt: new Date() })
-      .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)));
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      );
 
     await tx
       .delete(tenantUserRolesTable)
-      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, userId)));
+      .where(
+        and(
+          eq(tenantUserRolesTable.tenantId, tenantId),
+          eq(tenantUserRolesTable.userId, userId),
+        ),
+      );
 
     await tx
       .insert(tenantUserRolesTable)
-      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId, tenantRoleId })))
+      .values(
+        roleSelection.roleIds.map((tenantRoleId) => ({
+          tenantId,
+          userId,
+          tenantRoleId,
+        })),
+      )
       .onConflictDoNothing();
   });
 
@@ -2152,7 +2610,9 @@ export async function updatePlatformTenantAdmin(formData: FormData): Promise<voi
   redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
-export async function deletePlatformTenantAdmin(formData: FormData): Promise<void> {
+export async function deletePlatformTenantAdmin(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const userId = actionValue(formData, "userId");
@@ -2160,20 +2620,39 @@ export async function deletePlatformTenantAdmin(formData: FormData): Promise<voi
 
   await assertTenantExists(tenantId);
   const [tenantUser] = await db
-    .select({ id: tenantUsersTable.id, role: tenantUsersTable.role, status: tenantUsersTable.status })
+    .select({
+      id: tenantUsersTable.id,
+      role: tenantUsersTable.role,
+      status: tenantUsersTable.status,
+    })
     .from(tenantUsersTable)
-    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .where(
+      and(
+        eq(tenantUsersTable.tenantId, tenantId),
+        eq(tenantUsersTable.userId, userId),
+      ),
+    )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
 
   await db.transaction(async (tx) => {
     await tx
       .delete(tenantUserRolesTable)
-      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, userId)));
+      .where(
+        and(
+          eq(tenantUserRolesTable.tenantId, tenantId),
+          eq(tenantUserRolesTable.userId, userId),
+        ),
+      );
 
     await tx
       .delete(tenantUsersTable)
-      .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)));
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      );
   });
 
   await auditPlatformTenantAction({
@@ -2192,7 +2671,9 @@ export async function deletePlatformTenantAdmin(formData: FormData): Promise<voi
   redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
-export async function sendPlatformTenantAdminPasswordReset(formData: FormData): Promise<void> {
+export async function sendPlatformTenantAdminPasswordReset(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const userId = actionValue(formData, "userId");
@@ -2202,19 +2683,32 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
   const [tenantUser] = await db
     .select({ id: tenantUsersTable.id })
     .from(tenantUsersTable)
-    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .where(
+      and(
+        eq(tenantUsersTable.tenantId, tenantId),
+        eq(tenantUsersTable.userId, userId),
+      ),
+    )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+  if (error || !data.user?.email)
+    throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
 
   const email = data.user.email;
-  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/admin\/login$/u, "/admin/wachtwoord-vergeten");
+  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(
+    /\/admin\/login$/u,
+    "/admin/wachtwoord-vergeten",
+  );
   const configuredOrigin = new URL(resetUrl).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
-    .split(",").map((value) => value.trim()).filter(Boolean);
+  const allowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "tenant-backoffice",
     purpose: "password-reset",
@@ -2230,11 +2724,21 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
     networkSignal: `actor:${actor.userId}`,
     clientSignal: "platform-tenant-admin-reset",
   });
-  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
-    throw new Error("Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.");
+  if (
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code
+  ) {
+    throw new Error(
+      "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+    );
   }
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
+    recipientName: String(
+      data.user.user_metadata?.["full_name"] ??
+        data.user.user_metadata?.["name"] ??
+        email,
+    ),
     portalName: "Tenant backoffice",
     resetUrl,
     code: challenge.code,
@@ -2261,13 +2765,16 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
   redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
-export async function updatePlatformTenantOwnerInvite(formData: FormData): Promise<void> {
+export async function updatePlatformTenantOwnerInvite(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const inviteId = actionValue(formData, "inviteId");
   const email = normalizeEmail(actionValue(formData, "email"));
   if (!tenantId) throw new Error("Tenant ontbreekt.");
-  if (!email || !isValidEmail(email)) throw new Error("Vul een geldig owner e-mailadres in.");
+  if (!email || !isValidEmail(email))
+    throw new Error("Vul een geldig owner e-mailadres in.");
 
   await assertTenantExists(tenantId);
   const [existingInvite] = inviteId
@@ -2278,14 +2785,28 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
           metadata: tenantOwnerInvitesTable.metadata,
         })
         .from(tenantOwnerInvitesTable)
-        .where(and(eq(tenantOwnerInvitesTable.id, inviteId), eq(tenantOwnerInvitesTable.tenantId, tenantId)))
+        .where(
+          and(
+            eq(tenantOwnerInvitesTable.id, inviteId),
+            eq(tenantOwnerInvitesTable.tenantId, tenantId),
+          ),
+        )
         .limit(1)
     : [];
 
-  if (inviteId && !existingInvite) throw new Error("Owner invite niet gevonden.");
+  if (inviteId && !existingInvite)
+    throw new Error("Owner invite niet gevonden.");
 
-  const roleSelection = await resolveTenantRoleSelection(tenantId, [], TENANT_OWNER_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email, tenantId, actor.userId);
+  const roleSelection = await resolveTenantRoleSelection(
+    tenantId,
+    [],
+    TENANT_OWNER_ROLE_NAMES,
+  );
+  const invite = await inviteOrFindTenantAuthUser(
+    email,
+    tenantId,
+    actor.userId,
+  );
   const now = new Date();
 
   await db.transaction(async (tx) => {
@@ -2323,7 +2844,10 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
         },
       })
       .onConflictDoUpdate({
-        target: [tenantOwnerInvitesTable.tenantId, tenantOwnerInvitesTable.email],
+        target: [
+          tenantOwnerInvitesTable.tenantId,
+          tenantOwnerInvitesTable.email,
+        ],
         set: {
           userId: invite.userId,
           status: "sent",
@@ -2342,7 +2866,12 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
 
     await tx
       .insert(tenantUsersTable)
-      .values({ tenantId, userId: invite.userId, role: "owner", status: "active" })
+      .values({
+        tenantId,
+        userId: invite.userId,
+        role: "owner",
+        status: "active",
+      })
       .onConflictDoUpdate({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
         set: { role: "owner", status: "active", updatedAt: now },
@@ -2350,7 +2879,13 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
 
     await tx
       .insert(tenantUserRolesTable)
-      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId: invite.userId, tenantRoleId })))
+      .values(
+        roleSelection.roleIds.map((tenantRoleId) => ({
+          tenantId,
+          userId: invite.userId,
+          tenantRoleId,
+        })),
+      )
       .onConflictDoNothing();
 
     await tx
@@ -2386,7 +2921,9 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
   redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
-export async function listPlatformTenantRegions(tenantId: string): Promise<PlatformTenantRegionRow[]> {
+export async function listPlatformTenantRegions(
+  tenantId: string,
+): Promise<PlatformTenantRegionRow[]> {
   await requirePlatformAdmin();
 
   const rows = await db
@@ -2411,7 +2948,9 @@ export async function listPlatformTenantRegions(tenantId: string): Promise<Platf
   }));
 }
 
-export async function listPlatformTenantDomains(tenantId: string): Promise<PlatformTenantDomainRow[]> {
+export async function listPlatformTenantDomains(
+  tenantId: string,
+): Promise<PlatformTenantDomainRow[]> {
   await requirePlatformAdmin();
 
   const rows = await db
@@ -2438,7 +2977,10 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
     })
     .from(tenantDomainsTable)
     .where(eq(tenantDomainsTable.tenantId, tenantId))
-    .orderBy(desc(tenantDomainsTable.isPrimary), asc(tenantDomainsTable.domain));
+    .orderBy(
+      desc(tenantDomainsTable.isPrimary),
+      asc(tenantDomainsTable.domain),
+    );
 
   return rows.map((row) => ({
     ...row,
@@ -2451,38 +2993,60 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
   }));
 }
 
-export async function listPlatformTenantModules(tenantId: string): Promise<PlatformTenantModuleRow[]> {
+export async function listPlatformTenantModules(
+  tenantId: string,
+): Promise<PlatformTenantModuleRow[]> {
   await requirePlatformAdmin();
 
-  const [modules, overrides, plan, dependencies, dependents] = await Promise.all([
-    db.select().from(modulesTable).orderBy(asc(modulesTable.category), asc(modulesTable.name)),
-    db.select().from(tenantModulesTable).where(eq(tenantModulesTable.tenantId, tenantId)),
-    getTenantPlanSnapshot(tenantId),
-    db
-      .select({
-        moduleId: moduleDependenciesTable.moduleId,
-        dependencyKey: modulesTable.key,
-      })
-      .from(moduleDependenciesTable)
-      .innerJoin(modulesTable, eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id)),
-    db
-      .select({
-        moduleId: moduleDependenciesTable.dependsOnModuleId,
-        dependentKey: modulesTable.key,
-      })
-      .from(moduleDependenciesTable)
-      .innerJoin(modulesTable, eq(moduleDependenciesTable.moduleId, modulesTable.id)),
-  ]);
+  const [modules, overrides, plan, dependencies, dependents] =
+    await Promise.all([
+      db
+        .select()
+        .from(modulesTable)
+        .orderBy(asc(modulesTable.category), asc(modulesTable.name)),
+      db
+        .select()
+        .from(tenantModulesTable)
+        .where(eq(tenantModulesTable.tenantId, tenantId)),
+      getTenantPlanSnapshot(tenantId),
+      db
+        .select({
+          moduleId: moduleDependenciesTable.moduleId,
+          dependencyKey: modulesTable.key,
+        })
+        .from(moduleDependenciesTable)
+        .innerJoin(
+          modulesTable,
+          eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id),
+        ),
+      db
+        .select({
+          moduleId: moduleDependenciesTable.dependsOnModuleId,
+          dependentKey: modulesTable.key,
+        })
+        .from(moduleDependenciesTable)
+        .innerJoin(
+          modulesTable,
+          eq(moduleDependenciesTable.moduleId, modulesTable.id),
+        ),
+    ]);
 
   const planModules = plan.planId
     ? await db
-        .select({ moduleId: planModulesTable.moduleId, isIncluded: planModulesTable.isIncluded })
+        .select({
+          moduleId: planModulesTable.moduleId,
+          isIncluded: planModulesTable.isIncluded,
+        })
         .from(planModulesTable)
         .where(eq(planModulesTable.planId, plan.planId))
     : [];
 
-  const overrideByModuleId = new Map(overrides.map((entry) => [entry.moduleId, entry]));
-  const planByModuleId = new Map(planModules.map((entry) => [entry.moduleId, entry]));
+  const overrideByModuleId = new Map(
+    overrides.map((entry) => [entry.moduleId, entry]),
+  );
+  const planByModuleId = new Map(
+    planModules.map((entry) => [entry.moduleId, entry]),
+  );
   const dependencyKeysByModuleId = new Map<string, string[]>();
   for (const dependency of dependencies) {
     const keys = dependencyKeysByModuleId.get(dependency.moduleId) ?? [];
@@ -2505,7 +3069,10 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       name: module.name,
       description: module.description,
       category: module.category,
-      effectiveEnabled: override?.isEnabled ?? planModule?.isIncluded ?? module.isEnabledByDefault,
+      effectiveEnabled:
+        override?.isEnabled ??
+        planModule?.isIncluded ??
+        module.isEnabledByDefault,
       tenantOverride: override?.isEnabled ?? null,
       planIncluded: planModule?.isIncluded ?? null,
       defaultEnabled: module.isEnabledByDefault,
@@ -2515,12 +3082,18 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       enabledDependentKeys: [],
     };
   });
-  const enabledByKey = new Map(moduleRows.map((module) => [module.key, module.effectiveEnabled]));
+  const enabledByKey = new Map(
+    moduleRows.map((module) => [module.key, module.effectiveEnabled]),
+  );
 
   return moduleRows.map((module) => ({
     ...module,
-    missingDependencyKeys: module.dependencyKeys.filter((dependencyKey) => !enabledByKey.get(dependencyKey)),
-    enabledDependentKeys: (dependentKeysByModuleId.get(module.id) ?? []).filter((dependentKey) => enabledByKey.get(dependentKey)),
+    missingDependencyKeys: module.dependencyKeys.filter(
+      (dependencyKey) => !enabledByKey.get(dependencyKey),
+    ),
+    enabledDependentKeys: (dependentKeysByModuleId.get(module.id) ?? []).filter(
+      (dependentKey) => enabledByKey.get(dependentKey),
+    ),
   }));
 }
 
@@ -2532,7 +3105,10 @@ export async function listPlatformTenantSectors(tenantId: string): Promise<{
 
   const [sectors, tenantSectors, settings] = await Promise.all([
     db.select().from(sectorsTable).orderBy(asc(sectorsTable.name)),
-    db.select().from(tenantSectorsTable).where(eq(tenantSectorsTable.tenantId, tenantId)),
+    db
+      .select()
+      .from(tenantSectorsTable)
+      .where(eq(tenantSectorsTable.tenantId, tenantId)),
     db
       .select()
       .from(tenantSectorSettingsTable)
@@ -2540,8 +3116,12 @@ export async function listPlatformTenantSectors(tenantId: string): Promise<{
       .limit(1),
   ]);
 
-  const tenantSectorBySectorId = new Map(tenantSectors.map((entry) => [entry.sectorId, entry]));
-  const enabledIds = tenantSectors.filter((entry) => entry.isEnabled).map((entry) => entry.sectorId);
+  const tenantSectorBySectorId = new Map(
+    tenantSectors.map((entry) => [entry.sectorId, entry]),
+  );
+  const enabledIds = tenantSectors
+    .filter((entry) => entry.isEnabled)
+    .map((entry) => entry.sectorId);
   const policy: PlatformTenantSectorPolicy = settings[0]
     ? {
         mode: settings[0].mode,
@@ -2552,7 +3132,8 @@ export async function listPlatformTenantSectors(tenantId: string): Promise<{
     : {
         mode: enabledIds.length === 1 ? "single" : "multi",
         maxSectors: enabledIds.length === 1 ? 1 : null,
-        defaultSectorId: enabledIds.length === 1 ? enabledIds[0] ?? null : null,
+        defaultSectorId:
+          enabledIds.length === 1 ? (enabledIds[0] ?? null) : null,
         enforceSectorScope: true,
       };
 
@@ -2581,19 +3162,33 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
 
   if (!name) throw new Error("Tenantnaam is verplicht.");
   if (!slug || !/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/.test(slug)) {
-    throw new Error("Slug moet 3-80 tekens zijn en alleen kleine letters, cijfers en koppeltekens bevatten.");
+    throw new Error(
+      "Slug moet 3-80 tekens zijn en alleen kleine letters, cijfers en koppeltekens bevatten.",
+    );
   }
   if (domain && isPlatformHost(domain)) {
-    throw new Error("Platformhosts kunnen niet aan een tenant worden gekoppeld.");
+    throw new Error(
+      "Platformhosts kunnen niet aan een tenant worden gekoppeld.",
+    );
   }
 
   const [created] = await db.transaction(async (tx) => {
     const [tenant] = await tx
       .insert(tenantsTable)
-      .values({ name, slug, planKey, status: "trial", isActive: true, createdBy: actor.userId })
+      .values({
+        name,
+        slug,
+        planKey,
+        status: "trial",
+        isActive: true,
+        createdBy: actor.userId,
+      })
       .returning({ id: tenantsTable.id });
 
-    await tx.insert(tenantSectorSettingsTable).values({ tenantId: tenant.id }).onConflictDoNothing();
+    await tx
+      .insert(tenantSectorSettingsTable)
+      .values({ tenantId: tenant.id })
+      .onConflictDoNothing();
 
     const [plan] = await tx
       .select({ id: plansTable.id })
@@ -2635,7 +3230,9 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   redirect(backofficePath(`/platform/tenants/${created.id}`));
 }
 
-export async function updatePlatformTenantLifecycle(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantLifecycle(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const lifecycleAction = actionValue(formData, "lifecycleAction");
@@ -2646,34 +3243,60 @@ export async function updatePlatformTenantLifecycle(formData: FormData): Promise
   if (lifecycleAction === "suspend") {
     await db
       .update(tenantsTable)
-      .set({ status: "suspended", isActive: false, suspendedAt: now, suspendedBy: actor.userId, updatedAt: now })
+      .set({
+        status: "suspended",
+        isActive: false,
+        suspendedAt: now,
+        suspendedBy: actor.userId,
+        updatedAt: now,
+      })
       .where(eq(tenantsTable.id, tenantId));
   } else if (lifecycleAction === "reactivate") {
     await db
       .update(tenantsTable)
-      .set({ status: "active", isActive: true, suspendedAt: null, suspendedBy: null, updatedAt: now })
+      .set({
+        status: "active",
+        isActive: true,
+        suspendedAt: null,
+        suspendedBy: null,
+        updatedAt: now,
+      })
       .where(eq(tenantsTable.id, tenantId));
   } else if (lifecycleAction === "archive") {
     await db
       .update(tenantsTable)
-      .set({ status: "archived", isActive: false, archivedAt: now, archivedBy: actor.userId, updatedAt: now })
+      .set({
+        status: "archived",
+        isActive: false,
+        archivedAt: now,
+        archivedBy: actor.userId,
+        updatedAt: now,
+      })
       .where(eq(tenantsTable.id, tenantId));
   } else {
     return { success: false, message: "Onbekende lifecycle-actie." };
   }
 
-  await auditPlatformTenantAction({ tenantId, action: `tenant_${lifecycleAction}` });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: `tenant_${lifecycleAction}`,
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function updatePlatformTenantPlan(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantPlan(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const planKey = normalizePlanKey(actionValue(formData, "planKey"));
   const billingReference = textValue(formData, "billingReference", 160);
   const manualBillingNotes = textValue(formData, "manualBillingNotes", 2000);
-  const currentPeriodEndsAt = optionalDateValue(formData, "currentPeriodEndsAt");
+  const currentPeriodEndsAt = optionalDateValue(
+    formData,
+    "currentPeriodEndsAt",
+  );
 
   if (!tenantId) return { success: false, message: "Tenant is verplicht." };
 
@@ -2699,7 +3322,8 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
     .where(and(eq(plansTable.key, planKey), eq(plansTable.isActive, true)))
     .limit(1);
 
-  if (!plan) return { success: false, message: "Plan niet gevonden of inactief." };
+  if (!plan)
+    return { success: false, message: "Plan niet gevonden of inactief." };
 
   const [impact] = await db
     .select({
@@ -2714,17 +3338,30 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
     .from(tenantsTable)
     .where(eq(tenantsTable.id, tenantId))
     .limit(1);
-  const customDomainsDisabled = plan.customDomains ? 0 : Number(impact?.customDomains ?? 0);
+  const customDomainsDisabled = plan.customDomains
+    ? 0
+    : Number(impact?.customDomains ?? 0);
 
   await db.transaction(async (tx) => {
-    await tx.update(tenantsTable).set({ planKey, updatedAt: new Date() }).where(eq(tenantsTable.id, tenantId));
+    await tx
+      .update(tenantsTable)
+      .set({ planKey, updatedAt: new Date() })
+      .where(eq(tenantsTable.id, tenantId));
     await tx
       .update(tenantSubscriptionsTable)
-      .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: "canceled",
+        canceledAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(tenantSubscriptionsTable.tenantId, tenantId),
-          inArray(tenantSubscriptionsTable.status, ["trial", "active", "past_due"]),
+          inArray(tenantSubscriptionsTable.status, [
+            "trial",
+            "active",
+            "past_due",
+          ]),
         ),
       );
     await tx.insert(tenantSubscriptionsTable).values({
@@ -2746,14 +3383,23 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
           verificationStatus: "disabled_plan",
           tlsStatus: "disabled",
           disabledAt: new Date(),
-          disabledReason: "Custom domeinen zijn niet inbegrepen in het actieve abonnementsplan.",
+          disabledReason:
+            "Custom domeinen zijn niet inbegrepen in het actieve abonnementsplan.",
           updatedAt: new Date(),
         })
         .where(
           and(
             eq(tenantDomainsTable.tenantId, tenantId),
             eq(tenantDomainsTable.type, "custom_domain"),
-            inArray(tenantDomainsTable.verificationStatus, ["pending", "pending_dns", "dns_seen", "verified", "tls_pending", "active", "failed"]),
+            inArray(tenantDomainsTable.verificationStatus, [
+              "pending",
+              "pending_dns",
+              "dns_seen",
+              "verified",
+              "tls_pending",
+              "active",
+              "failed",
+            ]),
           ),
         );
     }
@@ -2777,15 +3423,21 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
   return { success: true };
 }
 
-export async function updatePlatformTenantSubscription(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantSubscription(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const subscriptionId = actionValue(formData, "subscriptionId");
   const status = normalizeSubscriptionStatus(actionValue(formData, "status"));
-  const currentPeriodEndsAt = optionalDateValue(formData, "currentPeriodEndsAt");
+  const currentPeriodEndsAt = optionalDateValue(
+    formData,
+    "currentPeriodEndsAt",
+  );
   const billingReference = textValue(formData, "billingReference", 160);
   const manualBillingNotes = textValue(formData, "manualBillingNotes", 2000);
 
-  if (!subscriptionId) return { success: false, message: "Abonnement is verplicht." };
+  if (!subscriptionId)
+    return { success: false, message: "Abonnement is verplicht." };
 
   const [subscription] = await db
     .select({
@@ -2800,20 +3452,28 @@ export async function updatePlatformTenantSubscription(formData: FormData): Prom
     .where(eq(tenantSubscriptionsTable.id, subscriptionId))
     .limit(1);
 
-  if (!subscription) return { success: false, message: "Abonnement niet gevonden." };
+  if (!subscription)
+    return { success: false, message: "Abonnement niet gevonden." };
 
   await db.transaction(async (tx) => {
     if (subscriptionIsRuntimeActive(status)) {
       await tx
         .update(tenantSubscriptionsTable)
-        .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+        .set({
+          status: "canceled",
+          canceledAt: new Date(),
+          updatedAt: new Date(),
+        })
         .where(
           and(
             eq(tenantSubscriptionsTable.tenantId, subscription.tenantId),
             inArray(tenantSubscriptionsTable.status, ["trial", "active"]),
           ),
         );
-      await tx.update(tenantsTable).set({ planKey: subscription.planKey, updatedAt: new Date() }).where(eq(tenantsTable.id, subscription.tenantId));
+      await tx
+        .update(tenantsTable)
+        .set({ planKey: subscription.planKey, updatedAt: new Date() })
+        .where(eq(tenantsTable.id, subscription.tenantId));
     }
 
     await tx
@@ -2823,7 +3483,11 @@ export async function updatePlatformTenantSubscription(formData: FormData): Prom
         currentPeriodEndsAt,
         billingReference,
         manualBillingNotes,
-        canceledAt: subscriptionIsRuntimeActive(status) ? null : status === "canceled" ? new Date() : null,
+        canceledAt: subscriptionIsRuntimeActive(status)
+          ? null
+          : status === "canceled"
+            ? new Date()
+            : null,
         updatedAt: new Date(),
       })
       .where(eq(tenantSubscriptionsTable.id, subscriptionId));
@@ -2847,33 +3511,46 @@ export async function updatePlatformTenantSubscription(formData: FormData): Prom
   return { success: true };
 }
 
-export async function addPlatformTenantDomain(formData: FormData): Promise<ActionResult> {
+export async function addPlatformTenantDomain(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const domain = normalizeHost(actionValue(formData, "domain"));
   const type = normalizeDomainType(actionValue(formData, "type"), domain);
   const isPrimary = booleanValue(formData, "isPrimary");
 
-  if (!tenantId || !domain) return { success: false, message: "Tenant en domein zijn verplicht." };
-  if (isPlatformHost(domain)) return { success: false, message: "Platformhost kan niet aan een tenant worden gekoppeld." };
+  if (!tenantId || !domain)
+    return { success: false, message: "Tenant en domein zijn verplicht." };
+  if (isPlatformHost(domain))
+    return {
+      success: false,
+      message: "Platformhost kan niet aan een tenant worden gekoppeld.",
+    };
 
   const gate = await tenantCustomDomainGate(tenantId);
   if (!gate.tenant) return { success: false, message: gate.detail };
 
   const isCustomDomain = type === "custom_domain";
-  if (isCustomDomain && !gate.allowed) return { success: false, message: gate.detail };
+  if (isCustomDomain && !gate.allowed)
+    return { success: false, message: gate.detail };
 
   const token = isCustomDomain ? randomVerificationToken() : null;
   const verificationStatus = isCustomDomain ? "pending_dns" : "verified";
   const verifiedAt = isCustomDomain ? null : new Date();
   const dnsTxtName = isCustomDomain ? customDomainTxtName(domain) : null;
-  const dnsTarget = isCustomDomain ? customDomainCnameTarget(gate.tenant.slug) : null;
+  const dnsTarget = isCustomDomain
+    ? customDomainCnameTarget(gate.tenant.slug)
+    : null;
   const tlsStatus = isCustomDomain ? "pending" : "active";
 
   try {
     await db.transaction(async (tx) => {
       if (isPrimary) {
-        await tx.update(tenantDomainsTable).set({ isPrimary: false }).where(eq(tenantDomainsTable.tenantId, tenantId));
+        await tx
+          .update(tenantDomainsTable)
+          .set({ isPrimary: false })
+          .where(eq(tenantDomainsTable.tenantId, tenantId));
       }
 
       await tx.insert(tenantDomainsTable).values({
@@ -2899,18 +3576,26 @@ export async function addPlatformTenantDomain(formData: FormData): Promise<Actio
     throw error;
   }
 
-  await auditPlatformTenantAction({ tenantId, action: "tenant_domain_added", resource: "tenant_domains", metadata: { domain, type, verificationStatus, isPrimary } });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_domain_added",
+    resource: "tenant_domains",
+    metadata: { domain, type, verificationStatus, isPrimary },
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function updatePlatformTenantDomain(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantDomain(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const domainId = actionValue(formData, "domainId");
   const domainAction = actionValue(formData, "domainAction");
 
-  if (!tenantId || !domainId) return { success: false, message: "Tenant en domein zijn verplicht." };
+  if (!tenantId || !domainId)
+    return { success: false, message: "Tenant en domein zijn verplicht." };
 
   const [domain] = await db
     .select({
@@ -2924,11 +3609,20 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
       dnsTarget: tenantDomainsTable.dnsTarget,
     })
     .from(tenantDomainsTable)
-    .where(and(eq(tenantDomainsTable.id, domainId), eq(tenantDomainsTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantDomainsTable.id, domainId),
+        eq(tenantDomainsTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!domain) return { success: false, message: "Domein niet gevonden." };
-  if (domain.type === "platform_reserved") return { success: false, message: "Platformdomeinen kunnen hier niet worden gewijzigd." };
+  if (domain.type === "platform_reserved")
+    return {
+      success: false,
+      message: "Platformdomeinen kunnen hier niet worden gewijzigd.",
+    };
 
   const gate = await tenantCustomDomainGate(tenantId);
   if (!gate.tenant) return { success: false, message: gate.detail };
@@ -2943,7 +3637,13 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
         updatedAt: new Date(),
       })
       .where(eq(tenantDomainsTable.id, domainId));
-    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_disabled_plan", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain } });
+    await auditPlatformTenantAction({
+      tenantId,
+      action: "tenant_domain_disabled_plan",
+      resource: "tenant_domains",
+      resourceId: domainId,
+      metadata: { domain: domain.domain },
+    });
     revalidatePlatformTenant(tenantId);
     return { success: false, message: gate.detail };
   }
@@ -2952,21 +3652,38 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
     if (domain.type !== "custom_domain") {
       await db
         .update(tenantDomainsTable)
-        .set({ verificationStatus: "verified", tlsStatus: "active", verifiedAt: new Date(), updatedAt: new Date() })
+        .set({
+          verificationStatus: "verified",
+          tlsStatus: "active",
+          verifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
         .where(eq(tenantDomainsTable.id, domainId));
-      await auditPlatformTenantAction({ tenantId, action: "tenant_domain_verified", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, type: domain.type } });
+      await auditPlatformTenantAction({
+        tenantId,
+        action: "tenant_domain_verified",
+        resource: "tenant_domains",
+        resourceId: domainId,
+        metadata: { domain: domain.domain, type: domain.type },
+      });
       revalidatePlatformTenant(tenantId);
       return { success: true };
     }
 
     if (!domain.verificationToken || !domain.dnsTxtName) {
-      return { success: false, message: "Verificatietoken ontbreekt. Verwijder en voeg het domein opnieuw toe." };
+      return {
+        success: false,
+        message:
+          "Verificatietoken ontbreekt. Verwijder en voeg het domein opnieuw toe.",
+      };
     }
 
     const expectedTxt = customDomainVerificationValue(domain.verificationToken);
     const expectedIpv4 = publicIpv4Target();
     const expectedIpv6 = publicIpv6Target();
-    const expectedCname = domain.dnsTarget ? normalizeHost(domain.dnsTarget) : customDomainCnameTarget(gate.tenant.slug);
+    const expectedCname = domain.dnsTarget
+      ? normalizeHost(domain.dnsTarget)
+      : customDomainCnameTarget(gate.tenant.slug);
     let txtValues: string[] = [];
     let addressValues: string[] = [];
     let cnameValues: string[] = [];
@@ -2981,7 +3698,10 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
       ]);
 
       const txtOk = txtValues.includes(expectedTxt);
-      const aOk = Boolean((expectedIpv4 && addressValues.includes(expectedIpv4)) || (expectedIpv6 && addressValues.includes(expectedIpv6)));
+      const aOk = Boolean(
+        (expectedIpv4 && addressValues.includes(expectedIpv4)) ||
+        (expectedIpv6 && addressValues.includes(expectedIpv6)),
+      );
       const cnameOk = cnameValues.includes(expectedCname);
       const routingOk = aOk || cnameOk;
 
@@ -2989,9 +3709,11 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
         status = "verified";
       } else if (txtOk) {
         status = "dns_seen";
-        errorMessage = "TXT-record klopt, maar A/AAAA/CNAME wijst nog niet naar Fieldgrid.";
+        errorMessage =
+          "TXT-record klopt, maar A/AAAA/CNAME wijst nog niet naar Fieldgrid.";
       } else {
-        errorMessage = "TXT-verificatie ontbreekt of heeft een verkeerde waarde.";
+        errorMessage =
+          "TXT-verificatie ontbreekt of heeft een verkeerde waarde.";
       }
     } catch (error) {
       errorMessage = dnsErrorMessage(error);
@@ -3030,7 +3752,13 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
         errorMessage,
       },
     });
-    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_dns_checked", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, status, errorMessage } });
+    await auditPlatformTenantAction({
+      tenantId,
+      action: "tenant_domain_dns_checked",
+      resource: "tenant_domains",
+      resourceId: domainId,
+      metadata: { domain: domain.domain, status, errorMessage },
+    });
 
     if (status !== "verified") {
       await maybeOpenDomainVerificationTicket({
@@ -3046,65 +3774,134 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
 
     return status === "verified"
       ? { success: true }
-      : { success: false, message: errorMessage ?? "DNS-verificatie is nog niet compleet." };
+      : {
+          success: false,
+          message: errorMessage ?? "DNS-verificatie is nog niet compleet.",
+        };
   } else if (domainAction === "check_tls") {
     if (!domainCanRoute(domain.verificationStatus)) {
-      return { success: false, message: "TLS kan pas na DNS-verificatie worden geactiveerd." };
+      return {
+        success: false,
+        message: "TLS kan pas na DNS-verificatie worden geactiveerd.",
+      };
     }
     await db
       .update(tenantDomainsTable)
-      .set({ tlsStatus: "active", tlsLastCheckedAt: new Date(), tlsLastError: null, activatedAt: new Date(), verificationStatus: "active", updatedAt: new Date() })
+      .set({
+        tlsStatus: "active",
+        tlsLastCheckedAt: new Date(),
+        tlsLastError: null,
+        activatedAt: new Date(),
+        verificationStatus: "active",
+        updatedAt: new Date(),
+      })
       .where(eq(tenantDomainsTable.id, domainId));
-    await recordDomainCheck({ tenantDomainId: domainId, tenantId, checkType: "tls", status: "active", details: { domain: domain.domain } });
-    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_tls_checked", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, status: "active" } });
+    await recordDomainCheck({
+      tenantDomainId: domainId,
+      tenantId,
+      checkType: "tls",
+      status: "active",
+      details: { domain: domain.domain },
+    });
+    await auditPlatformTenantAction({
+      tenantId,
+      action: "tenant_domain_tls_checked",
+      resource: "tenant_domains",
+      resourceId: domainId,
+      metadata: { domain: domain.domain, status: "active" },
+    });
   } else if (domainAction === "activate") {
     if (!domainCanRoute(domain.verificationStatus)) {
-      return { success: false, message: "Domein moet eerst geverifieerd zijn." };
+      return {
+        success: false,
+        message: "Domein moet eerst geverifieerd zijn.",
+      };
     }
     await db
       .update(tenantDomainsTable)
-      .set({ verificationStatus: "active", tlsStatus: "pending", activatedAt: new Date(), disabledAt: null, disabledReason: null, updatedAt: new Date() })
+      .set({
+        verificationStatus: "active",
+        tlsStatus: "pending",
+        activatedAt: new Date(),
+        disabledAt: null,
+        disabledReason: null,
+        updatedAt: new Date(),
+      })
       .where(eq(tenantDomainsTable.id, domainId));
   } else if (domainAction === "primary") {
     if (!domainCanRoute(domain.verificationStatus)) {
-      return { success: false, message: "Alleen verified/active domeinen kunnen primair worden." };
+      return {
+        success: false,
+        message: "Alleen verified/active domeinen kunnen primair worden.",
+      };
     }
     await db.transaction(async (tx) => {
-      await tx.update(tenantDomainsTable).set({ isPrimary: false }).where(eq(tenantDomainsTable.tenantId, tenantId));
-      await tx.update(tenantDomainsTable).set({ isPrimary: true, updatedAt: new Date() }).where(eq(tenantDomainsTable.id, domainId));
+      await tx
+        .update(tenantDomainsTable)
+        .set({ isPrimary: false })
+        .where(eq(tenantDomainsTable.tenantId, tenantId));
+      await tx
+        .update(tenantDomainsTable)
+        .set({ isPrimary: true, updatedAt: new Date() })
+        .where(eq(tenantDomainsTable.id, domainId));
     });
   } else if (domainAction === "disable") {
     await db
       .update(tenantDomainsTable)
-      .set({ verificationStatus: "disabled", tlsStatus: "disabled", disabledAt: new Date(), disabledReason: actionValue(formData, "disabledReason") || "Uitgeschakeld door platformbeheer.", updatedAt: new Date() })
+      .set({
+        verificationStatus: "disabled",
+        tlsStatus: "disabled",
+        disabledAt: new Date(),
+        disabledReason:
+          actionValue(formData, "disabledReason") ||
+          "Uitgeschakeld door platformbeheer.",
+        updatedAt: new Date(),
+      })
       .where(eq(tenantDomainsTable.id, domainId));
   } else if (domainAction === "remove") {
-    await db.delete(tenantDomainsTable).where(eq(tenantDomainsTable.id, domainId));
+    await db
+      .delete(tenantDomainsTable)
+      .where(eq(tenantDomainsTable.id, domainId));
   } else {
     return { success: false, message: "Onbekende domeinactie." };
   }
 
-  await auditPlatformTenantAction({ tenantId, action: `tenant_domain_${domainAction}`, resource: "tenant_domains", resourceId: domainId });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: `tenant_domain_${domainAction}`,
+    resource: "tenant_domains",
+    resourceId: domainId,
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function updatePlatformTenantModule(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantModule(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const moduleId = actionValue(formData, "moduleId");
   const enabled = actionValue(formData, "enabled") === "true";
 
-  if (!tenantId || !moduleId) return { success: false, message: "Tenant en module zijn verplicht." };
+  if (!tenantId || !moduleId)
+    return { success: false, message: "Tenant en module zijn verplicht." };
 
-  const [module] = await db.select().from(modulesTable).where(eq(modulesTable.id, moduleId)).limit(1);
+  const [module] = await db
+    .select()
+    .from(modulesTable)
+    .where(eq(modulesTable.id, moduleId))
+    .limit(1);
   if (!module) return { success: false, message: "Module niet gevonden." };
 
   if (enabled) {
     const dependencies = await db
       .select({ dependencyKey: modulesTable.key })
       .from(moduleDependenciesTable)
-      .innerJoin(modulesTable, eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id))
+      .innerJoin(
+        modulesTable,
+        eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id),
+      )
       .where(eq(moduleDependenciesTable.moduleId, moduleId));
 
     for (const dependency of dependencies) {
@@ -3119,7 +3916,10 @@ export async function updatePlatformTenantModule(formData: FormData): Promise<Ac
     const dependents = await db
       .select({ dependentKey: modulesTable.key })
       .from(moduleDependenciesTable)
-      .innerJoin(modulesTable, eq(moduleDependenciesTable.moduleId, modulesTable.id))
+      .innerJoin(
+        modulesTable,
+        eq(moduleDependenciesTable.moduleId, modulesTable.id),
+      )
       .where(eq(moduleDependenciesTable.dependsOnModuleId, moduleId));
 
     for (const dependent of dependents) {
@@ -3155,22 +3955,39 @@ export async function updatePlatformTenantModule(formData: FormData): Promise<Ac
       },
     });
 
-  await auditPlatformTenantAction({ tenantId, action: enabled ? "tenant_module_enabled" : "tenant_module_disabled", resource: "tenant_modules", resourceId: moduleId, metadata: { moduleKey: module.key } });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: enabled ? "tenant_module_enabled" : "tenant_module_disabled",
+    resource: "tenant_modules",
+    resourceId: moduleId,
+    metadata: { moduleKey: module.key },
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function updatePlatformTenantSector(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantSector(
+  formData: FormData,
+): Promise<ActionResult> {
   await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const sectorId = actionValue(formData, "sectorId");
   const enabled = actionValue(formData, "enabled") === "true";
 
-  if (!tenantId || !sectorId) return { success: false, message: "Tenant en sector zijn verplicht." };
+  if (!tenantId || !sectorId)
+    return { success: false, message: "Tenant en sector zijn verplicht." };
 
-  const [sector] = await db.select().from(sectorsTable).where(eq(sectorsTable.id, sectorId)).limit(1);
+  const [sector] = await db
+    .select()
+    .from(sectorsTable)
+    .where(eq(sectorsTable.id, sectorId))
+    .limit(1);
   if (!sector) return { success: false, message: "Sector niet gevonden." };
-  if (!sector.isActive && enabled) return { success: false, message: "Inactieve globale sector kan niet worden ingeschakeld." };
+  if (!sector.isActive && enabled)
+    return {
+      success: false,
+      message: "Inactieve globale sector kan niet worden ingeschakeld.",
+    };
 
   if (!enabled) {
     const [policy] = await db
@@ -3180,12 +3997,18 @@ export async function updatePlatformTenantSector(formData: FormData): Promise<Ac
       .limit(1);
 
     if (policy?.defaultSectorId === sectorId) {
-      return { success: false, message: "Kies eerst een andere defaultsector." };
+      return {
+        success: false,
+        message: "Kies eerst een andere defaultsector.",
+      };
     }
 
     const usageCount = await countTenantSectorUsage(tenantId, sectorId);
     if (usageCount > 0) {
-      return { success: false, message: "Sector is nog in gebruik en kan niet worden uitgeschakeld." };
+      return {
+        success: false,
+        message: "Sector is nog in gebruik en kan niet worden uitgeschakeld.",
+      };
     }
   }
 
@@ -3199,28 +4022,46 @@ export async function updatePlatformTenantSector(formData: FormData): Promise<Ac
       });
   } catch (error) {
     if ((error as { code?: string })?.code === "23514") {
-      return { success: false, message: "Sectorbeleid staat deze wijziging niet toe." };
+      return {
+        success: false,
+        message: "Sectorbeleid staat deze wijziging niet toe.",
+      };
     }
     throw error;
   }
 
-  await auditPlatformTenantAction({ tenantId, action: enabled ? "tenant_sector_enabled" : "tenant_sector_disabled", resource: "tenant_sectors", resourceId: sectorId });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: enabled ? "tenant_sector_enabled" : "tenant_sector_disabled",
+    resource: "tenant_sectors",
+    resourceId: sectorId,
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function updatePlatformTenantSectorPolicy(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformTenantSectorPolicy(
+  formData: FormData,
+): Promise<ActionResult> {
   await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const mode = actionValue(formData, "mode") === "single" ? "single" : "multi";
   const defaultSectorId = actionValue(formData, "defaultSectorId") || null;
   const maxSectorsRaw = actionValue(formData, "maxSectors");
-  const maxSectors = mode === "single" ? 1 : maxSectorsRaw ? Number.parseInt(maxSectorsRaw, 10) : null;
+  const maxSectors =
+    mode === "single"
+      ? 1
+      : maxSectorsRaw
+        ? Number.parseInt(maxSectorsRaw, 10)
+        : null;
   const enforceSectorScope = booleanValue(formData, "enforceSectorScope");
 
   if (!tenantId) return { success: false, message: "Tenant is verplicht." };
   if (maxSectors !== null && (!Number.isFinite(maxSectors) || maxSectors < 1)) {
-    return { success: false, message: "Maximum sectoren moet minimaal 1 zijn." };
+    return {
+      success: false,
+      message: "Maximum sectoren moet minimaal 1 zijn.",
+    };
   }
 
   if (defaultSectorId) {
@@ -3236,7 +4077,11 @@ export async function updatePlatformTenantSectorPolicy(formData: FormData): Prom
       )
       .limit(1);
 
-    if (!defaultSector) return { success: false, message: "Defaultsector moet actief zijn voor deze tenant." };
+    if (!defaultSector)
+      return {
+        success: false,
+        message: "Defaultsector moet actief zijn voor deze tenant.",
+      };
   }
 
   await db
@@ -3244,10 +4089,22 @@ export async function updatePlatformTenantSectorPolicy(formData: FormData): Prom
     .values({ tenantId, mode, maxSectors, defaultSectorId, enforceSectorScope })
     .onConflictDoUpdate({
       target: tenantSectorSettingsTable.tenantId,
-      set: { mode, maxSectors, defaultSectorId, enforceSectorScope, updatedAt: new Date() },
+      set: {
+        mode,
+        maxSectors,
+        defaultSectorId,
+        enforceSectorScope,
+        updatedAt: new Date(),
+      },
     });
 
-  await auditPlatformTenantAction({ tenantId, action: "tenant_sector_policy_updated", resource: "tenant_sector_settings", resourceId: tenantId, metadata: { mode, maxSectors, defaultSectorId, enforceSectorScope } });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_sector_policy_updated",
+    resource: "tenant_sector_settings",
+    resourceId: tenantId,
+    metadata: { mode, maxSectors, defaultSectorId, enforceSectorScope },
+  });
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }

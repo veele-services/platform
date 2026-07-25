@@ -170,7 +170,7 @@ test("current invoice UI exposes the expected action entry points", () => {
   assert.match(createInvoiceForm, /d\.setDate\(d\.getDate\(\) \+ days\)/u);
   assert.match(
     createInvoiceForm,
-    /createInvoice\(assignmentId, \{ amount, vatPercentage, dueDate, notes \}\)/u,
+    /createInvoice\(assignmentId,\s*\{\s*amount,\s*vatPercentage,\s*dueDate,\s*notes,\s*\}\)/u,
   );
   assert.match(
     createInvoiceForm,

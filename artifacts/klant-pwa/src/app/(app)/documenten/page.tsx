@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@workspace/shared-ui";
 export const dynamic = "force-dynamic";
 
 import { FileText, FolderOpen } from "lucide-react";
@@ -58,8 +59,10 @@ function mimeLabel(mimeType: string): string {
 }
 
 function entityLabel(doc: CustomerDocument): string {
-  if (doc.entityType === "assignment") return doc.assignmentCode ? `Opdracht ${doc.assignmentCode}` : "Opdracht";
-  if (doc.entityType === "object") return doc.objectName ? `Object ${doc.objectName}` : "Object";
+  if (doc.entityType === "assignment")
+    return doc.assignmentCode ? `Opdracht ${doc.assignmentCode}` : "Opdracht";
+  if (doc.entityType === "object")
+    return doc.objectName ? `Object ${doc.objectName}` : "Object";
   return "Organisatie";
 }
 
@@ -132,9 +135,11 @@ function filterDocuments({
   date: DocumentDateFilter;
 }) {
   return documents.filter((document) => {
-    const matchesType = type === "all" || typeFilterForMime(document.mimeType) === type;
+    const matchesType =
+      type === "all" || typeFilterForMime(document.mimeType) === type;
     const matchesObject = objectId === "all" || document.objectId === objectId;
-    const matchesAssignment = assignmentId === "all" || document.assignmentId === assignmentId;
+    const matchesAssignment =
+      assignmentId === "all" || document.assignmentId === assignmentId;
     return (
       matchesType &&
       matchesObject &&
@@ -164,16 +169,20 @@ function removeFilterHref({
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "type" && type !== "all") params.set("type", type);
   if (remove !== "object" && objectId !== "all") params.set("object", objectId);
-  if (remove !== "assignment" && assignmentId !== "all") params.set("assignment", assignmentId);
+  if (remove !== "assignment" && assignmentId !== "all")
+    params.set("assignment", assignmentId);
   if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
   return value ? `/documenten?${value}` : "/documenten";
 }
 
-function uniqueOptions(items: Array<{ id: string | null; label: string | null }>) {
+function uniqueOptions(
+  items: Array<{ id: string | null; label: string | null }>,
+) {
   const map = new Map<string, string>();
   for (const item of items) {
-    if (item.id && item.label && !map.has(item.id)) map.set(item.id, item.label);
+    if (item.id && item.label && !map.has(item.id))
+      map.set(item.id, item.label);
   }
   return [...map.entries()]
     .map(([id, label]) => ({ id, label }))
@@ -209,7 +218,10 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       key: "type",
       header: "Type",
       render: (doc) => (
-        <span className="font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {mimeLabel(doc.mimeType)}
         </span>
       ),
@@ -219,11 +231,17 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       header: "Koppeling",
       render: (doc) => (
         <span className="block min-w-[12rem]">
-          <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="block text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {entityLabel(doc)}
           </span>
           {doc.assignmentTitle || doc.objectName ? (
-            <span className="mt-0.5 block truncate text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+            <span
+              className="mt-0.5 block truncate text-xs font-semibold"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               {doc.assignmentTitle ?? doc.objectName}
             </span>
           ) : null}
@@ -234,7 +252,10 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       key: "size",
       header: "Grootte",
       render: (doc) => (
-        <span className="font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatBytes(doc.sizeBytes)}
         </span>
       ),
@@ -243,7 +264,10 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       key: "date",
       header: "Datum",
       render: (doc) => (
-        <span className="font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatDate(doc.createdAt)}
         </span>
       ),
@@ -264,7 +288,13 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
 export default async function DocumentenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; object?: string; assignment?: string; date?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    object?: string;
+    assignment?: string;
+    date?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
@@ -282,7 +312,10 @@ export default async function DocumentenPage({
     date: selectedDate,
   });
   const objectOptions = uniqueOptions(
-    documents.map((document) => ({ id: document.objectId, label: document.objectName })),
+    documents.map((document) => ({
+      id: document.objectId,
+      label: document.objectName,
+    })),
   );
   const assignmentOptions = uniqueOptions(
     documents.map((document) => ({
@@ -293,13 +326,17 @@ export default async function DocumentenPage({
     })),
   );
   const selectedTypeLabel =
-    DOCUMENT_TYPE_OPTIONS.find((option) => option.value === selectedType)?.label ?? "Alle typen";
+    DOCUMENT_TYPE_OPTIONS.find((option) => option.value === selectedType)
+      ?.label ?? "Alle typen";
   const selectedObjectLabel =
-    objectOptions.find((option) => option.id === selectedObject)?.label ?? "Object";
+    objectOptions.find((option) => option.id === selectedObject)?.label ??
+    "Object";
   const selectedAssignmentLabel =
-    assignmentOptions.find((option) => option.id === selectedAssignment)?.label ?? "Opdracht";
+    assignmentOptions.find((option) => option.id === selectedAssignment)
+      ?.label ?? "Opdracht";
   const selectedDateLabel =
-    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)?.label ?? "Alle datums";
+    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)
+      ?.label ?? "Alle datums";
 
   const activeFilters = [
     query
@@ -367,17 +404,27 @@ export default async function DocumentenPage({
           }),
         }
       : null,
-  ].filter((filter): filter is { label: string; href: string } => Boolean(filter));
+  ].filter((filter): filter is { label: string; href: string } =>
+    Boolean(filter),
+  );
 
   return (
     <PortalPageShell
       title="Documenten"
       subtitle="Bestanden die met uw organisatie zijn gedeeld."
-      status={{ label: `${documents.length} gedeeld`, tone: documents.length > 0 ? "accent" : "neutral" }}
+      status={{
+        label: `${documents.length} gedeeld`,
+        tone: documents.length > 0 ? "accent" : "neutral",
+      }}
     >
       <PortalToolbar
         resultLabel={`${visibleDocuments.length} van ${documents.length} documenten`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/documenten" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/documenten"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Documentfilters"
@@ -396,7 +443,10 @@ export default async function DocumentenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/documenten" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/documenten"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
@@ -413,9 +463,15 @@ export default async function DocumentenPage({
               </option>
             ))}
           </PortalToolbarSelect>
-          {selectedObject !== "all" ? <input type="hidden" name="object" value={selectedObject} /> : null}
-          {selectedAssignment !== "all" ? <input type="hidden" name="assignment" value={selectedAssignment} /> : null}
-          {selectedDate !== "all" ? <input type="hidden" name="date" value={selectedDate} /> : null}
+          {selectedObject !== "all" ? (
+            <input type="hidden" name="object" value={selectedObject} />
+          ) : null}
+          {selectedAssignment !== "all" ? (
+            <input type="hidden" name="assignment" value={selectedAssignment} />
+          ) : null}
+          {selectedDate !== "all" ? (
+            <input type="hidden" name="date" value={selectedDate} />
+          ) : null}
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
@@ -433,12 +489,12 @@ export default async function DocumentenPage({
         tableLabel="Gedeelde documenten"
         emptyState={{
           icon: (
-            <FolderOpen
-              size={32}
-              style={{ color: "var(--color-muted-fg)" }}
-            />
+            <FolderOpen size={32} style={{ color: "var(--color-muted-fg)" }} />
           ),
-          title: activeFilters.length > 0 ? "Geen documenten gevonden" : "Geen documenten beschikbaar",
+          title:
+            activeFilters.length > 0
+              ? "Geen documenten gevonden"
+              : "Geen documenten beschikbaar",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de lijst opnieuw te bekijken."
@@ -468,15 +524,24 @@ export default async function DocumentenPage({
                   className="mt-2 text-xs font-semibold"
                   style={{ color: "var(--color-secondary)" }}
                 >
-                  {mimeLabel(doc.mimeType)} - {formatBytes(doc.sizeBytes)} - {formatDate(doc.createdAt)}
+                  {mimeLabel(doc.mimeType)} - {formatBytes(doc.sizeBytes)} -{" "}
+                  {formatDate(doc.createdAt)}
                 </p>
-                <p className="mt-1 text-xs font-bold" style={{ color: "var(--color-muted-fg)" }}>
+                <p
+                  className="mt-1 text-xs font-bold"
+                  style={{ color: "var(--color-muted-fg)" }}
+                >
                   {entityLabel(doc)}
-                  {doc.assignmentTitle || doc.objectName ? ` - ${doc.assignmentTitle ?? doc.objectName}` : ""}
+                  {doc.assignmentTitle || doc.objectName
+                    ? ` - ${doc.assignmentTitle ?? doc.objectName}`
+                    : ""}
                 </p>
               </div>
               <PortalActionMenu label={`Acties voor ${doc.name}`}>
-                <DocumentDownloadButton documentId={doc.id} filename={doc.filename} />
+                <DocumentDownloadButton
+                  documentId={doc.id}
+                  filename={doc.filename}
+                />
               </PortalActionMenu>
             </div>
           </article>
@@ -534,7 +599,7 @@ function DocumentFilterForm({
         >
           Type
         </label>
-        <select
+        <SelectAdapter
           id="document-filter-type"
           name="type"
           defaultValue={selectedType}
@@ -549,7 +614,7 @@ function DocumentFilterForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div>
         <label
@@ -559,12 +624,15 @@ function DocumentFilterForm({
         >
           Object
         </label>
-        <select
+        <SelectAdapter
           id="document-filter-object"
           name="object"
           defaultValue={selectedObject}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle objecten</option>
           {objectOptions.map((option) => (
@@ -572,7 +640,7 @@ function DocumentFilterForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div>
         <label
@@ -582,12 +650,15 @@ function DocumentFilterForm({
         >
           Opdracht
         </label>
-        <select
+        <SelectAdapter
           id="document-filter-assignment"
           name="assignment"
           defaultValue={selectedAssignment}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle opdrachten</option>
           {assignmentOptions.map((option) => (
@@ -595,7 +666,7 @@ function DocumentFilterForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div>
         <label
@@ -605,19 +676,22 @@ function DocumentFilterForm({
         >
           Datum
         </label>
-        <select
+        <SelectAdapter
           id="document-filter-date"
           name="date"
           defaultValue={selectedDate}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           {DATE_FILTER_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
+        </SelectAdapter>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">
         <a

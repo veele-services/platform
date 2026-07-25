@@ -20,7 +20,7 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import { signOut } from "@/actions/auth";
+import { NativeAwareSignOutButton } from "@/components/NativeAwareSignOutButton";
 import { FieldgridLogo, type PortalBrandingProps } from "./MobileHeader";
 
 type PersonnelPortalFeatureFlags = {
@@ -118,16 +118,13 @@ export function DesktopSidebar({
         className="border-t px-3 py-4"
         style={{ borderColor: "#E2E8F0" }}
       >
-        <form action={signOut}>
-          <button
-            type="submit"
+        <NativeAwareSignOutButton
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
             style={{ color: "#475569" }}
-          >
+        >
             <LogOut size={18} strokeWidth={1.75} />
             Uitloggen
-          </button>
-        </form>
+        </NativeAwareSignOutButton>
       </div>
     </aside>
   );

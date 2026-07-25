@@ -7,8 +7,12 @@ function read(path) {
 }
 
 function assertContains(content, phrases, label) {
+  const normalizedContent = content.replace(/\s+/gu, " ");
   for (const phrase of phrases) {
-    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
+    assert.ok(
+      normalizedContent.includes(phrase.replace(/\s+/gu, " ")),
+      `${label} should contain ${phrase}`,
+    );
   }
 }
 
@@ -47,7 +51,7 @@ test("phase 6 tenant detail renders first-run, usage and branding preview", () =
       "Documenten",
       "tenant.usage.documents",
       "formatBytes(tenant.usage.storageBytes)",
-      "Usage voor beheer, supporttriage en toekomstige limieten",
+      "Gebruikscijfers voor beheer, support en abonnementsgrenzen.",
     ],
     "tenant detail page",
   );

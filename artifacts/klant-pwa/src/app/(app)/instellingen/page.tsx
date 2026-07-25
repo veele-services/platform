@@ -33,7 +33,7 @@ export default async function InstellingenPage() {
 
           <div className="rounded-[22px] bg-white p-5 shadow-sm">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-[#081D3A]">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-[var(--color-primary)]">
                 <Smartphone size={21} />
               </span>
               <div>
