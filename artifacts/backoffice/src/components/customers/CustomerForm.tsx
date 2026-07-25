@@ -325,9 +325,16 @@ export function CustomerForm({
               {...register("name")}
               placeholder="Klantnaam"
               aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "name-error" : undefined}
             />
             {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
+              <p
+                id="name-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.name.message}
+              </p>
             )}
           </div>
 
@@ -495,9 +502,16 @@ export function CustomerForm({
               {...register("contactName")}
               placeholder="Volledige naam"
               aria-invalid={!!errors.contactName}
+              aria-describedby={
+                errors.contactName ? "contactName-error" : undefined
+              }
             />
             {errors.contactName && (
-              <p className="text-xs text-destructive">
+              <p
+                id="contactName-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.contactName.message}
               </p>
             )}
@@ -510,9 +524,16 @@ export function CustomerForm({
               {...register("contactEmail")}
               placeholder="email@voorbeeld.nl"
               aria-invalid={!!errors.contactEmail}
+              aria-describedby={
+                errors.contactEmail ? "contactEmail-error" : undefined
+              }
             />
             {errors.contactEmail && (
-              <p className="text-xs text-destructive">
+              <p
+                id="contactEmail-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.contactEmail.message}
               </p>
             )}
@@ -603,9 +624,16 @@ export function CustomerForm({
               {...register("city")}
               placeholder="Amsterdam"
               aria-invalid={!!errors.city}
+              aria-describedby={errors.city ? "city-error" : undefined}
             />
             {errors.city && (
-              <p className="text-xs text-destructive">{errors.city.message}</p>
+              <p
+                id="city-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.city.message}
+              </p>
             )}
           </div>
           <div className="space-y-1">
@@ -623,9 +651,14 @@ export function CustomerForm({
               {...register("country")}
               placeholder="NL"
               aria-invalid={!!errors.country}
+              aria-describedby={errors.country ? "country-error" : undefined}
             />
             {errors.country && (
-              <p className="text-xs text-destructive">
+              <p
+                id="country-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.country.message}
               </p>
             )}

@@ -147,9 +147,29 @@ test("loading, error and forbidden states do not expose private diagnostics", ()
   );
   for (const source of [dashboardError, platformError]) {
     assert.match(source, /Opnieuw proberen/);
+    assert.match(source, /role="alert"/);
+    assert.match(source, /aria-live="assertive"/);
+    assert.match(source, /errorRef\.current\?\.focus\(\)/);
     assert.doesNotMatch(source, /error\.digest|error\.message/);
   }
   assert.doesNotMatch(forbidden, /\{resource\}|\{action\}/);
+});
+
+test("compact buttons retain 44 pixel targets and form errors are associated", () => {
+  const button = read("artifacts/backoffice/src/components/ui/button.tsx");
+  const assignmentForm = read(
+    "artifacts/backoffice/src/components/assignments/AssignmentForm.tsx",
+  );
+  const customerForm = read(
+    "artifacts/backoffice/src/components/customers/CustomerForm.tsx",
+  );
+
+  assert.match(button, /sm: "min-h-11/);
+  assert.match(button, /"icon-sm": "size-11"/);
+  for (const source of [assignmentForm, customerForm]) {
+    assert.match(source, /aria-describedby=/);
+    assert.match(source, /role="alert"/);
+  }
 });
 
 test("privacy-safe analytics cannot accept product content or identities", () => {

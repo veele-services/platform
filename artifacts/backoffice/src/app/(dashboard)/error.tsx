@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,10 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const errorRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
+    errorRef.current?.focus();
     console.error("[backoffice] Pagina kon niet laden.", error);
     trackUxAnalytics({
       name: "mutation_error",
@@ -30,7 +33,13 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <main className="flex min-h-[60dvh] items-center justify-center bg-background px-4 py-10">
+    <main
+      ref={errorRef}
+      role="alert"
+      aria-live="assertive"
+      tabIndex={-1}
+      className="flex min-h-[60dvh] items-center justify-center bg-background px-4 py-10 outline-none"
+    >
       <Empty className="w-full max-w-lg border border-dashed border-border bg-card">
         <EmptyHeader>
           <EmptyMedia variant="icon" className="text-amber-700">

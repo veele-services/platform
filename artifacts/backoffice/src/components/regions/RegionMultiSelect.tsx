@@ -52,6 +52,8 @@ interface RegionMultiSelectProps {
   emptyLabel?: string;
   className?: string;
   disabled?: boolean;
+  ariaDescribedBy?: string;
+  invalid?: boolean;
 }
 
 export function RegionMultiSelect({
@@ -63,6 +65,8 @@ export function RegionMultiSelect({
   emptyLabel = "Geen branches/regio's gevonden.",
   className,
   disabled = false,
+  ariaDescribedBy,
+  invalid = false,
 }: RegionMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -90,7 +94,9 @@ export function RegionMultiSelect({
     if (!cleaned) return;
     const normalized = normalizeRegionName(cleaned);
     if (selectedKeys.has(normalized)) {
-      commit(selected.filter((item) => normalizeRegionName(item) !== normalized));
+      commit(
+        selected.filter((item) => normalizeRegionName(item) !== normalized),
+      );
     } else {
       commit([...selected, cleaned]);
     }
@@ -107,11 +113,20 @@ export function RegionMultiSelect({
             role="combobox"
             aria-label={label}
             aria-expanded={open}
+            aria-describedby={ariaDescribedBy}
+            aria-invalid={invalid}
             disabled={disabled}
             className="min-h-11 w-full justify-between px-3 py-2 text-left font-normal"
           >
-            <span className={cn("truncate", !selected.length && "text-muted-foreground")}>
-              {selected.length ? `${selected.length} branch/regio${selected.length === 1 ? "" : "'s"} geselecteerd` : placeholder}
+            <span
+              className={cn(
+                "truncate",
+                !selected.length && "text-muted-foreground",
+              )}
+            >
+              {selected.length
+                ? `${selected.length} branch/regio${selected.length === 1 ? "" : "'s"} geselecteerd`
+                : placeholder}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -129,16 +144,30 @@ export function RegionMultiSelect({
                 {optionNames.map((name) => {
                   const checked = selectedKeys.has(normalizeRegionName(name));
                   return (
-                    <CommandItem key={name} value={name} onSelect={() => toggle(name)}>
-                      <Check className={cn("h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                    <CommandItem
+                      key={name}
+                      value={name}
+                      onSelect={() => toggle(name)}
+                    >
+                      <Check
+                        className={cn(
+                          "h-4 w-4",
+                          checked ? "opacity-100" : "opacity-0",
+                        )}
+                      />
                       <span className="truncate">{name}</span>
                     </CommandItem>
                   );
                 })}
                 {canCreate && (
-                  <CommandItem value={cleanQuery} onSelect={() => toggle(cleanQuery)}>
+                  <CommandItem
+                    value={cleanQuery}
+                    onSelect={() => toggle(cleanQuery)}
+                  >
                     <Plus className="h-4 w-4" />
-                    <span className="truncate">Nieuwe branch/regio: {cleanQuery}</span>
+                    <span className="truncate">
+                      Nieuwe branch/regio: {cleanQuery}
+                    </span>
                   </CommandItem>
                 )}
               </CommandGroup>
@@ -150,7 +179,11 @@ export function RegionMultiSelect({
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selected.map((name) => (
-            <Badge key={name} variant="secondary" className="gap-1 rounded-md pr-1">
+            <Badge
+              key={name}
+              variant="secondary"
+              className="gap-1 rounded-md pr-1"
+            >
               <span className="max-w-[180px] truncate">{name}</span>
               <button
                 type="button"

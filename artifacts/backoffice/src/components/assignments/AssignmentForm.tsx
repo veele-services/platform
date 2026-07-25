@@ -345,9 +345,16 @@ export function AssignmentForm({
               {...register("title")}
               placeholder="Omschrijving van de opdracht"
               aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? "title-error" : undefined}
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
+              <p
+                id="title-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.title.message}
+              </p>
             )}
           </div>
 
@@ -402,7 +409,13 @@ export function AssignmentForm({
                 setValue("objectId", "");
               }}
             >
-              <SelectTrigger id="customerId" aria-invalid={!!errors.customerId}>
+              <SelectTrigger
+                id="customerId"
+                aria-invalid={!!errors.customerId}
+                aria-describedby={
+                  errors.customerId ? "customerId-error" : undefined
+                }
+              >
                 <SelectValue placeholder="Selecteer klant..." />
               </SelectTrigger>
               <SelectContent>
@@ -415,7 +428,11 @@ export function AssignmentForm({
               </SelectContent>
             </Select>
             {errors.customerId && (
-              <p className="text-xs text-destructive">
+              <p
+                id="customerId-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.customerId.message}
               </p>
             )}
@@ -485,12 +502,8 @@ export function AssignmentForm({
                   shouldValidate: true,
                 })
               }
+              error={errors.scheduledEnd?.message}
             />
-            {errors.scheduledEnd ? (
-              <p className="mt-1 text-xs text-destructive">
-                {errors.scheduledEnd.message}
-              </p>
-            ) : null}
           </div>
           <div className="space-y-1">
             <Label htmlFor="requiredPersonnelCount">Benodigd</Label>
@@ -500,9 +513,19 @@ export function AssignmentForm({
               min={1}
               max={50}
               {...register("requiredPersonnelCount", { valueAsNumber: true })}
+              aria-invalid={!!errors.requiredPersonnelCount}
+              aria-describedby={
+                errors.requiredPersonnelCount
+                  ? "requiredPersonnelCount-error"
+                  : undefined
+              }
             />
             {errors.requiredPersonnelCount && (
-              <p className="text-xs text-destructive">
+              <p
+                id="requiredPersonnelCount-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.requiredPersonnelCount.message}
               </p>
             )}
@@ -514,6 +537,10 @@ export function AssignmentForm({
               options={regionOptions}
               label="Regio's"
               placeholder="Selecteer of maak regio's..."
+              ariaDescribedBy={
+                errors.requiredRegion ? "requiredRegion-error" : undefined
+              }
+              invalid={!!errors.requiredRegion}
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
               Optioneel. De eerste regio blijft leidend voor bestaande
@@ -521,7 +548,11 @@ export function AssignmentForm({
               opgeslagen.
             </p>
             {errors.requiredRegion && (
-              <p className="text-xs text-destructive">
+              <p
+                id="requiredRegion-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.requiredRegion.message}
               </p>
             )}
