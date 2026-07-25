@@ -553,12 +553,16 @@ export function ObjectsView({
             .filter(Boolean)
             .join(", ");
           return (
-            <article className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <article
+              aria-labelledby={`object-mobile-${row.id}-title`}
+              className="rounded-lg border border-border bg-card p-4 shadow-card"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
                   {context.selectionControl}
                   <div className="min-w-0">
                     <Link
+                      id={`object-mobile-${row.id}-title`}
                       href={`/objects/${row.id}`}
                       className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >

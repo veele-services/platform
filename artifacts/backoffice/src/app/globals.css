@@ -102,11 +102,11 @@
   --control-height-compact: 36px;
   --control-height-default: 44px;
   --control-height-comfortable: 48px;
-  --z-dropdown: 40;
+  --z-dropdown: 90;
   --z-sticky: 50;
-  --z-overlay: 60;
+  --z-overlay: 90;
   --z-modal: 70;
-  --z-toast: 80;
+  --z-toast: 100;
   --motion-fast: 120ms;
   --motion-default: 180ms;
   --motion-slow: 220ms;

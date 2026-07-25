@@ -105,9 +105,10 @@ export function RegionMultiSelect({
             type="button"
             variant="outline"
             role="combobox"
+            aria-label={label}
             aria-expanded={open}
             disabled={disabled}
-            className="min-h-9 w-full justify-between px-3 py-2 text-left font-normal"
+            className="min-h-11 w-full justify-between px-3 py-2 text-left font-normal"
           >
             <span className={cn("truncate", !selected.length && "text-muted-foreground")}>
               {selected.length ? `${selected.length} branch/regio${selected.length === 1 ? "" : "'s"} geselecteerd` : placeholder}
@@ -153,7 +154,7 @@ export function RegionMultiSelect({
               <span className="max-w-[180px] truncate">{name}</span>
               <button
                 type="button"
-                className="inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-background/80"
+                className="inline-flex size-11 items-center justify-center rounded-sm hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7"
                 aria-label={`${name} verwijderen`}
                 onClick={() => toggle(name)}
               >

@@ -507,12 +507,17 @@ export function FieldgridDataView<TData>({
       ) : null}
 
       {renderMobileCard ? (
-        <div className="grid gap-3 md:hidden">
+        <div
+          className="grid gap-3 md:hidden"
+          role="list"
+          aria-label={caption}
+        >
           {loading
             ? Array.from({ length: 4 }, (_, index) => (
                 <div
                   key={`mobile-skeleton-${index}`}
                   className="space-y-3 rounded-lg border bg-card p-4"
+                  role="listitem"
                   aria-hidden="true"
                 >
                   <Skeleton className="h-5 w-2/3" />
@@ -523,12 +528,12 @@ export function FieldgridDataView<TData>({
             : rows.map((row, index) => {
                 const rowId = getRowId(row);
                 return (
-                  <React.Fragment key={rowId}>
+                  <div key={rowId} role="listitem">
                     {renderMobileCard(row, index, {
                       selected: selection?.selectedIds.has(rowId) ?? false,
                       selectionControl: rowSelectionControl(rowId),
                     })}
-                  </React.Fragment>
+                  </div>
                 );
               })}
         </div>
