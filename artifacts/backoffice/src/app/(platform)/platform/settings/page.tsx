@@ -1,3 +1,4 @@
+import { SelectAdapter } from "@/components/ui/select-adapter";
 import {
   getPlatformSettingsDashboard,
   requestPlatformSettingChange,
@@ -37,17 +38,23 @@ const CATEGORY_LABELS: Record<PlatformSettingsCategory, string> = {
   operations: "Operations",
 };
 
-async function requestPlatformSettingChangeAction(formData: FormData): Promise<void> {
+async function requestPlatformSettingChangeAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await requestPlatformSettingChange(formData);
 }
 
-async function updatePlatformSmtpSettingsAction(formData: FormData): Promise<void> {
+async function updatePlatformSmtpSettingsAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await updatePlatformSmtpSettings(formData);
 }
 
-async function updatePlatformEmailProviderSettingsAction(formData: FormData): Promise<PlatformEmailProviderFormState> {
+async function updatePlatformEmailProviderSettingsAction(
+  formData: FormData,
+): Promise<PlatformEmailProviderFormState> {
   "use server";
   const result = await updatePlatformEmailProviderSettings(formData);
   return result.success
@@ -55,7 +62,9 @@ async function updatePlatformEmailProviderSettingsAction(formData: FormData): Pr
     : { success: false, message: result.message };
 }
 
-async function sendPlatformEmailTestFormAction(formData: FormData): Promise<void> {
+async function sendPlatformEmailTestFormAction(
+  formData: FormData,
+): Promise<void> {
   "use server";
   await sendPlatformEmailTestAction(formData);
 }
@@ -92,49 +101,79 @@ function SettingCard({ setting }: { setting: PlatformSettingRow }) {
     <article className="rounded border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase text-slate-500">{CATEGORY_LABELS[setting.category]}</p>
-          <h2 className="mt-1 text-base font-semibold tracking-normal text-slate-950">{setting.label}</h2>
+          <p className="text-xs font-medium uppercase text-slate-500">
+            {CATEGORY_LABELS[setting.category]}
+          </p>
+          <h2 className="mt-1 text-base font-semibold tracking-normal text-slate-950">
+            {setting.label}
+          </h2>
         </div>
-        <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${statusClass(setting.status)}`}>
+        <span
+          className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${statusClass(setting.status)}`}
+        >
           {STATUS_LABELS[setting.status]}
         </span>
       </div>
       <dl className="mt-4 grid gap-2 text-sm">
         <div className="rounded bg-slate-50 px-3 py-2">
-          <dt className="text-xs font-medium uppercase text-slate-500">Waarde</dt>
-          <dd className="mt-1 break-words font-medium text-slate-950">{setting.value}</dd>
+          <dt className="text-xs font-medium uppercase text-slate-500">
+            Waarde
+          </dt>
+          <dd className="mt-1 break-words font-medium text-slate-950">
+            {setting.value}
+          </dd>
         </div>
         <div className="rounded bg-slate-50 px-3 py-2">
           <dt className="text-xs font-medium uppercase text-slate-500">Bron</dt>
-          <dd className="mt-1 break-words font-medium text-slate-950">{setting.source}</dd>
+          <dd className="mt-1 break-words font-medium text-slate-950">
+            {setting.source}
+          </dd>
         </div>
       </dl>
       <p className="mt-3 text-sm text-slate-600">{setting.detail}</p>
-      <p className="mt-2 text-sm font-medium text-slate-800">{setting.nextAction}</p>
+      <p className="mt-2 text-sm font-medium text-slate-800">
+        {setting.nextAction}
+      </p>
     </article>
   );
 }
 
-function providerLabel(providerType: PlatformEmailProviderAdminView["providerType"]): string {
+function providerLabel(
+  providerType: PlatformEmailProviderAdminView["providerType"],
+): string {
   return providerType === "resend_api" ? "Resend API" : "SMTP";
 }
 
-function EmailProviderSettingsPanel({ providers }: { providers: PlatformEmailProviderAdminView[] }) {
+function EmailProviderSettingsPanel({
+  providers,
+}: {
+  providers: PlatformEmailProviderAdminView[];
+}) {
   const activeProvider = providers.find((provider) => provider.isActive);
 
   return (
     <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">Platformbrede e-mail</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-normal text-slate-950">E-mailprovider</h2>
+          <p className="text-sm font-medium text-slate-500">
+            Platformbrede e-mail
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-normal text-slate-950">
+            E-mailprovider
+          </h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Kies Resend API of SMTP als centrale transportlaag voor alle uitnodigingen, wachtwoordmails, notificaties, facturen,
-            rapportages en systeemmails. Secrets worden encrypted opgeslagen en alleen gemasked getoond.
+            Kies Resend API of SMTP als centrale transportlaag voor alle
+            uitnodigingen, wachtwoordmails, notificaties, facturen, rapportages
+            en systeemmails. Secrets worden encrypted opgeslagen en alleen
+            gemasked getoond.
           </p>
         </div>
-        <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${activeProvider ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-900"}`}>
-          {activeProvider ? `${providerLabel(activeProvider.providerType)} actief` : "Niet geconfigureerd"}
+        <span
+          className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${activeProvider ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-900"}`}
+        >
+          {activeProvider
+            ? `${providerLabel(activeProvider.providerType)} actief`
+            : "Niet geconfigureerd"}
         </span>
       </div>
 
@@ -148,12 +187,24 @@ function EmailProviderSettingsPanel({ providers }: { providers: PlatformEmailPro
         ))}
       </div>
 
-      <form action={sendPlatformEmailTestFormAction} className="mt-5 grid gap-3 rounded border border-cyan-100 bg-cyan-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <form
+        action={sendPlatformEmailTestFormAction}
+        className="mt-5 grid gap-3 rounded border border-cyan-100 bg-cyan-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      >
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Testmail ontvanger
-          <input name="testEmail" type="email" required placeholder="admin@fieldgrid.nl" className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950" />
+          <input
+            name="testEmail"
+            type="email"
+            required
+            placeholder="admin@fieldgrid.nl"
+            className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+          />
         </label>
-        <button type="submit" className="min-h-11 rounded bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800">
+        <button
+          type="submit"
+          className="min-h-11 rounded bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
+        >
           Testmail versturen
         </button>
       </form>
@@ -166,26 +217,47 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
     <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">Platformbrede mail</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-normal text-slate-950">SMTP instellingen</h2>
+          <p className="text-sm font-medium text-slate-500">
+            Platformbrede mail
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-normal text-slate-950">
+            SMTP instellingen
+          </h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Deze configuratie geldt platformbreed voor systeemmails, uitnodigingen en notificaties. Wachtwoorden worden alleen
-            overschreven wanneer u een nieuw wachtwoord invult of wissen aanvinkt.
+            Deze configuratie geldt platformbreed voor systeemmails,
+            uitnodigingen en notificaties. Wachtwoorden worden alleen
+            overschreven wanneer u een nieuw wachtwoord invult of wissen
+            aanvinkt.
           </p>
         </div>
-        <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${smtp.smtpEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-900"}`}>
+        <span
+          className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${smtp.smtpEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-900"}`}
+        >
           {smtp.smtpEnabled ? "Actief" : "Uit"}
         </span>
       </div>
 
-      <form action={updatePlatformSmtpSettingsAction} className="mt-5 grid gap-4">
+      <form
+        action={updatePlatformSmtpSettingsAction}
+        className="mt-5 grid gap-4"
+      >
         <div className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-950">SMTP transport gebruiken</p>
-            <p className="text-sm text-slate-600">Laat uit staan wanneer Resend of een latere SendGrid-koppeling tijdelijk de fallback is.</p>
+            <p className="text-sm font-semibold text-slate-950">
+              SMTP transport gebruiken
+            </p>
+            <p className="text-sm text-slate-600">
+              Laat uit staan wanneer Resend of een latere SendGrid-koppeling
+              tijdelijk de fallback is.
+            </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input name="smtpEnabled" type="checkbox" defaultChecked={smtp.smtpEnabled} className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+            <input
+              name="smtpEnabled"
+              type="checkbox"
+              defaultChecked={smtp.smtpEnabled}
+              className="h-4 w-4 rounded border-slate-300 text-cyan-600"
+            />
             Actief
           </label>
         </div>
@@ -214,11 +286,15 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Beveiliging
-            <select name="smtpEncryption" defaultValue={smtp.smtpEncryption} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+            <SelectAdapter
+              name="smtpEncryption"
+              defaultValue={smtp.smtpEncryption}
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            >
               <option value="starttls">STARTTLS</option>
               <option value="tls">TLS</option>
               <option value="none">Geen</option>
-            </select>
+            </SelectAdapter>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Gebruikersnaam
@@ -234,7 +310,11 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
             <input
               name="smtpPassword"
               type="password"
-              placeholder={smtp.smtpPasswordConfigured ? "Ingesteld, leeg laten om te behouden" : "Nog niet ingesteld"}
+              placeholder={
+                smtp.smtpPasswordConfigured
+                  ? "Ingesteld, leeg laten om te behouden"
+                  : "Nog niet ingesteld"
+              }
               className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             />
           </label>
@@ -276,19 +356,30 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
           <div>
             <p className="font-semibold text-slate-950">Mail roadmap</p>
             <p className="mt-1">
-              SendGrid kan als beheerde koppeling worden toegevoegd. Tenants krijgen standaard afzenders volgens{" "}
-              <span className="font-semibold">{smtp.defaultTenantFromPattern}</span>. Eigen maildomeinen blijven alleen voor
-              Enterprise en worden door platform support gekoppeld.
+              SendGrid kan als beheerde koppeling worden toegevoegd. Tenants
+              krijgen standaard afzenders volgens{" "}
+              <span className="font-semibold">
+                {smtp.defaultTenantFromPattern}
+              </span>
+              . Eigen maildomeinen blijven alleen voor Enterprise en worden door
+              platform support gekoppeld.
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input name="clearPassword" type="checkbox" className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+            <input
+              name="clearPassword"
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-cyan-600"
+            />
             Wachtwoord wissen
           </label>
         </div>
 
         <div className="flex justify-end">
-          <button type="submit" className="min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700">
+          <button
+            type="submit"
+            className="min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700"
+          >
             SMTP opslaan
           </button>
         </div>
@@ -307,16 +398,27 @@ export default async function PlatformSettingsPage() {
     <main className="platform-page min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
-          <p className="text-sm font-medium text-slate-500">Fieldgrid platform</p>
+          <p className="text-sm font-medium text-slate-500">
+            Fieldgrid platform
+          </p>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Instellingen</h1>
-            <ResolvedFeatureHelp surface="platform" featureKey="platform.settings" moduleKey="knowledgebase" />
+            <h1 className="text-2xl font-semibold tracking-normal text-slate-950">
+              Instellingen
+            </h1>
+            <ResolvedFeatureHelp
+              surface="platform"
+              featureKey="platform.settings"
+              moduleKey="knowledgebase"
+            />
           </div>
           <p className="max-w-3xl text-sm text-slate-600">
-            Platformhosts, support TTL default, custom domain DNS target, Caddy ask mode, SMTP/system mail, default branding
-            en smoke targets op een plek. Wijzigingen lopen via auditbare wijzigverzoeken.
+            Platformhosts, support TTL default, custom domain DNS target, Caddy
+            ask mode, SMTP/system mail, default branding en smoke targets op een
+            plek. Wijzigingen lopen via auditbare wijzigverzoeken.
           </p>
-          <p className="text-xs text-slate-500">Laatste snapshot: {formatDate(dashboard.generatedAt)}</p>
+          <p className="text-xs text-slate-500">
+            Laatste snapshot: {formatDate(dashboard.generatedAt)}
+          </p>
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
@@ -341,21 +443,31 @@ export default async function PlatformSettingsPage() {
         </section>
 
         <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Wijzigverzoek</h2>
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">
+            Wijzigverzoek
+          </h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-500">
-            Instellingen die uit GitHub environments, Caddy of VPS-configuratie komen worden niet direct vanuit de UI overschreven.
-            Dit formulier legt het voorstel vast in de platform audit.
+            Instellingen die uit GitHub environments, Caddy of VPS-configuratie
+            komen worden niet direct vanuit de UI overschreven. Dit formulier
+            legt het voorstel vast in de platform audit.
           </p>
-          <form action={requestPlatformSettingChangeAction} className="mt-4 grid gap-3 lg:grid-cols-[240px_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <form
+            action={requestPlatformSettingChangeAction}
+            className="mt-4 grid gap-3 lg:grid-cols-[240px_minmax(0,1fr)_minmax(0,1fr)_auto]"
+          >
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Instelling
-              <select name="settingKey" required className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+              <SelectAdapter
+                name="settingKey"
+                required
+                className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+              >
                 {dashboard.changeRequestOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </SelectAdapter>
             </label>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Voorgestelde waarde
@@ -376,7 +488,10 @@ export default async function PlatformSettingsPage() {
                 className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
               />
             </label>
-            <button type="submit" className="mt-auto min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700">
+            <button
+              type="submit"
+              className="mt-auto min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700"
+            >
               Vastleggen
             </button>
           </form>
