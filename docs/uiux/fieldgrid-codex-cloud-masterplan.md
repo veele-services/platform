@@ -2,10 +2,10 @@
 
 ## Volledige UI/UX-modernisering + Radix-first shadcn/ui-designsysteem + live planbordcorrectheid
 
-**Repository:** `veele-services/platform`  
-**Werkbranch:** `main` — bron voor alle ontwikkeling; geen gedeelde/live database  
-**Testbranch:** `staging` — database, deploy, migraties en live acceptatie  
-**Productie:** buiten scope  
+**Repository:** `veele-services/platform`
+**Werkbranch:** `main` — bron voor alle ontwikkeling; geen gedeelde/live database
+**Testbranch:** `staging` — database, deploy, migraties en live acceptatie
+**Productie:** buiten scope
 **Doel:** alle punten uit de volledige UI/UX-audit uitvoeren, inclusief de twee aanvullende planbordproblemen, met een Radix-first shadcn/ui-architectuur, meerdere Codex Cloud-taken, subagents, onafhankelijke branches, integratie-PR's en harde eindgates.
 
 ---
@@ -652,9 +652,9 @@ W06 baseert op W04. W12 baseert op W04.
 - W09 Tenantdashboard.
 - W11 Platformbeheer.
 
-W07 vereist W06.  
-W08 vereist W04 en waar nuttig W06.  
-W09 vereist W04/W05.  
+W07 vereist W06.
+W08 vereist W04 en waar nuttig W06.
+W09 vereist W04/W05.
 W11 vereist W04/W05/W06.
 
 ## Golf 5
@@ -711,8 +711,8 @@ If a check cannot run in the cloud environment, add deterministic coverage and i
 
 # 10. Codex Cloud prompt — W00 Bootstrap en governance
 
-**Outputbranch:** `codex/fieldgrid-uiux-master`  
-**Base in Cloud UI:** `main`  
+**Outputbranch:** `codex/fieldgrid-uiux-master`
+**Base in Cloud UI:** `main`
 **PR:** nog geen feature-PR nodig; deze branch wordt de integratiebranch. Eventueel een draft PR naar `main` voor zichtbaarheid.
 
 ```text
@@ -770,8 +770,8 @@ Add tests for the gate itself. Commit and push the integration branch. Return a 
 
 # 11. Codex Cloud prompt — W01 Live planbordcorrectheid en interesse-inplanning
 
-**Outputbranch:** `codex/fg-uiux-w01-live-planning`  
-**Base:** actuele `codex/fieldgrid-uiux-master`  
+**Outputbranch:** `codex/fg-uiux-w01-live-planning`
+**Base:** actuele `codex/fieldgrid-uiux-master`
 **PR:** naar `codex/fieldgrid-uiux-master`
 
 ```text
@@ -1570,8 +1570,8 @@ Run every relevant repository gate, full typecheck/build, recursive security/dom
 
 # 25. Codex Cloud prompt — W15 Integratie en main-releasegate
 
-**Outputbranch:** `codex/fg-uiux-w15-integration`  
-**Base:** latest integration branch  
+**Outputbranch:** `codex/fg-uiux-w15-integration`
+**Base:** latest integration branch
 **Doel:** finale reparaties; daarna PR van `codex/fieldgrid-uiux-master` naar `main`
 
 ```text
@@ -1625,8 +1625,8 @@ Never call it ready based on best effort.
 
 # 26. Codex Cloud prompt — W16 Stagingpromotie en live DB-acceptatie
 
-**Outputbranch:** `release/fieldgrid-uiux-staging-YYYYMMDD`  
-**Base in Cloud UI:** `staging`  
+**Outputbranch:** `release/fieldgrid-uiux-staging-YYYYMMDD`
+**Base in Cloud UI:** `staging`
 **Voorwaarde:** W15 is naar `main` gemerged.
 
 ```text

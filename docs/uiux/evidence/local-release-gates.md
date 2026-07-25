@@ -1,7 +1,7 @@
 # Fieldgrid UI/UX local release evidence
 
-Evidence date: 25 July 2026  
-Base commit: `04922e758e939957ec51f875fa88c76c8aad585b`  
+Evidence date: 25 July 2026
+Base commit: `04922e758e939957ec51f875fa88c76c8aad585b`
 Branch: `codex/fieldgrid-uiux-master`
 
 This record covers the local, non-deployed W01-W15 acceptance run. It contains
