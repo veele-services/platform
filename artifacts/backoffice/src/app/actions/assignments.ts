@@ -1608,8 +1608,11 @@ export type AssignmentInterestRoundHistory = {
 export async function getAssignmentPlanningReadiness(
   assignmentId: string,
 ): Promise<AssignmentPlanningReadiness> {
-  const canRead = await hasPermission("assignments", "read");
-  if (!canRead) {
+  const [canReadAssignments, canReadPlanning] = await Promise.all([
+    hasPermission("assignments", "read"),
+    hasPermission("planning", "read"),
+  ]);
+  if (!canReadAssignments || !canReadPlanning) {
     return {
       hasMoment: false,
       hasPlannedDate: false,
@@ -2176,6 +2179,7 @@ export async function listAssignmentInterestRounds(
   assignmentId: string,
 ): Promise<AssignmentInterestRoundHistory[]> {
   await requirePermission("assignments", "read");
+  await requirePermission("planning", "read");
 
   const [rounds, responses] = await Promise.all([
     db

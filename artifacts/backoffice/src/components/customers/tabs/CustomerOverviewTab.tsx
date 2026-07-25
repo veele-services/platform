@@ -267,6 +267,15 @@ interface Props {
   tickets: CustomerTicketSummaryRow[];
   notes: CustomerNoteRow[];
   history: CustomerHistoryEntry[];
+  visibility: {
+    objects: boolean;
+    assignments: boolean;
+    invoices: boolean;
+    reports: boolean;
+    documents: boolean;
+    tickets: boolean;
+    portalUsers: boolean;
+  };
 }
 
 export function CustomerOverviewTab({
@@ -284,6 +293,7 @@ export function CustomerOverviewTab({
   tickets,
   notes,
   history,
+  visibility,
 }: Props) {
   const activeAssignments = assignments.filter((row) => OPEN_ASSIGNMENT_STATUSES.has(row.status));
   const openRequests = assignments.filter((row) => OPEN_REQUEST_STATUSES.has(row.status));
@@ -360,30 +370,35 @@ export function CustomerOverviewTab({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
+        {visibility.objects && <MetricCard
           label="Actieve objecten"
           value={kpis.activeObjects}
           caption={`${objects.length} objecten totaal`}
           tone="teal"
-        />
-        <MetricCard
+        />}
+        {visibility.assignments && <MetricCard
           label="Open opdrachten"
           value={kpis.openAssignments}
           caption={`${openRequests.length} open aanvraag/aanvragen`}
           tone={kpis.openAssignments > 0 ? "blue" : "neutral"}
-        />
-        <MetricCard
+        />}
+        {visibility.invoices && <MetricCard
           label="Open facturen"
           value={kpis.openInvoices}
           caption={formatMoney(kpis.outstandingBalance)}
           tone={kpis.openInvoices > 0 ? "amber" : "neutral"}
-        />
-        <MetricCard
+        />}
+        {visibility.assignments && <MetricCard
           label="Laatste activiteit"
           value={kpis.lastActivityDate ? formatDate(kpis.lastActivityDate) : "-"}
-          caption={`Maandomzet ${formatMoney(kpis.monthlyRevenue)}`}
+          caption={visibility.invoices ? `Maandomzet ${formatMoney(kpis.monthlyRevenue)}` : undefined}
           tone="neutral"
-        />
+        />}
+        {visibility.invoices && !visibility.assignments && <MetricCard
+          label="Omzet deze maand"
+          value={formatMoney(kpis.monthlyRevenue)}
+          tone="neutral"
+        />}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(380px,0.85fr)]">
@@ -424,14 +439,14 @@ export function CustomerOverviewTab({
             </div>
           </SectionCard>
 
-          <SectionCard
+          {(visibility.objects || visibility.assignments) && <SectionCard
             title="Wat leveren we"
             subtitle="Objecten, actieve opdrachten en recente dienstverlening in een operationeel overzicht."
             icon={<Briefcase className="h-5 w-5" />}
-            action={<Link className="text-xs font-semibold text-teal-600 hover:underline" href={`/objects?customerId=${customer.id}`}>Objecten beheren</Link>}
+            action={visibility.objects ? <Link className="text-xs font-semibold text-teal-600 hover:underline" href={`/objects?customerId=${customer.id}`}>Objecten beheren</Link> : undefined}
           >
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-lg border border-slate-200">
+              {visibility.objects && <div className="rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <h3 className="text-sm font-semibold text-slate-950">Objecten</h3>
                   <GenericBadge value={`${activeObjects.length} actief`} tone="green" />
@@ -456,9 +471,9 @@ export function CustomerOverviewTab({
                   ))}
                   {objects.length === 0 && <div className="p-4"><EmptyState text="Nog geen objecten gekoppeld." /></div>}
                 </div>
-              </div>
+              </div>}
 
-              <div className="rounded-lg border border-slate-200">
+              {visibility.assignments && <div className="rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <h3 className="text-sm font-semibold text-slate-950">Actieve opdrachten</h3>
                   <GenericBadge value={`${activeAssignments.length} actief`} tone={activeAssignments.length > 0 ? "blue" : "neutral"} />
@@ -485,9 +500,9 @@ export function CustomerOverviewTab({
                   ))}
                   {activeAssignments.length === 0 && <div className="p-4"><EmptyState text="Geen actieve opdrachten." /></div>}
                 </div>
-              </div>
+              </div>}
             </div>
-          </SectionCard>
+          </SectionCard>}
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <SectionCard
@@ -516,7 +531,7 @@ export function CustomerOverviewTab({
               </div>
             </SectionCard>
 
-            <SectionCard
+            {visibility.portalUsers && <SectionCard
               title="Gekoppelde gebruikers"
               subtitle={`${portalUsers.length} klantportaalgebruiker(s)`}
               icon={<User className="h-5 w-5" />}
@@ -538,11 +553,11 @@ export function CustomerOverviewTab({
                 ))}
                 {portalUsers.length === 0 && <EmptyState text="Nog geen klantportaalgebruikers gekoppeld." />}
               </div>
-            </SectionCard>
+            </SectionCard>}
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <SectionCard
+            {visibility.reports && <SectionCard
               title="Rapportages"
               subtitle={`${reports.length} recente rapportage(s)`}
               icon={<NotebookText className="h-5 w-5" />}
@@ -561,9 +576,9 @@ export function CustomerOverviewTab({
                 ))}
                 {reports.length === 0 && <EmptyState text="Nog geen rapportages." />}
               </div>
-            </SectionCard>
+            </SectionCard>}
 
-            <SectionCard
+            {visibility.tickets && <SectionCard
               title="Tickets"
               subtitle={`${openTickets.length} open ticket(s)`}
               icon={<MessageSquareText className="h-5 w-5" />}
@@ -587,10 +602,10 @@ export function CustomerOverviewTab({
                 ))}
                 {tickets.length === 0 && <EmptyState text="Geen tickets voor deze klant." />}
               </div>
-            </SectionCard>
+            </SectionCard>}
           </div>
 
-          <SectionCard
+          {visibility.invoices && <SectionCard
             title="Financieel"
             subtitle="Facturen, betalingen en openstaande posten."
             icon={<Banknote className="h-5 w-5" />}
@@ -628,11 +643,11 @@ export function CustomerOverviewTab({
                 </div>
               </div>
             </div>
-          </SectionCard>
+          </SectionCard>}
         </div>
 
         <aside className="space-y-6">
-          <SectionCard
+          {(visibility.assignments || visibility.reports || visibility.invoices || visibility.tickets) && <SectionCard
             title="Openstaande acties"
             subtitle="Wat moet management, planning of administratie opvolgen?"
             icon={<Bell className="h-5 w-5" />}
@@ -656,9 +671,9 @@ export function CustomerOverviewTab({
               ))}
               {actions.length === 0 && <EmptyState text="Geen openstaande acties gevonden." />}
             </div>
-          </SectionCard>
+          </SectionCard>}
 
-          <SectionCard
+          {visibility.assignments && <SectionCard
             title="Open aanvragen"
             subtitle={`${openRequests.length} aanvraag/aanvragen in behandeling`}
             icon={<AlertTriangle className="h-5 w-5" />}
@@ -677,9 +692,9 @@ export function CustomerOverviewTab({
               ))}
               {openRequests.length === 0 && <EmptyState text="Geen open aanvragen." />}
             </div>
-          </SectionCard>
+          </SectionCard>}
 
-          <SectionCard
+          {canWrite && <SectionCard
             title="Interne informatie"
             subtitle="Alleen zichtbaar voor backoffice en management."
             icon={<ShieldAlert className="h-5 w-5" />}
@@ -703,7 +718,7 @@ export function CustomerOverviewTab({
                 {notes.length === 0 && <EmptyState text="Geen losse interne notities." />}
               </div>
             </div>
-          </SectionCard>
+          </SectionCard>}
 
           <SectionCard
             title="Klantzichtbare informatie"
@@ -726,7 +741,7 @@ export function CustomerOverviewTab({
             </div>
           </SectionCard>
 
-          <SectionCard
+          {visibility.documents && <SectionCard
             title="Documenten"
             subtitle={`${documents.length} document(en) op klantniveau`}
             icon={<FolderOpen className="h-5 w-5" />}
@@ -740,12 +755,12 @@ export function CustomerOverviewTab({
               ))}
               {documents.length === 0 && <EmptyState text="Geen klantdocumenten." />}
             </div>
-          </SectionCard>
+          </SectionCard>}
         </aside>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.7fr)]">
-        <SectionCard
+        {visibility.assignments && <SectionCard
           title="Historische opdrachten"
           subtitle={`${historicAssignments.length} historische opdracht(en) in laatste selectie`}
           icon={<Archive className="h-5 w-5" />}
@@ -764,7 +779,7 @@ export function CustomerOverviewTab({
             ))}
             {historicAssignments.length === 0 && <EmptyState text="Nog geen historische opdrachten in deze selectie." />}
           </div>
-        </SectionCard>
+        </SectionCard>}
 
         <SectionCard
           title="Timeline"

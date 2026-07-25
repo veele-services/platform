@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isCurrentTenantModuleEnabled } from "@/lib/auth/modules";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
 import type { TabKey } from "@/components/customers/CustomerTabs";
@@ -97,20 +98,42 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
 
   const { id } = await params;
   const sp      = await searchParams;
-  const rawTab  = sp.tab ?? "overzicht";
-  const activeTab: TabKey = (VALID_TABS as readonly string[]).includes(rawTab)
-    ? (rawTab as TabKey)
-    : "overzicht";
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices, canReadReports, canReadTickets] = await Promise.all([
+  const [
+    canWrite,
+    canReadObjects,
+    canReadAssignments,
+    canReadDocuments,
+    canWriteDocuments,
+    canReadInvoices,
+    canReadReports,
+    canReadTickets,
+    customerPortalEnabled,
+  ] = await Promise.all([
     hasPermission("customers",   "write"),
+    hasPermission("objects",     "read"),
     hasPermission("assignments", "read"),
     hasPermission("documents",   "read"),
     hasPermission("documents",   "write"),
     hasPermission("invoices",    "read"),
     hasPermission("reports",     "read"),
     hasPermission("tickets",     "read"),
+    isCurrentTenantModuleEnabled("customer_portal"),
   ]);
+  const canManagePortalUsers = canWrite && customerPortalEnabled;
+  const visibleTabs = VALID_TABS.filter((tab) => {
+    if (tab === "objecten") return canReadObjects;
+    if (tab === "opdrachten") return canReadAssignments;
+    if (tab === "facturen" || tab === "betalingen") return canReadInvoices;
+    if (tab === "rapporten") return canReadReports;
+    if (tab === "documenten") return canReadDocuments;
+    if (tab === "notities" || tab === "geschiedenis") return canWrite;
+    return true;
+  });
+  const rawTab = sp.tab ?? "overzicht";
+  const activeTab: TabKey = (visibleTabs as readonly string[]).includes(rawTab)
+    ? (rawTab as TabKey)
+    : "overzicht";
 
   // Load all data in parallel — gate expensive calls on permissions
   const [
@@ -137,7 +160,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     listAccountManagers(),
     getCustomerKpis(id),
     listCustomerContacts(id),
-    listObjectsForCustomer(id),
+    canReadObjects ? listObjectsForCustomer(id) : Promise.resolve([]),
     canWrite    ? listCustomerNotes(id)                         : Promise.resolve([]),
     canReadAssignments ? listAssignmentsForCustomer(id, 25)     : Promise.resolve([]),
     canReadInvoices    ? listInvoicesForCustomer(id, 25)        : Promise.resolve([]),
@@ -145,7 +168,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     canReadReports     ? listReportsForCustomer(id, 25)         : Promise.resolve([]),
     canReadDocuments   ? listDocuments({ entityType: "customer", entityId: id }) : Promise.resolve([]),
     canWrite           ? listCustomerHistory(id, 25)            : Promise.resolve([]),
-    listCustomerPortalUsers(id),
+    canManagePortalUsers ? listCustomerPortalUsers(id) : Promise.resolve([]),
     canReadTickets     ? listCustomerTicketsForCustomer(id, 10) : Promise.resolve([]),
   ]);
 
@@ -166,14 +189,23 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     geschiedenis: history.length,
   };
 
-  const customerSummary = [
-    { label: "Omzet deze maand", value: formatCurrency(kpis.monthlyRevenue) },
-    { label: "Actieve objecten", value: kpis.activeObjects },
-    { label: "Open opdrachten", value: kpis.openAssignments },
-    { label: "Open facturen", value: kpis.openInvoices },
-    { label: "Openstaand saldo", value: formatCurrency(kpis.outstandingBalance) },
-    { label: "Laatste activiteit", value: formatDate(kpis.lastActivityDate) },
-  ];
+  const customerSummary: Array<{ label: string; value: string | number }> = [];
+  if (canReadInvoices) {
+    customerSummary.push(
+      { label: "Omzet deze maand", value: formatCurrency(kpis.monthlyRevenue) },
+      { label: "Open facturen", value: kpis.openInvoices },
+      { label: "Openstaand saldo", value: formatCurrency(kpis.outstandingBalance) },
+    );
+  }
+  if (canReadObjects) {
+    customerSummary.push({ label: "Actieve objecten", value: kpis.activeObjects });
+  }
+  if (canReadAssignments) {
+    customerSummary.push(
+      { label: "Open opdrachten", value: kpis.openAssignments },
+      { label: "Laatste activiteit", value: formatDate(kpis.lastActivityDate) },
+    );
+  }
 
   return (
     <TenantPageShell>
@@ -196,7 +228,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
             <CustomerStatusBadge status={safeCustomer.status} />
           </>
         }
-        summary={
+        summary={customerSummary.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {customerSummary.map((item) => (
               <div key={item.label} className="rounded-md border border-border bg-background px-3 py-3">
@@ -205,11 +237,11 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
               </div>
             ))}
           </div>
-        }
+        ) : undefined}
       />
 
       <TenantDetailSectionNav
-        items={VALID_TABS.map((tab) => ({
+        items={visibleTabs.map((tab) => ({
           label: TAB_LABELS[tab],
           href: `/customers/${id}?tab=${tab}`,
           active: activeTab === tab,
@@ -251,6 +283,15 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
           tickets={canReadTickets ? tickets : []}
           notes={canWrite ? customerNotes : []}
           history={canWrite ? history : []}
+          visibility={{
+            objects: canReadObjects,
+            assignments: canReadAssignments,
+            invoices: canReadInvoices,
+            reports: canReadReports,
+            documents: canReadDocuments,
+            tickets: canReadTickets,
+            portalUsers: canManagePortalUsers,
+          }}
         />
       )}
 
@@ -262,7 +303,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
         />
       )}
 
-      {activeTab === "objecten" && (
+      {activeTab === "objecten" && canReadObjects && (
         <CustomerObjectsTab
           customerId={id}
           customerName={customer.name}

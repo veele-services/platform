@@ -36,6 +36,7 @@ interface PersonnelDetailActionsProps {
   authStatus:     PersonnelAuthStatus;
   roles:          RoleOption[];
   sectors:        SectorOption[];
+  canManagePortal: boolean;
 }
 
 export function PersonnelDetailActions({
@@ -48,6 +49,7 @@ export function PersonnelDetailActions({
   authStatus,
   roles,
   sectors,
+  canManagePortal,
 }: PersonnelDetailActionsProps) {
   const [editOpen,         setEditOpen]         = useState(false);
   const [inviteOpen,       setInviteOpen]        = useState(false);
@@ -120,7 +122,7 @@ export function PersonnelDetailActions({
       toast.success("Account geactiveerd");
       // Resend invite whenever there is no active portal account yet
       // (covers both "never invited" and "invite expired" states)
-      if (!hasPortalAccount) {
+      if (canManagePortal && !hasPortalAccount) {
         const inviteResult = await invitePersonnel(personnelId);
         if (inviteResult.success) {
           setLocalInviteSent(true);
@@ -153,7 +155,7 @@ export function PersonnelDetailActions({
         )}
 
         {/* ── Invite / account section ────────────────────────────────── */}
-        {hasPortalAccount ? (
+        {canManagePortal && (hasPortalAccount ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "#00B7B3" }}>
               <CheckCircle2 className="h-4 w-4" />
@@ -230,7 +232,7 @@ export function PersonnelDetailActions({
             )}
             Uitnodiging sturen
           </Button>
-        )}
+        ))}
 
         {/* ── Edit button ────────────────────────────────────────────── */}
         <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>

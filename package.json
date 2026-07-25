@@ -60,6 +60,7 @@
     "fieldgrid:uiux-responsive-forms:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w03-time-range.test.ts && node --test tests/domain/fieldgrid-w03-responsive-forms-source.test.mjs",
     "fieldgrid:uiux-browser-dialogs:check": "node --test tests/domain/fieldgrid-w03-browser-dialogs-source.test.mjs tests/fieldgrid-customer-personnel-phase2-dialogs.test.mjs",
     "fieldgrid:uiux-object-semantics:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w02-object-kpi-semantics.test.ts && node --test tests/domain/fieldgrid-w02-object-kpi-source.test.mjs",
+    "fieldgrid:uiux-detail-permissions:check": "node --test tests/domain/fieldgrid-w02-detail-permissions-source.test.mjs",
     "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
     "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration",
     "fieldgrid:test:realtime-projection-migration": "node --test tests/fieldgrid-realtime-projection-migration.test.mjs",

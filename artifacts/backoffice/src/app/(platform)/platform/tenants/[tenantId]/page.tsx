@@ -67,6 +67,7 @@ import {
   rollbackPlatformWebsiteDeliveryAction,
 } from "@/app/actions/platform-websites";
 import type { PlatformWebsiteDeliveryView } from "@workspace/db";
+import { requirePlatformAdmin } from "@/lib/auth/platform";
 
 export const metadata = {
   title: "Tenantbeheer",
@@ -1559,6 +1560,7 @@ function ProvisioningTab({ runs }: { runs: PlatformProvisioningRunRow[] }) {
 }
 
 export default async function PlatformTenantDetailPage({ params, searchParams }: Props) {
+  await requirePlatformAdmin();
   const { tenantId } = await params;
   const { tab } = await searchParams;
   const activeTab = normalizeTab(tab);

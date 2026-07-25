@@ -248,10 +248,12 @@ function CapacityMatchingSection({
   assignmentId,
   planningReadiness,
   interestRounds,
+  canManagePlanning,
 }: {
   assignmentId: string;
   planningReadiness: PlanningReadiness;
   interestRounds: InterestRounds;
+  canManagePlanning: boolean;
 }) {
   const style = capacityStyle(planningReadiness.capacityStatus);
 
@@ -516,7 +518,7 @@ function CapacityMatchingSection({
                         </span>
                       ))}
                     </div>
-                    {candidate.hardStatus !== "blocked" && !isAlreadyAssigned && (
+                    {canManagePlanning && candidate.hardStatus !== "blocked" && !isAlreadyAssigned && (
                       <div className="mt-3">
                         <SmartCandidateActions
                           assignmentId={assignmentId}
@@ -542,7 +544,7 @@ function CapacityMatchingSection({
             </div>
           )}
 
-          <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
+          {canManagePlanning && <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
               Interessepeiling
             </p>
@@ -550,13 +552,17 @@ function CapacityMatchingSection({
               assignmentId={assignmentId}
               disabled={!planningReadiness.canPoll}
             />
-          </div>
+          </div>}
 
           <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
               Rondegeschiedenis
             </p>
-            <InterestRoundHistory assignmentId={assignmentId} rounds={interestRounds} />
+            <InterestRoundHistory
+              assignmentId={assignmentId}
+              rounds={interestRounds}
+              canWrite={canManagePlanning}
+            />
           </div>
         </aside>
       </div>
@@ -755,6 +761,8 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
     canWriteQuotes,
     canReadDocuments,
     canWriteDocuments,
+    canReadPlanning,
+    canWritePlanning,
   ] = await Promise.all([
     safeOptional("assignment", id, () => getAssignment(id), null),
     hasPermission("assignments", "write"),
@@ -766,6 +774,8 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
     hasPermission("quotes", "write"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("planning", "read"),
+    hasPermission("planning", "write"),
   ]);
 
   if (!assignment) notFound();
@@ -836,7 +846,7 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
       )
     : [[], [], []];
 
-  const planningReadiness = canWrite
+  const planningReadiness = canReadPlanning
     ? await safeOptional(
         "planning-readiness",
         id,
@@ -844,7 +854,7 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
         null,
       )
     : null;
-  const interestRounds = canWrite
+  const interestRounds = canReadPlanning
     ? await safeOptional(
         "interest-rounds",
         id,
@@ -894,8 +904,20 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
     planningFirstStatuses.includes(assignment.status) ||
     assignment.personnel.length < assignment.requiredPersonnelCount;
   const showPlanningFirst = Boolean(planningReadiness && needsPlanning);
+  const visibleTabs: AssignmentDetailTab[] = [
+    "werkbon",
+    "gegevens",
+    ...(planningReadiness ? ["planning" as const] : []),
+    ...(canReadQuotes || canWriteQuotes ? ["offerte" as const] : []),
+    ...(canReadReports || canSubmitReport ? ["rapport" as const] : []),
+    ...(canReadInvoices || canWriteInvoices ? ["factuur" as const] : []),
+    ...(canReadDocuments ? ["bijlagen" as const] : []),
+  ];
   const defaultTab: AssignmentDetailTab = showPlanningFirst ? "planning" : "werkbon";
-  const activeTab: AssignmentDetailTab = isAssignmentDetailTab(requestedTab) ? requestedTab : defaultTab;
+  const activeTab: AssignmentDetailTab =
+    isAssignmentDetailTab(requestedTab) && visibleTabs.includes(requestedTab)
+      ? requestedTab
+      : defaultTab;
   const tabHref = (tab: AssignmentDetailTab) => `/assignments/${assignment.id}?tab=${tab}`;
   const showWorkflowPanel = activeTab === "gegevens";
 
@@ -944,16 +966,18 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
 
       <TenantDetailSectionNav
         items={[
-          { label: "Werkbon", href: tabHref("werkbon"), active: activeTab === "werkbon" },
-          { label: "Gegevens", href: tabHref("gegevens"), active: activeTab === "gegevens" },
+          { tab: "werkbon" as const, label: "Werkbon", href: tabHref("werkbon"), active: activeTab === "werkbon" },
+          { tab: "gegevens" as const, label: "Gegevens", href: tabHref("gegevens"), active: activeTab === "gegevens" },
           ...(planningReadiness
-            ? [{ label: "Planning", href: tabHref("planning"), active: activeTab === "planning", count: planningReadiness.candidates.length }]
+            ? [{ tab: "planning" as const, label: "Planning", href: tabHref("planning"), active: activeTab === "planning", count: planningReadiness.candidates.length }]
             : []),
-          { label: "Offerte", href: tabHref("offerte"), active: activeTab === "offerte", count: existingQuote ? 1 : 0 },
-          { label: "Rapport", href: tabHref("rapport"), active: activeTab === "rapport", count: existingReport ? 1 : 0 },
-          { label: "Factuur", href: tabHref("factuur"), active: activeTab === "factuur", count: existingInvoice ? 1 : 0 },
-          { label: "Bijlagen", href: tabHref("bijlagen"), active: activeTab === "bijlagen", count: assignmentDocuments.length },
-        ]}
+          { tab: "offerte" as const, label: "Offerte", href: tabHref("offerte"), active: activeTab === "offerte", count: existingQuote ? 1 : 0 },
+          { tab: "rapport" as const, label: "Rapport", href: tabHref("rapport"), active: activeTab === "rapport", count: existingReport ? 1 : 0 },
+          { tab: "factuur" as const, label: "Factuur", href: tabHref("factuur"), active: activeTab === "factuur", count: existingInvoice ? 1 : 0 },
+          { tab: "bijlagen" as const, label: "Bijlagen", href: tabHref("bijlagen"), active: activeTab === "bijlagen", count: assignmentDocuments.length },
+        ]
+          .filter((item) => visibleTabs.includes(item.tab))
+          .map(({ tab: _tab, ...item }) => item)}
       />
 
       {/* ── Header ─────────────────────────────────────── */}
@@ -999,6 +1023,7 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
             assignmentId={assignment.id}
             planningReadiness={planningReadiness}
             interestRounds={interestRounds}
+            canManagePlanning={canWrite && canWritePlanning}
           />
         </div>
       )}

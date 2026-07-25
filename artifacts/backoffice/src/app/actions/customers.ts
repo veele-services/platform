@@ -1340,6 +1340,12 @@ export async function deleteCustomerContact(
 
 export async function getCustomerKpis(customerId: string): Promise<CustomerKpis> {
   await requirePermission("customers", "read");
+  const [canReadObjects, canReadAssignments, canReadInvoices] =
+    await Promise.all([
+      hasPermission("objects", "read"),
+      hasPermission("assignments", "read"),
+      hasPermission("invoices", "read"),
+    ]);
   const customer = await currentTenantCustomer(customerId);
   if (!customer) {
     return {
@@ -1364,13 +1370,14 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
     lastActivityResult,
   ] = await Promise.all([
     // Active objects count
-    db
+    canReadObjects ? db
       .select({ count: sql<number>`count(*)::int` })
       .from(objectsTable)
-      .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true))),
+      .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true)))
+      : Promise.resolve([]),
 
     // Open assignments (not closed/archived)
-    db
+    canReadAssignments ? db
       .select({ count: sql<number>`count(*)::int` })
       .from(assignmentsTable)
       .where(
@@ -1379,19 +1386,21 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
           eq(assignmentsTable.tenantId, tenantId),
           sql`${assignmentsTable.status} NOT IN ('paid', 'closed', 'cancelled')`,
         ),
-      ),
+      )
+      : Promise.resolve([]),
 
     // Open invoices (status = 'sent')
-    db
+    canReadInvoices ? db
       .select({
         count:   sql<number>`count(*)::int`,
         balance: sql<string>`coalesce(sum(total_amount), 0)::text`,
       })
       .from(invoicesTable)
-      .where(and(eq(invoicesTable.customerId, customerId), eq(invoicesTable.tenantId, tenantId), eq(invoicesTable.status, "sent"))),
+      .where(and(eq(invoicesTable.customerId, customerId), eq(invoicesTable.tenantId, tenantId), eq(invoicesTable.status, "sent")))
+      : Promise.resolve([]),
 
     // Monthly revenue (paid invoices this month)
-    db
+    canReadInvoices ? db
       .select({ revenue: sql<string>`coalesce(sum(total_amount), 0)::text` })
       .from(invoicesTable)
       .where(
@@ -1401,15 +1410,17 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
           eq(invoicesTable.status, "paid"),
           gte(invoicesTable.createdAt, startOfMonth),
         ),
-      ),
+      )
+      : Promise.resolve([]),
 
     // Last activity (most recent assignment scheduled date)
-    db
+    canReadAssignments ? db
       .select({ scheduledDate: assignmentsTable.scheduledDate })
       .from(assignmentsTable)
       .where(and(eq(assignmentsTable.customerId, customerId), eq(assignmentsTable.tenantId, tenantId)))
       .orderBy(desc(assignmentsTable.scheduledDate))
-      .limit(1),
+      .limit(1)
+      : Promise.resolve([]),
   ]);
 
   const lastDate = lastActivityResult[0]?.scheduledDate;

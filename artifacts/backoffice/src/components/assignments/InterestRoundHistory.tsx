@@ -13,6 +13,7 @@ import {
 type Props = {
   assignmentId: string;
   rounds: AssignmentInterestRoundHistory[];
+  canWrite?: boolean;
 };
 
 const AUDIENCE_LABELS: Record<string, string> = {
@@ -40,7 +41,7 @@ function responseSummary(round: AssignmentInterestRoundHistory) {
   return { interested, pending, unavailable };
 }
 
-export function InterestRoundHistory({ assignmentId, rounds }: Props) {
+export function InterestRoundHistory({ assignmentId, rounds, canWrite = false }: Props) {
   const [pending, startTransition] = useTransition();
 
   function sendReminder(roundId: string) {
@@ -67,6 +68,7 @@ export function InterestRoundHistory({ assignmentId, rounds }: Props) {
       {rounds.map((round) => {
         const summary = responseSummary(round);
         const canRemind =
+          canWrite &&
           summary.pending > 0 &&
           !round.reminderSentAt &&
           round.status === "sent";
@@ -96,7 +98,7 @@ export function InterestRoundHistory({ assignmentId, rounds }: Props) {
                 </p>
               </div>
 
-              <Button
+              {canWrite && <Button
                 type="button"
                 size="sm"
                 variant="outline"
@@ -106,7 +108,7 @@ export function InterestRoundHistory({ assignmentId, rounds }: Props) {
               >
                 {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
                 Reminder
-              </Button>
+              </Button>}
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">

@@ -7,6 +7,7 @@ import {
   Briefcase, AlertCircle, FileText, Route,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isCurrentTenantModuleEnabled } from "@/lib/auth/modules";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
@@ -77,14 +78,26 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadMaterials, canReadInventory] = await Promise.all([
+  const [
+    canWrite,
+    canReadAssignments,
+    canReadObjects,
+    canReadDocuments,
+    canWriteDocuments,
+    canReadMaterials,
+    canReadInventory,
+    personnelPortalEnabled,
+  ] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
+    hasPermission("objects", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
+    isCurrentTenantModuleEnabled("personnel_portal"),
   ]);
+  const canManagePortal = canWrite && personnelPortalEnabled;
 
   const [
     person,
@@ -101,14 +114,16 @@ export default async function PersonnelDetailPage({ params }: Props) {
     inventoryItems,
   ] = await Promise.all([
     getPersonnel(id),
-    listRoles(),
-    listSectors(),
+    canWrite ? listRoles() : Promise.resolve([]),
+    canWrite ? listSectors() : Promise.resolve([]),
     getAvailabilityWindows(id),
     listLeavePeriods(id),
-    listAssignmentsForPersonnel(id),
-    listDocuments({ entityType: "personnel", entityId: id }),
-    getPersonnelAuthStatus(id),
-    getLinkedObjects(id),
+    canReadAssignments ? listAssignmentsForPersonnel(id) : Promise.resolve([]),
+    canReadDocuments
+      ? listDocuments({ entityType: "personnel", entityId: id })
+      : Promise.resolve([]),
+    canManagePortal ? getPersonnelAuthStatus(id) : Promise.resolve("none" as const),
+    canReadObjects ? getLinkedObjects(id) : Promise.resolve([]),
     listPersonnelQualifications(id),
     canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
@@ -176,10 +191,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
         items={[
           { label: "Beschikbaarheid", href: "#availability", active: true },
           { label: "Profiel", href: "#profile" },
-          { label: "Opdrachten", href: "#assignments", count: assignmentHistory.length },
-          { label: "Materiaal", href: "#materials", count: materialStock.length },
-          { label: "Inventaris", href: "#inventory", count: inventoryItems.length },
-          { label: "Documenten", href: "#documents", count: documents.length },
+          ...(canReadAssignments
+            ? [{ label: "Opdrachten", href: "#assignments", count: assignmentHistory.length }]
+            : []),
+          ...(canReadMaterials
+            ? [{ label: "Materiaal", href: "#materials", count: materialStock.length }]
+            : []),
+          ...(canReadInventory
+            ? [{ label: "Inventaris", href: "#inventory", count: inventoryItems.length }]
+            : []),
+          ...(canReadDocuments
+            ? [{ label: "Documenten", href: "#documents", count: documents.length }]
+            : []),
         ]}
       />
 
@@ -200,6 +223,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 authStatus={authStatus}
                 roles={roles}
                 sectors={sectors}
+                canManagePortal={canManagePortal}
               />
             </TenantDetailActionPanel>
           ) : undefined
@@ -274,6 +298,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             authStatus={authStatus}
             roles={roles}
             sectors={sectors}
+            canManagePortal={canManagePortal}
           />
         )}
       </div>
@@ -477,7 +502,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           </div>
 
           {/* Portaal-toegang */}
-          {canWrite && (
+          {canManagePortal && (
             <PersonnelPortalAccessCard
               personnelId={person.id}
               personnelEmail={person.email}
@@ -487,7 +512,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           )}
 
           {/* Gekoppelde objecten */}
-          {linkedObjects.length > 0 && (
+          {canReadObjects && linkedObjects.length > 0 && (
             <div className="veele-card">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
