@@ -16,6 +16,29 @@ export type RecentContext = {
   visitedAt: string;
 };
 
+const RECENT_CONTEXT_PERMISSION: Record<RecentContextKind, string> = {
+  assignment: "assignments:read",
+  customer: "customers:read",
+  object: "objects:read",
+  planning: "planning:read",
+};
+
+export function recentContextStorageKey(
+  tenantId: string,
+  principalId: string,
+): string {
+  return `${RECENT_CONTEXT_STORAGE_KEY}:${encodeURIComponent(tenantId)}:${encodeURIComponent(principalId)}`;
+}
+
+export function filterRecentContextsForPermissions(
+  contexts: RecentContext[],
+  permissions: ReadonlySet<string>,
+): RecentContext[] {
+  return contexts.filter((context) =>
+    permissions.has(RECENT_CONTEXT_PERMISSION[context.kind]),
+  );
+}
+
 function safeSegment(value: string | undefined): boolean {
   return Boolean(
     value &&

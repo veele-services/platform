@@ -208,7 +208,11 @@ export default async function DashboardLayout({
     branding,
   ) as CSSProperties;
   return (
-    <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>
+    <PermissionsProvider
+      permissions={[...permissions]}
+      tenantId={tenantId}
+      principalId={user.id}
+    >
       <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>
         <SidebarProvider>
           <div

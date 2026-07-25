@@ -8,29 +8,37 @@ import {
   mergeRecentContexts,
   parseRecentContexts,
   RECENT_CONTEXT_EVENT,
-  RECENT_CONTEXT_STORAGE_KEY,
+  recentContextStorageKey,
 } from "@/lib/navigation/recent-context";
+import {
+  usePermissionsPrincipalId,
+  usePermissionsTenantId,
+} from "@/providers/permissions-provider";
 
 export function RecentContextTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const tenantId = usePermissionsTenantId();
+  const principalId = usePermissionsPrincipalId();
 
   useEffect(() => {
+    if (!tenantId || !principalId) return;
     const context = deriveRecentContext(
       pathname,
       new URLSearchParams(searchParams.toString()),
     );
     if (!context) return;
 
+    const storageKey = recentContextStorageKey(tenantId, principalId);
     const current = parseRecentContexts(
-      window.localStorage.getItem(RECENT_CONTEXT_STORAGE_KEY),
+      window.localStorage.getItem(storageKey),
     );
     window.localStorage.setItem(
-      RECENT_CONTEXT_STORAGE_KEY,
+      storageKey,
       JSON.stringify(mergeRecentContexts(current, context)),
     );
     window.dispatchEvent(new Event(RECENT_CONTEXT_EVENT));
-  }, [pathname, searchParams]);
+  }, [pathname, principalId, searchParams, tenantId]);
 
   return null;
 }

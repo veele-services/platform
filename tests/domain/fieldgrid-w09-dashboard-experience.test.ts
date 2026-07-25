@@ -3,8 +3,10 @@ import test from "node:test";
 
 import {
   deriveRecentContext,
+  filterRecentContextsForPermissions,
   mergeRecentContexts,
   parseRecentContexts,
+  recentContextStorageKey,
 } from "../../artifacts/backoffice/src/lib/navigation/recent-context";
 
 const visitedAt = new Date("2026-07-25T12:00:00.000Z");
@@ -59,4 +61,34 @@ test("recent contexts reject unsafe routes and keep one item per kind", () => {
   assert.ok(first);
   assert.ok(next);
   assert.deepEqual(mergeRecentContexts([first], next), [next]);
+});
+
+test("recent contexts are tenant-user scoped and permission filtered", () => {
+  assert.equal(
+    recentContextStorageKey("tenant-a", "user-a"),
+    "fieldgrid:recent-context:tenant-a:user-a",
+  );
+  assert.notEqual(
+    recentContextStorageKey("tenant-a", "user-a"),
+    recentContextStorageKey("tenant-b", "user-a"),
+  );
+  const assignment = deriveRecentContext(
+    "/assignments/assignment_123",
+    new URLSearchParams(),
+    visitedAt,
+  );
+  const planning = deriveRecentContext(
+    "/planning",
+    new URLSearchParams(),
+    visitedAt,
+  );
+  assert.ok(assignment);
+  assert.ok(planning);
+  assert.deepEqual(
+    filterRecentContextsForPermissions(
+      [assignment, planning],
+      new Set(["planning:read"]),
+    ),
+    [planning],
+  );
 });

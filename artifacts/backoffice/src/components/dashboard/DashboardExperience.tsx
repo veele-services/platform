@@ -18,12 +18,18 @@ import {
 } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  filterRecentContextsForPermissions,
   parseRecentContexts,
   RECENT_CONTEXT_EVENT,
-  RECENT_CONTEXT_STORAGE_KEY,
+  recentContextStorageKey,
   type RecentContext,
   type RecentContextKind,
 } from "@/lib/navigation/recent-context";
+import {
+  usePermissions,
+  usePermissionsPrincipalId,
+  usePermissionsTenantId,
+} from "@/providers/permissions-provider";
 
 export type DashboardPersona =
   | "planner"
@@ -135,12 +141,24 @@ export function DashboardPersonaFocus({
 
 export function DashboardResumePanel() {
   const [items, setItems] = React.useState<RecentContext[]>([]);
+  const permissions = usePermissions();
+  const tenantId = usePermissionsTenantId();
+  const principalId = usePermissionsPrincipalId();
+  const storageKey =
+    tenantId && principalId
+      ? recentContextStorageKey(tenantId, principalId)
+      : null;
 
   React.useEffect(() => {
+    if (!storageKey) {
+      setItems([]);
+      return;
+    }
     const read = () =>
       setItems(
-        parseRecentContexts(
-          window.localStorage.getItem(RECENT_CONTEXT_STORAGE_KEY),
+        filterRecentContextsForPermissions(
+          parseRecentContexts(window.localStorage.getItem(storageKey)),
+          permissions,
         ).slice(0, 4),
       );
     read();
@@ -150,7 +168,7 @@ export function DashboardResumePanel() {
       window.removeEventListener(RECENT_CONTEXT_EVENT, read);
       window.removeEventListener("storage", read);
     };
-  }, []);
+  }, [permissions, storageKey]);
 
   if (items.length === 0) {
     return (
