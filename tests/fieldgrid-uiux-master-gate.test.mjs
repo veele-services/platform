@@ -76,3 +76,19 @@ test("source scan catches released direct Radix imports and raw controls", () =>
     findingKey({ ...findings[0], line: 999 }),
   );
 });
+
+test("source scan distinguishes canonical JSX components from raw HTML controls", () => {
+  const root = mkdtempSync(join(tmpdir(), "fieldgrid-uiux-gate-components-"));
+  const sourceDir = join(root, "artifacts/backoffice/src/features");
+  mkdirSync(sourceDir, { recursive: true });
+  writeFileSync(
+    join(sourceDir, "Example.tsx"),
+    [
+      "export function Example() {",
+      '  return <><Select value="one" /><Input type="checkbox" /></>;',
+      "}",
+    ].join("\n"),
+  );
+
+  assert.deepEqual(scanReleasedSources(root), []);
+});

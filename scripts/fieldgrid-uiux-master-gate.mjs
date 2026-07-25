@@ -66,12 +66,12 @@ const RULES = [
   },
   {
     id: "RAW_SELECT",
-    pattern: /<select(?:\s|>)/iu,
+    pattern: /<select(?:\s|>)/u,
     message: "Raw select outside a documented native exception.",
   },
   {
     id: "RAW_CHOICE_CONTROL",
-    pattern: /<input\b[^>]*\btype=["'](?:checkbox|radio)["']/iu,
+    pattern: /<input\b[^>]*\btype=["'](?:checkbox|radio)["']/u,
     message: "Raw checkbox or radio outside a documented native exception.",
   },
 ];
