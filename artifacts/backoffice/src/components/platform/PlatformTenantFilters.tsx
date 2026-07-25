@@ -26,6 +26,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { trackUxAnalytics } from "@/lib/ux-analytics";
 
 type FilterState = {
   q: string;
@@ -197,6 +198,20 @@ export function PlatformTenantFilters({
   function apply(event?: FormEvent) {
     event?.preventDefault();
     setAdvancedOpen(false);
+    if (state.q.trim()) {
+      trackUxAnalytics({
+        name: "search_submitted",
+        surface: "platform",
+        scope: "current_context",
+        activeFilterCount: activeFilters.length,
+      });
+    }
+    trackUxAnalytics({
+      name: "filter_changed",
+      surface: "platform",
+      action: "applied",
+      activeFilterCount: activeFilters.length,
+    });
     navigate(state);
   }
 
@@ -206,6 +221,12 @@ export function PlatformTenantFilters({
       [key]: key === "q" ? "" : "all",
     };
     setState(next);
+    trackUxAnalytics({
+      name: "filter_changed",
+      surface: "platform",
+      action: "cleared",
+      activeFilterCount: Math.max(0, activeFilters.length - 1),
+    });
     navigate(next);
   }
 
@@ -229,6 +250,12 @@ export function PlatformTenantFilters({
     });
     setState(next);
     setAdvancedOpen(false);
+    trackUxAnalytics({
+      name: "filter_changed",
+      surface: "platform",
+      action: "cleared",
+      activeFilterCount: 0,
+    });
     router.push(pathname);
   }
 
@@ -366,6 +393,12 @@ export function PlatformTenantFilters({
                     view: state.view === view.value ? "all" : view.value,
                   };
                   setState(next);
+                  trackUxAnalytics({
+                    name: "saved_view_changed",
+                    surface: "platform",
+                    action: next.view === "all" ? "deleted" : "applied",
+                    activeFilterCount: next.view === "all" ? 0 : 1,
+                  });
                   navigate(next);
                 }}
               >

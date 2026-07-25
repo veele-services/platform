@@ -10,6 +10,23 @@ export type UxAnalyticsSurface =
   | "platform"
   | "auth";
 
+export type UxAnalyticsForm =
+  | "object"
+  | "customer"
+  | "personnel"
+  | "assignment"
+  | "task_code"
+  | "login"
+  | "support_access";
+
+export type UxMutationErrorCategory =
+  | "validation"
+  | "permission"
+  | "conflict"
+  | "network"
+  | "server"
+  | "unknown";
+
 export type UxAnalyticsEventInput =
   | {
       name: "search_submitted";
@@ -38,25 +55,13 @@ export type UxAnalyticsEventInput =
   | {
       name: "form_progress";
       surface: UxAnalyticsSurface;
-      form:
-        | "object"
-        | "customer"
-        | "personnel"
-        | "assignment"
-        | "task_code"
-        | "login";
+      form: UxAnalyticsForm;
       action: "started" | "completed" | "abandoned";
     }
   | {
       name: "mutation_error";
       surface: UxAnalyticsSurface;
-      category:
-        | "validation"
-        | "permission"
-        | "conflict"
-        | "network"
-        | "server"
-        | "unknown";
+      category: UxMutationErrorCategory;
     }
   | {
       name: "planboard_action";

@@ -10,6 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { FormActions } from "@/components/ui/form-actions";
 import { FormGrid } from "@/components/ui/form-grid";
 import { FormSection } from "@/components/ui/form-section";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +24,10 @@ import {
 import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
-import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSelection,
+} from "@/components/google-maps/AddressAutocomplete";
 import {
   getObject,
   createObject,
@@ -41,24 +45,27 @@ import type { SectorOption } from "@/app/actions/customers";
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
 
 const objectFormSchema = z.object({
-  customerId:           z.string().min(1, "Klant is verplicht"),
-  sectorId:             z.string(),
-  name:                 z.string().min(1, "Naam is verplicht").max(255, "Naam mag maximaal 255 tekens bevatten"),
-  address:              z.string(),
-  city:                 z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
-  postalCode:           z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
-  description:          z.string(),
-  contactName:          z.string(),
-  contactFunction:      z.string(),
-  contactPhone:         z.string(),
-  contactEmail:         z.string(),
-  serviceType:          z.string(),
-  accessInfo:           z.string(),
-  keyInfo:              z.string(),
-  alarmInfo:            z.string(),
-  fixedInstructions:    z.string(),
-  specialNotes:         z.string(),
-  requiredRoles:        z.array(z.string()),
+  customerId: z.string().min(1, "Klant is verplicht"),
+  sectorId: z.string(),
+  name: z
+    .string()
+    .min(1, "Naam is verplicht")
+    .max(255, "Naam mag maximaal 255 tekens bevatten"),
+  address: z.string(),
+  city: z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
+  postalCode: z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
+  description: z.string(),
+  contactName: z.string(),
+  contactFunction: z.string(),
+  contactPhone: z.string(),
+  contactEmail: z.string(),
+  serviceType: z.string(),
+  accessInfo: z.string(),
+  keyInfo: z.string(),
+  alarmInfo: z.string(),
+  fixedInstructions: z.string(),
+  specialNotes: z.string(),
+  requiredRoles: z.array(z.string()),
   requiredCertificates: z.array(z.string()),
 });
 
@@ -91,24 +98,24 @@ interface ObjectFormProps {
 }
 
 const DEFAULTS: FormValues = {
-  customerId:           "",
-  sectorId:             "",
-  name:                 "",
-  address:              "",
-  city:                 "",
-  postalCode:           "",
-  description:          "",
-  contactName:          "",
-  contactFunction:      "",
-  contactPhone:         "",
-  contactEmail:         "",
-  serviceType:          "",
-  accessInfo:           "",
-  keyInfo:              "",
-  alarmInfo:            "",
-  fixedInstructions:    "",
-  specialNotes:         "",
-  requiredRoles:        [],
+  customerId: "",
+  sectorId: "",
+  name: "",
+  address: "",
+  city: "",
+  postalCode: "",
+  description: "",
+  contactName: "",
+  contactFunction: "",
+  contactPhone: "",
+  contactEmail: "",
+  serviceType: "",
+  accessInfo: "",
+  keyInfo: "",
+  alarmInfo: "",
+  fixedInstructions: "",
+  specialNotes: "",
+  requiredRoles: [],
   requiredCertificates: [],
 };
 
@@ -122,12 +129,13 @@ export function ObjectForm({
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
-  const [loading, setLoading]             = useState(mode === "edit");
-  const [pending, startTransition]        = useTransition();
+  const [loading, setLoading] = useState(mode === "edit");
+  const [pending, startTransition] = useTransition();
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
-  const [regionNames, setRegionNames]     = useState<string[]>([]);
-  const [regionsDirty, setRegionsDirty]   = useState(false);
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
+  const [regionNames, setRegionNames] = useState<string[]>([]);
+  const [regionsDirty, setRegionsDirty] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] =
+    useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -146,10 +154,15 @@ export function ObjectForm({
   const { requestNavigation, guard } = useUnsavedChangesGuard(
     (isDirty || regionsDirty) && !pending,
   );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("objects", "object");
 
-  const customerIdValue      = watch("customerId");
-  const sectorIdValue        = watch("sectorId") || "NONE";
-  const requiredRoles        = watch("requiredRoles");
+  const customerIdValue = watch("customerId");
+  const sectorIdValue = watch("sectorId") || "NONE";
+  const requiredRoles = watch("requiredRoles");
   const requiredCertificates = watch("requiredCertificates");
 
   useEffect(() => {
@@ -159,25 +172,25 @@ export function ObjectForm({
       .then(([o, linkedRegions]) => {
         if (o) {
           setGeneratedCode(o.code ?? null);
-          setValue("customerId",           o.customerId            ?? "");
-          setValue("sectorId",             o.sectorId              ?? "");
-          setValue("name",                 o.name                  ?? "");
-          setValue("address",              o.address               ?? "");
-          setValue("city",                 o.city                  ?? "");
-          setValue("postalCode",           o.postalCode            ?? "");
-          setValue("description",          o.description           ?? "");
-          setValue("contactName",          o.contactName           ?? "");
-          setValue("contactFunction",      o.contactFunction       ?? "");
-          setValue("contactPhone",         o.contactPhone          ?? "");
-          setValue("contactEmail",         o.contactEmail          ?? "");
-          setValue("serviceType",          o.serviceType           ?? "");
-          setValue("accessInfo",           o.accessInfo            ?? "");
-          setValue("keyInfo",              o.keyInfo               ?? "");
-          setValue("alarmInfo",            o.alarmInfo             ?? "");
-          setValue("fixedInstructions",    o.fixedInstructions     ?? "");
-          setValue("specialNotes",         o.specialNotes          ?? "");
-          setValue("requiredRoles",        o.requiredRoles         ?? []);
-          setValue("requiredCertificates", o.requiredCertificates  ?? []);
+          setValue("customerId", o.customerId ?? "");
+          setValue("sectorId", o.sectorId ?? "");
+          setValue("name", o.name ?? "");
+          setValue("address", o.address ?? "");
+          setValue("city", o.city ?? "");
+          setValue("postalCode", o.postalCode ?? "");
+          setValue("description", o.description ?? "");
+          setValue("contactName", o.contactName ?? "");
+          setValue("contactFunction", o.contactFunction ?? "");
+          setValue("contactPhone", o.contactPhone ?? "");
+          setValue("contactEmail", o.contactEmail ?? "");
+          setValue("serviceType", o.serviceType ?? "");
+          setValue("accessInfo", o.accessInfo ?? "");
+          setValue("keyInfo", o.keyInfo ?? "");
+          setValue("alarmInfo", o.alarmInfo ?? "");
+          setValue("fixedInstructions", o.fixedInstructions ?? "");
+          setValue("specialNotes", o.specialNotes ?? "");
+          setValue("requiredRoles", o.requiredRoles ?? []);
+          setValue("requiredCertificates", o.requiredCertificates ?? []);
           setRegionNames(linkedRegions);
           setRegionsDirty(false);
         }
@@ -185,7 +198,10 @@ export function ObjectForm({
       .finally(() => setLoading(false));
   }, [mode, objectId, setValue]);
 
-  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+  function applyAddressSelection({
+    suggestion,
+    place,
+  }: AddressAutocompleteSelection) {
     setValue(
       "address",
       place.addressLine1 ?? suggestion.mainText ?? suggestion.label,
@@ -205,33 +221,40 @@ export function ObjectForm({
   const onSubmit = handleSubmit((data) => {
     const parsed = objectFormSchema.safeParse(data);
     if (!parsed.success) {
+      trackMutationError("validation");
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".");
-        if (path) setError(path as keyof FormValues, { message: issue.message });
+        if (path)
+          setError(path as keyof FormValues, { message: issue.message });
       }
       return;
     }
 
     startTransition(async () => {
-      const googlePlaceStillMatches = selectedGooglePlace && (
-        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.address || "") &&
-        (selectedGooglePlace.postalCode ?? "") === (parsed.data.postalCode || "") &&
-        (selectedGooglePlace.city ?? "") === (parsed.data.city || "")
-      );
+      const googlePlaceStillMatches =
+        selectedGooglePlace &&
+        (selectedGooglePlace.addressLine1 ?? "") ===
+          (parsed.data.address || "") &&
+        (selectedGooglePlace.postalCode ?? "") ===
+          (parsed.data.postalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.city || "");
       const input: ObjectFormInput = {
         ...parsed.data,
-        sectorId:             parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
-        contactName:          parsed.data.contactName          || undefined,
-        contactFunction:      parsed.data.contactFunction      || undefined,
-        contactPhone:         parsed.data.contactPhone         || undefined,
-        contactEmail:         parsed.data.contactEmail         || undefined,
-        serviceType:          parsed.data.serviceType          || undefined,
-        accessInfo:           parsed.data.accessInfo           || undefined,
-        keyInfo:              parsed.data.keyInfo              || undefined,
-        alarmInfo:            parsed.data.alarmInfo            || undefined,
-        fixedInstructions:    parsed.data.fixedInstructions    || undefined,
-        specialNotes:         parsed.data.specialNotes         || undefined,
-        googlePlace:          googlePlaceStillMatches ? selectedGooglePlace : undefined,
+        sectorId:
+          parsed.data.sectorId === "NONE"
+            ? undefined
+            : parsed.data.sectorId || undefined,
+        contactName: parsed.data.contactName || undefined,
+        contactFunction: parsed.data.contactFunction || undefined,
+        contactPhone: parsed.data.contactPhone || undefined,
+        contactEmail: parsed.data.contactEmail || undefined,
+        serviceType: parsed.data.serviceType || undefined,
+        accessInfo: parsed.data.accessInfo || undefined,
+        keyInfo: parsed.data.keyInfo || undefined,
+        alarmInfo: parsed.data.alarmInfo || undefined,
+        fixedInstructions: parsed.data.fixedInstructions || undefined,
+        specialNotes: parsed.data.specialNotes || undefined,
+        googlePlace: googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -240,6 +263,7 @@ export function ObjectForm({
           : await updateObject(objectId!, input);
 
       if (!result.success) {
+        trackMutationError("server");
         if ("fieldErrors" in result && result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, message]) => {
             setError(field as keyof FormValues, { message });
@@ -255,12 +279,16 @@ export function ObjectForm({
       if (id) {
         const regionResult = await syncObjectRegions(id, regionNames);
         if (!regionResult.success) {
+          trackMutationError("server");
           toast.error(regionResult.message);
           return;
         }
       }
 
-      toast.success(mode === "create" ? "Object aangemaakt" : "Object bijgewerkt");
+      toast.success(
+        mode === "create" ? "Object aangemaakt" : "Object bijgewerkt",
+      );
+      trackFormComplete();
       onSuccess(id);
     });
   });
@@ -275,8 +303,11 @@ export function ObjectForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4 py-4">
-
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
+      className="flex flex-col gap-4 py-4"
+    >
       {/* ── Customer ──────────────────────────────────── */}
       <FormSection
         title="Klant"
@@ -407,9 +438,12 @@ export function ObjectForm({
           <div className="relative rounded-lg border border-border p-3 sm:col-span-2">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-foreground">Objectadres</p>
+                <p className="text-sm font-semibold text-foreground">
+                  Objectadres
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Wordt gebruikt voor kaartweergave en reistijd vanaf het huisadres van de medewerker.
+                  Wordt gebruikt voor kaartweergave en reistijd vanaf het
+                  huisadres van de medewerker.
                 </p>
               </div>
             </div>
@@ -438,7 +472,11 @@ export function ObjectForm({
                   autoComplete="address-level2"
                   aria-invalid={!!errors.city}
                 />
-                {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
+                {errors.city && (
+                  <p className="text-xs text-destructive">
+                    {errors.city.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="objectPostalCode">Postcode</Label>
@@ -449,7 +487,11 @@ export function ObjectForm({
                   autoComplete="postal-code"
                   aria-invalid={!!errors.postalCode}
                 />
-                {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
+                {errors.postalCode && (
+                  <p className="text-xs text-destructive">
+                    {errors.postalCode.message}
+                  </p>
+                )}
               </div>
             </FormGrid>
           </div>
@@ -461,19 +503,36 @@ export function ObjectForm({
         <FormGrid columns="two">
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor="object-contact-name">Naam</Label>
-            <Input id="object-contact-name" {...register("contactName")} placeholder="Jan Jansen" />
+            <Input
+              id="object-contact-name"
+              {...register("contactName")}
+              placeholder="Jan Jansen"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-contact-function">Functie</Label>
-            <Input id="object-contact-function" {...register("contactFunction")} placeholder="Facilitair manager" />
+            <Input
+              id="object-contact-function"
+              {...register("contactFunction")}
+              placeholder="Facilitair manager"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-contact-phone">Telefoon</Label>
-            <Input id="object-contact-phone" {...register("contactPhone")} placeholder="+31 6 00 00 00 00" />
+            <Input
+              id="object-contact-phone"
+              {...register("contactPhone")}
+              placeholder="+31 6 00 00 00 00"
+            />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor="object-contact-email">E-mail</Label>
-            <Input id="object-contact-email" {...register("contactEmail")} type="email" placeholder="jan@bedrijf.nl" />
+            <Input
+              id="object-contact-email"
+              {...register("contactEmail")}
+              type="email"
+              placeholder="jan@bedrijf.nl"
+            />
           </div>
         </FormGrid>
       </FormSection>
@@ -486,15 +545,33 @@ export function ObjectForm({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="object-access-info">Toegangsinformatie</Label>
-            <Textarea id="object-access-info" {...register("accessInfo")} placeholder="Sleutelkast code, toegangspas, portiek..." rows={2} className="resize-none" />
+            <Textarea
+              id="object-access-info"
+              {...register("accessInfo")}
+              placeholder="Sleutelkast code, toegangspas, portiek..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-key-info">Sleutelinformatie</Label>
-            <Textarea id="object-key-info" {...register("keyInfo")} placeholder="Sleutelnummer, bewaarplaats, retourprocedure..." rows={2} className="resize-none" />
+            <Textarea
+              id="object-key-info"
+              {...register("keyInfo")}
+              placeholder="Sleutelnummer, bewaarplaats, retourprocedure..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-alarm-info">Alarmgegevens</Label>
-            <Textarea id="object-alarm-info" {...register("alarmInfo")} placeholder="Alarmcode, contactpersoon bij alarm..." rows={2} className="resize-none" />
+            <Textarea
+              id="object-alarm-info"
+              {...register("alarmInfo")}
+              placeholder="Alarmcode, contactpersoon bij alarm..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
         </div>
       </FormSection>
@@ -504,15 +581,33 @@ export function ObjectForm({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="object-fixed-instructions">Vaste instructies</Label>
-            <Textarea id="object-fixed-instructions" {...register("fixedInstructions")} placeholder="Vaste werkinstructies die altijd van toepassing zijn..." rows={3} className="resize-none" />
+            <Textarea
+              id="object-fixed-instructions"
+              {...register("fixedInstructions")}
+              placeholder="Vaste werkinstructies die altijd van toepassing zijn..."
+              rows={3}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-special-notes">Bijzonderheden</Label>
-            <Textarea id="object-special-notes" {...register("specialNotes")} placeholder="Bijzondere omstandigheden, aandachtspunten, gevaren..." rows={2} className="resize-none" />
+            <Textarea
+              id="object-special-notes"
+              {...register("specialNotes")}
+              placeholder="Bijzondere omstandigheden, aandachtspunten, gevaren..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="object-description">Omschrijving</Label>
-            <Textarea id="object-description" {...register("description")} placeholder="Optionele omschrijving van dit object..." rows={2} className="resize-none" />
+            <Textarea
+              id="object-description"
+              {...register("description")}
+              placeholder="Optionele omschrijving van dit object..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
         </div>
       </FormSection>

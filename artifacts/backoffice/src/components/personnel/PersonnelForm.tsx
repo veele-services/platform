@@ -13,7 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useUnsavedChangesGuard } from "@/components/ui/unsaved-changes-guard";
-import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSelection,
+} from "@/components/google-maps/AddressAutocomplete";
 import {
   Select,
   SelectContent,
@@ -24,6 +27,7 @@ import {
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
 import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 import {
   getPersonnel,
   createPersonnel,
@@ -48,27 +52,34 @@ import {
 // ─── Client-side Zod schema ────────────────────────────────────────────────────
 
 const personnelFormSchema = z.object({
-  firstName:     z.string().min(1, "Voornaam is verplicht").max(100, "Max 100 tekens"),
-  lastName:      z.string().min(1, "Achternaam is verplicht").max(100, "Max 100 tekens"),
-  email:         z.string()
+  firstName: z
+    .string()
+    .min(1, "Voornaam is verplicht")
+    .max(100, "Max 100 tekens"),
+  lastName: z
+    .string()
+    .min(1, "Achternaam is verplicht")
+    .max(100, "Max 100 tekens"),
+  email: z
+    .string()
     .min(1, "E-mail is verplicht")
     .refine(
       (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
       "Ongeldig e-mailadres",
     ),
-  phone:              z.string().max(50, "Max 50 tekens"),
-  addressStreet:      z.string().max(200, "Max 200 tekens"),
-  addressPostalCode:  z.string().max(20, "Max 20 tekens"),
-  addressCity:        z.string().max(120, "Max 120 tekens"),
-  addressCountry:     z.string().max(80, "Max 80 tekens"),
-  roleId:             z.string(),
-  sectorId:           z.string(),
-  region:             z.string().max(100, "Max 100 tekens"),
-  vehicleType:        z.enum(["DRIVE", "BICYCLE", "WALK", "TRANSIT"]),
-  contractStartDate:  z.string(),
-  contractEndDate:    z.string(),
-  contractType:       z.string().max(100, "Max 100 tekens"),
-  contractHours:      z.string(),
+  phone: z.string().max(50, "Max 50 tekens"),
+  addressStreet: z.string().max(200, "Max 200 tekens"),
+  addressPostalCode: z.string().max(20, "Max 20 tekens"),
+  addressCity: z.string().max(120, "Max 120 tekens"),
+  addressCountry: z.string().max(80, "Max 80 tekens"),
+  roleId: z.string(),
+  sectorId: z.string(),
+  region: z.string().max(100, "Max 100 tekens"),
+  vehicleType: z.enum(["DRIVE", "BICYCLE", "WALK", "TRANSIT"]),
+  contractStartDate: z.string(),
+  contractEndDate: z.string(),
+  contractType: z.string().max(100, "Max 100 tekens"),
+  contractHours: z.string(),
 });
 
 type TextFormValues = z.infer<typeof personnelFormSchema>;
@@ -96,31 +107,31 @@ const VEHICLE_TYPE_OPTIONS = [
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 interface PersonnelFormProps {
-  mode:         "create" | "edit";
+  mode: "create" | "edit";
   personnelId?: string;
-  roles:        RoleOption[];
-  sectors:      SectorOption[];
-  onSuccess:    (id: string) => void;
-  onCancel:     () => void;
+  roles: RoleOption[];
+  sectors: SectorOption[];
+  onSuccess: (id: string) => void;
+  onCancel: () => void;
 }
 
 const TEXT_DEFAULTS: TextFormValues = {
-  firstName:         "",
-  lastName:          "",
-  email:             "",
-  phone:             "",
-  addressStreet:     "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  addressStreet: "",
   addressPostalCode: "",
-  addressCity:       "",
-  addressCountry:    "Nederland",
-  roleId:            "",
-  sectorId:          "",
-  region:            "",
-  vehicleType:       "DRIVE",
+  addressCity: "",
+  addressCountry: "Nederland",
+  roleId: "",
+  sectorId: "",
+  region: "",
+  vehicleType: "DRIVE",
   contractStartDate: "",
-  contractEndDate:   "",
-  contractType:      "",
-  contractHours:     "",
+  contractEndDate: "",
+  contractType: "",
+  contractHours: "",
 };
 
 export function PersonnelForm({
@@ -131,23 +142,24 @@ export function PersonnelForm({
   onSuccess,
   onCancel,
 }: PersonnelFormProps) {
-  const [loading, setLoading]      = useState(mode === "edit");
+  const [loading, setLoading] = useState(mode === "edit");
   const [pending, startTransition] = useTransition();
 
   // Tag arrays and boolean fields managed outside react-hook-form
   // CertificateEntry[] preserves expires_at on round-trip edits
-  const [certEntries,       setCertEntries]       = useState<CertificateEntry[]>([]);
-  const [diplomas,          setDiplomas]          = useState<string[]>([]);
-  const [knowledge,         setKnowledge]         = useState<string[]>([]);
-  const [regionNames,       setRegionNames]       = useState<string[]>([]);
-  const [regionOptions,     setRegionOptions]     = useState<RegionOption[]>([]);
-  const [isAvailable,       setIsAvailable]       = useState(true);
-  const [isActive,          setIsActive]          = useState(true);
+  const [certEntries, setCertEntries] = useState<CertificateEntry[]>([]);
+  const [diplomas, setDiplomas] = useState<string[]>([]);
+  const [knowledge, setKnowledge] = useState<string[]>([]);
+  const [regionNames, setRegionNames] = useState<string[]>([]);
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isActive, setIsActive] = useState(true);
   const [emergencyAvailable, setEmergencyAvailable] = useState(false);
-  const [personnelType,     setPersonnelType]     = useState<string>("");
+  const [personnelType, setPersonnelType] = useState<string>("");
   // Create-mode only: send invite email immediately after creating the record
-  const [autoInvite,        setAutoInvite]        = useState(false);
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
+  const [autoInvite, setAutoInvite] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] =
+    useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<TextFormValues>({ defaultValues: TEXT_DEFAULTS });
   const {
@@ -161,43 +173,64 @@ export function PersonnelForm({
   const { requestNavigation, guard } = useUnsavedChangesGuard(
     isDirty && !pending,
   );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("personnel", "personnel");
 
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
   const vehicleTypeValue = watch("vehicleType") || "DRIVE";
 
   useEffect(() => {
-    listRegionOptions().then(setRegionOptions).catch(() => setRegionOptions([]));
+    listRegionOptions()
+      .then(setRegionOptions)
+      .catch(() => setRegionOptions([]));
   }, []);
 
   // Load existing record when editing
   useEffect(() => {
     if (mode !== "edit" || !personnelId) return;
     setLoading(true);
-    Promise.all([getPersonnel(personnelId), getPersonnelRegionNames(personnelId)])
+    Promise.all([
+      getPersonnel(personnelId),
+      getPersonnelRegionNames(personnelId),
+    ])
       .then(([p, linkedRegions]) => {
         if (p) {
-          setValue("firstName",         p.firstName ?? "");
-          setValue("lastName",          p.lastName  ?? "");
-          setValue("email",             p.email     ?? "");
-          setValue("phone",             p.phone     ?? "");
-          setValue("addressStreet",     p.addressStreet     ?? "");
+          setValue("firstName", p.firstName ?? "");
+          setValue("lastName", p.lastName ?? "");
+          setValue("email", p.email ?? "");
+          setValue("phone", p.phone ?? "");
+          setValue("addressStreet", p.addressStreet ?? "");
           setValue("addressPostalCode", p.addressPostalCode ?? "");
-          setValue("addressCity",       p.addressCity       ?? "");
-          setValue("addressCountry",    p.addressCountry    ?? "Nederland");
-          setValue("roleId",            p.roleId    ?? "");
-          setValue("sectorId",          p.sectorId  ?? "");
-          setValue("region",            p.region    ?? "");
-          setValue("vehicleType",       p.vehicleType ?? "DRIVE");
-          setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
-          setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
-          setValue("contractType",      p.contractInfo?.contract_type ?? "");
-          setValue("contractHours",     p.contractInfo?.hours_per_week != null
-            ? String(p.contractInfo.hours_per_week) : "");
-          setCertEntries(p.certificates          ?? []);
-          setDiplomas(p.diplomas                ?? []);
-          setKnowledge(p.knowledge              ?? []);
-          setRegionNames(linkedRegions.length ? linkedRegions : [p.region ?? "", ...((p.preferredRegions ?? []) as string[])].filter(Boolean));
+          setValue("addressCity", p.addressCity ?? "");
+          setValue("addressCountry", p.addressCountry ?? "Nederland");
+          setValue("roleId", p.roleId ?? "");
+          setValue("sectorId", p.sectorId ?? "");
+          setValue("region", p.region ?? "");
+          setValue("vehicleType", p.vehicleType ?? "DRIVE");
+          setValue("contractStartDate", p.contractInfo?.start_date ?? "");
+          setValue("contractEndDate", p.contractInfo?.end_date ?? "");
+          setValue("contractType", p.contractInfo?.contract_type ?? "");
+          setValue(
+            "contractHours",
+            p.contractInfo?.hours_per_week != null
+              ? String(p.contractInfo.hours_per_week)
+              : "",
+          );
+          setCertEntries(p.certificates ?? []);
+          setDiplomas(p.diplomas ?? []);
+          setKnowledge(p.knowledge ?? []);
+          setRegionNames(
+            linkedRegions.length
+              ? linkedRegions
+              : [
+                  p.region ?? "",
+                  ...((p.preferredRegions ?? []) as string[]),
+                ].filter(Boolean),
+          );
           setIsAvailable(p.isAvailable);
           setIsActive(p.isActive);
           setEmergencyAvailable(p.emergencyAvailable ?? false);
@@ -207,17 +240,27 @@ export function PersonnelForm({
       .finally(() => setLoading(false));
   }, [mode, personnelId, setValue]);
 
-  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
-    setValue("addressStreet", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+  function applyAddressSelection({
+    suggestion,
+    place,
+  }: AddressAutocompleteSelection) {
+    setValue(
+      "addressStreet",
+      place.addressLine1 ?? suggestion.mainText ?? suggestion.label,
+    );
     setValue("addressPostalCode", place.postalCode ?? "");
     setValue("addressCity", place.city ?? "");
-    setValue("addressCountry", place.countryCode === "NL" ? "Nederland" : place.countryCode);
+    setValue(
+      "addressCountry",
+      place.countryCode === "NL" ? "Nederland" : place.countryCode,
+    );
     setSelectedGooglePlace(place);
   }
 
   const onSubmit = handleSubmit((data) => {
     const parsed = personnelFormSchema.safeParse(data);
     if (!parsed.success) {
+      trackMutationError("validation");
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".") as keyof TextFormValues;
         if (path) setError(path, { message: issue.message });
@@ -226,45 +269,58 @@ export function PersonnelForm({
     }
 
     // Build contract info if any field is filled
-    const hasContract = parsed.data.contractStartDate || parsed.data.contractEndDate
-      || parsed.data.contractType || parsed.data.contractHours;
-    const contractInfo: ContractInfo | null = hasContract ? {
-      start_date:     parsed.data.contractStartDate || undefined,
-      end_date:       parsed.data.contractEndDate   || undefined,
-      contract_type:  parsed.data.contractType      || undefined,
-      hours_per_week: parsed.data.contractHours
-        ? parseFloat(parsed.data.contractHours)
-        : undefined,
-    } : null;
+    const hasContract =
+      parsed.data.contractStartDate ||
+      parsed.data.contractEndDate ||
+      parsed.data.contractType ||
+      parsed.data.contractHours;
+    const contractInfo: ContractInfo | null = hasContract
+      ? {
+          start_date: parsed.data.contractStartDate || undefined,
+          end_date: parsed.data.contractEndDate || undefined,
+          contract_type: parsed.data.contractType || undefined,
+          hours_per_week: parsed.data.contractHours
+            ? parseFloat(parsed.data.contractHours)
+            : undefined,
+        }
+      : null;
 
     startTransition(async () => {
-      const googlePlaceStillMatches = selectedGooglePlace && (
-        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.addressStreet || "") &&
-        (selectedGooglePlace.postalCode ?? "") === (parsed.data.addressPostalCode || "") &&
-        (selectedGooglePlace.city ?? "") === (parsed.data.addressCity || "")
-      );
+      const googlePlaceStillMatches =
+        selectedGooglePlace &&
+        (selectedGooglePlace.addressLine1 ?? "") ===
+          (parsed.data.addressStreet || "") &&
+        (selectedGooglePlace.postalCode ?? "") ===
+          (parsed.data.addressPostalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.addressCity || "");
       const input: PersonnelFormInput = {
-        firstName:          parsed.data.firstName,
-        lastName:           parsed.data.lastName,
-        email:              parsed.data.email,
-        phone:              parsed.data.phone     || undefined,
-        addressStreet:      parsed.data.addressStreet || undefined,
-        addressPostalCode:  parsed.data.addressPostalCode || undefined,
-        addressCity:        parsed.data.addressCity || undefined,
-        addressCountry:     parsed.data.addressCountry || "Nederland",
-        roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
-        sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
-        region:             regionNames[0] || parsed.data.region || undefined,
-        vehicleType:        parsed.data.vehicleType,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        email: parsed.data.email,
+        phone: parsed.data.phone || undefined,
+        addressStreet: parsed.data.addressStreet || undefined,
+        addressPostalCode: parsed.data.addressPostalCode || undefined,
+        addressCity: parsed.data.addressCity || undefined,
+        addressCountry: parsed.data.addressCountry || "Nederland",
+        roleId:
+          parsed.data.roleId === "NONE"
+            ? undefined
+            : parsed.data.roleId || undefined,
+        sectorId:
+          parsed.data.sectorId === "NONE"
+            ? undefined
+            : parsed.data.sectorId || undefined,
+        region: regionNames[0] || parsed.data.region || undefined,
+        vehicleType: parsed.data.vehicleType,
         certificates: certEntries,
         diplomas,
         knowledge,
         isAvailable,
         isActive,
-        autoInvite:         mode === "create" ? autoInvite : undefined,
-        personnelType:      personnelType || undefined,
+        autoInvite: mode === "create" ? autoInvite : undefined,
+        personnelType: personnelType || undefined,
         emergencyAvailable,
-        preferredRegions:   regionNames.slice(1),
+        preferredRegions: regionNames.slice(1),
         contractInfo,
         googlePlace: googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
@@ -275,6 +331,7 @@ export function PersonnelForm({
           : await updatePersonnel(personnelId!, input);
 
       if (!result.success) {
+        trackMutationError("server");
         if ("fieldErrors" in result && result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, message]) => {
             setError(field as keyof TextFormValues, { message });
@@ -290,6 +347,7 @@ export function PersonnelForm({
       if (id) {
         const regionResult = await syncPersonnelRegions(id, regionNames);
         if (!regionResult.success) {
+          trackMutationError("server");
           toast.error(regionResult.message);
           return;
         }
@@ -298,9 +356,14 @@ export function PersonnelForm({
       if (mode === "create" && autoInvite) {
         toast.success("Personeelsrecord aangemaakt en activatiemail verstuurd");
       } else {
-        toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
+        toast.success(
+          mode === "create"
+            ? "Personeelsrecord aangemaakt"
+            : "Personeelsrecord bijgewerkt",
+        );
       }
 
+      trackFormComplete();
       onSuccess(id);
     });
   });
@@ -308,49 +371,103 @@ export function PersonnelForm({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00B7B3" }} />
+        <Loader2
+          className="h-6 w-6 animate-spin"
+          style={{ color: "#00B7B3" }}
+        />
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6 py-4">
-
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
+      className="flex flex-col gap-6 py-4"
+    >
       {/* ── Personal Info ─────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Persoonlijke gegevens
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="firstName">Voornaam <span className="text-destructive">*</span></Label>
-            <Input id="firstName" {...register("firstName")} placeholder="Voornaam" aria-invalid={!!errors.firstName} />
-            {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
+            <Label htmlFor="firstName">
+              Voornaam <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="firstName"
+              {...register("firstName")}
+              placeholder="Voornaam"
+              aria-invalid={!!errors.firstName}
+            />
+            {errors.firstName && (
+              <p className="text-xs text-destructive">
+                {errors.firstName.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="lastName">Achternaam <span className="text-destructive">*</span></Label>
-            <Input id="lastName" {...register("lastName")} placeholder="Achternaam" aria-invalid={!!errors.lastName} />
-            {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
+            <Label htmlFor="lastName">
+              Achternaam <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="lastName"
+              {...register("lastName")}
+              placeholder="Achternaam"
+              aria-invalid={!!errors.lastName}
+            />
+            {errors.lastName && (
+              <p className="text-xs text-destructive">
+                {errors.lastName.message}
+              </p>
+            )}
           </div>
 
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
-            <Input id="email" type="email" {...register("email")} placeholder="medewerker@bedrijf.nl" aria-invalid={!!errors.email} />
-            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            <Label htmlFor="email">
+              E-mail <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email")}
+              placeholder="medewerker@bedrijf.nl"
+              aria-invalid={!!errors.email}
+            />
+            {errors.email && (
+              <p className="text-xs text-destructive">{errors.email.message}</p>
+            )}
           </div>
 
           <div className="col-span-2 space-y-1">
             <Label htmlFor="phone">Telefoon</Label>
-            <Input id="phone" {...register("phone")} placeholder="+31 6 00 00 00 00" />
+            <Input
+              id="phone"
+              {...register("phone")}
+              placeholder="+31 6 00 00 00 00"
+            />
           </div>
 
-          <div className="relative col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
+          <div
+            className="relative col-span-2 rounded-lg border p-3"
+            style={{ borderColor: "#E2E8F0" }}
+          >
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Huisadres</p>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: "#081D3A" }}
+                >
+                  Huisadres
+                </p>
                 <p className="text-xs" style={{ color: "#64748B" }}>
-                  Wordt gebruikt als vertrekpunt voor de eerste werkbon op de planningskaart.
+                  Wordt gebruikt als vertrekpunt voor de eerste werkbon op de
+                  planningskaart.
                 </p>
               </div>
             </div>
@@ -406,7 +523,10 @@ export function PersonnelForm({
 
       {/* ── Employment type ────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Personeelstype
         </p>
         <div className="space-y-1">
@@ -421,7 +541,9 @@ export function PersonnelForm({
             <SelectContent>
               <SelectItem value="NONE">— Geen type —</SelectItem>
               {PERSONNEL_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>{PERSONNEL_TYPE_LABELS[t]}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {PERSONNEL_TYPE_LABELS[t]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -431,7 +553,9 @@ export function PersonnelForm({
           <Label htmlFor="vehicleType">Standaard vervoersmiddel</Label>
           <Select
             value={vehicleTypeValue}
-            onValueChange={(value) => setValue("vehicleType", value as TextFormValues["vehicleType"])}
+            onValueChange={(value) =>
+              setValue("vehicleType", value as TextFormValues["vehicleType"])
+            }
           >
             <SelectTrigger id="vehicleType">
               <SelectValue placeholder="Selecteer vervoersmiddel..." />
@@ -445,18 +569,27 @@ export function PersonnelForm({
             </SelectContent>
           </Select>
           <p className="text-xs" style={{ color: "#94A3B8" }}>
-            Gebruikt als standaard bij routeberekening; planners kunnen per route tijdelijk afwijken.
+            Gebruikt als standaard bij routeberekening; planners kunnen per
+            route tijdelijk afwijken.
           </p>
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+        <div
+          className="mt-3 flex items-center justify-between rounded-lg border px-4 py-3"
+          style={{ borderColor: "#E2E8F0" }}
+        >
           <div>
-            <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Spoedsbeschikbaar</p>
+            <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+              Spoedsbeschikbaar
+            </p>
             <p className="text-xs" style={{ color: "#94A3B8" }}>
               Beschikbaar voor urgente opdrachten buiten normale uren.
             </p>
           </div>
-          <Switch checked={emergencyAvailable} onCheckedChange={setEmergencyAvailable} />
+          <Switch
+            checked={emergencyAvailable}
+            onCheckedChange={setEmergencyAvailable}
+          />
         </div>
       </section>
 
@@ -464,7 +597,10 @@ export function PersonnelForm({
 
       {/* ── Role & Qualifications ─────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Rol &amp; Kwalificaties
         </p>
         <div className="flex flex-col gap-3">
@@ -472,7 +608,9 @@ export function PersonnelForm({
             <Label htmlFor="roleId">Rol</Label>
             <Select
               value={roleIdValue}
-              onValueChange={(val) => setValue("roleId", val === "NONE" ? "" : val)}
+              onValueChange={(val) =>
+                setValue("roleId", val === "NONE" ? "" : val)
+              }
             >
               <SelectTrigger id="roleId">
                 <SelectValue placeholder="Selecteer rol…" />
@@ -480,7 +618,9 @@ export function PersonnelForm({
               <SelectContent>
                 <SelectItem value="NONE">— Geen rol —</SelectItem>
                 {roles.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {formatPersonnelRoleName(r.name)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -490,7 +630,9 @@ export function PersonnelForm({
             <Label htmlFor="sectorId">Sector</Label>
             <Select
               value={sectorIdValue}
-              onValueChange={(val) => setValue("sectorId", val === "NONE" ? "" : val)}
+              onValueChange={(val) =>
+                setValue("sectorId", val === "NONE" ? "" : val)
+              }
             >
               <SelectTrigger id="sectorId">
                 <SelectValue placeholder="Selecteer sector…" />
@@ -498,7 +640,9 @@ export function PersonnelForm({
               <SelectContent>
                 <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((sector) => (
-                  <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>
+                  <SelectItem key={sector.id} value={sector.id}>
+                    {sector.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -543,7 +687,10 @@ export function PersonnelForm({
 
       {/* ── Availability & Regions ─────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Beschikbaarheid &amp; branches
         </p>
         <div className="flex flex-col gap-4">
@@ -556,25 +703,38 @@ export function PersonnelForm({
               placeholder="Selecteer of maak branches..."
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              De eerste selectie wordt de primaire branch/regio; extra branches blijven beschikbaar voor planning.
+              De eerste selectie wordt de primaire branch/regio; extra branches
+              blijven beschikbaar voor planning.
             </p>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+          <div
+            className="flex items-center justify-between rounded-lg border px-4 py-3"
+            style={{ borderColor: "#E2E8F0" }}
+          >
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Beschikbaar voor planning</p>
+              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+                Beschikbaar voor planning
+              </p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
-                Wanneer uitgeschakeld, verschijnt deze persoon niet in de planningsresultaten.
+                Wanneer uitgeschakeld, verschijnt deze persoon niet in de
+                planningsresultaten.
               </p>
             </div>
             <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+          <div
+            className="flex items-center justify-between rounded-lg border px-4 py-3"
+            style={{ borderColor: "#E2E8F0" }}
+          >
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Actief</p>
+              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+                Actief
+              </p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
-                Inactief personeel wordt verborgen in planning en opdrachtstromen.
+                Inactief personeel wordt verborgen in planning en
+                opdrachtstromen.
               </p>
             </div>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
@@ -586,7 +746,10 @@ export function PersonnelForm({
 
       {/* ── Contract info ──────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Contractgegevens
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -634,7 +797,10 @@ export function PersonnelForm({
         <>
           <Separator />
           <section>
-            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+            <p
+              className="text-xs font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "#64748B" }}
+            >
               Portaaltoegang
             </p>
             <div
@@ -656,7 +822,8 @@ export function PersonnelForm({
                   Direct uitnodigen na aanmaken
                 </label>
                 <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
-                  Het personeelslid ontvangt direct een eenmalige activatiecode voor de Personeels-PWA.
+                  Het personeelslid ontvangt direct een eenmalige activatiecode
+                  voor de Personeels-PWA.
                 </p>
               </div>
             </div>

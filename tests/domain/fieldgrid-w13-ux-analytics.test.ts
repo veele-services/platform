@@ -42,6 +42,12 @@ test("event schema has no field capable of carrying product content or identity"
       action: "completed",
     },
     {
+      name: "form_progress",
+      surface: "platform",
+      form: "support_access",
+      action: "started",
+    },
+    {
       name: "mutation_error",
       surface: "platform",
       category: "permission",

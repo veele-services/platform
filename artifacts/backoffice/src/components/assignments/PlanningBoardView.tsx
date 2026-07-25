@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/sheet";
 import { TenantDetailDrawer, TenantFilterDrawer } from "@/components/tenant-ui";
 import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
+import { trackUxAnalytics } from "@/lib/ux-analytics";
 import {
   Tooltip,
   TooltipContent,
@@ -1418,6 +1419,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       slot.start,
       slot.end,
       current.sourcePersonnelId,
+      "pointer",
     );
   }
 
@@ -1442,7 +1444,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     const end = minutesToTime(
       Math.min(DAY_END_MIN, startMin + durationForAssignment(activeAssignment)),
     );
-    scheduleOnBoard(activeAssignment.id, person.id, start, end);
+    scheduleOnBoard(activeAssignment.id, person.id, start, end, null, "touch");
   }
 
   function scheduleOnBoard(
@@ -1451,6 +1453,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     start: string,
     end: string,
     sourcePersonnelId?: string | null,
+    input: "pointer" | "keyboard" | "touch" = "pointer",
   ) {
     const previousPlacement = sourcePersonnelId
       ? (data.personnel
@@ -1487,6 +1490,13 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       });
 
       if (!result.success) {
+        trackUxAnalytics({
+          name: "planboard_action",
+          surface: "planning",
+          action: "move",
+          input,
+          outcome: "rejected",
+        });
         toast.error(result.message);
         setPlannerAnnouncement(`Plaatsing geweigerd. ${result.message}`);
         setGhostInfo(null);
@@ -1494,6 +1504,13 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       }
 
       const warnings = result.data?.warnings ?? [];
+      trackUxAnalytics({
+        name: "planboard_action",
+        surface: "planning",
+        action: "move",
+        input,
+        outcome: "success",
+      });
       if (warnings.length > 0) {
         toast.warning(
           `Ingepland met waarschuwing: ${warnings.map((warning) => warning.label).join("; ")}`,
@@ -1551,10 +1568,24 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         end: input.end!,
       });
       if (!result.success) {
+        trackUxAnalytics({
+          name: "planboard_action",
+          surface: "planning",
+          action: "undo",
+          input: "pointer",
+          outcome: "rolled_back",
+        });
         toast.error(`Ongedaan maken mislukt: ${result.message}`);
         setPlannerAnnouncement(`Ongedaan maken mislukt. ${result.message}`);
         return;
       }
+      trackUxAnalytics({
+        name: "planboard_action",
+        surface: "planning",
+        action: "undo",
+        input: "pointer",
+        outcome: "success",
+      });
       toast.success("Vorige planning hersteld.");
       setPlannerAnnouncement("De vorige planning is hersteld.");
       router.refresh();
@@ -1644,6 +1675,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         person.id,
         minutesToTime(placement.start),
         minutesToTime(placement.end),
+        null,
+        "keyboard",
       );
     }
   }

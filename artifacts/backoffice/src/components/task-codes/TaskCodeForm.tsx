@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
 import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 import {
   getTaskCode,
   createTaskCode,
@@ -39,11 +40,12 @@ const taskCodeFormSchema = z.object({
     .min(1, "Code is verplicht")
     .max(50, "Max 50 tekens")
     .refine((v) => /^[\w\-.]+$/.test(v.trim()), {
-      message: "Code mag alleen letters, cijfers, koppeltekens en underscores bevatten",
+      message:
+        "Code mag alleen letters, cijfers, koppeltekens en underscores bevatten",
     }),
-  name:            z.string().min(1, "Naam is verplicht").max(200, "Max 200 tekens"),
-  sectorId:        z.string(),
-  description:     z.string().max(5000, "Max 5000 tekens"),
+  name: z.string().min(1, "Naam is verplicht").max(200, "Max 200 tekens"),
+  sectorId: z.string(),
+  description: z.string().max(5000, "Max 5000 tekens"),
   price: z
     .string()
     .refine(
@@ -57,7 +59,7 @@ const taskCodeFormSchema = z.object({
       "Moet een positief geheel getal zijn",
     ),
   requiredDiploma: z.string().max(200, "Max 200 tekens"),
-  requiredRoleId:  z.string(),
+  requiredRoleId: z.string(),
 });
 
 type TextFormValues = z.infer<typeof taskCodeFormSchema>;
@@ -65,23 +67,23 @@ type TextFormValues = z.infer<typeof taskCodeFormSchema>;
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 interface TaskCodeFormProps {
-  mode:         "create" | "edit";
-  taskCodeId?:  string;
-  sectors:      SectorOption[];
-  roles:        RoleOption[];
-  onSuccess:    (id: string) => void;
-  onCancel:     () => void;
+  mode: "create" | "edit";
+  taskCodeId?: string;
+  sectors: SectorOption[];
+  roles: RoleOption[];
+  onSuccess: (id: string) => void;
+  onCancel: () => void;
 }
 
 const TEXT_DEFAULTS: TextFormValues = {
-  code:            "",
-  name:            "",
-  sectorId:        "",
-  description:     "",
-  price:           "",
+  code: "",
+  name: "",
+  sectorId: "",
+  description: "",
+  price: "",
   durationMinutes: "",
   requiredDiploma: "",
-  requiredRoleId:  "",
+  requiredRoleId: "",
 };
 
 export function TaskCodeForm({
@@ -92,15 +94,17 @@ export function TaskCodeForm({
   onSuccess,
   onCancel,
 }: TaskCodeFormProps) {
-  const [loading, setLoading]      = useState(mode === "edit");
+  const [loading, setLoading] = useState(mode === "edit");
   const [pending, startTransition] = useTransition();
 
-  const [requiredCertificates, setRequiredCertificates] = useState<string[]>([]);
-  const [requiredKnowledge,    setRequiredKnowledge]    = useState<string[]>([]);
-  const [photoRequired,  setPhotoRequired]  = useState(false);
+  const [requiredCertificates, setRequiredCertificates] = useState<string[]>(
+    [],
+  );
+  const [requiredKnowledge, setRequiredKnowledge] = useState<string[]>([]);
+  const [photoRequired, setPhotoRequired] = useState(false);
   const [reportRequired, setReportRequired] = useState(false);
-  const [invoiceable,    setInvoiceable]    = useState(true);
-  const [isActive,       setIsActive]       = useState(true);
+  const [invoiceable, setInvoiceable] = useState(true);
+  const [isActive, setIsActive] = useState(true);
 
   const form = useForm<TextFormValues>({ defaultValues: TEXT_DEFAULTS });
   const {
@@ -114,8 +118,13 @@ export function TaskCodeForm({
   const { requestNavigation, guard } = useUnsavedChangesGuard(
     isDirty && !pending,
   );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("assignments", "task_code");
 
-  const sectorIdValue     = watch("sectorId")    || "NONE";
+  const sectorIdValue = watch("sectorId") || "NONE";
   const requiredRoleValue = watch("requiredRoleId") || "NONE";
 
   // Load existing record for edit
@@ -124,16 +133,19 @@ export function TaskCodeForm({
     setLoading(true);
     getTaskCode(taskCodeId).then((tc) => {
       if (tc) {
-        setValue("code",            tc.code            ?? "");
-        setValue("name",            tc.name            ?? "");
-        setValue("sectorId",        tc.sectorId        ?? "");
-        setValue("description",     tc.description     ?? "");
-        setValue("price",           tc.price           ?? "");
-        setValue("durationMinutes", tc.durationMinutes !== null ? String(tc.durationMinutes) : "");
-        setValue("requiredDiploma", tc.requiredDiploma  ?? "");
-        setValue("requiredRoleId",  tc.requiredRoleId   ?? "");
+        setValue("code", tc.code ?? "");
+        setValue("name", tc.name ?? "");
+        setValue("sectorId", tc.sectorId ?? "");
+        setValue("description", tc.description ?? "");
+        setValue("price", tc.price ?? "");
+        setValue(
+          "durationMinutes",
+          tc.durationMinutes !== null ? String(tc.durationMinutes) : "",
+        );
+        setValue("requiredDiploma", tc.requiredDiploma ?? "");
+        setValue("requiredRoleId", tc.requiredRoleId ?? "");
         setRequiredCertificates(tc.requiredCertificates ?? []);
-        setRequiredKnowledge(tc.requiredKnowledge       ?? []);
+        setRequiredKnowledge(tc.requiredKnowledge ?? []);
         setPhotoRequired(tc.photoRequired);
         setReportRequired(tc.reportRequired);
         setInvoiceable(tc.invoiceable);
@@ -146,6 +158,7 @@ export function TaskCodeForm({
   const onSubmit = handleSubmit((data) => {
     const parsed = taskCodeFormSchema.safeParse(data);
     if (!parsed.success) {
+      trackMutationError("validation");
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".") as keyof TextFormValues;
         if (path) setError(path, { message: issue.message });
@@ -155,18 +168,24 @@ export function TaskCodeForm({
 
     startTransition(async () => {
       const durationRaw = parsed.data.durationMinutes.trim();
-      const priceRaw    = parsed.data.price.trim();
+      const priceRaw = parsed.data.price.trim();
 
       const input: TaskCodeFormInput = {
-        code:                 parsed.data.code,
-        name:                 parsed.data.name,
-        sectorId:             parsed.data.sectorId    === "NONE" ? undefined : parsed.data.sectorId    || undefined,
-        requiredRoleId:       parsed.data.requiredRoleId === "NONE" ? undefined : parsed.data.requiredRoleId || undefined,
-        description:          parsed.data.description  || undefined,
-        price:                priceRaw                 || undefined,
-        durationMinutes:      durationRaw ? parseInt(durationRaw) : undefined,
+        code: parsed.data.code,
+        name: parsed.data.name,
+        sectorId:
+          parsed.data.sectorId === "NONE"
+            ? undefined
+            : parsed.data.sectorId || undefined,
+        requiredRoleId:
+          parsed.data.requiredRoleId === "NONE"
+            ? undefined
+            : parsed.data.requiredRoleId || undefined,
+        description: parsed.data.description || undefined,
+        price: priceRaw || undefined,
+        durationMinutes: durationRaw ? parseInt(durationRaw) : undefined,
         requiredCertificates,
-        requiredDiploma:      parsed.data.requiredDiploma || undefined,
+        requiredDiploma: parsed.data.requiredDiploma || undefined,
         requiredKnowledge,
         photoRequired,
         reportRequired,
@@ -180,6 +199,7 @@ export function TaskCodeForm({
           : await updateTaskCode(taskCodeId!, input);
 
       if (!result.success) {
+        trackMutationError("server");
         if ("fieldErrors" in result && result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, message]) => {
             setError(field as keyof TextFormValues, { message });
@@ -189,7 +209,10 @@ export function TaskCodeForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Taakcode aangemaakt" : "Taakcode bijgewerkt");
+      toast.success(
+        mode === "create" ? "Taakcode aangemaakt" : "Taakcode bijgewerkt",
+      );
+      trackFormComplete();
       const id =
         mode === "create" && result.data ? result.data.id : (taskCodeId ?? "");
       onSuccess(id);
@@ -199,17 +222,26 @@ export function TaskCodeForm({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00B7B3" }} />
+        <Loader2
+          className="h-6 w-6 animate-spin"
+          style={{ color: "#00B7B3" }}
+        />
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6 py-4">
-
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
+      className="flex flex-col gap-6 py-4"
+    >
       {/* ── Identity ──────────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Identificatie
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -242,7 +274,9 @@ export function TaskCodeForm({
               <SelectContent>
                 <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -279,7 +313,10 @@ export function TaskCodeForm({
 
       {/* ── Pricing & Duration ─────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Prijs &amp; Duur
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -307,7 +344,9 @@ export function TaskCodeForm({
               aria-invalid={!!errors.durationMinutes}
             />
             {errors.durationMinutes && (
-              <p className="text-xs text-destructive">{errors.durationMinutes.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.durationMinutes.message}
+              </p>
             )}
           </div>
         </div>
@@ -317,7 +356,10 @@ export function TaskCodeForm({
 
       {/* ── Planning Eligibility ───────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Planningsgeschiktheid
         </p>
         <div className="flex flex-col gap-3">
@@ -352,7 +394,9 @@ export function TaskCodeForm({
             <Label htmlFor="requiredRoleId">Vereiste rol</Label>
             <Select
               value={requiredRoleValue}
-              onValueChange={(v) => setValue("requiredRoleId", v === "NONE" ? "" : v)}
+              onValueChange={(v) =>
+                setValue("requiredRoleId", v === "NONE" ? "" : v)
+              }
             >
               <SelectTrigger id="requiredRoleId">
                 <SelectValue placeholder="Elke rol…" />
@@ -360,7 +404,9 @@ export function TaskCodeForm({
               <SelectContent>
                 <SelectItem value="NONE">— Elke rol —</SelectItem>
                 {roles.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {formatPersonnelRoleName(r.name)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -372,7 +418,10 @@ export function TaskCodeForm({
 
       {/* ── Requirements & Settings ────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Vereisten &amp; Instellingen
         </p>
         <div className="flex flex-col gap-3">
@@ -436,11 +485,11 @@ function SwitchRow({
   checked,
   onChange,
 }: {
-  id:          string;
-  label:       string;
+  id: string;
+  label: string;
   description: string;
-  checked:     boolean;
-  onChange:    (v: boolean) => void;
+  checked: boolean;
+  onChange: (v: boolean) => void;
 }) {
   return (
     <div
@@ -448,8 +497,12 @@ function SwitchRow({
       style={{ borderColor: "#E2E8F0" }}
     >
       <div>
-        <p className="text-sm font-medium" style={{ color: "#081D3A" }}>{label}</p>
-        <p className="text-xs" style={{ color: "#94A3B8" }}>{description}</p>
+        <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+          {label}
+        </p>
+        <p className="text-xs" style={{ color: "#94A3B8" }}>
+          {description}
+        </p>
       </div>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>

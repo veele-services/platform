@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 
 type DurationPreset = "30" | "60" | "240" | "end_of_day" | "custom";
 
@@ -207,6 +208,11 @@ export function PlatformSupportAccessPanel({
       createAction(formData),
     { success: false, message: "" } as ActionResult,
   );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("platform", "support_access");
 
   const selectedUser = useMemo(
     () => platformUsers.find((user) => user.id === platformUserId) ?? null,
@@ -214,11 +220,15 @@ export function PlatformSupportAccessPanel({
   );
 
   useEffect(() => {
-    if (!state.success) return;
-    setConfirmOpen(false);
-    setReason("");
-    router.refresh();
-  }, [router, state.success]);
+    if (state.success) {
+      trackFormComplete();
+      setConfirmOpen(false);
+      setReason("");
+      router.refresh();
+      return;
+    }
+    if (state.message) trackMutationError("server");
+  }, [router, state, trackFormComplete, trackMutationError]);
 
   function changeDuration(value: string) {
     const preset = value as DurationPreset;
@@ -237,18 +247,22 @@ export function PlatformSupportAccessPanel({
   function reviewGrant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!platformUserId) {
+      trackMutationError("validation");
       setClientError("Kies eerst een platformgebruiker.");
       return;
     }
     if (reason.trim().length < 8) {
+      trackMutationError("validation");
       setClientError("Beschrijf de reden in minimaal 8 tekens.");
       return;
     }
     if (permissions.length === 0) {
+      trackMutationError("validation");
       setClientError("Kies minimaal één toegestane handeling.");
       return;
     }
     if (!expiresAt || new Date(expiresAt).getTime() <= Date.now()) {
+      trackMutationError("validation");
       setClientError("Kies een eindtijd in de toekomst.");
       return;
     }
@@ -280,7 +294,11 @@ export function PlatformSupportAccessPanel({
           supportvraag.
         </p>
 
-        <form onSubmit={reviewGrant} className="mt-5 grid gap-4">
+        <form
+          onSubmit={reviewGrant}
+          onFocusCapture={trackFormStart}
+          className="mt-5 grid gap-4"
+        >
           <div className="grid gap-1.5">
             <Label htmlFor="support-user">Platformgebruiker</Label>
             <Select value={platformUserId} onValueChange={setPlatformUserId}>

@@ -40,55 +40,64 @@ import {
   syncAssignmentRequiredRegions,
   type RegionOption,
 } from "@/app/actions/regions";
-import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
+import {
+  ASSIGNMENT_STATUSES,
+  ASSIGNMENT_PRIORITIES,
+} from "@/types/assignments";
+import { useUxFormAnalytics } from "@/lib/use-ux-form-analytics";
 import { priorityLabel, statusLabel } from "./AssignmentStatusBadge";
 
 // ─── Dutch labels ─────────────────────────────────────────────────────────────
 
 // ─── Form schema ──────────────────────────────────────────────────────────────
 
-const formSchema = z.object({
-  title:          z.string().min(1, "Titel is verplicht").max(255, "Maximaal 255 tekens"),
-  description:    z.string(),
-  customerId:     z.string().min(1, "Klant is verplicht"),
-  objectId:       z.string(),
-  status:         z.string().min(1, "Status is verplicht"),
-  priority:       z.string().min(1, "Prioriteit is verplicht"),
-  scheduledDate:  z.string(),
-  scheduledStart: z.string(),
-  scheduledEnd:   z.string(),
-  notes:          z.string(),
-  requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
-  requiredPersonnelCount: z.coerce
-    .number()
-    .int("Gebruik een heel getal")
-    .min(1, "Minimaal 1 medewerker")
-    .max(50, "Maximaal 50 medewerkers"),
-  customerSignatureRequired: z.boolean(),
-}).superRefine((value, context) => {
-  const range = validateTimeRange(value.scheduledStart, value.scheduledEnd);
-  if (!range.valid) {
-    context.addIssue({
-      code: "custom",
-      path: ["scheduledEnd"],
-      message: range.message,
-    });
-  }
-});
+const formSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1, "Titel is verplicht")
+      .max(255, "Maximaal 255 tekens"),
+    description: z.string(),
+    customerId: z.string().min(1, "Klant is verplicht"),
+    objectId: z.string(),
+    status: z.string().min(1, "Status is verplicht"),
+    priority: z.string().min(1, "Prioriteit is verplicht"),
+    scheduledDate: z.string(),
+    scheduledStart: z.string(),
+    scheduledEnd: z.string(),
+    notes: z.string(),
+    requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
+    requiredPersonnelCount: z.coerce
+      .number()
+      .int("Gebruik een heel getal")
+      .min(1, "Minimaal 1 medewerker")
+      .max(50, "Maximaal 50 medewerkers"),
+    customerSignatureRequired: z.boolean(),
+  })
+  .superRefine((value, context) => {
+    const range = validateTimeRange(value.scheduledStart, value.scheduledEnd);
+    if (!range.valid) {
+      context.addIssue({
+        code: "custom",
+        path: ["scheduledEnd"],
+        message: range.message,
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const DEFAULTS: FormValues = {
-  title:          "",
-  description:    "",
-  customerId:     "",
-  objectId:       "",
-  status:         "requested",
-  priority:       "normal",
-  scheduledDate:  "",
+  title: "",
+  description: "",
+  customerId: "",
+  objectId: "",
+  status: "requested",
+  priority: "normal",
+  scheduledDate: "",
   scheduledStart: "",
-  scheduledEnd:   "",
-  notes:          "",
+  scheduledEnd: "",
+  notes: "",
   requiredRegion: "",
   requiredPersonnelCount: 1,
   customerSignatureRequired: false,
@@ -97,13 +106,13 @@ const DEFAULTS: FormValues = {
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface AssignmentFormProps {
-  mode:           "create" | "edit";
-  assignmentId?:  string;
-  customers:      CustomerOption[];
+  mode: "create" | "edit";
+  assignmentId?: string;
+  customers: CustomerOption[];
   regionOptions?: RegionOption[];
-  defaultDate?:   string;
-  onSuccess:      (id: string) => void;
-  onCancel:       () => void;
+  defaultDate?: string;
+  onSuccess: (id: string) => void;
+  onCancel: () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -117,17 +126,18 @@ export function AssignmentForm({
   onSuccess,
   onCancel,
 }: AssignmentFormProps) {
-  const [loading,  setLoading]       = useState(mode === "edit");
-  const [pending,  startTransition]  = useTransition();
-  const [objects,  setObjects]       = useState<ObjectOption[]>([]);
+  const [loading, setLoading] = useState(mode === "edit");
+  const [pending, startTransition] = useTransition();
+  const [objects, setObjects] = useState<ObjectOption[]>([]);
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [regionNames, setRegionNames] = useState<string[]>([]);
   const [regionTouched, setRegionTouched] = useState(false);
 
   const form = useForm<FormValues>({
-    defaultValues: defaultDate && mode === "create"
-      ? { ...DEFAULTS, scheduledDate: defaultDate }
-      : DEFAULTS,
+    defaultValues:
+      defaultDate && mode === "create"
+        ? { ...DEFAULTS, scheduledDate: defaultDate }
+        : DEFAULTS,
   });
   const {
     register,
@@ -139,15 +149,20 @@ export function AssignmentForm({
   } = form;
 
   const customerIdVal = watch("customerId");
-  const objectIdVal   = watch("objectId") || "NONE";
-  const statusVal     = watch("status")   || "requested";
-  const priorityVal   = watch("priority") || "normal";
+  const objectIdVal = watch("objectId") || "NONE";
+  const statusVal = watch("status") || "requested";
+  const priorityVal = watch("priority") || "normal";
   const scheduledStartVal = watch("scheduledStart") || "";
   const scheduledEndVal = watch("scheduledEnd") || "";
   const signatureRequiredVal = watch("customerSignatureRequired") || false;
   const { requestNavigation, guard } = useUnsavedChangesGuard(
     isDirty && !pending,
   );
+  const {
+    start: trackFormStart,
+    complete: trackFormComplete,
+    mutationError: trackMutationError,
+  } = useUxFormAnalytics("assignments", "assignment");
 
   const updateRegionNames = (next: string[]) => {
     setRegionTouched(true);
@@ -187,22 +202,34 @@ export function AssignmentForm({
   useEffect(() => {
     if (mode !== "edit" || !assignmentId) return;
     setLoading(true);
-    Promise.all([getAssignment(assignmentId), getAssignmentRegionNames(assignmentId)]).then(([a, linkedRegions]) => {
+    Promise.all([
+      getAssignment(assignmentId),
+      getAssignmentRegionNames(assignmentId),
+    ]).then(([a, linkedRegions]) => {
       if (a) {
-        setValue("title",          a.title         ?? "");
-        setValue("description",    a.description   ?? "");
-        setValue("customerId",     a.customerId    ?? "");
-        setValue("objectId",       a.objectId      ?? "");
-        setValue("status",         a.status        ?? "requested");
-        setValue("priority",       a.priority      ?? "normal");
-        setValue("scheduledDate",  a.scheduledDate ?? "");
+        setValue("title", a.title ?? "");
+        setValue("description", a.description ?? "");
+        setValue("customerId", a.customerId ?? "");
+        setValue("objectId", a.objectId ?? "");
+        setValue("status", a.status ?? "requested");
+        setValue("priority", a.priority ?? "normal");
+        setValue("scheduledDate", a.scheduledDate ?? "");
         setValue("scheduledStart", a.scheduledStart ?? "");
-        setValue("scheduledEnd",   a.scheduledEnd  ?? "");
-        setValue("notes",          a.notes         ?? "");
+        setValue("scheduledEnd", a.scheduledEnd ?? "");
+        setValue("notes", a.notes ?? "");
         setValue("requiredRegion", a.requiredRegion ?? "");
         setValue("requiredPersonnelCount", a.requiredPersonnelCount ?? 1);
-        setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
-        setRegionNames(linkedRegions.length > 0 ? linkedRegions : a.requiredRegion ? [a.requiredRegion] : []);
+        setValue(
+          "customerSignatureRequired",
+          Boolean(a.customerSignatureRequired),
+        );
+        setRegionNames(
+          linkedRegions.length > 0
+            ? linkedRegions
+            : a.requiredRegion
+              ? [a.requiredRegion]
+              : [],
+        );
         setRegionTouched(true);
       }
       setLoading(false);
@@ -212,25 +239,30 @@ export function AssignmentForm({
   const onSubmit = handleSubmit((data) => {
     const parsed = formSchema.safeParse(data);
     if (!parsed.success) {
+      trackMutationError("validation");
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".");
-        if (path) setError(path as keyof FormValues, { message: issue.message });
+        if (path)
+          setError(path as keyof FormValues, { message: issue.message });
       }
       return;
     }
 
     startTransition(async () => {
       const input: AssignmentFormInput = {
-        title:          parsed.data.title,
-        description:    parsed.data.description    || undefined,
-        customerId:     parsed.data.customerId,
-        objectId:       parsed.data.objectId === "NONE" ? undefined : parsed.data.objectId || undefined,
-        status:         parsed.data.status    as AssignmentStatus,
-        priority:       parsed.data.priority  as AssignmentPriority,
-        scheduledDate:  parsed.data.scheduledDate  || undefined,
+        title: parsed.data.title,
+        description: parsed.data.description || undefined,
+        customerId: parsed.data.customerId,
+        objectId:
+          parsed.data.objectId === "NONE"
+            ? undefined
+            : parsed.data.objectId || undefined,
+        status: parsed.data.status as AssignmentStatus,
+        priority: parsed.data.priority as AssignmentPriority,
+        scheduledDate: parsed.data.scheduledDate || undefined,
         scheduledStart: parsed.data.scheduledStart || undefined,
-        scheduledEnd:   parsed.data.scheduledEnd   || undefined,
-        notes:          parsed.data.notes          || undefined,
+        scheduledEnd: parsed.data.scheduledEnd || undefined,
+        notes: parsed.data.notes || undefined,
         requiredRegion: regionNames[0] || undefined,
         requiredPersonnelCount: parsed.data.requiredPersonnelCount,
         customerSignatureRequired: parsed.data.customerSignatureRequired,
@@ -242,6 +274,7 @@ export function AssignmentForm({
           : await updateAssignment(assignmentId!, input);
 
       if (!result.success) {
+        trackMutationError("server");
         if ("fieldErrors" in result && result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, message]) => {
             setError(field as keyof FormValues, { message });
@@ -253,18 +286,26 @@ export function AssignmentForm({
 
       const savedId =
         mode === "create"
-          ? ((result as { success: true; data?: { id: string } }).data?.id ?? "")
+          ? ((result as { success: true; data?: { id: string } }).data?.id ??
+            "")
           : (assignmentId ?? "");
 
       if (savedId) {
-        const regionResult = await syncAssignmentRequiredRegions(savedId, regionNames);
+        const regionResult = await syncAssignmentRequiredRegions(
+          savedId,
+          regionNames,
+        );
         if (!regionResult.success) {
+          trackMutationError("server");
           toast.error(regionResult.message);
           return;
         }
       }
 
-      toast.success(mode === "create" ? "Opdracht aangemaakt" : "Opdracht bijgewerkt");
+      toast.success(
+        mode === "create" ? "Opdracht aangemaakt" : "Opdracht bijgewerkt",
+      );
+      trackFormComplete();
       onSuccess(savedId);
     });
   });
@@ -272,17 +313,26 @@ export function AssignmentForm({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00B7B3" }} />
+        <Loader2
+          className="h-6 w-6 animate-spin"
+          style={{ color: "#00B7B3" }}
+        />
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6 py-4">
-
+    <form
+      onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
+      className="flex flex-col gap-6 py-4"
+    >
       {/* ── Algemene info ─────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Algemene info
         </p>
         <div className="flex flex-col gap-3">
@@ -301,7 +351,7 @@ export function AssignmentForm({
             )}
           </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -358,12 +408,16 @@ export function AssignmentForm({
               <SelectContent>
                 <SelectItem value="NONE">— Selecteer klant —</SelectItem>
                 {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {errors.customerId && (
-              <p className="text-xs text-destructive">{errors.customerId.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.customerId.message}
+              </p>
             )}
           </div>
 
@@ -375,12 +429,18 @@ export function AssignmentForm({
               disabled={!customerIdVal || loadingObjects}
             >
               <SelectTrigger id="objectId">
-                <SelectValue placeholder={loadingObjects ? "Laden..." : "Selecteer object..."} />
+                <SelectValue
+                  placeholder={
+                    loadingObjects ? "Laden..." : "Selecteer object..."
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Geen object —</SelectItem>
                 {objects.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -392,7 +452,10 @@ export function AssignmentForm({
 
       {/* ── Planning ──────────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Planning
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -439,7 +502,9 @@ export function AssignmentForm({
               {...register("requiredPersonnelCount", { valueAsNumber: true })}
             />
             {errors.requiredPersonnelCount && (
-              <p className="text-xs text-destructive">{errors.requiredPersonnelCount.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.requiredPersonnelCount.message}
+              </p>
             )}
           </div>
           <div className="space-y-1 sm:col-span-3">
@@ -451,10 +516,14 @@ export function AssignmentForm({
               placeholder="Selecteer of maak regio's..."
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Optioneel. De eerste regio blijft leidend voor bestaande planningfilters; extra regio&apos;s worden als aanvullende eisen opgeslagen.
+              Optioneel. De eerste regio blijft leidend voor bestaande
+              planningfilters; extra regio&apos;s worden als aanvullende eisen
+              opgeslagen.
             </p>
             {errors.requiredRegion && (
-              <p className="text-xs text-destructive">{errors.requiredRegion.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.requiredRegion.message}
+              </p>
             )}
           </div>
         </div>
@@ -464,7 +533,10 @@ export function AssignmentForm({
 
       {/* ── Beschrijving ──────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Beschrijving
         </p>
         <Textarea
@@ -479,7 +551,10 @@ export function AssignmentForm({
 
       {/* ── Interne notities ──────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-1"
+          style={{ color: "#64748B" }}
+        >
           Interne notities
         </p>
         <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
@@ -497,20 +572,33 @@ export function AssignmentForm({
       <Separator />
 
       <section>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-3"
+          style={{ color: "#64748B" }}
+        >
           Afronding
         </p>
-        <div className="flex items-center justify-between gap-4 rounded-xl border p-4" style={{ borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }}>
+        <div
+          className="flex items-center justify-between gap-4 rounded-xl border p-4"
+          style={{ borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }}
+        >
           <div className="min-w-0">
-            <Label htmlFor="customerSignatureRequired">Klant-handtekening verplicht</Label>
+            <Label htmlFor="customerSignatureRequired">
+              Klant-handtekening verplicht
+            </Label>
             <p className="mt-1 text-xs leading-5" style={{ color: "#64748B" }}>
-              Indien actief moet de medewerker bij gereedmelden een akkoord-handtekening van de klant vastleggen.
+              Indien actief moet de medewerker bij gereedmelden een
+              akkoord-handtekening van de klant vastleggen.
             </p>
           </div>
           <Switch
             id="customerSignatureRequired"
             checked={signatureRequiredVal}
-            onCheckedChange={(checked) => setValue("customerSignatureRequired", checked, { shouldDirty: true })}
+            onCheckedChange={(checked) =>
+              setValue("customerSignatureRequired", checked, {
+                shouldDirty: true,
+              })
+            }
           />
         </div>
       </section>
