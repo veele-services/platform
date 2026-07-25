@@ -1289,12 +1289,18 @@ export async function uploadOrgLogo(
     ["image/png", "png"],
     ["image/jpeg", "jpg"],
     ["image/webp", "webp"],
-    ["image/svg+xml", "svg"],
   ]);
 
-  const ext = allowedTypes.get(mimeType) ?? (extension === "svg" ? "svg" : null);
+  if (mimeType === "image/svg+xml" || extension === "svg") {
+    return {
+      success: false,
+      message: "SVG-logo's zijn nog niet toegestaan",
+    };
+  }
+
+  const ext = allowedTypes.get(mimeType) ?? null;
   if (!ext) {
-    return { success: false, message: "Upload een PNG, JPG, WebP of SVG-logo." };
+    return { success: false, message: "Upload een PNG-, JPG- of WebP-logo." };
   }
 
   const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);

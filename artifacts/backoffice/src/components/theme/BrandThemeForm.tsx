@@ -261,7 +261,7 @@ export function BrandThemeForm({
                   ref={logoRef}
                   id="logoUpload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  accept="image/png,image/jpeg,image/webp"
                   disabled={
                     !canWrite ||
                     (mode === "tenant" && !customThemeAllowed) ||
@@ -305,7 +305,7 @@ export function BrandThemeForm({
                   ref={faviconRef}
                   id="faviconUpload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  accept="image/png,image/jpeg,image/webp"
                   disabled={
                     !canWrite ||
                     (mode === "tenant" && !customThemeAllowed) ||
@@ -349,7 +349,7 @@ export function BrandThemeForm({
                   ref={splashRef}
                   id="splashUpload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  accept="image/png,image/jpeg,image/webp"
                   disabled={
                     !canWrite ||
                     (mode === "tenant" && !customThemeAllowed) ||
@@ -377,7 +377,7 @@ export function BrandThemeForm({
               </div>
             </Field>
             <p className="self-end text-xs text-slate-500">
-              PNG, JPG, WebP of SVG. Logo en app-icoon maximaal 2 MB;
+              PNG, JPG of WebP. Logo en app-icoon maximaal 2 MB;
               splashscreen maximaal 6 MB. Gebruik voor PWA-icon bij voorkeur
               PNG/WebP 512x512; splash bij voorkeur 1080x1920.
             </p>

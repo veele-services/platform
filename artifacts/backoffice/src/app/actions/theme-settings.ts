@@ -42,7 +42,6 @@ const ALLOWED_BRAND_ASSET_TYPES = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
   ["image/webp", "webp"],
-  ["image/svg+xml", "svg"],
 ]);
 
 function formValue(formData: FormData, name: string): string {
@@ -113,10 +112,17 @@ function validateBrandAssetFile(file: File, assetKind: BrandingAssetKind): Actio
   const mimeType = file.type.toLowerCase();
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
 
+  if (mimeType === "image/svg+xml" || extension === "svg") {
+    return {
+      success: false,
+      message: "SVG-bestanden zijn voor branding nog niet toegestaan.",
+    };
+  }
+
   const allowedExtension = ALLOWED_BRAND_ASSET_TYPES.get(mimeType);
-  const resolvedExtension = allowedExtension ?? (extension === "svg" ? "svg" : null);
+  const resolvedExtension = allowedExtension ?? null;
   if (!resolvedExtension) {
-    return { success: false, message: "Upload een PNG, JPG, WebP of SVG-bestand." };
+    return { success: false, message: "Upload een PNG-, JPG- of WebP-bestand." };
   }
 
   return { success: true, data: { extension: resolvedExtension } };
