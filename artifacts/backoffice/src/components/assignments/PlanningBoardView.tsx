@@ -847,6 +847,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     start: number;
     end: number;
   } | null>(null);
+  const [keyboardSourcePersonnelId, setKeyboardSourcePersonnelId] = useState<
+    string | null
+  >(null);
   const [isPending, startTransition] = useTransition();
   const [plannerInteracting, setPlannerInteracting] = useState(false);
   const [zoomLevel, setZoomLevel] =
@@ -1540,6 +1543,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         `${sourcePersonnelId ? "Afspraak verplaatst" : "Werkbon ingepland"} van ${start} tot ${end}.`,
       );
       setSelectedAssignmentId(null);
+      setKeyboardSourcePersonnelId(null);
       setKeyboardPlacement(null);
       setGhostInfo(null);
       router.refresh();
@@ -1601,15 +1605,55 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       e.preventDefault();
       const nextId = selected ? null : assignment.id;
       setSelectedAssignmentId(nextId);
+      setKeyboardSourcePersonnelId(null);
       setDetailAssignmentId(nextId);
       if (openQueueOpen) setOpenQueueOpen(false);
     }
     if (e.key === "Escape") {
       e.preventDefault();
       setSelectedAssignmentId(null);
+      setKeyboardSourcePersonnelId(null);
       setDetailAssignmentId(null);
       setOpenQueueOpen(false);
     }
+  }
+
+  function handleScheduledAssignmentKeyDown(
+    event: React.KeyboardEvent<HTMLElement>,
+    assignment: PlanningBoardPersonnelAssignment,
+    sourcePersonnelId: string,
+  ) {
+    if (!canWrite || !isPlanboardMovableStatus(assignment.status)) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const start =
+      parseTimeMin(assignment.scheduledStart ?? assignment.effectiveStart) ??
+      timelineWindow.start;
+    const end =
+      parseTimeMin(assignment.scheduledEnd ?? assignment.effectiveEnd) ??
+      Math.min(
+        timelineWindow.end,
+        start + Math.max(30, assignment.estimatedDurationMinutes || 60),
+      );
+    setSelectedAssignmentId(assignment.id);
+    setDetailAssignmentId(assignment.id);
+    setKeyboardSourcePersonnelId(sourcePersonnelId);
+    setKeyboardPlacement({
+      personnelId: sourcePersonnelId,
+      start,
+      end,
+    });
+    setGhostInfo({
+      rowId: sourcePersonnelId,
+      leftPct: ((start - timelineWindow.start) / timelineWindow.span) * 100,
+      widthPct: ((end - start) / timelineWindow.span) * 100,
+      label: `${minutesToTime(start)}-${minutesToTime(end)}`,
+    });
+    setPlannerAnnouncement(
+      `${assignment.code} geselecteerd om te verplaatsen. Ga naar een planningtijdlijn, gebruik links of rechts en druk Enter om te bevestigen.`,
+    );
   }
 
   function handleTimelineKeyDown(
@@ -1619,7 +1663,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     if (!canWrite || !activeAssignment) return;
     const match = getMatch(activeAssignment.id, person.id);
     const alreadyAssigned = isAlreadyAssigned(activeAssignment.id, person.id);
-    if (match?.level === "blocked" || alreadyAssigned) return;
+    if (
+      match?.level === "blocked" ||
+      (alreadyAssigned && keyboardSourcePersonnelId !== person.id)
+    ) {
+      return;
+    }
 
     const duration = durationForAssignment(activeAssignment);
     const suggested =
@@ -1636,6 +1685,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     if (event.key === "Escape") {
       event.preventDefault();
       setKeyboardPlacement(null);
+      setKeyboardSourcePersonnelId(null);
+      setSelectedAssignmentId(null);
       setGhostInfo(null);
       setPlannerAnnouncement("Toetsenbordplaatsing geannuleerd.");
       return;
@@ -1675,7 +1726,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         person.id,
         minutesToTime(placement.start),
         minutesToTime(placement.end),
-        null,
+        keyboardSourcePersonnelId,
         "keyboard",
       );
     }
@@ -1845,7 +1896,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
             <form
               onSubmit={submitSearch}
-              className="flex min-w-[280px] flex-1 items-center gap-2"
+              className="flex w-full min-w-0 flex-1 items-center gap-2 sm:min-w-[280px]"
             >
               <label className="relative min-w-0 flex-1">
                 <span className="sr-only">Werkbonnen zoeken</span>
@@ -3233,6 +3284,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                     onDragEnd={
                                       isMovable ? handleDragEnd : undefined
                                     }
+                                    onKeyDown={
+                                      isMovable
+                                        ? (event) =>
+                                            handleScheduledAssignmentKeyDown(
+                                              event,
+                                              assignment,
+                                              person.id,
+                                            )
+                                        : undefined
+                                    }
+                                    aria-keyshortcuts={
+                                      isMovable ? "Enter Space" : undefined
+                                    }
+                                    aria-label={`${assignment.code}: ${displayWorkOrderTitle(assignment.title)}. ${appointmentTimingLabel(assignment)}${isMovable ? ". Druk Enter of spatie om deze afspraak met het toetsenbord te verplaatsen." : ""}`}
                                     className="relative z-10 mr-1 inline-flex max-w-[220px] items-center gap-1 truncate rounded border px-1.5 py-1 text-[11px] font-medium"
                                     style={{
                                       borderColor: pastel.border,
@@ -3271,8 +3336,21 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       onDragEnd={
                                         isMovable ? handleDragEnd : undefined
                                       }
+                                      onKeyDown={
+                                        isMovable
+                                          ? (event) =>
+                                              handleScheduledAssignmentKeyDown(
+                                                event,
+                                                assignment,
+                                                person.id,
+                                              )
+                                          : undefined
+                                      }
+                                      aria-keyshortcuts={
+                                        isMovable ? "Enter Space" : undefined
+                                      }
                                       title={appointmentTimingLabel(assignment)}
-                                      aria-label={`${assignment.code}: ${displayWorkOrderTitle(assignment.title)}. ${appointmentTimingLabel(assignment)}`}
+                                      aria-label={`${assignment.code}: ${displayWorkOrderTitle(assignment.title)}. ${appointmentTimingLabel(assignment)}${isMovable ? ". Druk Enter of spatie om deze afspraak met het toetsenbord te verplaatsen." : ""}`}
                                       className="absolute z-10 flex min-w-[96px] items-center overflow-hidden rounded-lg border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
                                       style={{
                                         top: density.inset,

@@ -12,7 +12,7 @@ test("planboard controls use canonical Radix-backed primitives", () => {
   assert.match(planboard, /from "@\/components\/ui\/toggle-group"/u);
   assert.match(planboard, /from "@\/components\/ui\/sheet"/u);
   assert.match(planboard, /<SheetContent side="right"/u);
-  assert.doesNotMatch(planboard, /<select(?:\s|>)/u);
+  assert.doesNotMatch(planboard, /<select\b/u);
   assert.doesNotMatch(planboard, /role="dialog"/u);
   assert.doesNotMatch(planboard, /@radix-ui\/react-/u);
 });
@@ -36,6 +36,14 @@ test("keyboard planning supports precise movement, confirmation and announcement
   assert.match(planboard, /event\.key === "Escape"/u);
   assert.match(planboard, /aria-live="polite"/u);
   assert.match(planboard, /Druk Enter om te bevestigen/u);
+  assert.match(planboard, /handleScheduledAssignmentKeyDown/u);
+  assert.match(planboard, /setKeyboardSourcePersonnelId\(sourcePersonnelId\)/u);
+  assert.match(planboard, /aria-keyshortcuts=/u);
+  assert.match(
+    planboard,
+    /keyboardSourcePersonnelId,\s*"keyboard"/u,
+    "a keyboard move must preserve the source personnel id for rescheduling",
+  );
 });
 
 test("mobile agenda and optimistic rollback/undo do not depend on drag", () => {
