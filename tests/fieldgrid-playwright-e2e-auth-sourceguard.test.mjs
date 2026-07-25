@@ -203,6 +203,10 @@ test("staffing lifecycle evidence binds mutations to durable state before render
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'en_route'\)/u);
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'in_progress'\)/u);
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'completed'\)/u);
+  assert.equal(
+    (spec.match(/getByRole\('alertdialog'\)\.getByRole\('button'/gu) ?? []).length,
+    2,
+  );
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
   assert.match(spec, /toContainText\('Runtime Assignment A'\)/u);
 });
@@ -233,7 +237,7 @@ test("completion choice uses native-link fallback instead of client-only router 
   const spec = staffingSpec();
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
-  assert.match(spec, /getByRole\('alertdialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+  assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
   assert.match(spec, /getAttribute\('href'\)/u);
   assert.match(spec, /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u);
 });

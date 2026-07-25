@@ -93,7 +93,7 @@ async function goEnRouteAndStart(page: Page, personnelId: string) {
 
 async function completeParticipant(page: Page, personnelId: string) {
   await page.getByRole('button', { name: 'Afronden' }).click();
-  const completionLink = page.getByRole('alertdialog').getByRole('link', { name: 'Ja' });
+  const completionLink = page.getByRole('dialog').getByRole('link', { name: 'Ja' });
   const completionHref = await completionLink.getAttribute('href');
   expect(completionHref).toMatch(/\/opdrachten\/[^/]+\/afronden\?result=completed$/u);
   await page.goto(new URL(completionHref!, page.url()).toString(), navigationOptions);
