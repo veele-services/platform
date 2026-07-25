@@ -7,6 +7,11 @@ export {
   SelectAdapter,
   type SelectAdapterChangeEvent,
 } from "./radix-adapters/select-adapter";
+export {
+  CheckboxAdapter,
+  type CheckboxAdapterChangeEvent,
+} from "./radix-adapters/checkbox-adapter";
+export { RadioGroup, RadioGroupItem } from "./radix-adapters/radio-group";
 
 export function SkipLink({
   href = "#main-content",
