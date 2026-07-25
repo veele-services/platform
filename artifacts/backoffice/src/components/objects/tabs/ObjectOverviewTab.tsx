@@ -97,7 +97,6 @@ function HistoryBadge({ entry }: { entry: ObjectHistoryEntry }) {
   const tone: Record<ObjectHistoryEntry["type"], { bg: string; color: string }> = {
     assignment: { bg: "#E0FAFB", color: "#0A7E7A" },
     report: { bg: "#EEF2FF", color: "#3730A3" },
-    ticket: { bg: "#FEF3C7", color: "#92400E" },
     media: { bg: "#F0FDFA", color: "#0F766E" },
     document: { bg: "#F1F5F9", color: "#475569" },
   };
@@ -199,7 +198,7 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
               <span>Laatste service: <strong style={{ color: "#081D3A" }}>{formatDate(performance.lastServiceDate)}</strong></span>
               <span>Volgende service: <strong style={{ color: "#081D3A" }}>{formatDate(performance.nextServiceDate)}</strong></span>
               <span>Rapporten in controle: <strong style={{ color: "#081D3A" }}>{performance.reportsSubmitted}</strong></span>
-              <span>Open tickets: <strong style={{ color: "#081D3A" }}>{performance.openTickets}</strong></span>
+              <span>Goedgekeurde rapporten: <strong style={{ color: "#081D3A" }}>{performance.reportsApproved}</strong></span>
             </div>
           </div>
 

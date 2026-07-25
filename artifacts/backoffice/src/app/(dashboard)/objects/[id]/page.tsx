@@ -61,7 +61,6 @@ const emptyPerformance: Awaited<ReturnType<typeof getObjectPerformance>> = {
   notCompletedAssignments: 0,
   reportsSubmitted: 0,
   reportsApproved: 0,
-  openTickets: 0,
   mediaItems: 0,
   documents: 0,
   fixedPersonnel: 0,
@@ -108,10 +107,6 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
 
   const { id } = await params;
   const sp = await searchParams;
-  const rawTab = sp.tab ?? "overzicht";
-  const activeTab: ObjectTabKey = (OBJECT_TAB_KEYS as readonly string[]).includes(rawTab)
-    ? (rawTab as ObjectTabKey)
-    : "overzicht";
 
   const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] = await Promise.all([
     hasPermission("objects", "write"),
@@ -119,6 +114,18 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
   ]);
+  const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
+    if (tab === "diensten") return canReadAssignments;
+    if (tab === "materiaal") return canReadMaterials;
+    if (tab === "inventaris") return canReadInventory;
+    return true;
+  });
+  const rawTab = sp.tab ?? "overzicht";
+  const activeTab: ObjectTabKey = (visibleTabs as readonly string[]).includes(
+    rawTab,
+  )
+    ? (rawTab as ObjectTabKey)
+    : "overzicht";
 
   const obj = await safeOptional("object", id, () => getObjectForDetailPage(id), null);
   if (!obj) notFound();
@@ -210,7 +217,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
       />
 
       <TenantDetailSectionNav
-        items={OBJECT_TAB_KEYS.map((tab) => ({
+        items={visibleTabs.map((tab) => ({
           label: OBJECT_TAB_LABELS[tab],
           href: `/objects/${id}?tab=${tab}`,
           active: activeTab === tab,
@@ -249,26 +256,18 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
           </>
         )}
 
-        {activeTab === "materiaal" && (
-          canReadMaterials ? (
-            <MaterialStockPanel
-              rows={materialStock}
-              emptyMessage="Er is nog geen materiaalvoorraad aan dit object gekoppeld."
-            />
-          ) : (
-            <ForbiddenPage resource="materials" action="view" />
-          )
+        {activeTab === "materiaal" && canReadMaterials && (
+          <MaterialStockPanel
+            rows={materialStock}
+            emptyMessage="Er is nog geen materiaalvoorraad aan dit object gekoppeld."
+          />
         )}
 
-        {activeTab === "inventaris" && (
-          canReadInventory ? (
-            <InventoryItemsPanel
-              rows={inventoryItems}
-              emptyMessage="Er is nog geen inventaris aan dit object gekoppeld."
-            />
-          ) : (
-            <ForbiddenPage resource="inventory" action="view" />
-          )
+        {activeTab === "inventaris" && canReadInventory && (
+          <InventoryItemsPanel
+            rows={inventoryItems}
+            emptyMessage="Er is nog geen inventaris aan dit object gekoppeld."
+          />
         )}
 
         {activeTab === "details" && <ObjectDetailsTab object={obj} canWrite={canWrite} />}
@@ -281,7 +280,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
           />
         )}
 
-        {activeTab === "diensten" && (
+        {activeTab === "diensten" && canReadAssignments && (
           <ObjectServicesTab
             objectId={id}
             assignments={assignments}

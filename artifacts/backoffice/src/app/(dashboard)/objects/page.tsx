@@ -19,12 +19,11 @@ function str(v: string | string[] | undefined, fallback = ""): string {
 }
 
 const emptyStats: Awaited<ReturnType<typeof getObjectStats>> = {
-  total: 0,
-  active: 0,
+  totalObjects: 0,
   activeAssignments: 0,
-  periodicTasks: 0,
-  openAlerts: 0,
-  contracts: 0,
+  distinctServiceTypes: 0,
+  inactiveObjects: 0,
+  objectDocuments: 0,
 };
 
 async function safePageData<T>(
@@ -74,7 +73,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
     {
       icon:  Building2,
       label: "Totaal objecten",
-      value: stats.total,
+      value: stats.totalObjects,
       color: "#081D3A",
     },
     {
@@ -86,19 +85,19 @@ export default async function ObjectsPage({ searchParams }: Props) {
     {
       icon:  ClipboardList,
       label: "Servicetypes",
-      value: stats.periodicTasks,
+      value: stats.distinctServiceTypes,
       color: "#7C3AED",
     },
     {
       icon:  PauseCircle,
       label: "Inactief",
-      value: stats.openAlerts,
+      value: stats.inactiveObjects,
       color: "#F59E0B",
     },
     {
       icon:  FileText,
       label: "Documenten",
-      value: stats.contracts,
+      value: stats.objectDocuments,
       color: "#10B981",
     },
   ];
