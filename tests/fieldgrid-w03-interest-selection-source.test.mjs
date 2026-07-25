@@ -11,6 +11,9 @@ const backofficeAssignments = read("artifacts/backoffice/src/app/actions/assignm
 const dbPackage = read("lib/db/package.json");
 const personnelAssignments = read("artifacts/personeel-pwa/src/actions/assignments.ts");
 const customerAssignments = read("artifacts/klant-pwa/src/actions/assignments.ts");
+const staffingMigration = read(
+  "lib/db/migrations/20260725100000_staffing_capacity_invariants.sql",
+);
 
 test("W03 interest selection uses a canonical tenant-bound staffing command", () => {
   assert.match(service, /selectInterestCandidateCanonically/);
@@ -36,15 +39,20 @@ test("W03 capacity, reserve and final-slot transitions are protected transaction
   assert.match(service, /BEGIN/);
   assert.match(service, /FOR UPDATE/);
   assert.match(service, /transition_assignment_staffing/);
-  assert.match(read("lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"), /active_count >= assignment_row\.required_personnel_count/);
+  assert.match(staffingMigration, /active_count >= required_slots/);
+  assert.match(staffingMigration, /assignment_capacity_full/);
   assert.match(service, /status === "reserve"/);
   assert.doesNotMatch(service, /status === "reserve"[\s\S]{0,500}INSERT INTO public\.assignment_personnel/);
   assert.match(service, /Naar de reservelijst verplaatst/);
-  assert.match(read("lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"), /THEN 'scheduled'[\s\S]*ELSE 'plannable'/);
+  assert.match(
+    staffingMigration,
+    /scheduled_start IS NOT NULL[\s\S]*scheduled_end IS NOT NULL[\s\S]*THEN 'scheduled'/,
+  );
 });
 
 test("W03 selection reuses canonical W02 eligibility and validates overlap/availability", () => {
   assert.match(service, /getCanonicalPlanningEligibility/);
+  assert.match(service, /getCanonicalPlanningEligibility\(tenantId, assignmentId\)/);
   assert.match(service, /candidate\?\.eligible/);
   assert.match(service, /canonical_eligibility_failed/);
   assert.match(read("lib/db/src/planning-intelligence.ts"), /already_booked/);

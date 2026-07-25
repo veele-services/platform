@@ -7,6 +7,9 @@ import { test } from "node:test";
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), "utf8");
 const migration = read("lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql");
+const staffingInvariantMigration = read(
+  "lib/db/migrations/20260725100000_staffing_capacity_invariants.sql",
+);
 const assignmentActions = read("artifacts/backoffice/src/app/actions/assignments.ts");
 const planningActions = read("artifacts/backoffice/src/app/actions/planning.ts");
 const interestStaffing = read("lib/db/src/interest-selection-staffing.ts");
@@ -126,6 +129,10 @@ test("Phase 2A migration preserves snapshots, remains previous-release compatibl
   assert.match(migration, /set search_path = pg_catalog, public/iu);
   assert.match(migration, /revoke all on function public\.transition_assignment_staffing[\s\S]*from public, anon, authenticated/iu);
   assert.match(migration, /grant execute on function public\.transition_assignment_staffing[\s\S]*to service_role/iu);
+  assert.match(
+    staffingInvariantMigration,
+    /assignment_row\.status NOT IN \([\s\S]*'scheduled','seen','en_route','in_progress'/iu,
+  );
 });
 
 test("Phase 2A surfaces use participant progression, positioned actual overlays, and a real multi-context journey", () => {
@@ -179,7 +186,7 @@ test(
 
     const unassigned = await staffing(client, FIXTURE.personnelA, "unassign", "Planning gewijzigd", 1);
     assert.equal(unassigned.rows[0].staffing_status, "unassigned");
-    assert.equal(unassigned.rows[0].assignment_status, "plannable");
+    assert.equal(unassigned.rows[0].assignment_status, "scheduled");
     assert.equal(unassigned.rows[0].lifecycle_version, "2");
 
     const execution = await client.query(
