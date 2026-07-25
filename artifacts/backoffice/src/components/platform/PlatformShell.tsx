@@ -7,7 +7,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserCog,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -137,127 +137,125 @@ export function PlatformShell({
     );
   }
 
+  const sidebarContent = (
+    <>
+      <div
+        className={cn(
+          "flex h-16 shrink-0 items-center border-b border-white/10 px-4",
+          collapsed && "md:justify-center md:px-0",
+        )}
+      >
+        <Link
+          href="/platform"
+          onClick={closeNavigation}
+          className={cn("min-w-0", collapsed && "md:hidden")}
+        >
+          <span className="block text-sm font-bold uppercase tracking-[0.3em] text-white">
+            Fieldgrid
+          </span>
+          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300">
+            Platform
+          </span>
+        </Link>
+        <Link
+          href="/platform"
+          onClick={closeNavigation}
+          className={cn(
+            "hidden size-9 items-center justify-center rounded-lg bg-cyan-500 text-sm font-bold text-slate-950",
+            collapsed && "md:flex",
+          )}
+          aria-label="Fieldgrid platformoverzicht"
+        >
+          FG
+        </Link>
+      </div>
+
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-4"
+        aria-label="Platformnavigatie"
+      >
+        {collapsed ? (
+          <div className="grid gap-1">
+            {PLATFORM_NAVIGATION_GROUPS.flatMap((group) =>
+              (groupedRoutes.get(group.id) ?? []).map(routeLink),
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {PLATFORM_NAVIGATION_GROUPS.map((group) => {
+              const items = groupedRoutes.get(group.id) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <Collapsible key={group.id} defaultOpen>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 transition hover:bg-white/5 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+                    >
+                      {group.label}
+                      <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="grid gap-0.5">
+                    {items.map(routeLink)}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      <div
+        className={cn("border-t border-white/10 p-3", collapsed && "md:px-2")}
+      >
+        <div
+          className={cn(
+            "rounded-md bg-white/5 px-3 py-2",
+            collapsed && "md:flex md:justify-center md:px-0",
+          )}
+        >
+          <UserCog
+            className={cn("size-4 text-cyan-200", !collapsed && "mb-2")}
+          />
+          <div className={cn("min-w-0", collapsed && "md:hidden")}>
+            <p className="truncate text-xs font-medium capitalize text-white">
+              {platformRole}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-400">
+              {userEmail}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <TooltipProvider delayDuration={250}>
       <div className="platform-shell flex h-screen overflow-hidden bg-slate-50 text-slate-950">
+        <Sheet
+          open={open}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) closeNavigation();
+          }}
+        >
+          <SheetContent
+            side="left"
+            className="w-[264px] max-w-[calc(100vw-2rem)] select-none gap-0 overflow-hidden border-0 border-r border-slate-800/60 bg-slate-950 p-0 text-white sm:w-[264px]"
+          >
+            <SheetTitle className="sr-only">Platformnavigatie</SheetTitle>
+            <div className="flex h-full flex-col">{sidebarContent}</div>
+          </SheetContent>
+        </Sheet>
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex w-[264px] max-w-[calc(100vw-2rem)] select-none flex-col border-r border-slate-800/60 bg-slate-950 text-white shadow-xl transition-all duration-200 ease-out motion-reduce:transition-none",
-            "md:static md:h-full md:shrink-0 md:translate-x-0 md:shadow-none",
-            collapsed ? "md:w-[76px]" : "md:w-[264px]",
-            open ? "translate-x-0" : "-translate-x-full",
+            "hidden h-full shrink-0 select-none flex-col border-r border-slate-800/60 bg-slate-950 text-white md:flex",
+            collapsed ? "w-[76px]" : "w-[264px]",
           )}
         >
-          <div
-            className={cn(
-              "flex h-16 shrink-0 items-center border-b border-white/10 px-4",
-              collapsed && "md:justify-center md:px-0",
-            )}
-          >
-            <button
-              type="button"
-              onClick={closeNavigation}
-              className="mr-3 grid size-11 place-items-center rounded-md text-white/60 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
-              aria-label="Navigatie sluiten"
-            >
-              <X className="size-5" />
-            </button>
-            <Link
-              href="/platform"
-              onClick={closeNavigation}
-              className={cn("min-w-0", collapsed && "md:hidden")}
-            >
-              <span className="block text-sm font-bold uppercase tracking-[0.3em] text-white">
-                Fieldgrid
-              </span>
-              <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300">
-                Platform
-              </span>
-            </Link>
-            <Link
-              href="/platform"
-              onClick={closeNavigation}
-              className={cn(
-                "hidden size-9 items-center justify-center rounded-lg bg-cyan-500 text-sm font-bold text-slate-950",
-                collapsed && "md:flex",
-              )}
-              aria-label="Fieldgrid platformoverzicht"
-            >
-              FG
-            </Link>
-          </div>
-
-          <nav
-            className="flex-1 overflow-y-auto px-3 py-4"
-            aria-label="Platformnavigatie"
-          >
-            {collapsed ? (
-              <div className="grid gap-1">
-                {PLATFORM_NAVIGATION_GROUPS.flatMap((group) =>
-                  (groupedRoutes.get(group.id) ?? []).map(routeLink),
-                )}
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {PLATFORM_NAVIGATION_GROUPS.map((group) => {
-                  const items = groupedRoutes.get(group.id) ?? [];
-                  if (items.length === 0) return null;
-                  return (
-                    <Collapsible key={group.id} defaultOpen>
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 transition hover:bg-white/5 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
-                        >
-                          {group.label}
-                          <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="grid gap-0.5">
-                        {items.map(routeLink)}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            )}
-          </nav>
-
-          <div
-            className={cn(
-              "border-t border-white/10 p-3",
-              collapsed && "md:px-2",
-            )}
-          >
-            <div
-              className={cn(
-                "rounded-md bg-white/5 px-3 py-2",
-                collapsed && "md:flex md:justify-center md:px-0",
-              )}
-            >
-              <UserCog
-                className={cn("size-4 text-cyan-200", !collapsed && "mb-2")}
-              />
-              <div className={cn("min-w-0", collapsed && "md:hidden")}>
-                <p className="truncate text-xs font-medium capitalize text-white">
-                  {platformRole}
-                </p>
-                <p className="mt-0.5 truncate text-[11px] text-slate-400">
-                  {userEmail}
-                </p>
-              </div>
-            </div>
-          </div>
+          {sidebarContent}
         </aside>
-
-        {open ? (
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-slate-950/50 md:hidden"
-            onClick={closeNavigation}
-            aria-label="Navigatie sluiten"
-          />
-        ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-3 sm:px-4 md:px-5">

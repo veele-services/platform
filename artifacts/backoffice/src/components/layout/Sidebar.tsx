@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,6 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -178,148 +179,155 @@ export function Sidebar({
     );
   }
 
-  return (
-    <TooltipProvider delayDuration={250}>
-      <aside
+  const sidebarContent = (
+    <>
+      <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-all duration-300 ease-in-out",
-          "md:static md:h-full md:shrink-0 md:translate-x-0",
-          collapsed ? "md:w-[72px]" : "md:w-[240px]",
-          open ? "translate-x-0" : "-translate-x-full",
+          "flex h-20 shrink-0 items-center px-5",
+          collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
         )}
-        style={
-          {
-            backgroundColor: sidebarBackgroundColor,
-            "--sidebar-text": sidebarTextColor,
-            "--sidebar-accent": sidebarAccentColor,
-            "--sidebar-active-text": sidebarActiveTextColor,
-          } as CSSProperties
-        }
       >
-        <div
-          className={cn(
-            "flex h-20 shrink-0 items-center px-5",
-            collapsed
-              ? "md:justify-center md:px-0"
-              : "md:justify-center md:px-6",
-          )}
-        >
-          <button
-            type="button"
-            onClick={close}
-            className="mr-auto grid size-11 place-items-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
-            aria-label="Navigatie sluiten"
-          >
-            <X size={18} strokeWidth={1.75} />
-          </button>
-
-          {whitelabel ? (
-            <div
-              className={cn(
-                "flex min-w-0 flex-1 items-center justify-center",
-                collapsed && "md:hidden",
-              )}
-            >
-              {branding?.logoUrl ? (
-                <img
-                  src={branding.logoUrl}
-                  alt=""
-                  className="max-h-12 max-w-[170px] object-contain"
-                />
-              ) : (
-                <span
-                  className="max-w-[170px] truncate text-center text-sm font-bold"
-                  style={{
-                    color: sidebarTextColor,
-                    fontFamily: "var(--font-poppins), Poppins, sans-serif",
-                  }}
-                >
-                  {displayName}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "flex flex-col leading-none",
-                collapsed && "md:hidden",
-              )}
-            >
-              <span
-                className="font-bold tracking-widest text-white"
-                style={{
-                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
-                  fontSize: "15px",
-                }}
-              >
-                FIELDGRID
-              </span>
-              <span
-                className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-[#44D6D1]"
-                style={{
-                  fontFamily: "var(--font-inter), Inter, sans-serif",
-                }}
-              >
-                Services
-              </span>
-            </div>
-          )}
-
+        {whitelabel ? (
           <div
             className={cn(
-              "hidden size-9 items-center justify-center rounded-lg text-sm font-bold text-white",
-              collapsed && "md:flex",
+              "flex min-w-0 flex-1 items-center justify-center",
+              collapsed && "md:hidden",
             )}
-            style={{ backgroundColor: sidebarAccentColor }}
-            aria-hidden="true"
           >
-            {compactInitials.slice(0, 2)}
+            {branding?.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt=""
+                className="max-h-12 max-w-[170px] object-contain"
+              />
+            ) : (
+              <span
+                className="max-w-[170px] truncate text-center text-sm font-bold"
+                style={{
+                  color: sidebarTextColor,
+                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                }}
+              >
+                {displayName}
+              </span>
+            )}
           </div>
-        </div>
+        ) : (
+          <div
+            className={cn(
+              "flex flex-col leading-none",
+              collapsed && "md:hidden",
+            )}
+          >
+            <span
+              className="font-bold tracking-widest text-white"
+              style={{
+                fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                fontSize: "15px",
+              }}
+            >
+              FIELDGRID
+            </span>
+            <span
+              className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-[#44D6D1]"
+              style={{
+                fontFamily: "var(--font-inter), Inter, sans-serif",
+              }}
+            >
+              Services
+            </span>
+          </div>
+        )}
 
-        <nav
-          className="flex-1 overflow-y-auto px-3 py-3"
-          aria-label="Hoofdnavigatie"
-        >
-          {routes.length === 0 ? (
-            <p className="px-3 py-4 text-center text-xs leading-5 text-white/50">
-              Geen modules toegewezen.
-              <br />
-              Neem contact op met uw beheerder.
-            </p>
-          ) : collapsed ? (
-            <div className="grid gap-1">
-              {TENANT_NAVIGATION_GROUPS.flatMap((group) =>
-                (groupedRoutes.get(group.id) ?? []).map(routeLink),
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {TENANT_NAVIGATION_GROUPS.map((group) => {
-                const items = groupedRoutes.get(group.id) ?? [];
-                if (items.length === 0) return null;
-                return (
-                  <Collapsible key={group.id} defaultOpen>
-                    <CollapsibleTrigger asChild>
-                      <button
-                        type="button"
-                        className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50 transition hover:bg-white/5 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                      >
-                        {group.label}
-                        <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
-                      </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="grid gap-0.5">
-                      {items.map(routeLink)}
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })}
-            </div>
+        <div
+          className={cn(
+            "hidden size-9 items-center justify-center rounded-lg text-sm font-bold text-white",
+            collapsed && "md:flex",
           )}
-        </nav>
+          style={{ backgroundColor: sidebarAccentColor }}
+          aria-hidden="true"
+        >
+          {compactInitials.slice(0, 2)}
+        </div>
+      </div>
 
-        <div className="h-3 shrink-0 border-t border-white/10" />
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-3"
+        aria-label="Hoofdnavigatie"
+      >
+        {routes.length === 0 ? (
+          <p className="px-3 py-4 text-center text-xs leading-5 text-white/50">
+            Geen modules toegewezen.
+            <br />
+            Neem contact op met uw beheerder.
+          </p>
+        ) : collapsed ? (
+          <div className="grid gap-1">
+            {TENANT_NAVIGATION_GROUPS.flatMap((group) =>
+              (groupedRoutes.get(group.id) ?? []).map(routeLink),
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {TENANT_NAVIGATION_GROUPS.map((group) => {
+              const items = groupedRoutes.get(group.id) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <Collapsible key={group.id} defaultOpen>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50 transition hover:bg-white/5 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                    >
+                      {group.label}
+                      <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="grid gap-0.5">
+                    {items.map(routeLink)}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      <div className="h-3 shrink-0 border-t border-white/10" />
+    </>
+  );
+  const sidebarStyle = {
+    backgroundColor: sidebarBackgroundColor,
+    "--sidebar-text": sidebarTextColor,
+    "--sidebar-accent": sidebarAccentColor,
+    "--sidebar-active-text": sidebarActiveTextColor,
+  } as CSSProperties;
+
+  return (
+    <TooltipProvider delayDuration={250}>
+      <Sheet
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) close();
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="w-[240px] max-w-[calc(100vw-2rem)] select-none gap-0 overflow-hidden border-0 p-0 text-white sm:w-[240px]"
+          style={sidebarStyle}
+        >
+          <SheetTitle className="sr-only">Hoofdnavigatie</SheetTitle>
+          <div className="flex h-full flex-col">{sidebarContent}</div>
+        </SheetContent>
+      </Sheet>
+      <aside
+        className={cn(
+          "hidden h-full shrink-0 select-none flex-col md:flex",
+          collapsed ? "w-[72px]" : "w-[240px]",
+        )}
+        style={sidebarStyle}
+      >
+        {sidebarContent}
       </aside>
     </TooltipProvider>
   );

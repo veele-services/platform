@@ -26,7 +26,6 @@ import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { RecentContextTracker } from "@/components/dashboard/RecentContextTracker";
-import { SidebarOverlay } from "@/components/layout/SidebarOverlay";
 import { BackofficeRealtimeProvider } from "@/components/realtime/BackofficeRealtimeProvider";
 import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
@@ -233,8 +232,6 @@ export default async function DashboardLayout({
               pendingQuotesCount={pendingQuotesCount}
               pendingLeaveCount={pendingLeaveCount}
             />
-
-            <SidebarOverlay />
 
             <div className="flex flex-col flex-1 overflow-hidden min-w-0">
               <DashboardHeader
