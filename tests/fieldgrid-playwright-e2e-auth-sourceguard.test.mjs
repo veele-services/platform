@@ -233,7 +233,7 @@ test("completion choice uses native-link fallback instead of client-only router 
   const spec = staffingSpec();
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
   assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
-  assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+  assert.match(spec, /getByRole\('alertdialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
   assert.match(spec, /getAttribute\('href'\)/u);
   assert.match(spec, /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u);
 });

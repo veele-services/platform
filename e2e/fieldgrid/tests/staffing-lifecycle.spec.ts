@@ -78,14 +78,14 @@ async function goEnRouteAndStart(page: Page, personnelId: string) {
     const enRouteButton = page.getByRole('button', { name: 'Onderweg' });
     await eventually(enRouteButton).toBeEnabled();
     await enRouteButton.click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Onderweg melden' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Onderweg melden' }).click();
     await waitForParticipantStatus(personnelId, 'en_route');
     await loadPersonnelAssignment(page);
   }
   await eventually(page.getByRole('button', { name: 'Start' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Start' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Start werkzaamheden' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Start werkzaamheden' }).click();
   await waitForParticipantStatus(personnelId, 'in_progress');
   await loadPersonnelAssignment(page);
   await eventually(page.locator('main')).toContainText(/Gestart|Werkelijk/);
@@ -93,7 +93,7 @@ async function goEnRouteAndStart(page: Page, personnelId: string) {
 
 async function completeParticipant(page: Page, personnelId: string) {
   await page.getByRole('button', { name: 'Afronden' }).click();
-  const completionLink = page.getByRole('dialog').getByRole('link', { name: 'Ja' });
+  const completionLink = page.getByRole('alertdialog').getByRole('link', { name: 'Ja' });
   const completionHref = await completionLink.getAttribute('href');
   expect(completionHref).toMatch(/\/opdrachten\/[^/]+\/afronden\?result=completed$/u);
   await page.goto(new URL(completionHref!, page.url()).toString(), navigationOptions);
