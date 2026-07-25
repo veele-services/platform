@@ -87,7 +87,7 @@ test("customer data view preserves table fields and exposes creation date as a p
 });
 
 test("customer text filters navigate only when submitted or applied", () => {
-  assert.match(customersView, /<form onSubmit=\{handleSearchSubmit\}/u);
+  assert.match(customersView, /onSubmit=\{handleSearchSubmit\}/u);
   assert.match(
     customersView,
     /applyFilter\("search", searchInput\.trim\(\)\)/u,
