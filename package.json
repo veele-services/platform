@@ -70,7 +70,7 @@
     "fieldgrid:uiux-auth:check": "node --test tests/domain/fieldgrid-w12-auth-source.test.mjs",
     "fieldgrid:uiux-analytics:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w13-ux-analytics.test.ts && node --test tests/domain/fieldgrid-w13-ux-analytics-source.test.mjs",
     "fieldgrid:uiux-quality:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-w14-performance.test.ts && node --test tests/domain/fieldgrid-w14-quality-gates.test.mjs && pnpm fieldgrid:visual-regression-snapshots:check && pnpm fieldgrid:uiux-master-gate:check",
-    "fieldgrid:android-play:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-android-native-navigation.test.ts && node --test tests/domain/fieldgrid-android-play-source.test.mjs",
+    "fieldgrid:android-play:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-android-native-navigation.test.ts ../../tests/domain/fieldgrid-native-push-config.test.ts && node --test tests/domain/fieldgrid-android-play-source.test.mjs",
     "fieldgrid:personnel-tenant-entry:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-personnel-tenant-code.test.ts && node --test tests/domain/fieldgrid-personnel-tenant-entry-source.test.mjs",
     "fieldgrid:android-runtime:preflight": "node scripts/preflight-android-personnel-runtime.mjs --runtime-only",
     "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",

@@ -250,6 +250,10 @@ Benodigd:
 De backend ondersteunt afzonderlijke `FCM_VEELE_*`- en
 `FCM_FIELDGRID_*`-credentials. Een algemene `FCM_*`-fallback is alleen passend
 wanneer beide appidentiteiten bewust in hetzelfde Firebase-project staan.
+Bij zo'n gedeeld project blijft het Android-kanaal per pakketnaam gescheiden:
+`veele_operations` voor Veele en `fieldgrid_operations` voor Fieldgrid. Een
+expliciete `FCM_VEELE_ENABLED=false` of `FCM_FIELDGRID_ENABLED=false` schakelt
+alleen die app uit en valt nooit terug op de algemene credentials.
 
 Zonder deze bestanden kan de eerste appversie wel worden getest en gebruikt,
 maar native push is dan niet publicatiegereed. Bestaande in-app- en

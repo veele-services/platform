@@ -179,6 +179,15 @@ beide Android-apps aantoonbaar in hetzelfde Firebase-project staan. Zet
 getest is. Zonder Firebase blijft de app bruikbaar; native push blijft dan
 bewust uit.
 
+Ook met gedeelde credentials kiest de backend op basis van de pakketnaam altijd
+het vaste appkanaal `veele_operations` of `fieldgrid_operations`. Een algemene
+`FCM_ANDROID_CHANNEL_ID` overschrijft die merkkeuze niet. Een app-specifieke
+override gebruikt `FCM_VEELE_ANDROID_CHANNEL_ID` of
+`FCM_FIELDGRID_ANDROID_CHANNEL_ID`. Met `FCM_VEELE_ENABLED=false` of
+`FCM_FIELDGRID_ENABLED=false` wordt die app expliciet uitgeschakeld en volgt
+geen terugval naar algemene credentials. Een gedeeltelijk ingevulde
+app-specifieke credentialset faalt eveneens gesloten.
+
 De native app registreert pakketnaam en appversie bij ieder token. Uitloggen
 trekt het lokale token in en markeert het server-token inactief. Server-side
 verzending selecteert de FCM-configuratie op de gevalideerde pakketnaam, zodat

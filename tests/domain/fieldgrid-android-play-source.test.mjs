@@ -139,6 +139,8 @@ test("native push delivery selects credentials and channels by app identity", ()
   assert.match(fcmSender, /FCM_\$\{prefix\}_\$\{suffix\}/u);
   assert.match(fcmSender, /fieldgrid_operations/u);
   assert.match(fcmSender, /veele_operations/u);
+  assert.match(fcmSender, /resolveFcmConfigForApp/u);
+  assert.match(fcmSender, /hasAppSpecificCredentialValues/u);
   assert.match(notificationWorker, /device\.appId/u);
 });
 

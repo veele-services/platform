@@ -2,12 +2,14 @@ import { Buffer } from "node:buffer";
 import { importPKCS8, SignJWT } from "jose";
 import type { WebPushPayload, WebPushUrgency } from "./web-push";
 
-type FcmConfig = {
+export type FcmConfig = {
   projectId: string;
   clientEmail: string;
   privateKey: string;
   androidChannelId: string | null;
 };
+
+export type FcmEnvironment = Readonly<Record<string, string | undefined>>;
 
 export type FcmPushSendResult =
   | { success: true; status: number; messageId: string | null }
@@ -36,9 +38,10 @@ function envName(prefix: string | null, suffix: string): string {
 
 function readServiceAccountFromEnv(
   prefix: string | null,
+  environment: FcmEnvironment,
 ): Partial<FcmConfig> | null {
-  const encoded = process.env[envName(prefix, "SERVICE_ACCOUNT_JSON_BASE64")];
-  const rawJson = process.env[envName(prefix, "SERVICE_ACCOUNT_JSON")];
+  const encoded = environment[envName(prefix, "SERVICE_ACCOUNT_JSON_BASE64")];
+  const rawJson = environment[envName(prefix, "SERVICE_ACCOUNT_JSON")];
 
   const source = encoded
     ? Buffer.from(encoded, "base64").toString("utf8")
@@ -67,55 +70,98 @@ function normalizePrivateKey(value: string): string {
   return value.replace(/\\n/g, "\n").trim();
 }
 
-function readFcmConfig(prefix: string | null): FcmConfig | null {
-  if (process.env[envName(prefix, "ENABLED")]?.toLowerCase() === "false") {
+function defaultAndroidChannel(prefix: string | null): string {
+  return prefix === "FIELDGRID" ? "fieldgrid_operations" : "veele_operations";
+}
+
+function readFcmConfig(
+  prefix: string | null,
+  environment: FcmEnvironment,
+  androidChannelId?: string,
+): FcmConfig | null {
+  if (environment[envName(prefix, "ENABLED")]?.toLowerCase() === "false") {
     return null;
   }
 
-  const serviceAccount = readServiceAccountFromEnv(prefix);
+  const serviceAccount = readServiceAccountFromEnv(prefix, environment);
   const projectId =
     serviceAccount?.projectId ??
-    process.env[envName(prefix, "PROJECT_ID")] ??
-    (!prefix ? process.env["FIREBASE_PROJECT_ID"] : undefined) ??
+    environment[envName(prefix, "PROJECT_ID")] ??
+    (!prefix ? environment["FIREBASE_PROJECT_ID"] : undefined) ??
     "";
   const clientEmail =
     serviceAccount?.clientEmail ??
-    process.env[envName(prefix, "CLIENT_EMAIL")] ??
-    (!prefix ? process.env["FIREBASE_CLIENT_EMAIL"] : undefined) ??
+    environment[envName(prefix, "CLIENT_EMAIL")] ??
+    (!prefix ? environment["FIREBASE_CLIENT_EMAIL"] : undefined) ??
     "";
   const privateKey =
     serviceAccount?.privateKey ??
-    process.env[envName(prefix, "PRIVATE_KEY")] ??
-    (!prefix ? process.env["FIREBASE_PRIVATE_KEY"] : undefined) ??
+    environment[envName(prefix, "PRIVATE_KEY")] ??
+    (!prefix ? environment["FIREBASE_PRIVATE_KEY"] : undefined) ??
     "";
 
   if (!projectId || !clientEmail || !privateKey) return null;
-
-  const defaultChannel =
-    prefix === "FIELDGRID" ? "fieldgrid_operations" : "veele_operations";
 
   return {
     projectId,
     clientEmail,
     privateKey: normalizePrivateKey(privateKey),
     androidChannelId:
-      process.env[envName(prefix, "ANDROID_CHANNEL_ID")] || defaultChannel,
+      androidChannelId ??
+      environment[envName(prefix, "ANDROID_CHANNEL_ID")] ??
+      defaultAndroidChannel(prefix),
   };
 }
 
-function getFcmConfig(appId?: string | null): FcmConfig | null {
-  if (process.env["FCM_ENABLED"]?.toLowerCase() === "false") return null;
+const FCM_CREDENTIAL_SUFFIXES = [
+  "SERVICE_ACCOUNT_JSON_BASE64",
+  "SERVICE_ACCOUNT_JSON",
+  "PROJECT_ID",
+  "CLIENT_EMAIL",
+  "PRIVATE_KEY",
+] as const;
+
+function hasAppSpecificCredentialValues(
+  prefix: string,
+  environment: FcmEnvironment,
+): boolean {
+  return FCM_CREDENTIAL_SUFFIXES.some((suffix) =>
+    Boolean(environment[envName(prefix, suffix)]?.trim()),
+  );
+}
+
+export function resolveFcmConfigForApp(
+  environment: FcmEnvironment,
+  appId?: string | null,
+): FcmConfig | null {
+  if (environment["FCM_ENABLED"]?.toLowerCase() === "false") return null;
+
   const prefix = appConfigPrefix(appId);
-  return (prefix ? readFcmConfig(prefix) : null) ?? readFcmConfig(null);
+  if (!prefix) return readFcmConfig(null, environment);
+  if (environment[envName(prefix, "ENABLED")]?.toLowerCase() === "false") {
+    return null;
+  }
+
+  const appChannel =
+    environment[envName(prefix, "ANDROID_CHANNEL_ID")]?.trim() ||
+    defaultAndroidChannel(prefix);
+  const appConfig = readFcmConfig(prefix, environment, appChannel);
+  if (appConfig) return appConfig;
+
+  if (hasAppSpecificCredentialValues(prefix, environment)) return null;
+  return readFcmConfig(null, environment, appChannel);
+}
+
+function getFcmConfig(appId?: string | null): FcmConfig | null {
+  return resolveFcmConfigForApp(process.env, appId);
 }
 
 export function isFcmConfigured(appId?: string | null): boolean {
-  if (process.env["FCM_ENABLED"]?.toLowerCase() === "false") return false;
   if (typeof appId === "undefined") {
     return Boolean(
-      readFcmConfig("VEELE") ??
-      readFcmConfig("FIELDGRID") ??
-      readFcmConfig(null),
+      resolveFcmConfigForApp(process.env, "nl.veeleservices.personeel") ??
+      resolveFcmConfigForApp(process.env, "nl.fieldgrid.personeel") ??
+      resolveFcmConfigForApp(process.env, null),
     );
   }
   return getFcmConfig(appId) !== null;
