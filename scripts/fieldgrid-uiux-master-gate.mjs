@@ -66,7 +66,7 @@ const RULES = [
   },
   {
     id: "RAW_SELECT",
-    pattern: /<select(?:\s|>)/u,
+    pattern: /<select\b/u,
     message: "Raw select outside a documented native exception.",
   },
   {
@@ -125,10 +125,27 @@ export function scanReleasedSources(root = ROOT) {
   for (const sourceRoot of SOURCE_ROOTS) {
     for (const absoluteFile of walk(resolve(root, sourceRoot))) {
       const file = normalizedPath(relative(root, absoluteFile));
-      const lines = readFileSync(absoluteFile, "utf8").split(/\r?\n/u);
+      const content = readFileSync(absoluteFile, "utf8");
+      const lines = content.split(/\r?\n/u);
+
+      for (const match of content.matchAll(/<input\b[\s\S]*?\/>/gu)) {
+        if (!/\btype\s*=\s*["'](?:checkbox|radio)["']/u.test(match[0])) {
+          continue;
+        }
+        const index = match.index ?? 0;
+        findings.push({
+          rule: "RAW_CHOICE_CONTROL",
+          file,
+          line: content.slice(0, index).split(/\r?\n/u).length,
+          source: match[0].trim(),
+          message:
+            "Raw checkbox or radio outside a documented native exception.",
+        });
+      }
 
       lines.forEach((source, index) => {
         for (const rule of RULES) {
+          if (rule.id === "RAW_CHOICE_CONTROL") continue;
           if (
             rule.id === "DIRECT_RADIX_IMPORT" &&
             isAllowedPrimitivePath(absoluteFile)
