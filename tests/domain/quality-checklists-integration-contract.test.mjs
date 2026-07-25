@@ -60,7 +60,7 @@ test("personnel UI supports every required field family and append-only evidence
 });
 
 test("management UI uses accessible dialogs for publication, review, version upgrade and waivers", () => {
-  assert.match(managementUi, /AlertDialogTitle>Versie/u);
+  assert.match(managementUi, /<AlertDialogTitle>\s*Versie/u);
   assert.match(managementUi, /Nieuwere versies bewust toepassen/u);
   assert.match(managementUi, /Huidige set behouden/u);
   assert.match(managementUi, /Checklist gemotiveerd vrijstellen/u);
