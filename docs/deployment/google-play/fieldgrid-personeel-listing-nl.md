@@ -30,10 +30,12 @@ Met de app kun je, afhankelijk van jouw rol, organisatie en actieve modules:
 - je profiel- en beveiligingsinstellingen beheren.
 
 Toegang is alleen mogelijk na een uitnodiging van een aangesloten organisatie.
-Fieldgrid schermt gegevens af per organisatie, gebruiker en rol. Bepaalde
-werkmutaties kunnen bij een tijdelijke verbindingsstoring lokaal worden
-vastgehouden en later veilig worden gesynchroniseerd. Voor aanmelden en verse
-servergegevens is een internetverbinding nodig.
+Bij de eerste toegang kies je jouw organisatie met de unieke code van zes
+tekens die je van je werkgever ontvangt. Daarna log je in met je persoonlijke
+werkaccount. Fieldgrid schermt gegevens af per organisatie, gebruiker en rol.
+Bepaalde werkmutaties kunnen bij een tijdelijke verbindingsstoring lokaal
+worden vastgehouden en later veilig worden gesynchroniseerd. Voor aanmelden en
+verse servergegevens is een internetverbinding nodig.
 
 ## Release notes 1.0.0
 

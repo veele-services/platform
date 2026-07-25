@@ -102,11 +102,14 @@ Dutch Play listing drafts. The final locally signed APK/AAB set must be rebuilt
 after this report commit so its manifest identifies the exact final local
 source head.
 
-Play publication remains intentionally external and requires package/app-name
-confirmation, secure key custody, Play app records, privacy/support/deletion
-URLs, listing artwork, Data safety declarations, review access, Play App
-Signing certificates, App Links, physical-device acceptance and a decision on
-native Firebase push. The generic Fieldgrid runtime must also serve
+The two-app model is confirmed: Veele uses its own enterprise app and host;
+general customers use the Fieldgrid app, select their tenant through a stable
+six-character organization code and then authenticate with their personal
+account. Play publication remains intentionally external and requires secure
+key custody, Play app records, privacy/support/deletion URLs, listing artwork,
+Data safety declarations, review access, Play App Signing certificates, App
+Links, physical-device acceptance and a decision on native Firebase push. The
+generic Fieldgrid runtime must also serve
 `https://fieldgrid.nl/personeel` successfully before that app is release-ready.
 
 The complete layperson runbook is

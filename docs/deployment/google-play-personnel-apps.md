@@ -29,29 +29,33 @@ installatie en apparaattests. Gebruik alleen artefacten waarvan het manifest
 `sourceDirty: false` vermeldt en waarvan `sourceCommit` gelijk is aan de
 definitief beoordeelde lokale commit.
 
-## 2. Beslissingen die vóór de eerste upload definitief moeten zijn
+## 2. Vastgelegde appstrategie
 
-Een eerste AAB-upload maakt de pakketnaam onveranderlijk. Bevestig daarom:
+De producteigenaar heeft op 25 juli 2026 bevestigd dat er twee afzonderlijke
+apps komen:
 
-1. Veele blijft `nl.veeleservices.personeel`;
-2. de algemene app wordt definitief `nl.fieldgrid.personeel`;
-3. de publieke appnamen blijven “Veele Personeel” en “Fieldgrid Personeel”;
-4. beide apps worden onder hetzelfde Fieldgrid-organisatieaccount uitgegeven;
-5. de algemene app gebruikt `https://fieldgrid.nl/personeel`;
-6. Veele gebruikt `https://veeleservices.fieldgrid.nl/personeel`.
+- `Veele Personeel` is de eigen enterprise-app voor Veele en gebruikt
+  `nl.veeleservices.personeel`;
+- `Fieldgrid Personeel` is de algemene app voor overige klanten en gebruikt
+  `nl.fieldgrid.personeel`.
 
-Een wijziging na internal testing vraagt een nieuw Play-apprecord en een nieuwe
-installatie bij alle testers.
+De algemene app vraagt vóór e-mail en wachtwoord om een unieke
+organisatiecode van zes tekens. De code selecteert alleen de tenant; het is
+geen wachtwoord en geeft zelfstandig nooit toegang. Na selectie controleert de
+server nogmaals dat het ingelogde personeelsaccount bij die tenant hoort.
 
-Er is daarnaast een product-/beleidskeuze met grote invloed: Google kan twee
-vrijwel identieke white-label-apps als repetitieve content beoordelen. Upload
-beide apps pas nadat bewust is gekozen tussen:
+Enterprise-apps herkennen hun tenant aan hun eigen geverifieerde host en slaan
+de codepagina over. Activatie- en wachtwoordlinks nemen dezelfde tenantcontext
+mee.
 
-- twee aantoonbaar verschillend gepositioneerde en gebrande apps; of
-- één algemene Fieldgrid-app met tenantselectie/branding.
+Een eerste AAB-upload maakt de pakketidentiteit praktisch onomkeerbaar. Maak
+daarom geen derde app of afwijkend pakketrecord zonder een nieuwe expliciete
+productbeslissing.
 
-De lokale sprint legt geen onomkeerbare keuze vast en uploadt daarom geen van
-beide apprecords.
+De twee listings moeten hun verschillende doel duidelijk maken om risico onder
+Googles repetitieve-contentbeleid te beperken: Veele is een eigen
+enterprise-ervaring; Fieldgrid is de algemene multi-tenant app met
+organisatiecodeselectie.
 
 ## 3. Ontwikkelaarsaccount
 
@@ -183,15 +187,15 @@ De uiteindelijke verklaring moet overeenkomen met productie, Supabase, server-
 en e-maillogs, FCM, crash/monitoring-SDK’s en bewaartermijnen. Voor de huidige
 app is dit de veilige conceptinventaris:
 
-| Gegevenstype                                | Waarom                            | Mogelijke overdracht                  | Opmerking                                  |
-| ------------------------------------------- | --------------------------------- | ------------------------------------- | ------------------------------------------ |
-| Naam, e-mail, telefoon en profielgegevens   | account, identificatie en contact | tenant en geautoriseerde verwerkers   | verkoop en delen apart juridisch toetsen   |
-| Werkadres en locatiegegevens van opdrachten | uitvoering en planning            | tenant en hostingverwerkers           | geen continue GPS-tracking vastgesteld     |
-| Foto’s/bestanden/rapportages/handtekening   | bewijs en werkbonproces           | tenant en opslagverwerkers            | kan klant- of objectinformatie bevatten    |
-| Berichten en supportinhoud                  | samenwerking en support           | tenant en support-/hostingverwerkers  | tenant-scoped                              |
-| Apparaat- en push-tokengegevens             | native meldingen                  | Google/Firebase als ingeschakeld      | FCM nog extern te configureren             |
-| Diagnostiek, IP- en beveiligingslogs        | beveiliging en betrouwbaarheid    | hosting-/beveiligingsverwerkers       | exacte retentie bevestigen                 |
-| Offline wachtrij en lokale appdata          | continuïteit                      | normaliter alleen apparaat en runtime | Android-back-up en apparaatoverdracht uit  |
+| Gegevenstype                                | Waarom                            | Mogelijke overdracht                  | Opmerking                                 |
+| ------------------------------------------- | --------------------------------- | ------------------------------------- | ----------------------------------------- |
+| Naam, e-mail, telefoon en profielgegevens   | account, identificatie en contact | tenant en geautoriseerde verwerkers   | verkoop en delen apart juridisch toetsen  |
+| Werkadres en locatiegegevens van opdrachten | uitvoering en planning            | tenant en hostingverwerkers           | geen continue GPS-tracking vastgesteld    |
+| Foto’s/bestanden/rapportages/handtekening   | bewijs en werkbonproces           | tenant en opslagverwerkers            | kan klant- of objectinformatie bevatten   |
+| Berichten en supportinhoud                  | samenwerking en support           | tenant en support-/hostingverwerkers  | tenant-scoped                             |
+| Apparaat- en push-tokengegevens             | native meldingen                  | Google/Firebase als ingeschakeld      | FCM nog extern te configureren            |
+| Diagnostiek, IP- en beveiligingslogs        | beveiliging en betrouwbaarheid    | hosting-/beveiligingsverwerkers       | exacte retentie bevestigen                |
+| Offline wachtrij en lokale appdata          | continuïteit                      | normaliter alleen apparaat en runtime | Android-back-up en apparaatoverdracht uit |
 
 “Niet verkopen” betekent in de Google-vragenlijst niet automatisch “niet
 delen”. Beoordeel per gegevenstype volgens Googles actuele definities of een
@@ -345,11 +349,10 @@ niet voordat de eerste handmatige internal upload en review aantoonbaar werken.
 
 ## 15. Open externe opdrachten
 
-- definitieve pakketnamen en appnamen bevestigen;
-- beslissen en onderbouwen of twee bijna identieke merkapps voldoen aan het
-  repetitieve-contentbeleid, of kiezen voor één algemene app;
 - de Fieldgrid-runtime op `https://fieldgrid.nl/personeel` zonder cross-host
   redirect en zonder HTTP 502 beschikbaar maken;
+- organisatiecodes uit het backoffice veilig aan de juiste medewerkers
+  communiceren;
 - juridisch organisatieprofiel invullen;
 - privacy-, support- en verwijder-URL’s publiceren;
 - de definitieve privacylink in het Instellingen-/Meer-scherm opnemen;

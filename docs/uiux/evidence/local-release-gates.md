@@ -41,6 +41,7 @@ All commands below passed on the local integration branch:
 - `pnpm fieldgrid:uiux-analytics:check`
 - `pnpm fieldgrid:uiux-quality:check`
 - `pnpm fieldgrid:android-play:check`
+- `pnpm fieldgrid:personnel-tenant-entry:check`
 
 The UI/UX source inventory reports zero raw released selects, raw
 checkbox/radio controls, browser dialogs, custom modal overlays and unapproved
