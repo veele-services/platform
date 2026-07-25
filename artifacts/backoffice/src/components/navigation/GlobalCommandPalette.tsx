@@ -232,14 +232,16 @@ export function GlobalCommandPalette({
           {trimmedQuery.length === 0 && scope === "tenant" ? (
             <>
               <CommandGroup heading="Opdrachten">
-                <CommandItem
-                  value="planning vandaag"
-                  onSelect={() => navigate("/planning")}
-                >
-                  <CalendarDays />
-                  Planning van vandaag
-                  <CommandShortcut>G P</CommandShortcut>
-                </CommandItem>
+                {permissions.has("planning:read") ? (
+                  <CommandItem
+                    value="planning vandaag"
+                    onSelect={() => navigate("/planning")}
+                  >
+                    <CalendarDays />
+                    Planning van vandaag
+                    <CommandShortcut>G P</CommandShortcut>
+                  </CommandItem>
+                ) : null}
                 {permissions.has("assignments:write") ? (
                   <CommandItem
                     value="nieuwe opdracht"

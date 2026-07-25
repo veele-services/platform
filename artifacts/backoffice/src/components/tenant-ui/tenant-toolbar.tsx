@@ -24,21 +24,36 @@ export function TenantToolbar({
   ...props
 }: TenantToolbarProps) {
   return (
-    <div className={cn("rounded-lg border border-border bg-card p-3 shadow-card", className)} {...props}>
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card p-3 shadow-card",
+        className,
+      )}
+      {...props}
+    >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           {search}
           {filters}
           {children}
         </div>
-        {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
+        {actions && (
+          <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">
+            {actions}
+          </div>
+        )}
       </div>
-      {activeFilters && <div className="mt-3 border-t border-border pt-3">{activeFilters}</div>}
+      {activeFilters && (
+        <div className="mt-3 border-t border-border pt-3">{activeFilters}</div>
+      )}
     </div>
   );
 }
 
-export interface TenantToolbarSearchProps extends Omit<React.ComponentProps<typeof Input>, "type"> {
+export interface TenantToolbarSearchProps extends Omit<
+  React.ComponentProps<typeof Input>,
+  "type"
+> {
   wrapperClassName?: string;
 }
 
@@ -46,12 +61,21 @@ export function TenantToolbarSearch({
   className,
   wrapperClassName,
   placeholder = "Zoeken",
+  "aria-label": ariaLabel,
   ...props
 }: TenantToolbarSearchProps) {
   return (
-    <div className={cn("relative min-w-0 flex-1 sm:max-w-sm", wrapperClassName)}>
+    <div
+      className={cn("relative min-w-0 flex-1 sm:max-w-sm", wrapperClassName)}
+    >
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input className={cn("pl-9", className)} placeholder={placeholder} type="search" {...props} />
+      <Input
+        aria-label={ariaLabel ?? placeholder}
+        className={cn("pl-9", className)}
+        placeholder={placeholder}
+        type="search"
+        {...props}
+      />
     </div>
   );
 }
@@ -79,30 +103,47 @@ export function TenantActiveFilters({
 }: TenantActiveFiltersProps) {
   if (filters.length === 0) {
     return (
-      <div className={cn("text-xs text-muted-foreground", className)} {...props}>
+      <div
+        className={cn("text-xs text-muted-foreground", className)}
+        {...props}
+      >
         {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className={cn("flex min-w-0 flex-wrap items-center gap-2", className)} {...props}>
+    <div
+      className={cn("flex min-w-0 flex-wrap items-center gap-2", className)}
+      {...props}
+    >
       {filters.map((filter) => {
         const label = (
           <>
             <span className="font-medium">{filter.label}</span>
-            {filter.value && <span className="text-muted-foreground">{filter.value}</span>}
+            {filter.value && (
+              <span className="text-muted-foreground">{filter.value}</span>
+            )}
           </>
         );
 
         return (
-          <Badge key={filter.id} variant="outline" className="max-w-full gap-1.5 bg-white">
+          <Badge
+            key={filter.id}
+            variant="outline"
+            className="max-w-full gap-1.5 bg-white"
+          >
             {filter.href ? (
-              <Link href={filter.href} className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+              <Link
+                href={filter.href}
+                className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5"
+              >
                 {label}
               </Link>
             ) : (
-              <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">{label}</span>
+              <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+                {label}
+              </span>
             )}
             {filter.onRemove && (
               <button
@@ -118,7 +159,12 @@ export function TenantActiveFilters({
         );
       })}
       {clearAll && (
-        <Button type="button" variant="ghost" size="sm" asChild={typeof clearAll !== "string"}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          asChild={typeof clearAll !== "string"}
+        >
           {typeof clearAll === "string" ? <span>{clearAll}</span> : clearAll}
         </Button>
       )}

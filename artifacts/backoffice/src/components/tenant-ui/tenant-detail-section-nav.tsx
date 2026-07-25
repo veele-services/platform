@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 export type TenantDetailSectionNavItem = {
@@ -46,7 +46,9 @@ export function TenantDetailSectionNav({
   function scroll(direction: -1 | 1) {
     scrollRef.current?.scrollBy({
       left: direction * Math.max(240, scrollRef.current.clientWidth * 0.7),
-      behavior: "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
     });
   }
 
@@ -90,19 +92,19 @@ export function TenantDetailSectionNav({
         </Button>
         <div
           ref={scrollRef}
-          className="min-w-0 flex-1 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="min-w-0 flex-1 overflow-x-auto scroll-smooth motion-reduce:scroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <Tabs
-            value={activeItem.href}
-            onValueChange={navigate}
-            activationMode="manual"
-          >
-            <TabsList className="h-auto min-w-max justify-start bg-transparent p-0">
-              {items.map((item) => (
-                <TabsTrigger
-                  key={item.href}
-                  value={item.href}
-                  className="min-h-10 gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-none"
+          <div className="flex min-w-max justify-start" role="list">
+            {items.map((item) => (
+              <span key={item.href} role="listitem">
+                <Link
+                  href={item.href}
+                  aria-current={item.active ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    item.active &&
+                      "bg-accent text-accent-foreground shadow-none",
+                  )}
                 >
                   <span>{item.label}</span>
                   {typeof item.count === "number" && item.count > 0 && (
@@ -110,10 +112,10 @@ export function TenantDetailSectionNav({
                       {item.count}
                     </span>
                   )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+                </Link>
+              </span>
+            ))}
+          </div>
         </div>
         <Button
           type="button"

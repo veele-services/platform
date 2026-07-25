@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export type PlatformTenantDetailTab =
   | "overview"
@@ -156,27 +156,30 @@ export function PlatformTenantDetailNav({
         </Select>
       </div>
 
-      <Tabs
-        value={activeGroup.id}
-        onValueChange={openGroup}
-        className="hidden sm:block"
+      <div
+        className="hidden w-full justify-start overflow-x-auto sm:flex"
+        role="list"
       >
-        <TabsList className="h-auto w-full justify-start overflow-x-auto bg-transparent p-0">
-          {GROUPS.map((group) => {
-            const Icon = group.icon;
-            return (
-              <TabsTrigger
-                key={group.id}
-                value={group.id}
-                className="min-h-11 shrink-0 gap-2 px-3 data-[state=active]:bg-slate-100"
+        {GROUPS.map((group) => {
+          const Icon = group.icon;
+          const active = group.id === activeGroup.id;
+          return (
+            <span key={group.id} role="listitem">
+              <Link
+                href={href(group.defaultTab)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950",
+                  active && "bg-slate-100 text-slate-950",
+                )}
               >
                 <Icon className="size-4" aria-hidden="true" />
                 {group.label}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
+              </Link>
+            </span>
+          );
+        })}
+      </div>
 
       {activeGroup.tabs.length > 1 && (
         <>

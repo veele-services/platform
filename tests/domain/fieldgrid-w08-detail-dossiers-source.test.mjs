@@ -21,12 +21,14 @@ const assignmentPage = read(
 );
 
 test("detail navigation is sticky, route-aware and keyboard/mobile canonical", () => {
-  assert.match(navigation, /from "@\/components\/ui\/tabs"/u);
   assert.match(navigation, /from "@\/components\/ui\/select"/u);
+  assert.match(navigation, /from "next\/link"/u);
   assert.match(navigation, /sticky top-16/u);
-  assert.match(navigation, /activationMode="manual"/u);
   assert.match(navigation, /onValueChange=\{navigate\}/u);
   assert.match(navigation, /router\.push\(href\)/u);
+  assert.match(navigation, /aria-current=\{item\.active \? "page"/u);
+  assert.match(navigation, /prefers-reduced-motion: reduce/u);
+  assert.doesNotMatch(navigation, /TabsTrigger/u);
   assert.doesNotMatch(navigation, /@radix-ui\/react-/u);
 });
 

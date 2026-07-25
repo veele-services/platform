@@ -55,31 +55,34 @@ import {
   type CustomerTypeOption,
   type AccountManagerOption,
 } from "@/app/actions/customers";
-import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS } from "@/types/customer-status";
+import {
+  CUSTOMER_STATUSES,
+  CUSTOMER_STATUS_LABELS,
+} from "@/types/customer-status";
 
 const PAGE_SIZE = 25;
-const SORTABLE  = ["name", "code", "city", "createdAt"] as const;
+const SORTABLE = ["name", "code", "city", "createdAt"] as const;
 
 interface CustomersViewProps {
-  rows:                     CustomerRow[];
-  total:                    number;
-  sectors:                  SectorOption[];
-  customerTypes:            CustomerTypeOption[];
-  accountManagers:          AccountManagerOption[];
-  canWrite:                 boolean;
-  canWriteNotes:            boolean;
-  page:                     number;
-  initialSearch:            string;
-  initialSectorId:          string;
-  initialStatus:            string;
-  initialCustomerTypeId:    string;
-  initialSort:              string;
-  initialDir:               string;
-  initialCity:              string;
-  initialCountry:           string;
-  initialAccountManagerId:  string;
-  initialDateFrom:          string;
-  initialDateTo:            string;
+  rows: CustomerRow[];
+  total: number;
+  sectors: SectorOption[];
+  customerTypes: CustomerTypeOption[];
+  accountManagers: AccountManagerOption[];
+  canWrite: boolean;
+  canWriteNotes: boolean;
+  page: number;
+  initialSearch: string;
+  initialSectorId: string;
+  initialStatus: string;
+  initialCustomerTypeId: string;
+  initialSort: string;
+  initialDir: string;
+  initialCity: string;
+  initialCountry: string;
+  initialAccountManagerId: string;
+  initialDateFrom: string;
+  initialDateTo: string;
 }
 
 export function CustomersView({
@@ -103,25 +106,30 @@ export function CustomersView({
   initialDateFrom,
   initialDateTo,
 }: CustomersViewProps) {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
 
-  const [sheetOpen,        setSheetOpen]        = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [editingId,        setEditingId]        = useState<string | null>(null);
-  const [selected,         setSelected]         = useState<Set<string>>(new Set());
-  const [searchInput,      setSearchInput]      = useState(initialSearch);
-  const [deleteTarget,     setDeleteTarget]     = useState<{ id: string; name: string } | null>(null);
-  const [exportPending,    setExportPending]    = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [exportPending, setExportPending] = useState(false);
   const [exportPdfPending, setExportPdfPending] = useState(false);
-  const [bulkPending,      startBulkTransition] = useTransition();
+  const [bulkPending, startBulkTransition] = useTransition();
   const [bulkDeactivateOpen, setBulkDeactivateOpen] = useState(false);
 
-  const [filterCity,             setFilterCity]             = useState(initialCity);
-  const [filterCountry,          setFilterCountry]          = useState(initialCountry);
-  const [filterAccountManagerId, setFilterAccountManagerId] = useState(initialAccountManagerId);
-  const [filterDateFrom,         setFilterDateFrom]         = useState(initialDateFrom);
-  const [filterDateTo,           setFilterDateTo]           = useState(initialDateTo);
+  const [filterCity, setFilterCity] = useState(initialCity);
+  const [filterCountry, setFilterCountry] = useState(initialCountry);
+  const [filterAccountManagerId, setFilterAccountManagerId] = useState(
+    initialAccountManagerId,
+  );
+  const [filterDateFrom, setFilterDateFrom] = useState(initialDateFrom);
+  const [filterDateTo, setFilterDateTo] = useState(initialDateTo);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const advancedFilterCount = [
@@ -155,21 +163,23 @@ export function CustomersView({
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:           initialSearch           || undefined,
-      sectorId:         initialSectorId         || undefined,
-      status:           initialStatus !== "all" ? initialStatus : undefined,
-      customerTypeId:   initialCustomerTypeId   || undefined,
-      city:             initialCity             || undefined,
-      country:          initialCountry          || undefined,
+      search: initialSearch || undefined,
+      sectorId: initialSectorId || undefined,
+      status: initialStatus !== "all" ? initialStatus : undefined,
+      customerTypeId: initialCustomerTypeId || undefined,
+      city: initialCity || undefined,
+      country: initialCountry || undefined,
       accountManagerId: initialAccountManagerId || undefined,
-      dateFrom:         initialDateFrom         || undefined,
-      dateTo:           initialDateTo           || undefined,
-      sort:             initialSort !== "name"  ? initialSort  : undefined,
-      dir:              initialDir  !== "asc"   ? initialDir   : undefined,
-      page:             page > 1 ? String(page) : undefined,
+      dateFrom: initialDateFrom || undefined,
+      dateTo: initialDateTo || undefined,
+      sort: initialSort !== "name" ? initialSort : undefined,
+      dir: initialDir !== "asc" ? initialDir : undefined,
+      page: page > 1 ? String(page) : undefined,
       ...overrides,
     };
-    Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
+    Object.entries(merged).forEach(([k, v]) => {
+      if (v) params.set(k, v);
+    });
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   }
@@ -184,20 +194,23 @@ export function CustomersView({
   }
 
   function handleSort(column: string) {
-    if (!SORTABLE.includes(column as typeof SORTABLE[number])) return;
-    const newDir = initialSort === column && initialDir === "asc" ? "desc" : "asc";
+    if (!SORTABLE.includes(column as (typeof SORTABLE)[number])) return;
+    const newDir =
+      initialSort === column && initialDir === "asc" ? "desc" : "asc";
     router.replace(buildUrl({ sort: column, dir: newDir, page: undefined }));
   }
 
   function applyAdvancedFilters() {
-    router.replace(buildUrl({
-      city:             filterCity.trim()      || undefined,
-      country:          filterCountry.trim()   || undefined,
-      accountManagerId: filterAccountManagerId || undefined,
-      dateFrom:         filterDateFrom         || undefined,
-      dateTo:           filterDateTo           || undefined,
-      page:             undefined,
-    }));
+    router.replace(
+      buildUrl({
+        city: filterCity.trim() || undefined,
+        country: filterCountry.trim() || undefined,
+        accountManagerId: filterAccountManagerId || undefined,
+        dateFrom: filterDateFrom || undefined,
+        dateTo: filterDateTo || undefined,
+        page: undefined,
+      }),
+    );
   }
 
   function clearAdvancedFilters() {
@@ -206,14 +219,16 @@ export function CustomersView({
     setFilterAccountManagerId("");
     setFilterDateFrom("");
     setFilterDateTo("");
-    router.replace(buildUrl({
-      city:             undefined,
-      country:          undefined,
-      accountManagerId: undefined,
-      dateFrom:         undefined,
-      dateTo:           undefined,
-      page:             undefined,
-    }));
+    router.replace(
+      buildUrl({
+        city: undefined,
+        country: undefined,
+        accountManagerId: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        page: undefined,
+      }),
+    );
     setFilterDrawerOpen(false);
   }
 
@@ -228,15 +243,15 @@ export function CustomersView({
 
   function activeExportParams() {
     return {
-      search:           initialSearch           || undefined,
-      sectorId:         initialSectorId         || undefined,
-      status:           initialStatus !== "all" ? initialStatus : undefined,
-      customerTypeId:   initialCustomerTypeId   || undefined,
-      city:             initialCity             || undefined,
-      country:          initialCountry          || undefined,
+      search: initialSearch || undefined,
+      sectorId: initialSectorId || undefined,
+      status: initialStatus !== "all" ? initialStatus : undefined,
+      customerTypeId: initialCustomerTypeId || undefined,
+      city: initialCity || undefined,
+      country: initialCountry || undefined,
       accountManagerId: initialAccountManagerId || undefined,
-      dateFrom:         initialDateFrom         || undefined,
-      dateTo:           initialDateTo           || undefined,
+      dateFrom: initialDateFrom || undefined,
+      dateTo: initialDateTo || undefined,
     };
   }
 
@@ -245,11 +260,15 @@ export function CustomersView({
     try {
       const result = await exportCustomers(activeExportParams());
       if (result.success) {
-        const { csv, filename } = (result as { success: true; data: { csv: string; filename: string } }).data;
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement("a");
-        a.href     = url;
+        const { csv, filename } = (
+          result as { success: true; data: { csv: string; filename: string } }
+        ).data;
+        const blob = new Blob(["\uFEFF" + csv], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
@@ -268,7 +287,9 @@ export function CustomersView({
     try {
       const result = await exportCustomersPdf(activeExportParams());
       if (result.success) {
-        const { html } = (result as { success: true; data: { html: string; filename: string } }).data;
+        const { html } = (
+          result as { success: true; data: { html: string; filename: string } }
+        ).data;
         const printWin = window.open("", "_blank");
         if (printWin) {
           printWin.document.write(html);
@@ -286,9 +307,18 @@ export function CustomersView({
     }
   }
 
-  function openCreate() { setEditingId(null); setSheetOpen(true); }
-  function openEdit(id: string) { setEditingId(id); setSheetOpen(true); }
-  function handleFormSuccess() { setSheetOpen(false); setEditingId(null); }
+  function openCreate() {
+    setEditingId(null);
+    setSheetOpen(true);
+  }
+  function openEdit(id: string) {
+    setEditingId(id);
+    setSheetOpen(true);
+  }
+  function handleFormSuccess() {
+    setSheetOpen(false);
+    setEditingId(null);
+  }
 
   function handleStatusToggle(id: string, isActive: boolean) {
     startBulkTransition(async () => {
@@ -303,7 +333,9 @@ export function CustomersView({
       const result = await bulkSetCustomerStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} klant${ids.length > 1 ? "en" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
+        toast.success(
+          `${ids.length} klant${ids.length > 1 ? "en" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`,
+        );
       } else {
         toast.error(result.message);
       }
@@ -326,13 +358,20 @@ export function CustomersView({
 
   const activeFilters = [
     initialSearch
-      ? { id: "search", label: "Zoeken", value: initialSearch, onRemove: () => applyFilter("search", "") }
+      ? {
+          id: "search",
+          label: "Zoeken",
+          value: initialSearch,
+          onRemove: () => applyFilter("search", ""),
+        }
       : null,
     initialSectorId
       ? {
           id: "sector",
           label: "Sector",
-          value: sectors.find((sector) => sector.id === initialSectorId)?.name ?? initialSectorId,
+          value:
+            sectors.find((sector) => sector.id === initialSectorId)?.name ??
+            initialSectorId,
           onRemove: () => applyFilter("sectorId", ""),
         }
       : null,
@@ -340,7 +379,9 @@ export function CustomersView({
       ? {
           id: "customerType",
           label: "Type",
-          value: customerTypes.find((type) => type.id === initialCustomerTypeId)?.name ?? initialCustomerTypeId,
+          value:
+            customerTypes.find((type) => type.id === initialCustomerTypeId)
+              ?.name ?? initialCustomerTypeId,
           onRemove: () => applyFilter("customerTypeId", ""),
         }
       : null,
@@ -348,22 +389,56 @@ export function CustomersView({
       ? {
           id: "status",
           label: "Status",
-          value: CUSTOMER_STATUS_LABELS[initialStatus as (typeof CUSTOMER_STATUSES)[number]] ?? initialStatus,
+          value:
+            CUSTOMER_STATUS_LABELS[
+              initialStatus as (typeof CUSTOMER_STATUSES)[number]
+            ] ?? initialStatus,
           onRemove: () => applyFilter("status", ""),
         }
       : null,
-    initialCity ? { id: "city", label: "Stad", value: initialCity, onRemove: () => applyFilter("city", "") } : null,
-    initialCountry ? { id: "country", label: "Land", value: initialCountry, onRemove: () => applyFilter("country", "") } : null,
+    initialCity
+      ? {
+          id: "city",
+          label: "Stad",
+          value: initialCity,
+          onRemove: () => applyFilter("city", ""),
+        }
+      : null,
+    initialCountry
+      ? {
+          id: "country",
+          label: "Land",
+          value: initialCountry,
+          onRemove: () => applyFilter("country", ""),
+        }
+      : null,
     initialAccountManagerId
       ? {
           id: "accountManager",
           label: "Accountmanager",
-          value: accountManagers.find((manager) => manager.id === initialAccountManagerId)?.fullName ?? initialAccountManagerId,
+          value:
+            accountManagers.find(
+              (manager) => manager.id === initialAccountManagerId,
+            )?.fullName ?? initialAccountManagerId,
           onRemove: () => applyFilter("accountManagerId", ""),
         }
       : null,
-    initialDateFrom ? { id: "dateFrom", label: "Vanaf", value: initialDateFrom, onRemove: () => applyFilter("dateFrom", "") } : null,
-    initialDateTo ? { id: "dateTo", label: "Tot", value: initialDateTo, onRemove: () => applyFilter("dateTo", "") } : null,
+    initialDateFrom
+      ? {
+          id: "dateFrom",
+          label: "Vanaf",
+          value: initialDateFrom,
+          onRemove: () => applyFilter("dateFrom", ""),
+        }
+      : null,
+    initialDateTo
+      ? {
+          id: "dateTo",
+          label: "Tot",
+          value: initialDateTo,
+          onRemove: () => applyFilter("dateTo", ""),
+        }
+      : null,
   ].filter(Boolean) as Parameters<typeof TenantActiveFilters>[0]["filters"];
 
   function renderRowActions(row: CustomerRow) {
@@ -387,7 +462,11 @@ export function CustomersView({
                 {
                   id: "status",
                   label: row.isActive ? "Deactiveren" : "Activeren",
-                  icon: row.isActive ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />,
+                  icon: row.isActive ? (
+                    <ToggleLeft className="h-4 w-4" />
+                  ) : (
+                    <ToggleRight className="h-4 w-4" />
+                  ),
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
                 },
@@ -397,7 +476,8 @@ export function CustomersView({
                   icon: <Trash2 className="h-4 w-4" />,
                   destructive: true,
                   separatorBefore: true,
-                  onSelect: () => setDeleteTarget({ id: row.id, name: row.name }),
+                  onSelect: () =>
+                    setDeleteTarget({ id: row.id, name: row.name }),
                 },
               ]
             : []),
@@ -489,137 +569,201 @@ export function CustomersView({
       {/* Toolbar */}
       <TenantToolbar
         search={
-          <form onSubmit={handleSearchSubmit} className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex min-w-0 flex-1 gap-2 sm:max-w-md"
+          >
             <TenantToolbarSearch
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Zoek op naam of code..."
               wrapperClassName="max-w-none"
             />
-            <Button type="submit" variant="outline" size="sm">Zoeken</Button>
+            <Button type="submit" variant="outline" size="sm">
+              Zoeken
+            </Button>
           </form>
         }
         actions={
           <>
+            <Select
+              value={initialSectorId || "ALL"}
+              onValueChange={(v) =>
+                applyFilter("sectorId", v === "ALL" ? "" : v)
+              }
+            >
+              <SelectTrigger
+                className="w-[150px] h-9"
+                aria-label="Filter op sector"
+              >
+                <SelectValue placeholder="Alle sectoren" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Alle sectoren</SelectItem>
+                {sectors.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select value={initialSectorId || "ALL"} onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}>
-          <SelectTrigger className="w-[150px] h-9">
-            <SelectValue placeholder="Alle sectoren" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle sectoren</SelectItem>
-            {sectors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        {customerTypes.length > 0 && (
-          <Select value={initialCustomerTypeId || "ALL"} onValueChange={(v) => applyFilter("customerTypeId", v === "ALL" ? "" : v)}>
-            <SelectTrigger className="w-[150px] h-9">
-              <SelectValue placeholder="Alle types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Alle types</SelectItem>
-              {customerTypes.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        )}
-
-        <Select value={initialStatus || "all"} onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Alle statussen" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle statussen</SelectItem>
-            {CUSTOMER_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{CUSTOMER_STATUS_LABELS[s]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <TenantFilterDrawer
-          activeCount={advancedFilterCount}
-          title="Klantfilters"
-          description="Filter klanten op stad, land, accountmanager of aanmaakdatum."
-          open={filterDrawerOpen}
-          onOpenChange={(open) => {
-            if (open) openFilterDrawer();
-            else setFilterDrawerOpen(false);
-          }}
-          onApply={applyAdvancedFilters}
-          onReset={clearAdvancedFilters}
-          resetLabel="Wissen"
-        >
-          <div className="grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-foreground">Stad</span>
-              <Input value={filterCity} onChange={(e) => setFilterCity(e.target.value)} placeholder="bijv. Amsterdam" />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-foreground">Land</span>
-              <Input value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)} placeholder="bijv. NL" />
-            </label>
-            {accountManagers.length > 0 && (
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">Accountmanager</span>
-                <Select
-                  value={filterAccountManagerId || "ALL"}
-                  onValueChange={(v) => setFilterAccountManagerId(v === "ALL" ? "" : v)}
+            {customerTypes.length > 0 && (
+              <Select
+                value={initialCustomerTypeId || "ALL"}
+                onValueChange={(v) =>
+                  applyFilter("customerTypeId", v === "ALL" ? "" : v)
+                }
+              >
+                <SelectTrigger
+                  className="w-[150px] h-9"
+                  aria-label="Filter op klanttype"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Alle accountmanagers" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Alle accountmanagers</SelectItem>
-                    {accountManagers.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.fullName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
+                  <SelectValue placeholder="Alle types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Alle types</SelectItem>
+                  {customerTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-foreground">Aangemaakt van</span>
-              <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-foreground">Aangemaakt tot</span>
-              <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
-            </label>
-          </div>
-        </TenantFilterDrawer>
 
-        <div className="ml-auto flex items-center gap-2">
-          {/* Export CSV */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={handleExport}
-            disabled={exportPending}
-          >
-            <Download className="mr-1.5 h-4 w-4" />
-            {exportPending ? "Exporteren..." : "CSV"}
-          </Button>
+            <Select
+              value={initialStatus || "all"}
+              onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
+            >
+              <SelectTrigger
+                className="w-[140px] h-9"
+                aria-label="Filter op status"
+              >
+                <SelectValue placeholder="Alle statussen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle statussen</SelectItem>
+                {CUSTOMER_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {CUSTOMER_STATUS_LABELS[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Export PDF */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={handleExportPdf}
-            disabled={exportPdfPending}
-          >
-            <Download className="mr-1.5 h-4 w-4" />
-            {exportPdfPending ? "Exporteren..." : "PDF"}
-          </Button>
+            <TenantFilterDrawer
+              activeCount={advancedFilterCount}
+              title="Klantfilters"
+              description="Filter klanten op stad, land, accountmanager of aanmaakdatum."
+              open={filterDrawerOpen}
+              onOpenChange={(open) => {
+                if (open) openFilterDrawer();
+                else setFilterDrawerOpen(false);
+              }}
+              onApply={applyAdvancedFilters}
+              onReset={clearAdvancedFilters}
+              resetLabel="Wissen"
+            >
+              <div className="grid gap-4">
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium text-foreground">Stad</span>
+                  <Input
+                    value={filterCity}
+                    onChange={(e) => setFilterCity(e.target.value)}
+                    placeholder="bijv. Amsterdam"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium text-foreground">Land</span>
+                  <Input
+                    value={filterCountry}
+                    onChange={(e) => setFilterCountry(e.target.value)}
+                    placeholder="bijv. NL"
+                  />
+                </label>
+                {accountManagers.length > 0 && (
+                  <label className="flex flex-col gap-1.5 text-sm">
+                    <span className="font-medium text-foreground">
+                      Accountmanager
+                    </span>
+                    <Select
+                      value={filterAccountManagerId || "ALL"}
+                      onValueChange={(v) =>
+                        setFilterAccountManagerId(v === "ALL" ? "" : v)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Alle accountmanagers" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">
+                          Alle accountmanagers
+                        </SelectItem>
+                        {accountManagers.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.fullName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                )}
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium text-foreground">
+                    Aangemaakt van
+                  </span>
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium text-foreground">
+                    Aangemaakt tot
+                  </span>
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                  />
+                </label>
+              </div>
+            </TenantFilterDrawer>
 
-          {canWrite && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nieuwe klant
-            </Button>
-          )}
-        </div>
+            <div className="ml-auto flex items-center gap-2">
+              {/* Export CSV */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={handleExport}
+                disabled={exportPending}
+              >
+                <Download className="mr-1.5 h-4 w-4" />
+                {exportPending ? "Exporteren..." : "CSV"}
+              </Button>
+
+              {/* Export PDF */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={handleExportPdf}
+                disabled={exportPdfPending}
+              >
+                <Download className="mr-1.5 h-4 w-4" />
+                {exportPdfPending ? "Exporteren..." : "PDF"}
+              </Button>
+
+              {canWrite && (
+                <Button size="sm" onClick={openCreate}>
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Nieuwe klant
+                </Button>
+              )}
+            </div>
           </>
         }
         activeFilters={<TenantActiveFilters filters={activeFilters} />}
@@ -745,11 +889,18 @@ export function CustomersView({
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-[560px]"
+        >
           <SheetHeader>
-            <SheetTitle>{editingId ? "Klant bewerken" : "Nieuwe klant"}</SheetTitle>
+            <SheetTitle>
+              {editingId ? "Klant bewerken" : "Nieuwe klant"}
+            </SheetTitle>
             <SheetDescription>
-              {editingId ? "Werk de klantgegevens bij." : "Vul de gegevens in om een nieuwe klant aan te maken."}
+              {editingId
+                ? "Werk de klantgegevens bij."
+                : "Vul de gegevens in om een nieuwe klant aan te maken."}
             </SheetDescription>
           </SheetHeader>
           <CustomerForm

@@ -334,6 +334,18 @@ export const TENANT_ROUTES = [
     releaseVisibility: "primary",
   },
   {
+    id: "tenant-settings-checklists",
+    scope: "tenant",
+    href: "/settings/checklists",
+    title: "Quality & Checklists",
+    breadcrumb: "Quality & Checklists",
+    icon: "clipboard",
+    permission: "checklists:read",
+    helpKey: "checklists",
+    searchContext: "checklists",
+    releaseVisibility: "support",
+  },
+  {
     id: "tenant-settings",
     scope: "tenant",
     href: "/settings",

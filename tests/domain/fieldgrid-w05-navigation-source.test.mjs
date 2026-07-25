@@ -50,6 +50,7 @@ test("global palette exposes keyboard navigation and honest scoped search", () =
   assert.match(palette, /Zoek binnen een onderdeel/u);
   assert.match(palette, /Recent bekeken/u);
   assert.match(palette, /Nieuwe opdracht/u);
+  assert.match(palette, /permissions\.has\("planning:read"\)/u);
   assert.match(header, /GlobalCommandPalette/u);
   assert.doesNotMatch(header, /Snel zoeken/u);
 });
@@ -70,4 +71,11 @@ test("route permissions are projected from the registry", () => {
   assert.match(permissions, /TENANT_ROUTES/u);
   assert.match(permissions, /permissionParts/u);
   assert.doesNotMatch(permissions, /prefix:\s*"\/planning"/u);
+  const registry = read(
+    "artifacts/backoffice/src/lib/navigation/route-registry.ts",
+  );
+  assert.match(
+    registry,
+    /href: "\/settings\/checklists"[\s\S]*permission: "checklists:read"/u,
+  );
 });

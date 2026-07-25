@@ -9,17 +9,35 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-const dashboard = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
-const tenantList = read("artifacts/backoffice/src/app/(platform)/platform/tenants/page.tsx");
-const tenantDetail = read("artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx");
-const tenantActions = read("artifacts/backoffice/src/app/actions/platform-tenants.ts");
-const filters = read("artifacts/backoffice/src/components/platform/PlatformTenantFilters.tsx");
-const detailNav = read("artifacts/backoffice/src/components/platform/PlatformTenantDetailNav.tsx");
-const lifecycle = read("artifacts/backoffice/src/components/platform/PlatformLifecycleAction.tsx");
-const support = read("artifacts/backoffice/src/components/platform/PlatformSupportAccessPanel.tsx");
+const dashboard = read(
+  "artifacts/backoffice/src/app/(platform)/platform/page.tsx",
+);
+const tenantList = read(
+  "artifacts/backoffice/src/app/(platform)/platform/tenants/page.tsx",
+);
+const tenantDetail = read(
+  "artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx",
+);
+const tenantActions = read(
+  "artifacts/backoffice/src/app/actions/platform-tenants.ts",
+);
+const filters = read(
+  "artifacts/backoffice/src/components/platform/PlatformTenantFilters.tsx",
+);
+const detailNav = read(
+  "artifacts/backoffice/src/components/platform/PlatformTenantDetailNav.tsx",
+);
+const lifecycle = read(
+  "artifacts/backoffice/src/components/platform/PlatformLifecycleAction.tsx",
+);
+const support = read(
+  "artifacts/backoffice/src/components/platform/PlatformSupportAccessPanel.tsx",
+);
 
 test("platform dashboard renders only summary surfaces and dedicated-route actions", () => {
-  const pageRender = dashboard.slice(dashboard.indexOf("export default async function PlatformAdminPage"));
+  const pageRender = dashboard.slice(
+    dashboard.indexOf("export default async function PlatformAdminPage"),
+  );
 
   assert.doesNotMatch(pageRender, /<OnboardingWizard/);
   assert.doesNotMatch(pageRender, /<table/);
@@ -63,16 +81,20 @@ test("tenant detail groups navigation while keeping old leaf tab URLs compatible
     assert.match(detailNav, new RegExp(label));
   }
 
-  assert.match(detailNav, /from "@\/components\/ui\/tabs"/);
   assert.match(detailNav, /from "@\/components\/ui\/select"/);
-  assert.match(detailNav, /router\.push\(href\(group\.defaultTab\)\)/);
+  assert.match(detailNav, /href=\{href\(group\.defaultTab\)\}/);
+  assert.match(detailNav, /aria-current=\{active \? "page"/);
+  assert.doesNotMatch(detailNav, /TabsTrigger/);
   assert.match(tenantDetail, /plan: "subscription"/);
   assert.match(tenantDetail, /communication: "tickets"/);
   assert.match(tenantDetail, /<PlatformTenantDetailNav/);
 });
 
 test("tenant detail starts only the active heavy loaders", () => {
-  assert.match(tenantDetail, /const tenant = await getPlatformTenantDetail\(tenantId\)/);
+  assert.match(
+    tenantDetail,
+    /const tenant = await getPlatformTenantDetail\(tenantId\)/,
+  );
   assert.match(tenantDetail, /if \(!tenant\) notFound\(\)/);
   assert.match(
     tenantDetail,

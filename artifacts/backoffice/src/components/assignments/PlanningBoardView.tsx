@@ -1214,7 +1214,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         maxLeft,
         Math.max(0, timelineX - scrollEl.clientWidth / 2),
       );
-      scrollEl.scrollTo({ left: nextLeft, behavior: "smooth" });
+      scrollEl.scrollTo({
+        left: nextLeft,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -1244,7 +1249,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         maxLeft,
         Math.max(0, timelineX - scrollEl.clientWidth / 2),
       ),
-      behavior,
+      behavior:
+        behavior === "smooth" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : behavior,
     });
   }
 
