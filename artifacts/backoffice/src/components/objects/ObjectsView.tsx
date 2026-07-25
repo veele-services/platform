@@ -53,6 +53,7 @@ import {
 } from "@/app/actions/objects";
 import type { RegionOption } from "@/app/actions/regions";
 import type { SectorOption } from "@/app/actions/sectors";
+import { trackUxAnalytics } from "@/lib/ux-analytics";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["name", "code", "city", "createdAt"] as const;
@@ -149,10 +150,27 @@ export function ObjectsView({
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
+    trackUxAnalytics({
+      name: "search_submitted",
+      surface: "objects",
+      scope: "current_context",
+      activeFilterCount: activeFilters.length,
+    });
     applyFilter("search", searchInput);
   }
 
   function applyDraftFilters() {
+    trackUxAnalytics({
+      name: "filter_changed",
+      surface: "objects",
+      action: "applied",
+      activeFilterCount: [
+        initialCustomerId,
+        draftStatus !== "all" ? draftStatus : "",
+        draftServiceType.trim(),
+        draftRegion.trim(),
+      ].filter(Boolean).length,
+    });
     router.replace(
       buildUrl({
         status: draftStatus === "all" ? undefined : draftStatus,
@@ -168,6 +186,12 @@ export function ObjectsView({
     setDraftServiceType("");
     setDraftRegion("");
     setFilterDrawerOpen(false);
+    trackUxAnalytics({
+      name: "filter_changed",
+      surface: "objects",
+      action: "cleared",
+      activeFilterCount: 0,
+    });
     router.replace(
       buildUrl({
         customerId: undefined,
@@ -493,6 +517,7 @@ export function ObjectsView({
         preferenceKey="fieldgrid:objects:data-view"
         savedViews={{
           storageKey: "fieldgrid:objects:saved-views",
+          analyticsSurface: "objects",
           currentQuery: buildUrl({ page: undefined }).split("?")[1] ?? "",
           onApplyQuery: (query) =>
             router.replace(query ? `${pathname}?${query}` : pathname),

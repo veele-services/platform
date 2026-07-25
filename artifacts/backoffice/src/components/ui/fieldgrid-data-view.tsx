@@ -60,6 +60,10 @@ import {
   type DataViewSavedView,
   type DataViewSortDirection,
 } from "@/lib/data-view";
+import {
+  trackUxAnalytics,
+  type UxAnalyticsSurface,
+} from "@/lib/ux-analytics";
 import { cn } from "@/lib/utils";
 
 export type FieldgridDataViewColumn<TData> = {
@@ -97,6 +101,7 @@ type DataViewSavedViews = {
   storageKey: string;
   currentQuery: string;
   onApplyQuery: (query: string) => void;
+  analyticsSurface?: UxAnalyticsSurface;
 };
 
 type MobileCardContext = {
@@ -195,6 +200,16 @@ function SavedViewsControl({
     writePreference(config.storageKey, next);
   }
 
+  function track(action: "saved" | "applied" | "deleted", query: string) {
+    if (!config.analyticsSurface) return;
+    trackUxAnalytics({
+      name: "saved_view_changed",
+      surface: config.analyticsSurface,
+      action,
+      activeFilterCount: new URLSearchParams(query).size,
+    });
+  }
+
   function saveCurrentView(event: React.FormEvent) {
     event.preventDefault();
     const trimmedName = name.trim();
@@ -208,6 +223,7 @@ function SavedViewsControl({
       createdAt: new Date().toISOString(),
     });
     persist(next);
+    track("saved", config.currentQuery);
     setName("");
   }
 
@@ -245,6 +261,7 @@ function SavedViewsControl({
                     size="sm"
                     className="min-w-0 flex-1 justify-start truncate"
                     onClick={() => {
+                      track("applied", view.query);
                       config.onApplyQuery(view.query);
                       setOpen(false);
                     }}
@@ -257,9 +274,12 @@ function SavedViewsControl({
                     size="icon"
                     className="size-9 shrink-0"
                     aria-label={`Verwijder weergave ${view.name}`}
-                    onClick={() =>
-                      persist(views.filter((candidate) => candidate.id !== view.id))
-                    }
+                    onClick={() => {
+                      persist(
+                        views.filter((candidate) => candidate.id !== view.id),
+                      );
+                      track("deleted", view.query);
+                    }}
                   >
                     <Trash2 className="size-4" />
                   </Button>

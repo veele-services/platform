@@ -23,6 +23,7 @@ import {
   type FieldgridRouteDefinition,
   type FieldgridRouteScope,
 } from "@/lib/navigation/route-registry";
+import { trackUxAnalytics } from "@/lib/ux-analytics";
 import { cn } from "@/lib/utils";
 
 const RECENT_ROUTES_STORAGE_KEY = "fieldgrid:recent-command-routes";
@@ -107,16 +108,26 @@ export function GlobalCommandPalette({
   );
 
   const navigate = useCallback(
-    (href: string, routeId?: string) => {
+    (
+      href: string,
+      routeId?: string,
+      action: "route_selected" | "scoped_search_selected" = "route_selected",
+    ) => {
       if (routeId) {
         rememberRoute(routeId);
         setRecentRouteIds(readRecentRouteIds());
       }
       setOpen(false);
       setQuery("");
+      trackUxAnalytics({
+        name: "command_palette",
+        surface: "navigation",
+        action,
+        scope,
+      });
       router.push(href);
     },
-    [router],
+    [router, scope],
   );
 
   useEffect(() => {
@@ -127,13 +138,24 @@ export function GlobalCommandPalette({
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((value) => !value);
+        setOpen((value) => {
+          const nextOpen = !value;
+          if (nextOpen) {
+            trackUxAnalytics({
+              name: "command_palette",
+              surface: "navigation",
+              action: "opened",
+              scope,
+            });
+          }
+          return nextOpen;
+        });
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [scope]);
 
   const trimmedQuery = query.trim();
 
@@ -142,7 +164,15 @@ export function GlobalCommandPalette({
       <Button
         type="button"
         variant="outline"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          trackUxAnalytics({
+            name: "command_palette",
+            surface: "navigation",
+            action: "opened",
+            scope,
+          });
+        }}
         className={cn(
           "min-w-0 justify-start gap-2 text-muted-foreground md:w-[min(34vw,28rem)]",
           className,
@@ -184,7 +214,11 @@ export function GlobalCommandPalette({
                     key={`search-${route.id}`}
                     value={`zoek ${trimmedQuery} in ${route.title}`}
                     onSelect={() =>
-                      navigate(appendSearch(route.href, trimmedQuery), route.id)
+                      navigate(
+                        appendSearch(route.href, trimmedQuery),
+                        route.id,
+                        "scoped_search_selected",
+                      )
                     }
                   >
                     <Icon />
