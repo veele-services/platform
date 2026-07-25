@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import {
+  buildSprint15StagingSmokePlan,
+  validateSprint15StagingSmokePlan,
+} from "../scripts/fieldgrid-sprint15-staging-smoke.mjs";
 
 function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -96,6 +100,51 @@ test("sprint 15 script is plan-only by default and supports read-only snapshots"
     ],
     "package scripts",
   );
+});
+
+test("sprint 15 uses the production-shaped pilot host during staging acceptance", () => {
+  const plan = buildSprint15StagingSmokePlan();
+  const tenantTargets = plan.liveSmokeTargets.filter(
+    (target) => target.id !== "FG-LIVE-HOST",
+  );
+
+  assert.equal(plan.pilotTenantSlug, "field-demo");
+  assert.ok(tenantTargets.length > 0);
+  assert.deepEqual(
+    [...new Set(tenantTargets.map((target) => target.host))],
+    ["field-demo.fieldgrid.nl"],
+  );
+  assert.deepEqual(validateSprint15StagingSmokePlan(plan), []);
+});
+
+test("sprint 15 rejects invalid and alternate pilot tenant slugs", () => {
+  const invalidPlan = buildSprint15StagingSmokePlan({
+    FIELDGRID_STAGING_PILOT_TENANT_SLUG: "https://other.example",
+  });
+  const alternatePlan = buildSprint15StagingSmokePlan({
+    FIELDGRID_STAGING_PILOT_TENANT_SLUG: "live-customer",
+  });
+
+  assert.match(
+    validateSprint15StagingSmokePlan(invalidPlan).join("\n"),
+    /geen geldige DNS-label/u,
+  );
+  assert.match(
+    validateSprint15StagingSmokePlan(alternatePlan).join("\n"),
+    /uitsluitend de vaste field-demo/u,
+  );
+});
+
+test("sprint 15 rejects duplicate IDs and host or confirmation tampering", () => {
+  const plan = buildSprint15StagingSmokePlan();
+  plan.liveSmokeTargets[1].id = "FG-LIVE-HOST";
+  plan.liveSmokeTargets[1].host = "other.fieldgrid.nl";
+  plan.mutatingChecks[0].confirmVar = "FIELDGRID_MUTATING_SMOKE_CONFIRM=other-tenant";
+
+  const errors = validateSprint15StagingSmokePlan(plan).join("\n");
+  assert.match(errors, /target-ID's exact eenmaal/u);
+  assert.match(errors, /vaste platform staging-host/u);
+  assert.match(errors, /vaste pilottenantbevestiging/u);
 });
 
 test("sprint 15 JSON API uses route-handler platform auth", () => {
