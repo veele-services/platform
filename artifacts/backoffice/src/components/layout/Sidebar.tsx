@@ -1,31 +1,30 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
+import { ChevronDown, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import {
-  BarChart3,
-  Boxes,
-  Building2,
-  Calendar,
-  CalendarClock,
-  ClipboardList,
-  FileCheck2,
-  FileText,
-  FolderOpen,
-  Globe2,
-  HelpCircle,
-  LayoutDashboard,
-  Lightbulb,
-  Map,
-  MessageSquare,
-  Newspaper,
-  PackageSearch,
-  Settings,
-  UserCog,
-  Users,
-  X,
-} from "lucide-react";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FIELDGRID_ROUTE_ICONS } from "@/lib/navigation/route-icons";
+import {
+  TENANT_NAVIGATION_GROUPS,
+  TENANT_ROUTES,
+  getFieldgridRoute,
+  routeIsVisibleForPermissions,
+  type FieldgridRouteDefinition,
+  type TenantNavigationGroup,
+} from "@/lib/navigation/route-registry";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
@@ -33,48 +32,6 @@ import {
   accessibleBrandTextColor,
   ensureAccessibleBrandTextColor,
 } from "@workspace/db/brand-color-contrast";
-
-const NAV_ITEMS = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard", permission: "dashboard:read" },
-  { href: "/planning", icon: Calendar, label: "Planning", permission: "planning:read" },
-  { href: "/planning?view=map", icon: Map, label: "Kaart", permission: "planning:read", feature: "planning-map" },
-  { href: "/assignments", icon: ClipboardList, label: "Opdrachten", permission: "assignments:read" },
-  { href: "/quotes", icon: FileCheck2, label: "Offertes", permission: "quotes:read" },
-  { href: "/customers", icon: Users, label: "Klanten", permission: "customers:read" },
-  { href: "/objects", icon: Building2, label: "Objecten", permission: "objects:read" },
-  { href: "/personnel", icon: UserCog, label: "Personeel", permission: "personnel:read" },
-  { href: "/materials", icon: Boxes, label: "Materialen", permission: "materials:view" },
-  { href: "/inventory", icon: PackageSearch, label: "Inventaris", permission: "inventory:view" },
-  { href: "/personnel/verlof", icon: CalendarClock, label: "Verlof-inbox", permission: "personnel:read" },
-  { href: "/reports", icon: BarChart3, label: "Rapporten", permission: "reports:read" },
-  { href: "/invoices", icon: FileText, label: "Facturen", permission: "invoices:read" },
-  { href: "/documents", icon: FolderOpen, label: "Documenten", permission: "documents:read" },
-  { href: "/tickets", icon: MessageSquare, label: "Tickets", permission: "tickets:read" },
-  { href: "/news", icon: Newspaper, label: "Nieuws", permission: "news:read" },
-  { href: "/website", icon: Globe2, label: "Website", permission: "website:read" },
-  { href: "/help", icon: HelpCircle, label: "Help", permission: "kb:view" },
-  { href: "/roadmap", icon: Lightbulb, label: "Roadmap", permission: "roadmap:view" },
-  { href: "/releases", icon: FileText, label: "Releases", permission: "releases:view" },
-  { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
-] as const;
-
-function isActive(pathname: string, href: string, searchParams: URLSearchParams): boolean {
-  if (href.includes("?")) {
-    const [hrefPath, hrefSearch] = href.split("?");
-    const expected = new URLSearchParams(hrefSearch);
-    if (pathname !== hrefPath) return false;
-    for (const [key, value] of expected.entries()) {
-      if (searchParams.get(key) !== value) return false;
-    }
-    return true;
-  }
-  if (href === "/") return pathname === "/";
-  if (href === "/planning" && searchParams.get("view") === "map") return false;
-  if (href === "/settings") {
-    return pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 interface SidebarProps {
   branding?: {
@@ -89,16 +46,33 @@ interface SidebarProps {
   outstandingInvoicesCount?: number;
   pendingQuotesCount?: number;
   pendingLeaveCount?: number;
-  planningMapEnabled?: boolean;
 }
 
 function initialsFor(value: string): string {
-  return value
-    .split(/\s+/u)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "FG";
+  return (
+    value
+      .split(/\s+/u)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "FG"
+  );
+}
+
+function badgeForRoute(
+  routeId: string,
+  counts: {
+    reports: number;
+    invoices: number;
+    quotes: number;
+    leave: number;
+  },
+): number {
+  if (routeId === "tenant-reports") return counts.reports;
+  if (routeId === "tenant-invoices") return counts.invoices;
+  if (routeId === "tenant-quotes") return counts.quotes;
+  if (routeId === "tenant-leave") return counts.leave;
+  return 0;
 }
 
 export function Sidebar({
@@ -107,18 +81,27 @@ export function Sidebar({
   outstandingInvoicesCount = 0,
   pendingQuotesCount = 0,
   pendingLeaveCount = 0,
-  planningMapEnabled = false,
 }: SidebarProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const permissions = usePermissions();
   const { open, close, collapsed } = useSidebar();
-  const visibleItems = NAV_ITEMS.filter((item) => {
-    if ("feature" in item && item.feature === "planning-map" && !planningMapEnabled) {
-      return false;
-    }
-    return permissions.has(item.permission);
-  });
+  const activeRoute = getFieldgridRoute(pathname, "tenant");
+  const routes = (TENANT_ROUTES as readonly FieldgridRouteDefinition[]).filter(
+    (route) =>
+      route.releaseVisibility === "primary" &&
+      route.navGroup &&
+      routeIsVisibleForPermissions(route, permissions),
+  );
+  const groupedRoutes = new Map<
+    TenantNavigationGroup,
+    FieldgridRouteDefinition[]
+  >(TENANT_NAVIGATION_GROUPS.map((group) => [group.id, []]));
+
+  for (const route of routes) {
+    const group = route.navGroup as TenantNavigationGroup;
+    groupedRoutes.get(group)?.push(route);
+  }
+
   const whitelabel = Boolean(branding?.customBrandingEnabled);
   const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
   const configuredSidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
@@ -128,173 +111,216 @@ export function Sidebar({
     configuredSidebarTextColor,
   );
   const sidebarActiveTextColor = accessibleBrandTextColor(sidebarAccentColor);
-  const displayName = whitelabel ? branding?.displayName?.trim() || "Organisatie" : "Fieldgrid";
+  const displayName = whitelabel
+    ? branding?.displayName?.trim() || "Organisatie"
+    : "Fieldgrid";
   const compactInitials = whitelabel ? initialsFor(displayName) : "FG";
+  const counts = {
+    reports: pendingReportsCount,
+    invoices: outstandingInvoicesCount,
+    quotes: pendingQuotesCount,
+    leave: pendingLeaveCount,
+  };
 
-  return (
-    <aside
-      className={cn(
-        "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-all duration-300 ease-in-out",
-        "md:static md:h-full md:flex-shrink-0 md:translate-x-0",
-        collapsed ? "md:w-[72px]" : "md:w-[240px]",
-        open ? "translate-x-0" : "-translate-x-full",
-      )}
-      style={{
-        backgroundColor: sidebarBackgroundColor,
-        "--sidebar-text": sidebarTextColor,
-        "--sidebar-accent": sidebarAccentColor,
-        "--sidebar-active-text": sidebarActiveTextColor,
-      } as CSSProperties}
-    >
-      <div
+  function routeLink(route: FieldgridRouteDefinition) {
+    const Icon = FIELDGRID_ROUTE_ICONS[route.icon];
+    const active = activeRoute?.id === route.id;
+    const badgeCount = badgeForRoute(route.id, counts);
+    const link = (
+      <Link
+        href={route.href}
+        onClick={close}
         className={cn(
-          "flex h-20 flex-shrink-0 items-center px-5",
-          collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
+          "sidebar-link min-h-11",
+          collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-3",
+          active && "active",
         )}
+        aria-current={active ? "page" : undefined}
       >
-        <button
-          type="button"
-          onClick={close}
-          className="mr-auto rounded p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none md:hidden"
-          aria-label="Navigatie sluiten"
+        <span className="relative shrink-0">
+          <Icon className="size-[15px]" strokeWidth={active ? 2.5 : 1.75} />
+          {badgeCount > 0 && collapsed ? (
+            <span
+              className="absolute -right-1 -top-1 hidden size-2 rounded-full md:block"
+              style={{ backgroundColor: sidebarAccentColor }}
+            />
+          ) : null}
+        </span>
+        <span
+          className={cn("min-w-0 flex-1 truncate", collapsed && "md:hidden")}
         >
-          <X size={18} strokeWidth={1.75} />
-        </button>
-
-        {whitelabel ? (
-          <div className={cn("flex min-w-0 flex-1 items-center justify-center", collapsed && "md:hidden")}>
-            {branding?.logoUrl ? (
-              <img
-                src={branding.logoUrl}
-                alt=""
-                className="max-h-12 max-w-[170px] object-contain"
-              />
-            ) : (
-              <span
-                className="max-w-[170px] truncate text-center text-sm font-bold"
-                style={{
-                  color: sidebarTextColor,
-                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
-                }}
-              >
-                {displayName}
-              </span>
+          {route.title}
+        </span>
+        {badgeCount > 0 ? (
+          <span
+            className={cn(
+              "min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
+              collapsed ? "md:hidden" : "md:flex",
             )}
-          </div>
-        ) : (
-          <div className={cn("flex flex-col leading-none", collapsed && "md:hidden")}>
-            <span
-              className="font-bold tracking-widest text-white"
-              style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif", fontSize: "15px" }}
-            >
-              FIELDGRID
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "9px",
-                color: "#44D6D1",
-                marginTop: "2px",
-                letterSpacing: "0.22em",
-                textTransform: "uppercase",
-              }}
-            >
-              Services
-            </span>
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white",
-            collapsed && "md:flex",
-          )}
-          style={{ backgroundColor: sidebarAccentColor }}
-        >
-          {compactInitials.slice(0, 2)}
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
-        {visibleItems.length === 0 ? (
-          <p
-            className="px-3 py-4 text-center md:hidden lg:block"
             style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "12px",
-              color: "rgba(255,255,255,0.35)",
-              lineHeight: "1.5",
+              backgroundColor: sidebarAccentColor,
+              height: "18px",
             }}
           >
-            Geen modules toegewezen.
-            <br />
-            Neem contact op met uw beheerder.
-          </p>
-        ) : (
-          visibleItems.map(({ href, icon: Icon, label }) => {
-            const active = isActive(pathname, href, searchParams);
-            const hasBadge =
-              (href === "/reports" && pendingReportsCount > 0) ||
-              (href === "/invoices" && outstandingInvoicesCount > 0) ||
-              (href === "/quotes" && pendingQuotesCount > 0) ||
-              (href === "/personnel/verlof" && pendingLeaveCount > 0);
-            const badgeCount =
-              href === "/reports"
-                ? pendingReportsCount
-                : href === "/invoices"
-                  ? outstandingInvoicesCount
-                  : href === "/quotes"
-                    ? pendingQuotesCount
-                    : href === "/personnel/verlof"
-                      ? pendingLeaveCount
-                      : 0;
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
+        ) : null}
+      </Link>
+    );
 
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={close}
-                className={cn(
-                  "sidebar-link",
-                  collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-3",
-                  active && "active",
-                )}
-                title={label}
-              >
-                <div className="relative flex-shrink-0">
-                  <Icon
-                    style={{ width: "15px", height: "15px" }}
-                    strokeWidth={active ? 2.5 : 1.75}
-                  />
-                  {hasBadge && (
-                    <span className="absolute -right-1 -top-1 hidden h-2 w-2 rounded-full md:block lg:hidden" style={{ backgroundColor: sidebarAccentColor }} />
-                  )}
-                </div>
-                <span className={cn("flex-1", collapsed && "md:hidden")}>{label}</span>
-                {hasBadge && (
-                  <span
-                    className={cn(
-                      "flex-shrink-0 items-center justify-center rounded-full font-semibold text-white",
-                      collapsed ? "md:hidden" : "md:flex",
-                    )}
-                    style={{
-                      backgroundColor: sidebarAccentColor,
-                      fontSize: "10px",
-                      minWidth: "18px",
-                      height: "18px",
-                      padding: "0 4px",
-                    }}
-                  >
-                    {badgeCount > 99 ? "99+" : badgeCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })
+    if (!collapsed) return <div key={route.id}>{link}</div>;
+
+    return (
+      <Tooltip key={route.id}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{route.title}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <TooltipProvider delayDuration={250}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-all duration-300 ease-in-out",
+          "md:static md:h-full md:shrink-0 md:translate-x-0",
+          collapsed ? "md:w-[72px]" : "md:w-[240px]",
+          open ? "translate-x-0" : "-translate-x-full",
         )}
-      </nav>
+        style={
+          {
+            backgroundColor: sidebarBackgroundColor,
+            "--sidebar-text": sidebarTextColor,
+            "--sidebar-accent": sidebarAccentColor,
+            "--sidebar-active-text": sidebarActiveTextColor,
+          } as CSSProperties
+        }
+      >
+        <div
+          className={cn(
+            "flex h-20 shrink-0 items-center px-5",
+            collapsed
+              ? "md:justify-center md:px-0"
+              : "md:justify-center md:px-6",
+          )}
+        >
+          <button
+            type="button"
+            onClick={close}
+            className="mr-auto grid size-11 place-items-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
+            aria-label="Navigatie sluiten"
+          >
+            <X size={18} strokeWidth={1.75} />
+          </button>
 
-      <div className="h-3 flex-shrink-0 border-t border-white/10" />
-    </aside>
+          {whitelabel ? (
+            <div
+              className={cn(
+                "flex min-w-0 flex-1 items-center justify-center",
+                collapsed && "md:hidden",
+              )}
+            >
+              {branding?.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt=""
+                  className="max-h-12 max-w-[170px] object-contain"
+                />
+              ) : (
+                <span
+                  className="max-w-[170px] truncate text-center text-sm font-bold"
+                  style={{
+                    color: sidebarTextColor,
+                    fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                  }}
+                >
+                  {displayName}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "flex flex-col leading-none",
+                collapsed && "md:hidden",
+              )}
+            >
+              <span
+                className="font-bold tracking-widest text-white"
+                style={{
+                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                  fontSize: "15px",
+                }}
+              >
+                FIELDGRID
+              </span>
+              <span
+                className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-[#44D6D1]"
+                style={{
+                  fontFamily: "var(--font-inter), Inter, sans-serif",
+                }}
+              >
+                Services
+              </span>
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "hidden size-9 items-center justify-center rounded-lg text-sm font-bold text-white",
+              collapsed && "md:flex",
+            )}
+            style={{ backgroundColor: sidebarAccentColor }}
+            aria-hidden="true"
+          >
+            {compactInitials.slice(0, 2)}
+          </div>
+        </div>
+
+        <nav
+          className="flex-1 overflow-y-auto px-3 py-3"
+          aria-label="Hoofdnavigatie"
+        >
+          {routes.length === 0 ? (
+            <p className="px-3 py-4 text-center text-xs leading-5 text-white/50">
+              Geen modules toegewezen.
+              <br />
+              Neem contact op met uw beheerder.
+            </p>
+          ) : collapsed ? (
+            <div className="grid gap-1">
+              {TENANT_NAVIGATION_GROUPS.flatMap((group) =>
+                (groupedRoutes.get(group.id) ?? []).map(routeLink),
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {TENANT_NAVIGATION_GROUPS.map((group) => {
+                const items = groupedRoutes.get(group.id) ?? [];
+                if (items.length === 0) return null;
+                return (
+                  <Collapsible key={group.id} defaultOpen>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50 transition hover:bg-white/5 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      >
+                        {group.label}
+                        <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="grid gap-0.5">
+                      {items.map(routeLink)}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          )}
+        </nav>
+
+        <div className="h-3 shrink-0 border-t border-white/10" />
+      </aside>
+    </TooltipProvider>
   );
 }

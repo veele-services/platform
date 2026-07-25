@@ -12,14 +12,15 @@ export const metadata: Metadata = {
 
 interface Props {
   searchParams: Promise<{
-    page?:         string;
-    search?:       string;
-    status?:       string;
-    priority?:     string;
+    page?: string;
+    search?: string;
+    status?: string;
+    priority?: string;
     reportStatus?: string;
-    region?:       string;
-    sort?:         string;
-    dir?:          string;
+    region?: string;
+    sort?: string;
+    dir?: string;
+    create?: string;
   }>;
 }
 
@@ -29,21 +30,31 @@ export default async function AssignmentsPage({ searchParams }: Props) {
 
   const sp = await searchParams;
 
-  const page         = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
-  const search       = sp.search       ?? "";
-  const status       = sp.status       ?? "";
-  const priority     = sp.priority     ?? "";
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const search = sp.search ?? "";
+  const status = sp.status ?? "";
+  const priority = sp.priority ?? "";
   const reportStatus = sp.reportStatus ?? "";
-  const region       = sp.region       ?? "";
-  const sort         = sp.sort         ?? "createdAt";
-  const dir          = sp.dir          ?? "desc";
+  const region = sp.region ?? "";
+  const sort = sp.sort ?? "createdAt";
+  const dir = sp.dir ?? "desc";
 
-  const [{ rows, total }, customers, regionOptions, canWrite] = await Promise.all([
-    listAssignmentsRegionAware({ page, search, status, priority, reportStatus, region, sort, dir }),
-    getCustomerOptions(),
-    listRegionOptions(),
-    hasPermission("assignments", "write"),
-  ]);
+  const [{ rows, total }, customers, regionOptions, canWrite] =
+    await Promise.all([
+      listAssignmentsRegionAware({
+        page,
+        search,
+        status,
+        priority,
+        reportStatus,
+        region,
+        sort,
+        dir,
+      }),
+      getCustomerOptions(),
+      listRegionOptions(),
+      hasPermission("assignments", "write"),
+    ]);
 
   return (
     <div className="mx-auto w-full max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
@@ -61,6 +72,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         initialRegion={region}
         initialSort={sort}
         initialDir={dir}
+        initialCreateOpen={sp.create === "1"}
       />
     </div>
   );

@@ -8,10 +8,19 @@ import {
   getTenantBranding,
   getTenantBrandingCssVariables,
 } from "@workspace/db";
-import { dismissTenantReleaseHighlight, getTenantReleaseHighlight } from "@/app/actions/releases";
+import {
+  dismissTenantReleaseHighlight,
+  getTenantReleaseHighlight,
+} from "@/app/actions/releases";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
-import { getCurrentSupportMode, type CurrentSupportMode } from "@/lib/auth/platform";
+import {
+  getCurrentEffectiveUserPermissions,
+  getUserRoles,
+} from "@/lib/auth/permissions";
+import {
+  getCurrentSupportMode,
+  type CurrentSupportMode,
+} from "@/lib/auth/platform";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -23,7 +32,6 @@ import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
 import { exitSupportMode } from "@/app/actions/platform";
-import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";
 import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
@@ -38,12 +46,16 @@ function NoActiveTenantAccess() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
       <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="font-heading text-2xl font-semibold" style={{ color: "#081D3A" }}>
+        <h1
+          className="font-heading text-2xl font-semibold"
+          style={{ color: "#081D3A" }}
+        >
           Geen actieve organisatietoegang
         </h1>
         <p className="mt-3 text-sm leading-6" style={{ color: "#64748B" }}>
-          Deze gebruiker heeft geen actieve organisatiekoppeling voor deze host. Controleer de organisatiestatus,
-          domeinkoppeling of gebruikerskoppeling in platformbeheer.
+          Deze gebruiker heeft geen actieve organisatiekoppeling voor deze host.
+          Controleer de organisatiestatus, domeinkoppeling of
+          gebruikerskoppeling in platformbeheer.
         </p>
       </section>
     </main>
@@ -60,17 +72,24 @@ function formatSupportTtl(ttlSeconds: number): string {
   return remainingMinutes > 0 ? `${hours}u ${remainingMinutes}m` : `${hours}u`;
 }
 
-function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode }) {
+function SupportModeBanner({
+  supportMode,
+}: {
+  supportMode: CurrentSupportMode;
+}) {
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
       <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="font-semibold">Supportmodus actief</p>
           <p className="mt-0.5 truncate text-xs text-amber-900">
-            Organisatie {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}
+            Organisatie {supportMode.tenantId} · TTL{" "}
+            {formatSupportTtl(supportMode.ttlSeconds)} · Reden:{" "}
+            {supportMode.reason}
           </p>
           <p className="mt-0.5 truncate text-xs text-amber-800">
-            Auditcontext: grant {supportMode.grantId} · prioriteit {supportMode.priority}
+            Auditcontext: grant {supportMode.grantId} · prioriteit{" "}
+            {supportMode.priority}
           </p>
         </div>
         <form action={exitSupportMode}>
@@ -86,7 +105,11 @@ function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode })
   );
 }
 
-function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+function ReleaseHighlightBanner({
+  highlight,
+}: {
+  highlight: ReleaseHighlightSummary | null;
+}) {
   if (!highlight) return null;
 
   return (
@@ -150,39 +173,50 @@ export default async function DashboardLayout({
   const supportMode = await getCurrentSupportMode();
   const [permissions, roles, branding] = await Promise.all([
     getCurrentEffectiveUserPermissions(),
-    supportMode ? Promise.resolve(["Supportmodus"]) : getUserRoles(user.id, tenantId),
+    supportMode
+      ? Promise.resolve(["Supportmodus"])
+      : getUserRoles(user.id, tenantId),
     getTenantBranding(tenantId),
   ]);
 
-  const canReadReports   = permissions.has("reports:read");
-  const canReadInvoices  = permissions.has("invoices:read");
-  const canReadQuotes    = permissions.has("quotes:read");
+  const canReadReports = permissions.has("reports:read");
+  const canReadInvoices = permissions.has("invoices:read");
+  const canReadQuotes = permissions.has("quotes:read");
   const canReadPersonnel = permissions.has("personnel:read");
 
   const canViewReleases = permissions.has("releases:view");
 
-  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount, releaseHighlight] = await Promise.all([
-    canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),
-    canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),
-    canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),
-    canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),
-    canViewReleases  ? getTenantReleaseHighlight()    : Promise.resolve(null),
+  const [
+    pendingReportsCount,
+    outstandingInvoicesCount,
+    pendingQuotesCount,
+    pendingLeaveCount,
+    releaseHighlight,
+  ] = await Promise.all([
+    canReadReports ? getPendingReportsCount() : Promise.resolve(0),
+    canReadInvoices ? getOutstandingInvoicesCount() : Promise.resolve(0),
+    canReadQuotes ? getPendingQuotesCount() : Promise.resolve(0),
+    canReadPersonnel ? getPendingLeaveCount() : Promise.resolve(0),
+    canViewReleases ? getTenantReleaseHighlight() : Promise.resolve(null),
   ]);
 
-  const userEmail   = user.email ?? "";
-  const userName    = getBackofficeProfileName(user) ?? userEmail;
+  const userEmail = user.email ?? "";
+  const userName = getBackofficeProfileName(user) ?? userEmail;
   const userInitial = (userName[0] ?? "U").toUpperCase();
-  const userRole    = roles[0] ?? "User";
-  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
-  const planningMapEnabled = isPlanningDayMapEnabled();
-
+  const userRole = roles[0] ?? "User";
+  const brandingStyle = getTenantBrandingCssVariables(
+    branding,
+  ) as CSSProperties;
   return (
     <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>
       <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>
         <SidebarProvider>
           <div
             className="flex h-screen overflow-hidden"
-            style={{ ...brandingStyle, backgroundColor: "var(--color-background)" }}
+            style={{
+              ...brandingStyle,
+              backgroundColor: "var(--color-background)",
+            }}
           >
             <Sidebar
               branding={{
@@ -197,7 +231,6 @@ export default async function DashboardLayout({
               outstandingInvoicesCount={outstandingInvoicesCount}
               pendingQuotesCount={pendingQuotesCount}
               pendingLeaveCount={pendingLeaveCount}
-              planningMapEnabled={planningMapEnabled}
             />
 
             <SidebarOverlay />
