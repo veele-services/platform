@@ -59,15 +59,29 @@ check_contract() {
   done
 
   require_file_contains "$WEBSITE_UNIT_SOURCE" "Environment=PORT=3305"
-  require_file_contains "$WEBSITE_UNIT_SOURCE" "@workspace/website-runtime"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "WorkingDirectory=/var/www/veele/website-stack-staging/current/artifacts/website-runtime"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "Environment=NEXT_TELEMETRY_DISABLED=1"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "ExecStart=/usr/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3305"
   require_file_contains "$WEBSITE_UNIT_SOURCE" "NoNewPrivileges=true"
   require_file_contains "$WEBSITE_UNIT_SOURCE" \
     "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
   require_file_contains "$MARKETING_UNIT_SOURCE" "Environment=PORT=3306"
-  require_file_contains "$MARKETING_UNIT_SOURCE" "@workspace/marketing-website"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "WorkingDirectory=/var/www/veele/website-stack-staging/current/artifacts/marketing-website"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "Environment=NEXT_TELEMETRY_DISABLED=1"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "ExecStart=/usr/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3306"
   require_file_contains "$MARKETING_UNIT_SOURCE" "NoNewPrivileges=true"
   require_file_contains "$MARKETING_UNIT_SOURCE" \
     "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
+  if grep -Eq '^ExecStart=.*(pnpm|corepack|/usr/bin/env)' \
+    "$WEBSITE_UNIT_SOURCE" "$MARKETING_UNIT_SOURCE"; then
+    fail "staging website services must not use a package-manager runtime"
+  fi
 
   for host in \
     "website-runtime.staging.fieldgrid.nl" \
@@ -314,12 +328,18 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   pnpm --filter @workspace/marketing-website run build
 )
 
+for next_runtime in \
+  "$RELEASE/artifacts/website-runtime/node_modules/next/dist/bin/next" \
+  "$RELEASE/artifacts/marketing-website/node_modules/next/dist/bin/next"; do
+  [ -r "$next_runtime" ] ||
+    fail "built Next.js runtime is missing: $next_runtime"
+done
+
 {
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3305\n'
-  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
-  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
+  printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
   printf "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON='%s'\n" \
     "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
@@ -328,8 +348,7 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3306\n'
-  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
-  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
+  printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'NEXT_PUBLIC_MARKETING_SITE_URL=%s\n' \
     "$NEXT_PUBLIC_MARKETING_SITE_URL"
   printf 'FIELDGRID_WEBSITE_FORM_ID=%s\n' "${FIELDGRID_WEBSITE_FORM_ID:-}"

@@ -33,13 +33,32 @@ test("website stack services are separate, local-only and hardened", () => {
   const marketing = read("ops/systemd/veele-staging-marketing.service");
 
   assert.match(website, /Environment=PORT=3305/u);
-  assert.match(website, /@workspace\/website-runtime/u);
+  assert.match(
+    website,
+    /WorkingDirectory=\/var\/www\/veele\/website-stack-staging\/current\/artifacts\/website-runtime/u,
+  );
+  assert.match(
+    website,
+    /ExecStart=\/usr\/bin\/node \.\/node_modules\/next\/dist\/bin\/next start -H 127\.0\.0\.1 -p 3305/u,
+  );
   assert.match(website, /shared\/website\.env/u);
   assert.match(marketing, /Environment=PORT=3306/u);
-  assert.match(marketing, /@workspace\/marketing-website/u);
+  assert.match(
+    marketing,
+    /WorkingDirectory=\/var\/www\/veele\/website-stack-staging\/current\/artifacts\/marketing-website/u,
+  );
+  assert.match(
+    marketing,
+    /ExecStart=\/usr\/bin\/node \.\/node_modules\/next\/dist\/bin\/next start -H 127\.0\.0\.1 -p 3306/u,
+  );
   assert.match(marketing, /shared\/marketing\.env/u);
   for (const unit of [website, marketing]) {
     assert.match(unit, /User=github-runner/u);
+    assert.match(unit, /Environment=NEXT_TELEMETRY_DISABLED=1/u);
+    assert.doesNotMatch(
+      unit,
+      /^ExecStart=.*(?:pnpm|corepack|\/usr\/bin\/env)/mu,
+    );
     assert.match(unit, /NoNewPrivileges=true/u);
     assert.match(unit, /ProtectSystem=strict/u);
     assert.match(unit, /ProtectHome=true/u);
@@ -110,14 +129,26 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
 
   assert.match(websiteEnvironment, /DATABASE_URL/u);
-  assert.match(websiteEnvironment, /COREPACK_HOME/u);
-  assert.match(websiteEnvironment, /COREPACK_DEFAULT_TO_LATEST/u);
+  assert.match(websiteEnvironment, /NEXT_TELEMETRY_DISABLED/u);
+  assert.doesNotMatch(websiteEnvironment, /COREPACK_HOME/u);
   assert.doesNotMatch(marketingEnvironment, /DATABASE_URL/u);
-  assert.match(marketingEnvironment, /COREPACK_HOME/u);
-  assert.match(marketingEnvironment, /COREPACK_DEFAULT_TO_LATEST/u);
+  assert.match(marketingEnvironment, /NEXT_TELEMETRY_DISABLED/u);
+  assert.doesNotMatch(marketingEnvironment, /COREPACK_HOME/u);
   assert.match(script, /COREPACK_HOME_PATH="\$BASE_DIR\/shared\/corepack"/u);
   assert.match(script, /export COREPACK_HOME="\$COREPACK_HOME_PATH"/u);
   assert.match(script, /corepack install --global pnpm@11\.5\.2/u);
+  assert.match(
+    script,
+    /\$RELEASE\/artifacts\/website-runtime\/node_modules\/next\/dist\/bin\/next/u,
+  );
+  assert.match(
+    script,
+    /\$RELEASE\/artifacts\/marketing-website\/node_modules\/next\/dist\/bin\/next/u,
+  );
+  assert.match(
+    script,
+    /staging website services must not use a package-manager runtime/u,
+  );
   assert.doesNotMatch(script, /\/home\/github-runner\/.*corepack/u);
   assert.match(
     script,

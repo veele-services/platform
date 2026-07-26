@@ -7,10 +7,11 @@ Wants=network-online.target
 Type=simple
 User=github-runner
 Group=veele-deploy
-WorkingDirectory=/var/www/veele/website-stack-staging/current
+WorkingDirectory=/var/www/veele/website-stack-staging/current/artifacts/marketing-website
 EnvironmentFile=/var/www/veele/website-stack-staging/shared/marketing.env
 Environment=PORT=3306
-ExecStart=/usr/bin/env pnpm --filter @workspace/marketing-website run start
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3306
 Restart=always
 RestartSec=5
 TimeoutStopSec=30
