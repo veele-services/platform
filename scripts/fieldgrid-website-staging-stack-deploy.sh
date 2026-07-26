@@ -16,6 +16,7 @@ SOURCE_DIR=""
 EXPECTED_SHA=""
 EVIDENCE_FILE=""
 BASE_DIR="${WEBSITE_STACK_BASE_DIR:-/var/www/veele/website-stack-staging}"
+COREPACK_HOME_PATH="$BASE_DIR/shared/corepack"
 CADDYFILE="${FIELDGRID_CADDYFILE:-/etc/caddy/Caddyfile}"
 CADDY_SNIPPET_DIR="${FIELDGRID_CADDY_SNIPPET_DIR:-/etc/caddy/fieldgrid.d}"
 CADDY_SNIPPET="$CADDY_SNIPPET_DIR/fieldgrid-website-staging.caddy"
@@ -285,7 +286,11 @@ rollback() {
 }
 trap rollback ERR
 
-mkdir -p "$RELEASE" "$BASE_DIR/releases" "$BASE_DIR/shared"
+mkdir -p \
+  "$RELEASE" \
+  "$BASE_DIR/releases" \
+  "$BASE_DIR/shared" \
+  "$COREPACK_HOME_PATH"
 rsync -a --delete \
   --exclude=".git" \
   --exclude="node_modules" \
@@ -296,7 +301,10 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
 
 (
   cd "$RELEASE"
+  export COREPACK_HOME="$COREPACK_HOME_PATH"
+  export COREPACK_DEFAULT_TO_LATEST=0
   corepack enable
+  corepack install --global pnpm@11.5.2
   pnpm install --frozen-lockfile
   pnpm --filter @workspace/website-runtime run build
   pnpm --filter @workspace/marketing-website run build
@@ -306,6 +314,8 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3305\n'
+  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
+  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
   printf "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON='%s'\n" \
     "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
@@ -314,6 +324,8 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3306\n'
+  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
+  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
   printf 'NEXT_PUBLIC_MARKETING_SITE_URL=%s\n' \
     "$NEXT_PUBLIC_MARKETING_SITE_URL"
   printf 'FIELDGRID_WEBSITE_FORM_ID=%s\n' "${FIELDGRID_WEBSITE_FORM_ID:-}"
