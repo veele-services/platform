@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   diagnose-sudo-version:
-    name: Diagnose website runner sudo version
+    name: Diagnose website staging runtime
     if: >-
       github.ref_name == 'codex/website-staging-sudo-version-diagnostic' &&
       inputs.confirmation == 'website-staging-stack-only'
@@ -29,8 +29,25 @@ jobs:
     timeout-minutes: 5
     environment: staging
     steps:
-      - name: Print sudo version
-        run: sudo --version | head -n 1
+      - name: Print read-only runtime diagnostics
+        run: |
+          set -euo pipefail
+          printf '%s\n' '--- executable paths ---'
+          command -v node || true
+          command -v pnpm || true
+          command -v corepack || true
+          printf '%s\n' '--- release links ---'
+          readlink /var/www/veele/website-stack-staging/current || true
+          find /var/www/veele/website-stack-staging/releases \
+            -maxdepth 2 -name .fieldgrid-release-sha -print 2>/dev/null || true
+          printf '%s\n' '--- service state ---'
+          systemctl show veele-staging-website veele-staging-marketing \
+            --property=Id,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus,FragmentPath \
+            --no-pager || true
+          printf '%s\n' '--- website journal ---'
+          journalctl -u veele-staging-website -n 80 --no-pager || true
+          printf '%s\n' '--- marketing journal ---'
+          journalctl -u veele-staging-marketing -n 80 --no-pager || true
 
   deploy:
     name: Deploy website runtimes and exact staging routes
