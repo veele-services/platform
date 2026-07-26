@@ -9,6 +9,7 @@ CADDY_SOURCE="$REPO_ROOT/ops/caddy/fieldgrid-website-staging.caddy"
 WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
+SUDO_POLICY_CHECKER="$SCRIPT_DIR/fieldgrid-sudo-nopasswd-policy.mjs"
 
 MODE=""
 SOURCE_DIR=""
@@ -48,7 +49,8 @@ check_contract() {
     "$WEBSITE_UNIT_SOURCE" \
     "$MARKETING_UNIT_SOURCE" \
     "$CADDY_SOURCE" \
-    "$SUDOERS_SOURCE"; do
+    "$SUDOERS_SOURCE" \
+    "$SUDO_POLICY_CHECKER"; do
     [ -f "$file" ] || fail "required deployment asset is missing: $file"
     if grep -Eiq 'production|eedbf033ec08a12411760acf8ea7f5d5acf8cc20' "$file"; then
       fail "staging deployment asset contains a production marker"
@@ -200,17 +202,27 @@ require_preprovisioned_asset "$CADDY_SOURCE" "$CADDY_SNIPPET"
 grep -Fxq "$IMPORT_LINE" "$CADDYFILE" ||
   fail "root bootstrap is required: Caddy import is missing"
 # The runner must not need direct read or traversal access to /etc/sudoers.d.
-# Validate the effective, exact capabilities exposed by the root-owned policy.
-sudo -n -l \
+# Validate that every effective, exact capability runs as root without a
+# password. A successful `sudo -n -l <command>` alone does not prove NOPASSWD.
+require_nopasswd_control() {
+  local description="$1"
+  shift
+  local listing
+  listing="$(LC_ALL=C sudo -n -ll "$@" 2>/dev/null)" ||
+    fail "root bootstrap is required: $description permission is missing"
+  printf '%s\n' "$listing" |
+    node "$SUDO_POLICY_CHECKER" "$@" ||
+    fail "root bootstrap is required: $description must be exact root NOPASSWD"
+}
+
+require_nopasswd_control "exact website restart" \
   /usr/bin/systemctl restart \
-  veele-staging-website veele-staging-marketing >/dev/null ||
-  fail "root bootstrap is required: exact website restart permission is missing"
-sudo -n -l \
+  veele-staging-website veele-staging-marketing
+require_nopasswd_control "exact website stop" \
   /usr/bin/systemctl stop \
-  veele-staging-website veele-staging-marketing >/dev/null ||
-  fail "root bootstrap is required: exact website stop permission is missing"
-sudo -n -l /usr/bin/systemctl reload caddy >/dev/null ||
-  fail "root bootstrap is required: exact Caddy reload permission is missing"
+  veele-staging-website veele-staging-marketing
+require_nopasswd_control "exact Caddy reload" \
+  /usr/bin/systemctl reload caddy
 systemctl is-enabled --quiet "$WEBSITE_SERVICE_NAME" ||
   fail "root bootstrap is required: $WEBSITE_SERVICE_NAME is not enabled"
 systemctl is-enabled --quiet "$MARKETING_SERVICE_NAME" ||
