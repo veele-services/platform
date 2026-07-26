@@ -60,38 +60,101 @@ function splitSudoCommands(value) {
   return commands;
 }
 
+function parseEntries(listing) {
+  return listing.split(ENTRY_HEADER).slice(1).map(parseEntry);
+}
+
+function entryCommands(entry) {
+  return splitSudoCommands(entry.get("Commands") ?? "");
+}
+
+function isExactRootNopasswdEntry(entry, expectedCommand) {
+  const runAsUsers = (entry.get("RunAsUsers") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const options = (entry.get("Options") ?? "")
+    .split(/[,\n]/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return (
+    runAsUsers.length === 1 &&
+    runAsUsers[0] === "root" &&
+    options.includes("!authenticate") &&
+    entryCommands(entry).includes(expectedCommand)
+  );
+}
+
+function isRelevantControl(command, expectedCommand) {
+  const normalized = command.replace(/^!+/u, "").trim();
+  if (normalized === expectedCommand) return true;
+  if (normalized === "ALL") return true;
+
+  // A wildcard or regex command can supersede an exact grant while still
+  // authorizing the command-filtered sudo listing. Reject it fail-closed
+  // instead of attempting to reimplement sudoers pattern matching.
+  return /[*?[\]]/u.test(normalized) || normalized.startsWith("^");
+}
+
+function hasEffectiveCommandMatch(listing, expectedCommand) {
+  if (ENTRY_HEADER.test(listing)) {
+    return hasExactRootNopasswdCommand(listing, expectedCommand);
+  }
+
+  const commands = listing
+    .split(/\r?\n/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return commands.length === 1 && commands[0] === expectedCommand;
+}
+
 export function hasExactRootNopasswdCommand(listing, expectedCommand) {
   if (!expectedCommand || /[\r\n]/u.test(expectedCommand)) return false;
 
-  return listing
-    .split(ENTRY_HEADER)
-    .slice(1)
-    .map(parseEntry)
-    .some((entry) => {
-      const runAsUsers = (entry.get("RunAsUsers") ?? "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      const options = (entry.get("Options") ?? "")
-        .split(/[,\n]/u)
-        .map((value) => value.trim())
-        .filter(Boolean);
-      const commands = splitSudoCommands(entry.get("Commands") ?? "");
+  const relevantEntries = parseEntries(listing).filter((entry) =>
+    entryCommands(entry).some((command) =>
+      isRelevantControl(command, expectedCommand),
+    ),
+  );
+  const effectiveEntry = relevantEntries.at(-1);
 
-      return (
-        runAsUsers.length === 1 &&
-        runAsUsers[0] === "root" &&
-        options.includes("!authenticate") &&
-        commands.includes(expectedCommand)
-      );
-    });
+  return (
+    effectiveEntry !== undefined &&
+    entryCommands(effectiveEntry).every(
+      (command) =>
+        !isRelevantControl(command, expectedCommand) ||
+        command === expectedCommand,
+    ) &&
+    isExactRootNopasswdEntry(effectiveEntry, expectedCommand)
+  );
+}
+
+export function hasEffectiveExactRootNopasswdCommand(
+  listing,
+  effectiveListing,
+  expectedCommand,
+) {
+  return (
+    hasExactRootNopasswdCommand(listing, expectedCommand) &&
+    hasEffectiveCommandMatch(effectiveListing, expectedCommand)
+  );
 }
 
 function run() {
   const expectedCommand = process.argv.slice(2).join(" ");
-  const listing = readFileSync(0, "utf8");
+  const input = readFileSync(0, "utf8");
+  const separator = input.indexOf("\0");
+  const listing = separator >= 0 ? input.slice(0, separator) : "";
+  const effectiveListing = separator >= 0 ? input.slice(separator + 1) : "";
 
-  if (!hasExactRootNopasswdCommand(listing, expectedCommand)) {
+  if (
+    !hasEffectiveExactRootNopasswdCommand(
+      listing,
+      effectiveListing,
+      expectedCommand,
+    )
+  ) {
     process.stderr.write(
       `missing exact root NOPASSWD sudo capability: ${expectedCommand}\n`,
     );
