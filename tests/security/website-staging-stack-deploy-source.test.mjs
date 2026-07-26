@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { hasExactRootNopasswdCommand } from "../../scripts/fieldgrid-sudo-nopasswd-policy.mjs";
 
 const read = (path) => readFileSync(path, "utf8");
 
@@ -110,9 +111,29 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /trap rollback ERR/u);
   assert.match(script, /release-restored/u);
   assert.match(script, /require_preprovisioned_asset/u);
-  assert.match(script, /SUDOERS_TARGET/u);
-  assert.match(script, /stat -c '%u:%g:%a'/u);
-  assert.match(script, /sudo -n -l/u);
+  assert.doesNotMatch(script, /SUDOERS_TARGET/u);
+  assert.doesNotMatch(
+    script,
+    /(?:\[ -[ef] |stat -c|cmp -s).*\/etc\/sudoers\.d/u,
+  );
+  assert.doesNotMatch(script, /stat -c '%u:%g:%a'/u);
+  assert.match(
+    script,
+    /listing="\$\(LC_ALL=C sudo -n -ll "\$@" 2>\/dev\/null\)"/u,
+  );
+  assert.match(script, /node "\$SUDO_POLICY_CHECKER" "\$@"/u);
+  assert.match(
+    script,
+    /require_nopasswd_control "exact website restart" \\\n  \/usr\/bin\/systemctl restart \\\n  veele-staging-website veele-staging-marketing/u,
+  );
+  assert.match(
+    script,
+    /require_nopasswd_control "exact website stop" \\\n  \/usr\/bin\/systemctl stop \\\n  veele-staging-website veele-staging-marketing/u,
+  );
+  assert.match(
+    script,
+    /require_nopasswd_control "exact Caddy reload" \\\n  \/usr\/bin\/systemctl reload caddy/u,
+  );
   assert.match(script, /systemctl is-enabled --quiet/u);
   assert.match(script, /caddy adapt --config "\$CADDYFILE"/u);
   assert.match(script, /sudo systemctl reload caddy/u);
@@ -122,6 +143,53 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.match(script, /productionChanged": false/u);
   assert.doesNotMatch(script, /\/var\/www\/veele\/production/u);
+});
+
+test("sudo capability parser requires exact root NOPASSWD controls", () => {
+  const restart =
+    "/usr/bin/systemctl restart veele-staging-website veele-staging-marketing";
+  const exactNopasswd = `Matching Defaults entries for github-runner on Veele:
+
+Sudoers entry:
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        ${restart}
+`;
+  const passwordedTargetWithUnrelatedNopasswd = `Sudoers entry:
+    RunAsUsers: root
+    Commands:
+        ${restart}
+
+Sudoers entry:
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        /usr/bin/true
+`;
+  const broaderRunAs = `Sudoers entry:
+    RunAsUsers: ALL
+    Options: !authenticate
+    Commands:
+        ${restart}
+`;
+  const wildcard = `Sudoers entry:
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        /usr/bin/systemctl *
+`;
+
+  assert.equal(hasExactRootNopasswdCommand(exactNopasswd, restart), true);
+  assert.equal(
+    hasExactRootNopasswdCommand(
+      passwordedTargetWithUnrelatedNopasswd,
+      restart,
+    ),
+    false,
+  );
+  assert.equal(hasExactRootNopasswdCommand(broaderRunAs, restart), false);
+  assert.equal(hasExactRootNopasswdCommand(wildcard, restart), false);
 });
 
 test("Phase 9 close-out defers high-impact choices and excludes production", () => {
