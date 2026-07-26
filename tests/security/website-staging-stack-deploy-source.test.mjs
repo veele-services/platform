@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { hasExactRootNopasswdCommand } from "../../scripts/fieldgrid-sudo-nopasswd-policy.mjs";
+import {
+  hasEffectiveExactRootNopasswdCommand,
+  hasExactRootNopasswdCommand,
+} from "../../scripts/fieldgrid-sudo-nopasswd-policy.mjs";
 
 const read = (path) => readFileSync(path, "utf8");
 
@@ -118,7 +121,11 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.doesNotMatch(script, /stat -c '%u:%g:%a'/u);
   assert.match(script, /listing="\$\(LC_ALL=C sudo -n -ll 2>\/dev\/null\)"/u);
-  assert.doesNotMatch(script, /sudo -n -ll "\$@"/u);
+  assert.match(
+    script,
+    /effective_listing="\$\(LC_ALL=C sudo -n -ll "\$@" 2>\/dev\/null\)"/u,
+  );
+  assert.match(script, /printf '\\0'/u);
   assert.match(script, /node "\$SUDO_POLICY_CHECKER" "\$@"/u);
   assert.match(
     script,
@@ -188,6 +195,35 @@ Sudoers entry: /etc/sudoers.d/unrelated
         /usr/bin/systemctl *,
         /usr/bin/echo foo\\, /usr/bin/systemctl reload caddy
 `;
+  const passwordOverride = `${exactNopasswd}
+Sudoers entry: /etc/sudoers.d/99-password-override
+    RunAsUsers: root
+    Options: authenticate
+    Commands:
+        ${restart}
+`;
+  const denialOverride = `${exactNopasswd}
+Sudoers entry: /etc/sudoers.d/99-denial-override
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        !${restart}
+`;
+  const wildcardOverride = `${exactNopasswd}
+Sudoers entry: /etc/sudoers.d/99-wildcard-override
+    RunAsUsers: root
+    Options: authenticate
+    Commands:
+        /usr/bin/systemctl *
+`;
+  const sudoRsEffectiveRestart = restart;
+  const verboseEffectiveRestart = `Sudoers entry: /etc/sudoers.d/fieldgrid
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        ${restart}
+    Matched: ${restart}
+`;
 
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, restart), true);
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, stop), true);
@@ -200,6 +236,41 @@ Sudoers entry: /etc/sudoers.d/unrelated
   assert.equal(hasExactRootNopasswdCommand(wildcard, restart), false);
   assert.equal(
     hasExactRootNopasswdCommand(escapedCommaInjection, reload),
+    false,
+  );
+  assert.equal(hasExactRootNopasswdCommand(passwordOverride, restart), false);
+  assert.equal(hasExactRootNopasswdCommand(denialOverride, restart), false);
+  assert.equal(hasExactRootNopasswdCommand(wildcardOverride, restart), false);
+  assert.equal(
+    hasEffectiveExactRootNopasswdCommand(
+      exactNopasswd,
+      sudoRsEffectiveRestart,
+      restart,
+    ),
+    true,
+  );
+  assert.equal(
+    hasEffectiveExactRootNopasswdCommand(
+      exactNopasswd,
+      verboseEffectiveRestart,
+      restart,
+    ),
+    true,
+  );
+  assert.equal(
+    hasEffectiveExactRootNopasswdCommand(
+      passwordOverride,
+      sudoRsEffectiveRestart,
+      restart,
+    ),
+    false,
+  );
+  assert.equal(
+    hasEffectiveExactRootNopasswdCommand(
+      exactNopasswd,
+      "/usr/bin/systemctl *",
+      restart,
+    ),
     false,
   );
 });
