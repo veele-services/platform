@@ -32,6 +32,9 @@ jobs:
       - name: Print effective exact website restart policy
         run: |
           set -euo pipefail
+          printf '%s\n' '--- complete effective policy ---'
+          LC_ALL=C sudo -n -ll
+          printf '%s\n' '--- command-filtered policy ---'
           LC_ALL=C sudo -n -ll \
             /usr/bin/systemctl restart \
             veele-staging-website veele-staging-marketing
