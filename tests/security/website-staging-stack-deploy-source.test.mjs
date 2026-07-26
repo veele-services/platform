@@ -117,10 +117,8 @@ test("deploy script isolates secrets and has explicit rollback", () => {
     /(?:\[ -[ef] |stat -c|cmp -s).*\/etc\/sudoers\.d/u,
   );
   assert.doesNotMatch(script, /stat -c '%u:%g:%a'/u);
-  assert.match(
-    script,
-    /listing="\$\(LC_ALL=C sudo -n -ll "\$@" 2>\/dev\/null\)"/u,
-  );
+  assert.match(script, /listing="\$\(LC_ALL=C sudo -n -ll 2>\/dev\/null\)"/u);
+  assert.doesNotMatch(script, /sudo -n -ll "\$@"/u);
   assert.match(script, /node "\$SUDO_POLICY_CHECKER" "\$@"/u);
   assert.match(
     script,

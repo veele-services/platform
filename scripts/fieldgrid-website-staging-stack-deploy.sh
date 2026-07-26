@@ -208,8 +208,8 @@ require_nopasswd_control() {
   local description="$1"
   shift
   local listing
-  listing="$(LC_ALL=C sudo -n -ll "$@" 2>/dev/null)" ||
-    fail "root bootstrap is required: $description permission is missing"
+  listing="$(LC_ALL=C sudo -n -ll 2>/dev/null)" ||
+    fail "root bootstrap is required: effective sudo policy is unavailable"
   printf '%s\n' "$listing" |
     node "$SUDO_POLICY_CHECKER" "$@" ||
     fail "root bootstrap is required: $description must be exact root NOPASSWD"
