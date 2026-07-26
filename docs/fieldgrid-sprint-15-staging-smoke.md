@@ -41,6 +41,9 @@ artifacts/staging-smoke/*.json
 Mutating checks blijven geblokkeerd totdat een toekomstige runner expliciet werkt met:
 
 - dedicated pilottenant `field-demo`;
+- productie-vormige stagingpilot-host `field-demo.fieldgrid.nl`, overeenkomstig
+  de bestaande Phase 2E-routing en zonder afhankelijkheid van een
+  `*.staging.fieldgrid.nl` TLS-certificaat;
 - `FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only`;
 - marker-scoped cleanup selectors zoals `fieldgrid-sprint-15-mutating-*`;
 - cleanup in dezelfde run.

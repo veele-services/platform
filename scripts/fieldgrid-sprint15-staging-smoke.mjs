@@ -11,13 +11,21 @@ export const SPRINT15_STAGING_SMOKE_VERSION = "sprint-15-staging-smoke-v1";
 export const DEFAULT_STAGING_SMOKE_API_URL = "https://staging.fieldgrid.nl/api/platform/staging-smoke";
 export const DEFAULT_STAGING_PILOT_TENANT_SLUG = "field-demo";
 export const DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
+const REQUIRED_LIVE_SMOKE_TARGET_IDS = [
+  "FG-LIVE-HOST",
+  "FG-LIVE-MODULES",
+  "FG-LIVE-REGIONS",
+  "FG-LIVE-CUSTOMER-PORTAL",
+  "FG-LIVE-PERSONNEL-PLANNING",
+  "FG-LIVE-STORAGE-PDF",
+];
 
 function pilotTenantSlug(env = process.env) {
   return env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() || DEFAULT_STAGING_PILOT_TENANT_SLUG;
 }
 
 function pilotTenantHost(env = process.env) {
-  return `${pilotTenantSlug(env)}.staging.fieldgrid.nl`;
+  return `${pilotTenantSlug(env)}.fieldgrid.nl`;
 }
 
 function mutatingSmokeConfirmValue(env = process.env) {
@@ -201,17 +209,41 @@ export function buildSprint15StagingSmokePlan(env = process.env) {
 
 export function validateSprint15StagingSmokePlan(plan = buildSprint15StagingSmokePlan()) {
   const errors = [];
+  const expectedPilotHost = `${plan.pilotTenantSlug}.fieldgrid.nl`;
 
   if (plan.destructive) errors.push("Sprint 15 smokeplan mag niet destructief zijn.");
   if (plan.mutatesExistingTenants) errors.push("Sprint 15 smokeplan mag bestaande tenants niet muteren.");
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(plan.pilotTenantSlug)) {
+    errors.push("Pilottenant-slug is geen geldige DNS-label.");
+  }
+  if (plan.pilotTenantSlug !== DEFAULT_STAGING_PILOT_TENANT_SLUG) {
+    errors.push("Sprint 15 mag uitsluitend de vaste field-demo pilottenant gebruiken.");
+  }
   if (!plan.runHistoryDirectories.includes("artifacts/staging-smoke")) errors.push("Run history mist artifacts/staging-smoke.");
   if (!plan.runHistoryDirectories.includes("artifacts/migration-smoke")) errors.push("Run history mist artifacts/migration-smoke.");
-  if (plan.liveSmokeTargets.length < 6) errors.push("Live Playwright-smokes missen verplichte oppervlakken.");
+  const targetIds = plan.liveSmokeTargets.map((target) => target.id);
+  if (
+    targetIds.length !== REQUIRED_LIVE_SMOKE_TARGET_IDS.length ||
+    new Set(targetIds).size !== targetIds.length ||
+    REQUIRED_LIVE_SMOKE_TARGET_IDS.some((id) => !targetIds.includes(id))
+  ) {
+    errors.push("Live Playwright-smokes moeten alle vaste target-ID's exact eenmaal bevatten.");
+  }
   if (plan.mutatingChecks.length < 3) errors.push("Mutating checks missen cleanupcontracten.");
 
+  for (const target of plan.liveSmokeTargets) {
+    if (target.id === "FG-LIVE-HOST" && target.host !== "staging.fieldgrid.nl") {
+      errors.push("FG-LIVE-HOST gebruikt niet de vaste platform staging-host.");
+    } else if (target.id !== "FG-LIVE-HOST" && target.host !== expectedPilotHost) {
+      errors.push(`${target.id} gebruikt niet de vaste pilottenant-host.`);
+    }
+  }
   for (const check of plan.mutatingChecks) {
-    if (!check.confirmVar.includes("FIELDGRID_MUTATING_SMOKE_CONFIRM")) {
-      errors.push(`${check.id} mist expliciete mutating confirm env.`);
+    if (
+      check.tenantScope !== DEFAULT_STAGING_PILOT_TENANT_SLUG ||
+      check.confirmVar !== `FIELDGRID_MUTATING_SMOKE_CONFIRM=${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE}`
+    ) {
+      errors.push(`${check.id} wijkt af van de vaste pilottenantbevestiging.`);
     }
     if (!check.cleanupSelector.includes("fieldgrid-sprint-15")) {
       errors.push(`${check.id} mist marker-scoped cleanup selector.`);
