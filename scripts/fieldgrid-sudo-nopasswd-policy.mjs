@@ -30,6 +30,36 @@ function parseEntry(rawEntry) {
   return fields;
 }
 
+function splitSudoCommands(value) {
+  const commands = [];
+  let command = "";
+  let precedingBackslashes = 0;
+
+  const flush = () => {
+    const normalized = command.trim();
+    if (normalized) commands.push(normalized);
+    command = "";
+    precedingBackslashes = 0;
+  };
+
+  for (const character of value) {
+    if (character === "," && precedingBackslashes % 2 === 0) {
+      flush();
+      continue;
+    }
+    if (character === "\n") {
+      flush();
+      continue;
+    }
+
+    command += character;
+    precedingBackslashes = character === "\\" ? precedingBackslashes + 1 : 0;
+  }
+  flush();
+
+  return commands;
+}
+
 export function hasExactRootNopasswdCommand(listing, expectedCommand) {
   if (!expectedCommand || /[\r\n]/u.test(expectedCommand)) return false;
 
@@ -46,10 +76,7 @@ export function hasExactRootNopasswdCommand(listing, expectedCommand) {
         .split(/[,\n]/u)
         .map((value) => value.trim())
         .filter(Boolean);
-      const commands = (entry.get("Commands") ?? "")
-        .split(/\r?\n|,\s*(?=\/)/u)
-        .map((value) => value.trim())
-        .filter(Boolean);
+      const commands = splitSudoCommands(entry.get("Commands") ?? "");
 
       return (
         runAsUsers.length === 1 &&

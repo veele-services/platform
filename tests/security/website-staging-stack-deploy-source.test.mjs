@@ -183,19 +183,27 @@ Sudoers entry: /etc/sudoers.d/unrelated
     Commands:
         /usr/bin/systemctl *
 `;
+  const escapedCommaInjection = `Sudoers entry: /etc/sudoers.d/drifted
+    RunAsUsers: root
+    Options: !authenticate
+    Commands:
+        /usr/bin/systemctl *,
+        /usr/bin/echo foo\\, /usr/bin/systemctl reload caddy
+`;
 
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, restart), true);
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, stop), true);
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, reload), true);
   assert.equal(
-    hasExactRootNopasswdCommand(
-      passwordedTargetWithUnrelatedNopasswd,
-      restart,
-    ),
+    hasExactRootNopasswdCommand(passwordedTargetWithUnrelatedNopasswd, restart),
     false,
   );
   assert.equal(hasExactRootNopasswdCommand(broaderRunAs, restart), false);
   assert.equal(hasExactRootNopasswdCommand(wildcard, restart), false);
+  assert.equal(
+    hasExactRootNopasswdCommand(escapedCommaInjection, reload),
+    false,
+  );
 });
 
 test("Phase 9 close-out defers high-impact choices and excludes production", () => {
