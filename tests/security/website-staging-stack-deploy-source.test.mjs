@@ -148,20 +148,24 @@ test("deploy script isolates secrets and has explicit rollback", () => {
 test("sudo capability parser requires exact root NOPASSWD controls", () => {
   const restart =
     "/usr/bin/systemctl restart veele-staging-website veele-staging-marketing";
+  const stop =
+    "/usr/bin/systemctl stop veele-staging-website veele-staging-marketing";
+  const reload = "/usr/bin/systemctl reload caddy";
   const exactNopasswd = `Matching Defaults entries for github-runner on Veele:
 
-Sudoers entry:
+Sudoers entry: /etc/sudoers.d/veele-staging-website-stack
     RunAsUsers: root
     Options: !authenticate
     Commands:
-        ${restart}
+        ${restart},
+        ${stop}, ${reload}
 `;
-  const passwordedTargetWithUnrelatedNopasswd = `Sudoers entry:
+  const passwordedTargetWithUnrelatedNopasswd = `Sudoers entry: /etc/sudoers
     RunAsUsers: root
     Commands:
         ${restart}
 
-Sudoers entry:
+Sudoers entry: /etc/sudoers.d/unrelated
     RunAsUsers: root
     Options: !authenticate
     Commands:
@@ -181,6 +185,8 @@ Sudoers entry:
 `;
 
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, restart), true);
+  assert.equal(hasExactRootNopasswdCommand(exactNopasswd, stop), true);
+  assert.equal(hasExactRootNopasswdCommand(exactNopasswd, reload), true);
   assert.equal(
     hasExactRootNopasswdCommand(
       passwordedTargetWithUnrelatedNopasswd,

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const FIELD_HEADER = /^[ \t]{4}([A-Za-z][A-Za-z]+):[ \t]*(.*)$/u;
+const ENTRY_HEADER = /^Sudoers entry:(?:[ \t].*)?$/mu;
 
 function parseEntry(rawEntry) {
   const fields = new Map();
@@ -33,7 +34,7 @@ export function hasExactRootNopasswdCommand(listing, expectedCommand) {
   if (!expectedCommand || /[\r\n]/u.test(expectedCommand)) return false;
 
   return listing
-    .split(/^Sudoers entry:[ \t]*$/mu)
+    .split(ENTRY_HEADER)
     .slice(1)
     .map(parseEntry)
     .some((entry) => {
@@ -46,7 +47,7 @@ export function hasExactRootNopasswdCommand(listing, expectedCommand) {
         .map((value) => value.trim())
         .filter(Boolean);
       const commands = (entry.get("Commands") ?? "")
-        .split(/\r?\n/u)
+        .split(/\r?\n|,\s*(?=\/)/u)
         .map((value) => value.trim())
         .filter(Boolean);
 
