@@ -523,10 +523,30 @@ run_health_checks() {
 restart_services_and_reload_caddy() {
   local service
   local failed=0
+  local restart_website=0
+  local restart_marketing=0
   for service in $(default_services); do
     [ -n "$service" ] || continue
+    if [ -n "${WEBSITE_SERVICE_NAME:-}" ] &&
+      [ "$service" = "$WEBSITE_SERVICE_NAME" ]; then
+      restart_website=1
+      continue
+    fi
+    if [ -n "${MARKETING_SERVICE_NAME:-}" ] &&
+      [ "$service" = "$MARKETING_SERVICE_NAME" ]; then
+      restart_marketing=1
+      continue
+    fi
     run_systemctl_write restart "$service" || failed=1
   done
+  if [ "$restart_website" = "1" ] && [ "$restart_marketing" = "1" ]; then
+    run_systemctl_write restart \
+      "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME" || failed=1
+  elif [ "$restart_website" = "1" ]; then
+    run_systemctl_write restart "$WEBSITE_SERVICE_NAME" || failed=1
+  elif [ "$restart_marketing" = "1" ]; then
+    run_systemctl_write restart "$MARKETING_SERVICE_NAME" || failed=1
+  fi
   run_systemctl_write reload caddy || failed=1
   return "$failed"
 }

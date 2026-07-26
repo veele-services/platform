@@ -515,6 +515,49 @@ test("health gate accepts independent website and marketing runtimes", async (t)
   assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-marketing-health")?.status, "pass");
 });
 
+test("staging restart uses the exact approved website and marketing service pair", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  await run(f.bash, f.healthArgsWithRestart, {
+    env: {
+      ...f.commonEnv,
+      MOCK_LISTEN_PORTS: "3100 3200 3300 3400 3500 3600",
+      WEBSITE_SERVICE_NAME: "website",
+      WEBSITE_PORT: "3500",
+      MARKETING_SERVICE_NAME: "marketing",
+      MARKETING_PORT: "3600",
+      FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website marketing",
+      FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500 3600",
+      FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
+        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
+        "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
+        "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
+        "local-website-health|http://127.0.0.1:3500/healthz|exact-200",
+        "local-marketing-health|http://127.0.0.1:3600/healthz|exact-200",
+      ].join("\n"),
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+        "public-website-health|https://website-runtime.staging.fieldgrid.nl/healthz|exact-200",
+        "public-marketing-health|https://veele-origin.staging.fieldgrid.nl/healthz|exact-200",
+      ].join("\n"),
+    },
+  });
+
+  const log = await readSystemctlLog(f.root);
+  assert.match(log, /^sudo .*systemctl restart website marketing$/m);
+  assert.match(log, /^systemctl restart website marketing$/m);
+  assert.doesNotMatch(log, /^sudo .*systemctl restart website$/m);
+  assert.doesNotMatch(log, /^sudo .*systemctl restart marketing$/m);
+  for (const service of ["backoffice", "personeel", "klant", "api"]) {
+    assert.match(log, new RegExp(`^sudo .*systemctl restart ${service}$`, "m"));
+  }
+});
+
 test("health gate rejects a partial marketing runtime configuration", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
