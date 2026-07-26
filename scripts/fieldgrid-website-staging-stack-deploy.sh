@@ -10,6 +10,8 @@ WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
 SUDO_POLICY_CHECKER="$SCRIPT_DIR/fieldgrid-sudo-nopasswd-policy.mjs"
+SERVICE_NODE_PREFLIGHT="$SCRIPT_DIR/fieldgrid-service-node-preflight.mjs"
+SERVICE_NODE_PATH="/usr/bin/node"
 
 MODE=""
 SOURCE_DIR=""
@@ -51,7 +53,8 @@ check_contract() {
     "$MARKETING_UNIT_SOURCE" \
     "$CADDY_SOURCE" \
     "$SUDOERS_SOURCE" \
-    "$SUDO_POLICY_CHECKER"; do
+    "$SUDO_POLICY_CHECKER" \
+    "$SERVICE_NODE_PREFLIGHT"; do
     [ -f "$file" ] || fail "required deployment asset is missing: $file"
     if grep -Eiq 'production|eedbf033ec08a12411760acf8ea7f5d5acf8cc20' "$file"; then
       fail "staging deployment asset contains a production marker"
@@ -59,15 +62,29 @@ check_contract() {
   done
 
   require_file_contains "$WEBSITE_UNIT_SOURCE" "Environment=PORT=3305"
-  require_file_contains "$WEBSITE_UNIT_SOURCE" "@workspace/website-runtime"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "WorkingDirectory=/var/www/veele/website-stack-staging/current/artifacts/website-runtime"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "Environment=NEXT_TELEMETRY_DISABLED=1"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "ExecStart=/usr/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3305"
   require_file_contains "$WEBSITE_UNIT_SOURCE" "NoNewPrivileges=true"
   require_file_contains "$WEBSITE_UNIT_SOURCE" \
     "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
   require_file_contains "$MARKETING_UNIT_SOURCE" "Environment=PORT=3306"
-  require_file_contains "$MARKETING_UNIT_SOURCE" "@workspace/marketing-website"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "WorkingDirectory=/var/www/veele/website-stack-staging/current/artifacts/marketing-website"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "Environment=NEXT_TELEMETRY_DISABLED=1"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "ExecStart=/usr/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3306"
   require_file_contains "$MARKETING_UNIT_SOURCE" "NoNewPrivileges=true"
   require_file_contains "$MARKETING_UNIT_SOURCE" \
     "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
+  if grep -Eq '^ExecStart=.*(pnpm|corepack|/usr/bin/env)' \
+    "$WEBSITE_UNIT_SOURCE" "$MARKETING_UNIT_SOURCE"; then
+    fail "staging website services must not use a package-manager runtime"
+  fi
 
   for host in \
     "website-runtime.staging.fieldgrid.nl" \
@@ -97,6 +114,17 @@ if [ "$MODE" = "check" ]; then
   exit 0
 fi
 [ "$MODE" = "run" ] || fail "use --check or --run"
+
+BUILD_NODE_PATH="$(command -v node || true)"
+[ -n "$BUILD_NODE_PATH" ] ||
+  fail "root bootstrap is required: build Node is unavailable"
+[ -x "$SERVICE_NODE_PATH" ] ||
+  fail "root bootstrap is required: $SERVICE_NODE_PATH is unavailable"
+"$SERVICE_NODE_PATH" "$SERVICE_NODE_PREFLIGHT" \
+  --service-node "$SERVICE_NODE_PATH" \
+  --build-node "$BUILD_NODE_PATH" \
+  --package-json "$REPO_ROOT/package.json" ||
+  fail "root bootstrap is required: service Node preflight failed"
 
 required_value() {
   local name="$1"
@@ -132,7 +160,7 @@ fi
 [ "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_SHA" ] ||
   fail "source checkout differs from exact staging"
 
-node - "$EXPECTED_SHA" <<'NODE'
+"$SERVICE_NODE_PATH" - "$EXPECTED_SHA" <<'NODE'
 const expectedSha = process.argv[2];
 const exact = (name, expected, path) => {
   const url = new URL(process.env[name]);
@@ -223,7 +251,7 @@ require_nopasswd_control() {
     printf '\0'
     printf '%s' "$effective_listing"
   } |
-    node "$SUDO_POLICY_CHECKER" "$@" ||
+    "$SERVICE_NODE_PATH" "$SUDO_POLICY_CHECKER" "$@" ||
     fail "root bootstrap is required: $description must be exact root NOPASSWD"
 }
 
@@ -314,12 +342,18 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   pnpm --filter @workspace/marketing-website run build
 )
 
+for next_runtime in \
+  "$RELEASE/artifacts/website-runtime/node_modules/next/dist/bin/next" \
+  "$RELEASE/artifacts/marketing-website/node_modules/next/dist/bin/next"; do
+  [ -r "$next_runtime" ] ||
+    fail "built Next.js runtime is missing: $next_runtime"
+done
+
 {
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3305\n'
-  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
-  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
+  printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
   printf "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON='%s'\n" \
     "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
@@ -328,8 +362,7 @@ printf '%s\n' "$EXPECTED_SHA" > "$RELEASE/.fieldgrid-release-sha"
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
   printf 'PORT=3306\n'
-  printf 'COREPACK_HOME=%s\n' "$COREPACK_HOME_PATH"
-  printf 'COREPACK_DEFAULT_TO_LATEST=0\n'
+  printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'NEXT_PUBLIC_MARKETING_SITE_URL=%s\n' \
     "$NEXT_PUBLIC_MARKETING_SITE_URL"
   printf 'FIELDGRID_WEBSITE_FORM_ID=%s\n' "${FIELDGRID_WEBSITE_FORM_ID:-}"
