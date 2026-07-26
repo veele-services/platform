@@ -20,6 +20,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  diagnose-sudo-policy:
+    name: Diagnose website runner sudo policy
+    if: >-
+      github.ref_name == 'codex/website-staging-sudoers-runtime-format' &&
+      inputs.confirmation == 'website-staging-stack-only'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - name: Print effective exact website restart policy
+        run: |
+          set -euo pipefail
+          LC_ALL=C sudo -n -ll \
+            /usr/bin/systemctl restart \
+            veele-staging-website veele-staging-marketing
+
   deploy:
     name: Deploy website runtimes and exact staging routes
     if: >-
