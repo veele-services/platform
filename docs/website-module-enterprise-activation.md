@@ -96,8 +96,17 @@ the exact active staging release:
 set -euo pipefail
 expected="EXACT_STAGING_SHA"
 source_root="/var/www/veele/staging/current"
+service_node="/usr/bin/node"
 
 test "$(cat "$source_root/.fieldgrid-release-sha")" = "$expected"
+test -x "$service_node"
+test "$(readlink -f "$(command -v node)")" = "$(readlink -f "$service_node")"
+"$service_node" -e '
+  const version = process.versions.node;
+  if (!/^24\.\d+\.\d+$/.test(version)) {
+    throw new Error(`Fieldgrid requires Node >=24.0.0 <25; received ${version}`);
+  }
+'
 sudo install -o root -g root -m 0644 \
   "$source_root/ops/systemd/veele-staging-website.service" \
   /etc/systemd/system/veele-staging-website.service
@@ -125,15 +134,20 @@ sudo systemctl enable veele-staging-website veele-staging-marketing
 
 Do not use `enable --now`: the deploy workflow first creates and atomically
 activates `/var/www/veele/website-stack-staging/current`, then starts both
-services. Do not reload Caddy during bootstrap; the workflow reloads it only
-after both local process-health checks pass, using the Caddy service's protected
-DNS-provider environment. Every later deployment compares all three root-owned
-assets byte for byte with the exact staging checkout and fails closed on drift.
-It never uses `sudo install`, `sudo cp`, `sudo tee` or generic privileged file
-mutation. The separate root-owned sudoers drop-in grants only the exact
-two-unit restart/stop commands needed for activation and rollback, plus
-`systemctl reload caddy`. The workflow verifies those grants without executing
-them before it builds a release.
+services. The operator must provision a root-managed Node 24 executable at
+`/usr/bin/node`; an nvm- or toolcache-only installation is insufficient. The
+bootstrap and every deployment verify that the PATH-resolved build Node and
+the systemd service Node resolve to the same executable and satisfy the
+repository engine before any release is built or activated. Do not reload
+Caddy during bootstrap; the workflow reloads it only after both local
+process-health checks pass, using the Caddy service's protected DNS-provider
+environment. Every later deployment compares all three root-owned assets byte
+for byte with the exact staging checkout and fails closed on drift. It never
+uses `sudo install`, `sudo cp`, `sudo tee` or generic privileged file mutation.
+The separate root-owned sudoers drop-in grants only the exact two-unit
+restart/stop commands needed for activation and rollback, plus `systemctl
+reload caddy`. The workflow verifies those grants without executing them before
+it builds a release.
 
 Configure and validate Caddy so that:
 

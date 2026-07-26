@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { validateServiceNodePreflight } from "../../scripts/fieldgrid-service-node-preflight.mjs";
 import {
   hasEffectiveExactRootNopasswdCommand,
   hasExactRootNopasswdCommand,
@@ -26,6 +35,19 @@ test("website stack workflow is manual, exact-ref and staging-only", () => {
   assert.doesNotMatch(workflow, /\bgh\s+api\b/u);
   assert.match(workflow, /test "\$remote" = "\$expected"/u);
   assert.doesNotMatch(workflow, /\bpush:|git push|heads\/production/u);
+});
+
+test("website stack bootstrap pins and validates the service Node", () => {
+  const activation = read("docs/website-module-enterprise-activation.md");
+
+  assert.match(activation, /service_node="\/usr\/bin\/node"/u);
+  assert.match(
+    activation,
+    /readlink -f "\$\(command -v node\)"[\s\S]*readlink -f "\$service_node"/u,
+  );
+  assert.match(activation, /Fieldgrid requires Node >=24\.0\.0 <25/u);
+  assert.match(activation, /root-managed Node 24 executable/u);
+  assert.match(activation, /before any release is built or activated/u);
 });
 
 test("website stack services are separate, local-only and hardened", () => {
@@ -137,6 +159,17 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /COREPACK_HOME_PATH="\$BASE_DIR\/shared\/corepack"/u);
   assert.match(script, /export COREPACK_HOME="\$COREPACK_HOME_PATH"/u);
   assert.match(script, /corepack install --global pnpm@11\.5\.2/u);
+  assert.match(script, /SERVICE_NODE_PATH="\/usr\/bin\/node"/u);
+  assert.match(script, /BUILD_NODE_PATH="\$\(command -v node \|\| true\)"/u);
+  assert.match(
+    script,
+    /"\$SERVICE_NODE_PATH" "\$SERVICE_NODE_PREFLIGHT" \\\n  --service-node "\$SERVICE_NODE_PATH" \\\n  --build-node "\$BUILD_NODE_PATH" \\\n  --package-json "\$REPO_ROOT\/package\.json"/u,
+  );
+  assert.ok(
+    script.indexOf('"$SERVICE_NODE_PATH" "$SERVICE_NODE_PREFLIGHT"') <
+      script.indexOf('RELEASE="$BASE_DIR/releases/'),
+    "service Node preflight must finish before release creation or activation",
+  );
   assert.match(
     script,
     /\$RELEASE\/artifacts\/website-runtime\/node_modules\/next\/dist\/bin\/next/u,
@@ -169,7 +202,7 @@ test("deploy script isolates secrets and has explicit rollback", () => {
     /effective_listing="\$\(LC_ALL=C sudo -n -ll "\$@" 2>\/dev\/null\)"/u,
   );
   assert.match(script, /printf '\\0'/u);
-  assert.match(script, /node "\$SUDO_POLICY_CHECKER" "\$@"/u);
+  assert.match(script, /"\$SERVICE_NODE_PATH" "\$SUDO_POLICY_CHECKER" "\$@"/u);
   assert.match(
     script,
     /require_nopasswd_control "exact website restart" \\\n  \/usr\/bin\/systemctl restart \\\n  veele-staging-website veele-staging-marketing/u,
@@ -191,6 +224,114 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.match(script, /productionChanged": false/u);
   assert.doesNotMatch(script, /\/var\/www\/veele\/production/u);
+});
+
+test("service Node preflight accepts the exact executable and Node 24", (t) => {
+  const fixture = mkdtempSync(join(tmpdir(), "fieldgrid-service-node-"));
+  t.after(() => rmSync(fixture, { force: true, recursive: true }));
+  const nodePath = join(fixture, "node");
+  const packageJsonPath = join(fixture, "package.json");
+  writeFileSync(nodePath, "#!/bin/sh\nexit 0\n");
+  chmodSync(nodePath, 0o755);
+  writeFileSync(
+    packageJsonPath,
+    JSON.stringify({ engines: { node: ">=24.0.0 <25" } }),
+  );
+
+  assert.deepEqual(
+    validateServiceNodePreflight({
+      buildNodePath: nodePath,
+      packageJsonPath,
+      runtimeExecPath: nodePath,
+      runtimeVersion: "24.18.0",
+      serviceNodePath: nodePath,
+    }),
+    {
+      nodeEngine: ">=24.0.0 <25",
+      nodePath,
+      nodeVersion: "24.18.0",
+    },
+  );
+});
+
+test("service Node preflight fails closed for missing or different binaries", (t) => {
+  const fixture = mkdtempSync(join(tmpdir(), "fieldgrid-service-node-"));
+  t.after(() => rmSync(fixture, { force: true, recursive: true }));
+  const serviceNodePath = join(fixture, "service-node");
+  const differentBuildNodePath = join(fixture, "build-node");
+  const packageJsonPath = join(fixture, "package.json");
+  for (const path of [serviceNodePath, differentBuildNodePath]) {
+    writeFileSync(path, "#!/bin/sh\nexit 0\n");
+    chmodSync(path, 0o755);
+  }
+  writeFileSync(
+    packageJsonPath,
+    JSON.stringify({ engines: { node: ">=24.0.0 <25" } }),
+  );
+
+  assert.throws(
+    () =>
+      validateServiceNodePreflight({
+        buildNodePath: serviceNodePath,
+        packageJsonPath,
+        runtimeExecPath: serviceNodePath,
+        runtimeVersion: "24.18.0",
+        serviceNodePath: join(fixture, "missing-node"),
+      }),
+    /service Node is missing or not executable/u,
+  );
+  assert.throws(
+    () =>
+      validateServiceNodePreflight({
+        buildNodePath: differentBuildNodePath,
+        packageJsonPath,
+        runtimeExecPath: serviceNodePath,
+        runtimeVersion: "24.18.0",
+        serviceNodePath,
+      }),
+    /build Node .* differs from service Node/u,
+  );
+});
+
+test("service Node preflight rejects unsupported versions and engine drift", (t) => {
+  const fixture = mkdtempSync(join(tmpdir(), "fieldgrid-service-node-"));
+  t.after(() => rmSync(fixture, { force: true, recursive: true }));
+  const nodePath = join(fixture, "node");
+  const packageJsonPath = join(fixture, "package.json");
+  writeFileSync(nodePath, "#!/bin/sh\nexit 0\n");
+  chmodSync(nodePath, 0o755);
+  writeFileSync(
+    packageJsonPath,
+    JSON.stringify({ engines: { node: ">=24.0.0 <25" } }),
+  );
+
+  assert.throws(
+    () =>
+      validateServiceNodePreflight({
+        buildNodePath: nodePath,
+        packageJsonPath,
+        runtimeExecPath: nodePath,
+        runtimeVersion: "23.11.1",
+        serviceNodePath: nodePath,
+      }),
+    /service Node must satisfy >=24\.0\.0 <25/u,
+  );
+
+  writeFileSync(
+    packageJsonPath,
+    JSON.stringify({ engines: { node: ">=23.0.0 <25" } }),
+  );
+  assert.throws(
+    () =>
+      validateServiceNodePreflight({
+        buildNodePath: nodePath,
+        packageJsonPath,
+        runtimeExecPath: nodePath,
+        runtimeVersion: "24.18.0",
+        serviceNodePath: nodePath,
+      }),
+    /repository Node engine must remain >=24\.0\.0 <25/u,
+  );
 });
 
 test("sudo capability parser requires exact root NOPASSWD controls", () => {

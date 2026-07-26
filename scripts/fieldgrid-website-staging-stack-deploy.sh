@@ -10,6 +10,8 @@ WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
 SUDO_POLICY_CHECKER="$SCRIPT_DIR/fieldgrid-sudo-nopasswd-policy.mjs"
+SERVICE_NODE_PREFLIGHT="$SCRIPT_DIR/fieldgrid-service-node-preflight.mjs"
+SERVICE_NODE_PATH="/usr/bin/node"
 
 MODE=""
 SOURCE_DIR=""
@@ -51,7 +53,8 @@ check_contract() {
     "$MARKETING_UNIT_SOURCE" \
     "$CADDY_SOURCE" \
     "$SUDOERS_SOURCE" \
-    "$SUDO_POLICY_CHECKER"; do
+    "$SUDO_POLICY_CHECKER" \
+    "$SERVICE_NODE_PREFLIGHT"; do
     [ -f "$file" ] || fail "required deployment asset is missing: $file"
     if grep -Eiq 'production|eedbf033ec08a12411760acf8ea7f5d5acf8cc20' "$file"; then
       fail "staging deployment asset contains a production marker"
@@ -112,6 +115,17 @@ if [ "$MODE" = "check" ]; then
 fi
 [ "$MODE" = "run" ] || fail "use --check or --run"
 
+BUILD_NODE_PATH="$(command -v node || true)"
+[ -n "$BUILD_NODE_PATH" ] ||
+  fail "root bootstrap is required: build Node is unavailable"
+[ -x "$SERVICE_NODE_PATH" ] ||
+  fail "root bootstrap is required: $SERVICE_NODE_PATH is unavailable"
+"$SERVICE_NODE_PATH" "$SERVICE_NODE_PREFLIGHT" \
+  --service-node "$SERVICE_NODE_PATH" \
+  --build-node "$BUILD_NODE_PATH" \
+  --package-json "$REPO_ROOT/package.json" ||
+  fail "root bootstrap is required: service Node preflight failed"
+
 required_value() {
   local name="$1"
   [ -n "${!name:-}" ] || fail "$name is required"
@@ -146,7 +160,7 @@ fi
 [ "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_SHA" ] ||
   fail "source checkout differs from exact staging"
 
-node - "$EXPECTED_SHA" <<'NODE'
+"$SERVICE_NODE_PATH" - "$EXPECTED_SHA" <<'NODE'
 const expectedSha = process.argv[2];
 const exact = (name, expected, path) => {
   const url = new URL(process.env[name]);
@@ -237,7 +251,7 @@ require_nopasswd_control() {
     printf '\0'
     printf '%s' "$effective_listing"
   } |
-    node "$SUDO_POLICY_CHECKER" "$@" ||
+    "$SERVICE_NODE_PATH" "$SUDO_POLICY_CHECKER" "$@" ||
     fail "root bootstrap is required: $description must be exact root NOPASSWD"
 }
 
