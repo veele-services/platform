@@ -20,6 +20,7 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/var/www/veele/website-stack-staging
+ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 [Install]

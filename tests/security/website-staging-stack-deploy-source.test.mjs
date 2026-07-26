@@ -43,6 +43,10 @@ test("website stack services are separate, local-only and hardened", () => {
     assert.match(unit, /NoNewPrivileges=true/u);
     assert.match(unit, /ProtectSystem=strict/u);
     assert.match(unit, /ProtectHome=true/u);
+    assert.match(
+      unit,
+      /ReadOnlyPaths=\/var\/www\/veele\/website-stack-staging\/shared\/corepack/u,
+    );
   }
 });
 
@@ -97,7 +101,7 @@ test("Caddy keeps application prefixes ahead of the website fallback", () => {
 test("deploy script isolates secrets and has explicit rollback", () => {
   const script = read("scripts/fieldgrid-website-staging-stack-deploy.sh");
   const websiteEnvironment = script.slice(
-    script.indexOf("printf 'DATABASE_URL=%s"),
+    script.indexOf("printf 'APP_ENV=staging"),
     script.indexOf('} > "$BASE_DIR/shared/website.env"'),
   );
   const marketingEnvironment = script.slice(
@@ -106,7 +110,15 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
 
   assert.match(websiteEnvironment, /DATABASE_URL/u);
+  assert.match(websiteEnvironment, /COREPACK_HOME/u);
+  assert.match(websiteEnvironment, /COREPACK_DEFAULT_TO_LATEST/u);
   assert.doesNotMatch(marketingEnvironment, /DATABASE_URL/u);
+  assert.match(marketingEnvironment, /COREPACK_HOME/u);
+  assert.match(marketingEnvironment, /COREPACK_DEFAULT_TO_LATEST/u);
+  assert.match(script, /COREPACK_HOME_PATH="\$BASE_DIR\/shared\/corepack"/u);
+  assert.match(script, /export COREPACK_HOME="\$COREPACK_HOME_PATH"/u);
+  assert.match(script, /corepack install --global pnpm@11\.5\.2/u);
+  assert.doesNotMatch(script, /\/home\/github-runner\/.*corepack/u);
   assert.match(
     script,
     /FIELDGRID_CUSTOM_RELEASE_ID.*git-commit:\$EXPECTED_SHA/u,
