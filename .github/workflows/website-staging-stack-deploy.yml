@@ -20,6 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  diagnose-sudo-version:
+    name: Diagnose website runner sudo version
+    if: >-
+      github.ref_name == 'codex/website-staging-sudo-version-diagnostic' &&
+      inputs.confirmation == 'website-staging-stack-only'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - name: Print sudo version
+        run: sudo --version | head -n 1
+
   deploy:
     name: Deploy website runtimes and exact staging routes
     if: >-
