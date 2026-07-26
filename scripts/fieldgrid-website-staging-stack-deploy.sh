@@ -9,7 +9,6 @@ CADDY_SOURCE="$REPO_ROOT/ops/caddy/fieldgrid-website-staging.caddy"
 WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
-SUDOERS_TARGET="/etc/sudoers.d/veele-staging-website-stack"
 
 MODE=""
 SOURCE_DIR=""
@@ -200,10 +199,8 @@ require_preprovisioned_asset \
 require_preprovisioned_asset "$CADDY_SOURCE" "$CADDY_SNIPPET"
 grep -Fxq "$IMPORT_LINE" "$CADDYFILE" ||
   fail "root bootstrap is required: Caddy import is missing"
-[ -f "$SUDOERS_TARGET" ] ||
-  fail "root bootstrap is required: missing $SUDOERS_TARGET"
-[ "$(stat -c '%u:%g:%a' "$SUDOERS_TARGET")" = "0:0:440" ] ||
-  fail "root bootstrap is required: $SUDOERS_TARGET must be root:root mode 0440"
+# The runner must not need direct read or traversal access to /etc/sudoers.d.
+# Validate the effective, exact capabilities exposed by the root-owned policy.
 sudo -n -l \
   /usr/bin/systemctl restart \
   veele-staging-website veele-staging-marketing >/dev/null ||

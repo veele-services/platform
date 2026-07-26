@@ -110,9 +110,24 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /trap rollback ERR/u);
   assert.match(script, /release-restored/u);
   assert.match(script, /require_preprovisioned_asset/u);
-  assert.match(script, /SUDOERS_TARGET/u);
-  assert.match(script, /stat -c '%u:%g:%a'/u);
-  assert.match(script, /sudo -n -l/u);
+  assert.doesNotMatch(script, /SUDOERS_TARGET/u);
+  assert.doesNotMatch(
+    script,
+    /(?:\[ -[ef] |stat -c|cmp -s).*\/etc\/sudoers\.d/u,
+  );
+  assert.doesNotMatch(script, /stat -c '%u:%g:%a'/u);
+  assert.match(
+    script,
+    /sudo -n -l \\\n  \/usr\/bin\/systemctl restart \\\n  veele-staging-website veele-staging-marketing >\/dev\/null/u,
+  );
+  assert.match(
+    script,
+    /sudo -n -l \\\n  \/usr\/bin\/systemctl stop \\\n  veele-staging-website veele-staging-marketing >\/dev\/null/u,
+  );
+  assert.match(
+    script,
+    /sudo -n -l \/usr\/bin\/systemctl reload caddy >\/dev\/null/u,
+  );
   assert.match(script, /systemctl is-enabled --quiet/u);
   assert.match(script, /caddy adapt --config "\$CADDYFILE"/u);
   assert.match(script, /sudo systemctl reload caddy/u);
