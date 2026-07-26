@@ -61,9 +61,13 @@ check_contract() {
   require_file_contains "$WEBSITE_UNIT_SOURCE" "Environment=PORT=3305"
   require_file_contains "$WEBSITE_UNIT_SOURCE" "@workspace/website-runtime"
   require_file_contains "$WEBSITE_UNIT_SOURCE" "NoNewPrivileges=true"
+  require_file_contains "$WEBSITE_UNIT_SOURCE" \
+    "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
   require_file_contains "$MARKETING_UNIT_SOURCE" "Environment=PORT=3306"
   require_file_contains "$MARKETING_UNIT_SOURCE" "@workspace/marketing-website"
   require_file_contains "$MARKETING_UNIT_SOURCE" "NoNewPrivileges=true"
+  require_file_contains "$MARKETING_UNIT_SOURCE" \
+    "ReadOnlyPaths=/var/www/veele/website-stack-staging/shared/corepack"
 
   for host in \
     "website-runtime.staging.fieldgrid.nl" \

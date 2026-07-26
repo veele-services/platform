@@ -43,6 +43,10 @@ test("website stack services are separate, local-only and hardened", () => {
     assert.match(unit, /NoNewPrivileges=true/u);
     assert.match(unit, /ProtectSystem=strict/u);
     assert.match(unit, /ProtectHome=true/u);
+    assert.match(
+      unit,
+      /ReadOnlyPaths=\/var\/www\/veele\/website-stack-staging\/shared\/corepack/u,
+    );
   }
 });
 
