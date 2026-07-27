@@ -6,7 +6,7 @@ import { PlatformShell } from "@/components/platform/PlatformShell";
 import { getCurrentPlatformUser } from "@/lib/auth/platform";
 import { createClient } from "@/lib/supabase/server";
 import type { ReleaseHighlightSummary } from "@workspace/db";
-import { backofficePath } from "@/lib/backoffice-paths";
+import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 
 function NoPlatformAccess() {
   return (
@@ -71,7 +71,11 @@ export default async function PlatformLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`${backofficePath("/login")}?next=${encodeURIComponent(backofficePath("/platform"))}`);
+    redirect(
+      `${backofficeRedirectPath("/login")}?next=${encodeURIComponent(
+        backofficeRedirectPath("/platform"),
+      )}`,
+    );
   }
 
   const platformUser = await getCurrentPlatformUser();

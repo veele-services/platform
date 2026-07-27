@@ -66,7 +66,7 @@ import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
-import { backofficePath } from "@/lib/backoffice-paths";
+import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = [
@@ -2528,7 +2528,9 @@ export async function addPlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
+  redirect(
+    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
+  );
 }
 
 export async function updatePlatformTenantAdmin(
@@ -2607,7 +2609,9 @@ export async function updatePlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
+  redirect(
+    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
+  );
 }
 
 export async function deletePlatformTenantAdmin(
@@ -2668,7 +2672,9 @@ export async function deletePlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
+  redirect(
+    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
+  );
 }
 
 export async function sendPlatformTenantAdminPasswordReset(
@@ -2762,7 +2768,9 @@ export async function sendPlatformTenantAdminPasswordReset(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
+  redirect(
+    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
+  );
 }
 
 export async function updatePlatformTenantOwnerInvite(
@@ -2918,7 +2926,9 @@ export async function updatePlatformTenantOwnerInvite(
 
   revalidatePlatformTenant(tenantId);
   revalidatePath("/platform/onboarding");
-  redirect(backofficePath(`/platform/tenants/${tenantId}?tab=users`));
+  redirect(
+    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
+  );
 }
 
 export async function listPlatformTenantRegions(
@@ -3227,7 +3237,7 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   });
 
   revalidatePlatformTenant(created.id);
-  redirect(backofficePath(`/platform/tenants/${created.id}`));
+  redirect(backofficeRedirectPath(`/platform/tenants/${created.id}`));
 }
 
 export async function updatePlatformTenantLifecycle(

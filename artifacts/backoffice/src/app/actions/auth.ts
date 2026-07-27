@@ -44,7 +44,10 @@ import {
   type CredentialRecoverySurface,
 } from "@workspace/db";
 import type { ActionResult } from "./customers";
-import { BACKOFFICE_BASE_PATH, backofficePath } from "@/lib/backoffice-paths";
+import {
+  BACKOFFICE_BASE_PATH,
+  backofficeRedirectPath,
+} from "@/lib/backoffice-paths";
 
 export type AuthFormState = {
   error: string | null;
@@ -175,7 +178,7 @@ function parseRecoveryGrant(value: string | undefined): {
 }
 
 function redirectPathFromFormValue(value: FormDataEntryValue | null): string {
-  if (typeof value !== "string") return BACKOFFICE_BASE_PATH;
+  if (typeof value !== "string") return backofficeRedirectPath();
 
   const next = value.trim();
   if (
@@ -184,10 +187,10 @@ function redirectPathFromFormValue(value: FormDataEntryValue | null): string {
     next.startsWith("//") ||
     next.includes("\\")
   ) {
-    return BACKOFFICE_BASE_PATH;
+    return backofficeRedirectPath();
   }
 
-  return backofficePath(next);
+  return backofficeRedirectPath(next);
 }
 
 /**
@@ -294,7 +297,7 @@ export async function signOut(): Promise<void> {
   }
 
   await supabase.auth.signOut();
-  redirect(backofficePath("/login"));
+  redirect(backofficeRedirectPath("/login"));
 }
 
 export async function completePasswordReset(

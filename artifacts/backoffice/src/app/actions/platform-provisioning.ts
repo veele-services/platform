@@ -26,7 +26,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
-import { backofficePath } from "@/lib/backoffice-paths";
+import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_SECTOR_POLICY_MODES = ["single", "multi"] as const;
@@ -850,7 +850,9 @@ export async function savePlatformOnboardingDraft(formData: FormData): Promise<v
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");
-  redirect(backofficePath(`/platform/onboarding?onboardingDraft=${runId}`));
+  redirect(
+    backofficeRedirectPath(`/platform/onboarding?onboardingDraft=${runId}`),
+  );
 }
 
 export async function retryPlatformTenantProvisioning(formData: FormData): Promise<void> {
@@ -867,13 +869,13 @@ export async function retryPlatformTenantProvisioning(formData: FormData): Promi
   } catch {
     revalidatePath("/platform");
     revalidatePath("/platform/onboarding");
-    redirect(backofficePath("/platform/onboarding#provisioning-runs"));
+    redirect(backofficeRedirectPath("/platform/onboarding#provisioning-runs"));
   }
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");
   revalidatePath(`/platform/tenants/${result.tenantId}`);
-  redirect(backofficePath(`/platform/tenants/${result.tenantId}`));
+  redirect(backofficeRedirectPath(`/platform/tenants/${result.tenantId}`));
 }
 
 export async function createPlatformTenant(formData: FormData): Promise<void> {
@@ -886,13 +888,13 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   } catch {
     revalidatePath("/platform");
     revalidatePath("/platform/onboarding");
-    redirect(backofficePath("/platform/onboarding#provisioning-runs"));
+    redirect(backofficeRedirectPath("/platform/onboarding#provisioning-runs"));
   }
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");
   revalidatePath(`/platform/tenants/${result.tenantId}`);
-  redirect(backofficePath(`/platform/tenants/${result.tenantId}`));
+  redirect(backofficeRedirectPath(`/platform/tenants/${result.tenantId}`));
 }
 
 export async function rollbackPlatformTenantProvisioning(formData: FormData): Promise<void> {
@@ -930,7 +932,7 @@ export async function rollbackPlatformTenantProvisioning(formData: FormData): Pr
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");
-  redirect(backofficePath("/platform/onboarding#provisioning-runs"));
+  redirect(backofficeRedirectPath("/platform/onboarding#provisioning-runs"));
 }
 
 export async function getPlatformOnboardingWorkspace(onboardingDraft?: string): Promise<PlatformOnboardingWorkspace> {
