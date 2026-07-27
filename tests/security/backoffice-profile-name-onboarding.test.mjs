@@ -48,8 +48,8 @@ test("incomplete invited profiles are fail-closed until onboarding is completed"
   assert.match(middleware, /requiresBackofficeProfileName\(user\) && !isProfileSetupPage/u);
   assert.match(middleware, /proxyAwareUrl\(backofficePath\("\/profiel-instellen"\), request\)/u);
   assert.match(permissions, /if \(requiresBackofficeProfileName\(user\)\) return new Set\(\)/u);
-  assert.match(layout, /if \(requiresBackofficeProfileName\(user\)\) \{\s*redirect\(backofficePath\("\/profiel-instellen"\)\)/u);
-  assert.match(onboarding, /if \(!requiresBackofficeProfileName\(user\)\) redirect\(BACKOFFICE_BASE_PATH\)/u);
+  assert.match(layout, /if \(requiresBackofficeProfileName\(user\)\) \{\s*redirect\(backofficeRedirectPath\("\/profiel-instellen"\)\)/u);
+  assert.match(onboarding, /if \(!requiresBackofficeProfileName\(user\)\) redirect\(backofficeRedirectPath\(\)\)/u);
   assert.match(onboarding, /BackofficeNameForm[^>]+onboarding/u);
 });
 
