@@ -7,7 +7,7 @@ import {
   getBackofficeProfileName,
   requiresBackofficeProfileName,
 } from "@/lib/auth/backoffice-profile";
-import { BACKOFFICE_BASE_PATH, backofficePath } from "@/lib/backoffice-paths";
+import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Profiel afronden" };
@@ -20,9 +20,11 @@ export default async function BackofficeProfileOnboardingPage() {
 
   if (!user)
     redirect(
-      `${backofficePath("/login")}?next=${encodeURIComponent(backofficePath("/profiel-instellen"))}`,
+      `${backofficeRedirectPath("/login")}?next=${encodeURIComponent(
+        backofficeRedirectPath("/profiel-instellen"),
+      )}`,
     );
-  if (!requiresBackofficeProfileName(user)) redirect(BACKOFFICE_BASE_PATH);
+  if (!requiresBackofficeProfileName(user)) redirect(backofficeRedirectPath());
 
   return (
     <main className="w-full max-w-md rounded-[var(--radius-panel)] border border-border bg-card p-5 shadow-lg sm:p-8">

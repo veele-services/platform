@@ -28,6 +28,29 @@ export function backofficePath(path = "/"): string {
   return `${BACKOFFICE_BASE_PATH}${normalized}`;
 }
 
+/**
+ * Normalize a destination for Next.js navigation APIs such as redirect().
+ * Next applies next.config.ts basePath itself, so passing /admin here would
+ * produce /admin/admin in the browser.
+ */
+export function backofficeRedirectPath(path = "/"): string {
+  if (isAbsoluteUrl(path)) {
+    throw new Error("backofficeRedirectPath only accepts same-origin paths.");
+  }
+
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === BACKOFFICE_BASE_PATH) return "/";
+  if (
+    normalized.startsWith(`${BACKOFFICE_BASE_PATH}/`) ||
+    normalized.startsWith(`${BACKOFFICE_BASE_PATH}?`) ||
+    normalized.startsWith(`${BACKOFFICE_BASE_PATH}#`)
+  ) {
+    const unprefixed = normalized.slice(BACKOFFICE_BASE_PATH.length);
+    return unprefixed.startsWith("/") ? unprefixed : `/${unprefixed}`;
+  }
+  return normalized;
+}
+
 export function stripBackofficeBasePath(pathname: string): string {
   if (pathname === BACKOFFICE_BASE_PATH) return "/";
   if (pathname.startsWith(`${BACKOFFICE_BASE_PATH}/`)) {

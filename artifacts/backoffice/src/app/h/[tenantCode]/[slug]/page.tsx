@@ -5,7 +5,10 @@ import { getShortcodeKnowledgebaseArticle } from "@/app/actions/knowledgebase-he
 import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
 import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Button } from "@/components/ui/button";
-import { backofficePath } from "@/lib/backoffice-paths";
+import {
+  backofficePath,
+  backofficeRedirectPath,
+} from "@/lib/backoffice-paths";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +64,11 @@ export default async function KnowledgebaseShortcodeArticlePage({ params }: Prop
   const result = await getShortcodeKnowledgebaseArticle(tenantCode, slug);
 
   if (result.status === "login_required") {
-    redirect(`${backofficePath("/login")}?next=${encodeURIComponent(backofficePath(result.nextPath))}`);
+    redirect(
+      `${backofficeRedirectPath("/login")}?next=${encodeURIComponent(
+        backofficeRedirectPath(result.nextPath),
+      )}`,
+    );
   }
 
   if (result.status === "tenant_not_found") {

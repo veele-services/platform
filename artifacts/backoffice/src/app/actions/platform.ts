@@ -39,7 +39,10 @@ import {
 } from "@/lib/auth/platform";
 import { withHostOnlyCookieOptions } from "@/lib/supabase/session-cookies";
 import type { ActionResult } from "./customers";
-import { BACKOFFICE_BASE_PATH } from "@/lib/backoffice-paths";
+import {
+  BACKOFFICE_BASE_PATH,
+  backofficeRedirectPath,
+} from "@/lib/backoffice-paths";
 
 export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
@@ -1007,7 +1010,7 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
     },
   });
 
-  redirect(BACKOFFICE_BASE_PATH);
+  redirect(backofficeRedirectPath());
 }
 
 export async function exitSupportMode(): Promise<void> {
