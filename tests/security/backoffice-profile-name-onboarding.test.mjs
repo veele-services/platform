@@ -14,11 +14,11 @@ test("backoffice invitations no longer treat an email address as a completed nam
   assert.match(profile, /BACKOFFICE_PROFILE_NAME_REQUIRED/u);
   assert.match(profile, /name\.includes\("@"\)/u);
   assert.match(profile, /identity\.app_metadata\?\.\["portal"\] === "tenant-admin"/u);
-  assert.match(invites, /validateBackofficeProfileName\(opts\.fullName, email\)/u);
-  assert.match(invites, /userMetadata = profileName \? \{ full_name: profileName, name: profileName \} : \{\}/u);
+  assert.match(invites, /validateBackofficeProfileName\(\s*opts\.fullName,\s*email,\s*\)/u);
+  assert.match(invites, /userMetadata = profileName\s*\?\s*\{\s*full_name: profileName,\s*name: profileName\s*\}\s*:\s*\{\}/u);
   assert.match(invites, /opts\.portal === "tenant-admin" && !profileName/u);
   assert.match(tenantRoles, /fullName: ""/u);
-  assert.match(tenantRoles, /credential_activation_pending === true \|\| !authUser\.confirmed_at/u);
+  assert.match(tenantRoles, /credential_activation_pending === true\s*\|\|\s*!authUser\.confirmed_at/u);
 });
 
 test("account activation requires and stores a valid name before consuming the recovery grant", () => {
