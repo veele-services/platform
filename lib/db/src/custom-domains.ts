@@ -11,6 +11,7 @@ import {
   isTenantRuntimeActive,
   normalizeHost,
 } from "./tenant-context";
+import { isFieldgridHostAllowedForRuntimeEnvironment } from "./tenant-environment";
 
 export const ROUTABLE_TENANT_DOMAIN_STATUSES = ["verified", "active"] as const;
 export const CUSTOM_DOMAIN_TYPE = "custom_domain";
@@ -42,7 +43,13 @@ export async function canTenantUseCustomDomains(tenantId: string): Promise<boole
 
 export async function isCustomDomainAllowedForCaddy(host: string): Promise<boolean> {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost || isPlatformHost(normalizedHost)) return false;
+  if (
+    !normalizedHost ||
+    !isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost) ||
+    isPlatformHost(normalizedHost)
+  ) {
+    return false;
+  }
 
   const [row] = await db
     .select({

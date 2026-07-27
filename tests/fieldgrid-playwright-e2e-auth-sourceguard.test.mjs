@@ -135,8 +135,32 @@ test("runner starts real Fieldgrid apps and does not serve mock application HTML
   );
   assert.doesNotMatch(source, /fixture\s*:/);
   assert.doesNotMatch(source, /listen\(ports\.postgrest/);
+  assert.match(source, /delete appBaseEnvironment\.APP_ENV/);
   assert.match(source, /delete appBaseEnvironment\.SUPABASE_SERVICE_ROLE_KEY/);
 });
+
+test("disposable apps cannot inherit a deployment database environment", () => {
+  const source = start();
+  const environmentCopy = source.indexOf(
+    "const appBaseEnvironment = { ...process.env };",
+  );
+  const environmentRemoval = source.indexOf(
+    "delete appBaseEnvironment.APP_ENV;",
+  );
+  const appEnvStart = source.indexOf("function appEnv(port)");
+  const appEnvEnd = source.indexOf("\n}\n\nfunction spawnLogged", appEnvStart);
+  assert.ok(
+    environmentCopy >= 0 &&
+      environmentRemoval > environmentCopy &&
+      appEnvStart > environmentRemoval &&
+      appEnvEnd > appEnvStart,
+  );
+
+  const appEnvSource = source.slice(appEnvStart, appEnvEnd);
+  assert.doesNotMatch(appEnvSource, /\.\.\.process\.env/u);
+  assert.doesNotMatch(appEnvSource, /\bAPP_ENV\s*:/u);
+});
+
 test("browser scenarios use real runtime hostnames instead of forbidden Host header spoofing", () => {
   const spec = browserSpec();
   const config = playwrightConfig();
@@ -144,7 +168,12 @@ test("browser scenarios use real runtime hostnames instead of forbidden Host hea
     config,
     /--host-resolver-rules=MAP tenant-a\.runtime\.fieldgrid\.test 127\.0\.0\.1/,
   );
-  assert.match(config, /MAP platform\.fieldgrid\.nl 127\.0\.0\.1/);
+  assert.match(config, /MAP platform\.runtime\.fieldgrid\.test 127\.0\.0\.1/);
+  assert.match(spec, /platformHost = "platform\.runtime\.fieldgrid\.test"/u);
+  assert.match(
+    start(),
+    /PLATFORM_HOSTS: "platform\.runtime\.fieldgrid\.test"/u,
+  );
   assert.match(spec, /http:\/\/\$\{host\}:9321/);
   assert.match(spec, /domain: host/);
   assert.doesNotMatch(spec, /setExtraHTTPHeaders\(\{[\s\S]*host/);

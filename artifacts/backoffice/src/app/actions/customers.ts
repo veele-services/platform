@@ -18,9 +18,20 @@ import {
   updateCustomerSchema,
   personnelTable,
   tenantsTable,
-  tenantDomainsTable,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt, isNull } from "drizzle-orm";
+import {
+  eq,
+  ilike,
+  or,
+  and,
+  asc,
+  desc,
+  inArray,
+  sql,
+  gte,
+  lt,
+  isNull,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -45,6 +56,7 @@ import {
   hasGeocodableAddress,
   type GeocodeAddressInput,
 } from "@/lib/planning/geocoding";
+import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -262,7 +274,9 @@ function coordinateString(value: number): string {
 }
 
 function googlePlaceGeocodingPatch(
-  input: GeocodeAddressInput & { googlePlace?: CustomerFormInput["googlePlace"] },
+  input: GeocodeAddressInput & {
+    googlePlace?: CustomerFormInput["googlePlace"];
+  },
 ) {
   if (!input.googlePlace?.googlePlaceId) return null;
   return {
@@ -275,12 +289,27 @@ function googlePlaceGeocodingPatch(
     locationSource: "google_places",
     locationVerifiedAt: new Date(),
     locationUpdatedAt: new Date(),
-    latitude: input.googlePlace.latitude != null ? coordinateString(input.googlePlace.latitude) : null,
-    longitude: input.googlePlace.longitude != null ? coordinateString(input.googlePlace.longitude) : null,
-    geocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+    latitude:
+      input.googlePlace.latitude != null
+        ? coordinateString(input.googlePlace.latitude)
+        : null,
+    longitude:
+      input.googlePlace.longitude != null
+        ? coordinateString(input.googlePlace.longitude)
+        : null,
+    geocodedAt:
+      input.googlePlace.latitude != null && input.googlePlace.longitude != null
+        ? new Date()
+        : null,
     geocodingProvider: "google_places",
-    geocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
-    geocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+    geocodingStatus:
+      input.googlePlace.latitude != null && input.googlePlace.longitude != null
+        ? "geocoded"
+        : "not_required",
+    geocodingConfidence:
+      input.googlePlace.latitude != null && input.googlePlace.longitude != null
+        ? "1.00"
+        : null,
     geocodingError: null,
   };
 }
@@ -291,9 +320,12 @@ function googlePlaceMatchesAddress(
 ): googlePlace is NonNullable<CustomerFormInput["googlePlace"]> {
   if (!googlePlace?.googlePlaceId) return false;
   return (
-    normalizeLocationPart(googlePlace.addressLine1) === normalizeLocationPart(input.address) &&
-    normalizeLocationPart(googlePlace.postalCode) === normalizeLocationPart(input.postalCode) &&
-    normalizeLocationPart(googlePlace.city) === normalizeLocationPart(input.city)
+    normalizeLocationPart(googlePlace.addressLine1) ===
+      normalizeLocationPart(input.address) &&
+    normalizeLocationPart(googlePlace.postalCode) ===
+      normalizeLocationPart(input.postalCode) &&
+    normalizeLocationPart(googlePlace.city) ===
+      normalizeLocationPart(input.city)
   );
 }
 
@@ -302,10 +334,13 @@ function locationChanged(
   next: GeocodeAddressInput,
 ): boolean {
   return (
-    normalizeLocationPart(existing.address) !== normalizeLocationPart(next.address) ||
-    normalizeLocationPart(existing.postalCode) !== normalizeLocationPart(next.postalCode) ||
+    normalizeLocationPart(existing.address) !==
+      normalizeLocationPart(next.address) ||
+    normalizeLocationPart(existing.postalCode) !==
+      normalizeLocationPart(next.postalCode) ||
     normalizeLocationPart(existing.city) !== normalizeLocationPart(next.city) ||
-    normalizeLocationPart(existing.country) !== normalizeLocationPart(next.country)
+    normalizeLocationPart(existing.country) !==
+      normalizeLocationPart(next.country)
   );
 }
 
@@ -322,14 +357,16 @@ function customerCreateError(err: unknown): ActionResult {
     ) {
       return {
         success: false,
-        message: "Er bestaat al een klant met dit e-mailadres binnen deze tenant.",
+        message:
+          "Er bestaat al een klant met dit e-mailadres binnen deze tenant.",
         fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
       };
     }
     if (constraint === "customers_code_unique") {
       return {
         success: false,
-        message: "De klantcode kon niet uniek worden aangemaakt. Probeer opnieuw.",
+        message:
+          "De klantcode kon niet uniek worden aangemaakt. Probeer opnieuw.",
       };
     }
     return {
@@ -342,7 +379,8 @@ function customerCreateError(err: unknown): ActionResult {
   if (code === "23503") {
     return {
       success: false,
-      message: "Een gekozen sector, klanttype of accountmanager bestaat niet meer. Ververs de pagina en probeer opnieuw.",
+      message:
+        "Een gekozen sector, klanttype of accountmanager bestaat niet meer. Ververs de pagina en probeer opnieuw.",
     };
   }
 
@@ -350,11 +388,16 @@ function customerCreateError(err: unknown): ActionResult {
   console.error("[customers] Create customer failed:", err);
   return {
     success: false,
-    message: message ? `Klant aanmaken mislukt: ${message}` : "Klant aanmaken mislukt door een onbekende fout.",
+    message: message
+      ? `Klant aanmaken mislukt: ${message}`
+      : "Klant aanmaken mislukt door een onbekende fout.",
   };
 }
 
-function splitCustomerPortalName(name: string): { firstName: string | null; lastName: string | null } {
+function splitCustomerPortalName(name: string): {
+  firstName: string | null;
+  lastName: string | null;
+} {
   const parts = name.trim().split(/\s+/u).filter(Boolean);
   if (parts.length === 0) return { firstName: null, lastName: null };
   if (parts.length === 1) return { firstName: parts[0]!, lastName: null };
@@ -362,24 +405,7 @@ function splitCustomerPortalName(name: string): { firstName: string | null; last
 }
 
 async function customerPortalLoginUrl(tenantId: string): Promise<string> {
-  const [tenant] = await db
-    .select({ slug: tenantsTable.slug })
-    .from(tenantsTable)
-    .where(eq(tenantsTable.id, tenantId))
-    .limit(1);
-  const [domain] = await db
-    .select({ domain: tenantDomainsTable.domain })
-    .from(tenantDomainsTable)
-    .where(and(
-      eq(tenantDomainsTable.tenantId, tenantId),
-      inArray(tenantDomainsTable.verificationStatus, ["verified", "active"]),
-    ))
-    .orderBy(desc(tenantDomainsTable.isPrimary), asc(tenantDomainsTable.createdAt))
-    .limit(1);
-
-  if (domain?.domain) return `https://${domain.domain}/klant/login`;
-  if (tenant?.slug) return `https://${tenant.slug}.fieldgrid.nl/klant/login`;
-  return `${klantPortalUrl()}/login`;
+  return `${await tenantApplicationOrigin(tenantId)}/klant/login`;
 }
 
 async function upsertCustomerPortalInviteLink(input: {
@@ -398,11 +424,13 @@ async function upsertCustomerPortalInviteLink(input: {
       role: customerUsersTable.role,
     })
     .from(customerUsersTable)
-    .where(and(
-      eq(customerUsersTable.tenantId, input.tenantId),
-      eq(customerUsersTable.customerId, input.customerId),
-      eq(customerUsersTable.email, input.email),
-    ))
+    .where(
+      and(
+        eq(customerUsersTable.tenantId, input.tenantId),
+        eq(customerUsersTable.customerId, input.customerId),
+        eq(customerUsersTable.email, input.email),
+      ),
+    )
     .limit(1);
 
   if (existing) {
@@ -416,10 +444,12 @@ async function upsertCustomerPortalInviteLink(input: {
         status,
         updatedAt: new Date(),
       })
-      .where(and(
-        eq(customerUsersTable.id, existing.id),
-        eq(customerUsersTable.tenantId, input.tenantId),
-      ));
+      .where(
+        and(
+          eq(customerUsersTable.id, existing.id),
+          eq(customerUsersTable.tenantId, input.tenantId),
+        ),
+      );
     return existing.id;
   }
 
@@ -449,22 +479,32 @@ async function upsertCustomerPortalInviteLink(input: {
         status,
         updatedAt: new Date(),
       })
-      .where(and(
-        eq(customerUsersTable.tenantId, input.tenantId),
-        eq(customerUsersTable.customerId, input.customerId),
-        eq(customerUsersTable.email, input.email),
-      ))
+      .where(
+        and(
+          eq(customerUsersTable.tenantId, input.tenantId),
+          eq(customerUsersTable.customerId, input.customerId),
+          eq(customerUsersTable.email, input.email),
+        ),
+      )
       .returning({ id: customerUsersTable.id });
     if (!raced) throw error;
     return raced.id;
   }
 }
 
-async function markCustomerPortalInviteSent(tenantId: string, customerUserId: string): Promise<void> {
+async function markCustomerPortalInviteSent(
+  tenantId: string,
+  customerUserId: string,
+): Promise<void> {
   await db
     .update(customerUsersTable)
     .set({ inviteSentAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(customerUsersTable.id, customerUserId), eq(customerUsersTable.tenantId, tenantId)));
+    .where(
+      and(
+        eq(customerUsersTable.id, customerUserId),
+        eq(customerUsersTable.tenantId, tenantId),
+      ),
+    );
 }
 
 async function sendCustomerPortalInvite(input: {
@@ -480,12 +520,17 @@ async function sendCustomerPortalInvite(input: {
 }> {
   const [customer] = await db
     .select({
-      name:         customersTable.name,
-      contactName:  customersTable.contactName,
+      name: customersTable.name,
+      contactName: customersTable.contactName,
       contactEmail: customersTable.contactEmail,
     })
     .from(customersTable)
-    .where(and(eq(customersTable.id, input.customerId), eq(customersTable.tenantId, input.tenantId)))
+    .where(
+      and(
+        eq(customersTable.id, input.customerId),
+        eq(customersTable.tenantId, input.tenantId),
+      ),
+    )
     .limit(1);
 
   if (!customer) throw new Error("Klant niet gevonden.");
@@ -505,11 +550,9 @@ async function sendCustomerPortalInvite(input: {
   const hasUsableExistingAccount =
     Boolean(existingAuthUser) &&
     existingAuthUser?.app_metadata?.credential_activation_pending !== true &&
-    (
-      Boolean(existingAuthState?.last_sign_in_at) ||
+    (Boolean(existingAuthState?.last_sign_in_at) ||
       Boolean(existingAuthState?.confirmed_at) ||
-      Boolean(existingAuthState?.email_confirmed_at)
-    );
+      Boolean(existingAuthState?.email_confirmed_at));
 
   if (existingAuthUser && hasUsableExistingAccount) {
     const customerUserId = await upsertCustomerPortalInviteLink({
@@ -524,7 +567,8 @@ async function sendCustomerPortalInvite(input: {
     const { subject, html, text } = await buildStyledNotificationEmail({
       tenantId: input.tenantId,
       subject: "Toegang tot het klantportaal toegevoegd",
-      preheader: "Uw bestaande Fieldgrid-account heeft toegang gekregen tot een extra klantportaal.",
+      preheader:
+        "Uw bestaande Fieldgrid-account heeft toegang gekregen tot een extra klantportaal.",
       bodyText: [
         `Beste ${fullName},`,
         "",
@@ -566,7 +610,10 @@ async function sendCustomerPortalInvite(input: {
     portal: "customer",
     tenantId: input.tenantId,
     portalName: "Klantportaal",
-    activationUrl: loginUrl.replace(/\/login(?:\?.*)?$/u, "/wachtwoord-vergeten?doel=activatie"),
+    activationUrl: loginUrl.replace(
+      /\/login(?:\?.*)?$/u,
+      "/wachtwoord-vergeten?doel=activatie",
+    ),
     allowExistingActive: true,
   });
 
@@ -593,12 +640,19 @@ async function sendCustomerPortalInvite(input: {
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
-async function currentTenantCustomer(customerId: string): Promise<{ tenantId: string } | null> {
+async function currentTenantCustomer(
+  customerId: string,
+): Promise<{ tenantId: string } | null> {
   const tenantId = await requireCurrentTenantId();
   const [customer] = await db
     .select({ tenantId: customersTable.tenantId })
     .from(customersTable)
-    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(customersTable.id, customerId),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return customer ? { tenantId } : null;
 }
@@ -653,12 +707,38 @@ export async function listCustomers(params: {
     );
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
-  if (sectorId) conditions.push(eq(customersTable.sectorId, sectorId) as ReturnType<typeof eq>);
-  if (customerTypeId) conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
-  if (city?.trim()) conditions.push(ilike(customersTable.city, `%${city.trim()}%`) as ReturnType<typeof eq>);
-  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
-  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
-  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (sectorId)
+    conditions.push(
+      eq(customersTable.sectorId, sectorId) as ReturnType<typeof eq>,
+    );
+  if (customerTypeId)
+    conditions.push(
+      eq(customersTable.customerTypeId, customerTypeId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (city?.trim())
+    conditions.push(
+      ilike(customersTable.city, `%${city.trim()}%`) as ReturnType<typeof eq>,
+    );
+  if (country?.trim())
+    conditions.push(
+      ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (accountManagerId)
+    conditions.push(
+      eq(customersTable.accountManagerId, accountManagerId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (dateFrom)
+    conditions.push(
+      gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<
+        typeof eq
+      >,
+    );
   if (dateTo) {
     const end = new Date(dateTo);
     end.setDate(end.getDate() + 1);
@@ -667,9 +747,13 @@ export async function listCustomers(params: {
 
   // Status filter: backward compat ('active'/'inactive') + new statuses
   if (status === "active") {
-    conditions.push(eq(customersTable.status, "active") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "active") as ReturnType<typeof eq>,
+    );
   } else if (status === "inactive") {
-    conditions.push(eq(customersTable.status, "inactive") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "inactive") as ReturnType<typeof eq>,
+    );
   } else if (status && status !== "all") {
     conditions.push(eq(customersTable.status, status) as ReturnType<typeof eq>);
   }
@@ -677,36 +761,40 @@ export async function listCustomers(params: {
   const where = conditions.length ? and(...conditions) : undefined;
 
   const sortMap: Record<string, unknown> = {
-    name:      customersTable.name,
-    code:      customersTable.code,
-    city:      customersTable.city,
+    name: customersTable.name,
+    code: customersTable.code,
+    city: customersTable.city,
     createdAt: customersTable.createdAt,
   };
-  const sortCol = (sortMap[sort] ?? customersTable.name) as typeof customersTable.name;
+  const sortCol = (sortMap[sort] ??
+    customersTable.name) as typeof customersTable.name;
   const orderBy = dir === "desc" ? desc(sortCol) : asc(sortCol);
 
   const [rows, countRows] = await Promise.all([
     db
       .select({
-        id:                      customersTable.id,
-        name:                    customersTable.name,
-        code:                    customersTable.code,
-        sectorId:                customersTable.sectorId,
-        sectorName:              sectorsTable.name,
-        city:                    customersTable.city,
-        contactEmail:            customersTable.contactEmail,
-        isActive:                customersTable.isActive,
-        status:                  customersTable.status,
-        customerTypeId:          customersTable.customerTypeId,
-        customerTypeName:        customerTypesTable.name,
-        accountManagerId:        customersTable.accountManagerId,
+        id: customersTable.id,
+        name: customersTable.name,
+        code: customersTable.code,
+        sectorId: customersTable.sectorId,
+        sectorName: sectorsTable.name,
+        city: customersTable.city,
+        contactEmail: customersTable.contactEmail,
+        isActive: customersTable.isActive,
+        status: customersTable.status,
+        customerTypeId: customersTable.customerTypeId,
+        customerTypeName: customerTypesTable.name,
+        accountManagerId: customersTable.accountManagerId,
         accountManagerFirstName: personnelTable.firstName,
-        accountManagerLastName:  personnelTable.lastName,
-        createdAt:               customersTable.createdAt,
+        accountManagerLastName: personnelTable.lastName,
+        createdAt: customersTable.createdAt,
       })
       .from(customersTable)
-      .leftJoin(sectorsTable,      eq(customersTable.sectorId,          sectorsTable.id))
-      .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,   customerTypesTable.id))
+      .leftJoin(sectorsTable, eq(customersTable.sectorId, sectorsTable.id))
+      .leftJoin(
+        customerTypesTable,
+        eq(customersTable.customerTypeId, customerTypesTable.id),
+      )
       .leftJoin(
         personnelTable,
         and(
@@ -731,22 +819,25 @@ export async function listCustomers(params: {
         r.accountManagerFirstName || r.accountManagerLastName
           ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
           : null;
-      return toPlatformCustomerMaskedDto({
-        id:               r.id,
-        name:             r.name,
-        code:             r.code,
-        sectorId:         r.sectorId,
-        sectorName:       r.sectorName,
-        city:             r.city,
-        contactEmail:     r.contactEmail,
-        isActive:         r.isActive,
-        status:           r.status,
-        customerTypeId:   r.customerTypeId,
-        customerTypeName: r.customerTypeName,
-        accountManagerId: r.accountManagerId,
-        accountManagerName,
-        createdAt:        r.createdAt.toISOString(),
-      }, sensitiveDecision);
+      return toPlatformCustomerMaskedDto(
+        {
+          id: r.id,
+          name: r.name,
+          code: r.code,
+          sectorId: r.sectorId,
+          sectorName: r.sectorName,
+          city: r.city,
+          contactEmail: r.contactEmail,
+          isActive: r.isActive,
+          status: r.status,
+          customerTypeId: r.customerTypeId,
+          customerTypeName: r.customerTypeName,
+          accountManagerId: r.accountManagerId,
+          accountManagerName,
+          createdAt: r.createdAt.toISOString(),
+        },
+        sensitiveDecision,
+      );
     }),
     total: countRows[0]?.total ?? 0,
   };
@@ -766,44 +857,47 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
 
   const rows = await db
     .select({
-      id:                      customersTable.id,
-      name:                    customersTable.name,
-      code:                    customersTable.code,
-      sectorId:                customersTable.sectorId,
-      sectorName:              sectorsTable.name,
-      address:                 customersTable.address,
-      city:                    customersTable.city,
-      postalCode:              customersTable.postalCode,
-      country:                 customersTable.country,
-      latitude:                customersTable.latitude,
-      longitude:               customersTable.longitude,
-      geocodedAt:              customersTable.geocodedAt,
-      geocodingProvider:       customersTable.geocodingProvider,
-      geocodingStatus:         customersTable.geocodingStatus,
-      geocodingConfidence:     customersTable.geocodingConfidence,
-      geocodingError:          customersTable.geocodingError,
-      contactName:             customersTable.contactName,
-      contactEmail:            customersTable.contactEmail,
-      contactPhone:            customersTable.contactPhone,
-      legalEntity:             customersTable.legalEntity,
-      vatNumber:               customersTable.vatNumber,
+      id: customersTable.id,
+      name: customersTable.name,
+      code: customersTable.code,
+      sectorId: customersTable.sectorId,
+      sectorName: sectorsTable.name,
+      address: customersTable.address,
+      city: customersTable.city,
+      postalCode: customersTable.postalCode,
+      country: customersTable.country,
+      latitude: customersTable.latitude,
+      longitude: customersTable.longitude,
+      geocodedAt: customersTable.geocodedAt,
+      geocodingProvider: customersTable.geocodingProvider,
+      geocodingStatus: customersTable.geocodingStatus,
+      geocodingConfidence: customersTable.geocodingConfidence,
+      geocodingError: customersTable.geocodingError,
+      contactName: customersTable.contactName,
+      contactEmail: customersTable.contactEmail,
+      contactPhone: customersTable.contactPhone,
+      legalEntity: customersTable.legalEntity,
+      vatNumber: customersTable.vatNumber,
       chamberOfCommerceNumber: customersTable.chamberOfCommerceNumber,
-      website:                 customersTable.website,
-      mobile:                  customersTable.mobile,
-      customerTypeId:          customersTable.customerTypeId,
-      customerTypeName:        customerTypesTable.name,
-      status:                  customersTable.status,
-      accountManagerId:        customersTable.accountManagerId,
+      website: customersTable.website,
+      mobile: customersTable.mobile,
+      customerTypeId: customersTable.customerTypeId,
+      customerTypeName: customerTypesTable.name,
+      status: customersTable.status,
+      accountManagerId: customersTable.accountManagerId,
       accountManagerFirstName: personnelTable.firstName,
-      accountManagerLastName:  personnelTable.lastName,
-      isActive:                customersTable.isActive,
-      notes:                   customersTable.notes,
-      createdAt:               customersTable.createdAt,
-      updatedAt:               customersTable.updatedAt,
+      accountManagerLastName: personnelTable.lastName,
+      isActive: customersTable.isActive,
+      notes: customersTable.notes,
+      createdAt: customersTable.createdAt,
+      updatedAt: customersTable.updatedAt,
     })
     .from(customersTable)
-    .leftJoin(sectorsTable,      eq(customersTable.sectorId,           sectorsTable.id))
-    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
+    .leftJoin(sectorsTable, eq(customersTable.sectorId, sectorsTable.id))
+    .leftJoin(
+      customerTypesTable,
+      eq(customersTable.customerTypeId, customerTypesTable.id),
+    )
     .leftJoin(
       personnelTable,
       and(
@@ -811,7 +905,9 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
         eq(customersTable.tenantId, personnelTable.tenantId),
       ),
     )
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    )
     .limit(1);
 
   if (!rows[0]) return null;
@@ -821,39 +917,39 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
       ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
       : null;
   const detail: CustomerDetail = {
-    id:                      r.id,
-    name:                    r.name,
-    code:                    r.code,
-    sectorId:                r.sectorId,
-    sectorName:              r.sectorName,
-    address:                 r.address,
-    city:                    r.city,
-    postalCode:              r.postalCode,
-    country:                 r.country,
-    latitude:                r.latitude ?? null,
-    longitude:               r.longitude ?? null,
-    geocodedAt:              r.geocodedAt?.toISOString() ?? null,
-    geocodingProvider:       r.geocodingProvider,
-    geocodingStatus:         r.geocodingStatus ?? "pending",
-    geocodingConfidence:     r.geocodingConfidence ?? null,
-    geocodingError:          r.geocodingError,
-    contactName:             r.contactName,
-    contactEmail:            r.contactEmail,
-    contactPhone:            r.contactPhone,
-    legalEntity:             r.legalEntity,
-    vatNumber:               r.vatNumber,
+    id: r.id,
+    name: r.name,
+    code: r.code,
+    sectorId: r.sectorId,
+    sectorName: r.sectorName,
+    address: r.address,
+    city: r.city,
+    postalCode: r.postalCode,
+    country: r.country,
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
+    geocodedAt: r.geocodedAt?.toISOString() ?? null,
+    geocodingProvider: r.geocodingProvider,
+    geocodingStatus: r.geocodingStatus ?? "pending",
+    geocodingConfidence: r.geocodingConfidence ?? null,
+    geocodingError: r.geocodingError,
+    contactName: r.contactName,
+    contactEmail: r.contactEmail,
+    contactPhone: r.contactPhone,
+    legalEntity: r.legalEntity,
+    vatNumber: r.vatNumber,
     chamberOfCommerceNumber: r.chamberOfCommerceNumber,
-    website:                 r.website,
-    mobile:                  r.mobile,
-    customerTypeId:          r.customerTypeId,
-    customerTypeName:        r.customerTypeName,
-    status:                  r.status,
-    accountManagerId:        r.accountManagerId,
+    website: r.website,
+    mobile: r.mobile,
+    customerTypeId: r.customerTypeId,
+    customerTypeName: r.customerTypeName,
+    status: r.status,
+    accountManagerId: r.accountManagerId,
     accountManagerName,
-    isActive:                r.isActive,
-    notes:                   canSeeNotes ? r.notes : null,
-    createdAt:               r.createdAt.toISOString(),
-    updatedAt:               r.updatedAt.toISOString(),
+    isActive: r.isActive,
+    notes: canSeeNotes ? r.notes : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
   return toPlatformCustomerMaskedDto(detail, sensitiveDecision);
 }
@@ -871,7 +967,9 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(objectsTable)
-    .where(and(eq(objectsTable.customerId, id), eq(objectsTable.tenantId, tenantId)));
+    .where(
+      and(eq(objectsTable.customerId, id), eq(objectsTable.tenantId, tenantId)),
+    );
 
   const linkedObjects = countRow?.count ?? 0;
   if (linkedObjects > 0) {
@@ -884,23 +982,31 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   const [customer] = await db
     .select({ name: customersTable.name })
     .from(customersTable)
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    )
     .limit(1);
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
-  await db.delete(customerContactsTable).where(eq(customerContactsTable.customerId, id));
-  await db.delete(customerNotesTable).where(eq(customerNotesTable.customerId, id));
+  await db
+    .delete(customerContactsTable)
+    .where(eq(customerContactsTable.customerId, id));
+  await db
+    .delete(customerNotesTable)
+    .where(eq(customerNotesTable.customerId, id));
   await db
     .delete(customersTable)
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    );
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "delete",
-    resource:   "customers",
+    userId: user.id,
+    action: "delete",
+    resource: "customers",
     resourceId: id,
-    metadata:   { name: customer.name },
+    metadata: { name: customer.name },
   });
 
   revalidatePath("/customers");
@@ -941,16 +1047,19 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Klantuitnodiging versturen mislukt.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Klantuitnodiging versturen mislukt.",
     };
   }
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "invite_customer_portal",
-    resource:   "customers",
+    userId: user.id,
+    action: "invite_customer_portal",
+    resource: "customers",
     resourceId: id,
-    metadata:   {
+    metadata: {
       customerName,
       email,
       authUserId: invite.userId,
@@ -977,20 +1086,26 @@ export async function listSectors(): Promise<SectorOption[]> {
 
 export async function listCustomerTypes(): Promise<CustomerTypeOption[]> {
   return db
-    .select({ id: customerTypesTable.id, name: customerTypesTable.name, slug: customerTypesTable.slug })
+    .select({
+      id: customerTypesTable.id,
+      name: customerTypesTable.name,
+      slug: customerTypesTable.slug,
+    })
     .from(customerTypesTable)
     .where(eq(customerTypesTable.isActive, true))
     .orderBy(asc(customerTypesTable.name));
 }
 
-export async function listAllCustomerTypes(): Promise<(CustomerTypeOption & { isActive: boolean; createdAt: string })[]> {
+export async function listAllCustomerTypes(): Promise<
+  (CustomerTypeOption & { isActive: boolean; createdAt: string })[]
+> {
   await requirePermission("settings", "read");
   const rows = await db
     .select({
-      id:        customerTypesTable.id,
-      name:      customerTypesTable.name,
-      slug:      customerTypesTable.slug,
-      isActive:  customerTypesTable.isActive,
+      id: customerTypesTable.id,
+      name: customerTypesTable.name,
+      slug: customerTypesTable.slug,
+      isActive: customerTypesTable.isActive,
       createdAt: customerTypesTable.createdAt,
     })
     .from(customerTypesTable)
@@ -1021,7 +1136,11 @@ export async function createCustomerType(data: {
     return { success: true, data: { id: created!.id } };
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { success: false, message: "Er bestaat al een klanttype met deze slug.", fieldErrors: { slug: "Slug al in gebruik" } };
+      return {
+        success: false,
+        message: "Er bestaat al een klanttype met deze slug.",
+        fieldErrors: { slug: "Slug al in gebruik" },
+      };
     }
     return { success: false, message: "Klanttype aanmaken mislukt." };
   }
@@ -1034,17 +1153,24 @@ export async function updateCustomerType(
   await requirePermission("settings", "write");
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
-  if (data.name !== undefined)     patch.name     = data.name.trim();
-  if (data.slug !== undefined)     patch.slug     = data.slug.trim().toLowerCase().replace(/\s+/g, "-");
+  if (data.name !== undefined) patch.name = data.name.trim();
+  if (data.slug !== undefined)
+    patch.slug = data.slug.trim().toLowerCase().replace(/\s+/g, "-");
   if (data.isActive !== undefined) patch.isActive = data.isActive;
 
   try {
-    await db.update(customerTypesTable).set(patch).where(eq(customerTypesTable.id, id));
+    await db
+      .update(customerTypesTable)
+      .set(patch)
+      .where(eq(customerTypesTable.id, id));
     revalidatePath("/instellingen/klanttypes");
     return { success: true };
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { success: false, message: "Er bestaat al een klanttype met deze slug." };
+      return {
+        success: false,
+        message: "Er bestaat al een klanttype met deze slug.",
+      };
     }
     return { success: false, message: "Klanttype bijwerken mislukt." };
   }
@@ -1052,7 +1178,9 @@ export async function updateCustomerType(
 
 // ─── Customer Contacts ────────────────────────────────────────────────────────
 
-export async function listCustomerPortalUsers(customerId: string): Promise<CustomerPortalUserRow[]> {
+export async function listCustomerPortalUsers(
+  customerId: string,
+): Promise<CustomerPortalUserRow[]> {
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return [];
 
@@ -1061,15 +1189,15 @@ export async function listCustomerPortalUsers(customerId: string): Promise<Custo
 
   const rows = await db
     .select({
-      id:           customerUsersTable.id,
-      email:        customerUsersTable.email,
-      firstName:    customerUsersTable.firstName,
-      lastName:     customerUsersTable.lastName,
-      role:         customerUsersTable.role,
-      status:       customerUsersTable.status,
+      id: customerUsersTable.id,
+      email: customerUsersTable.email,
+      firstName: customerUsersTable.firstName,
+      lastName: customerUsersTable.lastName,
+      role: customerUsersTable.role,
+      status: customerUsersTable.status,
       inviteSentAt: customerUsersTable.inviteSentAt,
-      lastLoginAt:  customerUsersTable.lastLoginAt,
-      createdAt:    customerUsersTable.createdAt,
+      lastLoginAt: customerUsersTable.lastLoginAt,
+      createdAt: customerUsersTable.createdAt,
     })
     .from(customerUsersTable)
     .where(
@@ -1083,14 +1211,14 @@ export async function listCustomerPortalUsers(customerId: string): Promise<Custo
   return rows.map((r) => {
     const name = `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim() || r.email;
     return {
-      id:           r.id,
-      email:        r.email,
+      id: r.id,
+      email: r.email,
       name,
-      role:         r.role,
-      status:       r.status,
+      role: r.role,
+      status: r.status,
       inviteSentAt: r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
-      lastLoginAt:  r.lastLoginAt ? r.lastLoginAt.toISOString() : null,
-      createdAt:    r.createdAt.toISOString(),
+      lastLoginAt: r.lastLoginAt ? r.lastLoginAt.toISOString() : null,
+      createdAt: r.createdAt.toISOString(),
     };
   });
 }
@@ -1107,14 +1235,14 @@ export async function listCustomerTicketsForCustomer(
 
   const rows = await db
     .select({
-      id:                 customerMessageThreadsTable.id,
-      subject:            customerMessageThreadsTable.subject,
-      department:         customerMessageThreadsTable.department,
-      status:             customerMessageThreadsTable.status,
-      priority:           customerMessageThreadsTable.priority,
+      id: customerMessageThreadsTable.id,
+      subject: customerMessageThreadsTable.subject,
+      department: customerMessageThreadsTable.department,
+      status: customerMessageThreadsTable.status,
+      priority: customerMessageThreadsTable.priority,
       lastMessagePreview: customerMessageThreadsTable.lastMessagePreview,
-      lastMessageAt:      customerMessageThreadsTable.lastMessageAt,
-      createdAt:          customerMessageThreadsTable.createdAt,
+      lastMessageAt: customerMessageThreadsTable.lastMessageAt,
+      createdAt: customerMessageThreadsTable.createdAt,
     })
     .from(customerMessageThreadsTable)
     .where(
@@ -1133,7 +1261,10 @@ export async function listCustomerTicketsForCustomer(
     .from(customerMessageEntriesTable)
     .where(
       and(
-        inArray(customerMessageEntriesTable.threadId, rows.map((r) => r.id)),
+        inArray(
+          customerMessageEntriesTable.threadId,
+          rows.map((r) => r.id),
+        ),
         eq(customerMessageEntriesTable.authorType, "customer"),
         isNull(customerMessageEntriesTable.readByBackofficeAt),
       ),
@@ -1145,26 +1276,33 @@ export async function listCustomerTicketsForCustomer(
   }
 
   return rows.map((r) => ({
-    id:                 r.id,
-    subject:            r.subject,
-    department:         r.department,
-    status:             r.status,
-    priority:           r.priority,
+    id: r.id,
+    subject: r.subject,
+    department: r.department,
+    status: r.status,
+    priority: r.priority,
     lastMessagePreview: r.lastMessagePreview ?? null,
-    lastMessageAt:      r.lastMessageAt.toISOString(),
-    unreadCount:        unreadCounts.get(r.id) ?? 0,
-    createdAt:          r.createdAt.toISOString(),
+    lastMessageAt: r.lastMessageAt.toISOString(),
+    unreadCount: unreadCounts.get(r.id) ?? 0,
+    createdAt: r.createdAt.toISOString(),
   }));
 }
 
-export async function listCustomerContacts(customerId: string): Promise<CustomerContactRow[]> {
+export async function listCustomerContacts(
+  customerId: string,
+): Promise<CustomerContactRow[]> {
   await requirePermission("customers", "read");
   const tenantId = await requireCurrentTenantId();
 
   const [customer] = await db
     .select({ id: customersTable.id })
     .from(customersTable)
-    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(customersTable.id, customerId),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!customer) return [];
 
@@ -1180,21 +1318,29 @@ export async function listCustomerContacts(customerId: string): Promise<Customer
     .select()
     .from(customerContactsTable)
     .where(eq(customerContactsTable.customerId, customerId))
-    .orderBy(desc(customerContactsTable.isPrimary), asc(customerContactsTable.firstName));
+    .orderBy(
+      desc(customerContactsTable.isPrimary),
+      asc(customerContactsTable.firstName),
+    );
 
-  return rows.map((r) => toPlatformCustomerContactMaskedDto({
-    id:                 r.id,
-    customerId:         r.customerId,
-    firstName:          r.firstName,
-    lastName:           r.lastName,
-    function:           r.function ?? null,
-    email:              r.email ?? null,
-    phone:              r.phone ?? null,
-    mobile:             r.mobile ?? null,
-    preferredComm:      r.preferredComm ?? null,
-    isEmergencyContact: r.isEmergencyContact,
-    isPrimary:          r.isPrimary,
-  }, sensitiveDecision));
+  return rows.map((r) =>
+    toPlatformCustomerContactMaskedDto(
+      {
+        id: r.id,
+        customerId: r.customerId,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        function: r.function ?? null,
+        email: r.email ?? null,
+        phone: r.phone ?? null,
+        mobile: r.mobile ?? null,
+        preferredComm: r.preferredComm ?? null,
+        isEmergencyContact: r.isEmergencyContact,
+        isPrimary: r.isPrimary,
+      },
+      sensitiveDecision,
+    ),
+  );
 }
 
 export async function addCustomerContact(
@@ -1206,43 +1352,60 @@ export async function addCustomerContact(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  if (!data.firstName?.trim()) return { success: false, message: "Voornaam is verplicht.", fieldErrors: { firstName: "Verplicht" } };
-  if (!data.lastName?.trim())  return { success: false, message: "Achternaam is verplicht.", fieldErrors: { lastName: "Verplicht" } };
+  if (!data.firstName?.trim())
+    return {
+      success: false,
+      message: "Voornaam is verplicht.",
+      fieldErrors: { firstName: "Verplicht" },
+    };
+  if (!data.lastName?.trim())
+    return {
+      success: false,
+      message: "Achternaam is verplicht.",
+      fieldErrors: { lastName: "Verplicht" },
+    };
 
   // If isPrimary, demote existing primary contacts
   if (data.isPrimary) {
     await db
       .update(customerContactsTable)
       .set({ isPrimary: false })
-      .where(and(eq(customerContactsTable.customerId, customerId), eq(customerContactsTable.isPrimary, true)));
+      .where(
+        and(
+          eq(customerContactsTable.customerId, customerId),
+          eq(customerContactsTable.isPrimary, true),
+        ),
+      );
   }
 
   const [created] = await db
     .insert(customerContactsTable)
     .values({
       customerId,
-      firstName:          data.firstName.trim(),
-      lastName:           data.lastName.trim(),
-      function:           data.function?.trim()       || null,
-      email:              data.email?.trim()           || null,
-      phone:              data.phone?.trim()           || null,
-      mobile:             data.mobile?.trim()          || null,
-      preferredComm:      data.preferredComm           || null,
-      isEmergencyContact: data.isEmergencyContact      ?? false,
-      isPrimary:          data.isPrimary               ?? false,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      function: data.function?.trim() || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      mobile: data.mobile?.trim() || null,
+      preferredComm: data.preferredComm || null,
+      isEmergencyContact: data.isEmergencyContact ?? false,
+      isPrimary: data.isPrimary ?? false,
     })
     .returning({ id: customerContactsTable.id });
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "create",
-    resource:   "customer_contacts",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "create",
+    resource: "customer_contacts",
     resourceId: created!.id,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -1259,13 +1422,20 @@ export async function updateCustomerContact(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [existing] = await db
     .select({ id: customerContactsTable.id })
     .from(customerContactsTable)
-    .where(and(eq(customerContactsTable.id, contactId), eq(customerContactsTable.customerId, customerId)))
+    .where(
+      and(
+        eq(customerContactsTable.id, contactId),
+        eq(customerContactsTable.customerId, customerId),
+      ),
+    )
     .limit(1);
 
   if (!existing) return { success: false, message: "Contact niet gevonden." };
@@ -1275,32 +1445,37 @@ export async function updateCustomerContact(
     await db
       .update(customerContactsTable)
       .set({ isPrimary: false })
-      .where(and(eq(customerContactsTable.customerId, customerId), eq(customerContactsTable.isPrimary, true)));
+      .where(
+        and(
+          eq(customerContactsTable.customerId, customerId),
+          eq(customerContactsTable.isPrimary, true),
+        ),
+      );
   }
 
   await db
     .update(customerContactsTable)
     .set({
-      firstName:          data.firstName?.trim(),
-      lastName:           data.lastName?.trim(),
-      function:           data.function?.trim()       || null,
-      email:              data.email?.trim()           || null,
-      phone:              data.phone?.trim()           || null,
-      mobile:             data.mobile?.trim()          || null,
-      preferredComm:      data.preferredComm           || null,
-      isEmergencyContact: data.isEmergencyContact      ?? false,
-      isPrimary:          data.isPrimary               ?? false,
-      updatedAt:          new Date(),
+      firstName: data.firstName?.trim(),
+      lastName: data.lastName?.trim(),
+      function: data.function?.trim() || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      mobile: data.mobile?.trim() || null,
+      preferredComm: data.preferredComm || null,
+      isEmergencyContact: data.isEmergencyContact ?? false,
+      isPrimary: data.isPrimary ?? false,
+      updatedAt: new Date(),
     })
     .where(eq(customerContactsTable.id, contactId));
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "update",
-    resource:   "customer_contacts",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "update",
+    resource: "customer_contacts",
     resourceId: contactId,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -1316,20 +1491,27 @@ export async function deleteCustomerContact(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .delete(customerContactsTable)
-    .where(and(eq(customerContactsTable.id, contactId), eq(customerContactsTable.customerId, customerId)));
+    .where(
+      and(
+        eq(customerContactsTable.id, contactId),
+        eq(customerContactsTable.customerId, customerId),
+      ),
+    );
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "delete",
-    resource:   "customer_contacts",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "delete",
+    resource: "customer_contacts",
     resourceId: contactId,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -1338,7 +1520,9 @@ export async function deleteCustomerContact(
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
 
-export async function getCustomerKpis(customerId: string): Promise<CustomerKpis> {
+export async function getCustomerKpis(
+  customerId: string,
+): Promise<CustomerKpis> {
   await requirePermission("customers", "read");
   const [canReadObjects, canReadAssignments, canReadInvoices] =
     await Promise.all([
@@ -1370,68 +1554,92 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
     lastActivityResult,
   ] = await Promise.all([
     // Active objects count
-    canReadObjects ? db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(objectsTable)
-      .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true)))
+    canReadObjects
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(objectsTable)
+          .where(
+            and(
+              eq(objectsTable.customerId, customerId),
+              eq(objectsTable.tenantId, tenantId),
+              eq(objectsTable.isActive, true),
+            ),
+          )
       : Promise.resolve([]),
 
     // Open assignments (not closed/archived)
-    canReadAssignments ? db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(assignmentsTable)
-      .where(
-        and(
-          eq(assignmentsTable.customerId, customerId),
-          eq(assignmentsTable.tenantId, tenantId),
-          sql`${assignmentsTable.status} NOT IN ('paid', 'closed', 'cancelled')`,
-        ),
-      )
+    canReadAssignments
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.customerId, customerId),
+              eq(assignmentsTable.tenantId, tenantId),
+              sql`${assignmentsTable.status} NOT IN ('paid', 'closed', 'cancelled')`,
+            ),
+          )
       : Promise.resolve([]),
 
     // Open invoices (status = 'sent')
-    canReadInvoices ? db
-      .select({
-        count:   sql<number>`count(*)::int`,
-        balance: sql<string>`coalesce(sum(total_amount), 0)::text`,
-      })
-      .from(invoicesTable)
-      .where(and(eq(invoicesTable.customerId, customerId), eq(invoicesTable.tenantId, tenantId), eq(invoicesTable.status, "sent")))
+    canReadInvoices
+      ? db
+          .select({
+            count: sql<number>`count(*)::int`,
+            balance: sql<string>`coalesce(sum(total_amount), 0)::text`,
+          })
+          .from(invoicesTable)
+          .where(
+            and(
+              eq(invoicesTable.customerId, customerId),
+              eq(invoicesTable.tenantId, tenantId),
+              eq(invoicesTable.status, "sent"),
+            ),
+          )
       : Promise.resolve([]),
 
     // Monthly revenue (paid invoices this month)
-    canReadInvoices ? db
-      .select({ revenue: sql<string>`coalesce(sum(total_amount), 0)::text` })
-      .from(invoicesTable)
-      .where(
-        and(
-          eq(invoicesTable.customerId, customerId),
-          eq(invoicesTable.tenantId, tenantId),
-          eq(invoicesTable.status, "paid"),
-          gte(invoicesTable.createdAt, startOfMonth),
-        ),
-      )
+    canReadInvoices
+      ? db
+          .select({
+            revenue: sql<string>`coalesce(sum(total_amount), 0)::text`,
+          })
+          .from(invoicesTable)
+          .where(
+            and(
+              eq(invoicesTable.customerId, customerId),
+              eq(invoicesTable.tenantId, tenantId),
+              eq(invoicesTable.status, "paid"),
+              gte(invoicesTable.createdAt, startOfMonth),
+            ),
+          )
       : Promise.resolve([]),
 
     // Last activity (most recent assignment scheduled date)
-    canReadAssignments ? db
-      .select({ scheduledDate: assignmentsTable.scheduledDate })
-      .from(assignmentsTable)
-      .where(and(eq(assignmentsTable.customerId, customerId), eq(assignmentsTable.tenantId, tenantId)))
-      .orderBy(desc(assignmentsTable.scheduledDate))
-      .limit(1)
+    canReadAssignments
+      ? db
+          .select({ scheduledDate: assignmentsTable.scheduledDate })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.customerId, customerId),
+              eq(assignmentsTable.tenantId, tenantId),
+            ),
+          )
+          .orderBy(desc(assignmentsTable.scheduledDate))
+          .limit(1)
       : Promise.resolve([]),
   ]);
 
   const lastDate = lastActivityResult[0]?.scheduledDate;
 
   return {
-    monthlyRevenue:     monthlyRevenueResult[0]?.revenue      ?? "0",
-    activeObjects:      objectsResult[0]?.count               ?? 0,
-    openAssignments:    openAssignmentsResult[0]?.count        ?? 0,
-    openInvoices:       openInvoicesResult[0]?.count           ?? 0,
-    outstandingBalance: openInvoicesResult[0]?.balance         ?? "0",
-    lastActivityDate:   lastDate ?? null,
+    monthlyRevenue: monthlyRevenueResult[0]?.revenue ?? "0",
+    activeObjects: objectsResult[0]?.count ?? 0,
+    openAssignments: openAssignmentsResult[0]?.count ?? 0,
+    openInvoices: openInvoicesResult[0]?.count ?? 0,
+    outstandingBalance: openInvoicesResult[0]?.balance ?? "0",
+    lastActivityDate: lastDate ?? null,
   };
 }
 
@@ -1450,26 +1658,26 @@ export async function createCustomer(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
-    name:                    data.name.trim(),
-    sectorId:                data.sectorId                            || null,
-    contactName:             data.contactName?.trim()                 || null,
-    contactEmail:            data.contactEmail?.trim().toLowerCase()  || null,
-    contactPhone:            data.contactPhone?.trim()                || null,
-    address:                 data.address?.trim()                     || null,
-    city:                    data.city?.trim()                        || null,
-    postalCode:              data.postalCode?.trim()                  || null,
-    country:                 data.country?.trim()                     || "NL",
-    legalEntity:             data.legalEntity?.trim()                 || null,
-    vatNumber:               data.vatNumber?.trim()                   || null,
-    chamberOfCommerceNumber: data.chamberOfCommerceNumber?.trim()     || null,
-    website:                 data.website?.trim()                     || null,
-    mobile:                  data.mobile?.trim()                      || null,
-    customerTypeId:          data.customerTypeId                      || null,
-    status:                  data.status                              || "active",
-    accountManagerId:        data.accountManagerId                    || null,
-    notes:                   data.notes?.trim()                       || null,
+    name: data.name.trim(),
+    sectorId: data.sectorId || null,
+    contactName: data.contactName?.trim() || null,
+    contactEmail: data.contactEmail?.trim().toLowerCase() || null,
+    contactPhone: data.contactPhone?.trim() || null,
+    address: data.address?.trim() || null,
+    city: data.city?.trim() || null,
+    postalCode: data.postalCode?.trim() || null,
+    country: data.country?.trim() || "NL",
+    legalEntity: data.legalEntity?.trim() || null,
+    vatNumber: data.vatNumber?.trim() || null,
+    chamberOfCommerceNumber: data.chamberOfCommerceNumber?.trim() || null,
+    website: data.website?.trim() || null,
+    mobile: data.mobile?.trim() || null,
+    customerTypeId: data.customerTypeId || null,
+    status: data.status || "active",
+    accountManagerId: data.accountManagerId || null,
+    notes: data.notes?.trim() || null,
     tenantId,
-    createdBy:               user.id,
+    createdBy: user.id,
   };
 
   const parsed = insertCustomerSchema.safeParse(payload);
@@ -1485,15 +1693,21 @@ export async function createCustomer(
   if (data.invitePortal && !parsed.data.contactEmail) {
     return {
       success: false,
-      message: "Vul een e-mailadres in om direct een klantportaaluitnodiging te versturen.",
-      fieldErrors: { contactEmail: "E-mailadres is verplicht voor direct uitnodigen" },
+      message:
+        "Vul een e-mailadres in om direct een klantportaaluitnodiging te versturen.",
+      fieldErrors: {
+        contactEmail: "E-mailadres is verplicht voor direct uitnodigen",
+      },
     };
   }
 
   try {
-    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace) ? data.googlePlace : undefined;
-    const geocodingState = googlePlaceGeocodingPatch({ ...payload, googlePlace })
-      ?? geocodingResetForAddress(payload);
+    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace)
+      ? data.googlePlace
+      : undefined;
+    const geocodingState =
+      googlePlaceGeocodingPatch({ ...payload, googlePlace }) ??
+      geocodingResetForAddress(payload);
     const [created] = await db
       .insert(customersTable)
       .values({ ...parsed.data, ...geocodingState, tenantId })
@@ -1502,15 +1716,28 @@ export async function createCustomer(
     // Sync isActive with status
     await db
       .update(customersTable)
-      .set({ isActive: payload.status === "active" || payload.status === "lead" || payload.status === "prospect" })
-      .where(and(eq(customersTable.id, created!.id), eq(customersTable.tenantId, tenantId)));
+      .set({
+        isActive:
+          payload.status === "active" ||
+          payload.status === "lead" ||
+          payload.status === "prospect",
+      })
+      .where(
+        and(
+          eq(customersTable.id, created!.id),
+          eq(customersTable.tenantId, tenantId),
+        ),
+      );
 
     await db.insert(auditLogTable).values({
-      userId:     user.id,
-      action:     "create",
-      resource:   "customers",
+      userId: user.id,
+      action: "create",
+      resource: "customers",
       resourceId: created!.id,
-      metadata:   { name: payload.name, geocodingStatus: geocodingState.geocodingStatus },
+      metadata: {
+        name: payload.name,
+        geocodingStatus: geocodingState.geocodingStatus,
+      },
     });
 
     let inviteResult: CustomerCreateResult["invite"];
@@ -1522,11 +1749,11 @@ export async function createCustomer(
         });
 
         await db.insert(auditLogTable).values({
-          userId:     user.id,
-          action:     "auto_invite_customer_portal",
-          resource:   "customers",
+          userId: user.id,
+          action: "auto_invite_customer_portal",
+          resource: "customers",
           resourceId: created!.id,
-          metadata:   {
+          metadata: {
             customerName: payload.name,
             email: invite.email,
             authUserId: invite.userId,
@@ -1543,13 +1770,16 @@ export async function createCustomer(
           inviteError instanceof Error
             ? inviteError.message
             : "Klantportaaluitnodiging versturen mislukt.";
-        console.error("[customers] Auto customer portal invite failed:", inviteError);
+        console.error(
+          "[customers] Auto customer portal invite failed:",
+          inviteError,
+        );
         await db.insert(auditLogTable).values({
-          userId:     user.id,
-          action:     "auto_invite_customer_portal_failed",
-          resource:   "customers",
+          userId: user.id,
+          action: "auto_invite_customer_portal_failed",
+          resource: "customers",
           resourceId: created!.id,
-          metadata:   {
+          metadata: {
             customerName: payload.name,
             email: parsed.data.contactEmail,
             error: message,
@@ -1580,25 +1810,28 @@ export async function updateCustomer(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
-    name:                    data.name.trim(),
-    sectorId:                data.sectorId                            || null,
-    contactName:             data.contactName?.trim()                 || null,
-    contactEmail:            data.contactEmail?.trim()                || null,
-    contactPhone:            data.contactPhone?.trim()                || null,
-    address:                 data.address?.trim()                     || null,
-    city:                    data.city?.trim()                        || null,
-    postalCode:              data.postalCode?.trim()                  || null,
-    country:                 data.country?.trim()                     || "NL",
-    legalEntity:             data.legalEntity?.trim()                 || null,
-    vatNumber:               data.vatNumber?.trim()                   || null,
-    chamberOfCommerceNumber: data.chamberOfCommerceNumber?.trim()     || null,
-    website:                 data.website?.trim()                     || null,
-    mobile:                  data.mobile?.trim()                      || null,
-    customerTypeId:          data.customerTypeId                      || null,
-    status:                  data.status                              || "active",
-    accountManagerId:        data.accountManagerId                    || null,
-    notes:                   data.notes?.trim()                       || null,
-    isActive:                data.status === "active" || data.status === "lead" || data.status === "prospect",
+    name: data.name.trim(),
+    sectorId: data.sectorId || null,
+    contactName: data.contactName?.trim() || null,
+    contactEmail: data.contactEmail?.trim() || null,
+    contactPhone: data.contactPhone?.trim() || null,
+    address: data.address?.trim() || null,
+    city: data.city?.trim() || null,
+    postalCode: data.postalCode?.trim() || null,
+    country: data.country?.trim() || "NL",
+    legalEntity: data.legalEntity?.trim() || null,
+    vatNumber: data.vatNumber?.trim() || null,
+    chamberOfCommerceNumber: data.chamberOfCommerceNumber?.trim() || null,
+    website: data.website?.trim() || null,
+    mobile: data.mobile?.trim() || null,
+    customerTypeId: data.customerTypeId || null,
+    status: data.status || "active",
+    accountManagerId: data.accountManagerId || null,
+    notes: data.notes?.trim() || null,
+    isActive:
+      data.status === "active" ||
+      data.status === "lead" ||
+      data.status === "prospect",
   };
 
   const parsed = updateCustomerSchema.safeParse(payload);
@@ -1614,34 +1847,41 @@ export async function updateCustomer(
   try {
     const [existing] = await db
       .select({
-        address:    customersTable.address,
+        address: customersTable.address,
         postalCode: customersTable.postalCode,
-        city:       customersTable.city,
-        country:    customersTable.country,
+        city: customersTable.city,
+        country: customersTable.country,
       })
       .from(customersTable)
-      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+      .where(
+        and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+      )
       .limit(1);
 
     if (!existing) return { success: false, message: "Klant niet gevonden." };
 
     const shouldResetGeocoding = locationChanged(existing, payload);
-    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace) ? data.googlePlace : undefined;
+    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace)
+      ? data.googlePlace
+      : undefined;
     const geocodingState = shouldResetGeocoding
-      ? (googlePlaceGeocodingPatch({ ...payload, googlePlace }) ?? geocodingResetForAddress(payload))
+      ? (googlePlaceGeocodingPatch({ ...payload, googlePlace }) ??
+        geocodingResetForAddress(payload))
       : {};
 
     await db
       .update(customersTable)
       .set({ ...parsed.data, ...geocodingState, updatedAt: new Date() })
-      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+      .where(
+        and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+      );
 
     await db.insert(auditLogTable).values({
-      userId:     user.id,
-      action:     "update",
-      resource:   "customers",
+      userId: user.id,
+      action: "update",
+      resource: "customers",
       resourceId: id,
-      metadata:   { name: payload.name, geocodingReset: shouldResetGeocoding },
+      metadata: { name: payload.name, geocodingReset: shouldResetGeocoding },
     });
 
     revalidatePath("/customers");
@@ -1659,32 +1899,36 @@ export async function updateCustomer(
   }
 }
 
-export async function geocodeCustomerLocation(
-  id: string,
-): Promise<ActionResult<{
-  status: string;
-  latitude: string | null;
-  longitude: string | null;
-  message: string;
-}>> {
+export async function geocodeCustomerLocation(id: string): Promise<
+  ActionResult<{
+    status: string;
+    latitude: string | null;
+    longitude: string | null;
+    message: string;
+  }>
+> {
   await requirePermission("customers", "write");
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [customer] = await db
     .select({
-      id:         customersTable.id,
-      name:       customersTable.name,
-      address:    customersTable.address,
+      id: customersTable.id,
+      name: customersTable.name,
+      address: customersTable.address,
       postalCode: customersTable.postalCode,
-      city:       customersTable.city,
-      country:    customersTable.country,
+      city: customersTable.city,
+      country: customersTable.country,
     })
     .from(customersTable)
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    )
     .limit(1);
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
@@ -1696,7 +1940,9 @@ export async function geocodeCustomerLocation(
         ...geocodingResetForAddress(customer),
         updatedAt: new Date(),
       })
-      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+      .where(
+        and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+      );
 
     revalidatePath("/customers");
     revalidatePath(`/customers/${id}`);
@@ -1717,15 +1963,21 @@ export async function geocodeCustomerLocation(
         geocodingError: result.error,
         updatedAt: new Date(),
       })
-      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+      .where(
+        and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+      );
 
     await db.insert(auditLogTable).values({
       tenantId,
-      userId:     user.id,
-      action:     "geocode_customer_location_failed",
-      resource:   "customers",
+      userId: user.id,
+      action: "geocode_customer_location_failed",
+      resource: "customers",
       resourceId: id,
-      metadata:   { name: customer.name, error: result.error, retryable: result.retryable },
+      metadata: {
+        name: customer.name,
+        error: result.error,
+        retryable: result.retryable,
+      },
     });
 
     revalidatePath("/customers");
@@ -1748,15 +2000,17 @@ export async function geocodeCustomerLocation(
       geocodingError: null,
       updatedAt: new Date(),
     })
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    );
 
   await db.insert(auditLogTable).values({
     tenantId,
-    userId:     user.id,
-    action:     "geocode_customer_location",
-    resource:   "customers",
+    userId: user.id,
+    action: "geocode_customer_location",
+    resource: "customers",
     resourceId: id,
-    metadata:   {
+    metadata: {
       name: customer.name,
       provider: result.provider,
       label: result.label,
@@ -1792,15 +2046,21 @@ export async function setCustomerStatus(
 
   await db
     .update(customersTable)
-    .set({ isActive, status: isActive ? "active" : "inactive", updatedAt: new Date() })
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+    .set({
+      isActive,
+      status: isActive ? "active" : "inactive",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    );
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     isActive ? "activate" : "deactivate",
-    resource:   "customers",
+    userId: user.id,
+    action: isActive ? "activate" : "deactivate",
+    resource: "customers",
     resourceId: id,
-    metadata:   {},
+    metadata: {},
   });
 
   revalidatePath("/customers");
@@ -1816,22 +2076,27 @@ export async function setCustomerLifecycleStatus(
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const isActive = status === "active" || status === "lead" || status === "prospect";
+  const isActive =
+    status === "active" || status === "lead" || status === "prospect";
 
   await db
     .update(customersTable)
     .set({ status, isActive, updatedAt: new Date() })
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+    .where(
+      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+    );
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "update_status",
-    resource:   "customers",
+    userId: user.id,
+    action: "update_status",
+    resource: "customers",
     resourceId: id,
-    metadata:   { status },
+    metadata: { status },
   });
 
   revalidatePath("/customers");
@@ -1855,16 +2120,25 @@ export async function bulkSetCustomerStatus(
 
   await db
     .update(customersTable)
-    .set({ isActive, status: isActive ? "active" : "inactive", updatedAt: new Date() })
-    .where(and(inArray(customersTable.id, ids), eq(customersTable.tenantId, tenantId)));
+    .set({
+      isActive,
+      status: isActive ? "active" : "inactive",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        inArray(customersTable.id, ids),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    );
 
   await db.insert(auditLogTable).values({
     tenantId,
-    userId:     user.id,
-    action:     isActive ? "bulk_activate" : "bulk_deactivate",
-    resource:   "customers",
+    userId: user.id,
+    action: isActive ? "bulk_activate" : "bulk_deactivate",
+    resource: "customers",
     resourceId: null,
-    metadata:   { ids, count: ids.length },
+    metadata: { ids, count: ids.length },
   });
 
   revalidatePath("/customers");
@@ -1873,7 +2147,10 @@ export async function bulkSetCustomerStatus(
 
 // ─── Customer Notes ────────────────────────────────────────────────────────────
 
-export async function listCustomerHistory(customerId: string, limit = 25): Promise<CustomerHistoryEntry[]> {
+export async function listCustomerHistory(
+  customerId: string,
+  limit = 25,
+): Promise<CustomerHistoryEntry[]> {
   const canReadHistory = await hasPermission("customers", "write");
   if (!canReadHistory) return [];
   const customer = await currentTenantCustomer(customerId);
@@ -1910,15 +2187,18 @@ export async function listCustomerHistory(customerId: string, limit = 25): Promi
     resource: r.resource,
     resourceId: r.resourceId ?? null,
     metadata: r.metadata,
-    actorName: r.actorFirst && r.actorLast
-      ? `${r.actorFirst} ${r.actorLast}`.trim()
-      : r.userId.slice(0, 8) + "...",
+    actorName:
+      r.actorFirst && r.actorLast
+        ? `${r.actorFirst} ${r.actorLast}`.trim()
+        : r.userId.slice(0, 8) + "...",
     actorEmail: r.actorEmail ?? null,
     createdAt: r.createdAt.toISOString(),
   }));
 }
 
-export async function listCustomerNotes(customerId: string): Promise<CustomerNoteRow[]> {
+export async function listCustomerNotes(
+  customerId: string,
+): Promise<CustomerNoteRow[]> {
   const canRead = await hasPermission("customers", "write");
   if (!canRead) return [];
   const customer = await currentTenantCustomer(customerId);
@@ -1926,8 +2206,8 @@ export async function listCustomerNotes(customerId: string): Promise<CustomerNot
 
   const rows = await db
     .select({
-      id:        customerNotesTable.id,
-      notes:     customerNotesTable.notes,
+      id: customerNotesTable.id,
+      notes: customerNotesTable.notes,
       createdAt: customerNotesTable.createdAt,
       updatedAt: customerNotesTable.updatedAt,
       updatedBy: customerNotesTable.updatedBy,
@@ -1942,22 +2222,24 @@ export async function listCustomerNotes(customerId: string): Promise<CustomerNot
   const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const userMap = new Map<string, { email: string; name: string | null }>();
   for (const u of data?.users ?? []) {
-    const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
+    const meta = u.user_metadata as
+      | { full_name?: string; name?: string }
+      | undefined;
     userMap.set(u.id, {
       email: u.email ?? u.id,
-      name:  (meta?.full_name ?? meta?.name) ?? null,
+      name: meta?.full_name ?? meta?.name ?? null,
     });
   }
 
   return rows.map((r) => {
     const author = r.updatedBy ? userMap.get(r.updatedBy) : undefined;
     return {
-      id:          r.id,
-      content:     r.notes,
-      createdAt:   r.createdAt.toISOString(),
-      updatedAt:   r.updatedAt ? r.updatedAt.toISOString() : null,
-      authorEmail: author?.email ?? (r.updatedBy ?? "—"),
-      authorName:  author?.name ?? null,
+      id: r.id,
+      content: r.notes,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt ? r.updatedAt.toISOString() : null,
+      authorEmail: author?.email ?? r.updatedBy ?? "—",
+      authorName: author?.name ?? null,
     };
   });
 }
@@ -1971,29 +2253,39 @@ export async function addCustomerNote(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const trimmed = content.trim();
-  if (!trimmed) return { success: false, message: "Notitie mag niet leeg zijn." };
-  if (trimmed.length > 4000) return { success: false, message: "Maximaal 4000 tekens toegestaan." };
+  if (!trimmed)
+    return { success: false, message: "Notitie mag niet leeg zijn." };
+  if (trimmed.length > 4000)
+    return { success: false, message: "Maximaal 4000 tekens toegestaan." };
 
   const [inserted] = await db
     .insert(customerNotesTable)
     .values({ customerId, notes: trimmed, updatedBy: user.id })
-    .returning({ id: customerNotesTable.id, createdAt: customerNotesTable.createdAt });
+    .returning({
+      id: customerNotesTable.id,
+      createdAt: customerNotesTable.createdAt,
+    });
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "create",
-    resource:   "customer_notes",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "create",
+    resource: "customer_notes",
     resourceId: inserted.id,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
-  return { success: true, data: { id: inserted.id, createdAt: inserted.createdAt.toISOString() } };
+  return {
+    success: true,
+    data: { id: inserted.id, createdAt: inserted.createdAt.toISOString() },
+  };
 }
 
 export async function updateCustomerNote(
@@ -2006,20 +2298,26 @@ export async function updateCustomerNote(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const trimmed = content.trim();
-  if (!trimmed) return { success: false, message: "Notitie mag niet leeg zijn." };
-  if (trimmed.length > 4000) return { success: false, message: "Maximaal 4000 tekens toegestaan." };
+  if (!trimmed)
+    return { success: false, message: "Notitie mag niet leeg zijn." };
+  if (trimmed.length > 4000)
+    return { success: false, message: "Maximaal 4000 tekens toegestaan." };
 
   const [existing] = await db
     .select({ id: customerNotesTable.id })
     .from(customerNotesTable)
-    .where(and(
-      eq(customerNotesTable.id, noteId),
-      eq(customerNotesTable.customerId, customerId),
-    ))
+    .where(
+      and(
+        eq(customerNotesTable.id, noteId),
+        eq(customerNotesTable.customerId, customerId),
+      ),
+    )
     .limit(1);
 
   if (!existing) return { success: false, message: "Notitie niet gevonden." };
@@ -2030,12 +2328,12 @@ export async function updateCustomerNote(
     .where(eq(customerNotesTable.id, noteId));
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "update",
-    resource:   "customer_notes",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "update",
+    resource: "customer_notes",
     resourceId: noteId,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -2051,23 +2349,27 @@ export async function deleteCustomerNote(
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .delete(customerNotesTable)
-    .where(and(
-      eq(customerNotesTable.id, noteId),
-      eq(customerNotesTable.customerId, customerId),
-    ));
+    .where(
+      and(
+        eq(customerNotesTable.id, noteId),
+        eq(customerNotesTable.customerId, customerId),
+      ),
+    );
 
   await db.insert(auditLogTable).values({
-    tenantId:    customer.tenantId,
-    userId:     user.id,
-    action:     "delete",
-    resource:   "customer_notes",
+    tenantId: customer.tenantId,
+    userId: user.id,
+    action: "delete",
+    resource: "customer_notes",
     resourceId: noteId,
-    metadata:   { customerId },
+    metadata: { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -2077,7 +2379,7 @@ export async function deleteCustomerNote(
 // ─── Account manager lookup ────────────────────────────────────────────────────
 
 export type AccountManagerOption = {
-  id:       string;
+  id: string;
   fullName: string;
 };
 
@@ -2088,16 +2390,16 @@ export async function listAccountManagers(): Promise<AccountManagerOption[]> {
 
   const rows = await db
     .select({
-      id:        personnelTable.id,
+      id: personnelTable.id,
       firstName: personnelTable.firstName,
-      lastName:  personnelTable.lastName,
+      lastName: personnelTable.lastName,
     })
     .from(personnelTable)
     .where(eq(personnelTable.tenantId, tenantId))
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
   return rows.map((r) => ({
-    id:       r.id,
+    id: r.id,
     fullName: `${r.firstName} ${r.lastName}`.trim(),
   }));
 }
@@ -2119,8 +2421,15 @@ export async function exportCustomers(params: {
   const tenantId = await requireCurrentTenantId();
 
   const {
-    search, sectorId, status = "all", customerTypeId,
-    city, country, accountManagerId, dateFrom, dateTo,
+    search,
+    sectorId,
+    status = "all",
+    customerTypeId,
+    city,
+    country,
+    accountManagerId,
+    dateFrom,
+    dateTo,
   } = params;
 
   await requireSensitiveRuntimeAccess({
@@ -2132,27 +2441,62 @@ export async function exportCustomers(params: {
     metadata: { format: "csv", search, status },
   });
 
-  const conditions: ReturnType<typeof eq>[] = [eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
-    const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));
+    const clause = or(
+      ilike(customersTable.name, term),
+      ilike(customersTable.code, term),
+    );
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
-  if (sectorId)        conditions.push(eq(customersTable.sectorId,       sectorId)       as ReturnType<typeof eq>);
-  if (customerTypeId)  conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
-  if (city?.trim())    conditions.push(ilike(customersTable.city,    `%${city.trim()}%`)    as ReturnType<typeof eq>);
-  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
-  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
-  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (sectorId)
+    conditions.push(
+      eq(customersTable.sectorId, sectorId) as ReturnType<typeof eq>,
+    );
+  if (customerTypeId)
+    conditions.push(
+      eq(customersTable.customerTypeId, customerTypeId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (city?.trim())
+    conditions.push(
+      ilike(customersTable.city, `%${city.trim()}%`) as ReturnType<typeof eq>,
+    );
+  if (country?.trim())
+    conditions.push(
+      ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (accountManagerId)
+    conditions.push(
+      eq(customersTable.accountManagerId, accountManagerId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (dateFrom)
+    conditions.push(
+      gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<
+        typeof eq
+      >,
+    );
   if (dateTo) {
     const end = new Date(dateTo);
     end.setDate(end.getDate() + 1);
     conditions.push(lt(customersTable.createdAt, end) as ReturnType<typeof eq>);
   }
   if (status === "active") {
-    conditions.push(eq(customersTable.status, "active") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "active") as ReturnType<typeof eq>,
+    );
   } else if (status === "inactive") {
-    conditions.push(eq(customersTable.status, "inactive") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "inactive") as ReturnType<typeof eq>,
+    );
   } else if (status && status !== "all") {
     conditions.push(eq(customersTable.status, status) as ReturnType<typeof eq>);
   }
@@ -2161,32 +2505,51 @@ export async function exportCustomers(params: {
 
   const rows = await db
     .select({
-      code:             customersTable.code,
-      name:             customersTable.name,
-      sectorName:       sectorsTable.name,
+      code: customersTable.code,
+      name: customersTable.name,
+      sectorName: sectorsTable.name,
       customerTypeName: customerTypesTable.name,
-      city:             customersTable.city,
-      country:          customersTable.country,
-      contactEmail:     customersTable.contactEmail,
-      contactPhone:     customersTable.contactPhone,
-      status:           customersTable.status,
-      createdAt:        customersTable.createdAt,
+      city: customersTable.city,
+      country: customersTable.country,
+      contactEmail: customersTable.contactEmail,
+      contactPhone: customersTable.contactPhone,
+      status: customersTable.status,
+      createdAt: customersTable.createdAt,
     })
     .from(customersTable)
-    .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
-    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+    .leftJoin(sectorsTable, eq(customersTable.sectorId, sectorsTable.id))
+    .leftJoin(
+      customerTypesTable,
+      eq(customersTable.customerTypeId, customerTypesTable.id),
+    )
     .where(where)
     .orderBy(asc(customersTable.name));
 
   function esc(v: string | null | undefined): string {
     const s = v ?? "";
-    if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    if (
+      s.includes(",") ||
+      s.includes('"') ||
+      s.includes("\n") ||
+      s.includes("\r")
+    ) {
       return `"${s.replace(/"/g, '""')}"`;
     }
     return s;
   }
 
-  const headers = ["Code", "Naam", "Sector", "Type", "Stad", "Land", "E-mail", "Telefoon", "Status", "Aangemaakt op"];
+  const headers = [
+    "Code",
+    "Naam",
+    "Sector",
+    "Type",
+    "Stad",
+    "Land",
+    "E-mail",
+    "Telefoon",
+    "Status",
+    "Aangemaakt op",
+  ];
   const csvLines = [
     headers.join(","),
     ...rows.map((r) =>
@@ -2201,11 +2564,11 @@ export async function exportCustomers(params: {
         esc(r.contactPhone),
         esc(r.status),
         esc(r.createdAt.toISOString().split("T")[0] ?? ""),
-      ].join(",")
+      ].join(","),
     ),
   ];
 
-  const now   = new Date();
+  const now = new Date();
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 
   return {
@@ -2229,8 +2592,15 @@ export async function exportCustomersPdf(params: {
   const tenantId = await requireCurrentTenantId();
 
   const {
-    search, sectorId, status = "all", customerTypeId,
-    city, country, accountManagerId, dateFrom, dateTo,
+    search,
+    sectorId,
+    status = "all",
+    customerTypeId,
+    city,
+    country,
+    accountManagerId,
+    dateFrom,
+    dateTo,
   } = params;
 
   await requireSensitiveRuntimeAccess({
@@ -2242,27 +2612,62 @@ export async function exportCustomersPdf(params: {
     metadata: { format: "pdf", search, status },
   });
 
-  const conditions: ReturnType<typeof eq>[] = [eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
-    const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));
+    const clause = or(
+      ilike(customersTable.name, term),
+      ilike(customersTable.code, term),
+    );
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
-  if (sectorId)        conditions.push(eq(customersTable.sectorId,       sectorId)       as ReturnType<typeof eq>);
-  if (customerTypeId)  conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
-  if (city?.trim())    conditions.push(ilike(customersTable.city,    `%${city.trim()}%`)    as ReturnType<typeof eq>);
-  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
-  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
-  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (sectorId)
+    conditions.push(
+      eq(customersTable.sectorId, sectorId) as ReturnType<typeof eq>,
+    );
+  if (customerTypeId)
+    conditions.push(
+      eq(customersTable.customerTypeId, customerTypeId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (city?.trim())
+    conditions.push(
+      ilike(customersTable.city, `%${city.trim()}%`) as ReturnType<typeof eq>,
+    );
+  if (country?.trim())
+    conditions.push(
+      ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (accountManagerId)
+    conditions.push(
+      eq(customersTable.accountManagerId, accountManagerId) as ReturnType<
+        typeof eq
+      >,
+    );
+  if (dateFrom)
+    conditions.push(
+      gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<
+        typeof eq
+      >,
+    );
   if (dateTo) {
     const end = new Date(dateTo);
     end.setDate(end.getDate() + 1);
     conditions.push(lt(customersTable.createdAt, end) as ReturnType<typeof eq>);
   }
   if (status === "active") {
-    conditions.push(eq(customersTable.status, "active") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "active") as ReturnType<typeof eq>,
+    );
   } else if (status === "inactive") {
-    conditions.push(eq(customersTable.status, "inactive") as ReturnType<typeof eq>);
+    conditions.push(
+      eq(customersTable.status, "inactive") as ReturnType<typeof eq>,
+    );
   } else if (status && status !== "all") {
     conditions.push(eq(customersTable.status, status) as ReturnType<typeof eq>);
   }
@@ -2271,20 +2676,23 @@ export async function exportCustomersPdf(params: {
 
   const rows = await db
     .select({
-      code:             customersTable.code,
-      name:             customersTable.name,
-      sectorName:       sectorsTable.name,
+      code: customersTable.code,
+      name: customersTable.name,
+      sectorName: sectorsTable.name,
       customerTypeName: customerTypesTable.name,
-      city:             customersTable.city,
-      country:          customersTable.country,
-      contactEmail:     customersTable.contactEmail,
-      contactPhone:     customersTable.contactPhone,
-      status:           customersTable.status,
-      createdAt:        customersTable.createdAt,
+      city: customersTable.city,
+      country: customersTable.country,
+      contactEmail: customersTable.contactEmail,
+      contactPhone: customersTable.contactPhone,
+      status: customersTable.status,
+      createdAt: customersTable.createdAt,
     })
     .from(customersTable)
-    .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
-    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+    .leftJoin(sectorsTable, eq(customersTable.sectorId, sectorsTable.id))
+    .leftJoin(
+      customerTypesTable,
+      eq(customersTable.customerTypeId, customerTypesTable.id),
+    )
     .where(where)
     .orderBy(asc(customersTable.name));
 
@@ -2296,23 +2704,25 @@ export async function exportCustomersPdf(params: {
       .replace(/"/g, "&quot;");
   }
 
-  const now        = new Date();
-  const stamp      = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const generated  = now.toISOString().replace("T", " ").slice(0, 16);
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const generated = now.toISOString().replace("T", " ").slice(0, 16);
 
   const activeFilters: string[] = [];
-  if (search)           activeFilters.push(`Zoekopdracht: ${search}`);
+  if (search) activeFilters.push(`Zoekopdracht: ${search}`);
   if (status && status !== "all") activeFilters.push(`Status: ${status}`);
-  if (city)             activeFilters.push(`Stad: ${city}`);
-  if (country)          activeFilters.push(`Land: ${country}`);
-  if (dateFrom)         activeFilters.push(`Vanaf: ${dateFrom}`);
-  if (dateTo)           activeFilters.push(`Tot: ${dateTo}`);
+  if (city) activeFilters.push(`Stad: ${city}`);
+  if (country) activeFilters.push(`Land: ${country}`);
+  if (dateFrom) activeFilters.push(`Vanaf: ${dateFrom}`);
+  if (dateTo) activeFilters.push(`Tot: ${dateTo}`);
 
   const filterLine = activeFilters.length
     ? `<p style="margin:0 0 8px;font-size:11px;color:#64748B;">Filters: ${escHtml(activeFilters.join(" · "))}</p>`
     : "";
 
-  const tbody = rows.map((r) => `
+  const tbody = rows
+    .map(
+      (r) => `
     <tr>
       <td>${escHtml(r.code)}</td>
       <td>${escHtml(r.name)}</td>
@@ -2324,7 +2734,9 @@ export async function exportCustomersPdf(params: {
       <td>${escHtml(r.contactPhone)}</td>
       <td>${escHtml(r.status)}</td>
       <td>${escHtml(r.createdAt.toISOString().split("T")[0] ?? "")}</td>
-    </tr>`).join("");
+    </tr>`,
+    )
+    .join("");
 
   const html = `<!DOCTYPE html>
 <html lang="nl">

@@ -18,6 +18,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "./runtime-env";
+import { assertDatabaseEnvironmentIsolation } from "./database-environment";
 
 const { Client, Pool } = pg;
 
@@ -56,10 +57,17 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required for database migrations.");
 }
+assertDatabaseEnvironmentIsolation();
 
-const mode = parseMode(process.argv[2] ?? process.env.DB_MIGRATION_MODE ?? "migrate");
+const mode = parseMode(
+  process.argv[2] ?? process.env.DB_MIGRATION_MODE ?? "migrate",
+);
 const packageRoot = path.join(__dirname, "..");
-const generatedMigrationsDir = path.join(packageRoot, "migrations", "generated");
+const generatedMigrationsDir = path.join(
+  packageRoot,
+  "migrations",
+  "generated",
+);
 const sqlMigrationsDir = path.join(packageRoot, "migrations");
 const baselineManifestPath = path.join(sqlMigrationsDir, "baseline.json");
 const drizzleSchema = "drizzle";
@@ -89,7 +97,9 @@ function parseMode(value: string): Mode {
     return value;
   }
 
-  throw new Error(`Unknown migration mode "${value}". Use "migrate" or "baseline".`);
+  throw new Error(
+    `Unknown migration mode "${value}". Use "migrate" or "baseline".`,
+  );
 }
 
 function connectionConfig(): pg.ClientConfig {
@@ -106,11 +116,18 @@ function connectionConfig(): pg.ClientConfig {
 }
 
 function sha256(input: string): string {
-  return crypto.createHash("sha256").update(input.replace(/\r\n/gu, "\n")).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(input.replace(/\r\n/gu, "\n"))
+    .digest("hex");
 }
 
 function readDrizzleMigrations(): DrizzleMigration[] {
-  const journalPath = path.join(generatedMigrationsDir, "meta", "_journal.json");
+  const journalPath = path.join(
+    generatedMigrationsDir,
+    "meta",
+    "_journal.json",
+  );
 
   if (!existsSync(journalPath)) {
     return [];
@@ -138,10 +155,13 @@ function readSqlMigrations(): SqlMigration[] {
     return [];
   }
 
-  const maximumMigrationName = process.env.FIELDGRID_SQL_MIGRATION_MAX_NAME?.trim() || null;
+  const maximumMigrationName =
+    process.env.FIELDGRID_SQL_MIGRATION_MAX_NAME?.trim() || null;
   return readdirSync(sqlMigrationsDir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && /^\d+.*\.sql$/u.test(entry.name))
-    .filter((entry) => !maximumMigrationName || entry.name <= maximumMigrationName)
+    .filter(
+      (entry) => !maximumMigrationName || entry.name <= maximumMigrationName,
+    )
     .map((entry) => {
       const sql = readFileSync(path.join(sqlMigrationsDir, entry.name), "utf8");
       return {
@@ -158,7 +178,9 @@ function readBaselineManifest(): BaselineManifest {
     throw new Error(`Missing baseline manifest: ${baselineManifestPath}`);
   }
 
-  const manifest = JSON.parse(readFileSync(baselineManifestPath, "utf8")) as BaselineManifest;
+  const manifest = JSON.parse(
+    readFileSync(baselineManifestPath, "utf8"),
+  ) as BaselineManifest;
   if (!Array.isArray(manifest.drizzle) || !Array.isArray(manifest.sql)) {
     throw new Error("Baseline manifest must contain drizzle and sql arrays.");
   }
@@ -174,17 +196,25 @@ function filterBaselineMigrations(
   drizzleMigrations: DrizzleMigration[];
   sqlMigrations: SqlMigration[];
 } {
-  const drizzleByTag = new Map(drizzleMigrations.map((migration) => [migration.tag, migration]));
-  const sqlByName = new Map(sqlMigrations.map((migration) => [migration.name, migration]));
+  const drizzleByTag = new Map(
+    drizzleMigrations.map((migration) => [migration.tag, migration]),
+  );
+  const sqlByName = new Map(
+    sqlMigrations.map((migration) => [migration.name, migration]),
+  );
 
-  const missingDrizzle = manifest.drizzle.filter((tag) => !drizzleByTag.has(tag));
+  const missingDrizzle = manifest.drizzle.filter(
+    (tag) => !drizzleByTag.has(tag),
+  );
   const missingSql = manifest.sql.filter((name) => !sqlByName.has(name));
 
   if (missingDrizzle.length > 0 || missingSql.length > 0) {
     throw new Error(
       [
         "Baseline manifest references migrations that do not exist.",
-        missingDrizzle.length > 0 ? `Missing Drizzle: ${missingDrizzle.join(", ")}` : "",
+        missingDrizzle.length > 0
+          ? `Missing Drizzle: ${missingDrizzle.join(", ")}`
+          : "",
         missingSql.length > 0 ? `Missing SQL: ${missingSql.join(", ")}` : "",
       ]
         .filter(Boolean)
@@ -198,11 +228,15 @@ function filterBaselineMigrations(
   };
 }
 
-function expectedTablesFromGeneratedMigrations(migrations: DrizzleMigration[]): string[] {
+function expectedTablesFromGeneratedMigrations(
+  migrations: DrizzleMigration[],
+): string[] {
   const tables = new Set<string>();
 
   for (const migration of migrations) {
-    for (const match of migration.sql.matchAll(/CREATE\s+TABLE\s+"([^"]+)"/giu)) {
+    for (const match of migration.sql.matchAll(
+      /CREATE\s+TABLE\s+"([^"]+)"/giu,
+    )) {
       tables.add(match[1]);
     }
   }
@@ -239,7 +273,10 @@ async function ensureLegacySqlPrerequisites(client: pg.Client): Promise<void> {
   await client.query(legacySqlPrerequisites);
 }
 
-async function existingPublicTables(client: pg.Client, tableNames: string[]): Promise<Set<string>> {
+async function existingPublicTables(
+  client: pg.Client,
+  tableNames: string[],
+): Promise<Set<string>> {
   if (tableNames.length === 0) {
     return new Set();
   }
@@ -287,7 +324,11 @@ async function compatibilitySkipReason(
     return null;
   }
 
-  const hasCanonicalUserRoles = await columnExists(client, "tenant_user_roles", "tenant_role_id");
+  const hasCanonicalUserRoles = await columnExists(
+    client,
+    "tenant_user_roles",
+    "tenant_role_id",
+  );
   const hasCanonicalRolePermissions = await columnExists(
     client,
     "tenant_role_permissions",
@@ -301,9 +342,14 @@ async function compatibilitySkipReason(
   return null;
 }
 
-async function assertCanBaseline(client: pg.Client, expectedTables: string[]): Promise<void> {
+async function assertCanBaseline(
+  client: pg.Client,
+  expectedTables: string[],
+): Promise<void> {
   const existingTables = await existingPublicTables(client, expectedTables);
-  const missingTables = expectedTables.filter((table) => !existingTables.has(table));
+  const missingTables = expectedTables.filter(
+    (table) => !existingTables.has(table),
+  );
 
   if (missingTables.length > 0) {
     throw new Error(
@@ -431,7 +477,10 @@ async function runDrizzleGeneratedMigrations(): Promise<void> {
   }
 }
 
-async function runSqlMigrations(client: pg.Client, migrations: SqlMigration[]): Promise<void> {
+async function runSqlMigrations(
+  client: pg.Client,
+  migrations: SqlMigration[],
+): Promise<void> {
   for (const migration of migrations) {
     const existing = await client.query<{ hash: string }>(
       `select hash from ${drizzleSchema}.${sqlMigrationsTable} where name = $1`,
@@ -452,7 +501,9 @@ async function runSqlMigrations(client: pg.Client, migrations: SqlMigration[]): 
     const skipReason = await compatibilitySkipReason(client, migration);
     if (skipReason) {
       await recordSqlMigration(client, migration, true);
-      console.log(`[db:migrate] SQL compatibility skipped: ${migration.name} (${skipReason})`);
+      console.log(
+        `[db:migrate] SQL compatibility skipped: ${migration.name} (${skipReason})`,
+      );
       continue;
     }
 
@@ -478,7 +529,8 @@ async function baseline(): Promise<void> {
     allSqlMigrations,
     baselineManifest,
   );
-  const expectedTables = expectedTablesFromGeneratedMigrations(drizzleMigrations);
+  const expectedTables =
+    expectedTablesFromGeneratedMigrations(drizzleMigrations);
   const client = await createClient();
 
   try {
@@ -496,7 +548,8 @@ async function baseline(): Promise<void> {
 async function migrate(): Promise<void> {
   const drizzleMigrations = readDrizzleMigrations();
   const sqlMigrations = readSqlMigrations();
-  const expectedTables = expectedTablesFromGeneratedMigrations(drizzleMigrations);
+  const expectedTables =
+    expectedTablesFromGeneratedMigrations(drizzleMigrations);
 
   const preflightClient = await createClient();
   try {

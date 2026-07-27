@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 const tenantAHost = "tenant-a.runtime.fieldgrid.test";
 const tenantBHost = "tenant-b.runtime.fieldgrid.test";
-const platformHost = "platform.fieldgrid.nl";
+const platformHost = "platform.runtime.fieldgrid.test";
 const suspendedHost = "suspended.runtime.fieldgrid.test";
 const unknownHost = "unknown.runtime.fieldgrid.test";
 const tenantAAssignmentId = "70000000-0000-4000-8000-000000000001";

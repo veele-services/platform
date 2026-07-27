@@ -4,8 +4,9 @@ import {
   db,
   FIELDGRID_RUNTIME_ACCESS_PRIORITY,
   getActiveSupportAccessForUser,
-  isFieldgridSubdomain,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isPlatformHost,
+  isTenantDomainAllowedForRuntimeEnvironment,
   isSupportRuntimePermission,
   normalizeHost,
   moduleForPermissionResource,
@@ -389,7 +390,14 @@ async function resolveTenantByHost(
 ): Promise<ApiHostTenantResolution> {
   const normalizedHost = normalizeHost(host);
   if (!normalizedHost) return { kind: "none" };
+  if (!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)) {
+    return { kind: "blocked" };
+  }
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
+  if (normalizedHost === "fieldgrid.nl") return { kind: "none" };
+  if (!isTenantDomainAllowedForRuntimeEnvironment(normalizedHost)) {
+    return { kind: "blocked" };
+  }
 
   const [tenant] = await db
     .select({ tenantId: tenantsTable.id })
@@ -407,8 +415,7 @@ async function resolveTenantByHost(
     .limit(1);
 
   if (tenant) return { kind: "tenant", tenantId: tenant.tenantId };
-  if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
-  return { kind: "none" };
+  return { kind: "blocked" };
 }
 
 async function userHasActiveTenant(

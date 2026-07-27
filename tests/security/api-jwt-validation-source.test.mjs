@@ -44,3 +44,21 @@ test("runtime API proof includes envelope, revocation, surface and metadata reje
     assert.ok(harness.includes(fragment), fragment);
   }
 });
+
+test("runtime API proof uses disposable external hosts instead of deployment domains", () => {
+  assert.match(
+    harness,
+    /const API_RUNTIME_HOST = "api\.runtime\.fieldgrid\.test"/u,
+  );
+  assert.match(
+    harness,
+    /const UNKNOWN_API_RUNTIME_HOST = "unknown\.runtime\.fieldgrid\.test"/u,
+  );
+  assert.match(harness, /delete env\.APP_ENV/u);
+  assert.match(harness, /PLATFORM_HOSTS: API_RUNTIME_HOST/u);
+  assert.doesNotMatch(harness, /"x-forwarded-host": "fieldgrid\.nl"/u);
+  assert.doesNotMatch(
+    harness,
+    /"x-forwarded-host": "unknown\.runtime\.fieldgrid\.nl"/u,
+  );
+});

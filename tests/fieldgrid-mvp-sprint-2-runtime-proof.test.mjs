@@ -26,7 +26,8 @@ test("MVP Sprint 2 runtime proof defines the field-demo read-only gate", async (
       FIELDGRID_MVP_SPRINT2_MIGRATION_SMOKE_URL:
         "https://github.com/veele-services/platform/actions/runs/28902141188",
       FIELDGRID_MVP_SPRINT2_STAGING_SMOKE_STATUS: "pass",
-      FIELDGRID_MVP_SPRINT2_STAGING_SMOKE_URL: "https://staging.fieldgrid.nl/platform/staging-smoke",
+      FIELDGRID_MVP_SPRINT2_STAGING_SMOKE_URL:
+        "https://staging.fieldgrid.nl/platform/staging-smoke",
       FIELDGRID_MVP_SPRINT2_STORAGE_DOWNLOAD_STATUS: "pass",
       FIELDGRID_MVP_SPRINT2_PORTAL_ACCEPTANCE_STATUS: "pass",
       FIELDGRID_MVP_SPRINT2_NOTIFICATION_EMAIL_STATUS: "pass",
@@ -40,13 +41,15 @@ test("MVP Sprint 2 runtime proof defines the field-demo read-only gate", async (
   assert.equal(plan.destructive, false);
   assert.equal(plan.noTenantMutation, true);
   assert.equal(plan.pilotTenant.slug, "field-demo");
-  assert.equal(plan.pilotTenant.host, "field-demo.fieldgrid.nl");
+  assert.equal(plan.pilotTenant.host, "field-demo.staging.fieldgrid.nl");
   assert.equal(plan.pilotTenant.mutatingConfirm, "field-demo-only");
   assert.deepEqual(
     plan.gateItems.map((item) => item.id),
     mvpSprint2RequiredGateIds,
   );
-  assert.ok(plan.gateItems.every((item) => item.owner && item.command && item.evidence));
+  assert.ok(
+    plan.gateItems.every((item) => item.owner && item.command && item.evidence),
+  );
 });
 
 test("MVP Sprint 2 runtime proof script validates from the command line", () => {

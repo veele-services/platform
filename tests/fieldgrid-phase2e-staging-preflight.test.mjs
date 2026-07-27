@@ -61,22 +61,23 @@ function validEnvironment() {
     KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
     NEXT_PUBLIC_MARKETING_SITE_URL:
-      "https://veele.staging.fieldgrid.nl/",
-    FIELDGRID_CUSTOM_ROUTE_KEY: "veele_staging_primary",
-    FIELDGRID_CUSTOM_EXPECTED_HOST: "veele.staging.fieldgrid.nl",
+      "https://veeleservices.staging.fieldgrid.nl/",
+    FIELDGRID_CUSTOM_ROUTE_KEY: "veeleservices_staging_primary",
+    FIELDGRID_CUSTOM_EXPECTED_HOST: "veeleservices.staging.fieldgrid.nl",
     FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: JSON.stringify([
       {
         providerKey: "fieldgrid_vps",
-        routeKey: "veele_staging_primary",
+        routeKey: "veeleservices_staging_primary",
         releaseId: `git-commit:${mainSha}`,
-        expectedHosts: ["veele.staging.fieldgrid.nl"],
+        expectedHosts: ["veeleservices.staging.fieldgrid.nl"],
         healthPath: "/api/health",
         status: "routable",
-        upstreamOrigin: "https://veele-origin.staging.fieldgrid.nl",
+        upstreamOrigin: "https://veeleservices-origin.staging.fieldgrid.nl",
       },
     ]),
     API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/",
-    PILOT_TENANT_LOGIN_URL: "https://field-demo.fieldgrid.nl/admin/login",
+    PILOT_TENANT_LOGIN_URL:
+      "https://field-demo.staging.fieldgrid.nl/admin/login",
   });
   return env;
 }
@@ -121,13 +122,14 @@ test("secret and routing preflight lists every required deployment dependency by
   assert.ok(REQUIRED_SECRET_NAMES.includes("MOLLIE_WEBHOOK_SECRET"));
   assert.ok(REQUIRED_VARIABLE_NAMES.includes("PILOT_TENANT_LOGIN_URL"));
   assert.equal(REQUIRED_VARIABLE_NAMES.includes("WEBSITE_SERVICE_NAME"), false);
-  assert.equal(REQUIRED_VARIABLE_NAMES.includes("MARKETING_SERVICE_NAME"), false);
+  assert.equal(
+    REQUIRED_VARIABLE_NAMES.includes("MARKETING_SERVICE_NAME"),
+    false,
+  );
   assert.ok(
     REQUIRED_VARIABLE_NAMES.includes("FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"),
   );
-  assert.ok(
-    REQUIRED_VARIABLE_NAMES.includes("NEXT_PUBLIC_MARKETING_SITE_URL"),
-  );
+  assert.ok(REQUIRED_VARIABLE_NAMES.includes("NEXT_PUBLIC_MARKETING_SITE_URL"));
 
   const env = validEnvironment();
   delete env.FIELDGRID_CREDENTIAL_RECOVERY_SECRET;
@@ -177,8 +179,7 @@ test("custom candidate preflight is exact-main and staging-only", () => {
   );
 
   const production = validEnvironment();
-  production.NEXT_PUBLIC_MARKETING_SITE_URL =
-    "https://www.veeleservices.nl/";
+  production.NEXT_PUBLIC_MARKETING_SITE_URL = "https://www.veeleservices.nl/";
   production.FIELDGRID_CUSTOM_EXPECTED_HOST = "www.veeleservices.nl";
   assert.match(
     validateCustomCandidateConfig(mainSha, production).join(" "),

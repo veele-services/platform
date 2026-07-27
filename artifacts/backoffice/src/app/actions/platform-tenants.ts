@@ -9,10 +9,12 @@ import {
 } from "node:dns/promises";
 import {
   auditLogTable,
+  assertTenantDomainMatchesEnvironment,
   canTenantUseCustomDomains,
   customDomainTxtName,
   customDomainVerificationValue,
   db,
+  defaultTenantDomainForSlug,
   assignmentsTable,
   customersTable,
   documentsTable,
@@ -22,6 +24,7 @@ import {
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
   resolveCredentialRecoveryOrigin,
+  resolveFieldgridDeploymentEnvironment,
   isPlatformHost,
   isTenantRuntimeActive,
   isTenantModuleEnabled,
@@ -67,6 +70,7 @@ import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
+import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = [
@@ -583,7 +587,10 @@ function publicIpv6Target(): string | null {
 function customDomainCnameTarget(tenantSlug: string): string {
   return normalizeHost(
     process.env.FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET ??
-      `${tenantSlug}.fieldgrid.nl`,
+      defaultTenantDomainForSlug(
+        tenantSlug,
+        resolveFieldgridDeploymentEnvironment(),
+      ),
   );
 }
 
@@ -1083,30 +1090,7 @@ async function findPlatformTenantAuthUserByEmail(
 }
 
 async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
-  const [tenant] = await db
-    .select({ slug: tenantsTable.slug })
-    .from(tenantsTable)
-    .where(eq(tenantsTable.id, tenantId))
-    .limit(1);
-  const [domain] = await db
-    .select({ domain: tenantDomainsTable.domain })
-    .from(tenantDomainsTable)
-    .where(
-      and(
-        eq(tenantDomainsTable.tenantId, tenantId),
-        inArray(tenantDomainsTable.verificationStatus, ["verified", "active"]),
-      ),
-    )
-    .orderBy(
-      desc(tenantDomainsTable.isPrimary),
-      asc(tenantDomainsTable.createdAt),
-    )
-    .limit(1);
-
-  const host =
-    domain?.domain ??
-    (tenant?.slug ? `${tenant.slug}.fieldgrid.nl` : "admin.fieldgrid.nl");
-  return `https://${host}/admin/login`;
+  return `${await tenantApplicationOrigin(tenantId)}/admin/login`;
 }
 
 async function inviteOrFindTenantAuthUser(
@@ -2528,9 +2512,7 @@ export async function addPlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(
-    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
-  );
+  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function updatePlatformTenantAdmin(
@@ -2609,9 +2591,7 @@ export async function updatePlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(
-    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
-  );
+  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function deletePlatformTenantAdmin(
@@ -2672,9 +2652,7 @@ export async function deletePlatformTenantAdmin(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(
-    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
-  );
+  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function sendPlatformTenantAdminPasswordReset(
@@ -2768,9 +2746,7 @@ export async function sendPlatformTenantAdminPasswordReset(
   });
 
   revalidatePlatformTenant(tenantId);
-  redirect(
-    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
-  );
+  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function updatePlatformTenantOwnerInvite(
@@ -2926,9 +2902,7 @@ export async function updatePlatformTenantOwnerInvite(
 
   revalidatePlatformTenant(tenantId);
   revalidatePath("/platform/onboarding");
-  redirect(
-    backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`),
-  );
+  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
 }
 
 export async function listPlatformTenantRegions(
@@ -3165,10 +3139,10 @@ export async function listPlatformTenantSectors(tenantId: string): Promise<{
 
 export async function createPlatformTenant(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
+  const environment = resolveFieldgridDeploymentEnvironment();
   const name = actionValue(formData, "name");
   const slug = normalizeSlug(actionValue(formData, "slug") || name);
   const planKey = normalizePlanKey(actionValue(formData, "planKey"));
-  const domain = normalizeHost(actionValue(formData, "domain"));
 
   if (!name) throw new Error("Tenantnaam is verplicht.");
   if (!slug || !/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/.test(slug)) {
@@ -3176,6 +3150,13 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
       "Slug moet 3-80 tekens zijn en alleen kleine letters, cijfers en koppeltekens bevatten.",
     );
   }
+  const domain = assertTenantDomainMatchesEnvironment(
+    normalizeHost(
+      actionValue(formData, "domain") ||
+        defaultTenantDomainForSlug(slug, environment),
+    ),
+    environment,
+  );
   if (domain && isPlatformHost(domain)) {
     throw new Error(
       "Platformhosts kunnen niet aan een tenant worden gekoppeld.",
@@ -3525,6 +3506,7 @@ export async function addPlatformTenantDomain(
   formData: FormData,
 ): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
+  const environment = resolveFieldgridDeploymentEnvironment();
   const tenantId = actionValue(formData, "tenantId");
   const domain = normalizeHost(actionValue(formData, "domain"));
   const type = normalizeDomainType(actionValue(formData, "type"), domain);
@@ -3532,6 +3514,19 @@ export async function addPlatformTenantDomain(
 
   if (!tenantId || !domain)
     return { success: false, message: "Tenant en domein zijn verplicht." };
+  if (type === "fieldgrid_subdomain") {
+    try {
+      assertTenantDomainMatchesEnvironment(domain, environment);
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Domein hoort niet bij de actieve omgeving.",
+      };
+    }
+  }
   if (isPlatformHost(domain))
     return {
       success: false,

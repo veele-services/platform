@@ -25,7 +25,11 @@ jobs:
       name: staging
     env:
       APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       STAGING_SEED_CONFIRM: ${{ inputs.confirm }}
 
     steps:
@@ -43,6 +47,7 @@ jobs:
           set -euo pipefail
           node -v
           pnpm -v
+          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
 
       - name: Install dependencies
         run: |

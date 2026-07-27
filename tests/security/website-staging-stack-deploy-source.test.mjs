@@ -102,13 +102,17 @@ test("website stack sudoers grants only exact staging controls", () => {
     sudoers,
     /\/usr\/bin\/systemctl stop veele-staging-website veele-staging-marketing/u,
   );
+  assert.match(
+    sudoers,
+    /\/usr\/bin\/systemctl start fieldgrid-caddy-validate\.service/u,
+  );
   assert.match(sudoers, /\/usr\/bin\/systemctl reload caddy/u);
   assert.match(
     sudoers,
     /github-runner ALL=\(root\) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL/u,
   );
   assert.doesNotMatch(sudoers, /\*/u);
-  assert.doesNotMatch(sudoers, /\b(?:start|enable|disable|daemon-reload)\b/u);
+  assert.doesNotMatch(sudoers, /\b(?:enable|disable|daemon-reload)\b/u);
   assert.doesNotMatch(
     sudoers,
     /\/(?:bin|usr\/bin)\/(?:cp|install|mv|rm|tee)\b/u,
@@ -133,10 +137,47 @@ test("Caddy keeps application prefixes ahead of the website fallback", () => {
     );
   }
   assert.match(caddy, /website-runtime\.staging\.fieldgrid\.nl/u);
-  assert.match(caddy, /managed\.staging\.fieldgrid\.nl/u);
-  assert.match(caddy, /veele\.staging\.fieldgrid\.nl/u);
-  assert.match(caddy, /veele-origin\.staging\.fieldgrid\.nl/u);
+  assert.match(caddy, /\*\.staging\.fieldgrid\.nl/u);
+  assert.match(caddy, /dns cloudflare \{env\.CLOUDFLARE_API_TOKEN\}/u);
+  assert.match(caddy, /veeleservices-origin\.staging\.fieldgrid\.nl/u);
+  assert.doesNotMatch(caddy, /veele\.staging\.fieldgrid\.nl/u);
   assert.doesNotMatch(caddy, /handle_path/u);
+});
+
+test("Caddy validation uses the service environment and no repository token", () => {
+  const dropin = read(
+    "ops/systemd/caddy.service.d/fieldgrid-cloudflare-dns.conf",
+  );
+  const validation = read("ops/systemd/fieldgrid-caddy-validate.service");
+  const bootstrap = read("scripts/fieldgrid-staging-wildcard-tls-bootstrap.sh");
+
+  assert.match(
+    dropin,
+    /EnvironmentFile=\/etc\/caddy\/fieldgrid-cloudflare\.env/u,
+  );
+  assert.match(validation, /User=caddy/u);
+  assert.match(
+    validation,
+    /ExecStart=\/usr\/bin\/caddy validate --config \/etc\/caddy\/Caddyfile --adapter caddyfile/u,
+  );
+  assert.match(bootstrap, /list-modules[\s\S]*dns\.providers\.cloudflare/u);
+  assert.match(bootstrap, /root:root:600/u);
+  assert.match(
+    bootstrap,
+    /unbound-\$\{EXPECTED_SHA:0:12\}\.staging\.fieldgrid\.nl/u,
+  );
+  assert.match(bootstrap, /\[ "\$PROBE_STATUS" = "404" \]/u);
+  assert.match(bootstrap, /remove_new_token_on_failure/u);
+  assert.match(bootstrap, /trap rollback ERR EXIT/u);
+  assert.match(bootstrap, /trap - ERR EXIT/u);
+  assert.doesNotMatch(
+    `${dropin}\n${validation}`,
+    /CLOUDFLARE_API_TOKEN=[A-Za-z0-9_-]{20,}/u,
+  );
+  assert.doesNotMatch(
+    bootstrap,
+    /(?:install|systemctl|mkdir|rm|cp|mv)[^\n]*\/var\/www\/veele\/production/u,
+  );
 });
 
 test("deploy script isolates secrets and has explicit rollback", () => {
@@ -188,6 +229,8 @@ test("deploy script isolates secrets and has explicit rollback", () => {
     /FIELDGRID_CUSTOM_RELEASE_ID.*git-commit:\$EXPECTED_SHA/u,
   );
   assert.match(script, /trap rollback ERR/u);
+  assert.match(script, /trap rollback ERR EXIT/u);
+  assert.match(script, /trap - ERR EXIT/u);
   assert.match(script, /release-restored/u);
   assert.match(script, /require_preprovisioned_asset/u);
   assert.doesNotMatch(script, /SUDOERS_TARGET/u);
@@ -213,11 +256,27 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.match(
     script,
+    /require_nopasswd_control "exact Caddy validation" \\\n  \/usr\/bin\/systemctl start fieldgrid-caddy-validate\.service/u,
+  );
+  assert.match(
+    script,
     /require_nopasswd_control "exact Caddy reload" \\\n  \/usr\/bin\/systemctl reload caddy/u,
   );
   assert.match(script, /systemctl is-enabled --quiet/u);
-  assert.match(script, /caddy adapt --config "\$CADDYFILE"/u);
+  assert.match(
+    script,
+    /sudo systemctl start fieldgrid-caddy-validate\.service/u,
+  );
+  assert.doesNotMatch(script, /caddy adapt --config "\$CADDYFILE"/u);
   assert.match(script, /sudo systemctl reload caddy/u);
+  assert.match(
+    script,
+    /assert_release_marker "\$CORE_RELEASE_SHA_FILE" "core"/u,
+  );
+  assert.match(
+    script,
+    /"\$BASE_DIR\/current\/\.fieldgrid-release-sha" \\\n  "website stack"/u,
+  );
   assert.doesNotMatch(
     script,
     /sudo (?:install|cp|mkdir|rm|tee)|sudo systemctl enable/u,
@@ -340,6 +399,7 @@ test("sudo capability parser requires exact root NOPASSWD controls", () => {
   const stop =
     "/usr/bin/systemctl stop veele-staging-website veele-staging-marketing";
   const reload = "/usr/bin/systemctl reload caddy";
+  const validate = "/usr/bin/systemctl start fieldgrid-caddy-validate.service";
   const exactNopasswd = `Matching Defaults entries for github-runner on Veele:
 
 Sudoers entry: /etc/sudoers.d/veele-staging-website-stack
@@ -347,7 +407,7 @@ Sudoers entry: /etc/sudoers.d/veele-staging-website-stack
     Options: !authenticate
     Commands:
         ${restart},
-        ${stop}, ${reload}
+        ${stop}, ${validate}, ${reload}
 `;
   const passwordedTargetWithUnrelatedNopasswd = `Sudoers entry: /etc/sudoers
     RunAsUsers: root
@@ -412,6 +472,7 @@ Sudoers entry: /etc/sudoers.d/99-wildcard-override
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, restart), true);
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, stop), true);
   assert.equal(hasExactRootNopasswdCommand(exactNopasswd, reload), true);
+  assert.equal(hasExactRootNopasswdCommand(exactNopasswd, validate), true);
   assert.equal(
     hasExactRootNopasswdCommand(passwordedTargetWithUnrelatedNopasswd, restart),
     false,

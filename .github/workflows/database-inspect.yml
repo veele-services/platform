@@ -23,7 +23,12 @@ jobs:
       name: ${{ inputs.target }}
     env:
       APP_ENV: ${{ inputs.target }}
+      TARGET_ENVIRONMENT: ${{ inputs.target }}
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ inputs.target == 'staging' && 'olyfmekyqozxrbrwwszu' || vars.SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ inputs.target == 'production' && 'olyfmekyqozxrbrwwszu' || '' }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       REPORT_DIR: ${{ github.workspace }}/database-inspection/${{ inputs.target }}
 
     steps:
@@ -35,6 +40,7 @@ jobs:
           set -euo pipefail
           node -v
           pnpm -v
+          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
 
       - name: Install dependencies
         run: |

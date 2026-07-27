@@ -69,7 +69,12 @@ test("enterprise tenants use their own host while general tenants use code entry
   const android = source("artifacts/personeel-pwa/android/app/build.gradle");
 
   assert.match(entry, /tenant\.planKey === "enterprise"/u);
-  assert.match(entry, /https:\/\/\$\{domain\.domain\}/u);
+  assert.match(
+    entry,
+    /import \{ tenantApplicationOrigin \} from "@\/lib\/tenant-application-origin"/u,
+  );
+  assert.match(entry, /await tenantApplicationOrigin\(tenantId\)/u);
+  assert.doesNotMatch(entry, /https:\/\/\$\{domain\.domain\}/u);
   assert.match(entry, /organisatie\/\$\{tenant\.personnelLoginCode\}/u);
   assert.match(android, /nl\.veeleservices\.personeel/u);
   assert.match(android, /nl\.fieldgrid\.personeel/u);

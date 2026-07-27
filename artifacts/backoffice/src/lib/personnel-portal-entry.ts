@@ -1,6 +1,7 @@
-import { db, tenantDomainsTable, tenantsTable } from "@workspace/db";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { db, tenantsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { personeelPortalUrl } from "@/lib/email";
+import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 
 const PERSONNEL_BASE = "/personeel";
 
@@ -42,28 +43,10 @@ export async function personnelTenantEntryUrl(
   if (!tenant) throw new Error("Organisatie niet gevonden.");
 
   if (tenant.planKey === "enterprise") {
-    const [domain] = await db
-      .select({ domain: tenantDomainsTable.domain })
-      .from(tenantDomainsTable)
-      .where(
-        and(
-          eq(tenantDomainsTable.tenantId, tenantId),
-          inArray(tenantDomainsTable.verificationStatus, [
-            "verified",
-            "active",
-          ]),
-          ne(tenantDomainsTable.type, "platform_reserved"),
-        ),
-      )
-      .orderBy(
-        desc(tenantDomainsTable.isPrimary),
-        asc(tenantDomainsTable.createdAt),
-      )
-      .limit(1);
-
-    if (domain?.domain) {
-      return appendPersonnelPath(`https://${domain.domain}`, nextPath);
-    }
+    return appendPersonnelPath(
+      await tenantApplicationOrigin(tenantId),
+      nextPath,
+    );
   }
 
   const base = personeelPortalUrl().replace(/\/$/u, "");

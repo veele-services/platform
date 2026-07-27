@@ -8,10 +8,11 @@ import {
 
 const validEnvironment = {
   APP_ENV: "staging",
-  FIELDGRID_CUSTOM_ROUTE_KEY: "veele_staging_primary",
-  FIELDGRID_CUSTOM_RELEASE_ID: "git-commit:d32e4658650ef03522e83e38905b4d24bc961eeb",
-  FIELDGRID_CUSTOM_EXPECTED_HOST: "veele.staging.fieldgrid.nl",
-  NEXT_PUBLIC_MARKETING_SITE_URL: "https://veele.staging.fieldgrid.nl",
+  FIELDGRID_CUSTOM_ROUTE_KEY: "veeleservices_staging_primary",
+  FIELDGRID_CUSTOM_RELEASE_ID:
+    "git-commit:d32e4658650ef03522e83e38905b4d24bc961eeb",
+  FIELDGRID_CUSTOM_EXPECTED_HOST: "veeleservices.staging.fieldgrid.nl",
+  NEXT_PUBLIC_MARKETING_SITE_URL: "https://veeleservices.staging.fieldgrid.nl",
   FIELDGRID_WEBSITE_FORM_ID: "11111111-1111-4111-8111-111111111111",
 } as const;
 
@@ -22,10 +23,9 @@ test("custom health is exact schema v3 for a complete staging identity", () => {
       schemaVersion: 3,
       status: "healthy",
       providerKey: "fieldgrid_vps",
-      routeKey: "veele_staging_primary",
-      releaseId:
-        "git-commit:d32e4658650ef03522e83e38905b4d24bc961eeb",
-      expectedHost: "veele.staging.fieldgrid.nl",
+      routeKey: "veeleservices_staging_primary",
+      releaseId: "git-commit:d32e4658650ef03522e83e38905b4d24bc961eeb",
+      expectedHost: "veeleservices.staging.fieldgrid.nl",
       tls: { valid: true },
       network: { publicAddressesOnly: true },
       seo: {
@@ -66,9 +66,7 @@ test("custom health fails closed outside staging or on identity drift", () => {
 
 test("marketing form payload maps only to the platform allowlist", () => {
   assert.equal(
-    getFieldgridFormSubmissionEndpoint(
-      "11111111-1111-4111-8111-111111111111",
-    ),
+    getFieldgridFormSubmissionEndpoint("11111111-1111-4111-8111-111111111111"),
     "/api/website-forms/11111111-1111-4111-8111-111111111111/submissions",
   );
   assert.equal(getFieldgridFormSubmissionEndpoint("not-a-uuid"), null);

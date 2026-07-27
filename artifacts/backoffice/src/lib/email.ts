@@ -14,7 +14,9 @@ function backofficeBaseUrl(value: string): string {
   if (pathname === "/") {
     url.pathname = BACKOFFICE_BASE_PATH;
   } else if (pathname !== BACKOFFICE_BASE_PATH) {
-    throw new Error(`Backoffice URL must use ${BACKOFFICE_BASE_PATH} as its only path.`);
+    throw new Error(
+      `Backoffice URL must use ${BACKOFFICE_BASE_PATH} as its only path.`,
+    );
   }
   url.search = "";
   url.hash = "";
@@ -31,10 +33,13 @@ export function backofficeUrl(): string {
   const explicit =
     process.env["BACKOFFICE_URL"] ??
     process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ??
-    process.env["NEXT_PUBLIC_SITE_URL"];
+    process.env["NEXT_PUBLIC_SITE_URL"] ??
+    process.env["APP_URL"] ??
+    process.env["NEXT_PUBLIC_APP_URL"];
   if (explicit) return backofficeBaseUrl(explicit);
   const domains = process.env["REPLIT_DOMAINS"];
-  if (domains) return backofficeBaseUrl(`https://${domains.split(",")[0]!.trim()}`);
+  if (domains)
+    return backofficeBaseUrl(`https://${domains.split(",")[0]!.trim()}`);
   return "https://admin.fieldgrid.nl/admin";
 }
 
@@ -43,7 +48,9 @@ export function platformAdminUrl(): string {
     process.env["PLATFORM_ADMIN_URL"] ??
     process.env["NEXT_PUBLIC_PLATFORM_ADMIN_URL"] ??
     process.env["BACKOFFICE_URL"] ??
-    process.env["NEXT_PUBLIC_BACKOFFICE_URL"];
+    process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ??
+    process.env["APP_URL"] ??
+    process.env["NEXT_PUBLIC_APP_URL"];
   return backofficeBaseUrl(explicit ?? "https://admin.fieldgrid.nl");
 }
 
@@ -56,7 +63,8 @@ export async function sendEmail(opts: {
   purpose?: string | null;
 }): Promise<void> {
   const result = await sendEmailWithResult(opts);
-  if (!result.success) console.error("[email] Verzenden mislukt:", result.error);
+  if (!result.success)
+    console.error("[email] Verzenden mislukt:", result.error);
 }
 
 export async function sendEmailWithResult(opts: {
@@ -79,11 +87,15 @@ export async function sendEmailWithResult(opts: {
     purpose: opts.purpose ?? null,
   });
 
-  return result.success ? { success: true } : { success: false, error: result.error };
+  return result.success
+    ? { success: true }
+    : { success: false, error: result.error };
 }
 
 export function klantPortalUrl(): string {
-  const explicit = process.env["KLANT_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_KLANT_PORTAL_URL"];
+  const explicit =
+    process.env["KLANT_PORTAL_URL"] ??
+    process.env["NEXT_PUBLIC_KLANT_PORTAL_URL"];
   if (explicit) return explicit.replace(/\/$/, "");
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}/klant`;
@@ -93,7 +105,9 @@ export function klantPortalUrl(): string {
 }
 
 export function personeelPortalUrl(): string {
-  const explicit = process.env["PERSONEEL_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_PERSONEEL_PORTAL_URL"];
+  const explicit =
+    process.env["PERSONEEL_PORTAL_URL"] ??
+    process.env["NEXT_PUBLIC_PERSONEEL_PORTAL_URL"];
   if (explicit) return explicit.replace(/\/$/, "");
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}/personeel`;
@@ -102,18 +116,27 @@ export function personeelPortalUrl(): string {
   return "https://fieldgrid.nl/personeel";
 }
 
-function renderPreview(templateKey: EmailTemplateKey, variables: EmailTemplateVariables): RenderedEmail {
+function renderPreview(
+  templateKey: EmailTemplateKey,
+  variables: EmailTemplateVariables,
+): RenderedEmail {
   return renderEmailTemplatePreview({ templateKey, variables });
 }
 
 function formatAmount(value: string): string {
   const parsed = Number.parseFloat(value);
   const amount = Number.isFinite(parsed) ? parsed : 0;
-  return amount.toLocaleString("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
+  return amount.toLocaleString("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  });
 }
 
 function formatPeriod(startDate: string, endDate: string | null): string {
-  return endDate && endDate !== startDate ? `${startDate} t/m ${endDate}` : startDate;
+  return endDate && endDate !== startDate
+    ? `${startDate} t/m ${endDate}`
+    : startDate;
 }
 
 function stripHtml(value: string): string {
@@ -139,7 +162,8 @@ export type StyledNotificationEmailInput = {
 export async function buildStyledNotificationEmail(
   opts: StyledNotificationEmailInput,
 ): Promise<{ subject: string; html: string; text: string }> {
-  const bodyText = opts.bodyText?.trim() || (opts.bodyHtml ? stripHtml(opts.bodyHtml) : "");
+  const bodyText =
+    opts.bodyText?.trim() || (opts.bodyHtml ? stripHtml(opts.bodyHtml) : "");
   return renderEmailTemplate({
     tenantId: opts.tenantId ?? null,
     templateKey: "notification_manual",

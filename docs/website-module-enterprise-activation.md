@@ -68,10 +68,10 @@ The route JSON is operator-owned configuration. It is not tenant input:
     "providerKey": "fieldgrid_vps",
     "routeKey": "reviewed_opaque_route_key",
     "releaseId": "git-commit:exact-staging-sha",
-    "expectedHosts": ["veele.staging.fieldgrid.nl"],
+    "expectedHosts": ["veeleservices.staging.fieldgrid.nl"],
     "healthPath": "/api/health",
     "status": "routable",
-    "upstreamOrigin": "https://veele-origin.staging.fieldgrid.nl"
+    "upstreamOrigin": "https://veeleservices-origin.staging.fieldgrid.nl"
   }
 ]
 ```
@@ -89,8 +89,8 @@ marketing process never receives platform database credentials.
 ### One-time root bootstrap
 
 The deploy runner must not receive generic root file-write access. A server
-operator installs the reviewed root-owned systemd and Caddy assets once from
-the exact active staging release:
+operator installs the reviewed root-owned systemd assets once from the exact
+active staging release. The service Node validation remains mandatory:
 
 ```bash
 set -euo pipefail
@@ -98,6 +98,7 @@ expected="EXACT_STAGING_SHA"
 source_root="/var/www/veele/staging/current"
 service_node="/usr/bin/node"
 
+test "$(whoami)" = "root"
 test "$(cat "$source_root/.fieldgrid-release-sha")" = "$expected"
 test -x "$service_node"
 test "$(readlink -f "$(command -v node)")" = "$(readlink -f "$service_node")"
@@ -107,29 +108,14 @@ test "$(readlink -f "$(command -v node)")" = "$(readlink -f "$service_node")"
     throw new Error(`Fieldgrid requires Node >=24.0.0 <25; received ${version}`);
   }
 '
-sudo install -o root -g root -m 0644 \
+install -o root -g root -m 0644 \
   "$source_root/ops/systemd/veele-staging-website.service" \
   /etc/systemd/system/veele-staging-website.service
-sudo install -o root -g root -m 0644 \
+install -o root -g root -m 0644 \
   "$source_root/ops/systemd/veele-staging-marketing.service" \
   /etc/systemd/system/veele-staging-marketing.service
-sudo install -d -o root -g root -m 0755 /etc/caddy/fieldgrid.d
-sudo install -o root -g root -m 0644 \
-  "$source_root/ops/caddy/fieldgrid-website-staging.caddy" \
-  /etc/caddy/fieldgrid.d/fieldgrid-website-staging.caddy
-sudo visudo -cf \
-  "$source_root/ops/sudoers/veele-staging-website-stack"
-sudo install -o root -g root -m 0440 \
-  "$source_root/ops/sudoers/veele-staging-website-stack" \
-  /etc/sudoers.d/veele-staging-website-stack
-sudo visudo -cf /etc/sudoers.d/veele-staging-website-stack
-if ! sudo grep -Fxq 'import /etc/caddy/fieldgrid.d/*.caddy' /etc/caddy/Caddyfile; then
-  printf '\n%s\n' 'import /etc/caddy/fieldgrid.d/*.caddy' |
-    sudo tee -a /etc/caddy/Caddyfile >/dev/null
-fi
-caddy adapt --config /etc/caddy/Caddyfile >/dev/null
-sudo systemctl daemon-reload
-sudo systemctl enable veele-staging-website veele-staging-marketing
+systemctl daemon-reload
+systemctl enable veele-staging-website veele-staging-marketing
 ```
 
 Do not use `enable --now`: the deploy workflow first creates and atomically
@@ -139,15 +125,37 @@ services. The operator must provision a root-managed Node 24 executable at
 bootstrap and every deployment verify that the PATH-resolved build Node and
 the systemd service Node resolve to the same executable and satisfy the
 repository engine before any release is built or activated. Do not reload
-Caddy during bootstrap; the workflow reloads it only after both local
-process-health checks pass, using the Caddy service's protected DNS-provider
-environment. Every later deployment compares all three root-owned assets byte
-for byte with the exact staging checkout and fails closed on drift. It never
+Caddy through an unvalidated handwritten command.
+
+Wildcard TLS and the narrow runner capability are installed by the reviewed
+fail-closed bootstrap from that same active release:
+
+```bash
+bash \
+  /var/www/veele/staging/current/scripts/fieldgrid-staging-wildcard-tls-bootstrap.sh \
+  --install \
+  --source-dir /var/www/veele/staging/current \
+  --expected-sha EXACT_STAGING_SHA
+```
+
+Run this second block as root. It verifies the active release marker, the
+Cloudflare DNS-provider module, the sudoers policy and the complete Caddy
+configuration before Caddy is restarted. The Cloudflare token is read from the
+running Caddy service when available; otherwise the script asks for it without
+echoing it. The token is stored only in
+`/etc/caddy/fieldgrid-cloudflare.env` as `root:root` mode `0600`, loaded through
+the Caddy systemd service environment and never written to the repository.
+Failure restores the previous Caddy and sudoers files. Success includes a
+normal TLS request to a random, previously unbound
+`*.staging.fieldgrid.nl` hostname and requires exact HTTP `404`.
+
+Every later deployment compares all root-owned assets byte for byte with the
+exact staging checkout and fails closed on drift. It never
 uses `sudo install`, `sudo cp`, `sudo tee` or generic privileged file mutation.
 The separate root-owned sudoers drop-in grants only the exact two-unit
 restart/stop commands needed for activation and rollback, plus `systemctl
-reload caddy`. The workflow verifies those grants without executing them before
-it builds a release.
+reload caddy` and the exact one-shot Caddy validation unit. The workflow
+verifies those grants without executing them before it builds a release.
 
 Configure and validate Caddy so that:
 
@@ -159,11 +167,12 @@ Configure and validate Caddy so that:
 - deploys never rewrite root-owned Caddy configuration and retain the prior
   website-stack release for rollback.
 
-Before reload:
+The bootstrap performs the authoritative Caddy validation with the same
+protected environment as the service. For diagnosis after installation:
 
 ```bash
-sudo caddy validate --config /etc/caddy/Caddyfile
-sudo systemctl status "$WEBSITE_SERVICE_NAME" --no-pager
+systemctl start fieldgrid-caddy-validate.service
+systemctl status "$WEBSITE_SERVICE_NAME" --no-pager
 curl --fail --silent --show-error \
   "http://127.0.0.1:${WEBSITE_PORT}/healthz"
 ```
@@ -183,7 +192,7 @@ HTTPS health endpoint returning exact schema version 3:
   "providerKey": "fieldgrid_vps",
   "routeKey": "reviewed_opaque_route_key",
   "releaseId": "git-commit:exact-staging-sha",
-  "expectedHost": "veele.staging.fieldgrid.nl",
+  "expectedHost": "veeleservices.staging.fieldgrid.nl",
   "tls": { "valid": true },
   "network": { "publicAddressesOnly": true },
   "seo": {
@@ -262,7 +271,7 @@ website-stack symlink and prior Caddy state. It never moves a Git ref.
 Create or select two staging proof sites:
 
 - one managed site bound to `managed.staging.fieldgrid.nl`;
-- the Veele custom site bound to `veele.staging.fieldgrid.nl`.
+- the Veele custom site bound to `veeleservices.staging.fieldgrid.nl`.
 
 Create and publish the real Veele lead form, set its UUID as
 `FIELDGRID_WEBSITE_FORM_ID`, then rerun **Website Staging Stack Deploy** against

@@ -6,7 +6,10 @@ import vm from "node:vm";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
-const filename = new URL("../../lib/db/src/credential-recovery.ts", import.meta.url);
+const filename = new URL(
+  "../../lib/db/src/credential-recovery.ts",
+  import.meta.url,
+);
 const source = readFileSync(filename, "utf8");
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -16,22 +19,32 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const module = { exports: {} };
-vm.runInNewContext(compiled, {
-  module,
-  exports: module.exports,
-  require,
-  process: { env: { NODE_ENV: "test" } },
-  Buffer,
-  URL,
-}, { filename: filename.pathname });
+vm.runInNewContext(
+  compiled,
+  {
+    module,
+    exports: module.exports,
+    require,
+    process: { env: { NODE_ENV: "test" } },
+    Buffer,
+    URL,
+  },
+  { filename: filename.pathname },
+);
 const recovery = module.exports;
 
 test("credential recovery generates high-entropy separated challenge material", () => {
-  const codes = new Set(Array.from({ length: 128 }, () => recovery.generateCredentialRecoveryCode()));
+  const codes = new Set(
+    Array.from({ length: 128 }, () =>
+      recovery.generateCredentialRecoveryCode(),
+    ),
+  );
   assert.equal(codes.size, 128);
   for (const code of codes) assert.match(code, /^\d{8}$/u);
 
-  const grants = new Set(Array.from({ length: 64 }, () => recovery.generateResetGrant()));
+  const grants = new Set(
+    Array.from({ length: 64 }, () => recovery.generateResetGrant()),
+  );
   assert.equal(grants.size, 64);
   for (const grant of grants) assert.ok(grant.length >= 43);
 
@@ -46,16 +59,32 @@ test("credential recovery generates high-entropy separated challenge material", 
   assert.equal(lookup.length, 64);
   assert.equal(
     lookup,
-    recovery.credentialRecoveryLookupHmac({ ...base, accountIdentifier: "user@example.test" }),
+    recovery.credentialRecoveryLookupHmac({
+      ...base,
+      accountIdentifier: "user@example.test",
+    }),
   );
-  assert.notEqual(lookup, recovery.credentialRecoveryLookupHmac({ ...base, surface: "personnel-portal" }));
-  assert.notEqual(lookup, recovery.credentialRecoveryLookupHmac({
-    ...base,
-    tenantId: "10000000-0000-4000-8000-000000000002",
-  }));
+  assert.notEqual(
+    lookup,
+    recovery.credentialRecoveryLookupHmac({
+      ...base,
+      surface: "personnel-portal",
+    }),
+  );
+  assert.notEqual(
+    lookup,
+    recovery.credentialRecoveryLookupHmac({
+      ...base,
+      tenantId: "10000000-0000-4000-8000-000000000002",
+    }),
+  );
 
   const code = [...codes][0];
-  const codeHash = recovery.credentialRecoveryCodeHash({ lookupHmac: lookup, code, secret });
+  const codeHash = recovery.credentialRecoveryCodeHash({
+    lookupHmac: lookup,
+    code,
+    secret,
+  });
   const grant = [...grants][0];
   const grantHash = recovery.credentialRecoveryGrantHash(grant, secret);
   assert.equal(codeHash.length, 64);
@@ -64,20 +93,24 @@ test("credential recovery generates high-entropy separated challenge material", 
   assert.equal(grantHash.includes(grant), false);
   assert.equal(recovery.safeCompareRecoveryDigest(codeHash, codeHash), true);
   assert.equal(recovery.safeCompareRecoveryDigest(codeHash, grantHash), false);
-  assert.equal(recovery.safeCompareRecoveryDigest(codeHash, "malformed"), false);
+  assert.equal(
+    recovery.safeCompareRecoveryDigest(codeHash, "malformed"),
+    false,
+  );
 });
 
 test("credential recovery classifies expiry, use and invalidation deterministically", () => {
   const now = new Date("2026-07-18T12:00:00.000Z");
   const future = new Date("2026-07-18T12:30:00.000Z");
   const past = new Date("2026-07-18T11:59:59.000Z");
-  const classify = (overrides = {}) => recovery.classifyCredentialRecoveryChallenge({
-    now,
-    expiresAt: future,
-    attemptsRemaining: 6,
-    codeMatches: true,
-    ...overrides,
-  });
+  const classify = (overrides = {}) =>
+    recovery.classifyCredentialRecoveryChallenge({
+      now,
+      expiresAt: future,
+      attemptsRemaining: 6,
+      codeMatches: true,
+      ...overrides,
+    });
 
   assert.equal(classify(), "valid");
   assert.equal(classify({ usedAt: past }), "used");
@@ -96,14 +129,18 @@ test("credential recovery origins are exact, allowlisted and HTTPS", () => {
     "https://tenant-a.fieldgrid.test",
   );
   assert.throws(
-    () => recovery.resolveCredentialRecoveryOrigin({
-      configuredOrigin: "https://evil.example.test",
-      allowedOrigins: ["https://tenant-a.fieldgrid.test"],
-    }),
+    () =>
+      recovery.resolveCredentialRecoveryOrigin({
+        configuredOrigin: "https://evil.example.test",
+        allowedOrigins: ["https://tenant-a.fieldgrid.test"],
+      }),
     /not allowlisted/u,
   );
   assert.throws(
-    () => recovery.resolveCredentialRecoveryOrigin({ configuredOrigin: "http://tenant-a.fieldgrid.test" }),
+    () =>
+      recovery.resolveCredentialRecoveryOrigin({
+        configuredOrigin: "http://tenant-a.fieldgrid.test",
+      }),
     /HTTPS/u,
   );
   assert.equal(
@@ -112,5 +149,21 @@ test("credential recovery origins are exact, allowlisted and HTTPS", () => {
       allowHttpLocalhost: true,
     }),
     "http://127.0.0.1:9323",
+  );
+  assert.throws(
+    () =>
+      recovery.resolveCredentialRecoveryOrigin({
+        configuredOrigin: "https://tenant-a.fieldgrid.nl",
+        deploymentEnvironment: "staging",
+      }),
+    /belongs to production/u,
+  );
+  assert.throws(
+    () =>
+      recovery.resolveCredentialRecoveryOrigin({
+        configuredOrigin: "https://tenant-a.staging.fieldgrid.nl",
+        deploymentEnvironment: "production",
+      }),
+    /belongs to staging/u,
   );
 });

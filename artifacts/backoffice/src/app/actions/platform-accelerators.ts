@@ -3,6 +3,7 @@
 import {
   auditLogTable,
   db,
+  defaultTenantDomainForSlug,
   documentsTable,
   emailDeliveryLogTable,
   platformNotificationDispatchesTable,
@@ -12,16 +13,27 @@ import {
   tenantSubscriptionsTable,
   tenantUsersTable,
   tenantsTable,
+  resolveFieldgridDeploymentEnvironment,
 } from "@workspace/db";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin, type CurrentPlatformUser } from "@/lib/auth/platform";
+import {
+  requirePlatformAdmin,
+  type CurrentPlatformUser,
+} from "@/lib/auth/platform";
 import { listPlatformNotificationCenter } from "./platform-notifications";
 import { getPlatformStagingSmokeDashboard } from "./platform-smoke";
 import type { PlatformSmokeStatus } from "./platform-smoke.types";
 
 export type PlatformAcceleratorHealthSignal = {
-  id: "domains" | "mail" | "modules" | "users" | "errors" | "storage" | "smokes";
+  id:
+    | "domains"
+    | "mail"
+    | "modules"
+    | "users"
+    | "errors"
+    | "storage"
+    | "smokes";
   label: string;
   status: PlatformSmokeStatus;
   summary: string;
@@ -55,7 +67,7 @@ export type PlatformAcceleratorTenantHealthRow = {
 };
 
 export type PlatformAcceleratorDemoTenant = {
-  slug: "demo-a" | "demo-b" | "veele";
+  slug: "demo-a" | "demo-b" | "veeleservices";
   label: string;
   domain: string;
   recommendedPlan: string;
@@ -80,7 +92,11 @@ export type PlatformAcceleratorNotificationSandboxEvent = {
 };
 
 export type PlatformAcceleratorVisualSnapshotTarget = {
-  id: "platform-backoffice" | "tenant-backoffice" | "customer-portal" | "personnel-portal";
+  id:
+    | "platform-backoffice"
+    | "tenant-backoffice"
+    | "customer-portal"
+    | "personnel-portal";
   label: string;
   baseUrlEnv: string;
   routes: string[];
@@ -122,11 +138,16 @@ export type PlatformAcceleratorsDashboard = {
 
 type CountMap = Map<string, number>;
 
-const DEMO_TENANT_SLUGS = ["demo-a", "demo-b", "veele"] as const;
+const DEMO_TENANT_SLUGS = ["demo-a", "demo-b", "veeleservices"] as const;
 const DEMO_RESET_CONFIRMATION = "reset-demo-tenants";
 
-const VISUAL_REGRESSION_VIEWPORTS = ["mobile-390", "tablet-768", "desktop-1440"];
-const VISUAL_REGRESSION_COMMAND = "pnpm fieldgrid:visual-regression-snapshots --run";
+const VISUAL_REGRESSION_VIEWPORTS = [
+  "mobile-390",
+  "tablet-768",
+  "desktop-1440",
+];
+const VISUAL_REGRESSION_COMMAND =
+  "pnpm fieldgrid:visual-regression-snapshots --run";
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -161,9 +182,12 @@ function statusRank(status: PlatformSmokeStatus): number {
   return 0;
 }
 
-function combinedStatus(signals: PlatformAcceleratorHealthSignal[]): PlatformSmokeStatus {
+function combinedStatus(
+  signals: PlatformAcceleratorHealthSignal[],
+): PlatformSmokeStatus {
   return signals.reduce<PlatformSmokeStatus>(
-    (current, signal) => (statusRank(signal.status) > statusRank(current) ? signal.status : current),
+    (current, signal) =>
+      statusRank(signal.status) > statusRank(current) ? signal.status : current,
     "ok",
   );
 }
@@ -175,21 +199,31 @@ function healthScore(signals: PlatformAcceleratorHealthSignal[]): number {
     warning: 45,
     blocked: 0,
   };
-  return Math.round(signals.reduce((total, signal) => total + weights[signal.status], 0) / signals.length);
+  return Math.round(
+    signals.reduce((total, signal) => total + weights[signal.status], 0) /
+      signals.length,
+  );
 }
 
-function statusForScore(score: number, status: PlatformSmokeStatus): PlatformSmokeStatus {
+function statusForScore(
+  score: number,
+  status: PlatformSmokeStatus,
+): PlatformSmokeStatus {
   if (status === "blocked") return "blocked";
   if (status === "warning") return "warning";
   if (status === "manual") return "manual";
   return score >= 85 ? "ok" : "warning";
 }
 
-function mapCounts(rows: Array<{ tenantId: string; value: unknown }>): CountMap {
+function mapCounts(
+  rows: Array<{ tenantId: string; value: unknown }>,
+): CountMap {
   return new Map(rows.map((row) => [row.tenantId, numberValue(row.value)]));
 }
 
-async function latestAuditActionTimes(action: string): Promise<Map<string, string>> {
+async function latestAuditActionTimes(
+  action: string,
+): Promise<Map<string, string>> {
   const rows = await db
     .select({
       resourceId: auditLogTable.resourceId,
@@ -222,7 +256,12 @@ async function writePlatformAcceleratorAudit(input: {
   });
 }
 
-async function listDomainCounts(): Promise<Map<string, { domains: number; verifiedDomains: number; primaryDomain: string | null }>> {
+async function listDomainCounts(): Promise<
+  Map<
+    string,
+    { domains: number; verifiedDomains: number; primaryDomain: string | null }
+  >
+> {
   const rows = await db
     .select({
       tenantId: tenantDomainsTable.tenantId,
@@ -232,7 +271,9 @@ async function listDomainCounts(): Promise<Map<string, { domains: number; verifi
           AND ${tenantDomainsTable.verificationStatus} IN ('verified', 'active')
           AND ${tenantDomainsTable.tlsStatus} IN ('ready', 'active', 'issued', 'verified')
       )::int`,
-      primaryDomain: sql<string | null>`max(${tenantDomainsTable.domain}) FILTER (WHERE ${tenantDomainsTable.isPrimary} = true)`,
+      primaryDomain: sql<
+        string | null
+      >`max(${tenantDomainsTable.domain}) FILTER (WHERE ${tenantDomainsTable.isPrimary} = true)`,
     })
     .from(tenantDomainsTable)
     .groupBy(tenantDomainsTable.tenantId);
@@ -249,7 +290,9 @@ async function listDomainCounts(): Promise<Map<string, { domains: number; verifi
   );
 }
 
-async function listMailCounts(): Promise<Map<string, { sent: number; failed: number }>> {
+async function listMailCounts(): Promise<
+  Map<string, { sent: number; failed: number }>
+> {
   const rows = await db
     .select({
       tenantId: emailDeliveryLogTable.tenantId,
@@ -257,13 +300,20 @@ async function listMailCounts(): Promise<Map<string, { sent: number; failed: num
       failed: sql<number>`count(*) FILTER (WHERE ${emailDeliveryLogTable.status} IN ('failed', 'error', 'bounced'))::int`,
     })
     .from(emailDeliveryLogTable)
-    .where(sql`${emailDeliveryLogTable.tenantId} IS NOT NULL AND ${emailDeliveryLogTable.createdAt} >= now() - interval '7 days'`)
+    .where(
+      sql`${emailDeliveryLogTable.tenantId} IS NOT NULL AND ${emailDeliveryLogTable.createdAt} >= now() - interval '7 days'`,
+    )
     .groupBy(emailDeliveryLogTable.tenantId);
 
   return new Map(
     rows
-      .filter((row): row is typeof row & { tenantId: string } => Boolean(row.tenantId))
-      .map((row) => [row.tenantId, { sent: numberValue(row.sent), failed: numberValue(row.failed) }]),
+      .filter((row): row is typeof row & { tenantId: string } =>
+        Boolean(row.tenantId),
+      )
+      .map((row) => [
+        row.tenantId,
+        { sent: numberValue(row.sent), failed: numberValue(row.failed) },
+      ]),
   );
 }
 
@@ -275,7 +325,10 @@ async function listLatestSubscriptionStatus(): Promise<Map<string, string>> {
       updatedAt: tenantSubscriptionsTable.updatedAt,
     })
     .from(tenantSubscriptionsTable)
-    .orderBy(asc(tenantSubscriptionsTable.tenantId), desc(tenantSubscriptionsTable.updatedAt));
+    .orderBy(
+      asc(tenantSubscriptionsTable.tenantId),
+      desc(tenantSubscriptionsTable.updatedAt),
+    );
 
   const result = new Map<string, string>();
   for (const row of rows) {
@@ -286,7 +339,9 @@ async function listLatestSubscriptionStatus(): Promise<Map<string, string>> {
   return result;
 }
 
-async function listStorageCounts(): Promise<Map<string, { documents: number; storageBytes: number; legacyPaths: number }>> {
+async function listStorageCounts(): Promise<
+  Map<string, { documents: number; storageBytes: number; legacyPaths: number }>
+> {
   const rows = await db
     .select({
       tenantId: documentsTable.tenantId,
@@ -303,7 +358,9 @@ async function listStorageCounts(): Promise<Map<string, { documents: number; sto
 
   return new Map(
     rows
-      .filter((row): row is typeof row & { tenantId: string } => Boolean(row.tenantId))
+      .filter((row): row is typeof row & { tenantId: string } =>
+        Boolean(row.tenantId),
+      )
       .map((row) => [
         row.tenantId,
         {
@@ -335,69 +392,119 @@ function buildHealthSignals(input: {
     {
       id: "domains",
       label: "Domeinen",
-      status: input.verifiedDomainCount > 0 ? "ok" : input.domainCount > 0 ? "warning" : inactiveTenant ? "manual" : "blocked",
+      status:
+        input.verifiedDomainCount > 0
+          ? "ok"
+          : input.domainCount > 0
+            ? "warning"
+            : inactiveTenant
+              ? "manual"
+              : "blocked",
       summary:
         input.verifiedDomainCount > 0
           ? `${input.verifiedDomainCount}/${input.domainCount} domeinen verified.`
           : input.domainCount > 0
             ? `${input.domainCount} domein(en), verificatie open.`
             : "Geen tenantdomein gekoppeld.",
-      nextAction: input.verifiedDomainCount > 0 ? "Geen actie nodig." : "Controleer DNS/TLS en host-first routing voor deze tenant.",
+      nextAction:
+        input.verifiedDomainCount > 0
+          ? "Geen actie nodig."
+          : "Controleer DNS/TLS en host-first routing voor deze tenant.",
     },
     {
       id: "mail",
       label: "Mail",
-      status: input.failedEmails7d > 0 ? "warning" : input.sentEmails7d > 0 ? "ok" : "manual",
+      status:
+        input.failedEmails7d > 0
+          ? "warning"
+          : input.sentEmails7d > 0
+            ? "ok"
+            : "manual",
       summary:
         input.failedEmails7d > 0
           ? `${input.failedEmails7d} mailfout(en) in 7 dagen.`
           : input.sentEmails7d > 0
             ? `${input.sentEmails7d} mail events in 7 dagen zonder fouten.`
             : "Geen maildelivery bewijs in 7 dagen.",
-      nextAction: input.failedEmails7d > 0 ? "Open e-maildelivery log en test tenant-template override." : "Draai een tenant notification sandbox of onboardingmail.",
+      nextAction:
+        input.failedEmails7d > 0
+          ? "Open e-maildelivery log en test tenant-template override."
+          : "Draai een tenant notification sandbox of onboardingmail.",
     },
     {
       id: "modules",
       label: "Modules",
-      status: input.enabledModules > 0 ? "ok" : inactiveTenant ? "manual" : "blocked",
+      status:
+        input.enabledModules > 0 ? "ok" : inactiveTenant ? "manual" : "blocked",
       summary: `${input.enabledModules} module(s) actief.`,
-      nextAction: input.enabledModules > 0 ? "Geen actie nodig." : "Koppel minimaal de basis modules via onboarding/provisioning.",
+      nextAction:
+        input.enabledModules > 0
+          ? "Geen actie nodig."
+          : "Koppel minimaal de basis modules via onboarding/provisioning.",
     },
     {
       id: "users",
       label: "Users",
-      status: input.activeUsers > 0 ? "ok" : inactiveTenant ? "manual" : "blocked",
+      status:
+        input.activeUsers > 0 ? "ok" : inactiveTenant ? "manual" : "blocked",
       summary: `${input.activeUsers} actieve tenant user(s).`,
-      nextAction: input.activeUsers > 0 ? "Geen actie nodig." : "Controleer owner invite en tenant_users membership.",
+      nextAction:
+        input.activeUsers > 0
+          ? "Geen actie nodig."
+          : "Controleer owner invite en tenant_users membership.",
     },
     {
       id: "errors",
       label: "Errors",
-      status: input.errorEvents7d > 10 ? "blocked" : input.errorEvents7d > 0 ? "warning" : "ok",
+      status:
+        input.errorEvents7d > 10
+          ? "blocked"
+          : input.errorEvents7d > 0
+            ? "warning"
+            : "ok",
       summary: `${input.errorEvents7d} error/denial events in 7 dagen.`,
-      nextAction: input.errorEvents7d > 0 ? "Open security/audit export en koppel owner per terugkerende fout." : "Geen actie nodig.",
+      nextAction:
+        input.errorEvents7d > 0
+          ? "Open security/audit export en koppel owner per terugkerende fout."
+          : "Geen actie nodig.",
     },
     {
       id: "storage",
       label: "Storage",
-      status: input.legacyStoragePaths > 0 ? "warning" : input.documents > 0 ? "ok" : "manual",
+      status:
+        input.legacyStoragePaths > 0
+          ? "warning"
+          : input.documents > 0
+            ? "ok"
+            : "manual",
       summary:
         input.documents > 0
           ? `${input.documents} documenten, ${formatBytes(input.storageBytes)}, ${input.legacyStoragePaths} legacy path(s).`
           : "Geen documentstorage bewijs.",
-      nextAction: input.legacyStoragePaths > 0 ? "Migreer legacy documentpaden naar tenant-prefixed storage." : "Draai storage/download smoke voor tenant bewijs.",
+      nextAction:
+        input.legacyStoragePaths > 0
+          ? "Migreer legacy documentpaden naar tenant-prefixed storage."
+          : "Draai storage/download smoke voor tenant bewijs.",
     },
     {
       id: "smokes",
       label: "Smokes",
       status: input.smokeStatus,
-      summary: input.smokeStatus === "ok" ? "Laatste staging smoke staat groen." : "Smoke evidence vraagt handmatige check.",
-      nextAction: input.smokeStatus === "ok" ? "Geen actie nodig." : "Draai staging smoke en publiceer evidence artifact.",
+      summary:
+        input.smokeStatus === "ok"
+          ? "Laatste staging smoke staat groen."
+          : "Smoke evidence vraagt handmatige check.",
+      nextAction:
+        input.smokeStatus === "ok"
+          ? "Geen actie nodig."
+          : "Draai staging smoke en publiceer evidence artifact.",
     },
   ];
 }
 
-async function buildTenantHealth(): Promise<PlatformAcceleratorTenantHealthRow[]> {
+async function buildTenantHealth(): Promise<
+  PlatformAcceleratorTenantHealthRow[]
+> {
   const [
     tenants,
     domainCounts,
@@ -434,21 +541,26 @@ async function buildTenantHealth(): Promise<PlatformAcceleratorTenantHealthRow[]
         value: sql<number>`count(*)::int`,
       })
       .from(auditLogTable)
-      .where(sql`${auditLogTable.tenantId} IS NOT NULL
+      .where(
+        sql`${auditLogTable.tenantId} IS NOT NULL
         AND ${auditLogTable.createdAt} >= now() - interval '7 days'
         AND (
           ${auditLogTable.action} ILIKE '%error%'
           OR ${auditLogTable.action} ILIKE '%failed%'
           OR ${auditLogTable.action} ILIKE '%denied%'
           OR ${auditLogTable.action} ILIKE '%blocked%'
-        )`)
+        )`,
+      )
       .groupBy(auditLogTable.tenantId)
-      .then((rows) =>
-        new Map(
-          rows
-            .filter((row): row is typeof row & { tenantId: string } => Boolean(row.tenantId))
-            .map((row) => [row.tenantId, numberValue(row.value)]),
-        ),
+      .then(
+        (rows) =>
+          new Map(
+            rows
+              .filter((row): row is typeof row & { tenantId: string } =>
+                Boolean(row.tenantId),
+              )
+              .map((row) => [row.tenantId, numberValue(row.value)]),
+          ),
       ),
     listStorageCounts(),
     listLatestSubscriptionStatus(),
@@ -458,9 +570,17 @@ async function buildTenantHealth(): Promise<PlatformAcceleratorTenantHealthRow[]
   const smokeStatus = stagingSmoke.stagingPromotionGate.status;
 
   return tenants.map((tenant) => {
-    const domains = domainCounts.get(tenant.id) ?? { domains: 0, verifiedDomains: 0, primaryDomain: null };
+    const domains = domainCounts.get(tenant.id) ?? {
+      domains: 0,
+      verifiedDomains: 0,
+      primaryDomain: null,
+    };
     const mail = mailCounts.get(tenant.id) ?? { sent: 0, failed: 0 };
-    const storage = storageCounts.get(tenant.id) ?? { documents: 0, storageBytes: 0, legacyPaths: 0 };
+    const storage = storageCounts.get(tenant.id) ?? {
+      documents: 0,
+      storageBytes: 0,
+      legacyPaths: 0,
+    };
     const metrics = {
       domains: domains.domains,
       verifiedDomains: domains.verifiedDomains,
@@ -510,13 +630,20 @@ function buildNotificationSandbox(
   center: Awaited<ReturnType<typeof listPlatformNotificationCenter>>,
 ): PlatformAcceleratorNotificationSandboxEvent[] {
   return center.templates.map((template) => {
-    const latestDispatch = center.dispatches.find((dispatch) => dispatch.templateKey === template.key) ?? null;
+    const latestDispatch =
+      center.dispatches.find(
+        (dispatch) => dispatch.templateKey === template.key,
+      ) ?? null;
     const estimatedRecipients =
       template.key === "maintenance" || template.key === "incident"
         ? center.stats.platformUsers + center.stats.tenantOwners
-        : template.key === "onboarding_reminder" || template.key === "domain_dns_reminder"
+        : template.key === "onboarding_reminder" ||
+            template.key === "domain_dns_reminder"
           ? center.stats.readinessIssues
-          : center.plans.reduce((total, plan) => total + plan.recipientCount, 0);
+          : center.plans.reduce(
+              (total, plan) => total + plan.recipientCount,
+              0,
+            );
 
     return {
       key: template.key,
@@ -537,33 +664,46 @@ function buildNotificationSandbox(
   });
 }
 
-async function buildDemoTenants(healthRows: PlatformAcceleratorTenantHealthRow[]): Promise<PlatformAcceleratorDemoTenant[]> {
-  const lastResetRequests = await latestAuditActionTimes("demo_tenant_reset_requested");
+async function buildDemoTenants(
+  healthRows: PlatformAcceleratorTenantHealthRow[],
+): Promise<PlatformAcceleratorDemoTenant[]> {
+  const environment = resolveFieldgridDeploymentEnvironment();
+  const lastResetRequests = await latestAuditActionTimes(
+    "demo_tenant_reset_requested",
+  );
   const healthBySlug = new Map(healthRows.map((row) => [row.tenantSlug, row]));
 
   const presets = [
     {
       slug: "demo-a",
       label: "Demo A",
-      domain: "demo-a.fieldgrid.nl",
+      domain: defaultTenantDomainForSlug("demo-a", environment),
       recommendedPlan: "professional",
-      resetCommand: "FIELDGRID_DEMO_RESET_CONFIRM=demo-a pnpm fieldgrid:phase1-fixtures -- --tenant demo-a --reset",
+      resetCommand:
+        "FIELDGRID_DEMO_RESET_CONFIRM=demo-a pnpm fieldgrid:phase1-fixtures -- --tenant demo-a --reset",
     },
     {
       slug: "demo-b",
       label: "Demo B",
-      domain: "demo-b.fieldgrid.nl",
+      domain: defaultTenantDomainForSlug("demo-b", environment),
       recommendedPlan: "professional",
-      resetCommand: "FIELDGRID_DEMO_RESET_CONFIRM=demo-b pnpm fieldgrid:phase1-fixtures -- --tenant demo-b --reset",
+      resetCommand:
+        "FIELDGRID_DEMO_RESET_CONFIRM=demo-b pnpm fieldgrid:phase1-fixtures -- --tenant demo-b --reset",
     },
     {
-      slug: "veele",
-      label: "Veele referentie",
-      domain: "veele.fieldgrid.nl",
+      slug: "veeleservices",
+      label: "Veeleservices referentie",
+      domain: defaultTenantDomainForSlug("veeleservices", environment),
       recommendedPlan: "enterprise",
-      resetCommand: "FIELDGRID_DEMO_RESET_CONFIRM=veele pnpm fieldgrid:phase1-fixtures -- --tenant veele --reset",
+      resetCommand:
+        "FIELDGRID_DEMO_RESET_CONFIRM=veeleservices pnpm fieldgrid:phase1-fixtures -- --tenant veeleservices --reset",
     },
-  ] satisfies Array<Pick<PlatformAcceleratorDemoTenant, "slug" | "label" | "domain" | "recommendedPlan" | "resetCommand">>;
+  ] satisfies Array<
+    Pick<
+      PlatformAcceleratorDemoTenant,
+      "slug" | "label" | "domain" | "recommendedPlan" | "resetCommand"
+    >
+  >;
 
   return presets.map((preset) => {
     const health = healthBySlug.get(preset.slug);
@@ -578,8 +718,12 @@ async function buildDemoTenants(healthRows: PlatformAcceleratorTenantHealthRow[]
   });
 }
 
-async function buildVisualRegressionTargets(): Promise<PlatformAcceleratorVisualSnapshotTarget[]> {
-  const lastRequests = await latestAuditActionTimes("visual_regression_snapshot_requested");
+async function buildVisualRegressionTargets(): Promise<
+  PlatformAcceleratorVisualSnapshotTarget[]
+> {
+  const lastRequests = await latestAuditActionTimes(
+    "visual_regression_snapshot_requested",
+  );
   const artifactDirectory = "artifacts/visual-regression";
 
   return [
@@ -587,7 +731,14 @@ async function buildVisualRegressionTargets(): Promise<PlatformAcceleratorVisual
       id: "platform-backoffice",
       label: "Platform backoffice",
       baseUrlEnv: "FIELDGRID_BACKOFFICE_BASE_URL",
-      routes: ["/platform", "/platform/accelerators", "/platform/tenants", "/platform/notifications", "/platform/security", "/platform/staging-smoke"],
+      routes: [
+        "/platform",
+        "/platform/accelerators",
+        "/platform/tenants",
+        "/platform/notifications",
+        "/platform/security",
+        "/platform/staging-smoke",
+      ],
       viewports: VISUAL_REGRESSION_VIEWPORTS,
       artifactDirectory,
       command: `${VISUAL_REGRESSION_COMMAND} --target platform-backoffice`,
@@ -597,7 +748,13 @@ async function buildVisualRegressionTargets(): Promise<PlatformAcceleratorVisual
       id: "tenant-backoffice",
       label: "Tenant backoffice",
       baseUrlEnv: "FIELDGRID_TENANT_BACKOFFICE_BASE_URL",
-      routes: ["/dashboard", "/customers", "/objects", "/assignments", "/documents"],
+      routes: [
+        "/dashboard",
+        "/customers",
+        "/objects",
+        "/assignments",
+        "/documents",
+      ],
       viewports: VISUAL_REGRESSION_VIEWPORTS,
       artifactDirectory,
       command: `${VISUAL_REGRESSION_COMMAND} --target tenant-backoffice`,
@@ -626,14 +783,19 @@ async function buildVisualRegressionTargets(): Promise<PlatformAcceleratorVisual
   ];
 }
 
-async function buildExportCenter(): Promise<PlatformAcceleratorExportCenterItem[]> {
-  const lastRequests = await latestAuditActionTimes("platform_export_requested");
+async function buildExportCenter(): Promise<
+  PlatformAcceleratorExportCenterItem[]
+> {
+  const lastRequests = await latestAuditActionTimes(
+    "platform_export_requested",
+  );
 
   return [
     {
       id: "platform-admin",
       label: "Platform-admin export",
-      description: "Tenantlijst met domeinen, users, modules, subscriptions en health-score.",
+      description:
+        "Tenantlijst met domeinen, users, modules, subscriptions en health-score.",
       href: "/api/platform/exports/tenants",
       format: "csv",
       owner: "Platform",
@@ -643,7 +805,8 @@ async function buildExportCenter(): Promise<PlatformAcceleratorExportCenterItem[
     {
       id: "audit",
       label: "Audit/security export",
-      description: "Securitydashboard export met scope, severity, denial type en metadata.",
+      description:
+        "Securitydashboard export met scope, severity, denial type en metadata.",
       href: "/api/platform/security/export",
       format: "csv",
       owner: "Security",
@@ -653,7 +816,8 @@ async function buildExportCenter(): Promise<PlatformAcceleratorExportCenterItem[
     {
       id: "billing",
       label: "Billing/subscription export",
-      description: "Subscriptions, plannen, periodes, referenties en handmatige billingnotities.",
+      description:
+        "Subscriptions, plannen, periodes, referenties en handmatige billingnotities.",
       href: "/api/platform/billing/export",
       format: "csv",
       owner: "Finance",
@@ -671,10 +835,16 @@ function dashboardSummary(
   return {
     tenants: health.length,
     healthyTenants: health.filter((tenant) => tenant.status === "ok").length,
-    warningTenants: health.filter((tenant) => tenant.status === "warning").length,
-    blockedTenants: health.filter((tenant) => tenant.status === "blocked").length,
+    warningTenants: health.filter((tenant) => tenant.status === "warning")
+      .length,
+    blockedTenants: health.filter((tenant) => tenant.status === "blocked")
+      .length,
     manualTenants: health.filter((tenant) => tenant.status === "manual").length,
-    demoTenants: health.filter((tenant) => DEMO_TENANT_SLUGS.includes(tenant.tenantSlug as (typeof DEMO_TENANT_SLUGS)[number])).length,
+    demoTenants: health.filter((tenant) =>
+      DEMO_TENANT_SLUGS.includes(
+        tenant.tenantSlug as (typeof DEMO_TENANT_SLUGS)[number],
+      ),
+    ).length,
     notificationEvents,
     exportFeeds,
   };
@@ -683,18 +853,23 @@ function dashboardSummary(
 export async function getPlatformAcceleratorsDashboard(): Promise<PlatformAcceleratorsDashboard> {
   await requirePlatformAdmin();
 
-  const [health, notificationCenter, visualRegression, exportCenter] = await Promise.all([
-    buildTenantHealth(),
-    listPlatformNotificationCenter(),
-    buildVisualRegressionTargets(),
-    buildExportCenter(),
-  ]);
+  const [health, notificationCenter, visualRegression, exportCenter] =
+    await Promise.all([
+      buildTenantHealth(),
+      listPlatformNotificationCenter(),
+      buildVisualRegressionTargets(),
+      buildExportCenter(),
+    ]);
   const demoTenants = await buildDemoTenants(health);
   const notificationSandbox = buildNotificationSandbox(notificationCenter);
 
   return {
     generatedAt: new Date().toISOString(),
-    summary: dashboardSummary(health, notificationSandbox.length, exportCenter.length),
+    summary: dashboardSummary(
+      health,
+      notificationSandbox.length,
+      exportCenter.length,
+    ),
     demoTenants,
     notificationSandbox,
     tenantHealth: health,
@@ -703,11 +878,15 @@ export async function getPlatformAcceleratorsDashboard(): Promise<PlatformAccele
   };
 }
 
-export async function requestDemoTenantReset(formData: FormData): Promise<void> {
+export async function requestDemoTenantReset(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const slug = String(formData.get("slug") ?? "").trim();
   const confirmation = String(formData.get("confirmation") ?? "").trim();
-  const demoSlug = DEMO_TENANT_SLUGS.includes(slug as (typeof DEMO_TENANT_SLUGS)[number])
+  const demoSlug = DEMO_TENANT_SLUGS.includes(
+    slug as (typeof DEMO_TENANT_SLUGS)[number],
+  )
     ? (slug as (typeof DEMO_TENANT_SLUGS)[number])
     : null;
 
@@ -732,7 +911,8 @@ export async function requestDemoTenantReset(formData: FormData): Promise<void> 
     metadata: {
       requestedFrom: "/platform/accelerators",
       scope: "demo-tenants-only",
-      cleanupContract: "Reset mag alleen demo-a, demo-b of veele seeded data raken en moet storage/audit evidence vastleggen.",
+      cleanupContract:
+        "Reset mag alleen demo-a, demo-b of veeleservices seeded data raken en moet storage/audit evidence vastleggen.",
       command: `FIELDGRID_DEMO_RESET_CONFIRM=${demoSlug} pnpm fieldgrid:phase1-fixtures -- --tenant ${demoSlug} --reset`,
     },
   });
@@ -741,7 +921,9 @@ export async function requestDemoTenantReset(formData: FormData): Promise<void> 
   revalidatePath("/platform");
 }
 
-export async function requestVisualRegressionSnapshot(formData: FormData): Promise<void> {
+export async function requestVisualRegressionSnapshot(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const target = String(formData.get("target") ?? "").trim();
   const allowedTargets: PlatformAcceleratorVisualSnapshotTarget["id"][] = [
@@ -750,7 +932,9 @@ export async function requestVisualRegressionSnapshot(formData: FormData): Promi
     "customer-portal",
     "personnel-portal",
   ];
-  const targetId = allowedTargets.includes(target as PlatformAcceleratorVisualSnapshotTarget["id"])
+  const targetId = allowedTargets.includes(
+    target as PlatformAcceleratorVisualSnapshotTarget["id"],
+  )
     ? (target as PlatformAcceleratorVisualSnapshotTarget["id"])
     : "platform-backoffice";
 
@@ -769,11 +953,19 @@ export async function requestVisualRegressionSnapshot(formData: FormData): Promi
   revalidatePath("/platform/accelerators");
 }
 
-export async function requestPlatformExportAudit(formData: FormData): Promise<void> {
+export async function requestPlatformExportAudit(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
   const exportId = String(formData.get("exportId") ?? "").trim();
-  const allowedExports: PlatformAcceleratorExportCenterItem["id"][] = ["platform-admin", "audit", "billing"];
-  const resourceId = allowedExports.includes(exportId as PlatformAcceleratorExportCenterItem["id"])
+  const allowedExports: PlatformAcceleratorExportCenterItem["id"][] = [
+    "platform-admin",
+    "audit",
+    "billing",
+  ];
+  const resourceId = allowedExports.includes(
+    exportId as PlatformAcceleratorExportCenterItem["id"],
+  )
     ? (exportId as PlatformAcceleratorExportCenterItem["id"])
     : "platform-admin";
 
@@ -790,7 +982,9 @@ export async function requestPlatformExportAudit(formData: FormData): Promise<vo
   revalidatePath("/platform/accelerators");
 }
 
-export async function listPlatformTenantHealthForExport(): Promise<PlatformAcceleratorTenantHealthRow[]> {
+export async function listPlatformTenantHealthForExport(): Promise<
+  PlatformAcceleratorTenantHealthRow[]
+> {
   await requirePlatformAdmin();
   return buildTenantHealth();
 }
@@ -835,7 +1029,10 @@ export async function listBillingExportRows(): Promise<
       updatedAt: tenantSubscriptionsTable.updatedAt,
     })
     .from(tenantSubscriptionsTable)
-    .innerJoin(tenantsTable, eq(tenantSubscriptionsTable.tenantId, tenantsTable.id))
+    .innerJoin(
+      tenantsTable,
+      eq(tenantSubscriptionsTable.tenantId, tenantsTable.id),
+    )
     .innerJoin(plansTable, eq(tenantSubscriptionsTable.planId, plansTable.id))
     .orderBy(asc(tenantsTable.name), desc(tenantSubscriptionsTable.updatedAt));
 

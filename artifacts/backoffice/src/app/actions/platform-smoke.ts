@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   auditLogTable,
   db,
+  defaultTenantDomainForSlug,
   documentsTable,
   invoicesTable,
   isPlatformHost,
@@ -44,7 +45,10 @@ import type {
 
 const STAGING_PILOT_TENANT_SLUG =
   process.env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() || "field-demo";
-const STAGING_PILOT_TENANT_HOST = `${STAGING_PILOT_TENANT_SLUG}.fieldgrid.nl`;
+const STAGING_PILOT_TENANT_HOST = defaultTenantDomainForSlug(
+  STAGING_PILOT_TENANT_SLUG,
+  "staging",
+);
 const DEFAULT_STAGING_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
 const STAGING_MUTATING_SMOKE_CONFIRM_VALUE =
   process.env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() ||
@@ -216,11 +220,9 @@ function buildLiveSmokes(
       status: checkStatus("FG-SMOKE-HOST"),
       host: "staging.fieldgrid.nl",
       route: "/admin/platform",
-      command:
-        `Playwright host-first smoke voor platform, staging en ${STAGING_PILOT_TENANT_SLUG}.`,
+      command: `Playwright host-first smoke voor platform, staging en ${STAGING_PILOT_TENANT_SLUG}.`,
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
-      nextAction:
-        `Draai host-first browser smoke met platform owner en ${STAGING_PILOT_TENANT_HOST}.`,
+      nextAction: `Draai host-first browser smoke met platform owner en ${STAGING_PILOT_TENANT_HOST}.`,
     },
     {
       id: "FG-LIVE-MODULES",
@@ -250,8 +252,7 @@ function buildLiveSmokes(
       route: "/admin/planning",
       command: "Playwright regio-filter en planning-overlap smoke.",
       testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
-      nextAction:
-        `Gebruik ${STAGING_PILOT_TENANT_SLUG} voor regio-overlap en koppel cross-tenant denial evidence apart.`,
+      nextAction: `Gebruik ${STAGING_PILOT_TENANT_SLUG} voor regio-overlap en koppel cross-tenant denial evidence apart.`,
     },
     {
       id: "FG-LIVE-CUSTOMER-PORTAL",
@@ -266,8 +267,7 @@ function buildLiveSmokes(
         "FG-PORTAL-C-003",
         "FG-PORTAL-C-004",
       ],
-      nextAction:
-        `Draai klantportaal smoke op ${STAGING_PILOT_TENANT_SLUG} met verkeerde-host denial.`,
+      nextAction: `Draai klantportaal smoke op ${STAGING_PILOT_TENANT_SLUG} met verkeerde-host denial.`,
     },
     {
       id: "FG-LIVE-PERSONNEL-PLANNING",
@@ -297,8 +297,7 @@ function buildLiveSmokes(
         "FG-DATA-004",
         "FG-AUDIT-001",
       ],
-      nextAction:
-        `Download ${STAGING_PILOT_TENANT_SLUG} document/PDF en bevestig audit plus wrong-host denial.`,
+      nextAction: `Download ${STAGING_PILOT_TENANT_SLUG} document/PDF en bevestig audit plus wrong-host denial.`,
     },
   ];
 }
@@ -364,8 +363,7 @@ function buildMutatingChecks(
       confirmVar: STAGING_MUTATING_SMOKE_CONFIRM,
       cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
-      nextAction:
-        `Voer alleen uit op ${STAGING_PILOT_TENANT_SLUG} en herstel status direct in dezelfde run.`,
+      nextAction: `Voer alleen uit op ${STAGING_PILOT_TENANT_SLUG} en herstel status direct in dezelfde run.`,
     },
     {
       id: "FG-MUTATE-SUPPORT-GRANT",
@@ -492,8 +490,7 @@ function buildFinalExternalTenantGate(input: {
       risk: "P0/P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor eerste externe tenant met productiegegevens",
-      targetEvidence:
-        `${STAGING_PILOT_TENANT_SLUG} Playwright + integration artifacts voor host, RBAC, lifecycle en direct-ID denials.`,
+      targetEvidence: `${STAGING_PILOT_TENANT_SLUG} Playwright + integration artifacts voor host, RBAC, lifecycle en direct-ID denials.`,
       testIds: ["FG-HOST-001", "FG-LIFE-002", "FG-RBAC-002", "FG-DATA-001"],
       requiresGoNoGoApproval: true,
     },
@@ -652,13 +649,11 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "tenant-pilot",
       host: STAGING_PILOT_TENANT_HOST,
       route: "/, /klant, /personeel",
-      command:
-        `Playwright host-first smoke voor ${STAGING_PILOT_TENANT_SLUG} plus wrong-host denial.`,
+      command: `Playwright host-first smoke voor ${STAGING_PILOT_TENANT_SLUG} plus wrong-host denial.`,
       evidence:
         "Browser traces tonen dat hostcontext leidend is en directe tenant-id routes niet lekken.",
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-DATA-001"],
-      nextAction:
-        `Draai host-first smoke met ${STAGING_PILOT_TENANT_SLUG} en noteer run-id in het releaseformulier.`,
+      nextAction: `Draai host-first smoke met ${STAGING_PILOT_TENANT_SLUG} en noteer run-id in het releaseformulier.`,
       blocksRelease: true,
     },
     {
@@ -720,12 +715,10 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "platform",
       host: "admin.fieldgrid.nl",
       route: "/admin/platform/tenants/:tenantId",
-      command:
-        `Suspend/reactivate/archive/retry smoke op ${STAGING_PILOT_TENANT_SLUG} met rollback.`,
+      command: `Suspend/reactivate/archive/retry smoke op ${STAGING_PILOT_TENANT_SLUG} met rollback.`,
       evidence: "Mutating smoke run met marker-scoped cleanup en audit-events.",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
-      nextAction:
-        `Voer alleen uit met ${STAGING_MUTATING_SMOKE_CONFIRM}.`,
+      nextAction: `Voer alleen uit met ${STAGING_MUTATING_SMOKE_CONFIRM}.`,
       blocksRelease: true,
     },
     {
@@ -1189,8 +1182,7 @@ export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStag
         "FG-PLATFORM-003",
         "FG-RBAC-001",
       ],
-      nextAction:
-        `Controleer handmatig login voor platform owner en ${STAGING_PILOT_TENANT_SLUG} actoren.`,
+      nextAction: `Controleer handmatig login voor platform owner en ${STAGING_PILOT_TENANT_SLUG} actoren.`,
     }),
     makeCheck({
       id: "FG-SMOKE-MODULES",
@@ -1265,8 +1257,7 @@ export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStag
         "FG-DATA-007",
         "FG-AUDIT-001",
       ],
-      nextAction:
-        `Download document, report, quote en invoice via ${STAGING_PILOT_TENANT_SLUG} en bevestig audit plus wrong-host denial.`,
+      nextAction: `Download document, report, quote en invoice via ${STAGING_PILOT_TENANT_SLUG} en bevestig audit plus wrong-host denial.`,
     }),
     makeCheck({
       id: "FG-SMOKE-MIGRATIONS",
@@ -1293,8 +1284,7 @@ export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStag
         "FG-SUPPORT-004",
         "FG-SUPPORT-005",
       ],
-      nextAction:
-        `Maak een korte dedicated supportgrant voor ${STAGING_PILOT_TENANT_SLUG} en test verlopen/verkeerde tenant denial.`,
+      nextAction: `Maak een korte dedicated supportgrant voor ${STAGING_PILOT_TENANT_SLUG} en test verlopen/verkeerde tenant denial.`,
     }),
     makeCheck({
       id: "FG-SMOKE-AUDIT",

@@ -46,6 +46,9 @@ jobs:
       FIELDGRID_CUSTOM_RELEASE_ID: git-commit:${{ inputs.expected_staging_sha }}
       FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
 
     steps:
       - name: Checkout exact staging release
@@ -89,7 +92,10 @@ jobs:
           test "$remote" = "$expected"
 
       - name: Validate staging stack contract
-        run: bash scripts/fieldgrid-website-staging-stack-deploy.sh --check
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
+          bash scripts/fieldgrid-website-staging-stack-deploy.sh --check
 
       - name: Deploy staging website stack
         run: |

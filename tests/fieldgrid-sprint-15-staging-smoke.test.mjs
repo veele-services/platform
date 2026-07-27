@@ -18,7 +18,9 @@ function assertContains(content, phrases, label) {
 
 test("sprint 15 extends staging smoke data with run history and live smoke contracts", () => {
   const action = read("artifacts/backoffice/src/app/actions/platform-smoke.ts");
-  const types = read("artifacts/backoffice/src/app/actions/platform-smoke.types.ts");
+  const types = read(
+    "artifacts/backoffice/src/app/actions/platform-smoke.types.ts",
+  );
 
   assertContains(
     `${action}\n${types}`,
@@ -44,7 +46,9 @@ test("sprint 15 extends staging smoke data with run history and live smoke contr
 });
 
 test("sprint 15 staging smoke page renders run history, live smokes and cleanup", () => {
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/staging-smoke/page.tsx");
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/staging-smoke/page.tsx",
+  );
 
   assertContains(
     page,
@@ -102,7 +106,7 @@ test("sprint 15 script is plan-only by default and supports read-only snapshots"
   );
 });
 
-test("sprint 15 uses the production-shaped pilot host during staging acceptance", () => {
+test("sprint 15 uses the environment-bound pilot host during staging acceptance", () => {
   const plan = buildSprint15StagingSmokePlan();
   const tenantTargets = plan.liveSmokeTargets.filter(
     (target) => target.id !== "FG-LIVE-HOST",
@@ -112,7 +116,7 @@ test("sprint 15 uses the production-shaped pilot host during staging acceptance"
   assert.ok(tenantTargets.length > 0);
   assert.deepEqual(
     [...new Set(tenantTargets.map((target) => target.host))],
-    ["field-demo.fieldgrid.nl"],
+    ["field-demo.staging.fieldgrid.nl"],
   );
   assert.deepEqual(validateSprint15StagingSmokePlan(plan), []);
 });
@@ -139,7 +143,8 @@ test("sprint 15 rejects duplicate IDs and host or confirmation tampering", () =>
   const plan = buildSprint15StagingSmokePlan();
   plan.liveSmokeTargets[1].id = "FG-LIVE-HOST";
   plan.liveSmokeTargets[1].host = "other.fieldgrid.nl";
-  plan.mutatingChecks[0].confirmVar = "FIELDGRID_MUTATING_SMOKE_CONFIRM=other-tenant";
+  plan.mutatingChecks[0].confirmVar =
+    "FIELDGRID_MUTATING_SMOKE_CONFIRM=other-tenant";
 
   const errors = validateSprint15StagingSmokePlan(plan).join("\n");
   assert.match(errors, /target-ID's exact eenmaal/u);
@@ -148,10 +153,16 @@ test("sprint 15 rejects duplicate IDs and host or confirmation tampering", () =>
 });
 
 test("sprint 15 JSON API uses route-handler platform auth", () => {
-  const route = read("artifacts/backoffice/src/app/api/platform/staging-smoke/route.ts");
+  const route = read(
+    "artifacts/backoffice/src/app/api/platform/staging-smoke/route.ts",
+  );
   const platformAuth = read("artifacts/backoffice/src/lib/auth/platform.ts");
-  const supabaseServer = read("artifacts/backoffice/src/lib/supabase/server.ts");
-  const platformSmoke = read("artifacts/backoffice/src/app/actions/platform-smoke.ts");
+  const supabaseServer = read(
+    "artifacts/backoffice/src/lib/supabase/server.ts",
+  );
+  const platformSmoke = read(
+    "artifacts/backoffice/src/app/actions/platform-smoke.ts",
+  );
 
   assertContains(
     route,
@@ -178,7 +189,7 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
     [
       "cookieHeaderToPairs",
       "createClientFromRequest",
-      "request.headers.get(\"cookie\")",
+      'request.headers.get("cookie")',
       "createSupabaseCookieOptions(host)",
     ],
     "route-handler Supabase client",
@@ -196,7 +207,9 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
 
 test("sprint 15 API server prefixes platform pass-through with the backoffice base path", () => {
   const apiRoutes = read("artifacts/api-server/src/routes/index.ts");
-  const platformProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
+  const platformProxy = read(
+    "artifacts/api-server/src/routes/platform-backoffice.ts",
+  );
   const docs = read("docs/deployment/self-hosted-runner.md");
 
   assert.ok(
@@ -207,7 +220,7 @@ test("sprint 15 API server prefixes platform pass-through with the backoffice ba
   assertContains(
     platformProxy,
     [
-      "router.use(\"/platform\"",
+      'router.use("/platform"',
       "BACKOFFICE_INTERNAL_URL",
       "BACKOFFICE_PORT",
       "req.originalUrl",
@@ -221,10 +234,7 @@ test("sprint 15 API server prefixes platform pass-through with the backoffice ba
   );
   assertContains(
     docs,
-    [
-      "@platform_api path /api /api/*",
-      "reverse_proxy 127.0.0.1:3304",
-    ],
+    ["@platform_api path /api /api/*", "reverse_proxy 127.0.0.1:3304"],
     "deployment routing docs",
   );
 });

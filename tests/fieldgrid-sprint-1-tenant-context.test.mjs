@@ -93,7 +93,8 @@ test("host resolver only returns routable runtime-active tenant domains", () => 
   assertContains(
     resolver,
     [
-      "if (!normalizedHost || isPlatformHost(normalizedHost)) return null;",
+      "!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)",
+      "if (isPlatformHost(normalizedHost)) return null;",
       "eq(tenantDomainsTable.domain, normalizedHost)",
       "inArray(tenantDomainsTable.verificationStatus, [\"verified\", \"active\"])",
       "ne(tenantDomainsTable.type, \"platform_reserved\")",

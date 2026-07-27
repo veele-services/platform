@@ -14,6 +14,7 @@
 import type { PoolClient } from "pg";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "../runtime-env";
+import { assertDatabaseEnvironmentIsolation } from "../database-environment";
 
 const { Pool } = pg;
 
@@ -50,9 +51,7 @@ function requireStagingSafety() {
     throw new Error("DATABASE_URL is required.");
   }
 
-  if (/production|prod|app\.veele/i.test(databaseUrl)) {
-    throw new Error("Refusing to run staging seed: DATABASE_URL looks production-like.");
-  }
+  assertDatabaseEnvironmentIsolation();
 }
 
 function dateKey(offsetDays = 0): string {
@@ -70,14 +69,22 @@ function euro(value: number): string {
   return value.toFixed(2);
 }
 
-async function one<T extends Row>(client: PoolClient, sql: string, params: unknown[] = []): Promise<T> {
+async function one<T extends Row>(
+  client: PoolClient,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T> {
   const result = await client.query(sql, params);
   const row = result.rows[0] as T | undefined;
   if (!row) throw new Error(`Expected one row for query: ${sql}`);
   return row;
 }
 
-async function maybeOne<T extends Row>(client: PoolClient, sql: string, params: unknown[] = []): Promise<T | null> {
+async function maybeOne<T extends Row>(
+  client: PoolClient,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T | null> {
   const result = await client.query(sql, params);
   return (result.rows[0] as T | undefined) ?? null;
 }
@@ -103,15 +110,24 @@ async function resolveSeedActor(client: PoolClient) {
     seedAuthActorId = actor?.id ?? null;
 
     if (actor) {
-      console.log(`Using auth.users actor for staging seed: ${actor.email ?? actor.id}`);
+      console.log(
+        `Using auth.users actor for staging seed: ${actor.email ?? actor.id}`,
+      );
     } else {
-      console.log("No auth.users actor found; nullable auth FK fields will be NULL.");
+      console.log(
+        "No auth.users actor found; nullable auth FK fields will be NULL.",
+      );
     }
   } catch (error) {
-    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String(error.code)
+        : "";
     if (code === "42P01" || code === "42501") {
       seedAuthActorId = null;
-      console.log("Could not read auth.users; nullable auth FK fields will be NULL.");
+      console.log(
+        "Could not read auth.users; nullable auth FK fields will be NULL.",
+      );
       return;
     }
     throw error;
@@ -121,8 +137,12 @@ async function resolveSeedActor(client: PoolClient) {
 async function cleanupDemoData(client: PoolClient) {
   const like = `%${SEED_MARKER}%`;
 
-  await client.query("delete from payments where mollie_payment_id like 'tr_staging_demo_%'");
-  await client.query("delete from documents where storage_path like 'staging-demo/%'");
+  await client.query(
+    "delete from payments where mollie_payment_id like 'tr_staging_demo_%'",
+  );
+  await client.query(
+    "delete from documents where storage_path like 'staging-demo/%'",
+  );
   await client.query(
     `delete from invoices
       where notes like $1
@@ -178,10 +198,18 @@ async function cleanupDemoData(client: PoolClient) {
       where object_id in (select id from objects where special_notes like $1 or description like $1)`,
     [like],
   );
-  await client.query("delete from objects where special_notes like $1 or description like $1", [like]);
+  await client.query(
+    "delete from objects where special_notes like $1 or description like $1",
+    [like],
+  );
   await client.query("delete from customer_notes where notes like $1", [like]);
-  await client.query("delete from customer_contacts where email like $1", [`%@${DEMO_EMAIL_DOMAIN}`]);
-  await client.query("delete from customers where contact_email like $1 or notes like $2", [`%@${DEMO_EMAIL_DOMAIN}`, like]);
+  await client.query("delete from customer_contacts where email like $1", [
+    `%@${DEMO_EMAIL_DOMAIN}`,
+  ]);
+  await client.query(
+    "delete from customers where contact_email like $1 or notes like $2",
+    [`%@${DEMO_EMAIL_DOMAIN}`, like],
+  );
   await client.query(
     `delete from leave_periods
       where reason like $1
@@ -193,15 +221,29 @@ async function cleanupDemoData(client: PoolClient) {
       where personnel_id in (select id from personnel where email like $1)`,
     [`%@${DEMO_EMAIL_DOMAIN}`],
   );
-  await client.query("delete from personnel where email like $1", [`%@${DEMO_EMAIL_DOMAIN}`]);
+  await client.query("delete from personnel where email like $1", [
+    `%@${DEMO_EMAIL_DOMAIN}`,
+  ]);
   await client.query("delete from task_codes where code like 'DH-DEMO-%'");
-  await client.query("delete from customer_types where slug like 'staging-demo-%'");
+  await client.query(
+    "delete from customer_types where slug like 'staging-demo-%'",
+  );
   await client.query("delete from sectors where description like $1", [like]);
-  await client.query("delete from audit_log where metadata->>'seed' = $1", [SEED_MARKER]);
+  await client.query("delete from audit_log where metadata->>'seed' = $1", [
+    SEED_MARKER,
+  ]);
 }
 
-async function ensureSector(client: PoolClient, name: string, description: string): Promise<string> {
-  const existing = await maybeOne<IdRow>(client, "select id from sectors where name = $1", [name]);
+async function ensureSector(
+  client: PoolClient,
+  name: string,
+  description: string,
+): Promise<string> {
+  const existing = await maybeOne<IdRow>(
+    client,
+    "select id from sectors where name = $1",
+    [name],
+  );
   if (existing) return existing.id;
 
   const inserted = await one<IdRow>(
@@ -214,7 +256,11 @@ async function ensureSector(client: PoolClient, name: string, description: strin
   return inserted.id;
 }
 
-async function ensureRole(client: PoolClient, name: string, description: string): Promise<string> {
+async function ensureRole(
+  client: PoolClient,
+  name: string,
+  description: string,
+): Promise<string> {
   const role = await one<IdRow>(
     client,
     `insert into roles (name, description, is_system)
@@ -226,7 +272,11 @@ async function ensureRole(client: PoolClient, name: string, description: string)
   return role.id;
 }
 
-async function createCustomerType(client: PoolClient, name: string, slug: string): Promise<string> {
+async function createCustomerType(
+  client: PoolClient,
+  name: string,
+  slug: string,
+): Promise<string> {
   const inserted = await one<IdRow>(
     client,
     `insert into customer_types (name, slug, is_active)
@@ -335,7 +385,12 @@ async function createPersonnel(
   return row.id;
 }
 
-async function createAvailability(client: PoolClient, personnelId: string, start = "08:00", end = "17:00") {
+async function createAvailability(
+  client: PoolClient,
+  personnelId: string,
+  start = "08:00",
+  end = "17:00",
+) {
   for (const dayOfWeek of [1, 2, 3, 4, 5]) {
     await client.query(
       `insert into availability_windows (personnel_id, day_of_week, start_time, end_time)
@@ -476,15 +531,31 @@ async function createObject(
   return row.id;
 }
 
-async function createObjectContact(client: PoolClient, objectId: string, firstName: string, lastName: string, role: string) {
+async function createObjectContact(
+  client: PoolClient,
+  objectId: string,
+  firstName: string,
+  lastName: string,
+  role: string,
+) {
   await client.query(
     `insert into object_contacts (object_id, first_name, last_name, function, phone, email, is_primary)
      values ($1, $2, $3, $4, '070 210 30 30', $5, true)`,
-    [objectId, firstName, lastName, role, `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${DEMO_EMAIL_DOMAIN}`],
+    [
+      objectId,
+      firstName,
+      lastName,
+      role,
+      `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${DEMO_EMAIL_DOMAIN}`,
+    ],
   );
 }
 
-async function linkObjectPersonnel(client: PoolClient, objectId: string, personnelIds: string[]) {
+async function linkObjectPersonnel(
+  client: PoolClient,
+  objectId: string,
+  personnelIds: string[],
+) {
   for (const personnelId of personnelIds) {
     await client.query(
       `insert into object_personnel (object_id, personnel_id)
@@ -639,7 +710,9 @@ async function createInvoice(
       euro(total),
       status,
       dateKey(dueOffsetDays),
-      status === "paid" && paidOffsetDays !== undefined ? dateKey(paidOffsetDays) : null,
+      status === "paid" && paidOffsetDays !== undefined
+        ? dateKey(paidOffsetDays)
+        : null,
       `${SEED_MARKER}: Demo factuur voor ketentest.`,
       actorId(),
     ],
@@ -647,7 +720,12 @@ async function createInvoice(
   return row.id;
 }
 
-async function createPayment(client: PoolClient, invoiceId: string, amountCents: number, status: string) {
+async function createPayment(
+  client: PoolClient,
+  invoiceId: string,
+  amountCents: number,
+  status: string,
+) {
   await client.query(
     `insert into payments (
        invoice_id, mollie_payment_id, amount_cents, currency, status, checkout_url, paid_at
@@ -689,7 +767,13 @@ async function createDocument(
   );
 }
 
-async function createAudit(client: PoolClient, action: string, resource: string, resourceId: string | null, label: string) {
+async function createAudit(
+  client: PoolClient,
+  action: string,
+  resource: string,
+  resourceId: string | null,
+  label: string,
+) {
   await client.query(
     `insert into audit_log (user_id, action, resource, resource_id, metadata)
      values ($1, $2, $3, $4, $5::jsonb)`,
@@ -706,23 +790,51 @@ async function createAudit(client: PoolClient, action: string, resource: string,
 async function seedDemoData(client: PoolClient) {
   const roleIds = {
     management: await ensureRole(client, "Management", "Full platform access"),
-    planning: await ensureRole(client, "Planning", "Manages planning and assignment scheduling"),
-    teamlead: await ensureRole(client, "Teamlead", "Oversees team assignments and reports"),
+    planning: await ensureRole(
+      client,
+      "Planning",
+      "Manages planning and assignment scheduling",
+    ),
+    teamlead: await ensureRole(
+      client,
+      "Teamlead",
+      "Oversees team assignments and reports",
+    ),
     employee: await ensureRole(client, "Employee", "Field worker"),
     flex: await ensureRole(client, "Flex Employee", "External/flex worker"),
   };
 
   const sectorIds = {
-    facilitair: await ensureSector(client, "Facilitair", "Facilitaire dienstverlening, beheer en onderhoud"),
-    schoonmaak: await ensureSector(client, "Schoonmaak", "Reguliere, specialistische en calamiteitenschoonmaak"),
-    beveiliging: await ensureSector(client, "Beveiliging", "Beveiliging, toezicht, surveillance en alarmopvolging"),
+    facilitair: await ensureSector(
+      client,
+      "Facilitair",
+      "Facilitaire dienstverlening, beheer en onderhoud",
+    ),
+    schoonmaak: await ensureSector(
+      client,
+      "Schoonmaak",
+      "Reguliere, specialistische en calamiteitenschoonmaak",
+    ),
+    beveiliging: await ensureSector(
+      client,
+      "Beveiliging",
+      "Beveiliging, toezicht, surveillance en alarmopvolging",
+    ),
   };
 
   const customerTypeIds = {
-    business: await createCustomerType(client, "Zakelijke klant", "zakelijke-klant"),
+    business: await createCustomerType(
+      client,
+      "Zakelijke klant",
+      "zakelijke-klant",
+    ),
     vve: await createCustomerType(client, "VvE", "vve"),
     zorg: await createCustomerType(client, "Zorginstelling", "zorginstelling"),
-    onderwijs: await createCustomerType(client, "Onderwijsinstelling", "onderwijsinstelling"),
+    onderwijs: await createCustomerType(
+      client,
+      "Onderwijsinstelling",
+      "onderwijsinstelling",
+    ),
     horeca: await createCustomerType(client, "Horeca", "horeca"),
   };
 
@@ -731,7 +843,8 @@ async function seedDemoData(client: PoolClient) {
       code: "DH-DEMO-SCH-001",
       name: "Dagelijkse schoonmaak en sanitairronde",
       sectorId: sectorIds.schoonmaak,
-      description: "Reguliere schoonmaakronde voor entree, algemene ruimtes en sanitair.",
+      description:
+        "Reguliere schoonmaakronde voor entree, algemene ruimtes en sanitair.",
       price: 145,
       durationMinutes: 90,
       requiredRoleId: roleIds.employee,
@@ -769,7 +882,8 @@ async function seedDemoData(client: PoolClient) {
       code: "DH-DEMO-BEV-004",
       name: "Avondsluiting en surveillance",
       sectorId: sectorIds.beveiliging,
-      description: "Sluitronde, alarmcontrole en rapportage van bijzonderheden.",
+      description:
+        "Sluitronde, alarmcontrole en rapportage van bijzonderheden.",
       price: 195,
       durationMinutes: 120,
       requiredRoleId: roleIds.employee,
@@ -780,7 +894,8 @@ async function seedDemoData(client: PoolClient) {
       code: "DH-DEMO-TEC-005",
       name: "Kleine facilitaire reparatie",
       sectorId: sectorIds.facilitair,
-      description: "Herstelmelding voor deurdrangers, verlichting en klein onderhoud.",
+      description:
+        "Herstelmelding voor deurdrangers, verlichting en klein onderhoud.",
       price: 210,
       durationMinutes: 120,
       requiredRoleId: roleIds.employee,
@@ -809,9 +924,17 @@ async function seedDemoData(client: PoolClient) {
       roleId: roleIds.teamlead,
       sectorId: sectorIds.schoonmaak,
       region: "Den Haag Centrum",
-      certificates: [{ name: "BHV" }, { name: "VCA" }, { name: "Hoogwerker", expires_at: "2027-04-30" }],
+      certificates: [
+        { name: "BHV" },
+        { name: "VCA" },
+        { name: "Hoogwerker", expires_at: "2027-04-30" },
+      ],
       diplomas: ["SVS Glasbewassing"],
-      knowledge: ["Rapportage", "Calamiteitenreiniging", "Veilig werken op hoogte"],
+      knowledge: [
+        "Rapportage",
+        "Calamiteitenreiniging",
+        "Veilig werken op hoogte",
+      ],
       personnelType: "vast",
       emergencyAvailable: true,
       preferredRegions: ["Scheveningen", "Binckhorst", "Statenkwartier"],
@@ -957,7 +1080,8 @@ async function seedDemoData(client: PoolClient) {
       kvk: "87234561",
       website: "https://haagsehofjes.example",
       status: "active",
-      notes: "Zorglocatie met strikte hygiëneregels en interne notities die klanten niet mogen zien.",
+      notes:
+        "Zorglocatie met strikte hygiëneregels en interne notities die klanten niet mogen zien.",
     }),
     staten: await createCustomer(client, {
       name: "VvE Residence Statenkwartier",
@@ -973,7 +1097,8 @@ async function seedDemoData(client: PoolClient) {
       kvk: "59123488",
       website: "https://residencestatenkwartier.example",
       status: "active",
-      notes: "Bewonerscommunicatie gevoelig; plan lawaaiwerkzaamheden buiten rusttijden.",
+      notes:
+        "Bewonerscommunicatie gevoelig; plan lawaaiwerkzaamheden buiten rusttijden.",
     }),
     zuiderstrand: await createCustomer(client, {
       name: "Strandpaviljoen Zuiderlicht",
@@ -1041,18 +1166,82 @@ async function seedDemoData(client: PoolClient) {
     }),
   };
 
-  await createCustomerContact(client, customers.hofjes, "Marieke", "de Groot", "Locatiemanager", `marieke.degroot@${DEMO_EMAIL_DOMAIN}`, true);
-  await createCustomerContact(client, customers.hofjes, "Jeroen", "Mulder", "Facilitair coordinator", `jeroen.mulder@${DEMO_EMAIL_DOMAIN}`);
-  await createCustomerContact(client, customers.staten, "Herman", "van Leeuwen", "Voorzitter VvE", `herman.vanleeuwen@${DEMO_EMAIL_DOMAIN}`, true);
-  await createCustomerContact(client, customers.zuiderstrand, "Nina", "Hoek", "Bedrijfsleider", `nina.hoek@${DEMO_EMAIL_DOMAIN}`, true);
-  await createCustomerContact(client, customers.binck, "Ravi", "Mehta", "Operations manager", `ravi.mehta@${DEMO_EMAIL_DOMAIN}`, true);
-  await createCustomerContact(client, customers.hofvijver, "Eline", "Bakker", "Directeur", `eline.bakker@${DEMO_EMAIL_DOMAIN}`, true);
-  await createCustomerContact(client, customers.noordeinde, "Thomas", "Vermeer", "Hotelmanager", `thomas.vermeer@${DEMO_EMAIL_DOMAIN}`, true);
+  await createCustomerContact(
+    client,
+    customers.hofjes,
+    "Marieke",
+    "de Groot",
+    "Locatiemanager",
+    `marieke.degroot@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
+  await createCustomerContact(
+    client,
+    customers.hofjes,
+    "Jeroen",
+    "Mulder",
+    "Facilitair coordinator",
+    `jeroen.mulder@${DEMO_EMAIL_DOMAIN}`,
+  );
+  await createCustomerContact(
+    client,
+    customers.staten,
+    "Herman",
+    "van Leeuwen",
+    "Voorzitter VvE",
+    `herman.vanleeuwen@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
+  await createCustomerContact(
+    client,
+    customers.zuiderstrand,
+    "Nina",
+    "Hoek",
+    "Bedrijfsleider",
+    `nina.hoek@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
+  await createCustomerContact(
+    client,
+    customers.binck,
+    "Ravi",
+    "Mehta",
+    "Operations manager",
+    `ravi.mehta@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
+  await createCustomerContact(
+    client,
+    customers.hofvijver,
+    "Eline",
+    "Bakker",
+    "Directeur",
+    `eline.bakker@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
+  await createCustomerContact(
+    client,
+    customers.noordeinde,
+    "Thomas",
+    "Vermeer",
+    "Hotelmanager",
+    `thomas.vermeer@${DEMO_EMAIL_DOMAIN}`,
+    true,
+  );
 
   for (const [customerId, note] of [
-    [customers.hofjes, "Let op: interne notitie over infectiepreventie en sleutelprotocol."],
-    [customers.staten, "Bestuur wil maandelijkse rapportage per e-mail ontvangen."],
-    [customers.binck, "Heftruckverkeer maakt planning tussen 10:00 en 12:00 onhandig."],
+    [
+      customers.hofjes,
+      "Let op: interne notitie over infectiepreventie en sleutelprotocol.",
+    ],
+    [
+      customers.staten,
+      "Bestuur wil maandelijkse rapportage per e-mail ontvangen.",
+    ],
+    [
+      customers.binck,
+      "Heftruckverkeer maakt planning tussen 10:00 en 12:00 onhandig.",
+    ],
   ] as const) {
     await client.query(
       "insert into customer_notes (customer_id, notes, updated_by) values ($1, $2, $3)",
@@ -1141,22 +1330,73 @@ async function seedDemoData(client: PoolClient) {
     }),
   };
 
-  await createObjectContact(client, objects.zorgAtrium, "Jeroen", "Mulder", "Facilitair coordinator");
-  await createObjectContact(client, objects.statenGarage, "Herman", "van Leeuwen", "Beheerder");
-  await createObjectContact(client, objects.strand, "Nina", "Hoek", "Bedrijfsleider");
-  await createObjectContact(client, objects.binckDock, "Ravi", "Mehta", "Dock manager");
-  await createObjectContact(client, objects.school, "Eline", "Bakker", "Directeur");
-  await createObjectContact(client, objects.hotel, "Thomas", "Vermeer", "Front office manager");
+  await createObjectContact(
+    client,
+    objects.zorgAtrium,
+    "Jeroen",
+    "Mulder",
+    "Facilitair coordinator",
+  );
+  await createObjectContact(
+    client,
+    objects.statenGarage,
+    "Herman",
+    "van Leeuwen",
+    "Beheerder",
+  );
+  await createObjectContact(
+    client,
+    objects.strand,
+    "Nina",
+    "Hoek",
+    "Bedrijfsleider",
+  );
+  await createObjectContact(
+    client,
+    objects.binckDock,
+    "Ravi",
+    "Mehta",
+    "Dock manager",
+  );
+  await createObjectContact(
+    client,
+    objects.school,
+    "Eline",
+    "Bakker",
+    "Directeur",
+  );
+  await createObjectContact(
+    client,
+    objects.hotel,
+    "Thomas",
+    "Vermeer",
+    "Front office manager",
+  );
 
-  await linkObjectPersonnel(client, objects.zorgAtrium, [personnelIds.farid, personnelIds.sanne, personnelIds.lotte]);
-  await linkObjectPersonnel(client, objects.statenGarage, [personnelIds.farid, personnelIds.pieter]);
-  await linkObjectPersonnel(client, objects.binckDock, [personnelIds.farid, personnelIds.mitchell, personnelIds.nour]);
-  await linkObjectPersonnel(client, objects.school, [personnelIds.lotte, personnelIds.nour]);
+  await linkObjectPersonnel(client, objects.zorgAtrium, [
+    personnelIds.farid,
+    personnelIds.sanne,
+    personnelIds.lotte,
+  ]);
+  await linkObjectPersonnel(client, objects.statenGarage, [
+    personnelIds.farid,
+    personnelIds.pieter,
+  ]);
+  await linkObjectPersonnel(client, objects.binckDock, [
+    personnelIds.farid,
+    personnelIds.mitchell,
+    personnelIds.nour,
+  ]);
+  await linkObjectPersonnel(client, objects.school, [
+    personnelIds.lotte,
+    personnelIds.nour,
+  ]);
 
   const assignments = {
     requested: await createAssignment(client, {
       title: "Nieuwe aanvraag: extra schoonmaak na ouderavond",
-      description: "Klant vraagt extra schoonmaakronde aan voor lokalen en entree.",
+      description:
+        "Klant vraagt extra schoonmaakronde aan voor lokalen en entree.",
       customerId: customers.hofvijver,
       objectId: objects.school,
       status: "requested",
@@ -1166,7 +1406,8 @@ async function seedDemoData(client: PoolClient) {
     }),
     review: await createAssignment(client, {
       title: "Review: periodiek onderhoud hotelruimtes",
-      description: "Lead vraagt maandelijkse dienstverlening; management moet beoordelen.",
+      description:
+        "Lead vraagt maandelijkse dienstverlening; management moet beoordelen.",
       customerId: customers.noordeinde,
       objectId: objects.hotel,
       status: "review",
@@ -1186,7 +1427,8 @@ async function seedDemoData(client: PoolClient) {
     }),
     approved: await createAssignment(client, {
       title: "Goedgekeurd: schoonmaak terras voor seizoenstart",
-      description: "Klant heeft opdracht goedgekeurd; klaar om planbaar te maken.",
+      description:
+        "Klant heeft opdracht goedgekeurd; klaar om planbaar te maken.",
       customerId: customers.zuiderstrand,
       objectId: objects.strand,
       status: "approved",
@@ -1218,7 +1460,8 @@ async function seedDemoData(client: PoolClient) {
     }),
     scheduledTeam: await createAssignment(client, {
       title: "Ingepland team: distributiehal inspectie en herstel",
-      description: "Meerdere personeelsleden gekoppeld voor inspectie plus klein herstel.",
+      description:
+        "Meerdere personeelsleden gekoppeld voor inspectie plus klein herstel.",
       customerId: customers.binck,
       objectId: objects.binckDock,
       status: "scheduled",
@@ -1232,7 +1475,8 @@ async function seedDemoData(client: PoolClient) {
     }),
     conflict: await createAssignment(client, {
       title: "Conflict-test: schoonmaak tijdens verlof",
-      description: "Bewust gepland op medewerker met goedgekeurd verlof voor badge-test.",
+      description:
+        "Bewust gepland op medewerker met goedgekeurd verlof voor badge-test.",
       customerId: customers.zuiderstrand,
       objectId: objects.strand,
       status: "scheduled",
@@ -1312,15 +1556,67 @@ async function seedDemoData(client: PoolClient) {
     }),
   };
 
-  await createQuote(client, assignments.quoteSent, customers.staten, "sent", 720, 14);
-  await createQuote(client, assignments.approved, customers.zuiderstrand, "approved", 285, 21);
-  await createQuote(client, assignments.review, customers.noordeinde, "draft", 1280, 30);
-  await createQuote(client, assignments.paid, customers.binck, "approved", 615, -2);
+  await createQuote(
+    client,
+    assignments.quoteSent,
+    customers.staten,
+    "sent",
+    720,
+    14,
+  );
+  await createQuote(
+    client,
+    assignments.approved,
+    customers.zuiderstrand,
+    "approved",
+    285,
+    21,
+  );
+  await createQuote(
+    client,
+    assignments.review,
+    customers.noordeinde,
+    "draft",
+    1280,
+    30,
+  );
+  await createQuote(
+    client,
+    assignments.paid,
+    customers.binck,
+    "approved",
+    615,
+    -2,
+  );
 
-  await createReport(client, assignments.submitted, "submitted", 2.25, "Sanitair en wachtruimte zijn gereinigd; twee dispensers waren leeg.");
-  await createReport(client, assignments.invoiceReady, "approved", 2.0, "Deurdranger hersteld, losse plint vastgezet en noodverlichting gecontroleerd.");
-  await createReport(client, assignments.invoiced, "approved", 2.5, "Glasbewassing uitgevoerd; bewoner heeft toegang tot dakrand bevestigd.");
-  await createReport(client, assignments.paid, "approved", 3.25, "Waterlekkage gereinigd, droogloopmatten vervangen en fotolog toegevoegd.");
+  await createReport(
+    client,
+    assignments.submitted,
+    "submitted",
+    2.25,
+    "Sanitair en wachtruimte zijn gereinigd; twee dispensers waren leeg.",
+  );
+  await createReport(
+    client,
+    assignments.invoiceReady,
+    "approved",
+    2.0,
+    "Deurdranger hersteld, losse plint vastgezet en noodverlichting gecontroleerd.",
+  );
+  await createReport(
+    client,
+    assignments.invoiced,
+    "approved",
+    2.5,
+    "Glasbewassing uitgevoerd; bewoner heeft toegang tot dakrand bevestigd.",
+  );
+  await createReport(
+    client,
+    assignments.paid,
+    "approved",
+    3.25,
+    "Waterlekkage gereinigd, droogloopmatten vervangen en fotolog toegevoegd.",
+  );
 
   await client.query(
     `insert into assignment_extra_work (assignment_id, task_code_id, task_code_name, description, hours, price, created_by)
@@ -1350,23 +1646,100 @@ async function seedDemoData(client: PoolClient) {
     [assignments.paid, actorId()],
   );
 
-  const openInvoice = await createInvoice(client, assignments.invoiced, customers.staten, "sent", 720, -3);
-  const paidInvoice = await createInvoice(client, assignments.paid, customers.binck, "paid", 615, -5, -1);
-  const draftInvoice = await createInvoice(client, assignments.invoiceReady, customers.hofvijver, "draft", 210, 21);
+  const openInvoice = await createInvoice(
+    client,
+    assignments.invoiced,
+    customers.staten,
+    "sent",
+    720,
+    -3,
+  );
+  const paidInvoice = await createInvoice(
+    client,
+    assignments.paid,
+    customers.binck,
+    "paid",
+    615,
+    -5,
+    -1,
+  );
+  const draftInvoice = await createInvoice(
+    client,
+    assignments.invoiceReady,
+    customers.hofvijver,
+    "draft",
+    210,
+    21,
+  );
   await createPayment(client, openInvoice, 87120, "open");
   await createPayment(client, paidInvoice, 74415, "paid");
   await createPayment(client, draftInvoice, 25410, "expired");
 
-  await createDocument(client, "customer", customers.hofjes, "Serviceafspraken Haagse Hofjes", "haagse-hofjes-serviceafspraken.pdf");
-  await createDocument(client, "object", objects.statenGarage, "VvE sleutelprotocol", "residence-statenkwartier-sleutelprotocol.pdf");
-  await createDocument(client, "assignment", assignments.paid, "Fotolog calamiteitenreiniging", "binckhorst-calamiteit-fotolog.pdf");
-  await createDocument(client, "personnel", personnelIds.farid, "Certificaat hoogwerker Farid", "farid-hoogwerker-certificaat.pdf");
-  await createDocument(client, "general", null, "Staging demo testplan", "staging-demo-testplan.pdf", 96000);
+  await createDocument(
+    client,
+    "customer",
+    customers.hofjes,
+    "Serviceafspraken Haagse Hofjes",
+    "haagse-hofjes-serviceafspraken.pdf",
+  );
+  await createDocument(
+    client,
+    "object",
+    objects.statenGarage,
+    "VvE sleutelprotocol",
+    "residence-statenkwartier-sleutelprotocol.pdf",
+  );
+  await createDocument(
+    client,
+    "assignment",
+    assignments.paid,
+    "Fotolog calamiteitenreiniging",
+    "binckhorst-calamiteit-fotolog.pdf",
+  );
+  await createDocument(
+    client,
+    "personnel",
+    personnelIds.farid,
+    "Certificaat hoogwerker Farid",
+    "farid-hoogwerker-certificaat.pdf",
+  );
+  await createDocument(
+    client,
+    "general",
+    null,
+    "Staging demo testplan",
+    "staging-demo-testplan.pdf",
+    96000,
+  );
 
-  await createAudit(client, "seed", "staging_demo", null, "Den Haag demo dataset aangemaakt");
-  await createAudit(client, "update", "assignments", assignments.scheduledTeam, "Teamplanning demo");
-  await createAudit(client, "approve", "reports", assignments.invoiceReady, "Rapport goedgekeurd demo");
-  await createAudit(client, "send", "invoices", openInvoice, "Factuur verzonden demo");
+  await createAudit(
+    client,
+    "seed",
+    "staging_demo",
+    null,
+    "Den Haag demo dataset aangemaakt",
+  );
+  await createAudit(
+    client,
+    "update",
+    "assignments",
+    assignments.scheduledTeam,
+    "Teamplanning demo",
+  );
+  await createAudit(
+    client,
+    "approve",
+    "reports",
+    assignments.invoiceReady,
+    "Rapport goedgekeurd demo",
+  );
+  await createAudit(
+    client,
+    "send",
+    "invoices",
+    openInvoice,
+    "Factuur verzonden demo",
+  );
 
   return {
     customers: Object.keys(customers).length,
@@ -1391,7 +1764,9 @@ async function main() {
 
     if (dryRun) {
       await client.query("rollback");
-      console.log("Staging demo seed dry-run complete; transaction rolled back.");
+      console.log(
+        "Staging demo seed dry-run complete; transaction rolled back.",
+      );
     } else {
       await client.query("commit");
       console.log("Staging demo seed complete.");

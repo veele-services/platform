@@ -8,12 +8,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 
-export const MVP_SPRINT2_RUNTIME_PROOF_VERSION = "mvp-sprint-2-runtime-proof-v1";
+export const MVP_SPRINT2_RUNTIME_PROOF_VERSION =
+  "mvp-sprint-2-runtime-proof-v1";
 export const MVP_SPRINT2_EVIDENCE_DIR = "artifacts/mvp-sprint2-runtime-proof";
 
 export const mvpSprint2PilotTenant = {
   slug: "field-demo",
-  host: "field-demo.fieldgrid.nl",
+  host: "field-demo.staging.fieldgrid.nl",
   ownerEmail: "services@fieldgrid.nl",
   plan: "Enterprise",
   modules: "all",
@@ -225,12 +226,27 @@ export async function collectMvpSprint2Evidence(env = process.env) {
     platformAdmin,
     customerPersonnel,
     manual: {
-      migrationSmoke: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_MIGRATION_SMOKE"),
+      migrationSmoke: manualEvidence(
+        env,
+        "FIELDGRID_MVP_SPRINT2_MIGRATION_SMOKE",
+      ),
       stagingSmoke: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_STAGING_SMOKE"),
-      notificationEmail: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_NOTIFICATION_EMAIL"),
-      storageDownload: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_STORAGE_DOWNLOAD"),
-      platformAdmin: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_PLATFORM_ADMIN"),
-      portalAcceptance: manualEvidence(env, "FIELDGRID_MVP_SPRINT2_PORTAL_ACCEPTANCE"),
+      notificationEmail: manualEvidence(
+        env,
+        "FIELDGRID_MVP_SPRINT2_NOTIFICATION_EMAIL",
+      ),
+      storageDownload: manualEvidence(
+        env,
+        "FIELDGRID_MVP_SPRINT2_STORAGE_DOWNLOAD",
+      ),
+      platformAdmin: manualEvidence(
+        env,
+        "FIELDGRID_MVP_SPRINT2_PLATFORM_ADMIN",
+      ),
+      portalAcceptance: manualEvidence(
+        env,
+        "FIELDGRID_MVP_SPRINT2_PORTAL_ACCEPTANCE",
+      ),
     },
   };
 }
@@ -297,7 +313,11 @@ function stagingSmokeResult(evidence) {
   }
 
   const report = evidence.stagingSmoke?.parsed;
-  if (report?.status === "pass" && Number(report.httpStatus) >= 200 && Number(report.httpStatus) < 300) {
+  if (
+    report?.status === "pass" &&
+    Number(report.httpStatus) >= 200 &&
+    Number(report.httpStatus) < 300
+  ) {
     return {
       status: "ok",
       evidence: `Read-only staging-smoke pass via ${artifactPath(evidence.stagingSmoke)}.`,
@@ -329,7 +349,9 @@ function dashboardLiveTargetStatus(evidence, targetIds) {
   const relevant = liveSmokes.filter((target) => targetSet.has(target.id));
   if (relevant.length === 0) return null;
 
-  if (relevant.every((target) => ["ok", "pass", "passed"].includes(target.status))) {
+  if (
+    relevant.every((target) => ["ok", "pass", "passed"].includes(target.status))
+  ) {
     return {
       status: "ok",
       evidence: `${relevant.length} live target(s) groen in staging-smoke dashboard.`,
@@ -465,7 +487,7 @@ export function buildMvpSprint2GateItems(evidence) {
       owner: "Platform engineering",
       status: loginHost.status,
       command:
-        "Playwright smoke voor staging.fieldgrid.nl/platform en field-demo.fieldgrid.nl",
+        "Playwright smoke voor staging.fieldgrid.nl/platform en field-demo.staging.fieldgrid.nl",
       evidence: loginHost.evidence,
       nextAction:
         "Leg owner login, tenant host resolutie en unknown-host denial vast.",
@@ -506,7 +528,12 @@ export function buildMvpSprint2GateItems(evidence) {
       evidence: portals.evidence,
       nextAction:
         "Draai customer en personnel portal screenshots met storage-state en concrete detailroutes.",
-      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-004", "FG-PORTAL-P-001", "FG-PORTAL-P-005"],
+      testIds: [
+        "FG-PORTAL-C-001",
+        "FG-PORTAL-C-004",
+        "FG-PORTAL-P-001",
+        "FG-PORTAL-P-005",
+      ],
       blocksMvp: true,
     },
     {
@@ -540,8 +567,12 @@ export function buildMvpSprint2GateItems(evidence) {
 export async function buildMvpSprint2RuntimeProofPlan(options = {}) {
   const evidence = await collectMvpSprint2Evidence(options.env ?? process.env);
   const gateItems = buildMvpSprint2GateItems(evidence);
-  const blocking = gateItems.filter((item) => item.blocksMvp && item.status === "blocked");
-  const manual = gateItems.filter((item) => item.blocksMvp && item.status === "manual");
+  const blocking = gateItems.filter(
+    (item) => item.blocksMvp && item.status === "blocked",
+  );
+  const manual = gateItems.filter(
+    (item) => item.blocksMvp && item.status === "manual",
+  );
   const strictEvidence = Boolean(options.strictEvidence);
 
   return {
@@ -596,9 +627,12 @@ export async function validateMvpSprint2RuntimeProofPlan(plan) {
   if (plan.version !== MVP_SPRINT2_RUNTIME_PROOF_VERSION) {
     errors.push("Onverwachte MVP Sprint 2 runtime proof versie.");
   }
-  if (plan.destructive) errors.push("MVP Sprint 2 gate mag niet destructief zijn.");
-  if (!plan.noTenantMutation) errors.push("MVP Sprint 2 gate moet read-only zijn.");
-  if (plan.pilotTenant.slug !== "field-demo") errors.push("Pilottenant moet field-demo zijn.");
+  if (plan.destructive)
+    errors.push("MVP Sprint 2 gate mag niet destructief zijn.");
+  if (!plan.noTenantMutation)
+    errors.push("MVP Sprint 2 gate moet read-only zijn.");
+  if (plan.pilotTenant.slug !== "field-demo")
+    errors.push("Pilottenant moet field-demo zijn.");
   if (plan.pilotTenant.mutatingConfirm !== "field-demo-only") {
     errors.push("Mutating confirm moet field-demo-only zijn.");
   }
@@ -628,14 +662,19 @@ export async function validateMvpSprint2RuntimeProofPlan(plan) {
 
     const content = await readText(contract.path);
     for (const phrase of contract.phrases) {
-      if (!content.includes(phrase)) errors.push(`${contract.path} mist "${phrase}".`);
+      if (!content.includes(phrase))
+        errors.push(`${contract.path} mist "${phrase}".`);
     }
   }
 
   if (plan.strictEvidence) {
-    for (const item of plan.gateItems.filter((candidate) => candidate.blocksMvp)) {
+    for (const item of plan.gateItems.filter(
+      (candidate) => candidate.blocksMvp,
+    )) {
       if (item.status !== "ok") {
-        errors.push(`Strict evidence blokkeert op ${item.id}: ${item.evidence}`);
+        errors.push(
+          `Strict evidence blokkeert op ${item.id}: ${item.evidence}`,
+        );
       }
     }
   }

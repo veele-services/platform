@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: website-staging-acceptance
+  group: veele-staging
   cancel-in-progress: false
 
 jobs:
@@ -32,6 +32,7 @@ jobs:
       APP_ENV: staging
       TARGET_ENVIRONMENT: staging
       STAGING_BASE_DIR: /var/www/veele/staging
+      WEBSITE_STACK_BASE_DIR: /var/www/veele/website-stack-staging
       WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
       MARKETING_PUBLIC_HEALTH_URL: ${{ vars.MARKETING_PUBLIC_HEALTH_URL }}
       WEBSITE_MANAGED_ACCEPTANCE_URL: ${{ vars.WEBSITE_MANAGED_ACCEPTANCE_URL }}

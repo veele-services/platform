@@ -1,6 +1,8 @@
 import {
   db,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isFieldgridSubdomain as sharedIsFieldgridSubdomain,
+  isTenantDomainAllowedForRuntimeEnvironment,
   isPlatformHost as sharedIsPlatformHost,
   normalizeHost as sharedNormalizeHost,
   TENANT_RUNTIME_ACTIVE_STATUSES,
@@ -16,9 +18,22 @@ export const isFieldgridSubdomain = sharedIsFieldgridSubdomain;
 
 export type ResolvedTenant = ResolvedTenantContext;
 
-export async function resolveTenantByHost(host: string): Promise<ResolvedTenant | null> {
+export async function resolveTenantByHost(
+  host: string,
+): Promise<ResolvedTenant | null> {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost || isPlatformHost(normalizedHost)) return null;
+  if (
+    !normalizedHost ||
+    !isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)
+  ) {
+    return null;
+  }
+  if (isPlatformHost(normalizedHost)) return null;
+  if (
+    !isTenantDomainAllowedForRuntimeEnvironment(normalizedHost)
+  ) {
+    return null;
+  }
 
   const [tenant] = await db
     .select({
@@ -28,6 +43,8 @@ export async function resolveTenantByHost(host: string): Promise<ResolvedTenant 
       isActive: tenantsTable.isActive,
       status: tenantsTable.status,
       planKey: tenantsTable.planKey,
+      domainType: tenantDomainsTable.type,
+      tlsStatus: tenantDomainsTable.tlsStatus,
     })
     .from(tenantDomainsTable)
     .innerJoin(tenantsTable, eq(tenantDomainsTable.tenantId, tenantsTable.id))
@@ -42,10 +59,15 @@ export async function resolveTenantByHost(host: string): Promise<ResolvedTenant 
     )
     .limit(1);
 
+  if (tenant?.domainType === "custom_domain" && tenant.tlsStatus !== "active") {
+    return null;
+  }
   return tenant ?? null;
 }
 
-export async function requireTenantByHost(host: string): Promise<ResolvedTenant> {
+export async function requireTenantByHost(
+  host: string,
+): Promise<ResolvedTenant> {
   const tenant = await resolveTenantByHost(host);
   if (!tenant) {
     throw new Error("Geen actieve tenant gevonden voor deze host.");

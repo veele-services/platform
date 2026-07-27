@@ -17,6 +17,8 @@ const API_PORT = Number(
   process.env.FIELDGRID_RUNTIME_SAFETY_API_PORT ?? "4177",
 );
 const API_BASE_URL = `http://127.0.0.1:${API_PORT}`;
+const API_RUNTIME_HOST = "api.runtime.fieldgrid.test";
+const UNKNOWN_API_RUNTIME_HOST = "unknown.runtime.fieldgrid.test";
 const JWT_SECRET =
   process.env.FIELDGRID_RUNTIME_SAFETY_JWT_SECRET ??
   "fieldgrid-runtime-safety-local-secret";
@@ -27,6 +29,12 @@ const MOLLIE_MOCK_PORT = Number(
 const MOLLIE_MOCK_URL = `http://127.0.0.1:${MOLLIE_MOCK_PORT}`;
 const WEBHOOK_SECRET = "runtime-safety-dummy-webhook-secret";
 const providerOverrides = new Map();
+
+function localApiEnvironment(overrides = {}) {
+  const env = { ...process.env, ...overrides };
+  delete env.APP_ENV;
+  return env;
+}
 
 const WEBHOOK_FIXTURE = {
   valid: {
@@ -97,9 +105,9 @@ function startServer() {
     ["--enable-source-maps", "./artifacts/api-server/dist/index.mjs"],
     {
       cwd: repoRoot,
-      env: {
-        ...process.env,
+      env: localApiEnvironment({
         NODE_ENV: "test",
+        PLATFORM_HOSTS: API_RUNTIME_HOST,
         PORT: String(API_PORT),
         DATABASE_URL: databaseUrl(),
         DB_SSL: "false",
@@ -117,7 +125,7 @@ function startServer() {
         VAPID_PRIVATE_KEY: "runtime-safety-private",
         VAPID_SUBJECT: "mailto:runtime-safety@fieldgrid.test",
         LOG_LEVEL: "silent",
-      },
+      }),
     },
   );
 
@@ -133,16 +141,16 @@ function startServer() {
 }
 
 async function verifyMissingWebhookSecretFailsStartup() {
-  const env = {
-    ...process.env,
+  const env = localApiEnvironment({
     NODE_ENV: "test",
+    PLATFORM_HOSTS: API_RUNTIME_HOST,
     PORT: String(API_PORT + 20),
     DATABASE_URL: databaseUrl(),
     DB_SSL: "false",
     PGSSLMODE: "disable",
     MOLLIE_API_KEY: "runtime-safety-dummy-mollie-key",
     LOG_LEVEL: "silent",
-  };
+  });
   delete env.MOLLIE_WEBHOOK_SECRET;
   const child = spawn(
     process.execPath,
@@ -638,7 +646,7 @@ async function runApiChecks() {
   assertStatus(checks, "server-action-api-health-contract", health.status, 200);
 
   const noAuth = await request(`/api/customers/${FIXTURE.customers.a}`, {
-    headers: { "x-forwarded-host": "fieldgrid.nl" },
+    headers: { "x-forwarded-host": API_RUNTIME_HOST },
   });
   assertStatus(checks, "server-action-api-no-auth-denied", noAuth.status, 401);
 
@@ -719,7 +727,7 @@ async function runApiChecks() {
     const denied = await request(`/api/customers/${FIXTURE.customers.a}`, {
       headers: {
         authorization: `Bearer ${token}`,
-        "x-forwarded-host": "fieldgrid.nl",
+        "x-forwarded-host": API_RUNTIME_HOST,
       },
     });
     assertStatus(
@@ -754,7 +762,7 @@ async function runApiChecks() {
     const denied = await request(`/api/customers/${FIXTURE.customers.a}`, {
       headers: {
         authorization: `Bearer ${token}`,
-        "x-forwarded-host": "fieldgrid.nl",
+        "x-forwarded-host": API_RUNTIME_HOST,
         "x-fieldgrid-tenant-id": FIXTURE.tenants.a,
       },
     });
@@ -769,7 +777,7 @@ async function runApiChecks() {
   const unknownHost = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      "x-forwarded-host": "unknown.runtime.fieldgrid.nl",
+      "x-forwarded-host": UNKNOWN_API_RUNTIME_HOST,
     },
   });
   assertStatus(
@@ -782,7 +790,7 @@ async function runApiChecks() {
   const crossTenant = await request(`/api/customers/${FIXTURE.customers.b}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      "x-forwarded-host": "fieldgrid.nl",
+      "x-forwarded-host": API_RUNTIME_HOST,
       "x-fieldgrid-tenant-id": FIXTURE.tenants.b,
     },
   });
@@ -796,7 +804,7 @@ async function runApiChecks() {
   const suspended = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${suspendedToken}`,
-      "x-forwarded-host": "fieldgrid.nl",
+      "x-forwarded-host": API_RUNTIME_HOST,
       "x-fieldgrid-tenant-id": FIXTURE.tenants.suspended,
     },
   });
@@ -810,7 +818,7 @@ async function runApiChecks() {
   const moduleOff = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${moduleOffToken}`,
-      "x-forwarded-host": "fieldgrid.nl",
+      "x-forwarded-host": API_RUNTIME_HOST,
       "x-fieldgrid-tenant-id": FIXTURE.tenants.moduleOff,
     },
   });
@@ -824,7 +832,7 @@ async function runApiChecks() {
   const validTenantA = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      "x-forwarded-host": "fieldgrid.nl",
+      "x-forwarded-host": API_RUNTIME_HOST,
       "x-fieldgrid-tenant-id": FIXTURE.tenants.a,
     },
   });

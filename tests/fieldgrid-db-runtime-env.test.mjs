@@ -81,6 +81,19 @@ test(
         connection.indexOf("DATABASE_URL"),
       "db connection should load runtime env before DATABASE_URL validation",
     );
+    assertContains(
+      connection,
+      [
+        "assertDatabaseEnvironmentIsolation();",
+        "new Pool",
+      ],
+      "db connection isolation guard",
+    );
+    assert.ok(
+      connection.indexOf("assertDatabaseEnvironmentIsolation();") <
+        connection.indexOf("new Pool"),
+      "db connection should verify environment identity before creating a pool",
+    );
 
     for (const [label, content] of [
       ["migration runner", migrate],
@@ -92,6 +105,7 @@ test(
         [
           "loadDbRuntimeEnv();",
           "DATABASE_URL",
+          "assertDatabaseEnvironmentIsolation();",
         ],
         label,
       );
