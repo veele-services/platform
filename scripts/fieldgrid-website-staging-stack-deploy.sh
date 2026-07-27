@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SYSTEMD_DIR="$REPO_ROOT/ops/systemd"
 CADDY_SOURCE="$REPO_ROOT/ops/caddy/fieldgrid-website-staging.caddy"
+CADDY_DROPIN_SOURCE="$SYSTEMD_DIR/caddy.service.d/fieldgrid-cloudflare-dns.conf"
+CADDY_VALIDATION_UNIT_SOURCE="$SYSTEMD_DIR/fieldgrid-caddy-validate.service"
 WEBSITE_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-website.service"
 MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
@@ -22,6 +24,9 @@ COREPACK_HOME_PATH="$BASE_DIR/shared/corepack"
 CADDYFILE="${FIELDGRID_CADDYFILE:-/etc/caddy/Caddyfile}"
 CADDY_SNIPPET_DIR="${FIELDGRID_CADDY_SNIPPET_DIR:-/etc/caddy/fieldgrid.d}"
 CADDY_SNIPPET="$CADDY_SNIPPET_DIR/fieldgrid-website-staging.caddy"
+CADDY_DROPIN="/etc/systemd/system/caddy.service.d/fieldgrid-cloudflare-dns.conf"
+CADDY_VALIDATION_UNIT="/etc/systemd/system/fieldgrid-caddy-validate.service"
+CORE_RELEASE_SHA_FILE="/var/www/veele/staging/current/.fieldgrid-release-sha"
 IMPORT_LINE="import /etc/caddy/fieldgrid.d/*.caddy"
 
 while [ "$#" -gt 0 ]; do
@@ -52,6 +57,8 @@ check_contract() {
     "$WEBSITE_UNIT_SOURCE" \
     "$MARKETING_UNIT_SOURCE" \
     "$CADDY_SOURCE" \
+    "$CADDY_DROPIN_SOURCE" \
+    "$CADDY_VALIDATION_UNIT_SOURCE" \
     "$SUDOERS_SOURCE" \
     "$SUDO_POLICY_CHECKER" \
     "$SERVICE_NODE_PREFLIGHT"; do
@@ -88,11 +95,15 @@ check_contract() {
 
   for host in \
     "website-runtime.staging.fieldgrid.nl" \
-    "managed.staging.fieldgrid.nl" \
-    "veele.staging.fieldgrid.nl" \
-    "veele-origin.staging.fieldgrid.nl"; do
+    "*.staging.fieldgrid.nl" \
+    "veeleservices-origin.staging.fieldgrid.nl"; do
     require_file_contains "$CADDY_SOURCE" "$host"
   done
+  require_file_contains "$CADDY_SOURCE" \
+    "dns cloudflare {env.CLOUDFLARE_API_TOKEN}"
+  if grep -Fq "veele.staging.fieldgrid.nl" "$CADDY_SOURCE"; then
+    fail "staging Caddy asset contains the retired Veele tenant host"
+  fi
   for route in "/admin /admin/*" "/personeel /personeel/*" \
     "/klant /klant/*" "/api /api/*"; do
     require_file_contains "$CADDY_SOURCE" "$route"
@@ -103,6 +114,8 @@ check_contract() {
     "/usr/bin/systemctl restart veele-staging-website veele-staging-marketing"
   require_file_contains "$SUDOERS_SOURCE" \
     "/usr/bin/systemctl stop veele-staging-website veele-staging-marketing"
+  require_file_contains "$SUDOERS_SOURCE" \
+    "/usr/bin/systemctl start fieldgrid-caddy-validate.service"
   require_file_contains "$SUDOERS_SOURCE" "/usr/bin/systemctl reload caddy"
   require_file_contains "$SUDOERS_SOURCE" \
     "github-runner ALL=(root) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL"
@@ -135,7 +148,8 @@ for name in APP_ENV TARGET_ENVIRONMENT WEBSITE_SERVICE_NAME WEBSITE_PORT \
   WEBSITE_PUBLIC_HEALTH_URL MARKETING_SERVICE_NAME MARKETING_PORT \
   MARKETING_PUBLIC_HEALTH_URL NEXT_PUBLIC_MARKETING_SITE_URL \
   FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON FIELDGRID_CUSTOM_ROUTE_KEY \
-  FIELDGRID_CUSTOM_RELEASE_ID FIELDGRID_CUSTOM_EXPECTED_HOST DATABASE_URL; do
+  FIELDGRID_CUSTOM_RELEASE_ID FIELDGRID_CUSTOM_EXPECTED_HOST DATABASE_URL \
+  NEXT_PUBLIC_SUPABASE_URL EXPECTED_SUPABASE_PROJECT_REF; do
   required_value "$name"
 done
 
@@ -160,6 +174,21 @@ fi
 [ "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_SHA" ] ||
   fail "source checkout differs from exact staging"
 
+assert_release_marker() {
+  local marker="$1"
+  local label="$2"
+  [ -r "$marker" ] ||
+    fail "$label release marker is missing or unreadable"
+  local actual
+  actual="$(tr -d '\r\n' < "$marker")"
+  [[ "$actual" =~ ^[a-f0-9]{40}$ ]] ||
+    fail "$label release marker is malformed"
+  [ "$actual" = "$EXPECTED_SHA" ] ||
+    fail "$label release differs from exact staging"
+}
+
+assert_release_marker "$CORE_RELEASE_SHA_FILE" "core"
+
 "$SERVICE_NODE_PATH" - "$EXPECTED_SHA" <<'NODE'
 const expectedSha = process.argv[2];
 const exact = (name, expected, path) => {
@@ -182,15 +211,15 @@ exact(
 );
 exact(
   "MARKETING_PUBLIC_HEALTH_URL",
-  "veele-origin.staging.fieldgrid.nl",
+  "veeleservices-origin.staging.fieldgrid.nl",
   "/healthz",
 );
 exact(
   "NEXT_PUBLIC_MARKETING_SITE_URL",
-  "veele.staging.fieldgrid.nl",
+  "veeleservices.staging.fieldgrid.nl",
   "/",
 );
-if (process.env.FIELDGRID_CUSTOM_EXPECTED_HOST !== "veele.staging.fieldgrid.nl")
+if (process.env.FIELDGRID_CUSTOM_EXPECTED_HOST !== "veeleservices.staging.fieldgrid.nl")
   throw new Error("custom expected host differs from the reviewed staging host");
 const routes = JSON.parse(process.env.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON);
 const route = routes.find(
@@ -203,8 +232,8 @@ if (
   route.releaseId !== `git-commit:${expectedSha}` ||
   route.status !== "routable" ||
   route.healthPath !== "/api/health" ||
-  route.upstreamOrigin !== "https://veele-origin.staging.fieldgrid.nl" ||
-  !route.expectedHosts?.includes("veele.staging.fieldgrid.nl")
+  route.upstreamOrigin !== "https://veeleservices-origin.staging.fieldgrid.nl" ||
+  !route.expectedHosts?.includes("veeleservices.staging.fieldgrid.nl")
 ) throw new Error("custom route registry differs from exact staging");
 const formId = process.env.FIELDGRID_WEBSITE_FORM_ID ?? "";
 if (formId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(formId))
@@ -232,6 +261,10 @@ require_preprovisioned_asset \
   "$MARKETING_UNIT_SOURCE" \
   "/etc/systemd/system/veele-staging-marketing.service"
 require_preprovisioned_asset "$CADDY_SOURCE" "$CADDY_SNIPPET"
+require_preprovisioned_asset "$CADDY_DROPIN_SOURCE" "$CADDY_DROPIN"
+require_preprovisioned_asset \
+  "$CADDY_VALIDATION_UNIT_SOURCE" \
+  "$CADDY_VALIDATION_UNIT"
 grep -Fxq "$IMPORT_LINE" "$CADDYFILE" ||
   fail "root bootstrap is required: Caddy import is missing"
 # The runner must not need direct read or traversal access to /etc/sudoers.d.
@@ -261,13 +294,15 @@ require_nopasswd_control "exact website restart" \
 require_nopasswd_control "exact website stop" \
   /usr/bin/systemctl stop \
   veele-staging-website veele-staging-marketing
+require_nopasswd_control "exact Caddy validation" \
+  /usr/bin/systemctl start fieldgrid-caddy-validate.service
 require_nopasswd_control "exact Caddy reload" \
   /usr/bin/systemctl reload caddy
 systemctl is-enabled --quiet "$WEBSITE_SERVICE_NAME" ||
   fail "root bootstrap is required: $WEBSITE_SERVICE_NAME is not enabled"
 systemctl is-enabled --quiet "$MARKETING_SERVICE_NAME" ||
   fail "root bootstrap is required: $MARKETING_SERVICE_NAME is not enabled"
-caddy adapt --config "$CADDYFILE" >/dev/null
+sudo systemctl start fieldgrid-caddy-validate.service
 
 write_evidence() {
   local status="$1"
@@ -298,7 +333,7 @@ JSON
 
 rollback() {
   local code="$?"
-  trap - ERR
+  trap - ERR EXIT
   set +e
   rollback_status="not-needed"
   if [ "$ACTIVATED" = "1" ]; then
@@ -316,7 +351,7 @@ rollback() {
   write_evidence "failed" "$rollback_status"
   exit "$code"
 }
-trap rollback ERR
+trap rollback ERR EXIT
 
 mkdir -p \
   "$RELEASE" \
@@ -351,10 +386,14 @@ done
 
 {
   printf 'APP_ENV=staging\n'
+  printf 'TARGET_ENVIRONMENT=staging\n'
+  printf 'EXPECTED_SUPABASE_PROJECT_REF=%s\n' \
+    "$EXPECTED_SUPABASE_PROJECT_REF"
   printf 'NODE_ENV=production\n'
   printf 'PORT=3305\n'
   printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+  printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
   printf "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON='%s'\n" \
     "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
 } > "$BASE_DIR/shared/website.env"
@@ -407,8 +446,12 @@ sudo systemctl reload caddy
 
 retry_curl "$WEBSITE_PUBLIC_HEALTH_URL"
 retry_curl "$MARKETING_PUBLIC_HEALTH_URL"
+assert_release_marker "$CORE_RELEASE_SHA_FILE" "core"
+assert_release_marker \
+  "$BASE_DIR/current/.fieldgrid-release-sha" \
+  "website stack"
 write_evidence "passed" "not-needed"
-trap - ERR
+trap - ERR EXIT
 
 mapfile -t old_releases < <(
   printf '%s\n' "$BASE_DIR"/releases/* | sort -r | tail -n +6

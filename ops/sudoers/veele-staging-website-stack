@@ -3,6 +3,7 @@
 Cmnd_Alias FIELDGRID_WEBSITE_STACK_CONTROL = \
     /usr/bin/systemctl restart veele-staging-website veele-staging-marketing, \
     /usr/bin/systemctl stop veele-staging-website veele-staging-marketing, \
+    /usr/bin/systemctl start fieldgrid-caddy-validate.service, \
     /usr/bin/systemctl reload caddy
 
 github-runner ALL=(root) NOPASSWD: FIELDGRID_WEBSITE_STACK_CONTROL

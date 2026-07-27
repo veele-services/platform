@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,9 +16,21 @@ import test from "node:test";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(__filename), "..");
-const activateScript = join(repoRoot, "scripts", "fieldgrid-atomic-release-activate.sh");
-const healthScript = join(repoRoot, "scripts", "fieldgrid-deploy-health-gate.sh");
-const backfillScript = join(repoRoot, "scripts", "fieldgrid-backfill-release-sha-marker.sh");
+const activateScript = join(
+  repoRoot,
+  "scripts",
+  "fieldgrid-atomic-release-activate.sh",
+);
+const healthScript = join(
+  repoRoot,
+  "scripts",
+  "fieldgrid-deploy-health-gate.sh",
+);
+const backfillScript = join(
+  repoRoot,
+  "scripts",
+  "fieldgrid-backfill-release-sha-marker.sh",
+);
 const deployWorkflow = join(repoRoot, ".github", "workflows", "deploy.yml");
 const expectedSha = "f36e84dad5d1c595e4dd349ff5ce6bd439722576";
 
@@ -96,7 +115,10 @@ async function fixture(t) {
   });
 
   const bash = await findBash();
-  assert.ok(bash, "POSIX shell unavailable; shell-level deploy tests require bash.");
+  assert.ok(
+    bash,
+    "POSIX shell unavailable; shell-level deploy tests require bash.",
+  );
 
   const base = join(root, "deploy");
   const releases = join(base, "releases");
@@ -107,14 +129,20 @@ async function fixture(t) {
   await mkdir(newRelease, { recursive: true });
   await mkdir(mockbin, { recursive: true });
   await writeFile(join(oldRelease, ".fieldgrid-release-sha"), "old-sha\n");
-  await writeFile(join(newRelease, ".fieldgrid-release-sha"), `${expectedSha}\n`);
+  await writeFile(
+    join(newRelease, ".fieldgrid-release-sha"),
+    `${expectedSha}\n`,
+  );
 
   const baseBash = await toBashPath(bash, base);
   const oldReleaseBash = await toBashPath(bash, oldRelease);
   const newReleaseBash = await toBashPath(bash, newRelease);
   const activateScriptBash = await toBashPath(bash, activateScript);
   const healthScriptBash = await toBashPath(bash, healthScript);
-  const activateEvidenceBash = await toBashPath(bash, join(root, "activate.json"));
+  const activateEvidenceBash = await toBashPath(
+    bash,
+    join(root, "activate.json"),
+  );
   const healthEvidenceBash = await toBashPath(bash, join(root, "health.json"));
   const mockLogBash = await toBashPath(bash, join(root, "systemctl.log"));
   const symlinkResult = await run(
@@ -125,7 +153,11 @@ async function fixture(t) {
     ],
     { allowFailure: true },
   );
-  assert.equal(symlinkResult.status, 0, "POSIX symlink semantics are required for deploy rollback shell tests.");
+  assert.equal(
+    symlinkResult.status,
+    0,
+    "POSIX symlink semantics are required for deploy rollback shell tests.",
+  );
 
   await makeExecutable(
     join(mockbin, "systemctl"),
@@ -152,10 +184,13 @@ if [ "$1" = "reload" ] && [ "$2" = "caddy" ] && [ "$MOCK_RELOAD_FAIL" = "1" ]; t
 exit 0
 `,
   );
-  await makeExecutable(join(mockbin, "sudo"), `#!/usr/bin/env sh
+  await makeExecutable(
+    join(mockbin, "sudo"),
+    `#!/usr/bin/env sh
 echo "sudo $@" >> "$MOCK_LOG"
 exec "$@"
-`);
+`,
+  );
   await makeExecutable(
     join(mockbin, "ss"),
     `#!/usr/bin/env sh
@@ -213,7 +248,8 @@ esac
       "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
       "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
     ].join("\n"),
-    FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "local-api-root|http://127.0.0.1:3400/api-root|api-root-404",
+    FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS:
+      "local-api-root|http://127.0.0.1:3400/api-root|api-root-404",
     FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
       "public-backoffice|https://platform-staging.example.test/login|login",
       "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
@@ -272,7 +308,10 @@ async function readJson(path) {
 
 async function readCurrentTarget(bash, base) {
   const baseBash = await toBashPath(bash, base);
-  const result = await run(bash, ["-lc", `readlink ${shellQuote(`${baseBash}/current`)}`]);
+  const result = await run(bash, [
+    "-lc",
+    `readlink ${shellQuote(`${baseBash}/current`)}`,
+  ]);
   return result.stdout.trim();
 }
 
@@ -286,7 +325,10 @@ test("healthy activation switches current and passes the health gate", async (t)
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
   assert.equal(await readCurrentTarget(f.bash, f.base), f.newReleaseBash);
 
-  const healthResult = await run(f.bash, f.healthArgsWithRestart, { env: f.commonEnv, allowFailure: true });
+  const healthResult = await run(f.bash, f.healthArgsWithRestart, {
+    env: f.commonEnv,
+    allowFailure: true,
+  });
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(
     healthResult.status,
@@ -298,7 +340,11 @@ test("healthy activation switches current and passes the health gate", async (t)
     ),
   );
   assert.equal(evidence.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "activation:restart")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "activation:restart")
+      ?.status,
+    "pass",
+  );
 });
 
 test("one dead service fails health evidence", async (t) => {
@@ -311,7 +357,10 @@ test("one dead service fails health evidence", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "service:klant")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "service:klant")?.status,
+    "fail",
+  );
 });
 
 test("one absent port fails health evidence", async (t) => {
@@ -324,7 +373,10 @@ test("one absent port fails health evidence", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "port:3300")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "port:3300")?.status,
+    "fail",
+  );
 });
 
 test("public 502 fails health evidence", async (t) => {
@@ -345,7 +397,11 @@ test("public 502 fails health evidence", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-personnel")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoint:public-personnel")
+      ?.status,
+    "fail",
+  );
 });
 
 test("local 5xx fails health evidence", async (t) => {
@@ -366,7 +422,11 @@ test("local 5xx fails health evidence", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:local-customer")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoint:local-customer")
+      ?.status,
+    "fail",
+  );
 });
 
 test("curl transport failure records HTTP 000 failure", async (t) => {
@@ -387,7 +447,9 @@ test("curl transport failure records HTTP 000 failure", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  const failed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  const failed = evidence.checks.find(
+    (check) => check.name === "endpoint:public-personnel",
+  );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /HTTP 000/);
 });
@@ -398,7 +460,9 @@ test("API root HTTP 404 is allowed while API health requires exact 200", async (
 
   await run(f.bash, f.healthArgs, { env: f.commonEnv });
   const evidence = await readJson(join(f.root, "health.json"));
-  const apiRoot = evidence.checks.find((check) => check.name === "endpoint:local-api-root");
+  const apiRoot = evidence.checks.find(
+    (check) => check.name === "endpoint:local-api-root",
+  );
   assert.equal(apiRoot?.status, "pass");
   assert.match(apiRoot.detail, /HTTP 404 accepted/);
 });
@@ -425,9 +489,21 @@ test("health gate requires exactly four services, ports, and local endpoints", a
 
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "services:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "ports:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:local-count")
+      ?.status,
+    "fail",
+  );
 });
 
 test("health gate accepts an explicitly configured fifth website runtime", async (t) => {
@@ -442,17 +518,50 @@ test("health gate accepts an explicitly configured fifth website runtime", async
       WEBSITE_PORT: "3500",
       FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500",
-      FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: ["local-backoffice|http://127.0.0.1:3100/login|login", "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200", "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200", "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200", "local-website-health|http://127.0.0.1:3500/healthz|exact-200"].join("\n"),
-      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: ["public-backoffice|https://platform-staging.example.test/login|login", "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200", "public-customer|https://customer-staging.example.test/klant/healthz|exact-200", "public-api-health|https://api-staging.example.test/api/healthz|exact-200", "public-website-health|https://website.staging.fieldgrid.nl/healthz|exact-200"].join("\n"),
+      FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
+        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
+        "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
+        "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
+        "local-website-health|http://127.0.0.1:3500/healthz|exact-200",
+      ].join("\n"),
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+        "public-website-health|https://website.staging.fieldgrid.nl/healthz|exact-200",
+      ].join("\n"),
     },
   });
 
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:local-website-health")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "services:configured-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "ports:configured-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:local-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:public-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find(
+      (check) => check.name === "endpoint:local-website-health",
+    )?.status,
+    "pass",
+  );
 });
 
 test("health gate rejects a partial website runtime configuration", async (t) => {
@@ -470,9 +579,21 @@ test("health gate rejects a partial website runtime configuration", async (t) =>
 
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "services:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "ports:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:local-count")
+      ?.status,
+    "fail",
+  );
 });
 
 test("health gate accepts independent website and marketing runtimes", async (t) => {
@@ -487,7 +608,8 @@ test("health gate accepts independent website and marketing runtimes", async (t)
       WEBSITE_PORT: "3500",
       MARKETING_SERVICE_NAME: "marketing",
       MARKETING_PORT: "3600",
-      FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website marketing",
+      FIELDGRID_DEPLOY_SERVICES:
+        "backoffice personeel klant api website marketing",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500 3600",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
         "local-backoffice|http://127.0.0.1:3100/login|login",
@@ -503,16 +625,34 @@ test("health gate accepts independent website and marketing runtimes", async (t)
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         "public-website-health|https://website-runtime.staging.fieldgrid.nl/healthz|exact-200",
-        "public-marketing-health|https://veele-origin.staging.fieldgrid.nl/healthz|exact-200",
+        "public-marketing-health|https://veeleservices-origin.staging.fieldgrid.nl/healthz|exact-200",
       ].join("\n"),
     },
   });
 
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:local-marketing-health")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-marketing-health")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "services:configured-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "ports:configured-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find(
+      (check) => check.name === "endpoint:local-marketing-health",
+    )?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find(
+      (check) => check.name === "endpoint:public-marketing-health",
+    )?.status,
+    "pass",
+  );
 });
 
 test("staging restart uses the exact approved website and marketing service pair", async (t) => {
@@ -527,7 +667,8 @@ test("staging restart uses the exact approved website and marketing service pair
       WEBSITE_PORT: "3500",
       MARKETING_SERVICE_NAME: "marketing",
       MARKETING_PORT: "3600",
-      FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website marketing",
+      FIELDGRID_DEPLOY_SERVICES:
+        "backoffice personeel klant api website marketing",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500 3600",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
         "local-backoffice|http://127.0.0.1:3100/login|login",
@@ -543,7 +684,7 @@ test("staging restart uses the exact approved website and marketing service pair
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         "public-website-health|https://website-runtime.staging.fieldgrid.nl/healthz|exact-200",
-        "public-marketing-health|https://veele-origin.staging.fieldgrid.nl/healthz|exact-200",
+        "public-marketing-health|https://veeleservices-origin.staging.fieldgrid.nl/healthz|exact-200",
       ].join("\n"),
     },
   });
@@ -573,9 +714,21 @@ test("health gate rejects a partial marketing runtime configuration", async (t) 
 
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "services:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "ports:configured-count")?.status, "fail");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "services:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "ports:configured-count")
+      ?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:local-count")
+      ?.status,
+    "fail",
+  );
 });
 
 test("HTTP 404 is rejected for exact-200 endpoints", async (t) => {
@@ -596,7 +749,11 @@ test("HTTP 404 is rejected for exact-200 endpoints", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-customer")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoint:public-customer")
+      ?.status,
+    "fail",
+  );
 });
 
 test("HTTP 301 on healthz is failure", async (t) => {
@@ -617,7 +774,9 @@ test("HTTP 301 on healthz is failure", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  const failed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  const failed = evidence.checks.find(
+    (check) => check.name === "endpoint:public-personnel",
+  );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /HTTP 301/);
 });
@@ -640,7 +799,9 @@ test("HTTP 302 on healthz is failure", async (t) => {
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  const failed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  const failed = evidence.checks.find(
+    (check) => check.name === "endpoint:public-personnel",
+  );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /HTTP 302/);
 });
@@ -661,7 +822,9 @@ test("HTTP 200 on healthz is pass", async (t) => {
     },
   });
   const evidence = await readJson(join(f.root, "health.json"));
-  const passed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  const passed = evidence.checks.find(
+    (check) => check.name === "endpoint:public-personnel",
+  );
   assert.equal(passed?.status, "pass");
   assert.match(passed.detail, /HTTP 200/);
 });
@@ -673,13 +836,16 @@ test("API-root HTTP 200 is failure when the contract requires exact 404", async 
   const result = await run(f.bash, f.healthArgs, {
     env: {
       ...f.commonEnv,
-      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "local-api-root|http://127.0.0.1:3400/api-root-200|api-root-404",
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS:
+        "local-api-root|http://127.0.0.1:3400/api-root-200|api-root-404",
     },
     allowFailure: true,
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  const failed = evidence.checks.find((check) => check.name === "endpoint:local-api-root");
+  const failed = evidence.checks.find(
+    (check) => check.name === "endpoint:local-api-root",
+  );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /HTTP 200/);
 });
@@ -690,7 +856,12 @@ test("rollback succeeds after a failed new release health check", async (t) => {
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -698,7 +869,7 @@ test("rollback succeeds after a failed new release health check", async (t) => {
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -709,8 +880,14 @@ test("rollback succeeds after a failed new release health check", async (t) => {
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:symlink")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:health")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:symlink")?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:health")?.status,
+    "pass",
+  );
 });
 
 test("rollback itself fails when restored release health remains bad", async (t) => {
@@ -719,7 +896,12 @@ test("rollback itself fails when restored release health remains bad", async (t)
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -727,7 +909,7 @@ test("rollback itself fails when restored release health remains bad", async (t)
           "public-backoffice|https://rollback-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -746,7 +928,12 @@ test("rollback fails closed when previous release path is missing", async (t) =>
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", `${f.baseBash}/releases/missing`, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      `${f.baseBash}/releases/missing`,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -754,7 +941,7 @@ test("rollback fails closed when previous release path is missing", async (t) =>
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -764,7 +951,11 @@ test("rollback fails closed when previous release path is missing", async (t) =>
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "unavailable");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:previous-release")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:previous-release")
+      ?.status,
+    "fail",
+  );
 });
 
 test("no previous release reports rollback unavailable", async (t) => {
@@ -792,10 +983,14 @@ test("no previous release reports rollback unavailable", async (t) => {
 test("build or migration failure before activation leaves current symlink untouched", async (t) => {
   const f = await fixture(t);
 
-  const result = await run(f.bash, [...f.activateArgs, "--migration-status", "failed"], {
-    env: f.commonEnv,
-    allowFailure: true,
-  });
+  const result = await run(
+    f.bash,
+    [...f.activateArgs, "--migration-status", "failed"],
+    {
+      env: f.commonEnv,
+      allowFailure: true,
+    },
+  );
 
   assert.notEqual(result.status, 0);
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
@@ -807,10 +1002,14 @@ test("build or migration failure before activation leaves current symlink untouc
 test("SHA marker mismatch before activation leaves current symlink untouched", async (t) => {
   const f = await fixture(t);
 
-  const result = await run(f.bash, [...f.activateArgs, "--expected-sha", "wrong-sha"], {
-    env: f.commonEnv,
-    allowFailure: true,
-  });
+  const result = await run(
+    f.bash,
+    [...f.activateArgs, "--expected-sha", "wrong-sha"],
+    {
+      env: f.commonEnv,
+      allowFailure: true,
+    },
+  );
 
   assert.notEqual(result.status, 0);
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
@@ -860,7 +1059,12 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
 
   const result = await run(
     f.bash,
-    [...f.healthArgsWithRestart, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgsWithRestart,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -868,7 +1072,7 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -878,11 +1082,20 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
   assert.notEqual(result.status, 0);
   const log = await readSystemctlLog(f.root);
   for (const service of ["backoffice", "personeel", "klant", "api"]) {
-    assert.equal(countOccurrences(log, new RegExp(`^(sudo )?systemctl restart ${service}$`)), 2);
+    assert.equal(
+      countOccurrences(
+        log,
+        new RegExp(`^(sudo )?systemctl restart ${service}$`),
+      ),
+      2,
+    );
   }
   assert.equal(countOccurrences(log, /^(sudo )?systemctl reload caddy$/), 2);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:health")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:health")?.status,
+    "pass",
+  );
 });
 
 test("Caddy reload failure before health gate triggers rollback", async (t) => {
@@ -891,7 +1104,12 @@ test("Caddy reload failure before health gate triggers rollback", async (t) => {
 
   const result = await run(
     f.bash,
-    [...f.healthArgsWithRestart, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgsWithRestart,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: { ...f.commonEnv, MOCK_RELOAD_FAIL: "1" },
       allowFailure: true,
@@ -901,7 +1119,11 @@ test("Caddy reload failure before health gate triggers rollback", async (t) => {
   assert.notEqual(result.status, 0);
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "activation:restart")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "activation:restart")
+      ?.status,
+    "fail",
+  );
 });
 
 test("rollback service restart failure marks rollback failed", async (t) => {
@@ -910,7 +1132,12 @@ test("rollback service restart failure marks rollback failed", async (t) => {
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -919,7 +1146,7 @@ test("rollback service restart failure marks rollback failed", async (t) => {
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -930,7 +1157,10 @@ test("rollback service restart failure marks rollback failed", async (t) => {
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "failed");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:restart")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:restart")?.status,
+    "fail",
+  );
 });
 
 test("Caddy reload failure during rollback marks rollback failed", async (t) => {
@@ -939,7 +1169,12 @@ test("Caddy reload failure during rollback marks rollback failed", async (t) => 
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -948,7 +1183,7 @@ test("Caddy reload failure during rollback marks rollback failed", async (t) => 
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -959,17 +1194,28 @@ test("Caddy reload failure during rollback marks rollback failed", async (t) => 
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "failed");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:restart")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:restart")?.status,
+    "fail",
+  );
 });
 
 test("rollback is blocked if current no longer points at the failed release", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
-  await run(f.bash, ["-lc", `ln -sfn ${shellQuote(f.oldReleaseBash)} ${shellQuote(`${f.baseBash}/current.other`)} && mv -Tf ${shellQuote(`${f.baseBash}/current.other`)} ${shellQuote(`${f.baseBash}/current`)}`]);
+  await run(f.bash, [
+    "-lc",
+    `ln -sfn ${shellQuote(f.oldReleaseBash)} ${shellQuote(`${f.baseBash}/current.other`)} && mv -Tf ${shellQuote(`${f.baseBash}/current.other`)} ${shellQuote(`${f.baseBash}/current`)}`,
+  ]);
 
   const result = await run(
     f.bash,
-    [...f.healthArgs, "--previous-release", f.oldReleaseBash, "--rollback-on-failure"],
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+    ],
     {
       env: {
         ...f.commonEnv,
@@ -977,7 +1223,7 @@ test("rollback is blocked if current no longer points at the failed release", as
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
-        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -987,7 +1233,10 @@ test("rollback is blocked if current no longer points at the failed release", as
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "blocked");
-  assert.equal(evidence.checks.find((check) => check.name === "rollback:current")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:current")?.status,
+    "fail",
+  );
 });
 
 test("evidence files are machine-readable, mode 0640, and redact URL paths and credentials", async (t) => {
@@ -1010,7 +1259,9 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
   const evidence = await readJson(evidencePath);
   const mode = (await stat(evidencePath)).mode & 0o777;
   assert.equal(mode, 0o640);
-  const backoffice = evidence.checks.find((check) => check.name === "endpoint:public-backoffice");
+  const backoffice = evidence.checks.find(
+    (check) => check.name === "endpoint:public-backoffice",
+  );
   assert.equal(backoffice?.status, "pass");
   assert.match(backoffice.detail, /https:\/\/platform-staging\.example\.test$/);
   assert.doesNotMatch(backoffice.detail, /user|pass|login|token|frag/);
@@ -1018,25 +1269,48 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
 
 test("deploy workflow keeps production activation body free of staging health scripts", async () => {
   const workflow = normalizeLineEndings(await readFile(deployWorkflow, "utf8"));
-  assert.match(workflow, /- name: Activate release\n\s+if: env\.TARGET == 'production'/);
-  assert.match(workflow, /- name: Activate staging release\n\s+if: env\.TARGET == 'staging'/);
-  assert.match(workflow, /- name: Run staging deploy health gate\n\s+if: env\.TARGET == 'staging'/);
+  assert.match(
+    workflow,
+    /- name: Activate release\n\s+if: env\.TARGET == 'production'/,
+  );
+  assert.match(
+    workflow,
+    /- name: Activate staging release\n\s+if: env\.TARGET == 'staging'/,
+  );
+  assert.match(
+    workflow,
+    /- name: Run staging deploy health gate\n\s+if: env\.TARGET == 'staging'/,
+  );
 
   const productionBlock = workflow.slice(
     workflow.indexOf("- name: Activate release"),
     workflow.indexOf("- name: Activate staging release"),
   );
-  assert.match(productionBlock, /ln -sfn "\$RELEASE" "\$BASE_DIR\/current\.new"/);
-  assert.match(productionBlock, /mv -Tf "\$BASE_DIR\/current\.new" "\$BASE_DIR\/current"/);
-  assert.doesNotMatch(productionBlock, /fieldgrid-atomic-release-activate|fieldgrid-deploy-health-gate|rollback-on-failure/);
+  assert.match(
+    productionBlock,
+    /ln -sfn "\$RELEASE" "\$BASE_DIR\/current\.new"/,
+  );
+  assert.match(
+    productionBlock,
+    /mv -Tf "\$BASE_DIR\/current\.new" "\$BASE_DIR\/current"/,
+  );
+  assert.doesNotMatch(
+    productionBlock,
+    /fieldgrid-atomic-release-activate|fieldgrid-deploy-health-gate|rollback-on-failure/,
+  );
 });
 
 test("deploy cleanup remains after staging health gate and is unreachable before green health", async () => {
   const workflow = normalizeLineEndings(await readFile(deployWorkflow, "utf8"));
-  const healthIndex = workflow.indexOf("- name: Run staging deploy health gate");
+  const healthIndex = workflow.indexOf(
+    "- name: Run staging deploy health gate",
+  );
   const cleanupIndex = workflow.indexOf("- name: Cleanup old releases");
   assert.ok(healthIndex > -1, "staging health gate step must exist");
-  assert.ok(cleanupIndex > healthIndex, "cleanup must run after the staging health gate step");
+  assert.ok(
+    cleanupIndex > healthIndex,
+    "cleanup must run after the staging health gate step",
+  );
   const cleanupBlock = workflow.slice(cleanupIndex);
   assert.doesNotMatch(cleanupBlock, /always\(\)/);
 });
@@ -1052,7 +1326,10 @@ test("public API root is checked only in the API-root endpoint group", async () 
     script.indexOf("http_status()"),
   );
 
-  assert.match(apiRootBlock, /append_endpoint "public-api-root" "\$API_PUBLIC_ROOT_URL" "api-root-404"/);
+  assert.match(
+    apiRootBlock,
+    /append_endpoint "public-api-root" "\$API_PUBLIC_ROOT_URL" "api-root-404"/,
+  );
   assert.doesNotMatch(publicBlock, /public-api-root/);
 });
 
@@ -1087,19 +1364,29 @@ test("activating service can become active within retries", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
   await writeFile(join(f.base, "service-klant-state"), "activating");
-  await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "2" } });
+  await run(f.bash, f.healthArgs, {
+    env: { ...f.commonEnv, FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "2" },
+  });
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "service:klant")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "service:klant")?.status,
+    "pass",
+  );
 });
 
 test("permanently inactive service fails with exit diagnostics", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
   await writeFile(join(f.base, "service-klant-state"), "inactive");
-  const result = await run(f.bash, f.healthArgs, { env: f.commonEnv, allowFailure: true });
+  const result = await run(f.bash, f.healthArgs, {
+    env: f.commonEnv,
+    allowFailure: true,
+  });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  const failed = evidence.checks.find((check) => check.name === "service:klant");
+  const failed = evidence.checks.find(
+    (check) => check.name === "service:klant",
+  );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /exit=3/);
 });
@@ -1113,19 +1400,32 @@ test("exact public health URL variables have precedence and API root is optional
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "",
       FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
       BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login",
-      PERSONEEL_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/personeel/healthz",
+      PERSONEEL_PUBLIC_HEALTH_URL:
+        "https://staging.fieldgrid.nl/personeel/healthz",
       KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
       API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
       API_PUBLIC_ROOT_URL: "",
     },
   });
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:api-root-count")?.status, "pass");
-  assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "pass");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:api-root-count")
+      ?.status,
+    "pass",
+  );
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoints:public-count")
+      ?.status,
+    "pass",
+  );
 });
 
 test("missing required public personnel customer or API health URL fails clearly", async (t) => {
-  for (const missing of ["PERSONEEL_PUBLIC_HEALTH_URL", "KLANT_PUBLIC_HEALTH_URL", "API_PUBLIC_HEALTH_URL"]) {
+  for (const missing of [
+    "PERSONEEL_PUBLIC_HEALTH_URL",
+    "KLANT_PUBLIC_HEALTH_URL",
+    "API_PUBLIC_HEALTH_URL",
+  ]) {
     const f = await fixture(t);
     await run(f.bash, f.activateArgs, { env: f.commonEnv });
     const env = {
@@ -1133,7 +1433,8 @@ test("missing required public personnel customer or API health URL fails clearly
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "",
       FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
       BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login",
-      PERSONEEL_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/personeel/healthz",
+      PERSONEEL_PUBLIC_HEALTH_URL:
+        "https://staging.fieldgrid.nl/personeel/healthz",
       KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
       API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
     };
@@ -1141,57 +1442,153 @@ test("missing required public personnel customer or API health URL fails clearly
     const result = await run(f.bash, f.healthArgs, { env, allowFailure: true });
     assert.notEqual(result.status, 0, missing);
     const evidence = await readJson(join(f.root, "health.json"));
-    assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "fail", missing);
+    assert.equal(
+      evidence.checks.find((check) => check.name === "endpoints:public-count")
+        ?.status,
+      "fail",
+      missing,
+    );
   }
 });
 
 test("API root 404 passes and 200 fails when explicitly configured", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
-  await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "public-api-root|https://staging.fieldgrid.nl/api-root|api-root-404" } });
+  await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS:
+        "public-api-root|https://staging.fieldgrid.nl/api-root|api-root-404",
+    },
+  });
   let evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-api-root")?.status, "pass");
-  const result = await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "public-api-root|https://staging.fieldgrid.nl/api-root-200|api-root-404" }, allowFailure: true });
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoint:public-api-root")
+      ?.status,
+    "pass",
+  );
+  const result = await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS:
+        "public-api-root|https://staging.fieldgrid.nl/api-root-200|api-root-404",
+    },
+    allowFailure: true,
+  });
   assert.notEqual(result.status, 0);
   evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-api-root")?.status, "fail");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "endpoint:public-api-root")
+      ?.status,
+    "fail",
+  );
 });
 
 test("endpoint group records multiple failures and invalid specs without blocking diagnostics", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
   const result = await run(f.bash, f.healthArgs, {
-    env: { ...f.commonEnv, FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-      "public-backoffice|https://platform-staging.example.test/login|login",
-      "public-personnel|https://personnel-staging.example.test/status-301|exact-200",
-      "invalid|https://invalid.example.test",
-      "public-customer|https://customer-staging.example.test/status-302|exact-200",
-      "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
-    ].join("\n") },
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/status-301|exact-200",
+        "invalid|https://invalid.example.test",
+        "public-customer|https://customer-staging.example.test/status-302|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+      ].join("\n"),
+    },
     allowFailure: true,
   });
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
-  assert.equal(evidence.checks.filter((check) => check.status === "fail" && check.name.startsWith("endpoint:")).length >= 3, true);
+  assert.equal(
+    evidence.checks.filter(
+      (check) => check.status === "fail" && check.name.startsWith("endpoint:"),
+    ).length >= 3,
+    true,
+  );
 });
 
 test("markerbackfill writes marker and rejects unsafe paths or mismatches", async (t) => {
   const f = await fixture(t);
-  const release = join(f.base, "releases", `20260713000000-${expectedSha.slice(0, 7)}`);
+  const release = join(
+    f.base,
+    "releases",
+    `20260713000000-${expectedSha.slice(0, 7)}`,
+  );
   await mkdir(release, { recursive: true });
   const releaseBash = await toBashPath(f.bash, release);
   const scriptBash = await toBashPath(f.bash, backfillScript);
-  await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", releaseBash, "--expected-sha", expectedSha]);
-  assert.equal((await readFile(join(release, ".fieldgrid-release-sha"), "utf8")).trim(), expectedSha);
+  await run(f.bash, [
+    scriptBash,
+    "--environment",
+    "staging",
+    "--base-dir",
+    f.baseBash,
+    "--release-path",
+    releaseBash,
+    "--expected-sha",
+    expectedSha,
+  ]);
+  assert.equal(
+    (await readFile(join(release, ".fieldgrid-release-sha"), "utf8")).trim(),
+    expectedSha,
+  );
 
-  const badPath = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", f.baseBash, "--expected-sha", expectedSha], { allowFailure: true });
+  const badPath = await run(
+    f.bash,
+    [
+      scriptBash,
+      "--environment",
+      "staging",
+      "--base-dir",
+      f.baseBash,
+      "--release-path",
+      f.baseBash,
+      "--expected-sha",
+      expectedSha,
+    ],
+    { allowFailure: true },
+  );
   assert.notEqual(badPath.status, 0);
   const mismatch = join(f.base, "releases", "20260713000000-deadbee");
   await mkdir(mismatch, { recursive: true });
   const mismatchBash = await toBashPath(f.bash, mismatch);
-  const badName = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", mismatchBash, "--expected-sha", expectedSha], { allowFailure: true });
+  const badName = await run(
+    f.bash,
+    [
+      scriptBash,
+      "--environment",
+      "staging",
+      "--base-dir",
+      f.baseBash,
+      "--release-path",
+      mismatchBash,
+      "--expected-sha",
+      expectedSha,
+    ],
+    { allowFailure: true },
+  );
   assert.notEqual(badName.status, 0);
-  await writeFile(join(release, ".fieldgrid-release-sha"), "0000000000000000000000000000000000000000\n");
-  const existing = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", releaseBash, "--expected-sha", expectedSha], { allowFailure: true });
+  await writeFile(
+    join(release, ".fieldgrid-release-sha"),
+    "0000000000000000000000000000000000000000\n",
+  );
+  const existing = await run(
+    f.bash,
+    [
+      scriptBash,
+      "--environment",
+      "staging",
+      "--base-dir",
+      f.baseBash,
+      "--release-path",
+      releaseBash,
+      "--expected-sha",
+      expectedSha,
+    ],
+    { allowFailure: true },
+  );
   assert.notEqual(existing.status, 0);
 });

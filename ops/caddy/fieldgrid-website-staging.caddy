@@ -2,13 +2,16 @@ website-runtime.staging.fieldgrid.nl {
   encode zstd gzip
   reverse_proxy 127.0.0.1:3305
 }
-
-veele-origin.staging.fieldgrid.nl {
+veeleservices-origin.staging.fieldgrid.nl {
   encode zstd gzip
   reverse_proxy 127.0.0.1:3306
 }
 
-managed.staging.fieldgrid.nl, veele.staging.fieldgrid.nl {
+*.staging.fieldgrid.nl {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+
   encode zstd gzip
 
   @backoffice path /admin /admin/*

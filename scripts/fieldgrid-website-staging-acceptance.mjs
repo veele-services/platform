@@ -28,7 +28,9 @@ export function safeStagingUrl(value, label) {
   }
   if (
     url.protocol !== "https:" ||
-    !url.hostname.endsWith(".staging.fieldgrid.nl") ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.staging\.fieldgrid\.nl$/u.test(
+      url.hostname,
+    ) ||
     url.username ||
     url.password ||
     url.port ||
@@ -90,10 +92,7 @@ export function validateWebsiteStagingAcceptanceConfig(
   }
   if (managed && custom && managed.hostname === custom.hostname)
     errors.push("managed and custom acceptance hosts must differ");
-  if (
-    custom &&
-    env.FIELDGRID_CUSTOM_EXPECTED_HOST !== custom.hostname
-  ) {
+  if (custom && env.FIELDGRID_CUSTOM_EXPECTED_HOST !== custom.hostname) {
     errors.push("custom acceptance host differs from the expected custom host");
   }
   if (
@@ -268,13 +267,63 @@ async function verifyWebsiteMode(baseUrl, expectedMode) {
   };
 }
 
-async function verifyReleaseMarker(expectedSha, env = process.env) {
-  const baseDir = env.STAGING_BASE_DIR || "/var/www/veele/staging";
-  const marker = join(baseDir, "current", ".fieldgrid-release-sha");
-  const actual = (await readFile(marker, "utf8")).trim();
-  if (actual !== expectedSha)
-    throw new Error("active staging release marker differs from expected SHA.");
-  return { exact: true, sha: actual };
+async function verifyReleaseMarkers(expectedSha, env = process.env) {
+  const markers = [
+    {
+      label: "core",
+      baseDir: env.STAGING_BASE_DIR || "/var/www/veele/staging",
+    },
+    {
+      label: "website_stack",
+      baseDir:
+        env.WEBSITE_STACK_BASE_DIR || "/var/www/veele/website-stack-staging",
+    },
+  ];
+  for (const marker of markers) {
+    const actual = (
+      await readFile(
+        join(marker.baseDir, "current", ".fieldgrid-release-sha"),
+        "utf8",
+      )
+    ).trim();
+    if (actual !== expectedSha) {
+      throw new Error(
+        `${marker.label} staging release marker differs from expected SHA.`,
+      );
+    }
+  }
+  return {
+    exact: true,
+    sha: expectedSha,
+    coreAndWebsiteStackEqual: true,
+  };
+}
+
+async function verifyUnboundTenantHost(expectedSha) {
+  const hostname = `unbound-${expectedSha.slice(0, 12)}.staging.fieldgrid.nl`;
+  const result = await fetchBounded(new URL(`https://${hostname}/`), {
+    redirect: "manual",
+  });
+  if (result.response.status !== 404) {
+    throw new Error(
+      `unbound staging tenant host returned HTTP ${result.response.status}.`,
+    );
+  }
+  if (result.response.headers.get("location")) {
+    throw new Error("unbound staging tenant host returned a redirect.");
+  }
+  if (result.response.headers.has("x-fieldgrid-website-delivery")) {
+    throw new Error(
+      "unbound staging tenant host exposed a website delivery marker.",
+    );
+  }
+  return {
+    host: hostname,
+    tlsVerified: true,
+    status: 404,
+    redirected: false,
+    tenantContentExposed: false,
+  };
 }
 
 async function runAcceptance(options, env = process.env) {
@@ -365,10 +414,11 @@ async function runAcceptance(options, env = process.env) {
     throw new Error("custom form endpoint is not configured.");
   }
 
-  const release = await verifyReleaseMarker(options.expectedStagingSha, env);
-  const [managed, custom] = await Promise.all([
+  const release = await verifyReleaseMarkers(options.expectedStagingSha, env);
+  const [managed, custom, unboundTenantHost] = await Promise.all([
     verifyWebsiteMode(managedUrl, "managed_cms"),
     verifyWebsiteMode(customUrl, "custom_nextjs"),
+    verifyUnboundTenantHost(options.expectedStagingSha),
   ]);
   return {
     version: WEBSITE_STAGING_ACCEPTANCE_VERSION,
@@ -387,6 +437,7 @@ async function runAcceptance(options, env = process.env) {
     },
     managed,
     custom,
+    unboundTenantHost,
     productionChanged: false,
     deploymentPerformed: false,
     secretsRecorded: false,
