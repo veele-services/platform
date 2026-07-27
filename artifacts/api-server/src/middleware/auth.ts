@@ -5,7 +5,6 @@ import {
   FIELDGRID_RUNTIME_ACCESS_PRIORITY,
   getActiveSupportAccessForUser,
   isFieldgridHostAllowedForRuntimeEnvironment,
-  isFieldgridSubdomain,
   isPlatformHost,
   isTenantDomainAllowedForRuntimeEnvironment,
   isSupportRuntimePermission,
@@ -395,6 +394,7 @@ async function resolveTenantByHost(
     return { kind: "blocked" };
   }
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
+  if (normalizedHost === "fieldgrid.nl") return { kind: "none" };
   if (!isTenantDomainAllowedForRuntimeEnvironment(normalizedHost)) {
     return { kind: "blocked" };
   }
@@ -415,8 +415,7 @@ async function resolveTenantByHost(
     .limit(1);
 
   if (tenant) return { kind: "tenant", tenantId: tenant.tenantId };
-  if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
-  return { kind: "none" };
+  return { kind: "blocked" };
 }
 
 async function userHasActiveTenant(
