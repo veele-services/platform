@@ -26,6 +26,10 @@ import {
   type PlatformProvisioningStepRow,
 } from "@/app/actions/platform-provisioning";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import {
+  defaultTenantDomainForSlug,
+  resolveFieldgridDeploymentEnvironment,
+} from "@workspace/db";
 
 export const metadata = {
   title: "Platform onboarding",
@@ -252,6 +256,10 @@ function OnboardingWizard({
   const selectedDefaultSectorId =
     draft?.defaultSectorId ?? catalog.sectors[0]?.id ?? "";
   const fieldgridSubdomain = preflight?.fieldgridSubdomain ?? draft?.slug ?? "";
+  const exampleDomain = defaultTenantDomainForSlug(
+    "demo-x",
+    resolveFieldgridDeploymentEnvironment(),
+  );
 
   return (
     <section className="grid gap-5 rounded border border-slate-200 bg-white p-5">
@@ -302,7 +310,7 @@ function OnboardingWizard({
 
         <FieldGroup
           title="Plan en Fieldgrid subdomain"
-          helper="Voor demo-x is demo-x.fieldgrid.nl direct bereikbaar na provisioning."
+          helper={`Voor demo-x is ${exampleDomain} direct bereikbaar na provisioning.`}
         >
           <div className="grid gap-3 md:grid-cols-3">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
@@ -328,7 +336,7 @@ function OnboardingWizard({
             <TextInput
               label="Primair domein override"
               name="domain"
-              placeholder="demo-x.fieldgrid.nl"
+              placeholder={exampleDomain}
               defaultValue={fieldValue(draft?.primaryDomain)}
             />
           </div>

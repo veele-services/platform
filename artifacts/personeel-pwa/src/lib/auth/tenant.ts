@@ -4,10 +4,12 @@ import {
   db,
   isFieldgridSubdomain,
   isPlatformHost,
+  isTenantDomainAllowedForEnvironment,
   normalizePersonnelTenantCode,
   normalizeHost,
   personnelTable,
   requireTenantModule,
+  resolveFieldgridDeploymentEnvironment,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantsTable,
@@ -36,7 +38,11 @@ function firstForwardedValue(value: string | null): string {
 
 async function requestHost(): Promise<string> {
   const requestHeaders = await headers();
-  return firstForwardedValue(requestHeaders.get("x-forwarded-host")) || requestHeaders.get("host") || "";
+  return (
+    firstForwardedValue(requestHeaders.get("x-forwarded-host")) ||
+    requestHeaders.get("host") ||
+    ""
+  );
 }
 
 async function resolveSelectedPersonnelTenantId(): Promise<string | null> {
@@ -71,14 +77,18 @@ export async function resolveActivePersonnelTenantIdByCode(
 }
 
 function singleTenantId(rows: { tenantId: string }[]): string | null {
-  const tenantIds = [...new Set(rows.map((row) => row.tenantId).filter(Boolean))];
+  const tenantIds = [
+    ...new Set(rows.map((row) => row.tenantId).filter(Boolean)),
+  ];
   return tenantIds.length === 1 ? tenantIds[0] : null;
 }
 
 async function resolveAuthenticatedPersonnelTenantId(): Promise<string | null> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return null;
 
     const byUserId = await db
@@ -126,9 +136,21 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
   const normalizedHost = normalizeHost(await requestHost());
   if (!normalizedHost) return { kind: "none" };
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
+  if (
+    !isTenantDomainAllowedForEnvironment(
+      normalizedHost,
+      resolveFieldgridDeploymentEnvironment(),
+    )
+  ) {
+    return { kind: "blocked" };
+  }
 
   const [tenant] = await db
-    .select({ tenantId: tenantsTable.id })
+    .select({
+      tenantId: tenantsTable.id,
+      domainType: tenantDomainsTable.type,
+      tlsStatus: tenantDomainsTable.tlsStatus,
+    })
     .from(tenantDomainsTable)
     .innerJoin(tenantsTable, eq(tenantDomainsTable.tenantId, tenantsTable.id))
     .where(
@@ -142,7 +164,12 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
     )
     .limit(1);
 
-  if (tenant) return { kind: "tenant", tenantId: tenant.tenantId };
+  if (
+    tenant &&
+    (tenant.domainType !== "custom_domain" || tenant.tlsStatus === "active")
+  ) {
+    return { kind: "tenant", tenantId: tenant.tenantId };
+  }
   if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
   return { kind: "none" };
 }
@@ -197,7 +224,9 @@ export async function getCurrentPortalTenantId(): Promise<string | null> {
   return (await resolvePersonnelPortalTenantContext()).tenantId;
 }
 
-export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey): Promise<string | null> {
+export async function requireCurrentPortalModule(
+  moduleKey: FieldgridModuleKey,
+): Promise<string | null> {
   const tenantId = await getCurrentPortalTenantId();
   if (!tenantId) return null;
 
@@ -209,6 +238,8 @@ export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey):
   }
 }
 
-export async function requireCurrentPersonnelPortalTenantId(): Promise<string | null> {
+export async function requireCurrentPersonnelPortalTenantId(): Promise<
+  string | null
+> {
   return requireCurrentPortalModule("personnel_portal");
 }

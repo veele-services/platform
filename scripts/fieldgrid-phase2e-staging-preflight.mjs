@@ -422,7 +422,8 @@ export function validateRuntimeConfig(options, env = process.env) {
   }
   if (
     env.PILOT_TENANT_LOGIN_URL &&
-    new URL(env.PILOT_TENANT_LOGIN_URL).hostname !== "field-demo.fieldgrid.nl"
+    new URL(env.PILOT_TENANT_LOGIN_URL).hostname !==
+      "field-demo.staging.fieldgrid.nl"
   ) {
     errors.push(
       "PILOT_TENANT_LOGIN_URL must use the current pilot tenant host.",
@@ -432,10 +433,7 @@ export function validateRuntimeConfig(options, env = process.env) {
   return errors;
 }
 
-export function validateCustomCandidateConfig(
-  expectedMain,
-  env = process.env,
-) {
+export function validateCustomCandidateConfig(expectedMain, env = process.env) {
   const required = [
     env.NEXT_PUBLIC_MARKETING_SITE_URL,
     env.FIELDGRID_CUSTOM_ROUTE_KEY,
@@ -445,9 +443,7 @@ export function validateCustomCandidateConfig(
   if (required.some((value) => !String(value ?? "").trim())) return [];
 
   const errors = [];
-  const expectedHost = String(
-    env.FIELDGRID_CUSTOM_EXPECTED_HOST,
-  ).toLowerCase();
+  const expectedHost = String(env.FIELDGRID_CUSTOM_EXPECTED_HOST).toLowerCase();
   let marketingUrl;
   try {
     marketingUrl = new URL(env.NEXT_PUBLIC_MARKETING_SITE_URL);
@@ -1124,6 +1120,10 @@ async function runMigrationRehearsal(target, outDir) {
     {
       env: {
         ...process.env,
+        APP_ENV: "local",
+        TARGET_ENVIRONMENT: "local",
+        EXPECTED_SUPABASE_PROJECT_REF: "",
+        NEXT_PUBLIC_SUPABASE_URL: "",
         DATABASE_URL: databaseUrl,
         DB_SSL: "false",
         PGSSLMODE: "disable",

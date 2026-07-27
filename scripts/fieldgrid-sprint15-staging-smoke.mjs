@@ -8,7 +8,8 @@ const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 
 export const SPRINT15_STAGING_SMOKE_VERSION = "sprint-15-staging-smoke-v1";
-export const DEFAULT_STAGING_SMOKE_API_URL = "https://staging.fieldgrid.nl/api/platform/staging-smoke";
+export const DEFAULT_STAGING_SMOKE_API_URL =
+  "https://staging.fieldgrid.nl/api/platform/staging-smoke";
 export const DEFAULT_STAGING_PILOT_TENANT_SLUG = "field-demo";
 export const DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
 const REQUIRED_LIVE_SMOKE_TARGET_IDS = [
@@ -21,69 +22,85 @@ const REQUIRED_LIVE_SMOKE_TARGET_IDS = [
 ];
 
 function pilotTenantSlug(env = process.env) {
-  return env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() || DEFAULT_STAGING_PILOT_TENANT_SLUG;
+  return (
+    env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() ||
+    DEFAULT_STAGING_PILOT_TENANT_SLUG
+  );
 }
 
 function pilotTenantHost(env = process.env) {
-  return `${pilotTenantSlug(env)}.fieldgrid.nl`;
+  return `${pilotTenantSlug(env)}.staging.fieldgrid.nl`;
 }
 
 function mutatingSmokeConfirmValue(env = process.env) {
-  return env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() || DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE;
+  return (
+    env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() ||
+    DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE
+  );
 }
 
 export function buildLiveSmokeTargets(env = process.env) {
   const host = pilotTenantHost(env);
 
   return [
-  {
-    id: "FG-LIVE-HOST",
-    label: "Host-first platform en tenants",
-    runner: "Playwright",
-    host: "staging.fieldgrid.nl",
-    route: "/admin/platform",
-    testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
-  },
-  {
-    id: "FG-LIVE-MODULES",
-    label: "Modules en sectoren",
-    runner: "Playwright",
-    host,
-    route: "/admin",
-    testIds: ["FG-MODULE-001", "FG-MODULE-003", "FG-SECTOR-001", "FG-SECTOR-006"],
-  },
-  {
-    id: "FG-LIVE-REGIONS",
-    label: "Regio planning",
-    runner: "Playwright",
-    host,
-    route: "/admin/planning",
-    testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
-  },
-  {
-    id: "FG-LIVE-CUSTOMER-PORTAL",
-    label: "Klantportaal",
-    runner: "Playwright",
-    host,
-    route: "/klant",
-    testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-002", "FG-PORTAL-C-004"],
-  },
-  {
-    id: "FG-LIVE-PERSONNEL-PLANNING",
-    label: "Personeelsapp planning",
-    runner: "Playwright",
-    host,
-    route: "/personeel",
-    testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
-  },
-  {
-    id: "FG-LIVE-STORAGE-PDF",
-    label: "Storage en PDF/downloads",
-    runner: "Playwright",
-    host,
-    route: "/admin/documents",
-    testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-DATA-004", "FG-AUDIT-001"],
-  },
+    {
+      id: "FG-LIVE-HOST",
+      label: "Host-first platform en tenants",
+      runner: "Playwright",
+      host: "staging.fieldgrid.nl",
+      route: "/admin/platform",
+      testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
+    },
+    {
+      id: "FG-LIVE-MODULES",
+      label: "Modules en sectoren",
+      runner: "Playwright",
+      host,
+      route: "/admin",
+      testIds: [
+        "FG-MODULE-001",
+        "FG-MODULE-003",
+        "FG-SECTOR-001",
+        "FG-SECTOR-006",
+      ],
+    },
+    {
+      id: "FG-LIVE-REGIONS",
+      label: "Regio planning",
+      runner: "Playwright",
+      host,
+      route: "/admin/planning",
+      testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
+    },
+    {
+      id: "FG-LIVE-CUSTOMER-PORTAL",
+      label: "Klantportaal",
+      runner: "Playwright",
+      host,
+      route: "/klant",
+      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-002", "FG-PORTAL-C-004"],
+    },
+    {
+      id: "FG-LIVE-PERSONNEL-PLANNING",
+      label: "Personeelsapp planning",
+      runner: "Playwright",
+      host,
+      route: "/personeel",
+      testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
+    },
+    {
+      id: "FG-LIVE-STORAGE-PDF",
+      label: "Storage en PDF/downloads",
+      runner: "Playwright",
+      host,
+      route: "/admin/documents",
+      testIds: [
+        "FG-STORAGE-001",
+        "FG-STORAGE-002",
+        "FG-DATA-004",
+        "FG-AUDIT-001",
+      ],
+    },
   ];
 }
 
@@ -94,30 +111,30 @@ export function buildMutatingChecks(env = process.env) {
   const confirmVar = `FIELDGRID_MUTATING_SMOKE_CONFIRM=${mutatingSmokeConfirmValue(env)}`;
 
   return [
-  {
-    id: "FG-MUTATE-LIFECYCLE",
-    label: "Lifecycle mutatie met rollback",
-    tenantScope,
-    confirmVar,
-    cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
-    testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
-  },
-  {
-    id: "FG-MUTATE-SUPPORT-GRANT",
-    label: "Supportgrant aanmaken en revoken",
-    tenantScope,
-    confirmVar,
-    cleanupSelector: "fieldgrid-sprint-15-mutating-support",
-    testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
-  },
-  {
-    id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
-    label: "Document/PDF audit met cleanup",
-    tenantScope,
-    confirmVar,
-    cleanupSelector: "fieldgrid-sprint-15-mutating-document",
-    testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
-  },
+    {
+      id: "FG-MUTATE-LIFECYCLE",
+      label: "Lifecycle mutatie met rollback",
+      tenantScope,
+      confirmVar,
+      cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
+      testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
+    },
+    {
+      id: "FG-MUTATE-SUPPORT-GRANT",
+      label: "Supportgrant aanmaken en revoken",
+      tenantScope,
+      confirmVar,
+      cleanupSelector: "fieldgrid-sprint-15-mutating-support",
+      testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
+    },
+    {
+      id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
+      label: "Document/PDF audit met cleanup",
+      tenantScope,
+      confirmVar,
+      cleanupSelector: "fieldgrid-sprint-15-mutating-document",
+      testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
+    },
   ];
 }
 
@@ -129,7 +146,9 @@ export function parseArgs(argv = process.argv.slice(2)) {
     json: false,
     runReadOnly: false,
     help: false,
-    apiUrl: process.env.FIELDGRID_STAGING_SMOKE_API_URL || DEFAULT_STAGING_SMOKE_API_URL,
+    apiUrl:
+      process.env.FIELDGRID_STAGING_SMOKE_API_URL ||
+      DEFAULT_STAGING_SMOKE_API_URL,
     outDir: join(repoRoot, "artifacts", "staging-smoke"),
   };
 
@@ -181,11 +200,18 @@ export function buildSprint15StagingSmokePlan(env = process.env) {
     mutatesExistingTenants: false,
     dashboardRoute: "/admin/platform/staging-smoke",
     smokeApiRoute: "/api/platform/staging-smoke",
-    runHistoryDirectories: ["artifacts/staging-smoke", "artifacts/migration-smoke"],
+    runHistoryDirectories: [
+      "artifacts/staging-smoke",
+      "artifacts/migration-smoke",
+    ],
     readOnlySnapshot: {
-      apiUrl: env.FIELDGRID_STAGING_SMOKE_API_URL || DEFAULT_STAGING_SMOKE_API_URL,
+      apiUrl:
+        env.FIELDGRID_STAGING_SMOKE_API_URL || DEFAULT_STAGING_SMOKE_API_URL,
       requiresAuth: true,
-      authOptions: ["FIELDGRID_STAGING_SMOKE_COOKIE", "FIELDGRID_STAGING_SMOKE_BEARER"],
+      authOptions: [
+        "FIELDGRID_STAGING_SMOKE_COOKIE",
+        "FIELDGRID_STAGING_SMOKE_BEARER",
+      ],
       command: "pnpm fieldgrid:sprint15-staging-smoke --run-read-only",
     },
     migrationSmokeStatus: {
@@ -203,45 +229,68 @@ export function buildSprint15StagingSmokePlan(env = process.env) {
       "docs/fieldgrid-staging-promotion-checklist.md",
       "docs/fieldgrid-phase-7-operations.md",
     ],
-    requiredDashboardFields: ["runHistory", "liveSmokes", "migrationSmoke", "mutatingChecks"],
+    requiredDashboardFields: [
+      "runHistory",
+      "liveSmokes",
+      "migrationSmoke",
+      "mutatingChecks",
+    ],
   };
 }
 
-export function validateSprint15StagingSmokePlan(plan = buildSprint15StagingSmokePlan()) {
+export function validateSprint15StagingSmokePlan(
+  plan = buildSprint15StagingSmokePlan(),
+) {
   const errors = [];
-  const expectedPilotHost = `${plan.pilotTenantSlug}.fieldgrid.nl`;
+  const expectedPilotHost = `${plan.pilotTenantSlug}.staging.fieldgrid.nl`;
 
-  if (plan.destructive) errors.push("Sprint 15 smokeplan mag niet destructief zijn.");
-  if (plan.mutatesExistingTenants) errors.push("Sprint 15 smokeplan mag bestaande tenants niet muteren.");
+  if (plan.destructive)
+    errors.push("Sprint 15 smokeplan mag niet destructief zijn.");
+  if (plan.mutatesExistingTenants)
+    errors.push("Sprint 15 smokeplan mag bestaande tenants niet muteren.");
   if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(plan.pilotTenantSlug)) {
     errors.push("Pilottenant-slug is geen geldige DNS-label.");
   }
   if (plan.pilotTenantSlug !== DEFAULT_STAGING_PILOT_TENANT_SLUG) {
-    errors.push("Sprint 15 mag uitsluitend de vaste field-demo pilottenant gebruiken.");
+    errors.push(
+      "Sprint 15 mag uitsluitend de vaste field-demo pilottenant gebruiken.",
+    );
   }
-  if (!plan.runHistoryDirectories.includes("artifacts/staging-smoke")) errors.push("Run history mist artifacts/staging-smoke.");
-  if (!plan.runHistoryDirectories.includes("artifacts/migration-smoke")) errors.push("Run history mist artifacts/migration-smoke.");
+  if (!plan.runHistoryDirectories.includes("artifacts/staging-smoke"))
+    errors.push("Run history mist artifacts/staging-smoke.");
+  if (!plan.runHistoryDirectories.includes("artifacts/migration-smoke"))
+    errors.push("Run history mist artifacts/migration-smoke.");
   const targetIds = plan.liveSmokeTargets.map((target) => target.id);
   if (
     targetIds.length !== REQUIRED_LIVE_SMOKE_TARGET_IDS.length ||
     new Set(targetIds).size !== targetIds.length ||
     REQUIRED_LIVE_SMOKE_TARGET_IDS.some((id) => !targetIds.includes(id))
   ) {
-    errors.push("Live Playwright-smokes moeten alle vaste target-ID's exact eenmaal bevatten.");
+    errors.push(
+      "Live Playwright-smokes moeten alle vaste target-ID's exact eenmaal bevatten.",
+    );
   }
-  if (plan.mutatingChecks.length < 3) errors.push("Mutating checks missen cleanupcontracten.");
+  if (plan.mutatingChecks.length < 3)
+    errors.push("Mutating checks missen cleanupcontracten.");
 
   for (const target of plan.liveSmokeTargets) {
-    if (target.id === "FG-LIVE-HOST" && target.host !== "staging.fieldgrid.nl") {
+    if (
+      target.id === "FG-LIVE-HOST" &&
+      target.host !== "staging.fieldgrid.nl"
+    ) {
       errors.push("FG-LIVE-HOST gebruikt niet de vaste platform staging-host.");
-    } else if (target.id !== "FG-LIVE-HOST" && target.host !== expectedPilotHost) {
+    } else if (
+      target.id !== "FG-LIVE-HOST" &&
+      target.host !== expectedPilotHost
+    ) {
       errors.push(`${target.id} gebruikt niet de vaste pilottenant-host.`);
     }
   }
   for (const check of plan.mutatingChecks) {
     if (
       check.tenantScope !== DEFAULT_STAGING_PILOT_TENANT_SLUG ||
-      check.confirmVar !== `FIELDGRID_MUTATING_SMOKE_CONFIRM=${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE}`
+      check.confirmVar !==
+        `FIELDGRID_MUTATING_SMOKE_CONFIRM=${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE}`
     ) {
       errors.push(`${check.id} wijkt af van de vaste pilottenantbevestiging.`);
     }
@@ -255,12 +304,17 @@ export function validateSprint15StagingSmokePlan(plan = buildSprint15StagingSmok
 
 function authHeaders(env = process.env) {
   const headers = { accept: "application/json" };
-  if (env.FIELDGRID_STAGING_SMOKE_COOKIE) headers.cookie = env.FIELDGRID_STAGING_SMOKE_COOKIE;
-  if (env.FIELDGRID_STAGING_SMOKE_BEARER) headers.authorization = `Bearer ${env.FIELDGRID_STAGING_SMOKE_BEARER}`;
+  if (env.FIELDGRID_STAGING_SMOKE_COOKIE)
+    headers.cookie = env.FIELDGRID_STAGING_SMOKE_COOKIE;
+  if (env.FIELDGRID_STAGING_SMOKE_BEARER)
+    headers.authorization = `Bearer ${env.FIELDGRID_STAGING_SMOKE_BEARER}`;
   return headers;
 }
 
-export async function runReadOnlySnapshot(options = parseArgs([]), env = process.env) {
+export async function runReadOnlySnapshot(
+  options = parseArgs([]),
+  env = process.env,
+) {
   const headers = authHeaders(env);
   const startedAt = new Date();
   const response = await fetch(options.apiUrl, { headers });
@@ -285,9 +339,13 @@ export async function runReadOnlySnapshot(options = parseArgs([]), env = process
     httpStatus: response.status,
     summary: {
       status: response.ok ? "pass" : "fail",
-      message: response.ok ? "Read-only staging smoke snapshot opgehaald." : "Read-only staging smoke snapshot faalde.",
+      message: response.ok
+        ? "Read-only staging smoke snapshot opgehaald."
+        : "Read-only staging smoke snapshot faalde.",
     },
-    checks: Array.isArray(dashboard?.checks) ? dashboard.checks.map((check) => check.id).filter(Boolean) : [],
+    checks: Array.isArray(dashboard?.checks)
+      ? dashboard.checks.map((check) => check.id).filter(Boolean)
+      : [],
     dashboard,
   };
 
@@ -340,7 +398,9 @@ export async function main(argv = process.argv.slice(2)) {
   if (options.runReadOnly) {
     const { report, reportPath } = await runReadOnlySnapshot(options);
     if (options.json) console.log(JSON.stringify(report, null, 2));
-    console.log(`[fieldgrid:sprint15-staging-smoke] Report written: ${reportPath}`);
+    console.log(
+      `[fieldgrid:sprint15-staging-smoke] Report written: ${reportPath}`,
+    );
     return report.status === "pass" ? 0 : 1;
   }
 

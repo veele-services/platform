@@ -1,0 +1,89 @@
+name: Environment Isolation Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type compare-staging-production-databases
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    name: Fingerprint staging database
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'compare-staging-production-databases'
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      project_fingerprint: ${{ steps.identity.outputs.project_fingerprint }}
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: identity
+        name: Validate staging identity without logging it
+        run: >-
+          node scripts/fieldgrid-environment-isolation-preflight.mjs
+          --validate
+          --emit-github-output
+
+  production:
+    name: Fingerprint production database
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'compare-staging-production-databases'
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      project_fingerprint: ${{ steps.identity.outputs.project_fingerprint }}
+    env:
+      APP_ENV: production
+      TARGET_ENVIRONMENT: production
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: identity
+        name: Validate production identity without logging it
+        run: >-
+          node scripts/fieldgrid-environment-isolation-preflight.mjs
+          --validate
+          --emit-github-output
+
+  compare:
+    name: Prove databases are distinct
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'compare-staging-production-databases'
+    needs: [staging, production]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Compare secret-free fingerprints
+        run: >-
+          node scripts/fieldgrid-environment-isolation-preflight.mjs
+          --compare
+          '${{ needs.staging.outputs.project_fingerprint }}'
+          '${{ needs.production.outputs.project_fingerprint }}'

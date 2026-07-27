@@ -3,8 +3,10 @@ import {
   db,
   isFieldgridSubdomain,
   isPlatformHost,
+  isTenantDomainAllowedForEnvironment,
   normalizeHost,
   requireTenantModule,
+  resolveFieldgridDeploymentEnvironment,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantsTable,
@@ -24,16 +26,32 @@ function firstForwardedValue(value: string | null): string {
 
 async function requestHost(): Promise<string> {
   const requestHeaders = await headers();
-  return firstForwardedValue(requestHeaders.get("x-forwarded-host")) || requestHeaders.get("host") || "";
+  return (
+    firstForwardedValue(requestHeaders.get("x-forwarded-host")) ||
+    requestHeaders.get("host") ||
+    ""
+  );
 }
 
 export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantResolution> {
   const normalizedHost = normalizeHost(await requestHost());
   if (!normalizedHost) return { kind: "none" };
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
+  if (
+    !isTenantDomainAllowedForEnvironment(
+      normalizedHost,
+      resolveFieldgridDeploymentEnvironment(),
+    )
+  ) {
+    return { kind: "blocked" };
+  }
 
   const [tenant] = await db
-    .select({ tenantId: tenantsTable.id })
+    .select({
+      tenantId: tenantsTable.id,
+      domainType: tenantDomainsTable.type,
+      tlsStatus: tenantDomainsTable.tlsStatus,
+    })
     .from(tenantDomainsTable)
     .innerJoin(tenantsTable, eq(tenantDomainsTable.tenantId, tenantsTable.id))
     .where(
@@ -47,7 +65,12 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
     )
     .limit(1);
 
-  if (tenant) return { kind: "tenant", tenantId: tenant.tenantId };
+  if (
+    tenant &&
+    (tenant.domainType !== "custom_domain" || tenant.tlsStatus === "active")
+  ) {
+    return { kind: "tenant", tenantId: tenant.tenantId };
+  }
   if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
   return { kind: "none" };
 }
@@ -57,7 +80,9 @@ export async function getCurrentPortalTenantId(): Promise<string | null> {
   return resolution.kind === "tenant" ? resolution.tenantId : null;
 }
 
-export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey): Promise<string | null> {
+export async function requireCurrentPortalModule(
+  moduleKey: FieldgridModuleKey,
+): Promise<string | null> {
   const tenantId = await getCurrentPortalTenantId();
   if (!tenantId) return null;
 
@@ -69,6 +94,8 @@ export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey):
   }
 }
 
-export async function requireCurrentCustomerPortalTenantId(): Promise<string | null> {
+export async function requireCurrentCustomerPortalTenantId(): Promise<
+  string | null
+> {
   return requireCurrentPortalModule("customer_portal");
 }

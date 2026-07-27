@@ -5,7 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   customDomainVerificationValue,
+  defaultTenantDomainForSlug,
   FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS,
+  resolveFieldgridDeploymentEnvironment,
 } from "@workspace/db";
 import {
   Activity,
@@ -383,7 +385,13 @@ function fieldgridCnameTarget(
   tenant: PlatformTenantDetail,
   domain: TenantDomainRow,
 ): string {
-  return domain.dnsTarget || `${tenant.slug}.fieldgrid.nl`;
+  return (
+    domain.dnsTarget ||
+    defaultTenantDomainForSlug(
+      tenant.slug,
+      resolveFieldgridDeploymentEnvironment(),
+    )
+  );
 }
 
 function canRouteDomain(domain: TenantDomainRow): boolean {
@@ -499,7 +507,12 @@ function TenantTabs({
 }
 
 function TenantOpenLinks({ tenant }: { tenant: PlatformTenantDetail }) {
-  const host = tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`;
+  const host =
+    tenant.primaryDomain ??
+    defaultTenantDomainForSlug(
+      tenant.slug,
+      resolveFieldgridDeploymentEnvironment(),
+    );
   const links = [
     { label: "Organisatiewebsite", path: "" },
     { label: "Backoffice", path: "/admin" },
@@ -583,7 +596,11 @@ function StatusPanel({ tenant }: { tenant: PlatformTenantDetail }) {
           </h1>
           <p className="mt-2 break-all text-sm text-slate-500">
             {tenant.slug} - host{" "}
-            {tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`}
+            {tenant.primaryDomain ??
+              defaultTenantDomainForSlug(
+                tenant.slug,
+                resolveFieldgridDeploymentEnvironment(),
+              )}
           </p>
         </div>
         <LifecycleActions tenant={tenant} />
@@ -629,7 +646,11 @@ function OverviewTab({
               ["Plan", `${tenant.planName} (${tenant.planKey})`],
               [
                 "Primaire host",
-                tenant.primaryDomain ?? `${tenant.slug}.fieldgrid.nl`,
+                tenant.primaryDomain ??
+                  defaultTenantDomainForSlug(
+                    tenant.slug,
+                    resolveFieldgridDeploymentEnvironment(),
+                  ),
               ],
               ["Aangemaakt", formatDate(tenant.createdAt)],
               ["Bijgewerkt", formatDate(tenant.updatedAt)],
@@ -1374,7 +1395,10 @@ function DomainsTab({
           <input
             name="domain"
             required
-            placeholder={`${tenant.slug}.fieldgrid.nl`}
+            placeholder={defaultTenantDomainForSlug(
+              tenant.slug,
+              resolveFieldgridDeploymentEnvironment(),
+            )}
             className="h-10 rounded border border-slate-300 px-3 text-sm"
           />
         </label>

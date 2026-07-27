@@ -22,6 +22,7 @@ jobs:
       TARGET_ENVIRONMENT: staging
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
       APP_ENV: staging
+      APP_URL: ${{ vars.APP_URL }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
 
@@ -61,24 +62,7 @@ jobs:
             exit 1
           fi
 
-          case "$DATABASE_URL" in
-            *"$EXPECTED_SUPABASE_PROJECT_REF"*) ;;
-            *)
-              echo "::error::DATABASE_URL does not target the expected staging Supabase project."
-              exit 1
-              ;;
-          esac
-
-          case "$NEXT_PUBLIC_SUPABASE_URL" in
-            *"$EXPECTED_SUPABASE_PROJECT_REF"*) ;;
-            *)
-              echo "::error::NEXT_PUBLIC_SUPABASE_URL does not target the expected staging Supabase project."
-              exit 1
-              ;;
-          esac
-
-          echo "Database Autofix target: staging"
-          echo "Expected Supabase project ref: $EXPECTED_SUPABASE_PROJECT_REF"
+          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
 
       - name: Install dependencies
         run: |

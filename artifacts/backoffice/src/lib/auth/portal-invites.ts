@@ -1,9 +1,11 @@
 import type { User } from "@supabase/supabase-js";
 import {
+  assertTenantDomainMatchesEnvironment,
   generateInternalAuthPassword,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
   resolveCredentialRecoveryOrigin,
+  resolveFieldgridDeploymentEnvironment,
   type CredentialRecoverySurface,
 } from "@workspace/db";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,13 +16,21 @@ import {
   validateBackofficeProfileName,
 } from "@/lib/auth/backoffice-profile";
 
-export type PortalInviteType = "customer" | "personnel" | "tenant-admin" | "platform-admin";
-function isEmailExistsError(error: { code?: string; message?: string } | null): boolean {
+export type PortalInviteType =
+  | "customer"
+  | "personnel"
+  | "tenant-admin"
+  | "platform-admin";
+function isEmailExistsError(
+  error: { code?: string; message?: string } | null,
+): boolean {
   const message = error?.message?.toLowerCase() ?? "";
-  return error?.code === "email_exists" ||
+  return (
+    error?.code === "email_exists" ||
     message.includes("already registered") ||
     message.includes("already been registered") ||
-    message.includes("already exists");
+    message.includes("already exists")
+  );
 }
 
 export async function findAuthUserByEmail(
@@ -39,7 +49,9 @@ export async function findAuthUserByEmail(
       throw new Error(error.message ?? "Supabase gebruiker zoeken mislukt.");
     }
 
-    const found = data.users.find((user) => user.email?.toLowerCase() === normalized);
+    const found = data.users.find(
+      (user) => user.email?.toLowerCase() === normalized,
+    );
     if (found) return found;
     if (data.users.length < 1000) return null;
   }
@@ -76,14 +88,57 @@ function surfaceForPortal(portal: PortalInviteType): CredentialRecoverySurface {
   return "platform-admin";
 }
 
-function trustedActivationOrigin(activationUrl: string): string {
+function trustedActivationOrigin(
+  activationUrl: string,
+  portal: PortalInviteType,
+): string {
   const configuredOrigin = new URL(activationUrl).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
-    .split(",").map((value) => value.trim()).filter(Boolean);
+  const configuredAllowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? ""
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const appEnvironment = process.env.APP_ENV?.trim().toLowerCase();
+
+  if (appEnvironment !== "staging" && appEnvironment !== "production") {
+    return resolveCredentialRecoveryOrigin({
+      configuredOrigin,
+      allowedOrigins:
+        configuredAllowedOrigins.length > 0
+          ? configuredAllowedOrigins
+          : [configuredOrigin],
+      allowHttpLocalhost: process.env.NODE_ENV !== "production",
+    });
+  }
+
+  const environment = resolveFieldgridDeploymentEnvironment(appEnvironment);
+  const host = new URL(configuredOrigin).hostname;
+  const expectedPlatformHost =
+    environment === "staging" ? "staging.fieldgrid.nl" : "app.fieldgrid.nl";
+  const isFieldgridHost =
+    host === "fieldgrid.nl" || host.endsWith(".fieldgrid.nl");
+
+  if (portal === "platform-admin") {
+    if (host !== expectedPlatformHost) {
+      throw new Error(
+        "Platformactivatie verwijst niet naar de actieve omgeving.",
+      );
+    }
+  } else if (isFieldgridHost) {
+    assertTenantDomainMatchesEnvironment(host, environment);
+  } else if (!configuredAllowedOrigins.includes(configuredOrigin)) {
+    throw new Error(
+      "Extern tenantdomein ontbreekt in FIELDGRID_RECOVERY_ALLOWED_ORIGINS.",
+    );
+  }
+
   return resolveCredentialRecoveryOrigin({
     configuredOrigin,
-    allowedOrigins,
-    allowHttpLocalhost: process.env.NODE_ENV !== "production",
+    allowedOrigins: Array.from(
+      new Set([...configuredAllowedOrigins, configuredOrigin]),
+    ),
+    allowHttpLocalhost: false,
   });
 }
 
@@ -96,23 +151,44 @@ export async function provisionPortalUserForActivation(opts: {
   activationUrl: string;
   actorUserId?: string | null;
   allowExistingActive?: boolean;
-}): Promise<{ user: User; created: boolean; challengeId: string; expiresAt: Date }> {
+}): Promise<{
+  user: User;
+  created: boolean;
+  challengeId: string;
+  expiresAt: Date;
+}> {
   const admin = createAdminClient();
   const email = opts.email.trim().toLowerCase();
   const surface = surfaceForPortal(opts.portal);
   if ((surface === "platform-admin") !== (opts.tenantId === null)) {
     throw new Error("Ongeldige tenantbinding voor accountactivatie.");
   }
-  const requestedNameValidation = validateBackofficeProfileName(opts.fullName, email);
-  let profileName = requestedNameValidation.success ? requestedNameValidation.name : null;
-  const userMetadata = profileName ? { full_name: profileName, name: profileName } : {};
-  const { data: createdData, error: createError } = await admin.auth.admin.createUser({
+  const redirectOrigin = trustedActivationOrigin(
+    opts.activationUrl,
+    opts.portal,
+  );
+  const requestedNameValidation = validateBackofficeProfileName(
+    opts.fullName,
     email,
-    password: generateInternalAuthPassword(),
-    email_confirm: true,
-    app_metadata: activationAppMetadata(null, opts.portal, opts.portal === "tenant-admin" && !profileName),
-    user_metadata: userMetadata,
-  });
+  );
+  let profileName = requestedNameValidation.success
+    ? requestedNameValidation.name
+    : null;
+  const userMetadata = profileName
+    ? { full_name: profileName, name: profileName }
+    : {};
+  const { data: createdData, error: createError } =
+    await admin.auth.admin.createUser({
+      email,
+      password: generateInternalAuthPassword(),
+      email_confirm: true,
+      app_metadata: activationAppMetadata(
+        null,
+        opts.portal,
+        opts.portal === "tenant-admin" && !profileName,
+      ),
+      user_metadata: userMetadata,
+    });
 
   let user: User;
   let created = false;
@@ -121,32 +197,54 @@ export async function provisionPortalUserForActivation(opts: {
     created = true;
   } else {
     if (!isEmailExistsError(createError)) {
-      throw new Error(createError?.message ?? "Portaalgebruiker aanmaken mislukt.");
+      throw new Error(
+        createError?.message ?? "Portaalgebruiker aanmaken mislukt.",
+      );
     }
     const existingUser = await findAuthUserByEmail(admin, email);
     if (!existingUser) {
-      throw new Error("Het bestaande auth-account kon niet veilig worden opgehaald.");
+      throw new Error(
+        "Het bestaande auth-account kon niet veilig worden opgehaald.",
+      );
     }
     const existingPortal = existingUser.app_metadata?.portal;
-    if (existingPortal && existingPortal !== opts.portal && !opts.allowExistingActive) {
-      throw new Error("Dit e-mailadres is al gekoppeld aan een ander portaalaccount.");
+    if (
+      existingPortal &&
+      existingPortal !== opts.portal &&
+      !opts.allowExistingActive
+    ) {
+      throw new Error(
+        "Dit e-mailadres is al gekoppeld aan een ander portaalaccount.",
+      );
     }
-    const hasSignedIn = Boolean((existingUser as User & { last_sign_in_at?: string | null }).last_sign_in_at);
-    const activationPending = existingUser.app_metadata?.credential_activation_pending === true;
+    const hasSignedIn = Boolean(
+      (existingUser as User & { last_sign_in_at?: string | null })
+        .last_sign_in_at,
+    );
+    const activationPending =
+      existingUser.app_metadata?.credential_activation_pending === true;
     if (!opts.allowExistingActive && hasSignedIn && !activationPending) {
-      throw new Error("Er bestaat al een actief account voor dit e-mailadres. Gebruik wachtwoordherstel.");
+      throw new Error(
+        "Er bestaat al een actief account voor dit e-mailadres. Gebruik wachtwoordherstel.",
+      );
     }
     profileName ??= getBackofficeProfileName(existingUser);
-    const { data: updatedData, error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, {
-      app_metadata: activationAppMetadata(
-        existingUser.app_metadata,
-        opts.portal,
-        opts.portal === "tenant-admin" && !profileName,
-      ),
-      user_metadata: { ...(existingUser.user_metadata ?? {}), ...userMetadata },
-    });
+    const { data: updatedData, error: updateError } =
+      await admin.auth.admin.updateUserById(existingUser.id, {
+        app_metadata: activationAppMetadata(
+          existingUser.app_metadata,
+          opts.portal,
+          opts.portal === "tenant-admin" && !profileName,
+        ),
+        user_metadata: {
+          ...(existingUser.user_metadata ?? {}),
+          ...userMetadata,
+        },
+      });
     if (updateError || !updatedData.user) {
-      throw new Error(updateError?.message ?? "Portaalgebruiker bijwerken mislukt.");
+      throw new Error(
+        updateError?.message ?? "Portaalgebruiker bijwerken mislukt.",
+      );
     }
     user = updatedData.user;
   }
@@ -157,13 +255,22 @@ export async function provisionPortalUserForActivation(opts: {
     tenantId: opts.tenantId,
     accountIdentifier: email,
     subjectUserId: user.id,
-    redirectOrigin: trustedActivationOrigin(opts.activationUrl),
+    redirectOrigin,
     actorUserId: opts.actorUserId ?? null,
-    networkSignal: opts.actorUserId ? `actor:${opts.actorUserId}` : "backoffice-issued",
+    networkSignal: opts.actorUserId
+      ? `actor:${opts.actorUserId}`
+      : "backoffice-issued",
     clientSignal: "account-activation",
   });
-  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code || !challenge.expiresAt) {
-    throw new Error("Er is recent al een activatiemail verstuurd. Probeer het later opnieuw.");
+  if (
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code ||
+    !challenge.expiresAt
+  ) {
+    throw new Error(
+      "Er is recent al een activatiemail verstuurd. Probeer het later opnieuw.",
+    );
   }
 
   const { subject, html } = buildAccountActivationEmail({
@@ -180,7 +287,13 @@ export async function provisionPortalUserForActivation(opts: {
     purpose: `${surface}_account_activation`,
   });
   await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success) throw new Error(sent.error ?? "Activatiemail versturen mislukt.");
+  if (!sent.success)
+    throw new Error(sent.error ?? "Activatiemail versturen mislukt.");
 
-  return { user, created, challengeId: challenge.challengeId, expiresAt: challenge.expiresAt };
+  return {
+    user,
+    created,
+    challengeId: challenge.challengeId,
+    expiresAt: challenge.expiresAt,
+  };
 }

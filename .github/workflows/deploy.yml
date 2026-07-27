@@ -52,6 +52,9 @@ jobs:
       FIELDGRID_CUSTOM_ROUTE_KEY: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_ROUTE_KEY || '' }}
       FIELDGRID_CUSTOM_RELEASE_ID: ${{ github.ref_name == 'staging' && format('git-commit:{0}', github.sha) || '' }}
       FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_EXPECTED_HOST || '' }}
+      FIELDGRID_RECOVERY_ALLOWED_ORIGINS: ${{ vars.FIELDGRID_RECOVERY_ALLOWED_ORIGINS }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ github.ref_name == 'staging' && 'olyfmekyqozxrbrwwszu' || vars.SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ github.ref_name == 'production' && 'olyfmekyqozxrbrwwszu' || '' }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -170,6 +173,11 @@ jobs:
             fi
           done
 
+      - name: Validate environment isolation
+        run: >-
+          node scripts/fieldgrid-environment-isolation-preflight.mjs
+          --validate
+
       - name: Prepare release directory
         run: |
           set -euo pipefail
@@ -202,6 +210,9 @@ jobs:
 
           {
             printf 'APP_ENV=%s\n' "$APP_ENV"
+            printf 'TARGET_ENVIRONMENT=%s\n' "$TARGET"
+            printf 'EXPECTED_SUPABASE_PROJECT_REF=%s\n' "$EXPECTED_SUPABASE_PROJECT_REF"
+            printf 'FORBIDDEN_SUPABASE_PROJECT_REF=%s\n' "$FORBIDDEN_SUPABASE_PROJECT_REF"
             printf 'NODE_ENV=%s\n' "$NODE_ENV"
             printf 'PORT=%s\n' "$PORT"
             printf 'APP_URL=%s\n' "$APP_URL"
@@ -222,6 +233,7 @@ jobs:
             printf 'FIELDGRID_CUSTOM_ROUTE_KEY=%s\n' "$FIELDGRID_CUSTOM_ROUTE_KEY"
             printf 'FIELDGRID_CUSTOM_RELEASE_ID=%s\n' "$FIELDGRID_CUSTOM_RELEASE_ID"
             printf 'FIELDGRID_CUSTOM_EXPECTED_HOST=%s\n' "$FIELDGRID_CUSTOM_EXPECTED_HOST"
+            printf 'FIELDGRID_RECOVERY_ALLOWED_ORIGINS=%s\n' "$FIELDGRID_RECOVERY_ALLOWED_ORIGINS"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"

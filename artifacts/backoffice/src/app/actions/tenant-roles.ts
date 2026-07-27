@@ -20,7 +20,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
 import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
-import { backofficeUrl } from "@/lib/email";
+import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 import type { ActionResult } from "./customers";
 
 export type TenantPermissionItem = {
@@ -97,7 +97,9 @@ export async function listTenantRoles(): Promise<TenantRoleRow[]> {
   return rows;
 }
 
-export async function getTenantRole(roleId: string): Promise<TenantRoleDetail | null> {
+export async function getTenantRole(
+  roleId: string,
+): Promise<TenantRoleDetail | null> {
   await requirePermission("roles", "read");
   const tenantId = await requireCurrentTenantId();
 
@@ -110,7 +112,12 @@ export async function getTenantRole(roleId: string): Promise<TenantRoleDetail | 
       isCustom: tenantRolesTable.isCustom,
     })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.id, roleId), eq(tenantRolesTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantRolesTable.id, roleId),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!role) return null;
@@ -139,7 +146,9 @@ export async function getTenantRole(roleId: string): Promise<TenantRoleDetail | 
     userCount: 0,
     permCount: enabledIds.size,
     allPermissions: permissions,
-    permissions: permissions.filter((permission) => enabledIds.has(permission.id)),
+    permissions: permissions.filter((permission) =>
+      enabledIds.has(permission.id),
+    ),
   };
 }
 
@@ -164,10 +173,16 @@ export async function createTenantRole(input: {
   const [existing] = await db
     .select({ id: tenantRolesTable.id })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.tenantId, tenantId), eq(tenantRolesTable.name, name)))
+    .where(
+      and(
+        eq(tenantRolesTable.tenantId, tenantId),
+        eq(tenantRolesTable.name, name),
+      ),
+    )
     .limit(1);
 
-  if (existing) return { success: false, message: "Er bestaat al een rol met deze naam." };
+  if (existing)
+    return { success: false, message: "Er bestaat al een rol met deze naam." };
 
   const [inserted] = await db
     .insert(tenantRolesTable)
@@ -214,12 +229,20 @@ export async function updateTenantRole(input: {
   const [role] = await db
     .select({ id: tenantRolesTable.id, isSystem: tenantRolesTable.isSystem })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.id, input.id), eq(tenantRolesTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantRolesTable.id, input.id),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!role) return { success: false, message: "Rol niet gevonden." };
   if (role.isSystem) {
-    return { success: false, message: "Systeemrollen kunnen niet als custom rol worden gewijzigd." };
+    return {
+      success: false,
+      message: "Systeemrollen kunnen niet als custom rol worden gewijzigd.",
+    };
   }
 
   const [duplicate] = await db
@@ -234,12 +257,22 @@ export async function updateTenantRole(input: {
     )
     .limit(1);
 
-  if (duplicate) return { success: false, message: "Er bestaat al een rol met deze naam." };
+  if (duplicate)
+    return { success: false, message: "Er bestaat al een rol met deze naam." };
 
   await db
     .update(tenantRolesTable)
-    .set({ name, description: input.description?.trim() || null, updatedAt: new Date() })
-    .where(and(eq(tenantRolesTable.id, input.id), eq(tenantRolesTable.tenantId, tenantId)));
+    .set({
+      name,
+      description: input.description?.trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(tenantRolesTable.id, input.id),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    );
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -264,7 +297,12 @@ export async function updateTenantRolePermissions(
   const [role] = await db
     .select({ isSystem: tenantRolesTable.isSystem })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.id, roleId), eq(tenantRolesTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantRolesTable.id, roleId),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!role) return { success: false, message: "Rol niet gevonden." };
@@ -279,13 +317,20 @@ export async function updateTenantRolePermissions(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  await db.delete(tenantRolePermissionsTable).where(eq(tenantRolePermissionsTable.tenantRoleId, roleId));
+  await db
+    .delete(tenantRolePermissionsTable)
+    .where(eq(tenantRolePermissionsTable.tenantRoleId, roleId));
 
   const uniquePermissionIds = [...new Set(permissionIds.filter(Boolean))];
   if (uniquePermissionIds.length > 0) {
     await db
       .insert(tenantRolePermissionsTable)
-      .values(uniquePermissionIds.map((permissionId) => ({ tenantRoleId: roleId, permissionId })))
+      .values(
+        uniquePermissionIds.map((permissionId) => ({
+          tenantRoleId: roleId,
+          permissionId,
+        })),
+      )
       .onConflictDoNothing();
   }
 
@@ -314,23 +359,42 @@ export async function deleteTenantRole(roleId: string): Promise<ActionResult> {
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [role] = await db
-    .select({ id: tenantRolesTable.id, name: tenantRolesTable.name, isSystem: tenantRolesTable.isSystem })
+    .select({
+      id: tenantRolesTable.id,
+      name: tenantRolesTable.name,
+      isSystem: tenantRolesTable.isSystem,
+    })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.id, roleId), eq(tenantRolesTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantRolesTable.id, roleId),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!role) return { success: false, message: "Rol niet gevonden." };
-  if (role.isSystem) return { success: false, message: "Systeemrollen kunnen niet worden verwijderd." };
+  if (role.isSystem)
+    return {
+      success: false,
+      message: "Systeemrollen kunnen niet worden verwijderd.",
+    };
 
   const [{ userCount }] = await db
     .select({ userCount: sql<number>`count(*)::int` })
     .from(tenantUserRolesTable)
-    .leftJoin(personnelTable, eq(personnelTable.userId, tenantUserRolesTable.userId))
+    .leftJoin(
+      personnelTable,
+      eq(personnelTable.userId, tenantUserRolesTable.userId),
+    )
     .where(
       and(
         eq(tenantUserRolesTable.tenantId, tenantId),
         eq(tenantUserRolesTable.tenantRoleId, roleId),
-        or(sql`${personnelTable.isActive} IS NULL`, eq(personnelTable.isActive, true)),
+        or(
+          sql`${personnelTable.isActive} IS NULL`,
+          eq(personnelTable.isActive, true),
+        ),
       ),
     );
 
@@ -341,8 +405,17 @@ export async function deleteTenantRole(roleId: string): Promise<ActionResult> {
     };
   }
 
-  await db.delete(tenantRolePermissionsTable).where(eq(tenantRolePermissionsTable.tenantRoleId, roleId));
-  await db.delete(tenantRolesTable).where(and(eq(tenantRolesTable.id, roleId), eq(tenantRolesTable.tenantId, tenantId)));
+  await db
+    .delete(tenantRolePermissionsTable)
+    .where(eq(tenantRolePermissionsTable.tenantRoleId, roleId));
+  await db
+    .delete(tenantRolesTable)
+    .where(
+      and(
+        eq(tenantRolesTable.id, roleId),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    );
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -374,14 +447,21 @@ export async function resetTenantSystemRolesToTemplates(): Promise<ActionResult>
         templateRoleId: tenantRolesTable.templateRoleId,
       })
       .from(tenantRolesTable)
-      .where(and(eq(tenantRolesTable.tenantId, tenantId), eq(tenantRolesTable.isSystem, true))),
+      .where(
+        and(
+          eq(tenantRolesTable.tenantId, tenantId),
+          eq(tenantRolesTable.isSystem, true),
+        ),
+      ),
     db.select({ id: permissionsTable.id }).from(permissionsTable),
   ]);
 
   const allPermissionIds = permissions.map((permission) => permission.id);
 
   for (const role of tenantRoles) {
-    await db.delete(tenantRolePermissionsTable).where(eq(tenantRolePermissionsTable.tenantRoleId, role.id));
+    await db
+      .delete(tenantRolePermissionsTable)
+      .where(eq(tenantRolePermissionsTable.tenantRoleId, role.id));
 
     const templatePermissionRows = role.templateRoleId
       ? await db
@@ -390,16 +470,22 @@ export async function resetTenantSystemRolesToTemplates(): Promise<ActionResult>
           .where(eq(rolePermissionsTable.roleId, role.templateRoleId))
       : [];
 
-    const permissionIds = templatePermissionRows.length > 0
-      ? templatePermissionRows.map((row) => row.permissionId)
-      : role.name === "Management" || role.name === "Eigenaar"
-        ? allPermissionIds
-        : [];
+    const permissionIds =
+      templatePermissionRows.length > 0
+        ? templatePermissionRows.map((row) => row.permissionId)
+        : role.name === "Management" || role.name === "Eigenaar"
+          ? allPermissionIds
+          : [];
 
     if (permissionIds.length > 0) {
       await db
         .insert(tenantRolePermissionsTable)
-        .values(permissionIds.map((permissionId) => ({ tenantRoleId: role.id, permissionId })))
+        .values(
+          permissionIds.map((permissionId) => ({
+            tenantRoleId: role.id,
+            permissionId,
+          })),
+        )
         .onConflictDoNothing();
     }
   }
@@ -435,7 +521,12 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
       createdAt: tenantUsersTable.createdAt,
     })
     .from(tenantUsersTable)
-    .where(and(eq(tenantUsersTable.tenantId, tenantId), inArray(tenantUsersTable.userId, userIds)));
+    .where(
+      and(
+        eq(tenantUsersTable.tenantId, tenantId),
+        inArray(tenantUsersTable.userId, userIds),
+      ),
+    );
 
   const visibleUserIds = tenantUsers.map((tenantUser) => tenantUser.userId);
   if (visibleUserIds.length === 0) return [];
@@ -447,8 +538,16 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
       roleName: tenantRolesTable.name,
     })
     .from(tenantUserRolesTable)
-    .innerJoin(tenantRolesTable, eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id))
-    .where(and(eq(tenantUserRolesTable.tenantId, tenantId), inArray(tenantUserRolesTable.userId, visibleUserIds)));
+    .innerJoin(
+      tenantRolesTable,
+      eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id),
+    )
+    .where(
+      and(
+        eq(tenantUserRolesTable.tenantId, tenantId),
+        inArray(tenantUserRolesTable.userId, visibleUserIds),
+      ),
+    );
 
   const tenantUserById = new Map(
     tenantUsers.map((tenantUser) => [tenantUser.userId, tenantUser]),
@@ -465,30 +564,40 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
   return authUsers
     .filter((authUser) => tenantUserById.has(authUser.id))
     .map((authUser) => {
-    const tenantUser = tenantUserById.get(authUser.id);
-    let status: TenantUserRoleRow["status"] = "actief";
-    if (tenantUser?.tenantStatus && tenantUser.tenantStatus !== "active") {
-      status = "inactief";
-    } else if (authUser.app_metadata?.credential_activation_pending === true || !authUser.confirmed_at) {
-      status = "uitgenodigd";
-    } else if (authUser.banned_until && new Date(authUser.banned_until) > new Date()) {
-      status = "inactief";
-    }
+      const tenantUser = tenantUserById.get(authUser.id);
+      let status: TenantUserRoleRow["status"] = "actief";
+      if (tenantUser?.tenantStatus && tenantUser.tenantStatus !== "active") {
+        status = "inactief";
+      } else if (
+        authUser.app_metadata?.credential_activation_pending === true ||
+        !authUser.confirmed_at
+      ) {
+        status = "uitgenodigd";
+      } else if (
+        authUser.banned_until &&
+        new Date(authUser.banned_until) > new Date()
+      ) {
+        status = "inactief";
+      }
 
-    const meta = authUser.user_metadata as Record<string, unknown> | undefined;
-    const name = (meta?.["full_name"] ?? meta?.["name"] ?? null) as string | null;
+      const meta = authUser.user_metadata as
+        | Record<string, unknown>
+        | undefined;
+      const name = (meta?.["full_name"] ?? meta?.["name"] ?? null) as
+        | string
+        | null;
 
-    return {
-      userId: authUser.id,
-      name,
-      email: authUser.email ?? "",
-      roles: rolesByUser.get(authUser.id)?.names ?? [],
-      roleIds: rolesByUser.get(authUser.id)?.ids ?? [],
-      status,
-      createdAt: tenantUser?.createdAt?.toISOString() ?? authUser.created_at,
-      lastSignInAt: authUser.last_sign_in_at ?? null,
-    };
-  })
+      return {
+        userId: authUser.id,
+        name,
+        email: authUser.email ?? "",
+        roles: rolesByUser.get(authUser.id)?.names ?? [],
+        roleIds: rolesByUser.get(authUser.id)?.ids ?? [],
+        status,
+        createdAt: tenantUser?.createdAt?.toISOString() ?? authUser.created_at,
+        lastSignInAt: authUser.last_sign_in_at ?? null,
+      };
+    })
     .sort((a, b) => {
       const nameA = (a.name ?? a.email).toLocaleLowerCase("nl-NL");
       const nameB = (b.name ?? b.email).toLocaleLowerCase("nl-NL");
@@ -496,7 +605,10 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
     });
 }
 
-export async function updateTenantUserRoles(userId: string, roleIds: string[]): Promise<ActionResult> {
+export async function updateTenantUserRoles(
+  userId: string,
+  roleIds: string[],
+): Promise<ActionResult> {
   await requirePermission("users", "write");
   const tenantId = await requireCurrentTenantId();
 
@@ -507,7 +619,10 @@ export async function updateTenantUserRoles(userId: string, roleIds: string[]): 
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   if (userId === user.id && roleIds.length === 0) {
-    return { success: false, message: "U kunt uw eigen rollen niet volledig verwijderen." };
+    return {
+      success: false,
+      message: "U kunt uw eigen rollen niet volledig verwijderen.",
+    };
   }
 
   const uniqueRoleIds = [...new Set(roleIds.filter(Boolean))];
@@ -515,10 +630,18 @@ export async function updateTenantUserRoles(userId: string, roleIds: string[]): 
     const validRoles = await db
       .select({ id: tenantRolesTable.id, name: tenantRolesTable.name })
       .from(tenantRolesTable)
-      .where(and(eq(tenantRolesTable.tenantId, tenantId), inArray(tenantRolesTable.id, uniqueRoleIds)));
+      .where(
+        and(
+          eq(tenantRolesTable.tenantId, tenantId),
+          inArray(tenantRolesTable.id, uniqueRoleIds),
+        ),
+      );
 
     if (validRoles.length !== uniqueRoleIds.length) {
-      return { success: false, message: "Een of meer rollen horen niet bij deze tenant." };
+      return {
+        success: false,
+        message: "Een of meer rollen horen niet bij deze tenant.",
+      };
     }
   }
 
@@ -529,28 +652,49 @@ export async function updateTenantUserRoles(userId: string, roleIds: string[]): 
 
   await db
     .delete(tenantUserRolesTable)
-    .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, userId)));
+    .where(
+      and(
+        eq(tenantUserRolesTable.tenantId, tenantId),
+        eq(tenantUserRolesTable.userId, userId),
+      ),
+    );
 
   if (uniqueRoleIds.length > 0) {
     await db
       .insert(tenantUserRolesTable)
-      .values(uniqueRoleIds.map((tenantRoleId) => ({ tenantId, userId, tenantRoleId })))
+      .values(
+        uniqueRoleIds.map((tenantRoleId) => ({
+          tenantId,
+          userId,
+          tenantRoleId,
+        })),
+      )
       .onConflictDoNothing();
   }
 
-  const assignedRoles = uniqueRoleIds.length > 0
-    ? await db
-        .select({ name: tenantRolesTable.name })
-        .from(tenantRolesTable)
-        .where(and(eq(tenantRolesTable.tenantId, tenantId), inArray(tenantRolesTable.id, uniqueRoleIds)))
-    : [];
+  const assignedRoles =
+    uniqueRoleIds.length > 0
+      ? await db
+          .select({ name: tenantRolesTable.name })
+          .from(tenantRolesTable)
+          .where(
+            and(
+              eq(tenantRolesTable.tenantId, tenantId),
+              inArray(tenantRolesTable.id, uniqueRoleIds),
+            ),
+          )
+      : [];
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "update_roles",
     resource: "tenant_users",
     resourceId: userId,
-    metadata: { tenantId, roleIds: uniqueRoleIds, roleNames: assignedRoles.map((role) => role.name) },
+    metadata: {
+      tenantId,
+      roleIds: uniqueRoleIds,
+      roleNames: assignedRoles.map((role) => role.name),
+    },
   });
 
   revalidatePath("/instellingen/gebruikers");
@@ -576,10 +720,16 @@ export async function inviteTenantUser(input: {
   const [role] = await db
     .select({ id: tenantRolesTable.id, name: tenantRolesTable.name })
     .from(tenantRolesTable)
-    .where(and(eq(tenantRolesTable.id, input.roleId), eq(tenantRolesTable.tenantId, tenantId)))
+    .where(
+      and(
+        eq(tenantRolesTable.id, input.roleId),
+        eq(tenantRolesTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
-  if (!role) return { success: false, message: "Rol niet gevonden voor deze tenant." };
+  if (!role)
+    return { success: false, message: "Rol niet gevonden voor deze tenant." };
 
   let invitedUserId: string;
   try {
@@ -589,18 +739,26 @@ export async function inviteTenantUser(input: {
       portal: "tenant-admin",
       tenantId,
       portalName: "Tenant backoffice",
-      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      activationUrl: `${await tenantApplicationOrigin(tenantId)}/admin/wachtwoord-vergeten?doel=activatie`,
       actorUserId: user.id,
       allowExistingActive: true,
     });
     invitedUserId = invite.user.id;
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Uitnodiging mislukt.",
+    };
   }
 
   await db
     .insert(tenantUsersTable)
-    .values({ tenantId, userId: invitedUserId, role: "member", status: "active" })
+    .values({
+      tenantId,
+      userId: invitedUserId,
+      role: "member",
+      status: "active",
+    })
     .onConflictDoNothing();
 
   await db

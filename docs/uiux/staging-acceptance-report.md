@@ -23,7 +23,7 @@ Status: blocked; staging acceptance is not signed off.
   - `https://staging.fieldgrid.nl/personeel/healthz`;
   - `https://staging.fieldgrid.nl/klant/healthz`;
   - `https://staging.fieldgrid.nl/api/healthz`;
-  - the `field-demo.fieldgrid.nl` personnel and customer runtimes.
+  - the `field-demo.staging.fieldgrid.nl` personnel and customer runtimes.
 - The non-strict dashboard audit and staging/promotion contracts pass.
 - Both signed APK/AAB pairs were rebuilt from the exact candidate with a clean
   source marker; package identity, runtime config and signatures were verified.

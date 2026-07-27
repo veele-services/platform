@@ -8,7 +8,8 @@ const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 
 export const PLATFORM_ADMIN_FINAL_GATE_VERSION = "platform-admin-final-gate-v1";
-export const PLATFORM_ADMIN_FINAL_GATE_REPORT_DIR = "artifacts/platform-admin-final-gate";
+export const PLATFORM_ADMIN_FINAL_GATE_REPORT_DIR =
+  "artifacts/platform-admin-final-gate";
 
 const requiredGateIds = [
   "FG-PA-GATE-ROLES",
@@ -34,11 +35,19 @@ export const platformAdminReleaseGateItems = [
     persona: "owner/admin/support",
     host: "admin.fieldgrid.nl",
     route: "/admin/platform, /admin/platform/security, /admin/platform/users",
-    requiredCommand: "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
-    evidence: "Screenshots en traces bewijzen platform owner, admin en support rolgedrag inclusief support-only denials.",
-    testIds: ["FG-PLATFORM-001", "FG-PLATFORM-002", "FG-PLATFORM-003", "FG-SUPPORT-001"],
+    requiredCommand:
+      "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
+    evidence:
+      "Screenshots en traces bewijzen platform owner, admin en support rolgedrag inclusief support-only denials.",
+    testIds: [
+      "FG-PLATFORM-001",
+      "FG-PLATFORM-002",
+      "FG-PLATFORM-003",
+      "FG-SUPPORT-001",
+    ],
     blocksRelease: true,
-    nextAction: "Voeg artifacts toe onder artifacts/platform-admin-final-gate/roles.",
+    nextAction:
+      "Voeg artifacts toe onder artifacts/platform-admin-final-gate/roles.",
   },
   {
     id: "FG-PA-GATE-HOST-FIRST",
@@ -46,10 +55,12 @@ export const platformAdminReleaseGateItems = [
     owner: "Platform engineering",
     status: "manual",
     persona: "tenant-pilot",
-    host: "field-demo.fieldgrid.nl",
+    host: "field-demo.staging.fieldgrid.nl",
     route: "/, /klant, /personeel",
-    requiredCommand: "Playwright host-first smoke voor field-demo plus wrong-host denial.",
-    evidence: "Browser traces bewijzen dat hostcontext leidend is en cross-tenant direct-id toegang faalt.",
+    requiredCommand:
+      "Playwright host-first smoke voor field-demo plus wrong-host denial.",
+    evidence:
+      "Browser traces bewijzen dat hostcontext leidend is en cross-tenant direct-id toegang faalt.",
     testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-DATA-001"],
     blocksRelease: true,
     nextAction: "Noteer de run-id in het go/no-go formulier.",
@@ -62,11 +73,14 @@ export const platformAdminReleaseGateItems = [
     persona: "enterprise",
     host: "enterprise custom domain",
     route: "/admin",
-    requiredCommand: "Voeg Enterprise custom domain toe, verifieer DNS/TLS en open tenant via dat domein.",
-    evidence: "tenant_domains status, DNS/TLS check artifact en browser screenshot op custom domain.",
+    requiredCommand:
+      "Voeg Enterprise custom domain toe, verifieer DNS/TLS en open tenant via dat domein.",
+    evidence:
+      "tenant_domains status, DNS/TLS check artifact en browser screenshot op custom domain.",
     testIds: ["FG-HOST-006", "FG-PLATFORM-004", "FG-OPS-008"],
     blocksRelease: true,
-    nextAction: "Gebruik een staging custom domain met TXT-verificatie en Caddy on-demand TLS.",
+    nextAction:
+      "Gebruik een staging custom domain met TXT-verificatie en Caddy on-demand TLS.",
   },
   {
     id: "FG-PA-GATE-NON-ENTERPRISE-DENIAL",
@@ -76,7 +90,8 @@ export const platformAdminReleaseGateItems = [
     persona: "non-enterprise",
     host: "starter/professional tenant",
     route: "/admin/platform/tenants/:tenantId?tab=domains",
-    requiredCommand: "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
+    requiredCommand:
+      "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
     evidence: "UI-disabled screenshot, server action denial en audit-event.",
     testIds: ["FG-HOST-006", "FG-PLATFORM-005", "FG-AUDIT-001"],
     blocksRelease: true,
@@ -90,8 +105,10 @@ export const platformAdminReleaseGateItems = [
     persona: "platform",
     host: "api/internal",
     route: "/internal/caddy/ask-domain",
-    requiredCommand: "curl ask-domain voor verified Enterprise, pending, disabled, non-Enterprise en onbekend domein.",
-    evidence: "Statusmatrix: 200 alleen voor verified/active Enterprise domain; alle andere requests 403.",
+    requiredCommand:
+      "curl ask-domain voor verified Enterprise, pending, disabled, non-Enterprise en onbekend domein.",
+    evidence:
+      "Statusmatrix: 200 alleen voor verified/active Enterprise domain; alle andere requests 403.",
     testIds: ["FG-HOST-006", "FG-OPS-008", "FG-AUDIT-004"],
     blocksRelease: true,
     nextAction: "Draai vanaf VPS of CI met interne API URL.",
@@ -104,11 +121,13 @@ export const platformAdminReleaseGateItems = [
     persona: "platform",
     host: "admin.fieldgrid.nl",
     route: "/admin/platform/tenants/:tenantId",
-    requiredCommand: "Suspend/reactivate/archive/retry smoke op field-demo met rollback.",
+    requiredCommand:
+      "Suspend/reactivate/archive/retry smoke op field-demo met rollback.",
     evidence: "Marker-scoped mutating smoke met cleanup en audit-events.",
     testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
     blocksRelease: true,
-    nextAction: "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only.",
+    nextAction:
+      "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only.",
   },
   {
     id: "FG-PA-GATE-SUBSCRIPTION-DOWNGRADE",
@@ -118,11 +137,14 @@ export const platformAdminReleaseGateItems = [
     persona: "platform",
     host: "admin.fieldgrid.nl",
     route: "/admin/platform/subscriptions",
-    requiredCommand: "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
-    evidence: "Subscription update artifact, disabled custom-domain status en audit-event.",
+    requiredCommand:
+      "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
+    evidence:
+      "Subscription update artifact, disabled custom-domain status en audit-event.",
     testIds: ["FG-OPS-003", "FG-HOST-006", "FG-AUDIT-001"],
     blocksRelease: true,
-    nextAction: "Gebruik demo Enterprise tenant en herstel het plan na de smoke.",
+    nextAction:
+      "Gebruik demo Enterprise tenant en herstel het plan na de smoke.",
   },
   {
     id: "FG-PA-GATE-TICKETS",
@@ -132,7 +154,8 @@ export const platformAdminReleaseGateItems = [
     persona: "support",
     host: "admin.fieldgrid.nl",
     route: "/admin/platform/tickets",
-    requiredCommand: "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
+    requiredCommand:
+      "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
     evidence: "Ticketdetail screenshot en platform_ticket_* audit-events.",
     testIds: ["FG-SUPPORT-001", "FG-SUPPORT-004", "FG-AUDIT-001"],
     blocksRelease: true,
@@ -146,11 +169,14 @@ export const platformAdminReleaseGateItems = [
     persona: "admin",
     host: "admin.fieldgrid.nl",
     route: "/admin/platform/notifications",
-    requiredCommand: "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
-    evidence: "Recipient preview, dispatch history en platform_notification_dispatch_created audit-event.",
+    requiredCommand:
+      "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
+    evidence:
+      "Recipient preview, dispatch history en platform_notification_dispatch_created audit-event.",
     testIds: ["FG-PORTAL-C-004", "FG-AUDIT-001", "FG-PLATFORM-005"],
     blocksRelease: true,
-    nextAction: "Gebruik interne stagingtemplate en verstuur niet naar productieadressen.",
+    nextAction:
+      "Gebruik interne stagingtemplate en verstuur niet naar productieadressen.",
   },
   {
     id: "FG-PA-GATE-AUDIT-EXPORT",
@@ -160,7 +186,8 @@ export const platformAdminReleaseGateItems = [
     persona: "admin",
     host: "admin.fieldgrid.nl",
     route: "/api/platform/security/export",
-    requiredCommand: "Download CSV met tenant, actor, severity en supportGrant filters.",
+    requiredCommand:
+      "Download CSV met tenant, actor, severity en supportGrant filters.",
     evidence: "CSV artifact met expected headers en gefilterde auditregels.",
     testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-004"],
     blocksRelease: true,
@@ -173,12 +200,15 @@ export const platformAdminReleaseGateItems = [
     status: "manual",
     persona: "ci",
     host: "admin.fieldgrid.nl",
-    route: "/admin/platform, /admin/platform/tenants, tenantdetail, domains, tickets, security",
+    route:
+      "/admin/platform, /admin/platform/tenants, tenantdetail, domains, tickets, security",
     requiredCommand: "pnpm fieldgrid:platform-phase13-visual-smoke",
-    evidence: "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",
+    evidence:
+      "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",
     testIds: ["FG-OPS-008", "FG-PLATFORM-001"],
     blocksRelease: true,
-    nextAction: "Draai met FIELDGRID_PLATFORM_PHASE13_COOKIE en tenant detail path.",
+    nextAction:
+      "Draai met FIELDGRID_PLATFORM_PHASE13_COOKIE en tenant detail path.",
   },
   {
     id: "FG-PA-GATE-BUILD-TYPECHECK",
@@ -202,8 +232,10 @@ export const platformAdminOpenExceptions = [
     label: "Live runtime artifacts ontbreken in repository",
     severity: "P0",
     owner: "Platform engineering",
-    acceptedUntil: "Voor promotie van main naar staging en voor eerste productie-tenant",
-    targetEvidence: "artifacts/platform-admin-final-gate met role, host-first, lifecycle, subscription en domain smoke JSON.",
+    acceptedUntil:
+      "Voor promotie van main naar staging en voor eerste productie-tenant",
+    targetEvidence:
+      "artifacts/platform-admin-final-gate met role, host-first, lifecycle, subscription en domain smoke JSON.",
     goNoGoRequired: true,
   },
   {
@@ -212,7 +244,8 @@ export const platformAdminOpenExceptions = [
     severity: "P1",
     owner: "Platform engineering",
     acceptedUntil: "Voor releasecandidate markering",
-    targetEvidence: "artifacts/platform-mobile-polish/phase13-visual-smoke.json plus screenshots.",
+    targetEvidence:
+      "artifacts/platform-mobile-polish/phase13-visual-smoke.json plus screenshots.",
     goNoGoRequired: true,
   },
 ];
@@ -220,39 +253,75 @@ export const platformAdminOpenExceptions = [
 export const sourceContracts = [
   {
     path: "artifacts/backoffice/src/app/actions/platform-smoke.ts",
-    phrases: ["buildPlatformAdminReleaseGate", "platformAdminReleaseGate", "FG-PA-GATE-ROLES"],
+    phrases: [
+      "buildPlatformAdminReleaseGate",
+      "platformAdminReleaseGate",
+      "FG-PA-GATE-ROLES",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/actions/platform-smoke.types.ts",
-    phrases: ["PlatformAdminReleaseGate", "PlatformAdminReleaseGateItem", "PlatformAdminReleaseGateException"],
+    phrases: [
+      "PlatformAdminReleaseGate",
+      "PlatformAdminReleaseGateItem",
+      "PlatformAdminReleaseGateException",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/(platform)/platform/staging-smoke/page.tsx",
-    phrases: ["Platform-admin release gate", "Open uitzonderingen", "dashboard.platformAdminReleaseGate"],
+    phrases: [
+      "Platform-admin release gate",
+      "Open uitzonderingen",
+      "dashboard.platformAdminReleaseGate",
+    ],
   },
   {
     path: "lib/db/src/custom-domains.ts",
-    phrases: ["isCustomDomainAllowedForCaddy", "canTenantUseCustomDomains", "ROUTABLE_TENANT_DOMAIN_STATUSES"],
+    phrases: [
+      "isCustomDomainAllowedForCaddy",
+      "canTenantUseCustomDomains",
+      "ROUTABLE_TENANT_DOMAIN_STATUSES",
+    ],
   },
   {
     path: "artifacts/api-server/src/routes/caddy.ts",
-    phrases: ["/internal/caddy/ask-domain", "res.status(allowed ? 200 : 403).end()"],
+    phrases: [
+      "/internal/caddy/ask-domain",
+      "res.status(allowed ? 200 : 403).end()",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/actions/platform-tenants.ts",
-    phrases: ["disabled_plan", "tenant_domain_dns_checked", "tenant_subscription_updated"],
+    phrases: [
+      "disabled_plan",
+      "tenant_domain_dns_checked",
+      "tenant_subscription_updated",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/actions/platform-tickets.ts",
-    phrases: ["createPlatformTicket", "addPlatformTicketNote", "platform_ticket_updated"],
+    phrases: [
+      "createPlatformTicket",
+      "addPlatformTicketNote",
+      "platform_ticket_updated",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/actions/platform-notifications.ts",
-    phrases: ["createPlatformNotificationDispatch", "buildRecipients", "platform_notification_dispatch_created"],
+    phrases: [
+      "createPlatformNotificationDispatch",
+      "buildRecipients",
+      "platform_notification_dispatch_created",
+    ],
   },
   {
     path: "artifacts/backoffice/src/app/api/platform/security/export/route.ts",
-    phrases: ["fieldgrid-security-audit", "text/csv", "severity", "denial_type"],
+    phrases: [
+      "fieldgrid-security-audit",
+      "text/csv",
+      "severity",
+      "denial_type",
+    ],
   },
   {
     path: "scripts/fieldgrid-platform-admin-phase13-visual-smoke.mjs",
@@ -260,7 +329,11 @@ export const sourceContracts = [
   },
   {
     path: "docs/fieldgrid-platform-admin-phase-14-final-gate.md",
-    phrases: ["Go/no-go checklist", "FG-PA-GATE-CADDY-ASK", "post-launch accepted"],
+    phrases: [
+      "Go/no-go checklist",
+      "FG-PA-GATE-CADDY-ASK",
+      "post-launch accepted",
+    ],
   },
 ];
 
@@ -310,19 +383,22 @@ async function readText(relativePath) {
 
 async function listJsonFiles(relativePath) {
   try {
-    return (await readdir(join(repoRoot, relativePath))).filter((filename) => filename.endsWith(".json")).sort();
+    return (await readdir(join(repoRoot, relativePath)))
+      .filter((filename) => filename.endsWith(".json"))
+      .sort();
   } catch {
     return [];
   }
 }
 
 export async function collectPlatformAdminGateEvidence() {
-  const [finalGate, mobilePolish, stagingSmoke, migrationSmoke] = await Promise.all([
-    listJsonFiles(PLATFORM_ADMIN_FINAL_GATE_REPORT_DIR),
-    listJsonFiles("artifacts/platform-mobile-polish"),
-    listJsonFiles("artifacts/staging-smoke"),
-    listJsonFiles("artifacts/migration-smoke"),
-  ]);
+  const [finalGate, mobilePolish, stagingSmoke, migrationSmoke] =
+    await Promise.all([
+      listJsonFiles(PLATFORM_ADMIN_FINAL_GATE_REPORT_DIR),
+      listJsonFiles("artifacts/platform-mobile-polish"),
+      listJsonFiles("artifacts/staging-smoke"),
+      listJsonFiles("artifacts/migration-smoke"),
+    ]);
 
   return {
     finalGate,
@@ -342,7 +418,9 @@ export async function buildPlatformAdminFinalGatePlan(options = {}) {
     branch: "codex/platform-admin-final-gate-v1",
     destructive: false,
     noMigration: true,
-    releaseDecision: options.strictEvidence ? "blocked-until-runtime-artifacts-exist" : "conditional-go-with-explicit-go-no-go",
+    releaseDecision: options.strictEvidence
+      ? "blocked-until-runtime-artifacts-exist"
+      : "conditional-go-with-explicit-go-no-go",
     reportDirectory: PLATFORM_ADMIN_FINAL_GATE_REPORT_DIR,
     gateItems: platformAdminReleaseGateItems,
     openExceptions: platformAdminOpenExceptions,
@@ -368,9 +446,14 @@ export async function buildPlatformAdminFinalGatePlan(options = {}) {
 export async function validatePlatformAdminFinalGatePlan(plan) {
   const errors = [];
 
-  if (plan.destructive) errors.push("Platform-admin final gate mag geen destructieve acties uitvoeren.");
-  if (!plan.noMigration) errors.push("Platform-admin final gate mag geen migratie toevoegen.");
-  if (plan.version !== PLATFORM_ADMIN_FINAL_GATE_VERSION) errors.push("Onverwachte platform-admin final gate versie.");
+  if (plan.destructive)
+    errors.push(
+      "Platform-admin final gate mag geen destructieve acties uitvoeren.",
+    );
+  if (!plan.noMigration)
+    errors.push("Platform-admin final gate mag geen migratie toevoegen.");
+  if (plan.version !== PLATFORM_ADMIN_FINAL_GATE_VERSION)
+    errors.push("Onverwachte platform-admin final gate versie.");
 
   const ids = new Set(plan.gateItems.map((item) => item.id));
   for (const id of requiredGateIds) {
@@ -382,15 +465,20 @@ export async function validatePlatformAdminFinalGatePlan(plan) {
     if (!item.requiredCommand) errors.push(`${item.id} mist requiredCommand.`);
     if (!item.evidence) errors.push(`${item.id} mist evidence.`);
     if (!item.nextAction) errors.push(`${item.id} mist nextAction.`);
-    if (!item.blocksRelease) errors.push(`${item.id} moet release blokkeren tot bewijs gekoppeld is.`);
-    if (!Array.isArray(item.testIds) || item.testIds.length === 0) errors.push(`${item.id} mist testIds.`);
+    if (!item.blocksRelease)
+      errors.push(`${item.id} moet release blokkeren tot bewijs gekoppeld is.`);
+    if (!Array.isArray(item.testIds) || item.testIds.length === 0)
+      errors.push(`${item.id} mist testIds.`);
   }
 
   for (const exception of plan.openExceptions) {
     if (!exception.owner) errors.push(`${exception.id} mist owner.`);
-    if (!exception.acceptedUntil) errors.push(`${exception.id} mist acceptedUntil.`);
-    if (!exception.targetEvidence) errors.push(`${exception.id} mist targetEvidence.`);
-    if (!exception.goNoGoRequired) errors.push(`${exception.id} mist go/no-go eis.`);
+    if (!exception.acceptedUntil)
+      errors.push(`${exception.id} mist acceptedUntil.`);
+    if (!exception.targetEvidence)
+      errors.push(`${exception.id} mist targetEvidence.`);
+    if (!exception.goNoGoRequired)
+      errors.push(`${exception.id} mist go/no-go eis.`);
   }
 
   for (const contract of plan.sourceContracts) {
@@ -403,19 +491,28 @@ export async function validatePlatformAdminFinalGatePlan(plan) {
     }
 
     for (const phrase of contract.phrases) {
-      if (!source.includes(phrase)) errors.push(`${contract.path} mist "${phrase}".`);
+      if (!source.includes(phrase))
+        errors.push(`${contract.path} mist "${phrase}".`);
     }
   }
 
   const packageJson = await readText("package.json");
-  if (!packageJson.includes("fieldgrid:platform-admin-final-gate")) errors.push("package.json mist fieldgrid:platform-admin-final-gate.");
-  if (!packageJson.includes("fieldgrid:platform-admin-final-gate:check")) errors.push("package.json mist fieldgrid:platform-admin-final-gate:check.");
+  if (!packageJson.includes("fieldgrid:platform-admin-final-gate"))
+    errors.push("package.json mist fieldgrid:platform-admin-final-gate.");
+  if (!packageJson.includes("fieldgrid:platform-admin-final-gate:check"))
+    errors.push("package.json mist fieldgrid:platform-admin-final-gate:check.");
 
   if (plan.strictEvidence) {
-    if (plan.evidence.finalGate.length === 0) errors.push("Strict evidence mist artifacts/platform-admin-final-gate JSON.");
-    if (!plan.evidence.mobilePolish.includes("phase13-visual-smoke.json")) errors.push("Strict evidence mist phase13-visual-smoke.json.");
-    if (plan.evidence.stagingSmoke.length === 0) errors.push("Strict evidence mist artifacts/staging-smoke JSON.");
-    if (plan.evidence.migrationSmoke.length === 0) errors.push("Strict evidence mist artifacts/migration-smoke JSON.");
+    if (plan.evidence.finalGate.length === 0)
+      errors.push(
+        "Strict evidence mist artifacts/platform-admin-final-gate JSON.",
+      );
+    if (!plan.evidence.mobilePolish.includes("phase13-visual-smoke.json"))
+      errors.push("Strict evidence mist phase13-visual-smoke.json.");
+    if (plan.evidence.stagingSmoke.length === 0)
+      errors.push("Strict evidence mist artifacts/staging-smoke JSON.");
+    if (plan.evidence.migrationSmoke.length === 0)
+      errors.push("Strict evidence mist artifacts/migration-smoke JSON.");
   }
 
   return errors;
@@ -452,7 +549,9 @@ export async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  const plan = await buildPlatformAdminFinalGatePlan({ strictEvidence: options.strictEvidence });
+  const plan = await buildPlatformAdminFinalGatePlan({
+    strictEvidence: options.strictEvidence,
+  });
   const errors = await validatePlatformAdminFinalGatePlan(plan);
 
   if (options.json) {

@@ -69,7 +69,8 @@ function statusLabel(status: PlatformSmokeStatus): string {
 }
 
 function toneClasses(tone: Tone): string {
-  if (tone === "good") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (tone === "good")
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
   if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
   if (tone === "danger") return "border-rose-200 bg-rose-50 text-rose-800";
   return "border-slate-200 bg-slate-50 text-slate-700";
@@ -77,7 +78,9 @@ function toneClasses(tone: Tone): string {
 
 function StatusPill({ status }: { status: PlatformSmokeStatus }) {
   return (
-    <span className={`inline-flex w-fit items-center rounded border px-2.5 py-1 text-xs font-medium ${toneClasses(statusTone(status))}`}>
+    <span
+      className={`inline-flex w-fit items-center rounded border px-2.5 py-1 text-xs font-medium ${toneClasses(statusTone(status))}`}
+    >
       {statusLabel(status)}
     </span>
   );
@@ -99,12 +102,16 @@ function MetricCard({
   return (
     <div className="flex min-h-32 flex-col justify-between rounded border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
-        <span className={`inline-flex size-9 items-center justify-center rounded border ${toneClasses(tone)}`}>
+        <span
+          className={`inline-flex size-9 items-center justify-center rounded border ${toneClasses(tone)}`}
+        >
           <Icon aria-hidden="true" className="size-4" />
         </span>
       </div>
       <div>
-        <p className="mt-5 text-2xl font-semibold tracking-normal text-slate-950">{value}</p>
+        <p className="mt-5 text-2xl font-semibold tracking-normal text-slate-950">
+          {value}
+        </p>
         <p className="mt-1 text-sm font-medium text-slate-900">{label}</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
       </div>
@@ -124,7 +131,9 @@ function SectionHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h2 className="text-xl font-semibold tracking-normal text-slate-950">{title}</h2>
+        <h2 className="text-xl font-semibold tracking-normal text-slate-950">
+          {title}
+        </h2>
         <p className="mt-1 text-sm text-slate-500">{detail}</p>
       </div>
       {action}
@@ -145,15 +154,21 @@ function DemoTenantCard({ tenant }: { tenant: PlatformAcceleratorDemoTenant }) {
       <dl className="mt-4 grid gap-2 text-sm">
         <div className="flex justify-between gap-3">
           <dt className="text-slate-500">Bestaat</dt>
-          <dd className="font-medium text-slate-800">{tenant.exists ? "Ja" : "Nee"}</dd>
+          <dd className="font-medium text-slate-800">
+            {tenant.exists ? "Ja" : "Nee"}
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-slate-500">Plan</dt>
-          <dd className="font-medium text-slate-800">{tenant.recommendedPlan}</dd>
+          <dd className="font-medium text-slate-800">
+            {tenant.recommendedPlan}
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-slate-500">Laatste resetrequest</dt>
-          <dd className="max-w-44 truncate font-medium text-slate-800">{formatDate(tenant.lastResetRequestedAt)}</dd>
+          <dd className="max-w-44 truncate font-medium text-slate-800">
+            {formatDate(tenant.lastResetRequestedAt)}
+          </dd>
         </div>
       </dl>
       <form action={requestDemoTenantReset} className="mt-4 grid gap-3">
@@ -178,12 +193,16 @@ function DemoTenantCard({ tenant }: { tenant: PlatformAcceleratorDemoTenant }) {
   );
 }
 
-function DemoTenantGenerator({ tenants }: { tenants: PlatformAcceleratorDemoTenant[] }) {
+function DemoTenantGenerator({
+  tenants,
+}: {
+  tenants: PlatformAcceleratorDemoTenant[];
+}) {
   return (
     <section className="grid gap-4">
       <SectionHeader
         title="Demo-tenant generator"
-        detail="Beheer demo-a, demo-b en veele als gecontroleerde reset-scope met auditbewijs."
+        detail="Beheer demo-a, demo-b en veeleservices als gecontroleerde reset-scope met auditbewijs."
       />
       <div className="grid gap-4 lg:grid-cols-3">
         {tenants.map((tenant) => (
@@ -194,13 +213,19 @@ function DemoTenantGenerator({ tenants }: { tenants: PlatformAcceleratorDemoTena
   );
 }
 
-function NotificationSandboxCard({ event }: { event: PlatformAcceleratorNotificationSandboxEvent }) {
+function NotificationSandboxCard({
+  event,
+}: {
+  event: PlatformAcceleratorNotificationSandboxEvent;
+}) {
   return (
     <div className="rounded border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-950">{event.label}</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">{event.description}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {event.description}
+          </p>
         </div>
         <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
           {event.estimatedRecipients}
@@ -213,22 +238,32 @@ function NotificationSandboxCard({ event }: { event: PlatformAcceleratorNotifica
       <dl className="mt-4 grid gap-2 text-xs text-slate-600">
         <div className="flex justify-between gap-3">
           <dt>Audience</dt>
-          <dd className="font-medium text-slate-800">{event.recommendedAudience}</dd>
+          <dd className="font-medium text-slate-800">
+            {event.recommendedAudience}
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt>Kanalen</dt>
-          <dd className="font-medium text-slate-800">{event.channels.join(", ")}</dd>
+          <dd className="font-medium text-slate-800">
+            {event.channels.join(", ")}
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt>Laatste dispatch</dt>
-          <dd className="font-medium text-slate-800">{event.latestDispatchStatus ?? "-"}</dd>
+          <dd className="font-medium text-slate-800">
+            {event.latestDispatchStatus ?? "-"}
+          </dd>
         </div>
       </dl>
     </div>
   );
 }
 
-function NotificationSandbox({ events }: { events: PlatformAcceleratorNotificationSandboxEvent[] }) {
+function NotificationSandbox({
+  events,
+}: {
+  events: PlatformAcceleratorNotificationSandboxEvent[];
+}) {
   return (
     <section className="grid gap-4">
       <SectionHeader
@@ -253,20 +288,33 @@ function NotificationSandbox({ events }: { events: PlatformAcceleratorNotificati
   );
 }
 
-function SignalGrid({ signals }: { signals: PlatformAcceleratorHealthSignal[] }) {
+function SignalGrid({
+  signals,
+}: {
+  signals: PlatformAcceleratorHealthSignal[];
+}) {
   return (
     <div className="grid min-w-[760px] grid-cols-7 gap-2">
       {signals.map((signal) => (
-        <div key={signal.id} className={`rounded border px-2 py-2 ${toneClasses(statusTone(signal.status))}`}>
+        <div
+          key={signal.id}
+          className={`rounded border px-2 py-2 ${toneClasses(statusTone(signal.status))}`}
+        >
           <p className="truncate text-[11px] font-semibold">{signal.label}</p>
-          <p className="mt-1 truncate text-[11px] opacity-80">{statusLabel(signal.status)}</p>
+          <p className="mt-1 truncate text-[11px] opacity-80">
+            {statusLabel(signal.status)}
+          </p>
         </div>
       ))}
     </div>
   );
 }
 
-function TenantHealthScorecard({ tenants }: { tenants: PlatformAcceleratorTenantHealthRow[] }) {
+function TenantHealthScorecard({
+  tenants,
+}: {
+  tenants: PlatformAcceleratorTenantHealthRow[];
+}) {
   return (
     <section className="grid gap-4">
       <SectionHeader
@@ -288,26 +336,49 @@ function TenantHealthScorecard({ tenants }: { tenants: PlatformAcceleratorTenant
           </thead>
           <tbody>
             {tenants.map((tenant) => (
-              <tr key={tenant.tenantId} className="border-t border-slate-100 align-top">
+              <tr
+                key={tenant.tenantId}
+                className="border-t border-slate-100 align-top"
+              >
                 <td className="px-4 py-4">
-                  <Link href={`/platform/tenants/${tenant.tenantId}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline">
+                  <Link
+                    href={`/platform/tenants/${tenant.tenantId}`}
+                    className="font-semibold text-slate-950 underline-offset-2 hover:underline"
+                  >
                     {tenant.tenantName}
                   </Link>
-                  <p className="mt-1 text-xs text-slate-500">{tenant.tenantSlug} / {tenant.planKey} / {tenant.tenantStatus}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {tenant.tenantSlug} / {tenant.planKey} /{" "}
+                    {tenant.tenantStatus}
+                  </p>
                 </td>
-                <td className="px-4 py-4 text-2xl font-semibold text-slate-950">{tenant.score}</td>
-                <td className="px-4 py-4"><StatusPill status={tenant.status} /></td>
+                <td className="px-4 py-4 text-2xl font-semibold text-slate-950">
+                  {tenant.score}
+                </td>
+                <td className="px-4 py-4">
+                  <StatusPill status={tenant.status} />
+                </td>
                 <td className="px-4 py-4 text-slate-600">
-                  <p className="max-w-48 truncate">{tenant.primaryDomain ?? "-"}</p>
-                  <p className="mt-1 text-xs text-slate-500">{tenant.metrics.verifiedDomains}/{tenant.metrics.domains} verified</p>
+                  <p className="max-w-48 truncate">
+                    {tenant.primaryDomain ?? "-"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {tenant.metrics.verifiedDomains}/{tenant.metrics.domains}{" "}
+                    verified
+                  </p>
                 </td>
                 <td className="px-4 py-4 text-slate-600">
                   <p>{tenant.metrics.sentEmails7d} sent</p>
-                  <p className="mt-1 text-xs text-slate-500">{tenant.metrics.failedEmails7d} failed / 7 dagen</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {tenant.metrics.failedEmails7d} failed / 7 dagen
+                  </p>
                 </td>
                 <td className="px-4 py-4 text-slate-600">
                   <p>{tenant.metrics.documents} docs</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatBytes(tenant.metrics.storageBytes)} / {tenant.metrics.legacyStoragePaths} legacy</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {formatBytes(tenant.metrics.storageBytes)} /{" "}
+                    {tenant.metrics.legacyStoragePaths} legacy
+                  </p>
                 </td>
                 <td className="px-4 py-4">
                   <SignalGrid signals={tenant.signals} />
@@ -321,7 +392,11 @@ function TenantHealthScorecard({ tenants }: { tenants: PlatformAcceleratorTenant
   );
 }
 
-function VisualRegressionCard({ target }: { target: PlatformAcceleratorVisualSnapshotTarget }) {
+function VisualRegressionCard({
+  target,
+}: {
+  target: PlatformAcceleratorVisualSnapshotTarget;
+}) {
   return (
     <div className="rounded border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-4">
@@ -332,13 +407,16 @@ function VisualRegressionCard({ target }: { target: PlatformAcceleratorVisualSna
         <Camera aria-hidden="true" className="size-5 text-slate-400" />
       </div>
       <p className="mt-4 text-xs leading-5 text-slate-600">
-        {target.routes.length} routes / {target.viewports.length} viewports / {target.artifactDirectory}
+        {target.routes.length} routes / {target.viewports.length} viewports /{" "}
+        {target.artifactDirectory}
       </p>
       <code className="mt-3 block overflow-hidden text-ellipsis rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
         {target.command}
       </code>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs text-slate-500">Laatste request: {formatDate(target.latestRequestAt)}</span>
+        <span className="text-xs text-slate-500">
+          Laatste request: {formatDate(target.latestRequestAt)}
+        </span>
         <form action={requestVisualRegressionSnapshot}>
           <input type="hidden" name="target" value={target.id} />
           <button
@@ -354,7 +432,11 @@ function VisualRegressionCard({ target }: { target: PlatformAcceleratorVisualSna
   );
 }
 
-function VisualRegressionSnapshots({ targets }: { targets: PlatformAcceleratorVisualSnapshotTarget[] }) {
+function VisualRegressionSnapshots({
+  targets,
+}: {
+  targets: PlatformAcceleratorVisualSnapshotTarget[];
+}) {
   return (
     <section className="grid gap-4">
       <SectionHeader
@@ -376,7 +458,9 @@ function ExportCard({ item }: { item: PlatformAcceleratorExportCenterItem }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-slate-950">{item.label}</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {item.description}
+          </p>
         </div>
         <StatusPill status={item.status} />
       </div>
@@ -399,12 +483,19 @@ function ExportCard({ item }: { item: PlatformAcceleratorExportCenterItem }) {
           CSV downloaden
         </Link>
       </div>
-      <p className="mt-3 text-xs text-slate-500">Owner: {item.owner} / laatste request: {formatDate(item.lastRequestedAt)}</p>
+      <p className="mt-3 text-xs text-slate-500">
+        Owner: {item.owner} / laatste request:{" "}
+        {formatDate(item.lastRequestedAt)}
+      </p>
     </div>
   );
 }
 
-function ExportCenter({ items }: { items: PlatformAcceleratorExportCenterItem[] }) {
+function ExportCenter({
+  items,
+}: {
+  items: PlatformAcceleratorExportCenterItem[];
+}) {
   return (
     <section className="grid gap-4">
       <SectionHeader
@@ -428,10 +519,15 @@ export default async function PlatformAcceleratorsPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-slate-500">Fieldgrid platformbeheer</p>
-            <h1 className="text-3xl font-semibold tracking-normal">Platformversnellers</h1>
+            <p className="text-sm font-medium text-slate-500">
+              Fieldgrid platformbeheer
+            </p>
+            <h1 className="text-3xl font-semibold tracking-normal">
+              Platformversnellers
+            </h1>
             <p className="max-w-3xl text-sm leading-6 text-slate-500">
-              Demo reset, notificatiepreview, tenant health, visual snapshots en exports in één beheeroppervlak.
+              Demo reset, notificatiepreview, tenant health, visual snapshots en
+              exports in één beheeroppervlak.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -463,9 +559,18 @@ export default async function PlatformAcceleratorsPage() {
           <MetricCard
             icon={TriangleAlert}
             label="Aandacht of blokkade"
-            value={dashboard.summary.warningTenants + dashboard.summary.blockedTenants}
+            value={
+              dashboard.summary.warningTenants +
+              dashboard.summary.blockedTenants
+            }
             detail={`${dashboard.summary.warningTenants} aandacht, ${dashboard.summary.blockedTenants} geblokkeerd.`}
-            tone={dashboard.summary.blockedTenants > 0 ? "danger" : dashboard.summary.warningTenants > 0 ? "warning" : "neutral"}
+            tone={
+              dashboard.summary.blockedTenants > 0
+                ? "danger"
+                : dashboard.summary.warningTenants > 0
+                  ? "warning"
+                  : "neutral"
+            }
           />
           <MetricCard
             icon={Bell}
@@ -491,10 +596,17 @@ export default async function PlatformAcceleratorsPage() {
 
         <section className="rounded border border-slate-200 bg-white p-4">
           <div className="flex items-start gap-3">
-            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 text-emerald-600" />
+            <CheckCircle2
+              aria-hidden="true"
+              className="mt-0.5 size-5 text-emerald-600"
+            />
             <div>
-              <p className="text-sm font-semibold text-slate-950">Laatst opgebouwd</p>
-              <p className="mt-1 text-sm text-slate-500">{formatDate(dashboard.generatedAt)}</p>
+              <p className="text-sm font-semibold text-slate-950">
+                Laatst opgebouwd
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {formatDate(dashboard.generatedAt)}
+              </p>
             </div>
           </div>
         </section>

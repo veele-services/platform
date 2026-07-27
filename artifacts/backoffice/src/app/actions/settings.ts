@@ -59,6 +59,7 @@ import {
 } from "@workspace/db/email-service";
 import type { ActionResult } from "./customers";
 import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
+import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 
 export type { ActionResult };
 
@@ -138,47 +139,75 @@ const DEFAULT_SYSTEM_ROLE_PERMISSIONS: Record<string, string[]> = {
   Management: ["*"],
   Administration: [
     "dashboard:read",
-    "customers:read", "customers:write", "customers:delete",
-    "objects:read", "objects:write", "objects:delete",
-    "assignments:read", "assignments:write", "assignments:approve",
-    "planning:read", "planning:write",
-    "personnel:read", "personnel:write",
-    "task_codes:read", "task_codes:write",
-    "reports:read", "reports:submit", "reports:write", "reports:export",
-    "invoices:read", "invoices:write", "invoices:send",
-    "documents:read", "documents:write", "documents:delete",
-    "news:read", "news:write", "news:send",
+    "customers:read",
+    "customers:write",
+    "customers:delete",
+    "objects:read",
+    "objects:write",
+    "objects:delete",
+    "assignments:read",
+    "assignments:write",
+    "assignments:approve",
+    "planning:read",
+    "planning:write",
+    "personnel:read",
+    "personnel:write",
+    "task_codes:read",
+    "task_codes:write",
+    "reports:read",
+    "reports:submit",
+    "reports:write",
+    "reports:export",
+    "invoices:read",
+    "invoices:write",
+    "invoices:send",
+    "documents:read",
+    "documents:write",
+    "documents:delete",
+    "news:read",
+    "news:write",
+    "news:send",
     "settings:read",
-    "users:read", "users:write",
+    "users:read",
+    "users:write",
   ],
   Planning: [
     "dashboard:read",
     "customers:read",
     "objects:read",
-    "assignments:read", "assignments:write",
-    "planning:read", "planning:write",
+    "assignments:read",
+    "assignments:write",
+    "planning:read",
+    "planning:write",
     "personnel:read",
     "task_codes:read",
-    "news:read", "news:write", "news:send",
-    "reports:read", "reports:submit",
+    "news:read",
+    "news:write",
+    "news:send",
+    "reports:read",
+    "reports:submit",
   ],
   Teamlead: [
     "dashboard:read",
-    "assignments:read", "assignments:write",
+    "assignments:read",
+    "assignments:write",
     "planning:read",
     "personnel:read",
-    "reports:read", "reports:submit",
+    "reports:read",
+    "reports:submit",
     "documents:read",
   ],
   Employee: [
     "dashboard:read",
     "assignments:read",
-    "reports:read", "reports:submit",
+    "reports:read",
+    "reports:submit",
     "documents:read",
   ],
   "Flex Employee": [
     "assignments:read",
-    "reports:read", "reports:submit",
+    "reports:read",
+    "reports:submit",
     "documents:read",
   ],
   Customer: [
@@ -223,7 +252,10 @@ export type AuditLogEntry = {
 
 // ─── Organisation settings ────────────────────────────────────────────────────
 
-function normalizeMailTransport(value: string | null | undefined, smtpEnabled?: boolean): TenantEmailTransport {
+function normalizeMailTransport(
+  value: string | null | undefined,
+  smtpEnabled?: boolean,
+): TenantEmailTransport {
   if (value === "platform" || value === "smtp" || value === "api") return value;
   return smtpEnabled ? "smtp" : "platform";
 }
@@ -286,10 +318,12 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     smtpFromEmail: r.smtpFromEmail,
     smtpReplyTo: r.smtpReplyTo,
     emailTransport: normalizeMailTransport(r.emailTransport, r.smtpEnabled),
-    emailApiProvider: r.emailApiProvider === "resend" ? r.emailApiProvider : "resend",
+    emailApiProvider:
+      r.emailApiProvider === "resend" ? r.emailApiProvider : "resend",
     emailApiKeyConfigured: Boolean(emailApiConfig.apiKey),
     emailApiKeyMasked: maskEmailSecret(emailApiConfig.apiKey, 3),
-    emailApiSendingDomain: r.emailApiSendingDomain ?? emailApiConfig.sendingDomain ?? null,
+    emailApiSendingDomain:
+      r.emailApiSendingDomain ?? emailApiConfig.sendingDomain ?? null,
     emailTemplateBrandColor: r.emailTemplateBrandColor,
     emailTemplateAccentColor: r.emailTemplateAccentColor,
     emailTemplateFooterText: r.emailTemplateFooterText,
@@ -340,14 +374,23 @@ export async function updateOrganizationSettings(data: {
         "Beschikbaarheid vooruit invullen moet tussen 7 en 365 dagen liggen.",
     };
   }
-  if (data.planningWorkdayStart !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.planningWorkdayStart)) {
-    return { success: false, message: "Start werkdag moet een geldige HH:MM-tijd zijn." };
+  if (
+    data.planningWorkdayStart !== undefined &&
+    !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.planningWorkdayStart)
+  ) {
+    return {
+      success: false,
+      message: "Start werkdag moet een geldige HH:MM-tijd zijn.",
+    };
   }
   if (
     data.planningTimeSlotMinutes !== undefined &&
     (data.planningTimeSlotMinutes < 15 || data.planningTimeSlotMinutes > 240)
   ) {
-    return { success: false, message: "Tijdvakgrootte moet tussen 15 en 240 minuten liggen." };
+    return {
+      success: false,
+      message: "Tijdvakgrootte moet tussen 15 en 240 minuten liggen.",
+    };
   }
 
   await db
@@ -401,9 +444,15 @@ export async function updateMailSettings(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const emailTransport = normalizeMailTransport(data.emailTransport, data.smtpEnabled);
+  const emailTransport = normalizeMailTransport(
+    data.emailTransport,
+    data.smtpEnabled,
+  );
   if (data.emailApiProvider !== "resend") {
-    return { success: false, message: "Voor API-mail wordt momenteel alleen Resend ondersteund." };
+    return {
+      success: false,
+      message: "Voor API-mail wordt momenteel alleen Resend ondersteund.",
+    };
   }
 
   const [existingSettings] = await db
@@ -414,10 +463,14 @@ export async function updateMailSettings(
     .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
-  const existingApiConfig = readTenantEmailApiConfig(existingSettings?.emailApiKeyEncrypted);
+  const existingApiConfig = readTenantEmailApiConfig(
+    existingSettings?.emailApiKeyEncrypted,
+  );
   const apiKeyInput = data.emailApiKey?.trim() || null;
   const emailApiSendingDomain = data.emailApiSendingDomain?.trim() || null;
-  const effectiveApiKey = data.clearApiKey ? null : apiKeyInput ?? existingApiConfig.apiKey ?? null;
+  const effectiveApiKey = data.clearApiKey
+    ? null
+    : (apiKeyInput ?? existingApiConfig.apiKey ?? null);
 
   const payload = {
     emailTransport,
@@ -468,7 +521,8 @@ export async function updateMailSettings(
     if (!payload.smtpFromEmail || !isEmailLike(payload.smtpFromEmail)) {
       return {
         success: false,
-        message: "Een geldig afzenderadres is verplicht wanneer Resend API actief is.",
+        message:
+          "Een geldig afzenderadres is verplicht wanneer Resend API actief is.",
       };
     }
     if (!effectiveApiKey) {
@@ -494,7 +548,11 @@ export async function updateMailSettings(
   if (data.clearApiKey) {
     updateData.emailApiKeyEncrypted = null;
     updateData.emailApiKeyUpdatedAt = new Date();
-  } else if (apiKeyInput || (effectiveApiKey && emailApiSendingDomain !== (existingApiConfig.sendingDomain ?? null))) {
+  } else if (
+    apiKeyInput ||
+    (effectiveApiKey &&
+      emailApiSendingDomain !== (existingApiConfig.sendingDomain ?? null))
+  ) {
     try {
       updateData.emailApiKeyEncrypted = encryptPlatformEmailConfig({
         apiKey: effectiveApiKey,
@@ -504,7 +562,10 @@ export async function updateMailSettings(
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : "API key versleutelen mislukt.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "API key versleutelen mislukt.",
       };
     }
   }
@@ -632,7 +693,9 @@ function bodyTextToHtml(body: string): string {
     .split(/\n{2,}/u)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+    .map(
+      (paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`,
+    )
     .join("");
 }
 
@@ -646,11 +709,15 @@ type PushDeliveryTriggerResult = {
   error?: string;
 };
 
-async function triggerQueuedPushDelivery(limit: number): Promise<PushDeliveryTriggerResult> {
+async function triggerQueuedPushDelivery(
+  limit: number,
+): Promise<PushDeliveryTriggerResult> {
   const adminSecret = process.env["ADMIN_API_SECRET"];
   const apiBaseUrl =
     process.env["API_INTERNAL_URL"] ??
-    (process.env["API_PORT"] ? `http://127.0.0.1:${process.env["API_PORT"]}` : null);
+    (process.env["API_PORT"]
+      ? `http://127.0.0.1:${process.env["API_PORT"]}`
+      : null);
 
   if (!adminSecret || !apiBaseUrl) {
     return {
@@ -691,7 +758,10 @@ async function triggerQueuedPushDelivery(limit: number): Promise<PushDeliveryTri
       };
     }
 
-    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const data = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     return {
       attempted: true,
       ok: true,
@@ -791,7 +861,8 @@ export async function updateNotificationEventSetting(
     .where(eq(notificationEventSettingsTable.eventKey, eventKey))
     .returning({ eventKey: notificationEventSettingsTable.eventKey });
 
-  if (!updated) return { success: false, message: "Notificatie-event niet gevonden." };
+  if (!updated)
+    return { success: false, message: "Notificatie-event niet gevonden." };
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -828,17 +899,23 @@ export async function updateEmailTemplateStyle(data: {
   const brandColor = safeTrim(data.brandColor, 20);
   const accentColor = safeTrim(data.accentColor, 20);
   if (!colorRegex.test(brandColor) || !colorRegex.test(accentColor)) {
-    return { success: false, message: "Gebruik geldige hex-kleuren, bijvoorbeeld #081D3A." };
+    return {
+      success: false,
+      message: "Gebruik geldige hex-kleuren, bijvoorbeeld #081D3A.",
+    };
   }
 
-  await db.update(organizationSettingsTable).set({
-    emailTemplateBrandColor: brandColor,
-    emailTemplateAccentColor: accentColor,
-    emailTemplateFooterText: safeTrim(data.footerText, 2000),
-    emailTemplateSignature: safeTrim(data.signature, 2000),
-    updatedAt: new Date(),
-    updatedBy: user.id,
-  }).where(eq(organizationSettingsTable.tenantId, tenantId));
+  await db
+    .update(organizationSettingsTable)
+    .set({
+      emailTemplateBrandColor: brandColor,
+      emailTemplateAccentColor: accentColor,
+      emailTemplateFooterText: safeTrim(data.footerText, 2000),
+      emailTemplateSignature: safeTrim(data.signature, 2000),
+      updatedAt: new Date(),
+      updatedBy: user.id,
+    })
+    .where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -852,9 +929,7 @@ export async function updateEmailTemplateStyle(data: {
   return { success: true };
 }
 
-export async function getNotificationAudienceOptions(): Promise<
-  NotificationAudienceOptions
-> {
+export async function getNotificationAudienceOptions(): Promise<NotificationAudienceOptions> {
   await requirePermission("settings", "read");
 
   const [sectorRows, personnelRows, customerRows] = await Promise.all([
@@ -911,14 +986,16 @@ export async function getNotificationAudienceOptions(): Promise<
 
 export async function sendManualNotification(
   input: ManualNotificationInput,
-): Promise<ActionResult<{
-  personnelCount: number;
-  customerCount: number;
-  emailSuccessCount: number;
-  emailFailedCount: number;
-  pushQueuedCount: number;
-  pushDelivery: PushDeliveryTriggerResult | null;
-}>> {
+): Promise<
+  ActionResult<{
+    personnelCount: number;
+    customerCount: number;
+    emailSuccessCount: number;
+    emailFailedCount: number;
+    pushQueuedCount: number;
+    pushDelivery: PushDeliveryTriggerResult | null;
+  }>
+> {
   await requirePermission("settings", "write");
 
   const supabase = await createClient();
@@ -948,10 +1025,15 @@ export async function sendManualNotification(
   const personnelIds = input.personnelIds.filter(Boolean);
   const customerIds = input.customerIds.filter(Boolean);
 
-  const wantsPersonnel = input.audience === "personnel" || input.audience === "both";
-  const wantsCustomers = input.audience === "customer" || input.audience === "both";
+  const wantsPersonnel =
+    input.audience === "personnel" || input.audience === "both";
+  const wantsCustomers =
+    input.audience === "customer" || input.audience === "both";
 
-  const personnelConditions = [eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)];
+  const personnelConditions = [
+    eq(personnelTable.tenantId, tenantId),
+    eq(personnelTable.isActive, true),
+  ];
   if (input.targetMode === "sector" && sectorIds.length > 0) {
     personnelConditions.push(inArray(personnelTable.sectorId, sectorIds));
   }
@@ -959,7 +1041,10 @@ export async function sendManualNotification(
     personnelConditions.push(inArray(personnelTable.id, personnelIds));
   }
 
-  const customerConditions = [eq(customersTable.tenantId, tenantId), eq(customersTable.isActive, true)];
+  const customerConditions = [
+    eq(customersTable.tenantId, tenantId),
+    eq(customersTable.isActive, true),
+  ];
   if (input.targetMode === "sector" && sectorIds.length > 0) {
     customerConditions.push(inArray(customersTable.sectorId, sectorIds));
   }
@@ -1000,7 +1085,10 @@ export async function sendManualNotification(
   ]);
 
   if (personnelRecipients.length + customerRecipients.length === 0) {
-    return { success: false, message: "Geen ontvangers gevonden voor deze selectie." };
+    return {
+      success: false,
+      message: "Geen ontvangers gevonden voor deze selectie.",
+    };
   }
 
   const [dispatch] = await db
@@ -1024,7 +1112,10 @@ export async function sendManualNotification(
     .returning({ id: notificationDispatchesTable.id });
 
   if (!dispatch) {
-    return { success: false, message: "Notificatie kon niet worden aangemaakt." };
+    return {
+      success: false,
+      message: "Notificatie kon niet worden aangemaakt.",
+    };
   }
 
   const createdAt = new Date();
@@ -1088,7 +1179,8 @@ export async function sendManualNotification(
         ...personnelRecipients
           .filter((person) => person.pushEnabled)
           .map((person) => {
-            const recipientName = `${person.firstName} ${person.lastName}`.trim();
+            const recipientName =
+              `${person.firstName} ${person.lastName}`.trim();
             return {
               tenantId,
               dispatchId: dispatch.id,
@@ -1144,8 +1236,10 @@ export async function sendManualNotification(
   let emailFailedCount = 0;
 
   if (emailEnabled) {
-    const { buildStyledNotificationEmail, sendEmailWithResult } = await import("@/lib/email");
-    const emailRows: Array<typeof notificationDeliveryQueueTable.$inferInsert> = [];
+    const { buildStyledNotificationEmail, sendEmailWithResult } =
+      await import("@/lib/email");
+    const emailRows: Array<typeof notificationDeliveryQueueTable.$inferInsert> =
+      [];
 
     const emailRecipients = [
       ...personnelRecipients
@@ -1217,7 +1311,9 @@ export async function sendManualNotification(
         html: message.html,
         status: result.success ? "sent" : "failed",
         attempts: 1,
-        lastError: result.success ? null : result.error ?? "E-mail verzenden mislukt.",
+        lastError: result.success
+          ? null
+          : (result.error ?? "E-mail verzenden mislukt."),
         sentAt: result.success ? new Date() : null,
       });
     }
@@ -1304,16 +1400,18 @@ export async function uploadOrgLogo(
   }
 
   const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);
-  const path = buildTenantBrandingAssetStoragePath(tenantId, "logo", `${Date.now()}-${safeName}`);
+  const path = buildTenantBrandingAssetStoragePath(
+    tenantId,
+    "logo",
+    `${Date.now()}-${safeName}`,
+  );
   const bytes = await file.arrayBuffer();
   const admin = createAdminClient();
 
-  const { error } = await admin.storage
-    .from("org-assets")
-    .upload(path, bytes, {
-      contentType: file.type,
-      upsert: false,
-    });
+  const { error } = await admin.storage.from("org-assets").upload(path, bytes, {
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (error) {
     return { success: false, message: `Upload mislukt: ${error.message}` };
@@ -1478,7 +1576,6 @@ export async function createRole(data: {
   return { success: true, data: { id: inserted.id } };
 }
 
-
 export async function updateRole(data: {
   id: string;
   name: string;
@@ -1505,7 +1602,10 @@ export async function updateRole(data: {
     .limit(1);
   if (!role) return { success: false, message: "Rol niet gevonden." };
   if (role.isSystem) {
-    return { success: false, message: "Systeemrollen kunnen niet als custom rol worden gewijzigd." };
+    return {
+      success: false,
+      message: "Systeemrollen kunnen niet als custom rol worden gewijzigd.",
+    };
   }
 
   const duplicate = await db
@@ -1519,7 +1619,11 @@ export async function updateRole(data: {
 
   await db
     .update(rolesTable)
-    .set({ name, description: data.description?.trim() || null, updatedAt: new Date() })
+    .set({
+      name,
+      description: data.description?.trim() || null,
+      updatedAt: new Date(),
+    })
     .where(eq(rolesTable.id, data.id));
 
   await db.insert(auditLogTable).values({
@@ -1546,7 +1650,11 @@ export async function toggleRolePermission(
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
-  const [role] = await db.select({ isSystem: rolesTable.isSystem }).from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1);
+  const [role] = await db
+    .select({ isSystem: rolesTable.isSystem })
+    .from(rolesTable)
+    .where(eq(rolesTable.id, roleId))
+    .limit(1);
   if (!role) return { success: false, message: "Rol niet gevonden." };
   if (!role.isSystem) {
     const planBlock = await requireCustomRolesEnabled();
@@ -1597,7 +1705,11 @@ export async function updateRolePermissions(
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
-  const [role] = await db.select({ isSystem: rolesTable.isSystem }).from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1);
+  const [role] = await db
+    .select({ isSystem: rolesTable.isSystem })
+    .from(rolesTable)
+    .where(eq(rolesTable.id, roleId))
+    .limit(1);
   if (!role) return { success: false, message: "Rol niet gevonden." };
   if (!role.isSystem) {
     const planBlock = await requireCustomRolesEnabled();
@@ -1636,7 +1748,9 @@ export async function updateRolePermissions(
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-async function assertTenantUserAccess(userId: string): Promise<ActionResult | null> {
+async function assertTenantUserAccess(
+  userId: string,
+): Promise<ActionResult | null> {
   const tenantId = await requireCurrentTenantId();
   const [tenantUser] = await db
     .select({ id: tenantUsersTable.id })
@@ -1691,7 +1805,11 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
 
   return authUsers.map((u) => {
     let status: UserRow["status"] = "actief";
-    if (u.app_metadata?.credential_activation_pending === true || !u.confirmed_at) status = "uitgenodigd";
+    if (
+      u.app_metadata?.credential_activation_pending === true ||
+      !u.confirmed_at
+    )
+      status = "uitgenodigd";
     else if (u.banned_until && new Date(u.banned_until) > new Date())
       status = "inactief";
 
@@ -1735,13 +1853,16 @@ export async function inviteUser(data: {
       portal: "tenant-admin",
       tenantId,
       portalName: "Tenant backoffice",
-      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      activationUrl: `${await tenantApplicationOrigin(tenantId)}/admin/wachtwoord-vergeten?doel=activatie`,
       actorUserId: user.id,
       allowExistingActive: true,
     });
     invitedUserId = invite.user.id;
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Uitnodiging mislukt.",
+    };
   }
 
   await db
@@ -1837,18 +1958,23 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
     const email = targetUser.user.email;
     await provisionPortalUserForActivation({
       email,
-      fullName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
+      fullName: String(
+        targetUser.user.user_metadata?.["full_name"] ??
+          targetUser.user.user_metadata?.["name"] ??
+          email,
+      ),
       portal: "tenant-admin",
       tenantId,
       portalName: "Tenant backoffice",
-      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      activationUrl: `${await tenantApplicationOrigin(tenantId)}/admin/wachtwoord-vergeten?doel=activatie`,
       actorUserId: user.id,
       allowExistingActive: true,
     });
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Opnieuw versturen mislukt.",
+      message:
+        error instanceof Error ? error.message : "Opnieuw versturen mislukt.",
     };
   }
 
@@ -1864,7 +1990,9 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function sendUserPasswordReset(userId: string): Promise<ActionResult> {
+export async function sendUserPasswordReset(
+  userId: string,
+): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
@@ -1878,7 +2006,8 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
   if (tenantUserGuard) return tenantUserGuard;
 
   const admin = createAdminClient();
-  const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);
+  const { data: targetUser, error: fetchError } =
+    await admin.auth.admin.getUserById(userId);
   if (fetchError || !targetUser.user.email) {
     return {
       success: false,
@@ -1888,8 +2017,12 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
 
   const email = targetUser.user.email;
   const configuredOrigin = new URL(backofficeUrl()).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
-    .split(",").map((value) => value.trim()).filter(Boolean);
+  const allowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "tenant-backoffice",
     purpose: "password-reset",
@@ -1905,11 +2038,23 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
     networkSignal: `actor:${user.id}`,
     clientSignal: "backoffice-user-reset",
   });
-  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
-    return { success: false, message: "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw." };
+  if (
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code
+  ) {
+    return {
+      success: false,
+      message:
+        "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+    };
   }
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
+    recipientName: String(
+      targetUser.user.user_metadata?.["full_name"] ??
+        targetUser.user.user_metadata?.["name"] ??
+        email,
+    ),
     portalName: "Tenant backoffice",
     resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
     code: challenge.code,
@@ -1922,7 +2067,8 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
     purpose: "tenant_backoffice_password_reset",
   });
   await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success) return { success: false, message: "Herstelmail versturen mislukt." };
+  if (!sent.success)
+    return { success: false, message: "Herstelmail versturen mislukt." };
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -2010,7 +2156,6 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
   return { success: true };
 }
 
-
 export async function resetSystemRolesToDefault(): Promise<ActionResult> {
   await requirePermission("roles", "delete");
 
@@ -2021,25 +2166,50 @@ export async function resetSystemRolesToDefault(): Promise<ActionResult> {
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [roles, permissions] = await Promise.all([
-    db.select({ id: rolesTable.id, name: rolesTable.name, isSystem: rolesTable.isSystem }).from(rolesTable),
-    db.select({ id: permissionsTable.id, resource: permissionsTable.resource, action: permissionsTable.action }).from(permissionsTable),
+    db
+      .select({
+        id: rolesTable.id,
+        name: rolesTable.name,
+        isSystem: rolesTable.isSystem,
+      })
+      .from(rolesTable),
+    db
+      .select({
+        id: permissionsTable.id,
+        resource: permissionsTable.resource,
+        action: permissionsTable.action,
+      })
+      .from(permissionsTable),
   ]);
 
-  const permissionByKey = new Map(permissions.map((p) => [`${p.resource}:${p.action}`, p.id]));
+  const permissionByKey = new Map(
+    permissions.map((p) => [`${p.resource}:${p.action}`, p.id]),
+  );
   const allPermissionIds = permissions.map((p) => p.id);
-  const systemRoles = roles.filter((role) => role.isSystem && DEFAULT_SYSTEM_ROLE_PERMISSIONS[role.name]);
+  const systemRoles = roles.filter(
+    (role) => role.isSystem && DEFAULT_SYSTEM_ROLE_PERMISSIONS[role.name],
+  );
 
   for (const role of systemRoles) {
     const defaults = DEFAULT_SYSTEM_ROLE_PERMISSIONS[role.name] ?? [];
     const permissionIds = defaults.includes("*")
       ? allPermissionIds
-      : defaults.map((key) => permissionByKey.get(key)).filter((id): id is string => Boolean(id));
+      : defaults
+          .map((key) => permissionByKey.get(key))
+          .filter((id): id is string => Boolean(id));
 
-    await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, role.id));
+    await db
+      .delete(rolePermissionsTable)
+      .where(eq(rolePermissionsTable.roleId, role.id));
     if (permissionIds.length > 0) {
       await db
         .insert(rolePermissionsTable)
-        .values(permissionIds.map((permissionId) => ({ roleId: role.id, permissionId })))
+        .values(
+          permissionIds.map((permissionId) => ({
+            roleId: role.id,
+            permissionId,
+          })),
+        )
         .onConflictDoNothing();
     }
   }
@@ -2268,7 +2438,8 @@ export async function sendTestNotification(
     };
   }
 
-  const { buildNotificationTestEmail, sendEmailWithResult } = await import("@/lib/email");
+  const { buildNotificationTestEmail, sendEmailWithResult } =
+    await import("@/lib/email");
   const message = buildNotificationTestEmail({
     notificationType: type,
     notificationTypeLabel: label,
