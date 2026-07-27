@@ -111,3 +111,54 @@ export function isTenantDomainAllowedForEnvironment(
   }
   return tenantSlugFromManagedDomain(normalized, environment) !== null;
 }
+
+export function isFieldgridHostAllowedForEnvironment(
+  domain: string,
+  environment: FieldgridDeploymentEnvironment,
+): boolean {
+  const normalized = normalizeHost(domain);
+  if (!normalized) return false;
+  if (normalized !== "fieldgrid.nl" && !normalized.endsWith(".fieldgrid.nl")) {
+    return true;
+  }
+  const isStagingHost =
+    normalized === "staging.fieldgrid.nl" ||
+    normalized === "platform-staging.fieldgrid.nl" ||
+    normalized.endsWith(".staging.fieldgrid.nl");
+  return environment === "staging" ? isStagingHost : !isStagingHost;
+}
+
+export function isFieldgridHostAllowedForRuntimeEnvironment(
+  domain: string,
+  environmentValue = process.env.APP_ENV,
+): boolean {
+  const normalized = normalizeHost(domain);
+  if (!normalized) return false;
+  if (normalized !== "fieldgrid.nl" && !normalized.endsWith(".fieldgrid.nl")) {
+    return true;
+  }
+  return isFieldgridHostAllowedForEnvironment(
+    normalized,
+    resolveFieldgridDeploymentEnvironment(environmentValue),
+  );
+}
+
+export function isTenantDomainAllowedForRuntimeEnvironment(
+  domain: string,
+  environmentValue = process.env.APP_ENV,
+): boolean {
+  const normalized = normalizeHost(domain);
+  if (!normalized) return false;
+  if (normalized !== "fieldgrid.nl" && !normalized.endsWith(".fieldgrid.nl")) {
+    return true;
+  }
+  if (
+    !isFieldgridHostAllowedForRuntimeEnvironment(normalized, environmentValue)
+  ) {
+    return false;
+  }
+  return isTenantDomainAllowedForEnvironment(
+    normalized,
+    resolveFieldgridDeploymentEnvironment(environmentValue),
+  );
+}

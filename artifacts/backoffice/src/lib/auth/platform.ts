@@ -3,6 +3,7 @@ import {
   FIELDGRID_SUPPORT_TENANT_COOKIE,
   getActivePlatformUserForUser,
   getActiveSupportAccessForUser,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isPlatformAdminRole,
   writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
@@ -49,10 +50,18 @@ async function getCurrentUserIdFromRequest(request: Request): Promise<string | n
   return user?.id ?? null;
 }
 
+function isEnvironmentOwnedPlatformHost(host: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  return (
+    isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost) &&
+    isPlatformHost(normalizedHost)
+  );
+}
+
 async function isCurrentHostPlatformHost(): Promise<boolean> {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  return isPlatformHost(normalizeHost(host));
+  return isEnvironmentOwnedPlatformHost(host);
 }
 
 function getCookieValueFromRequest(request: Request, name: string): string | null {
@@ -78,7 +87,7 @@ function getCookieValueFromRequest(request: Request, name: string): string | nul
 
 function isRequestHostPlatformHost(request: Request): boolean {
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-  return isPlatformHost(normalizeHost(host));
+  return isEnvironmentOwnedPlatformHost(host);
 }
 
 export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {

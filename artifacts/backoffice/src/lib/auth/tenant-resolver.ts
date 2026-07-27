@@ -1,10 +1,10 @@
 import {
   db,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isFieldgridSubdomain as sharedIsFieldgridSubdomain,
-  isTenantDomainAllowedForEnvironment,
+  isTenantDomainAllowedForRuntimeEnvironment,
   isPlatformHost as sharedIsPlatformHost,
   normalizeHost as sharedNormalizeHost,
-  resolveFieldgridDeploymentEnvironment,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantsTable,
@@ -22,12 +22,15 @@ export async function resolveTenantByHost(
   host: string,
 ): Promise<ResolvedTenant | null> {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost || isPlatformHost(normalizedHost)) return null;
   if (
-    !isTenantDomainAllowedForEnvironment(
-      normalizedHost,
-      resolveFieldgridDeploymentEnvironment(),
-    )
+    !normalizedHost ||
+    !isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)
+  ) {
+    return null;
+  }
+  if (isPlatformHost(normalizedHost)) return null;
+  if (
+    !isTenantDomainAllowedForRuntimeEnvironment(normalizedHost)
   ) {
     return null;
   }

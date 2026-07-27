@@ -3,6 +3,7 @@ import {
   DEFAULT_TENANT_ID,
   FIELDGRID_SUPPORT_TENANT_COOKIE,
   getActiveSupportAccessForUser,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantUsersTable,
   tenantsTable,
@@ -67,6 +68,9 @@ function logDefaultTenantFallback(reason: string, userId: string | null): void {
 async function getHostTenantResolutionForHost(host: string): Promise<HostTenantResolution> {
   const normalizedHost = normalizeHost(host);
   if (!normalizedHost) return { kind: "none" };
+  if (!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)) {
+    return { kind: "blocked" };
+  }
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
 
   const tenant = await resolveTenantByHost(normalizedHost);

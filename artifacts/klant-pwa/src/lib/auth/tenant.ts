@@ -1,12 +1,12 @@
 import { headers } from "next/headers";
 import {
   db,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isFieldgridSubdomain,
   isPlatformHost,
-  isTenantDomainAllowedForEnvironment,
+  isTenantDomainAllowedForRuntimeEnvironment,
   normalizeHost,
   requireTenantModule,
-  resolveFieldgridDeploymentEnvironment,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantsTable,
@@ -36,12 +36,12 @@ async function requestHost(): Promise<string> {
 export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantResolution> {
   const normalizedHost = normalizeHost(await requestHost());
   if (!normalizedHost) return { kind: "none" };
+  if (!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)) {
+    return { kind: "blocked" };
+  }
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
   if (
-    !isTenantDomainAllowedForEnvironment(
-      normalizedHost,
-      resolveFieldgridDeploymentEnvironment(),
-    )
+    !isTenantDomainAllowedForRuntimeEnvironment(normalizedHost)
   ) {
     return { kind: "blocked" };
   }

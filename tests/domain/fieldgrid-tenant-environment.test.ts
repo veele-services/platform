@@ -3,7 +3,10 @@ import { test } from "node:test";
 import {
   assertTenantDomainMatchesEnvironment,
   defaultTenantDomainForSlug,
+  isFieldgridHostAllowedForEnvironment,
+  isFieldgridHostAllowedForRuntimeEnvironment,
   isTenantDomainAllowedForEnvironment,
+  isTenantDomainAllowedForRuntimeEnvironment,
   resolveFieldgridDeploymentEnvironment,
   tenantSlugFromManagedDomain,
 } from "../../lib/db/src/tenant-environment";
@@ -126,5 +129,78 @@ test("runtime host policy rejects cross-environment records", () => {
   assert.equal(
     isTenantDomainAllowedForEnvironment("www.veeleservices.nl", "production"),
     true,
+  );
+});
+
+test("runtime host policy requires APP_ENV only for Fieldgrid-owned domains", () => {
+  assert.equal(
+    isTenantDomainAllowedForRuntimeEnvironment(
+      "tenant-a.runtime.fieldgrid.test",
+      "invalid",
+    ),
+    true,
+  );
+  assert.equal(
+    isTenantDomainAllowedForRuntimeEnvironment(
+      "veeleservices.staging.fieldgrid.nl",
+      "staging",
+    ),
+    true,
+  );
+  assert.equal(
+    isTenantDomainAllowedForRuntimeEnvironment(
+      "veeleservices.staging.fieldgrid.nl",
+      "production",
+    ),
+    false,
+  );
+  assert.throws(
+    () =>
+      isTenantDomainAllowedForRuntimeEnvironment(
+        "veeleservices.staging.fieldgrid.nl",
+        "invalid",
+      ),
+    /APP_ENV/u,
+  );
+});
+
+test("runtime host policy binds fixed platform hosts to one environment", () => {
+  assert.equal(
+    isFieldgridHostAllowedForEnvironment("staging.fieldgrid.nl", "staging"),
+    true,
+  );
+  assert.equal(
+    isFieldgridHostAllowedForEnvironment("staging.fieldgrid.nl", "production"),
+    false,
+  );
+  assert.equal(
+    isFieldgridHostAllowedForEnvironment("platform.fieldgrid.nl", "production"),
+    true,
+  );
+  assert.equal(
+    isFieldgridHostAllowedForEnvironment("platform.fieldgrid.nl", "staging"),
+    false,
+  );
+  assert.equal(
+    isFieldgridHostAllowedForEnvironment(
+      "platform-staging.fieldgrid.nl",
+      "staging",
+    ),
+    true,
+  );
+  assert.equal(
+    isFieldgridHostAllowedForRuntimeEnvironment(
+      "tenant-a.runtime.fieldgrid.test",
+      "invalid",
+    ),
+    true,
+  );
+  assert.throws(
+    () =>
+      isFieldgridHostAllowedForRuntimeEnvironment(
+        "staging.fieldgrid.nl",
+        "invalid",
+      ),
+    /APP_ENV/u,
   );
 });

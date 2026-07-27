@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 import {
   AlertCircle,
   AlertTriangle,
@@ -13,6 +14,7 @@ import {
   getPlatformBrandTheme,
   getTenantBranding,
   getTenantBrandingCssVariables,
+  isFieldgridHostAllowedForRuntimeEnvironment,
 } from "@workspace/db";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -111,6 +113,7 @@ export default async function LoginPage({ searchParams }: Props) {
   const host = normalizeHost(
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "",
   );
+  if (!isFieldgridHostAllowedForRuntimeEnvironment(host)) notFound();
   const fallbackNextPath = isPlatformHost(host) ? "/platform" : "/";
   const nextPath = safeNextPath(next, fallbackNextPath);
   const branding = await getLoginBranding(host);

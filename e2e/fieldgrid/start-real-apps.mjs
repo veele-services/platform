@@ -72,6 +72,7 @@ const localFixtureIdentities = {
 const tenantAAssignment = "70000000-0000-4000-8000-000000000001";
 const tenantBAssignment = "70000000-0000-4000-8000-000000000002";
 const appBaseEnvironment = { ...process.env };
+delete appBaseEnvironment.APP_ENV;
 delete appBaseEnvironment.SUPABASE_SERVICE_ROLE_KEY;
 const children = new Map();
 let gatewayServer;
@@ -150,6 +151,7 @@ export function createJwt(
 function appEnv(port) {
   return {
     ...appBaseEnvironment,
+    PLATFORM_HOSTS: "platform.runtime.fieldgrid.test",
     PORT: String(port),
     DATABASE_URL: configuredDatabaseUrl,
     DB_SSL: "false",

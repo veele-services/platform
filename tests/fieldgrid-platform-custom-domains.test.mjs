@@ -135,6 +135,7 @@ test("phase 6 Caddy ask endpoint is deny-by-default", () => {
       "ROUTABLE_TENANT_DOMAIN_STATUSES",
       "CUSTOM_DOMAIN_TYPE",
       "isCustomDomainAllowedForCaddy",
+      "isFieldgridHostAllowedForRuntimeEnvironment",
       "canTenantUseCustomDomains",
       "isTenantRuntimeActive",
       "inArray(tenantDomainsTable.verificationStatus, [...ROUTABLE_TENANT_DOMAIN_STATUSES])",

@@ -19,7 +19,7 @@ export default defineConfig({
           'MAP tenant-b.runtime.fieldgrid.test 127.0.0.1',
           'MAP suspended.runtime.fieldgrid.test 127.0.0.1',
           'MAP unknown.runtime.fieldgrid.test 127.0.0.1',
-          'MAP platform.fieldgrid.nl 127.0.0.1',
+          'MAP platform.runtime.fieldgrid.test 127.0.0.1',
         ].join(','),
       ],
     },
