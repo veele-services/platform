@@ -91,53 +91,74 @@ CADDY_BINARY="/usr/bin/caddy"
   grep -Fxq "dns.providers.cloudflare" ||
   fail "Caddy Cloudflare DNS module is unavailable"
 
-CLOUDFLARE_ENV_CREATED="0"
-remove_new_token_on_failure() {
-  local code="$?"
-  if [ "$code" -ne 0 ] && [ "$CLOUDFLARE_ENV_CREATED" = "1" ]; then
-    rm -f "$CLOUDFLARE_ENV"
-  fi
-}
-trap remove_new_token_on_failure EXIT
-
 install -d -o root -g root -m 0755 /etc/caddy
-if [ ! -s "$CLOUDFLARE_ENV" ]; then
+
+CANONICAL_TOKEN=""
+LEGACY_TOKEN=""
+if [ -e "$CLOUDFLARE_ENV" ]; then
+  if [ ! -f "$CLOUDFLARE_ENV" ] || [ -L "$CLOUDFLARE_ENV" ]; then
+    fail "$CLOUDFLARE_ENV must be a regular file"
+  fi
+  [ "$(stat -c '%U:%G:%a' "$CLOUDFLARE_ENV")" = "root:root:600" ] ||
+    fail "$CLOUDFLARE_ENV must be root:root mode 600"
+  CANONICAL_TOKEN_COUNT="$(
+    grep -Ec '^CLOUDFLARE_API_TOKEN=' "$CLOUDFLARE_ENV" || true
+  )"
+  LEGACY_TOKEN_COUNT="$(
+    grep -Ec '^CF_API_TOKEN=' "$CLOUDFLARE_ENV" || true
+  )"
+  if [ "$CANONICAL_TOKEN_COUNT" -gt 1 ] ||
+    [ "$LEGACY_TOKEN_COUNT" -gt 1 ]; then
+    fail "$CLOUDFLARE_ENV contains duplicate token aliases"
+  fi
+  CANONICAL_TOKEN="$(
+    sed -nE 's/^CLOUDFLARE_API_TOKEN=(.+)$/\1/p' "$CLOUDFLARE_ENV" |
+      head -n 1
+  )"
+  LEGACY_TOKEN="$(
+    sed -nE 's/^CF_API_TOKEN=(.+)$/\1/p' "$CLOUDFLARE_ENV" |
+      head -n 1
+  )"
+fi
+if [ -n "$CANONICAL_TOKEN" ] &&
+  [ -n "$LEGACY_TOKEN" ] &&
+  [ "$CANONICAL_TOKEN" != "$LEGACY_TOKEN" ]; then
+  fail "$CLOUDFLARE_ENV contains conflicting token aliases"
+fi
+CLOUDFLARE_TOKEN="${CANONICAL_TOKEN:-$LEGACY_TOKEN}"
+
+if [ -z "$CLOUDFLARE_TOKEN" ]; then
   RUNNING_CADDY_PID="$(systemctl show caddy -p MainPID --value)"
-  CLOUDFLARE_TOKEN=""
   if [[ "$RUNNING_CADDY_PID" =~ ^[1-9][0-9]*$ ]] &&
     [ -r "/proc/$RUNNING_CADDY_PID/environ" ]; then
-    CLOUDFLARE_TOKEN="$(
+    CANONICAL_TOKEN="$(
       tr '\0' '\n' < "/proc/$RUNNING_CADDY_PID/environ" |
-        sed -nE \
-          's/^(CLOUDFLARE_API_TOKEN|CF_API_TOKEN)=(.+)$/\2/p' |
+        sed -nE 's/^CLOUDFLARE_API_TOKEN=(.+)$/\1/p' |
         head -n 1
     )"
+    LEGACY_TOKEN="$(
+      tr '\0' '\n' < "/proc/$RUNNING_CADDY_PID/environ" |
+        sed -nE 's/^CF_API_TOKEN=(.+)$/\1/p' |
+        head -n 1
+    )"
+    if [ -n "$CANONICAL_TOKEN" ] &&
+      [ -n "$LEGACY_TOKEN" ] &&
+      [ "$CANONICAL_TOKEN" != "$LEGACY_TOKEN" ]; then
+      fail "running Caddy contains conflicting token aliases"
+    fi
+    CLOUDFLARE_TOKEN="${CANONICAL_TOKEN:-$LEGACY_TOKEN}"
   fi
   if [ -z "$CLOUDFLARE_TOKEN" ]; then
     read -r -s -p "Cloudflare API token: " CLOUDFLARE_TOKEN
     printf '\n'
   fi
-  [[ "$CLOUDFLARE_TOKEN" =~ ^[A-Za-z0-9_-]{20,}$ ]] ||
-    fail "Cloudflare API token is missing or malformed"
-  install -o root -g root -m 0600 /dev/null "$CLOUDFLARE_ENV"
-  printf 'CLOUDFLARE_API_TOKEN=%s\n' "$CLOUDFLARE_TOKEN" \
-    > "$CLOUDFLARE_ENV"
-  CLOUDFLARE_ENV_CREATED="1"
-  unset CLOUDFLARE_TOKEN
 fi
-
-[ "$(stat -c '%U:%G:%a' "$CLOUDFLARE_ENV")" = "root:root:600" ] ||
-  fail "$CLOUDFLARE_ENV must be root:root mode 600"
-CLOUDFLARE_TOKEN="$(
-  sed -nE 's/^CLOUDFLARE_API_TOKEN=(.+)$/\1/p' "$CLOUDFLARE_ENV" |
-    head -n 1
-)"
 [[ "$CLOUDFLARE_TOKEN" =~ ^[A-Za-z0-9_-]{20,}$ ]] ||
-  fail "$CLOUDFLARE_ENV does not contain the canonical token key"
-unset CLOUDFLARE_TOKEN
+  fail "Cloudflare API token is missing or malformed"
 
 BACKUP_DIR="$(mktemp -d /root/fieldgrid-caddy-bootstrap.XXXXXX)"
 ROLLBACK_REQUIRED="1"
+TOKEN_ENV_TEMP=""
 
 backup_target() {
   local target="$1"
@@ -153,6 +174,7 @@ backup_target() {
 restore_target() {
   local target="$1"
   local key="$2"
+  [ -f "$BACKUP_DIR/$key.state" ] || return 0
   if [ "$(cat "$BACKUP_DIR/$key.state")" = "present" ]; then
     install -d -o root -g root -m 0755 "$(dirname "$target")"
     cp -a "$BACKUP_DIR/$key" "$target"
@@ -171,11 +193,12 @@ rollback() {
     restore_target "$CADDY_DROPIN" "cloudflare-dropin"
     restore_target "$CADDY_VALIDATION_UNIT" "validation-unit"
     restore_target "$SUDOERS_TARGET" "sudoers"
+    restore_target "$CLOUDFLARE_ENV" "cloudflare-env"
     systemctl daemon-reload
     systemctl restart caddy
   fi
-  if [ "$CLOUDFLARE_ENV_CREATED" = "1" ]; then
-    rm -f "$CLOUDFLARE_ENV"
+  if [ -n "$TOKEN_ENV_TEMP" ]; then
+    rm -f "$TOKEN_ENV_TEMP"
   fi
   rm -rf "$BACKUP_DIR"
   exit "$code"
@@ -187,6 +210,37 @@ backup_target "$CADDY_SNIPPET" "staging-snippet"
 backup_target "$CADDY_DROPIN" "cloudflare-dropin"
 backup_target "$CADDY_VALIDATION_UNIT" "validation-unit"
 backup_target "$SUDOERS_TARGET" "sudoers"
+backup_target "$CLOUDFLARE_ENV" "cloudflare-env"
+
+TOKEN_ENV_TEMP="$(mktemp /etc/caddy/.fieldgrid-cloudflare.env.XXXXXX)"
+{
+  printf 'CLOUDFLARE_API_TOKEN=%s\n' "$CLOUDFLARE_TOKEN"
+  printf 'CF_API_TOKEN=%s\n' "$CLOUDFLARE_TOKEN"
+} > "$TOKEN_ENV_TEMP"
+chown root:root "$TOKEN_ENV_TEMP"
+chmod 0600 "$TOKEN_ENV_TEMP"
+mv -f "$TOKEN_ENV_TEMP" "$CLOUDFLARE_ENV"
+TOKEN_ENV_TEMP=""
+[ "$(stat -c '%U:%G:%a' "$CLOUDFLARE_ENV")" = "root:root:600" ] ||
+  fail "$CLOUDFLARE_ENV must be root:root mode 600"
+CANONICAL_TOKEN="$(
+  sed -nE 's/^CLOUDFLARE_API_TOKEN=(.+)$/\1/p' "$CLOUDFLARE_ENV" |
+    head -n 1
+)"
+LEGACY_TOKEN="$(
+  sed -nE 's/^CF_API_TOKEN=(.+)$/\1/p' "$CLOUDFLARE_ENV" |
+    head -n 1
+)"
+if [ "$CANONICAL_TOKEN" != "$CLOUDFLARE_TOKEN" ] ||
+  [ "$LEGACY_TOKEN" != "$CLOUDFLARE_TOKEN" ]; then
+  fail "$CLOUDFLARE_ENV token aliases were not normalized"
+fi
+unset \
+  CANONICAL_TOKEN \
+  CANONICAL_TOKEN_COUNT \
+  LEGACY_TOKEN \
+  LEGACY_TOKEN_COUNT \
+  CLOUDFLARE_TOKEN
 
 visudo -cf "$SUDOERS_SOURCE" >/dev/null
 install -d -o root -g root -m 0755 \
