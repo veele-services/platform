@@ -164,10 +164,42 @@ test("Caddy validation uses the service environment and no repository token", ()
   assert.match(bootstrap, /root:root:600/u);
   assert.match(
     bootstrap,
+    /CLOUDFLARE_API_TOKEN=%s\\n[\s\S]*CF_API_TOKEN=%s\\n/u,
+  );
+  assert.match(
+    bootstrap,
+    /CLOUDFLARE_ENV contains conflicting token aliases/u,
+  );
+  assert.match(
+    bootstrap,
+    /CLOUDFLARE_ENV contains duplicate token aliases/u,
+  );
+  assert.match(
+    bootstrap,
+    /running Caddy contains conflicting token aliases/u,
+  );
+  assert.match(
+    bootstrap,
+    /backup_target "\$CLOUDFLARE_ENV" "cloudflare-env"/u,
+  );
+  assert.match(
+    bootstrap,
+    /restore_target "\$CLOUDFLARE_ENV" "cloudflare-env"/u,
+  );
+  assert.match(
+    bootstrap,
+    /\[ -f "\$BACKUP_DIR\/\$key\.state" \] \|\| return 0/u,
+  );
+  assert.match(
+    bootstrap,
+    /mktemp \/etc\/caddy\/\.fieldgrid-cloudflare\.env\.XXXXXX/u,
+  );
+  assert.match(bootstrap, /mv -f "\$TOKEN_ENV_TEMP" "\$CLOUDFLARE_ENV"/u);
+  assert.match(
+    bootstrap,
     /unbound-\$\{EXPECTED_SHA:0:12\}\.staging\.fieldgrid\.nl/u,
   );
   assert.match(bootstrap, /\[ "\$PROBE_STATUS" = "404" \]/u);
-  assert.match(bootstrap, /remove_new_token_on_failure/u);
   assert.match(bootstrap, /trap rollback ERR EXIT/u);
   assert.match(bootstrap, /trap - ERR EXIT/u);
   assert.doesNotMatch(
