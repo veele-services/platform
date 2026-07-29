@@ -10,6 +10,7 @@ const statusPath = join(artifactDir, 'startup-status.json');
 const preflightPath = join(artifactDir, 'preflight.json');
 const startupTimeoutMs = 180_000;
 const pollIntervalMs = 2_000;
+const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/u;
 const stack = { process: undefined };
 let terminationPromise;
 const phases = [
@@ -25,6 +26,24 @@ const phases = [
     ],
   },
 ];
+
+function amsterdamDateKey(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Amsterdam',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+const e2eDateKey = process.env.FIELDGRID_E2E_DATE_KEY ?? amsterdamDateKey();
+if (!dateKeyPattern.test(e2eDateKey)) {
+  throw new Error('FIELDGRID_E2E_DATE_KEY must use YYYY-MM-DD.');
+}
+const runEnvironment = Object.freeze({
+  ...process.env,
+  FIELDGRID_E2E_DATE_KEY: e2eDateKey,
+});
 
 function phaseResultPath(name) {
   return join(artifactDir, `playwright-results-${name}.json`);
@@ -143,7 +162,7 @@ async function terminateStack() {
 
 async function startStack() {
   if (stack.process?.exitCode === null) throw new Error('Fieldgrid Playwright stack is already running.');
-  stack.process = spawnLogged('orchestrator', 'node', ['e2e/fieldgrid/start-real-apps.mjs'], { env: process.env });
+  stack.process = spawnLogged('orchestrator', 'node', ['e2e/fieldgrid/start-real-apps.mjs'], { env: runEnvironment });
   await waitForHealth();
   await runAuthenticatedPreflight();
 }
@@ -160,7 +179,7 @@ async function runCommand(command, args, options = {}) {
 async function runPlaywright(phase) {
   return runCommand('pnpm', ['exec', 'playwright', 'test', ...phase.files], {
     env: {
-      ...process.env,
+      ...runEnvironment,
       PLAYWRIGHT_JSON_OUTPUT_FILE: phaseResultPath(phase.name),
       PLAYWRIGHT_JUNIT_OUTPUT_FILE: join(artifactDir, 'junit', `results-${phase.name}.xml`),
       PLAYWRIGHT_HTML_OUTPUT_DIR: join(artifactDir, `playwright-report-${phase.name}`),
@@ -179,7 +198,7 @@ async function runBrowserPhase(phase) {
 
 async function resetFixturesBetweenPhases() {
   const exitCode = await runCommand('node', ['e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs'], {
-    env: process.env,
+    env: runEnvironment,
   });
   if (exitCode !== 0) throw new Error('Fieldgrid Playwright fixture reset between isolated phases failed.');
 }

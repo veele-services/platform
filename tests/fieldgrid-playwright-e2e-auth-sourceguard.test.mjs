@@ -716,6 +716,22 @@ test("complex cold-start browser journeys have bounded CI headroom", () => {
   );
 });
 
+test("browser phases pin one planning date across an Amsterdam midnight rollover", () => {
+  const runner = read("e2e/fieldgrid/run-playwright.mjs");
+  const fixtures = read("e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs");
+  const spec = browserSpec();
+
+  assert.match(runner, /const e2eDateKey = process\.env\.FIELDGRID_E2E_DATE_KEY \?\? amsterdamDateKey\(\)/u);
+  assert.match(runner, /FIELDGRID_E2E_DATE_KEY: e2eDateKey/u);
+  assert.match(runner, /seed-e2e-fixtures\.mjs'[\s\S]*env: runEnvironment/u);
+  assert.match(fixtures, /scheduled_date = \$3/u);
+  assert.match(fixtures, /\[FIXTURE\.assignments\.a, FIXTURE\.tenants\.a, E2E_DATE_KEY\]/u);
+  assert.match(
+    spec,
+    /\/personeel\/opdrachten\?date=\$\{encodeURIComponent\(e2eDateKey\)\}/u,
+  );
+});
+
 test("browser scenarios include payment integrity, review remediation, recovery and offline reconnect", () => {
   const spec = read("e2e/fieldgrid/tests/golden-path.spec.ts");
   assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 14);

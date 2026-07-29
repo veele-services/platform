@@ -16,6 +16,10 @@ const cancellationInvoiceId = "91000000-0000-4000-8000-000000000003";
 const partialPaymentInvoiceId = "90000000-0000-4000-8000-000000000003";
 const recoveryOutboxPath = "/tmp/fieldgrid-phase2b-playwright-outbox.jsonl";
 const offlineTaskId = "90000000-0000-4000-8000-000000000006";
+const e2eDateKey = process.env.FIELDGRID_E2E_DATE_KEY;
+if (!e2eDateKey || !/^\d{4}-\d{2}-\d{2}$/u.test(e2eDateKey)) {
+  throw new Error("FIELDGRID_E2E_DATE_KEY must use YYYY-MM-DD.");
+}
 
 function backofficeUrl(path: string, host = tenantAHost) {
   const suffix = path === "/" ? "" : path;
@@ -130,7 +134,11 @@ test("2. Platform administration", async ({ page }) => {
 
 test("3. Personnel PWA", async ({ page }) => {
   await useIdentity(page, "20000000-0000-4000-8000-000000000104");
-  await page.goto(personnelUrl("/personeel/opdrachten"));
+  await page.goto(
+    personnelUrl(
+      `/personeel/opdrachten?date=${encodeURIComponent(e2eDateKey)}`,
+    ),
+  );
   await expectRealApp(page);
   await expect(page.locator("main")).toContainText(
     /Runtime Assignment A|RTA-A001/,
