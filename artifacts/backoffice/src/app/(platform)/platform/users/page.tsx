@@ -1,4 +1,5 @@
 import { SelectAdapter } from "@/components/ui/select-adapter";
+import { PlatformUserPasswordResetAction } from "@/components/platform/PlatformUserPasswordResetAction";
 import {
   invitePlatformUserFromForm,
   listPlatformUsers,
@@ -59,9 +60,9 @@ async function updatePlatformUserAction(formData: FormData): Promise<void> {
 
 async function resetPlatformUserPasswordAction(
   formData: FormData,
-): Promise<void> {
+): Promise<Awaited<ReturnType<typeof sendPlatformUserPasswordResetFromForm>>> {
   "use server";
-  await sendPlatformUserPasswordResetFromForm(formData);
+  return sendPlatformUserPasswordResetFromForm(formData);
 }
 
 function formatDate(value: string | null): string {
@@ -320,22 +321,10 @@ export default async function PlatformUsersPage() {
                     </button>
                   </form>
                   {user.email && (
-                    <form
+                    <PlatformUserPasswordResetAction
+                      platformUserId={user.id}
                       action={resetPlatformUserPasswordAction}
-                      className="flex justify-end"
-                    >
-                      <input
-                        type="hidden"
-                        name="platformUserId"
-                        value={user.id}
-                      />
-                      <button
-                        type="submit"
-                        className="min-h-10 rounded border border-cyan-200 bg-cyan-50 px-4 text-sm font-semibold text-cyan-800 hover:bg-cyan-100"
-                      >
-                        Resetcode mailen
-                      </button>
-                    </form>
+                    />
                   )}
                 </div>
               </div>
