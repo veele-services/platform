@@ -56,6 +56,10 @@ test("platform primary-domain selection and binding share one database transacti
   assert.match(migration, /RETURN public\.set_primary_website_domain\(/u);
   assert.match(
     migration,
+    /ERRCODE = 'P0002'[\s\S]*exactly one active or verified primary tenant domain is required/u,
+  );
+  assert.match(
+    migration,
     /REVOKE ALL ON FUNCTION public\.bind_primary_tenant_domain_to_website/u,
   );
 });

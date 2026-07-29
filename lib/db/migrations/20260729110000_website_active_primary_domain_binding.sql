@@ -256,7 +256,9 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'exactly one active or verified primary tenant domain is required';
+    RAISE EXCEPTION USING
+      ERRCODE = 'P0002',
+      MESSAGE = 'exactly one active or verified primary tenant domain is required';
   END IF;
 
   RETURN public.set_primary_website_domain(

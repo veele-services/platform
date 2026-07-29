@@ -48,6 +48,25 @@ export type PlatformWebsiteInitializationResult = {
   message: string;
 };
 
+const PRIMARY_DOMAIN_UNAVAILABLE_CODE = "P0002";
+const PRIMARY_DOMAIN_UNAVAILABLE_MESSAGE =
+  "exactly one active or verified primary tenant domain is required";
+
+function isPrimaryDomainUnavailable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    error.code === PRIMARY_DOMAIN_UNAVAILABLE_CODE &&
+    error.message.includes(PRIMARY_DOMAIN_UNAVAILABLE_MESSAGE)
+  );
+}
+
+function platformErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : "Onbekende fout bij het koppelen van het primaire tenantdomein.";
+}
+
 async function bindTrustedPrimaryDomain(input: {
   tenantId: string;
   siteId: string;
@@ -106,9 +125,19 @@ export async function initializePlatformManagedWebsiteAction(
         actorUserId: actor.userId,
       });
       domainMessage = ` Primair domein ${hostname} is veilig gekoppeld.`;
-    } catch {
+    } catch (error) {
       // Site initialization remains useful and is intentionally not rolled
       // back when domain verification has not completed yet.
+      if (!isPrimaryDomainUnavailable(error)) {
+        revalidateTenant(tenantId);
+        return {
+          success: false,
+          message:
+            "De managed website is als concept aangemaakt, maar het primaire " +
+            "tenantdomein kon niet worden gekoppeld. Er is niets gepubliceerd. " +
+            `Details: ${platformErrorMessage(error)}`,
+        };
+      }
     }
 
     revalidateTenant(tenantId);

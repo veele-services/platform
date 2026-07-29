@@ -47,6 +47,9 @@ test("platform initialization is idempotent and creates managed draft content on
   assert.match(authoring, /delivery_mode,[\s\S]*'managed_cms'/u);
   assert.match(authoring, /status, is_primary[\s\S]*'draft', true/u);
   assert.match(actions, /bindTrustedPrimaryDomain/u);
+  assert.match(actions, /isPrimaryDomainUnavailable\(error\)/u);
+  assert.match(actions, /success: false,[\s\S]*als concept aangemaakt/u);
+  assert.match(actions, /Details: \$\{platformErrorMessage\(error\)\}/u);
   assert.match(
     actions,
     /Platformbeheer koppelt het geverifieerde primaire tenantdomein/u,
