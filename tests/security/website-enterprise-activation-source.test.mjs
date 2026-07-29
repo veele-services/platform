@@ -5,11 +5,13 @@ import test from "node:test";
 const read = (path) => readFileSync(path, "utf8");
 
 test("enterprise website operations are platform-only and exact-state guarded", () => {
-  const actions = read("artifacts/backoffice/src/app/actions/platform-websites.ts");
+  const actions = read(
+    "artifacts/backoffice/src/app/actions/platform-websites.ts",
+  );
   const service = read("lib/db/src/website-enterprise-activation-service.ts");
   const contract = read("lib/website-core/src/enterprise-activation.ts");
 
-  assert.equal((actions.match(/requirePlatformAdmin\(\)/gu) ?? []).length, 7);
+  assert.equal((actions.match(/requirePlatformAdmin\(\)/gu) ?? []).length, 8);
   assert.match(actions, /initializePlatformManagedWebsiteAction/u);
   assert.match(actions, /initializeManagedWebsite/u);
   assert.match(actions, /createInitialWebsiteSettings/u);
@@ -25,7 +27,9 @@ test("enterprise website operations are platform-only and exact-state guarded", 
 test("custom health probing resists SSRF and records no private response data", () => {
   const service = read("lib/db/src/website-enterprise-activation-service.ts");
   const proxy = read("artifacts/website-runtime/src/lib/custom-proxy.ts");
-  const migration = read("lib/db/migrations/20260721290000_website_enterprise_activation.sql");
+  const migration = read(
+    "lib/db/migrations/20260721290000_website_enterprise_activation.sql",
+  );
 
   assert.match(service, /from "node:dns\/promises"/u);
   assert.match(service, /customWebsiteOriginAddressesArePublic/u);
@@ -35,13 +39,21 @@ test("custom health probing resists SSRF and records no private response data", 
   assert.doesNotMatch(service, /console\.(?:log|error|warn)/u);
   assert.match(proxy, /FORWARDED_REQUEST_HEADERS/u);
   assert.match(proxy, /const forwarded = new Headers\(\)/u);
-  assert.match(proxy, /FORWARDED_REQUEST_HEADERS\.has\(name\.toLowerCase\(\)\)/u);
+  assert.match(
+    proxy,
+    /FORWARDED_REQUEST_HEADERS\.has\(name\.toLowerCase\(\)\)/u,
+  );
   assert.doesNotMatch(proxy, /"authorization"|"cookie"/u);
-  assert.match(migration, /'origin'[\s\S]*'upstreamOrigin'[\s\S]*'responseBody'/u);
+  assert.match(
+    migration,
+    /'origin'[\s\S]*'upstreamOrigin'[\s\S]*'responseBody'/u,
+  );
 });
 
 test("activation evidence is append-only, tenant-scoped and staging-only", () => {
-  const migration = read("lib/db/migrations/20260721290000_website_enterprise_activation.sql");
+  const migration = read(
+    "lib/db/migrations/20260721290000_website_enterprise_activation.sql",
+  );
   assert.match(migration, /environment = 'staging'/u);
   assert.match(migration, /website_delivery_operations_tenant_site_fk/u);
   assert.match(migration, /ENABLE ROW LEVEL SECURITY/u);
@@ -60,9 +72,18 @@ test("runtime and deployment controls are staging-only and production-safe", () 
     read("lib/website-core/src/custom-delivery.ts"),
     /custom website upstreams must be staging-only/u,
   );
-  assert.match(deploy, /github\.ref_name == 'staging' && vars\.WEBSITE_SERVICE_NAME/u);
-  assert.match(deploy, /github\.ref_name == 'staging' && vars\.MARKETING_SERVICE_NAME/u);
-  assert.match(deploy, /github\.ref_name == 'staging' && vars\.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON/u);
+  assert.match(
+    deploy,
+    /github\.ref_name == 'staging' && vars\.WEBSITE_SERVICE_NAME/u,
+  );
+  assert.match(
+    deploy,
+    /github\.ref_name == 'staging' && vars\.MARKETING_SERVICE_NAME/u,
+  );
+  assert.match(
+    deploy,
+    /github\.ref_name == 'staging' && vars\.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON/u,
+  );
   assert.match(acceptance, /productionChanged: false/u);
   assert.match(acceptance, /deploymentPerformed: false/u);
   assert.match(acceptance, /secretsRecorded: false/u);

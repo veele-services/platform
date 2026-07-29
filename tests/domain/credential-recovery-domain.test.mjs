@@ -99,6 +99,45 @@ test("credential recovery generates high-entropy separated challenge material", 
   );
 });
 
+test("credential recovery handoff is signed and contains no account or code", () => {
+  const challengeId = "10000000-0000-4000-8000-000000000001";
+  const secret = "test-secret-with-at-least-thirty-two-bytes";
+  const handoff = recovery.createCredentialRecoveryHandoff(challengeId, secret);
+
+  assert.match(
+    handoff,
+    /^10000000-0000-4000-8000-000000000001\.[0-9a-f]{64}$/u,
+  );
+  assert.equal(
+    recovery.verifyCredentialRecoveryHandoff(handoff, secret),
+    challengeId,
+  );
+  assert.equal(
+    recovery.verifyCredentialRecoveryHandoff(
+      handoff.replace(/^1/u, "2"),
+      secret,
+    ),
+    null,
+  );
+  assert.equal(
+    recovery.verifyCredentialRecoveryHandoff(
+      handoff,
+      "different-test-secret-with-at-least-thirty-two-bytes",
+    ),
+    null,
+  );
+  assert.equal(
+    recovery.verifyCredentialRecoveryHandoff("not-a-handoff", secret),
+    null,
+  );
+  assert.throws(
+    () => recovery.createCredentialRecoveryHandoff("not-a-uuid", secret),
+    /valid challenge id/u,
+  );
+  assert.equal(handoff.includes("user@example.test"), false);
+  assert.equal(handoff.includes("87654321"), false);
+});
+
 test("credential recovery classifies expiry, use and invalidation deterministically", () => {
   const now = new Date("2026-07-18T12:00:00.000Z");
   const future = new Date("2026-07-18T12:30:00.000Z");

@@ -21,12 +21,28 @@ function cookieSafeHost(host: string): string {
   return host.replace(/[^a-z0-9]+/gu, "-").replace(/^-+|-+$/gu, "");
 }
 
-export function supabaseAuthCookieName(host: string | null | undefined): string {
+export function supabaseAuthCookieName(
+  host: string | null | undefined,
+): string {
   const normalizedHost = normalizeCookieHost(host);
   return `${SUPABASE_AUTH_COOKIE_PREFIX}-${normalizedHost ? cookieSafeHost(normalizedHost) : "local"}`;
 }
 
-export function createSupabaseCookieOptions(host: string | null | undefined): CookieOptionsWithName {
+export function isSupabaseAuthCookieForHost(
+  cookieName: string,
+  host: string | null | undefined,
+): boolean {
+  const authCookieName = supabaseAuthCookieName(host);
+  return (
+    cookieName === authCookieName ||
+    cookieName.startsWith(`${authCookieName}.`) ||
+    cookieName.startsWith(`${authCookieName}-`)
+  );
+}
+
+export function createSupabaseCookieOptions(
+  host: string | null | undefined,
+): CookieOptionsWithName {
   // No domain attribute: host-only cookies isolate admin.fieldgrid.nl from slug.fieldgrid.nl tenants.
   return {
     name: supabaseAuthCookieName(host),
@@ -36,7 +52,9 @@ export function createSupabaseCookieOptions(host: string | null | undefined): Co
   };
 }
 
-export function withHostOnlyCookieOptions(options: CookieOptionsWithName): CookieOptionsWithName {
+export function withHostOnlyCookieOptions(
+  options: CookieOptionsWithName,
+): CookieOptionsWithName {
   const { domain: _domain, ...hostOnlyOptions } = options;
 
   return {

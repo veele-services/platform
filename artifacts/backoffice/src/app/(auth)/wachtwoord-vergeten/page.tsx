@@ -18,6 +18,7 @@ export default function WachtwoordVergetenPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
+  const [handoff, setHandoff] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [purpose, setPurpose] = useState<"activation" | "password-reset">(
@@ -25,10 +26,14 @@ export default function WachtwoordVergetenPage() {
   );
 
   useEffect(() => {
-    if (
-      new URLSearchParams(window.location.search).get("doel") === "activatie"
-    ) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("doel") === "activatie") {
       setPurpose("activation");
+    }
+    const recoveryHandoff = params.get("herstel");
+    if (recoveryHandoff) {
+      setHandoff(recoveryHandoff);
+      setSent(true);
     }
   }, []);
 
@@ -63,7 +68,11 @@ export default function WachtwoordVergetenPage() {
 
     startTransition(async () => {
       const result = await verifyPasswordResetCode({
-        email: normalizedEmail(),
+        ...(handoff
+          ? { handoff }
+          : {
+              email: normalizedEmail(),
+            }),
         code: code.trim(),
         purpose,
       });
@@ -113,7 +122,9 @@ export default function WachtwoordVergetenPage() {
               <CheckCircle2 className="size-4 text-emerald-700" />
               <AlertTitle>Controleer uw inbox</AlertTitle>
               <AlertDescription>
-                Gebruik de eenmalige herstelcode. Deel deze code met niemand.
+                {handoff
+                  ? "Vul de eenmalige herstelcode uit de zojuist geopende e-mail in."
+                  : "Gebruik de eenmalige herstelcode. Deel deze code met niemand."}
               </AlertDescription>
             </Alert>
 
@@ -158,8 +169,10 @@ export default function WachtwoordVergetenPage() {
               className="w-full"
               onClick={() => {
                 setSent(false);
+                setHandoff(null);
                 setCode("");
                 setError(null);
+                router.replace("/wachtwoord-vergeten");
               }}
             >
               Ander e-mailadres gebruiken

@@ -94,6 +94,10 @@ test("route precedence and browser evidence keep website root separate from auth
   assert.match(websiteMiddleware, /resolveWebsiteDeliveryByHost/u);
   assert.match(websiteMiddleware, /X-Fieldgrid-Website-Delivery/u);
   assert.match(runnerDocs, /@backoffice path \/admin \/admin\/\*/u);
+  assert.match(
+    runnerDocs,
+    /redir @backoffice_login_alias \/admin\/login\?\{query\} 308/u,
+  );
   assert.match(runnerDocs, /@platform_api path \/api \/api\/\*/u);
   assert.doesNotMatch(runnerDocs, /^\s*handle_path|^\s*handle \/admin\*/mu);
   assert.match(apiProxy, /new URL\(`\/admin\$\{req\.originalUrl\}`/u);

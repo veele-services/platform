@@ -36,6 +36,9 @@ const setPrimaryDomainInputSchema = commandContextSchema.extend({
   tenantDomainId: z.string().uuid(),
   expectedAuthoringRevision: z.number().int().positive(),
 });
+const bindPrimaryTenantDomainInputSchema = commandContextSchema.extend({
+  expectedAuthoringRevision: z.number().int().positive(),
+});
 
 export type CreateManagedWebsitePublicationInput = z.input<
   typeof createPublicationInputSchema
@@ -45,6 +48,9 @@ export type ActivateManagedWebsitePublicationInput = z.input<
 >;
 export type SetPrimaryWebsiteDomainInput = z.input<
   typeof setPrimaryDomainInputSchema
+>;
+export type BindPrimaryTenantDomainInput = z.input<
+  typeof bindPrimaryTenantDomainInputSchema
 >;
 
 export type ManagedWebsitePublicationCandidate = {
@@ -581,6 +587,55 @@ export async function setPrimaryWebsiteDomain(
     ],
   );
   const binding = requireOne(result.rows, "Primary website domain was not set");
+  return {
+    id: binding.id,
+    tenantId: binding.tenant_id,
+    siteId: binding.site_id,
+    tenantDomainId: binding.tenant_domain_id,
+    hostname: binding.hostname,
+    status: binding.status,
+    isPrimary: binding.is_primary,
+    verifiedAt: binding.verified_at,
+    authoringRevision: input.expectedAuthoringRevision + 1,
+  };
+}
+
+/**
+ * Binds the tenant's one trusted primary domain without accepting a hostname
+ * or domain identity from an operator-controlled form.
+ */
+export async function bindPrimaryTenantDomainToWebsite(
+  rawInput: BindPrimaryTenantDomainInput,
+): Promise<PrimaryWebsiteDomainResult> {
+  const input = bindPrimaryTenantDomainInputSchema.parse(rawInput);
+  const result = await pool.query<{
+    id: string;
+    tenant_id: string;
+    site_id: string;
+    tenant_domain_id: string;
+    hostname: string;
+    status: string;
+    is_primary: boolean;
+    verified_at: Date;
+  }>(
+    `SELECT (binding).*
+     FROM (
+       SELECT public.bind_primary_tenant_domain_to_website(
+         $1, $2, $3, $4, $5
+       ) AS binding
+     ) result`,
+    [
+      input.tenantId,
+      input.siteId,
+      input.expectedAuthoringRevision,
+      input.actorUserId,
+      input.reason,
+    ],
+  );
+  const binding = requireOne(
+    result.rows,
+    "Primary tenant domain was not bound",
+  );
   return {
     id: binding.id,
     tenantId: binding.tenant_id,

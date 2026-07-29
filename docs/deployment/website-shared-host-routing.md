@@ -19,13 +19,15 @@ production ref is changed merely by merging this code.
 
 The edge must evaluate routes in this exact order and preserve every prefix:
 
-1. `/admin` and `/admin/*` -> backoffice;
-2. `/personeel` and `/personeel/*` -> personnel PWA;
-3. `/klant` and `/klant/*` -> customer PWA;
-4. `/api` and `/api/*` -> platform/API runtime;
-5. every remaining public path -> the active managed or approved custom
+1. exact legacy entry path `/login` -> permanent same-host redirect to
+   `/admin/login`, preserving its query string;
+2. `/admin` and `/admin/*` -> backoffice;
+3. `/personeel` and `/personeel/*` -> personnel PWA;
+4. `/klant` and `/klant/*` -> customer PWA;
+5. `/api` and `/api/*` -> platform/API runtime;
+6. every remaining public path -> the active managed or approved custom
    website runtime;
-6. an unknown, reserved or unverified host -> neutral rejection, never a
+7. an unknown, reserved or unverified host -> neutral rejection, never a
    default tenant.
 
 Do not use prefix-stripping proxy directives. Next.js owns the real `/admin`,

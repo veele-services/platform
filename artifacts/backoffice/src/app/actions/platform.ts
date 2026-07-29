@@ -54,7 +54,10 @@ import {
   BACKOFFICE_BASE_PATH,
   backofficeRedirectPath,
 } from "@/lib/backoffice-paths";
-import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
+import {
+  backofficeRecoveryHandoffUrl,
+  resolveBackofficeRecoveryContext,
+} from "@/lib/auth/recovery-origin";
 
 export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
@@ -924,7 +927,7 @@ export async function sendPlatformUserPasswordResetFromForm(
           email,
       ),
       portalName: "Fieldgrid platformbeheer",
-      resetUrl,
+      resetUrl: backofficeRecoveryHandoffUrl(resetUrl, challenge.challengeId),
       code: challenge.code,
     });
     const sent = await sendEmailWithResult({

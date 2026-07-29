@@ -123,6 +123,15 @@ test("website stack sudoers grants only exact staging controls", () => {
 test("Caddy keeps application prefixes ahead of the website fallback", () => {
   const caddy = read("ops/caddy/fieldgrid-website-staging.caddy");
   const fallback = caddy.lastIndexOf("reverse_proxy 127.0.0.1:3305");
+  const loginAlias = caddy.indexOf(
+    "redir @backoffice_login_alias /admin/login?{query} 308",
+  );
+
+  assert.ok(loginAlias >= 0, "legacy /login must redirect to /admin/login");
+  assert.ok(
+    loginAlias < fallback,
+    "login redirect must precede website fallback",
+  );
 
   for (const [path, port] of [
     ["/admin /admin/*", "3301"],
@@ -166,22 +175,10 @@ test("Caddy validation uses the service environment and no repository token", ()
     bootstrap,
     /CLOUDFLARE_API_TOKEN=%s\\n[\s\S]*CF_API_TOKEN=%s\\n/u,
   );
-  assert.match(
-    bootstrap,
-    /CLOUDFLARE_ENV contains conflicting token aliases/u,
-  );
-  assert.match(
-    bootstrap,
-    /CLOUDFLARE_ENV contains duplicate token aliases/u,
-  );
-  assert.match(
-    bootstrap,
-    /running Caddy contains conflicting token aliases/u,
-  );
-  assert.match(
-    bootstrap,
-    /backup_target "\$CLOUDFLARE_ENV" "cloudflare-env"/u,
-  );
+  assert.match(bootstrap, /CLOUDFLARE_ENV contains conflicting token aliases/u);
+  assert.match(bootstrap, /CLOUDFLARE_ENV contains duplicate token aliases/u);
+  assert.match(bootstrap, /running Caddy contains conflicting token aliases/u);
+  assert.match(bootstrap, /backup_target "\$CLOUDFLARE_ENV" "cloudflare-env"/u);
   assert.match(
     bootstrap,
     /restore_target "\$CLOUDFLARE_ENV" "cloudflare-env"/u,

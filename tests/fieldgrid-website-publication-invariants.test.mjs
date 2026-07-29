@@ -122,7 +122,7 @@ test("custom delivery atomically demotes the preserved managed publication", () 
 
 test("runtime proof covers all Phase 1B acceptance boundaries", () => {
   for (const assertion of [
-    "verifiedPrimaryDomainOnly",
+    "activePrimaryDomainAccepted",
     "staleDomainRevisionRejected",
     "domainReuseRejected",
     "childMutationAdvancesRevision",

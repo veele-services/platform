@@ -59,9 +59,9 @@ export function PlatformManagedWebsiteInitializer({
               </AlertDialogTitle>
               <AlertDialogDescription>
                 Fieldgrid maakt een primaire conceptsite met het standaard
-                conversiesjabloon, basispagina&apos;s en navigatie. Deze actie
-                publiceert niets, activeert geen domein en start geen
-                deployment.
+                conversiesjabloon, basispagina&apos;s en navigatie. Een reeds
+                geverifieerd primair tenantdomein wordt automatisch gekoppeld.
+                Deze actie publiceert niets en start geen deployment.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-6">

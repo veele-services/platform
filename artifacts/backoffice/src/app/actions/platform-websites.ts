@@ -3,6 +3,7 @@
 import {
   activatePlatformWebsiteDeployment,
   approvePlatformWebsiteDeployment,
+  bindPrimaryTenantDomainToWebsite,
   checkPlatformWebsiteDeploymentHealth,
   createInitialWebsiteSettings,
   getPlatformWebsiteDelivery,
@@ -47,6 +48,41 @@ export type PlatformWebsiteInitializationResult = {
   message: string;
 };
 
+const PRIMARY_DOMAIN_UNAVAILABLE_CODE = "P0002";
+const PRIMARY_DOMAIN_UNAVAILABLE_MESSAGE =
+  "exactly one active or verified primary tenant domain is required";
+
+function isPrimaryDomainUnavailable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    error.code === PRIMARY_DOMAIN_UNAVAILABLE_CODE &&
+    error.message.includes(PRIMARY_DOMAIN_UNAVAILABLE_MESSAGE)
+  );
+}
+
+function platformErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : "Onbekende fout bij het koppelen van het primaire tenantdomein.";
+}
+
+async function bindTrustedPrimaryDomain(input: {
+  tenantId: string;
+  siteId: string;
+  authoringRevision: number;
+  actorUserId: string;
+}): Promise<string> {
+  const binding = await bindPrimaryTenantDomainToWebsite({
+    tenantId: input.tenantId,
+    siteId: input.siteId,
+    expectedAuthoringRevision: input.authoringRevision,
+    actorUserId: input.actorUserId,
+    reason: "Platformbeheer koppelt het geverifieerde primaire tenantdomein.",
+  });
+  return binding.hostname;
+}
+
 export async function initializePlatformManagedWebsiteAction(
   formData: FormData,
 ): Promise<PlatformWebsiteInitializationResult> {
@@ -63,8 +99,9 @@ export async function initializePlatformManagedWebsiteAction(
       };
     }
 
+    let initialized: Awaited<ReturnType<typeof initializeManagedWebsite>>;
     try {
-      await initializeManagedWebsite({
+      initialized = await initializeManagedWebsite({
         tenantId,
         actorUserId: actor.userId,
         templateKey: "trust_conversion",
@@ -73,13 +110,40 @@ export async function initializePlatformManagedWebsiteAction(
     } catch (error) {
       const afterFailure = await getWebsiteAdminOverview(tenantId);
       if (!afterFailure.site) throw error;
+      initialized = {
+        siteId: afterFailure.site.id,
+        authoringRevision: afterFailure.site.authoringRevision,
+      };
+    }
+
+    let domainMessage = " Koppel daarna een geverifieerd primair tenantdomein.";
+    try {
+      const hostname = await bindTrustedPrimaryDomain({
+        tenantId,
+        siteId: initialized.siteId,
+        authoringRevision: initialized.authoringRevision,
+        actorUserId: actor.userId,
+      });
+      domainMessage = ` Primair domein ${hostname} is veilig gekoppeld.`;
+    } catch (error) {
+      // Site initialization remains useful and is intentionally not rolled
+      // back when domain verification has not completed yet.
+      if (!isPrimaryDomainUnavailable(error)) {
+        revalidateTenant(tenantId);
+        return {
+          success: false,
+          message:
+            "De managed website is als concept aangemaakt, maar het primaire " +
+            "tenantdomein kon niet worden gekoppeld. Er is niets gepubliceerd. " +
+            `Details: ${platformErrorMessage(error)}`,
+        };
+      }
     }
 
     revalidateTenant(tenantId);
     return {
       success: true,
-      message:
-        "De managed website is als concept aangemaakt. Er is niets gepubliceerd.",
+      message: `De managed website is als concept aangemaakt.${domainMessage} Er is niets gepubliceerd.`,
     };
   } catch (error) {
     return {
@@ -88,6 +152,45 @@ export async function initializePlatformManagedWebsiteAction(
         error instanceof Error
           ? error.message
           : "De managed website kon niet worden geïnitialiseerd.",
+    };
+  }
+}
+
+export async function bindPlatformPrimaryWebsiteDomainAction(
+  formData: FormData,
+): Promise<PlatformWebsiteInitializationResult> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const tenantId = required(formData, "tenantId");
+    const current = await getWebsiteAdminOverview(tenantId);
+    if (!current.site) {
+      throw new Error("Initialiseer eerst de managed website.");
+    }
+    if (current.site.canonicalHostname) {
+      return {
+        success: true,
+        message: `Primair domein ${current.site.canonicalHostname} was al gekoppeld.`,
+      };
+    }
+
+    const hostname = await bindTrustedPrimaryDomain({
+      tenantId,
+      siteId: current.site.id,
+      authoringRevision: current.site.authoringRevision,
+      actorUserId: actor.userId,
+    });
+    revalidateTenant(tenantId);
+    return {
+      success: true,
+      message: `Primair domein ${hostname} is gekoppeld. Er is niets gepubliceerd.`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Het primaire tenantdomein kon niet worden gekoppeld.",
     };
   }
 }

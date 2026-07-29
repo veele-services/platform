@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  createCredentialRecoveryHandoff,
   isFieldgridHostAllowedForRuntimeEnvironment,
   resolveCredentialRecoveryOrigin,
   type CredentialRecoverySurface,
@@ -132,4 +133,16 @@ export function backofficeRecoveryUrl(
   context: BackofficeRecoveryContext,
 ): string {
   return `${context.origin}/admin/wachtwoord-vergeten`;
+}
+
+export function backofficeRecoveryHandoffUrl(
+  resetUrl: string,
+  challengeId: string,
+): string {
+  const target = new URL(resetUrl);
+  target.searchParams.set(
+    "herstel",
+    createCredentialRecoveryHandoff(challengeId),
+  );
+  return target.toString();
 }

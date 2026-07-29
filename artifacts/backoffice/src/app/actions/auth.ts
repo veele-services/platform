@@ -19,6 +19,7 @@ import {
   sendEmailWithResult,
 } from "@/lib/email";
 import {
+  backofficeRecoveryHandoffUrl,
   backofficeRecoveryUrl,
   currentBackofficeRecoveryContext,
   type BackofficeRecoveryContext,
@@ -33,6 +34,7 @@ import {
   buildPersonnelTenantEntryUrl,
   consumeCredentialRecoveryGrant,
   db,
+  inspectCredentialRecoveryChallenge,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
   personnelTable,
@@ -43,6 +45,7 @@ import {
   tenantUsersTable,
   tenantsTable,
   verifyCredentialRecoveryChallenge,
+  verifyCredentialRecoveryHandoff,
   type CredentialRecoveryPurpose,
   type CredentialRecoveryState,
   type CredentialRecoverySurface,
@@ -52,6 +55,7 @@ import {
   BACKOFFICE_BASE_PATH,
   backofficeRedirectPath,
 } from "@/lib/backoffice-paths";
+import { isSupabaseAuthCookieForHost } from "@/lib/supabase/session-cookies";
 
 export type AuthFormState = {
   error: string | null;
@@ -166,6 +170,51 @@ async function findBackofficeRecoveryAccount(
     surface: selectedSurface,
     tenantId,
   };
+}
+
+async function findBackofficeRecoveryAccountFromHandoff(
+  handoff: string,
+  purpose: CredentialRecoveryPurpose,
+  context: BackofficeRecoveryContext,
+): Promise<{
+  account: BackofficeRecoveryAccount | null;
+  challengeId: string | null;
+  state: CredentialRecoveryState;
+}> {
+  const challengeId = verifyCredentialRecoveryHandoff(handoff);
+  if (!challengeId || !context.surface) {
+    return { account: null, challengeId: null, state: "invalid" };
+  }
+
+  const inspected = await inspectCredentialRecoveryChallenge({
+    challengeId,
+    surface: context.surface,
+    purpose,
+    tenantId: context.tenantId,
+    redirectOrigin: context.origin,
+  });
+  if (inspected.state !== "valid" || !inspected.subjectUserId) {
+    return { account: null, challengeId: null, state: inspected.state };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(
+    inspected.subjectUserId,
+  );
+  if (error || !data.user?.email) {
+    return { account: null, challengeId: null, state: "invalid" };
+  }
+
+  const account = await findBackofficeRecoveryAccount(data.user.email, context);
+  if (
+    !account ||
+    account.subjectUserId !== inspected.subjectUserId ||
+    account.surface !== context.surface ||
+    account.tenantId !== context.tenantId
+  ) {
+    return { account: null, challengeId: null, state: "invalid" };
+  }
+  return { account, challengeId, state: "valid" };
 }
 
 function serializeRecoveryGrant(
@@ -444,11 +493,15 @@ export async function completePasswordReset(
             }
           : {}),
       });
+  // A successful hosted Supabase password update invalidates the user's
+  // provider sessions. The old host-scoped SSR cookies can still remain in
+  // this browser, so they are removed explicitly below.
+  const providerSessionRevoked = !error;
   await recordCredentialRecoveryProviderOutcome({
     challengeId: consumed.challengeId,
     claimId: consumed.claimId,
     success: !error,
-    sessionRevoked: !error,
+    sessionRevoked: providerSessionRevoked,
   });
   if (error)
     return {
@@ -468,8 +521,16 @@ export async function completePasswordReset(
     },
   });
 
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  const requestHeaders = await headers();
+  const authHost =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const authCookieNames = cookieStore
+    .getAll()
+    .filter(({ name }) => isSupabaseAuthCookieForHost(name, authHost))
+    .map(({ name }) => name);
+  for (const name of authCookieNames) {
+    cookieStore.delete({ name, path: BACKOFFICE_BASE_PATH });
+  }
   return { success: true, next: nextPath };
 }
 
@@ -503,7 +564,10 @@ async function issueAndSendRecoveryChallenge(opts: {
   const { subject, html } = buildPasswordResetCodeEmail({
     recipientName: opts.account.recipientName,
     portalName: opts.portalName,
-    resetUrl: opts.resetUrl,
+    resetUrl: backofficeRecoveryHandoffUrl(
+      opts.resetUrl,
+      challenge.challengeId,
+    ),
     code: challenge.code,
   });
   const sent = await sendEmailWithResult({
@@ -544,14 +608,29 @@ export async function requestPasswordResetCode(
 }
 
 export async function verifyPasswordResetCode(input: {
-  email: string;
+  email?: string;
+  handoff?: string;
   code: string;
   purpose?: CredentialRecoveryPurpose;
 }): Promise<{ success: boolean; state: CredentialRecoveryState }> {
   const context = await currentBackofficeRecoveryContext();
-  const account = await findBackofficeRecoveryAccount(input.email, context);
   const purpose = input.purpose ?? "password-reset";
-  if (!account) return { success: false, state: "invalid" };
+  const resolved = input.handoff
+    ? await findBackofficeRecoveryAccountFromHandoff(
+        input.handoff,
+        purpose,
+        context,
+      )
+    : {
+        account: await findBackofficeRecoveryAccount(
+          input.email ?? "",
+          context,
+        ),
+        challengeId: null,
+        state: "invalid" as CredentialRecoveryState,
+      };
+  const account = resolved.account;
+  if (!account) return { success: false, state: resolved.state };
   const result = await verifyCredentialRecoveryChallenge({
     surface: account.surface,
     purpose,
@@ -559,6 +638,7 @@ export async function verifyPasswordResetCode(input: {
     accountIdentifier: account.email,
     code: input.code,
     redirectOrigin: context.origin,
+    ...(resolved.challengeId ? { challengeId: resolved.challengeId } : {}),
     ...(await recoveryRequestSignals()),
   });
   if (result.state !== "valid" || !result.grant || !result.grantExpiresAt) {

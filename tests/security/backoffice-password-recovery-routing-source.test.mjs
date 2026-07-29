@@ -13,6 +13,15 @@ const tenantPage = read(
   "artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx",
 );
 const platformUsers = read("artifacts/backoffice/src/app/actions/platform.ts");
+const settings = read("artifacts/backoffice/src/app/actions/settings.ts");
+const forgotPage = read(
+  "artifacts/backoffice/src/app/(auth)/wachtwoord-vergeten/page.tsx",
+);
+const resetPage = read(
+  "artifacts/backoffice/src/app/(auth)/reset-wachtwoord/page.tsx",
+);
+const recoveryDomain = read("lib/db/src/credential-recovery.ts");
+const recoveryService = read("lib/db/src/credential-recovery-service.ts");
 const platformUsersPage = read(
   "artifacts/backoffice/src/app/(platform)/platform/users/page.tsx",
 );
@@ -105,4 +114,73 @@ test("public response remains generic and does not disclose account or delivery 
   assert.match(requestAction, /const publicResult:[^=]*= \{ success: true \}/u);
   assert.match(requestAction, /return publicResult/u);
   assert.doesNotMatch(requestAction, /sent\.success/u);
+});
+
+test("backoffice reset e-mails open the code step through a signed non-PII handoff", () => {
+  assert.match(recoveryDomain, /HANDOFF_DOMAIN/u);
+  assert.match(recoveryDomain, /createCredentialRecoveryHandoff/u);
+  assert.match(recoveryDomain, /verifyCredentialRecoveryHandoff/u);
+  assert.match(recoveryDomain, /timingSafeEqual/u);
+  assert.doesNotMatch(
+    recoveryDomain.match(
+      /export function createCredentialRecoveryHandoff[\s\S]*?(?=export function verifyCredentialRecoveryHandoff)/u,
+    )?.[0] ?? "",
+    /accountIdentifier|code/u,
+  );
+  assert.match(recoveryService, /inspectCredentialRecoveryChallenge/u);
+  assert.match(
+    recoveryService,
+    /id = \$\{input\.challengeId\}::uuid[\s\S]*surface = \$\{input\.surface\}[\s\S]*purpose = \$\{input\.purpose\}[\s\S]*redirect_origin = \$\{input\.redirectOrigin\}/u,
+  );
+
+  for (const [name, source] of [
+    ["public backoffice reset", auth],
+    ["platform user reset", platformUsers],
+    ["platform tenant reset", platformTenants],
+    ["tenant user reset", settings],
+  ]) {
+    assert.match(source, /backofficeRecoveryHandoffUrl/u, name);
+    assert.match(
+      source,
+      /backofficeRecoveryHandoffUrl\([\s\S]*challenge\.challengeId/u,
+      name,
+    );
+  }
+
+  assert.match(forgotPage, /params\.get\("herstel"\)/u);
+  assert.match(forgotPage, /setSent\(true\)/u);
+  assert.match(forgotPage, /\{ handoff \}/u);
+  assert.doesNotMatch(
+    forgotPage,
+    /params\.get\("email"\)|params\.get\("code"\)/u,
+  );
+  assert.match(auth, /verifyCredentialRecoveryHandoff\(handoff\)/u);
+  assert.match(auth, /inspectCredentialRecoveryChallenge\(/u);
+});
+
+test("password completion removes stale host session state before a hard login navigation", () => {
+  assert.match(auth, /isSupabaseAuthCookieForHost/u);
+  assert.match(auth, /const providerSessionRevoked = !error/u);
+  assert.match(auth, /sessionRevoked: providerSessionRevoked/u);
+  assert.match(
+    auth,
+    /cookieStore\.delete\(\{ name, path: BACKOFFICE_BASE_PATH \}\)/u,
+  );
+  assert.match(
+    resetPage,
+    /window\.location\.replace\(backofficePath\(`\/login\?/u,
+  );
+  assert.doesNotMatch(resetPage, /router\.push\(`\/login/u);
+});
+
+test("signed handoff verification is pinned to the exact challenge", () => {
+  assert.match(auth, /return \{ account, challengeId, state: "valid" \}/u);
+  assert.match(
+    auth,
+    /resolved\.challengeId \? \{ challengeId: resolved\.challengeId \} : \{\}/u,
+  );
+  assert.match(
+    recoveryService,
+    /context\.challengeId[\s\S]*AND id = \$\{context\.challengeId\}::uuid/u,
+  );
 });

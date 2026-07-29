@@ -294,6 +294,9 @@ Example Caddy routing:
 staging.veele.dgwebservices.nl {
   encode zstd gzip
 
+  @backoffice_login_alias path /login
+  redir @backoffice_login_alias /admin/login?{query} 308
+
   @backoffice path /admin /admin/*
   handle @backoffice {
     reverse_proxy 127.0.0.1:3301

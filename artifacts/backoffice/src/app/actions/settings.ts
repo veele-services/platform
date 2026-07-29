@@ -55,7 +55,10 @@ import {
 import type { ActionResult } from "./customers";
 import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
-import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
+import {
+  backofficeRecoveryHandoffUrl,
+  resolveBackofficeRecoveryContext,
+} from "@/lib/auth/recovery-origin";
 
 export type { ActionResult };
 
@@ -2052,7 +2055,7 @@ export async function sendUserPasswordReset(
         email,
     ),
     portalName: "Tenant backoffice",
-    resetUrl,
+    resetUrl: backofficeRecoveryHandoffUrl(resetUrl, challenge.challengeId),
     code: challenge.code,
   });
   const sent = await sendEmailWithResult({
