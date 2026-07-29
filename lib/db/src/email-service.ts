@@ -3,21 +3,12 @@ import { appendFile } from "node:fs/promises";
 import { Resend } from "resend";
 import { desc, eq } from "drizzle-orm";
 import { db } from "./index";
-import {
-  emailDeliveryLogTable,
-  organizationSettingsTable,
-  platformEmailProvidersTable,
-  type PlatformEmailProvider,
-} from "./schema";
+import { emailDeliveryLogTable, organizationSettingsTable, platformEmailProvidersTable, type PlatformEmailProvider } from "./schema";
 import { sendSmtpMail, type SmtpEncryption, type SmtpMailConfig } from "./email-smtp";
-import {
-  consumeRenderedEmailMetadata,
-  renderEmailTemplate,
-  type EmailTemplateKey,
-  type EmailTemplateVariables,
-} from "./email-templates";
+import { consumeRenderedEmailMetadata, renderEmailTemplate, type EmailTemplateKey, type EmailTemplateVariables } from "./email-templates";
+import { normalizeSendGridApiRegion, sendSendGridMail, type SendGridApiRegion } from "./email-sendgrid";
 
-export type PlatformEmailProviderType = "resend_api" | "smtp";
+export type PlatformEmailProviderType = "sendgrid_api" | "resend_api" | "smtp";
 export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "test_outbox" | "none";
 export type PlatformEmailProviderStatus = "draft" | "configured" | "disabled" | "error";
 export type PlatformEmailTestStatus = "success" | "failed";
@@ -61,6 +52,12 @@ type ResendProviderConfig = {
   sendingDomain?: string | null;
 };
 
+type SendGridProviderConfig = {
+  apiKey?: string | null;
+  apiRegion?: SendGridApiRegion | null;
+  sendingDomain?: string | null;
+};
+
 type SmtpProviderConfig = {
   host?: string | null;
   port?: number | null;
@@ -69,7 +66,7 @@ type SmtpProviderConfig = {
   password?: string | null;
 };
 
-type EmailProviderConfig = ResendProviderConfig & SmtpProviderConfig;
+type EmailProviderConfig = ResendProviderConfig & SendGridProviderConfig & SmtpProviderConfig;
 
 type ResolvedProvider = {
   id: string | null;
@@ -97,6 +94,7 @@ export type PlatformEmailProviderAdminView = {
   lastTestError: string | null;
   config: {
     sendingDomain: string;
+    sendgridApiRegion: SendGridApiRegion;
     smtpHost: string;
     smtpPort: number | null;
     smtpEncryption: SmtpEncryption;
@@ -112,6 +110,9 @@ export type SavePlatformEmailProviderInput = {
   fromEmail: string;
   fromName: string;
   replyToEmail?: string | null;
+  sendgridApiKey?: string | null;
+  sendgridApiRegion?: SendGridApiRegion | null;
+  clearSendGridApiKey?: boolean;
   resendApiKey?: string | null;
   sendingDomain?: string | null;
   smtpHost?: string | null;
@@ -125,6 +126,7 @@ export type SavePlatformEmailProviderInput = {
 
 const DEFAULT_FROM_EMAIL = "noreply@fieldgrid.nl";
 const DEFAULT_FROM_NAME = "Fieldgrid";
+const DEFAULT_SENDING_DOMAIN = "fieldgrid.nl";
 const ENCRYPTION_KEY_ENV = "FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY";
 const LEGACY_ENCRYPTION_KEY_ENV = "PLATFORM_EMAIL_CONFIG_ENCRYPTION_KEY";
 
@@ -143,18 +145,41 @@ function normalizeTenantTransport(value: string | null | undefined, smtpEnabled?
 }
 
 function normalizeEmail(value: string | null | undefined): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeSendingDomain(value: string | null | undefined): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.+$/u, "");
 }
 
 function isEmailLike(value: string | null | undefined): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(String(value ?? "").trim());
 }
 
+function isHostname(value: string | null | undefined): boolean {
+  const hostname = normalizeSendingDomain(value);
+  if (!hostname || hostname.length > 253 || hostname.includes("..")) return false;
+  return hostname.split(".").every((label) => label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u.test(label));
+}
+
+function emailBelongsToDomain(email: string, domain: string): boolean {
+  const emailDomain = normalizeEmail(email).split("@").at(-1) ?? "";
+  const normalizedDomain = normalizeSendingDomain(domain);
+  return emailDomain === normalizedDomain || emailDomain.endsWith(`.${normalizedDomain}`);
+}
+
 function sanitizeError(error: unknown): string {
   const raw = String((error as { message?: string })?.message ?? error ?? "Onbekende e-mailfout");
   return raw
     .replace(/re_[A-Za-z0-9_-]{8,}/gu, "re_[redacted]")
+    .replace(/SG\.[A-Za-z0-9._-]{8,}/gu, "SG.[redacted]")
     .replace(/Bearer\s+[A-Za-z0-9._-]+/giu, "Bearer [redacted]")
+    .replace(/api[_\s-]?key\s*[:=]\s*\S+/giu, "api_key=[redacted]")
     .replace(/password\s*[:=]\s*\S+/giu, "password=[redacted]")
     .slice(0, 1800);
 }
@@ -363,9 +388,6 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
 }
 
 async function resolveActiveProvider(tenantId?: string | null): Promise<ResolvedProvider | null> {
-  const tenantProvider = await getTenantProvider(tenantId);
-  if (tenantProvider) return tenantProvider;
-
   const [provider] = await db
     .select()
     .from(platformEmailProvidersTable)
@@ -385,11 +407,25 @@ async function resolveActiveProvider(tenantId?: string | null): Promise<Resolved
     };
   }
 
+  const tenantProvider = await getTenantProvider(tenantId);
+  if (tenantProvider) return tenantProvider;
+
   return (await getLegacySmtpProvider()) ?? (await getEnvResendProvider());
 }
 
 function assertProviderReady(provider: ResolvedProvider): void {
   if (!isEmailLike(provider.fromEmail)) throw new Error("Afzender e-mailadres is ongeldig.");
+
+  if (provider.providerType === "sendgrid_api") {
+    if (!provider.config.apiKey) throw new Error("SendGrid API key ontbreekt.");
+    if (!isHostname(provider.config.sendingDomain)) {
+      throw new Error("SendGrid sending domain ontbreekt of is ongeldig.");
+    }
+    if (!emailBelongsToDomain(provider.fromEmail, provider.config.sendingDomain!)) {
+      throw new Error("SendGrid-afzender hoort niet bij het ingestelde sending domain.");
+    }
+    return;
+  }
 
   if (provider.providerType === "resend_api" || provider.providerType === "env_resend") {
     if (!provider.config.apiKey) throw new Error("Resend API key ontbreekt.");
@@ -453,6 +489,25 @@ async function sendWithResend(provider: ResolvedProvider, input: TransactionalEm
   return data?.id ?? null;
 }
 
+async function sendWithSendGrid(provider: ResolvedProvider, input: TransactionalEmailInput): Promise<string | null> {
+  return sendSendGridMail(
+    {
+      apiKey: provider.config.apiKey!,
+      apiRegion: normalizeSendGridApiRegion(provider.config.apiRegion),
+      fromEmail: provider.fromEmail,
+      fromName: provider.fromName,
+      replyTo: provider.replyToEmail,
+    },
+    {
+      to: normalizeRecipients(input.to),
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
+      attachments: input.attachments,
+    },
+  );
+}
+
 async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmailInput): Promise<string | null> {
   const config: SmtpMailConfig = {
     host: provider.config.host!,
@@ -504,13 +559,16 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
   } catch (error) {
     const message = sanitizeError(error);
     await logDelivery(input, null, "failed", message);
-    return { success: false, error: message, providerType: "none", providerId: null };
+    return {
+      success: false,
+      error: message,
+      providerType: "none",
+      providerId: null,
+    };
   }
 
   const testOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
-  const testTransportAllowed =
-    process.env.NODE_ENV === "test" ||
-    process.env["FIELDGRID_E2E_AUTH_ENABLED"] === "true";
+  const testTransportAllowed = process.env.NODE_ENV === "test" || process.env["FIELDGRID_E2E_AUTH_ENABLED"] === "true";
   if (testOutboxPath && testTransportAllowed) {
     const providerMessageId = `test-${crypto.randomUUID()}`;
     const captured = {
@@ -524,7 +582,10 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       templateKey: normalizedInput.templateKey ?? null,
       purpose: normalizedInput.purpose ?? null,
     };
-    await appendFile(testOutboxPath, `${JSON.stringify(captured)}\n`, { encoding: "utf8", mode: 0o600 });
+    await appendFile(testOutboxPath, `${JSON.stringify(captured)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
     return {
       success: true,
       providerType: "test_outbox",
@@ -539,7 +600,12 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
   } catch (error) {
     const message = sanitizeError(error);
     await logDelivery(normalizedInput, null, "failed", message);
-    return { success: false, error: message, providerType: "none", providerId: null };
+    return {
+      success: false,
+      error: message,
+      providerType: "none",
+      providerId: null,
+    };
   }
 
   if (!provider) {
@@ -551,9 +617,11 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
   try {
     assertProviderReady(provider);
     const providerMessageId =
-      provider.providerType === "resend_api" || provider.providerType === "env_resend"
-        ? await sendWithResend(provider, normalizedInput)
-        : await sendWithSmtp(provider, normalizedInput);
+      provider.providerType === "sendgrid_api"
+        ? await sendWithSendGrid(provider, normalizedInput)
+        : provider.providerType === "resend_api" || provider.providerType === "env_resend"
+          ? await sendWithResend(provider, normalizedInput)
+          : await sendWithSmtp(provider, normalizedInput);
 
     await logDelivery(normalizedInput, provider, "success", null, providerMessageId);
     return {
@@ -614,12 +682,20 @@ export async function sendTemplatedEmail(input: TemplatedEmailInput): Promise<Tr
       "failed",
       message,
     );
-    return { success: false, error: message, providerType: "none", providerId: null };
+    return {
+      success: false,
+      error: message,
+      providerType: "none",
+      providerId: null,
+    };
   }
 }
 
 function providerStatus(provider: PlatformEmailProvider, config: EmailProviderConfig): PlatformEmailProviderStatus {
   if (!provider.isActive && provider.status === "disabled") return "disabled";
+  if (provider.providerType === "sendgrid_api") {
+    return config.apiKey && config.sendingDomain && provider.fromEmail ? "configured" : "draft";
+  }
   if (provider.providerType === "resend_api") return config.apiKey && provider.fromEmail ? "configured" : "draft";
   if (provider.providerType === "smtp") return config.host && config.port && provider.fromEmail ? "configured" : "draft";
   return "draft";
@@ -638,13 +714,20 @@ function toAdminView(provider: PlatformEmailProvider): PlatformEmailProviderAdmi
     fromName: provider.fromName,
     replyToEmail: provider.replyToEmail ?? "",
     status: configError ? "error" : providerStatus(provider, config),
-    configured: !configError && (type === "resend_api" ? Boolean(config.apiKey) : Boolean(config.host && config.port)),
-    maskedSecret: type === "resend_api" ? maskEmailSecret(config.apiKey, 3) : maskEmailSecret(config.password, 0),
+    configured:
+      !configError &&
+      (type === "sendgrid_api"
+        ? Boolean(config.apiKey && config.sendingDomain)
+        : type === "resend_api"
+          ? Boolean(config.apiKey)
+          : Boolean(config.host && config.port)),
+    maskedSecret: type === "sendgrid_api" || type === "resend_api" ? maskEmailSecret(config.apiKey, 3) : maskEmailSecret(config.password, 0),
     lastTestedAt: provider.lastTestedAt?.toISOString() ?? null,
     lastTestStatus: provider.lastTestStatus as PlatformEmailTestStatus | null,
     lastTestError: configError ?? provider.lastTestError,
     config: {
       sendingDomain: config.sendingDomain ?? "",
+      sendgridApiRegion: normalizeSendGridApiRegion(config.apiRegion),
       smtpHost: config.host ?? "",
       smtpPort: config.port ?? null,
       smtpEncryption: normalizeEncryption(config.encryption),
@@ -662,6 +745,34 @@ export async function getPlatformEmailProviderSettings(): Promise<PlatformEmailP
 
   const views = providers.map(toAdminView);
   const existingTypes = new Set(views.map((view) => view.providerType));
+
+  if (!existingTypes.has("sendgrid_api")) {
+    views.push({
+      id: null,
+      providerType: "sendgrid_api",
+      name: "SendGrid API",
+      isActive: false,
+      isDefault: false,
+      fromEmail: DEFAULT_FROM_EMAIL,
+      fromName: DEFAULT_FROM_NAME,
+      replyToEmail: "",
+      status: "draft",
+      configured: false,
+      maskedSecret: null,
+      lastTestedAt: null,
+      lastTestStatus: null,
+      lastTestError: null,
+      config: {
+        sendingDomain: DEFAULT_SENDING_DOMAIN,
+        sendgridApiRegion: "global",
+        smtpHost: "",
+        smtpPort: null,
+        smtpEncryption: "starttls",
+        smtpUsername: "",
+        smtpPasswordConfigured: false,
+      },
+    });
+  }
 
   if (!existingTypes.has("resend_api")) {
     views.push({
@@ -681,6 +792,7 @@ export async function getPlatformEmailProviderSettings(): Promise<PlatformEmailP
       lastTestError: null,
       config: {
         sendingDomain: "",
+        sendgridApiRegion: "global",
         smtpHost: "",
         smtpPort: null,
         smtpEncryption: "starttls",
@@ -708,6 +820,7 @@ export async function getPlatformEmailProviderSettings(): Promise<PlatformEmailP
       lastTestError: null,
       config: {
         sendingDomain: "",
+        sendgridApiRegion: "global",
         smtpHost: "",
         smtpPort: 587,
         smtpEncryption: "starttls",
@@ -717,7 +830,16 @@ export async function getPlatformEmailProviderSettings(): Promise<PlatformEmailP
     });
   }
 
-  return views.sort((a, b) => Number(b.isActive) - Number(a.isActive) || a.providerType.localeCompare(b.providerType));
+  const providerOrder: Record<PlatformEmailProviderType, number> = {
+    sendgrid_api: 0,
+    resend_api: 1,
+    smtp: 2,
+  };
+  return views.sort(
+    (a, b) =>
+      Number(b.isActive) - Number(a.isActive) ||
+      providerOrder[a.providerType] - providerOrder[b.providerType],
+  );
 }
 
 function validateProviderInput(input: SavePlatformEmailProviderInput, config: EmailProviderConfig): string | null {
@@ -726,6 +848,22 @@ function validateProviderInput(input: SavePlatformEmailProviderInput, config: Em
 
   if (input.providerType === "resend_api") {
     if (input.isActive && !config.apiKey) return "Resend API key is verplicht wanneer Resend actief is.";
+    return null;
+  }
+
+  if (input.providerType === "sendgrid_api") {
+    if (input.isActive && !config.apiKey) {
+      return "SendGrid API key is verplicht wanneer SendGrid actief is.";
+    }
+    if (config.apiKey && config.apiKey.length > 512) {
+      return "SendGrid API key is te lang.";
+    }
+    if (!isHostname(config.sendingDomain)) {
+      return "Vul een geldig SendGrid sending domain in, zonder https:// of pad.";
+    }
+    if (!emailBelongsToDomain(input.fromEmail, config.sendingDomain!)) {
+      return "Het afzenderadres moet bij het SendGrid sending domain horen.";
+    }
     return null;
   }
 
@@ -738,26 +876,28 @@ function validateProviderInput(input: SavePlatformEmailProviderInput, config: Em
 }
 
 export async function savePlatformEmailProviderSettings(input: SavePlatformEmailProviderInput): Promise<{ success: boolean; message: string }> {
-  const [existing] = await db
-    .select()
-    .from(platformEmailProvidersTable)
-    .where(eq(platformEmailProvidersTable.providerType, input.providerType))
-    .limit(1);
+  const [existing] = await db.select().from(platformEmailProvidersTable).where(eq(platformEmailProvidersTable.providerType, input.providerType)).limit(1);
 
   const existingConfig = existing ? safeDecryptPlatformEmailConfig(existing.encryptedConfigJson).config : {};
   const config: EmailProviderConfig =
-    input.providerType === "resend_api"
+    input.providerType === "sendgrid_api"
       ? {
-          apiKey: input.resendApiKey?.trim() || existingConfig.apiKey || null,
-          sendingDomain: input.sendingDomain?.trim() || null,
+          apiKey: input.clearSendGridApiKey ? null : input.sendgridApiKey?.trim() || existingConfig.apiKey || null,
+          apiRegion: normalizeSendGridApiRegion(input.sendgridApiRegion),
+          sendingDomain: normalizeSendingDomain(input.sendingDomain) || DEFAULT_SENDING_DOMAIN,
         }
-      : {
-          host: input.smtpHost?.trim() || null,
-          port: input.smtpPort ?? null,
-          encryption: normalizeEncryption(input.smtpEncryption),
-          username: input.smtpUsername?.trim() || null,
-          password: input.clearSmtpPassword ? null : input.smtpPassword?.trim() || existingConfig.password || null,
-        };
+      : input.providerType === "resend_api"
+        ? {
+            apiKey: input.resendApiKey?.trim() || existingConfig.apiKey || null,
+            sendingDomain: input.sendingDomain?.trim() || null,
+          }
+        : {
+            host: input.smtpHost?.trim() || null,
+            port: input.smtpPort ?? null,
+            encryption: normalizeEncryption(input.smtpEncryption),
+            username: input.smtpUsername?.trim() || null,
+            password: input.clearSmtpPassword ? null : input.smtpPassword?.trim() || existingConfig.password || null,
+          };
 
   const validationError = validateProviderInput(input, config);
   if (validationError) return { success: false, message: validationError };
@@ -771,7 +911,7 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
   }
   const payload = {
     providerType: input.providerType,
-    name: input.name?.trim() || (input.providerType === "resend_api" ? "Resend API" : "SMTP"),
+    name: input.name?.trim() || (input.providerType === "sendgrid_api" ? "SendGrid API" : input.providerType === "resend_api" ? "Resend API" : "SMTP"),
     isActive: input.isActive,
     isDefault: input.isActive,
     encryptedConfigJson,
@@ -789,10 +929,7 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
     }
 
     if (existing) {
-      await tx
-        .update(platformEmailProvidersTable)
-        .set(payload)
-        .where(eq(platformEmailProvidersTable.id, existing.id));
+      await tx.update(platformEmailProvidersTable).set(payload).where(eq(platformEmailProvidersTable.id, existing.id));
     } else {
       await tx.insert(platformEmailProvidersTable).values({
         ...payload,
@@ -804,13 +941,14 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
   return { success: true, message: "Platform e-mailprovider opgeslagen." };
 }
 
-export async function sendPlatformEmailTest(input: {
-  to: string;
-  triggeredBy?: string | null;
-}): Promise<TransactionalEmailResult> {
+export async function sendPlatformEmailTest(input: { to: string; triggeredBy?: string | null }): Promise<TransactionalEmailResult> {
   const to = input.to.trim().toLowerCase();
   if (!isEmailLike(to)) {
-    return { success: false, error: "Vul een geldig test e-mailadres in.", providerType: "none" };
+    return {
+      success: false,
+      error: "Vul een geldig test e-mailadres in.",
+      providerType: "none",
+    };
   }
 
   const result = await sendTemplatedEmail({
@@ -827,7 +965,7 @@ export async function sendPlatformEmailTest(input: {
       .set({
         lastTestedAt: new Date(),
         lastTestStatus: result.success ? "success" : "failed",
-        lastTestError: result.success ? null : result.error ?? "Testmail mislukt.",
+        lastTestError: result.success ? null : (result.error ?? "Testmail mislukt."),
         status: result.success ? "configured" : "error",
         updatedAt: new Date(),
       })

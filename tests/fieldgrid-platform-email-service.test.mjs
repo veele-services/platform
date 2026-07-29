@@ -11,10 +11,22 @@ test("platform email service centralizes providers, encrypted config and deliver
   const smtp = read("lib/db/src/email-smtp.ts");
   const schema = read("lib/db/src/schema/platform-email.ts");
   const migration = read("lib/db/migrations/093_platform_email_providers.sql");
+  const sendGridMigration = read(
+    "lib/db/migrations/20260729100000_sendgrid_platform_email_provider.sql",
+  );
+  const sendGrid = read("lib/db/src/email-sendgrid.ts");
   const pkg = read("lib/db/package.json");
 
   assert.match(service, /sendTransactionalEmail/u);
   assert.match(service, /new Resend/u);
+  assert.match(service, /sendWithSendGrid/u);
+  assert.match(service, /sendgrid_api/u);
+  assert.match(sendGrid, /https:\/\/api\.sendgrid\.com\/v3\/mail\/send/u);
+  assert.match(sendGrid, /https:\/\/api\.eu\.sendgrid\.com\/v3\/mail\/send/u);
+  assert.match(sendGrid, /Authorization: `Bearer \$\{config\.apiKey\}`/u);
+  assert.match(sendGrid, /response\.status !== 202/u);
+  assert.match(sendGrid, /attachment\.content\.toString\("base64"\)/u);
+  assert.match(service, /SG\\\.\[A-Za-z0-9\._-\]/u);
   assert.match(service, /sendSmtpMail/u);
   assert.match(service, /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY/u);
   assert.match(service, /encryptPlatformEmailConfig/u);
@@ -25,6 +37,10 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(service, /safeDecryptPlatformEmailConfig\(existing\.encryptedConfigJson\)\.config/u);
   assert.match(service, /normalizeTemplateInput/u);
   assert.match(service, /provider = await resolveActiveProvider\(normalizedInput\.tenantId\);/u);
+  assert.match(
+    service,
+    /if \(provider\) \{[\s\S]*?const tenantProvider = await getTenantProvider\(tenantId\);/u,
+  );
   assert.match(service, /sendTemplatedEmail/u);
   assert.match(service, /return \{ success: false, message: sanitizeError\(error\) \}/u);
   assert.match(service, /emailDeliveryLogTable/u);
@@ -35,6 +51,12 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(migration, /encrypted_config_json text NOT NULL/u);
   assert.match(migration, /ALTER TABLE public\.platform_email_providers ENABLE ROW LEVEL SECURITY/u);
   assert.match(migration, /REVOKE ALL ON TABLE public\.email_delivery_log FROM anon, authenticated/u);
+  assert.match(sendGridMigration, /'sendgrid_api'/u);
+  assert.match(
+    sendGridMigration,
+    /platform_email_providers_provider_type_check/u,
+  );
+  assert.match(sendGridMigration, /email_delivery_log_provider_type_check/u);
   assert.match(pkg, /"\.\/email-service": "\.\/src\/email-service\.ts"/u);
 });
 
@@ -99,9 +121,15 @@ test("platform admin exposes provider-agnostic email settings and testmail", () 
   assert.match(form, /role=\{state\.success \? "status" : "alert"\}/u);
   assert.match(form, /router\.refresh\(\)/u);
   assert.match(page, /Resend API/u);
+  assert.match(page, /SendGrid API/u);
   assert.match(page, /SMTP/u);
   assert.match(page, /Testmail versturen/u);
   assert.match(form, /maskedSecret/u);
+  assert.match(form, /name="sendgridApiKey"/u);
+  assert.match(form, /name="sendgridApiRegion"/u);
+  assert.match(form, /name="sendingDomain"/u);
+  assert.match(form, /Mail Send/u);
+  assert.doesNotMatch(form, /SendGrid later/u);
   assert.doesNotMatch(page, /RESEND_API_KEY/u);
   assert.doesNotMatch(form, /RESEND_API_KEY/u);
 });

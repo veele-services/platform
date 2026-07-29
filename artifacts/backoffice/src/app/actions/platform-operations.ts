@@ -186,7 +186,10 @@ async function getMailHealth(generatedAt: string): Promise<PlatformOperationsHea
     endpoint: null,
     lastCheckedAt: generatedAt,
     responseMs: null,
-    nextAction: status === "ok" ? "Draai alleen bij release een echte testmail via instellingen." : "Configureer Resend API of SMTP voordat notificaties live gaan.",
+    nextAction:
+      status === "ok"
+        ? "Draai alleen bij release een echte testmail via instellingen."
+        : "Configureer bij voorkeur SendGrid API, of gebruik Resend API/SMTP als fallback.",
   };
 }
 

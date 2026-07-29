@@ -142,7 +142,9 @@ function SettingCard({ setting }: { setting: PlatformSettingRow }) {
 function providerLabel(
   providerType: PlatformEmailProviderAdminView["providerType"],
 ): string {
-  return providerType === "resend_api" ? "Resend API" : "SMTP";
+  if (providerType === "sendgrid_api") return "SendGrid API";
+  if (providerType === "resend_api") return "Resend API";
+  return "SMTP";
 }
 
 function EmailProviderSettingsPanel({
@@ -163,10 +165,10 @@ function EmailProviderSettingsPanel({
             E-mailprovider
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Kies Resend API of SMTP als centrale transportlaag voor alle
-            uitnodigingen, wachtwoordmails, notificaties, facturen, rapportages
-            en systeemmails. Secrets worden encrypted opgeslagen en alleen
-            gemasked getoond.
+            Kies bij voorkeur SendGrid API, of Resend API/SMTP als centrale
+            transportlaag voor alle uitnodigingen, wachtwoordmails,
+            notificaties, facturen, rapportages en systeemmails. Secrets worden
+            encrypted opgeslagen en alleen gemasked getoond.
           </p>
         </div>
         <span
@@ -248,8 +250,8 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
               SMTP transport gebruiken
             </p>
             <p className="text-sm text-slate-600">
-              Laat uit staan wanneer Resend of een latere SendGrid-koppeling
-              tijdelijk de fallback is.
+              Laat uit staan wanneer SendGrid API of Resend API de actieve
+              transportlaag is.
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -355,15 +357,11 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
 
         <div className="grid gap-3 rounded border border-cyan-100 bg-cyan-50 p-4 text-sm text-slate-700 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div>
-            <p className="font-semibold text-slate-950">Mail roadmap</p>
+            <p className="font-semibold text-slate-950">Afzenderbeleid</p>
             <p className="mt-1">
-              SendGrid kan als beheerde koppeling worden toegevoegd. Tenants
-              krijgen standaard afzenders volgens{" "}
-              <span className="font-semibold">
-                {smtp.defaultTenantFromPattern}
-              </span>
-              . Eigen maildomeinen blijven alleen voor Enterprise en worden door
-              platform support gekoppeld.
+              Standaardmails worden vanuit Fieldgrid verzonden. Eigen
+              Enterprise-afzenders en maildomeinen worden in een latere,
+              afzonderlijk gereviewde uitbreiding toegevoegd.
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">

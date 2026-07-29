@@ -15,17 +15,26 @@ Platformbrede providerconfiguratie staat in `platform_email_providers`.
 
 Ondersteunde providers:
 
+- `sendgrid_api` — aanbevolen voor standaard Fieldgrid-mail;
 - `resend_api`
 - `smtp`
 
-De tabel is voorbereid op extra API-providers zoals SendGrid, Postmark of Mailgun. Voeg daarvoor een nieuwe `provider_type` toe aan de database check constraint, implementeer een provider-adapter in `email-service.ts` en breid de platform-admin UI uit met provider-specifieke velden.
+SendGrid gebruikt rechtstreeks de officiële Mail Send API. Fieldgrid accepteert
+geen vrij configureerbare API-URL: de gekozen regio bepaalt een van deze vaste
+endpoints:
+
+- Global: `https://api.sendgrid.com/v3/mail/send`
+- EU regional: `https://api.eu.sendgrid.com/v3/mail/send`
+
+De EU-optie is alleen bedoeld voor een SendGrid EU-regional subuser.
 
 Secrets staan in `encrypted_config_json` en worden versleuteld met AES-256-GCM. De technische encryptiesleutel komt uit:
 
 - `FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY`
 - fallback: `PLATFORM_EMAIL_CONFIG_ENCRYPTION_KEY`
 
-De Resend API key en SMTP-wachtwoorden horen niet meer als primaire configuratie in `.env`. Alleen de encryptiesleutel is een technische secret.
+SendGrid- en Resend-API-keys en SMTP-wachtwoorden horen niet als primaire
+configuratie in `.env`. Alleen de encryptiesleutel is een technische secret.
 
 ## Platform Admin
 
@@ -33,7 +42,8 @@ Platform admin beheert e-mail via `/platform/settings`.
 
 De pagina ondersteunt:
 
-- providerkeuze voor Resend API of SMTP;
+- providerkeuze voor SendGrid API, Resend API of SMTP;
+- SendGrid API-regio en geauthenticeerd sending domain;
 - masked secretstatus;
 - overschrijven van secrets zonder bestaande waarde te tonen;
 - from name, from email en reply-to;
@@ -64,7 +74,20 @@ De migration `093_platform_email_providers.sql` schakelt RLS in en trekt directe
 - `platform_email_providers`
 - `email_delivery_log`
 
-De frontend krijgt nooit decrypted secrets. Platform admin ziet alleen masked status zoals `re_************abcd` of `geconfigureerd`.
+De frontend krijgt nooit decrypted secrets. Platform admin ziet alleen masked
+status zoals `SG.************abcd`, `re_************abcd` of
+`geconfigureerd`.
+
+Voor SendGrid geldt aanvullend:
+
+- maak een Custom Access API key met alleen `Mail Send`;
+- authenticeer `fieldgrid.nl` in SendGrid voordat de provider actief gaat;
+- gebruik standaard `Fieldgrid <noreply@fieldgrid.nl>`;
+- kies alleen de EU-regio wanneer het account en de subuser EU-regional zijn;
+- verstuur na configuratie een echte testmail vanuit Platform Admin.
+
+De API key wordt nooit teruggestuurd naar de browser, gelogd of in auditmetadata
+opgenomen. Foutmeldingen verwijderen SendGrid-keys en Bearer-tokens.
 
 ## Gemigreerde mailflows
 
@@ -77,11 +100,20 @@ De volgende surfaces gebruiken de centrale service:
 
 Legacy `organization_settings` SMTP blijft alleen als tijdelijke fallback in de centrale service bestaan voor nul-downtime. Nieuwe platforminstellingen schrijven naar `platform_email_providers`.
 
+## Afzenderbeleid
+
+De actieve platformprovider heeft voorrang en geldt voor alle centrale
+mailflows. Standaardmail komt vanuit Fieldgrid. Oude tenanttransportinstellingen
+worden alleen nog als nul-downtimefallback gebruikt wanneer geen platformprovider
+actief is. Een tenant krijgt niet automatisch een eigen SendGrid-key of eigen
+afzenderdomein. Custom enterprise-afzenders zijn bewust een latere uitbreiding
+met afzonderlijke domeinverificatie, autorisatie en beheer.
+
 ## Nieuwe provider toevoegen
 
 1. Voeg provider type toe aan de DB check constraint.
 2. Breid `EmailProviderConfig` uit in `lib/db/src/email-service.ts`.
-3. Voeg een adapterfunctie toe naast `sendWithResend` en `sendWithSmtp`.
+3. Voeg een adapterfunctie toe naast `sendWithSendGrid`, `sendWithResend` en `sendWithSmtp`.
 4. Valideer verplichte velden in `validateProviderInput`.
 5. Voeg provider UI-velden toe aan `/platform/settings`.
 6. Voeg tests toe in `tests/fieldgrid-platform-email-service.test.mjs`.

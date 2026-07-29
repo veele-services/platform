@@ -701,7 +701,7 @@ Te bouwen:
   - Caddy ask mode;
   - SMTP/system mail;
   - platformbrede SMTP-instellingen direct aanpasbaar in platform-admin;
-  - latere SendGrid-koppeling als beheerde mailprovider;
+  - SendGrid API als aanbevolen beheerde mailprovider, met Resend API en SMTP als fallback;
   - standaard tenantafzenders volgens `<mail>@<slug>.fieldgrid.nl`;
   - eigen maildomeinen alleen voor Enterprise en alleen gekoppeld door platform support;
   - default branding;
