@@ -933,8 +933,14 @@ export async function sendPlatformUserPasswordResetFromForm(
       html,
       purpose: "platform_admin_password_reset",
     });
-    await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
     if (!sent.success) {
+      try {
+        await markCredentialRecoveryDelivery(challenge.challengeId, false);
+      } catch {
+        console.error(
+          "[platform] Platform user password reset delivery-state bookkeeping failed.",
+        );
+      }
       return {
         success: false,
         message:
@@ -942,19 +948,41 @@ export async function sendPlatformUserPasswordResetFromForm(
       };
     }
 
-    await writePlatformAuditLog({
-      actor,
-      action: "platform_user_password_reset_sent",
-      resource: "platform_users",
-      resourceId: target.id,
-      metadata: {
-        userId: target.userId,
-        email,
-        challengeId: challenge.challengeId,
-      },
-    });
+    const bookkeepingFailures: string[] = [];
+    try {
+      await markCredentialRecoveryDelivery(challenge.challengeId, true);
+    } catch {
+      bookkeepingFailures.push("delivery-state");
+    }
 
-    revalidatePlatformUsers();
+    try {
+      await writePlatformAuditLog({
+        actor,
+        action: "platform_user_password_reset_sent",
+        resource: "platform_users",
+        resourceId: target.id,
+        metadata: {
+          userId: target.userId,
+          email,
+          challengeId: challenge.challengeId,
+        },
+      });
+    } catch {
+      bookkeepingFailures.push("audit");
+    }
+
+    try {
+      revalidatePlatformUsers();
+    } catch {
+      bookkeepingFailures.push("revalidation");
+    }
+
+    if (bookkeepingFailures.length > 0) {
+      console.error(
+        `[platform] Platform user password reset was delivered; bookkeeping incomplete: ${bookkeepingFailures.join(",")}.`,
+      );
+    }
+
     return {
       success: true,
       data: {
@@ -962,8 +990,8 @@ export async function sendPlatformUserPasswordResetFromForm(
         expiresAt: challenge.expiresAt.toISOString(),
       },
     };
-  } catch (error) {
-    console.error("[platform] Platform user password reset failed:", error);
+  } catch {
+    console.error("[platform] Platform user password reset failed.");
     return {
       success: false,
       message:

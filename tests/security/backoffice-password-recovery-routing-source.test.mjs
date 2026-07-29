@@ -82,7 +82,13 @@ test("platform user reset returns inline delivery state instead of crashing the 
   assert.match(action, /Promise<ActionResult/u);
   assert.match(action, /resolveBackofficeRecoveryContext\(resetUrl\)/u);
   assert.match(action, /deliveryStatus: "sent"/u);
-  assert.match(action, /catch \(error\)/u);
+  assert.match(action, /const bookkeepingFailures: string\[\] = \[\]/u);
+  assert.match(action, /bookkeepingFailures\.push\("delivery-state"\)/u);
+  assert.match(action, /bookkeepingFailures\.push\("audit"\)/u);
+  assert.match(action, /bookkeepingFailures\.push\("revalidation"\)/u);
+  assert.match(action, /was delivered; bookkeeping incomplete/u);
+  assert.match(action, /catch \{/u);
+  assert.doesNotMatch(action, /console\.error\([^)]*,\s*error/u);
   assert.doesNotMatch(action, /throw new Error/u);
   assert.match(platformUsersPage, /PlatformUserPasswordResetAction/u);
   assert.match(platformUserResetControl, /useActionState/u);
