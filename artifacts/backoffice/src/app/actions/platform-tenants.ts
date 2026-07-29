@@ -70,7 +70,10 @@ import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
-import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
+import {
+  backofficeRecoveryHandoffUrl,
+  resolveBackofficeRecoveryContext,
+} from "@/lib/auth/recovery-origin";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = [
@@ -2739,7 +2742,7 @@ export async function sendPlatformTenantAdminPasswordReset(
           email,
       ),
       portalName: "Tenant backoffice",
-      resetUrl,
+      resetUrl: backofficeRecoveryHandoffUrl(resetUrl, challenge.challengeId),
       code: challenge.code,
     });
     const sent = await sendEmailWithResult({

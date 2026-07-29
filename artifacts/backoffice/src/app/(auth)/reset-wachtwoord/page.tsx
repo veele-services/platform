@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { completePasswordReset } from "@/app/actions/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { evaluatePasswordStrength } from "@/lib/password-strength";
+import { backofficePath } from "@/lib/backoffice-paths";
 
 function strengthClass(score: number): string {
   if (score >= 4) return "bg-emerald-600";
@@ -38,7 +38,6 @@ function safeNextPath(value: string | null): string {
 }
 
 export default function ResetWachtwoordPage() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -78,8 +77,8 @@ export default function ResetWachtwoordPage() {
         : "Wachtwoord gewijzigd. U kunt nu inloggen.",
       next: state.next ?? nextPath,
     });
-    router.push(`/login?${params.toString()}`);
-  }, [isActivation, nextPath, router, state?.next, state?.success]);
+    window.location.replace(backofficePath(`/login?${params.toString()}`));
+  }, [isActivation, nextPath, state?.next, state?.success]);
 
   return (
     <main className="w-full max-w-md px-4 py-6 sm:px-0">

@@ -32,6 +32,9 @@ const LOOKUP_DOMAIN = "fieldgrid:v1:credential-recovery:lookup";
 const CODE_DOMAIN = "fieldgrid:v1:credential-recovery:code";
 const GRANT_DOMAIN = "fieldgrid:v1:credential-recovery:grant";
 const FINGERPRINT_DOMAIN = "fieldgrid:v1:credential-recovery:fingerprint";
+const HANDOFF_DOMAIN = "fieldgrid:v1:credential-recovery:handoff";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 
 export function normalizeRecoveryAccountIdentifier(value: string): string {
   return value.trim().toLowerCase();
@@ -115,6 +118,49 @@ export function credentialRecoveryGrantHash(
   secret?: string,
 ): string {
   return hmacHex(GRANT_DOMAIN, grant.trim(), secret);
+}
+
+/**
+ * Build an opaque, integrity-protected reference for a recovery e-mail link.
+ *
+ * The handoff deliberately contains neither the account identifier nor the
+ * recovery code. Possession of this reference is not sufficient to reset a
+ * password: the separately delivered one-time code is still required.
+ */
+export function createCredentialRecoveryHandoff(
+  challengeId: string,
+  secret?: string,
+): string {
+  const normalizedChallengeId = challengeId.trim().toLowerCase();
+  if (!UUID_PATTERN.test(normalizedChallengeId)) {
+    throw new Error(
+      "Credential recovery handoff requires a valid challenge id.",
+    );
+  }
+  return `${normalizedChallengeId}.${hmacHex(
+    HANDOFF_DOMAIN,
+    normalizedChallengeId,
+    secret,
+  )}`;
+}
+
+export function verifyCredentialRecoveryHandoff(
+  handoff: string,
+  secret?: string,
+): string | null {
+  const [challengeId, signature, extra] = handoff.trim().split(".");
+  if (
+    extra !== undefined ||
+    !challengeId ||
+    !signature ||
+    !UUID_PATTERN.test(challengeId) ||
+    !/^[0-9a-f]{64}$/u.test(signature)
+  ) {
+    return null;
+  }
+
+  const expected = hmacHex(HANDOFF_DOMAIN, challengeId, secret);
+  return safeCompareRecoveryDigest(signature, expected) ? challengeId : null;
 }
 
 export function safeCompareRecoveryDigest(
