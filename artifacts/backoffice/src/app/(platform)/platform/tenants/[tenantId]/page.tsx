@@ -68,6 +68,7 @@ import {
 import {
   activatePlatformWebsiteDeploymentAction,
   approvePlatformWebsiteDeploymentAction,
+  bindPlatformPrimaryWebsiteDomainAction,
   checkPlatformWebsiteDeploymentHealthAction,
   getPlatformWebsiteDeliveryAction,
   initializePlatformManagedWebsiteAction,
@@ -81,6 +82,7 @@ import {
 } from "@/components/platform/PlatformTenantDetailNav";
 import { PlatformLifecycleAction } from "@/components/platform/PlatformLifecycleAction";
 import { PlatformManagedWebsiteInitializer } from "@/components/platform/PlatformManagedWebsiteInitializer";
+import { PlatformWebsiteDomainBinder } from "@/components/platform/PlatformWebsiteDomainBinder";
 import { PlatformSupportAccessPanel } from "@/components/platform/PlatformSupportAccessPanel";
 import { PlatformTenantPasswordResetAction } from "@/components/platform/PlatformTenantPasswordResetAction";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
@@ -867,6 +869,23 @@ function WebsiteDeliveryTab({
             Production disabled
           </span>
         </div>
+        {!site.canonicalHostname && (
+          <div className="mt-4 rounded border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-950">
+              De website heeft nog geen primair domein.
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Koppel het geverifieerde primaire tenantdomein voordat je een
+              managed publicatie of custom deployment activeert.
+            </p>
+            <div className="mt-3">
+              <PlatformWebsiteDomainBinder
+                tenantId={tenantId}
+                action={bindPlatformPrimaryWebsiteDomainAction}
+              />
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section

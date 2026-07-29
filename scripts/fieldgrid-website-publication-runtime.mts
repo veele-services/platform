@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 
 import {
   activateManagedWebsitePublication,
+  bindPrimaryTenantDomainToWebsite,
   createWebsiteBlogPost,
   createManagedWebsitePublication,
   createWebsitePreviewSession,
@@ -125,9 +126,15 @@ try {
     [tenantA],
   );
   await pool.query(
+    `UPDATE public.tenant_domains
+     SET is_primary = false
+     WHERE tenant_id = $1 AND is_primary = true`,
+    [tenantA],
+  );
+  await pool.query(
     `INSERT INTO public.tenant_domains (
-       id, tenant_id, domain, type, verification_status, verified_at
-     ) VALUES ($1, $2, $3, 'custom_domain', 'verified', now())`,
+       id, tenant_id, domain, type, is_primary, verification_status, verified_at
+     ) VALUES ($1, $2, $3, 'custom_domain', true, 'active', now())`,
     [domainId, tenantA, hostname],
   );
   await pool.query(
@@ -153,13 +160,12 @@ try {
     ],
   );
 
-  const domain = await setPrimaryWebsiteDomain({
+  const domain = await bindPrimaryTenantDomainToWebsite({
     tenantId: tenantA,
     siteId,
-    tenantDomainId: domainId,
     expectedAuthoringRevision: 1,
     actorUserId: actorA,
-    reason: "runtime verified primary domain",
+    reason: "runtime active primary domain",
   });
   assert.equal(domain.hostname, hostname);
   assert.equal(domain.authoringRevision, 2);
@@ -1308,7 +1314,7 @@ try {
       {
         websitePublicationRuntime: "passed",
         assertions: {
-          verifiedPrimaryDomainOnly: true,
+          activePrimaryDomainAccepted: true,
           staleDomainRevisionRejected: true,
           domainReuseRejected: true,
           childMutationAdvancesRevision: true,
