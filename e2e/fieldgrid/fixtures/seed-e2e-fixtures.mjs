@@ -64,6 +64,21 @@ const CANONICAL_ADMIN_PERMISSIONS = [
   ["invoices", "write"],
 ];
 
+function amsterdamDateKey(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+const E2E_DATE_KEY =
+  process.env.FIELDGRID_E2E_DATE_KEY ?? amsterdamDateKey();
+if (!/^\d{4}-\d{2}-\d{2}$/u.test(E2E_DATE_KEY)) {
+  throw new Error("FIELDGRID_E2E_DATE_KEY must use YYYY-MM-DD.");
+}
+
 const CANONICAL_TENANT_ADMINS = [
   {
     tenantId: FIXTURE.tenants.a,
@@ -246,11 +261,11 @@ async function insertAssignmentPersonnel(client) {
   await client.query(
     `
       update assignments
-      set required_personnel_count = 2, scheduled_date = (now() at time zone 'Europe/Amsterdam')::date, scheduled_start = '08:00', scheduled_end = '12:00',
+      set required_personnel_count = 2, scheduled_date = $3, scheduled_start = '08:00', scheduled_end = '12:00',
           status = 'scheduled', seen_at = null, en_route_at = null, actual_started_at = null, actual_completed_at = null,\n          completion_reason = null, completion_notes = null, cancelled_at = null, cancelled_by = null, cancellation_reason = null
       where id = $1 and tenant_id = $2
     `,
-    [FIXTURE.assignments.a, FIXTURE.tenants.a],
+    [FIXTURE.assignments.a, FIXTURE.tenants.a, E2E_DATE_KEY],
   );
   await client.query(
     `insert into assignments
@@ -278,10 +293,10 @@ async function insertAssignmentPersonnel(client) {
   ]) {
     await client.query(
       `insert into availability_day_entries (personnel_id, date, start_time, end_time)
-       values ($1, (now() at time zone 'Europe/Amsterdam')::date, '07:00', '17:00')
+       values ($1, $2, '07:00', '17:00')
        on conflict (personnel_id, date)
        do update set start_time = excluded.start_time, end_time = excluded.end_time`,
-      [personnelId],
+      [personnelId, E2E_DATE_KEY],
     );
   }
   await client.query(
