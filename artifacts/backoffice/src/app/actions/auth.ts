@@ -14,11 +14,15 @@ import {
   validateBackofficeProfileName,
 } from "@/lib/auth/backoffice-profile";
 import {
-  backofficeUrl,
   buildPasswordResetCodeEmail,
   personeelPortalUrl,
   sendEmailWithResult,
 } from "@/lib/email";
+import {
+  backofficeRecoveryUrl,
+  currentBackofficeRecoveryContext,
+  type BackofficeRecoveryContext,
+} from "@/lib/auth/recovery-origin";
 import {
   evaluatePasswordStrength,
   mediumPasswordMessage,
@@ -76,21 +80,6 @@ function firstForwardedValue(value: string | null): string {
   return (value ?? "").split(",")[0]?.trim() ?? "";
 }
 
-function recoveryOrigin(): string {
-  const configured = new URL(backofficeUrl()).origin;
-  const allowedOrigins = (
-    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configured
-  )
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return resolveCredentialRecoveryOrigin({
-    configuredOrigin: configured,
-    allowedOrigins,
-    allowHttpLocalhost: process.env.NODE_ENV !== "production",
-  });
-}
-
 async function recoveryRequestSignals(): Promise<{
   networkSignal: string;
   clientSignal: string;
@@ -106,6 +95,7 @@ async function recoveryRequestSignals(): Promise<{
 
 async function findBackofficeRecoveryAccount(
   email: string,
+  context: BackofficeRecoveryContext,
 ): Promise<BackofficeRecoveryAccount | null> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return null;
@@ -140,7 +130,32 @@ async function findBackofficeRecoveryAccount(
   ]);
 
   const isPlatformUser = platformMembership.length === 1;
-  if (isPlatformUser === (tenantMemberships.length === 1)) return null;
+  const hostTenantMembership =
+    context.surface === "tenant-backoffice" && context.tenantId
+      ? tenantMemberships.find(
+          (membership) => membership.tenantId === context.tenantId,
+        )
+      : null;
+  const selectedSurface =
+    context.surface === "platform-admin"
+      ? isPlatformUser
+        ? "platform-admin"
+        : null
+      : context.surface === "tenant-backoffice"
+        ? hostTenantMembership
+          ? "tenant-backoffice"
+          : null
+        : isPlatformUser !== (tenantMemberships.length === 1)
+          ? isPlatformUser
+            ? "platform-admin"
+            : "tenant-backoffice"
+          : null;
+  if (!selectedSurface) return null;
+  const tenantId =
+    selectedSurface === "tenant-backoffice"
+      ? (hostTenantMembership?.tenantId ?? tenantMemberships[0]?.tenantId)
+      : null;
+  if (selectedSurface === "tenant-backoffice" && !tenantId) return null;
   const name =
     authUser.user_metadata?.["full_name"] ?? authUser.user_metadata?.["name"];
   return {
@@ -148,8 +163,8 @@ async function findBackofficeRecoveryAccount(
     email: normalizedEmail,
     recipientName:
       typeof name === "string" && name.trim() ? name.trim() : normalizedEmail,
-    surface: isPlatformUser ? "platform-admin" : "tenant-backoffice",
-    tenantId: isPlatformUser ? null : tenantMemberships[0]!.tenantId,
+    surface: selectedSurface,
+    tenantId,
   };
 }
 
@@ -322,6 +337,18 @@ export async function completePasswordReset(
       error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt.",
     };
 
+  const recoveryContext = await currentBackofficeRecoveryContext();
+  if (
+    recoveryContext.surface &&
+    (recoveryContext.surface !== recovery.surface ||
+      recoveryContext.tenantId !== recovery.tenantId)
+  ) {
+    cookieStore.delete({ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH });
+    return {
+      error: "Deze herstelsessie hoort niet bij dit portaal.",
+    };
+  }
+
   let activationProfileName: string | null = null;
   if (recovery.purpose === "activation") {
     const profileName = validateBackofficeProfileName(formData.get("fullName"));
@@ -333,7 +360,7 @@ export async function completePasswordReset(
     surface: recovery.surface,
     purpose: recovery.purpose,
     tenantId: recovery.tenantId,
-    redirectOrigin: recoveryOrigin(),
+    redirectOrigin: recoveryContext.origin,
     grant: recovery.grant,
     ...(await recoveryRequestSignals()),
     assertSubjectEligible: async (subjectUserId) => {
@@ -448,6 +475,7 @@ export async function completePasswordReset(
 
 async function issueAndSendRecoveryChallenge(opts: {
   account: BackofficeRecoveryAccount | null;
+  context: BackofficeRecoveryContext;
   email: string;
   portalName: string;
   resetUrl: string;
@@ -460,7 +488,7 @@ async function issueAndSendRecoveryChallenge(opts: {
     tenantId: opts.account?.tenantId ?? null,
     accountIdentifier: opts.email,
     subjectUserId: opts.account?.subjectUserId ?? null,
-    redirectOrigin: recoveryOrigin(),
+    redirectOrigin: opts.context.origin,
     actorUserId: opts.actorUserId ?? null,
     ...(await recoveryRequestSignals()),
   });
@@ -494,15 +522,20 @@ export async function requestPasswordResetCode(
   const normalizedEmail = email.trim().toLowerCase();
   const publicResult: ActionResult = { success: true };
   try {
-    const account = await findBackofficeRecoveryAccount(normalizedEmail);
+    const context = await currentBackofficeRecoveryContext();
+    const account = await findBackofficeRecoveryAccount(
+      normalizedEmail,
+      context,
+    );
     await issueAndSendRecoveryChallenge({
       account,
+      context,
       email: normalizedEmail,
       portalName:
         account?.surface === "platform-admin"
           ? "Fieldgrid platformbeheer"
           : "Fieldgrid backoffice",
-      resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
+      resetUrl: backofficeRecoveryUrl(context),
     });
   } catch (error) {
     console.error("[auth] Backoffice password reset request failed:", error);
@@ -515,7 +548,8 @@ export async function verifyPasswordResetCode(input: {
   code: string;
   purpose?: CredentialRecoveryPurpose;
 }): Promise<{ success: boolean; state: CredentialRecoveryState }> {
-  const account = await findBackofficeRecoveryAccount(input.email);
+  const context = await currentBackofficeRecoveryContext();
+  const account = await findBackofficeRecoveryAccount(input.email, context);
   const purpose = input.purpose ?? "password-reset";
   if (!account) return { success: false, state: "invalid" };
   const result = await verifyCredentialRecoveryChallenge({
@@ -524,7 +558,7 @@ export async function verifyPasswordResetCode(input: {
     tenantId: account.tenantId,
     accountIdentifier: account.email,
     code: input.code,
-    redirectOrigin: recoveryOrigin(),
+    redirectOrigin: context.origin,
     ...(await recoveryRequestSignals()),
   });
   if (result.state !== "valid" || !result.grant || !result.grantExpiresAt) {
@@ -537,7 +571,7 @@ export async function verifyPasswordResetCode(input: {
     serializeRecoveryGrant(account, purpose, result.grant),
     {
       httpOnly: true,
-      secure: recoveryOrigin().startsWith("https://"),
+      secure: context.origin.startsWith("https://"),
       sameSite: "strict",
       path: BACKOFFICE_BASE_PATH,
       expires: result.grantExpiresAt,
@@ -595,12 +629,16 @@ export async function sendPasswordReset(
   }
 
   const configuredOrigin = new URL(personeelPortalUrl()).origin;
-  const allowedOrigins = (
-    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
+  const configuredAllowedOrigins = (
+    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? ""
   )
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const allowedOrigins =
+    configuredAllowedOrigins.length > 0
+      ? configuredAllowedOrigins
+      : [configuredOrigin];
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "personnel-portal",
     purpose: "password-reset",

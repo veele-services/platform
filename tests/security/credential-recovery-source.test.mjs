@@ -151,7 +151,7 @@ test("redirects, cookies, service role and test email transport fail closed", ()
     assert.match(source, /httpOnly:\s*true/u, path);
     assert.match(source, /sameSite:\s*"strict"/u, path);
     assert.ok(
-      /secure:\s*(?:process\.env\.NODE_ENV === "production"|recoveryOrigin\(\)\.startsWith\("https:\/\/"\))/u.test(
+      /secure:\s*(?:process\.env\.NODE_ENV === "production"|(?:recoveryOrigin\(\)|context\.origin)\.startsWith\("https:\/\/"\))/u.test(
         source,
       ),
       `${path} must secure the recovery cookie on HTTPS`,
