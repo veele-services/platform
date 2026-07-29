@@ -9,7 +9,10 @@ test("enterprise website operations are platform-only and exact-state guarded", 
   const service = read("lib/db/src/website-enterprise-activation-service.ts");
   const contract = read("lib/website-core/src/enterprise-activation.ts");
 
-  assert.equal((actions.match(/requirePlatformAdmin\(\)/gu) ?? []).length, 6);
+  assert.equal((actions.match(/requirePlatformAdmin\(\)/gu) ?? []).length, 7);
+  assert.match(actions, /initializePlatformManagedWebsiteAction/u);
+  assert.match(actions, /initializeManagedWebsite/u);
+  assert.match(actions, /createInitialWebsiteSettings/u);
   assert.match(service, /expectedDeliveryRevision/u);
   assert.match(service, /expectedMode/u);
   assert.match(service, /expectedTargetId/u);
