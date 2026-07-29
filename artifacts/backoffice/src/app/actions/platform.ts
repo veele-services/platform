@@ -846,80 +846,158 @@ export async function updatePlatformUserFromForm(
 
 export async function sendPlatformUserPasswordResetFromForm(
   formData: FormData,
-): Promise<void> {
-  const actor = await requirePlatformAdmin();
-  if (actor.role === "support")
-    throw new Error("Support kan geen platformgebruikers resetten.");
+): Promise<ActionResult<{ deliveryStatus: "sent"; expiresAt: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    if (actor.role === "support") {
+      return {
+        success: false,
+        message: "Support kan geen platformgebruikers resetten.",
+      };
+    }
 
-  const platformUserId = formValue(formData, "platformUserId");
-  if (!platformUserId) throw new Error("Platformgebruiker ontbreekt.");
+    const platformUserId = formValue(formData, "platformUserId");
+    if (!platformUserId) {
+      return { success: false, message: "Platformgebruiker ontbreekt." };
+    }
 
-  const [target] = await db
-    .select()
-    .from(platformUsersTable)
-    .where(eq(platformUsersTable.id, platformUserId))
-    .limit(1);
-  if (!target) throw new Error("Platformgebruiker niet gevonden.");
+    const [target] = await db
+      .select()
+      .from(platformUsersTable)
+      .where(eq(platformUsersTable.id, platformUserId))
+      .limit(1);
+    if (!target) {
+      return {
+        success: false,
+        message: "Platformgebruiker niet gevonden.",
+      };
+    }
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.getUserById(target.userId);
-  if (error || !data.user?.email)
-    throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(target.userId);
+    if (error || !data.user?.email) {
+      return {
+        success: false,
+        message: "Auth-gebruiker heeft geen geldig e-mailadres.",
+      };
+    }
 
-  const email = data.user.email;
-  const resetUrl = `${platformAdminUrl()}/wachtwoord-vergeten`;
-  const recoveryContext = await resolveBackofficeRecoveryContext(resetUrl);
-  if (recoveryContext.surface !== "platform-admin") {
-    throw new Error("Platformherstel verwijst niet naar het platformdomein.");
+    const email = data.user.email;
+    const resetUrl = `${platformAdminUrl()}/wachtwoord-vergeten`;
+    const recoveryContext = await resolveBackofficeRecoveryContext(resetUrl);
+    if (recoveryContext.surface !== "platform-admin") {
+      return {
+        success: false,
+        message:
+          "Het hersteladres hoort niet bij het platform of deze omgeving.",
+      };
+    }
+    const challenge = await issueCredentialRecoveryChallenge({
+      surface: "platform-admin",
+      purpose: "password-reset",
+      tenantId: null,
+      accountIdentifier: email,
+      subjectUserId: target.userId,
+      redirectOrigin: recoveryContext.origin,
+      actorUserId: actor.userId,
+      networkSignal: `actor:${actor.userId}`,
+      clientSignal: "platform-user-reset",
+    });
+    if (
+      challenge.status !== "issued" ||
+      !challenge.challengeId ||
+      !challenge.code ||
+      !challenge.expiresAt
+    ) {
+      return {
+        success: false,
+        message:
+          challenge.status === "rate-limited"
+            ? "Er zijn te veel herstelverzoeken gedaan. Probeer het later opnieuw."
+            : "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+      };
+    }
+    const { subject, html } = buildPasswordResetCodeEmail({
+      recipientName: String(
+        data.user.user_metadata?.["full_name"] ??
+          data.user.user_metadata?.["name"] ??
+          email,
+      ),
+      portalName: "Fieldgrid platformbeheer",
+      resetUrl,
+      code: challenge.code,
+    });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      purpose: "platform_admin_password_reset",
+    });
+    if (!sent.success) {
+      try {
+        await markCredentialRecoveryDelivery(challenge.challengeId, false);
+      } catch {
+        console.error(
+          "[platform] Platform user password reset delivery-state bookkeeping failed.",
+        );
+      }
+      return {
+        success: false,
+        message:
+          "Resetmail versturen mislukt. Controleer de actieve e-mailprovider.",
+      };
+    }
+
+    const bookkeepingFailures: string[] = [];
+    try {
+      await markCredentialRecoveryDelivery(challenge.challengeId, true);
+    } catch {
+      bookkeepingFailures.push("delivery-state");
+    }
+
+    try {
+      await writePlatformAuditLog({
+        actor,
+        action: "platform_user_password_reset_sent",
+        resource: "platform_users",
+        resourceId: target.id,
+        metadata: {
+          userId: target.userId,
+          email,
+          challengeId: challenge.challengeId,
+        },
+      });
+    } catch {
+      bookkeepingFailures.push("audit");
+    }
+
+    try {
+      revalidatePlatformUsers();
+    } catch {
+      bookkeepingFailures.push("revalidation");
+    }
+
+    if (bookkeepingFailures.length > 0) {
+      console.error(
+        `[platform] Platform user password reset was delivered; bookkeeping incomplete: ${bookkeepingFailures.join(",")}.`,
+      );
+    }
+
+    return {
+      success: true,
+      data: {
+        deliveryStatus: "sent",
+        expiresAt: challenge.expiresAt.toISOString(),
+      },
+    };
+  } catch {
+    console.error("[platform] Platform user password reset failed.");
+    return {
+      success: false,
+      message:
+        "Resetcode kon niet worden verstuurd. Probeer het opnieuw of controleer de herstelconfiguratie.",
+    };
   }
-  const challenge = await issueCredentialRecoveryChallenge({
-    surface: "platform-admin",
-    purpose: "password-reset",
-    tenantId: null,
-    accountIdentifier: email,
-    subjectUserId: target.userId,
-    redirectOrigin: recoveryContext.origin,
-    actorUserId: actor.userId,
-    networkSignal: `actor:${actor.userId}`,
-    clientSignal: "platform-user-reset",
-  });
-  if (
-    challenge.status !== "issued" ||
-    !challenge.challengeId ||
-    !challenge.code
-  ) {
-    throw new Error(
-      "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
-    );
-  }
-  const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: String(
-      data.user.user_metadata?.["full_name"] ??
-        data.user.user_metadata?.["name"] ??
-        email,
-    ),
-    portalName: "Fieldgrid platformbeheer",
-    resetUrl,
-    code: challenge.code,
-  });
-  const sent = await sendEmailWithResult({
-    to: email,
-    subject,
-    html,
-    purpose: "platform_admin_password_reset",
-  });
-  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success) throw new Error("Resetmail versturen mislukt.");
-
-  await writePlatformAuditLog({
-    actor,
-    action: "platform_user_password_reset_sent",
-    resource: "platform_users",
-    resourceId: target.id,
-    metadata: { userId: target.userId, email },
-  });
-
-  revalidatePlatformUsers();
 }
 
 export async function listSupportAccessGrants(): Promise<

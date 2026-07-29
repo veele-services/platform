@@ -5,17 +5,22 @@ import test from "node:test";
 const read = (path) => readFileSync(path, "utf8");
 
 const auth = read("artifacts/backoffice/src/app/actions/auth.ts");
-const origin = read(
-  "artifacts/backoffice/src/lib/auth/recovery-origin.ts",
-);
+const origin = read("artifacts/backoffice/src/lib/auth/recovery-origin.ts");
 const platformTenants = read(
   "artifacts/backoffice/src/app/actions/platform-tenants.ts",
 );
 const tenantPage = read(
   "artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx",
 );
+const platformUsers = read("artifacts/backoffice/src/app/actions/platform.ts");
+const platformUsersPage = read(
+  "artifacts/backoffice/src/app/(platform)/platform/users/page.tsx",
+);
 const resetControl = read(
   "artifacts/backoffice/src/components/platform/PlatformTenantPasswordResetAction.tsx",
+);
+const platformUserResetControl = read(
+  "artifacts/backoffice/src/components/platform/PlatformUserPasswordResetAction.tsx",
 );
 
 test("empty recovery allowlist falls back safely after environment and host validation", () => {
@@ -66,6 +71,29 @@ test("platform tenant reset returns inline delivery state instead of crashing th
   assert.match(resetControl, /useActionState/u);
   assert.match(resetControl, /role="status"/u);
   assert.match(resetControl, /role="alert"/u);
+});
+
+test("platform user reset returns inline delivery state instead of crashing the page", () => {
+  const action = platformUsers.match(
+    /export async function sendPlatformUserPasswordResetFromForm[\s\S]*?(?=export async function listSupportAccessGrants)/u,
+  )?.[0];
+
+  assert.ok(action);
+  assert.match(action, /Promise<ActionResult/u);
+  assert.match(action, /resolveBackofficeRecoveryContext\(resetUrl\)/u);
+  assert.match(action, /deliveryStatus: "sent"/u);
+  assert.match(action, /const bookkeepingFailures: string\[\] = \[\]/u);
+  assert.match(action, /bookkeepingFailures\.push\("delivery-state"\)/u);
+  assert.match(action, /bookkeepingFailures\.push\("audit"\)/u);
+  assert.match(action, /bookkeepingFailures\.push\("revalidation"\)/u);
+  assert.match(action, /was delivered; bookkeeping incomplete/u);
+  assert.match(action, /catch \{/u);
+  assert.doesNotMatch(action, /console\.error\([^)]*,\s*error/u);
+  assert.doesNotMatch(action, /throw new Error/u);
+  assert.match(platformUsersPage, /PlatformUserPasswordResetAction/u);
+  assert.match(platformUserResetControl, /useActionState/u);
+  assert.match(platformUserResetControl, /role="status"/u);
+  assert.match(platformUserResetControl, /role="alert"/u);
 });
 
 test("public response remains generic and does not disclose account or delivery state", () => {
