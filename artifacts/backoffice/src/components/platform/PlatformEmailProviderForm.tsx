@@ -20,7 +20,9 @@ type Props = {
 function providerLabel(
   providerType: PlatformEmailProviderAdminView["providerType"],
 ): string {
-  return providerType === "resend_api" ? "Resend API" : "SMTP";
+  if (providerType === "sendgrid_api") return "SendGrid API";
+  if (providerType === "resend_api") return "Resend API";
+  return "SMTP";
 }
 
 function SubmitButton({ label, pending }: { label: string; pending: boolean }) {
@@ -47,10 +49,17 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
 
   function clearSecretFields() {
     const form = formRef.current;
+    const sendgridApiKey = form?.elements.namedItem("sendgridApiKey");
+    const clearSendGridApiKey = form?.elements.namedItem(
+      "clearSendGridApiKey",
+    );
     const resendApiKey = form?.elements.namedItem("resendApiKey");
     const smtpPassword = form?.elements.namedItem("smtpPassword");
     const clearSmtpPassword = form?.elements.namedItem("clearSmtpPassword");
 
+    if (sendgridApiKey instanceof HTMLInputElement) sendgridApiKey.value = "";
+    if (clearSendGridApiKey instanceof HTMLInputElement)
+      clearSendGridApiKey.checked = false;
     if (resendApiKey instanceof HTMLInputElement) resendApiKey.value = "";
     if (smtpPassword instanceof HTMLInputElement) smtpPassword.value = "";
     if (clearSmtpPassword instanceof HTMLInputElement)
@@ -79,6 +88,7 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
       className="grid gap-4 rounded border border-slate-200 bg-slate-50 p-4"
     >
       <input type="hidden" name="providerType" value={provider.providerType} />
+      <input type="hidden" name="name" value={label} />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-950">{label}</p>
@@ -106,26 +116,6 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
           Actief
         </label>
       </div>
-
-      <label className="grid gap-1 text-sm font-medium text-slate-700">
-        Provider
-        <SelectAdapter
-          name="name"
-          defaultValue={provider.name}
-          className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
-        >
-          <option value={label}>{label}</option>
-          <option value="SendGrid" disabled>
-            SendGrid later
-          </option>
-          <option value="Postmark" disabled>
-            Postmark later
-          </option>
-          <option value="Mailgun" disabled>
-            Mailgun later
-          </option>
-        </SelectAdapter>
-      </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm font-medium text-slate-700">
@@ -159,7 +149,61 @@ export function PlatformEmailProviderForm({ provider, action }: Props) {
         </label>
       </div>
 
-      {provider.providerType === "resend_api" ? (
+      {provider.providerType === "sendgrid_api" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+            SendGrid API key
+            <input
+              name="sendgridApiKey"
+              type="password"
+              placeholder={
+                provider.configured
+                  ? `${provider.maskedSecret} - leeg laten om te behouden`
+                  : "SG...."
+              }
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+              autoComplete="new-password"
+            />
+            <span className="text-xs font-normal text-slate-500">
+              Gebruik een SendGrid Custom Access-key met alleen de permissie
+              Mail Send.
+            </span>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            API-regio
+            <SelectAdapter
+              name="sendgridApiRegion"
+              defaultValue={provider.config.sendgridApiRegion}
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            >
+              <option value="global">Global</option>
+              <option value="eu">EU regional</option>
+            </SelectAdapter>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Sending domain
+            <input
+              name="sendingDomain"
+              defaultValue={provider.config.sendingDomain}
+              placeholder="fieldgrid.nl"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950"
+            />
+          </label>
+          <p className="text-xs text-slate-500 sm:col-span-2">
+            Kies EU alleen voor een SendGrid EU-regional subuser. Het
+            afzenderadres moet binnen het geauthenticeerde sending domain
+            vallen.
+          </p>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800 sm:col-span-2">
+            <CheckboxAdapter
+              name="clearSendGridApiKey"
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-cyan-600"
+            />
+            Opgeslagen SendGrid API key verwijderen
+          </label>
+        </div>
+      ) : provider.providerType === "resend_api" ? (
         <div className="grid gap-3">
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Resend API key

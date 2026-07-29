@@ -243,8 +243,8 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
       source: "platform_email_providers",
       detail: "Platformbrede e-mailtransportconfiguratie voor uitnodigingen, notificaties en systeemmails met encrypted secrets.",
       nextAction: systemMailConfigured
-        ? `Standaard tenantafzenders blijven ${smtp.defaultTenantFromPattern}; SendGrid volgt als aparte koppeling.`
-        : "Configureer Resend API of SMTP voordat uitnodigingen en meldingen live gaan.",
+        ? "Verstuur na provider- of DNS-wijzigingen altijd een echte testmail."
+        : "Configureer bij voorkeur SendGrid API, of gebruik Resend API/SMTP als fallback.",
     },
     {
       id: "default-branding",
@@ -358,7 +358,7 @@ export async function updatePlatformSmtpSettings(formData: FormData): Promise<Ac
 export async function updatePlatformEmailProviderSettings(formData: FormData): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const providerTypeRaw = formValue(formData, "providerType");
-  const providerType = providerTypeRaw === "smtp" ? "smtp" : providerTypeRaw === "resend_api" ? "resend_api" : null;
+  const providerType = providerTypeRaw === "sendgrid_api" || providerTypeRaw === "resend_api" || providerTypeRaw === "smtp" ? providerTypeRaw : null;
   if (!providerType) return { success: false, message: "Kies een geldige e-mailprovider." };
 
   const smtpPortRaw = formValue(formData, "smtpPort");
@@ -379,6 +379,9 @@ export async function updatePlatformEmailProviderSettings(formData: FormData): P
     fromEmail,
     fromName: formValue(formData, "fromName") || "Fieldgrid",
     replyToEmail,
+    sendgridApiKey: nullableFormValue(formData, "sendgridApiKey"),
+    sendgridApiRegion: formValue(formData, "sendgridApiRegion") === "eu" ? "eu" : "global",
+    clearSendGridApiKey: formCheckbox(formData, "clearSendGridApiKey"),
     resendApiKey: nullableFormValue(formData, "resendApiKey"),
     sendingDomain: nullableFormValue(formData, "sendingDomain"),
     smtpHost: nullableFormValue(formData, "smtpHost"),
@@ -402,7 +405,13 @@ export async function updatePlatformEmailProviderSettings(formData: FormData): P
       active: formCheckbox(formData, "isActive"),
       fromEmail,
       replyToEmail,
-      secretChanged: Boolean(nullableFormValue(formData, "resendApiKey") || nullableFormValue(formData, "smtpPassword") || formCheckbox(formData, "clearSmtpPassword")),
+      secretChanged: Boolean(
+        nullableFormValue(formData, "sendgridApiKey") ||
+        formCheckbox(formData, "clearSendGridApiKey") ||
+        nullableFormValue(formData, "resendApiKey") ||
+        nullableFormValue(formData, "smtpPassword") ||
+        formCheckbox(formData, "clearSmtpPassword"),
+      ),
     },
   });
 
