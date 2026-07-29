@@ -17,7 +17,6 @@ import {
   notificationEventSettingsTable,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
-  resolveCredentialRecoveryOrigin,
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
@@ -45,11 +44,7 @@ import { hasPermission, requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
 import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
-import {
-  backofficeUrl,
-  buildPasswordResetCodeEmail,
-  sendEmailWithResult,
-} from "@/lib/email";
+import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import {
   decryptPlatformEmailConfig,
   encryptPlatformEmailConfig,
@@ -60,6 +55,7 @@ import {
 import type { ActionResult } from "./customers";
 import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
+import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
 
 export type { ActionResult };
 
@@ -2016,24 +2012,24 @@ export async function sendUserPasswordReset(
   }
 
   const email = targetUser.user.email;
-  const configuredOrigin = new URL(backofficeUrl()).origin;
-  const allowedOrigins = (
-    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
-  )
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const resetUrl = `${await tenantApplicationOrigin(tenantId)}/admin/wachtwoord-vergeten`;
+  const recoveryContext = await resolveBackofficeRecoveryContext(resetUrl);
+  if (
+    recoveryContext.surface !== "tenant-backoffice" ||
+    recoveryContext.tenantId !== tenantId
+  ) {
+    return {
+      success: false,
+      message: "Het hersteladres hoort niet bij deze tenant.",
+    };
+  }
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "tenant-backoffice",
     purpose: "password-reset",
     tenantId,
     accountIdentifier: email,
     subjectUserId: userId,
-    redirectOrigin: resolveCredentialRecoveryOrigin({
-      configuredOrigin,
-      allowedOrigins,
-      allowHttpLocalhost: process.env.NODE_ENV !== "production",
-    }),
+    redirectOrigin: recoveryContext.origin,
     actorUserId: user.id,
     networkSignal: `actor:${user.id}`,
     clientSignal: "backoffice-user-reset",
@@ -2056,7 +2052,7 @@ export async function sendUserPasswordReset(
         email,
     ),
     portalName: "Tenant backoffice",
-    resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
+    resetUrl,
     code: challenge.code,
   });
   const sent = await sendEmailWithResult({

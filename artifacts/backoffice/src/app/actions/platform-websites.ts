@@ -4,7 +4,10 @@ import {
   activatePlatformWebsiteDeployment,
   approvePlatformWebsiteDeployment,
   checkPlatformWebsiteDeploymentHealth,
+  createInitialWebsiteSettings,
   getPlatformWebsiteDelivery,
+  getWebsiteAdminOverview,
+  initializeManagedWebsite,
   registerPlatformWebsiteDeployment,
   rollbackPlatformWebsiteDelivery,
 } from "@workspace/db";
@@ -37,6 +40,56 @@ function revalidateTenant(tenantId: string): void {
 export async function getPlatformWebsiteDeliveryAction(tenantId: string) {
   await requirePlatformAdmin();
   return getPlatformWebsiteDelivery(tenantId);
+}
+
+export type PlatformWebsiteInitializationResult = {
+  success: boolean;
+  message: string;
+};
+
+export async function initializePlatformManagedWebsiteAction(
+  formData: FormData,
+): Promise<PlatformWebsiteInitializationResult> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const tenantId = required(formData, "tenantId");
+    const current = await getWebsiteAdminOverview(tenantId);
+
+    if (current.site) {
+      revalidateTenant(tenantId);
+      return {
+        success: true,
+        message: "De managed website was al geïnitialiseerd.",
+      };
+    }
+
+    try {
+      await initializeManagedWebsite({
+        tenantId,
+        actorUserId: actor.userId,
+        templateKey: "trust_conversion",
+        settings: createInitialWebsiteSettings(current.tenantName),
+      });
+    } catch (error) {
+      const afterFailure = await getWebsiteAdminOverview(tenantId);
+      if (!afterFailure.site) throw error;
+    }
+
+    revalidateTenant(tenantId);
+    return {
+      success: true,
+      message:
+        "De managed website is als concept aangemaakt. Er is niets gepubliceerd.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "De managed website kon niet worden geïnitialiseerd.",
+    };
+  }
 }
 
 export async function registerPlatformWebsiteDeploymentAction(

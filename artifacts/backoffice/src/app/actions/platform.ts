@@ -11,7 +11,6 @@ import {
   platformUsersTable,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
-  resolveCredentialRecoveryOrigin,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
   tenantsTable,
@@ -19,7 +18,19 @@ import {
   moduleForPermissionKey,
   validateSupportBreakGlassGrant,
 } from "@workspace/db";
-import { and, desc, eq, gt, gte, inArray, isNull, lte, ne, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -43,6 +54,7 @@ import {
   BACKOFFICE_BASE_PATH,
   backofficeRedirectPath,
 } from "@/lib/backoffice-paths";
+import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
 
 export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
@@ -91,9 +103,15 @@ export type SupportAccessAuditLogRow = {
   createdAt: string;
 };
 
-export type PlatformSecurityEventCategory = "support" | "download" | "denial" | "platform";
+export type PlatformSecurityEventCategory =
+  | "support"
+  | "download"
+  | "denial"
+  | "platform";
 export type PlatformSecurityEventScope = "support" | "tenant" | "platform";
-export type PlatformSecurityEventSource = "support_access_audit_log" | "audit_log";
+export type PlatformSecurityEventSource =
+  | "support_access_audit_log"
+  | "audit_log";
 export type PlatformSecuritySeverity = "info" | "warning" | "critical";
 export type PlatformSecurityDenialType =
   | "direct_id_denial"
@@ -262,15 +280,31 @@ async function validatePlatformUserManagement(input: {
   const { actor, target, nextRole, nextStatus } = input;
 
   if (actor.role === "support") {
-    return { success: false, message: "Support kan platformgebruikers niet beheren." };
+    return {
+      success: false,
+      message: "Support kan platformgebruikers niet beheren.",
+    };
   }
 
-  if (actor.role !== "owner" && (nextRole === "owner" || target?.role === "owner")) {
-    return { success: false, message: "Alleen owners kunnen owner-rollen aanmaken of wijzigen." };
+  if (
+    actor.role !== "owner" &&
+    (nextRole === "owner" || target?.role === "owner")
+  ) {
+    return {
+      success: false,
+      message: "Alleen owners kunnen owner-rollen aanmaken of wijzigen.",
+    };
   }
 
-  if (target?.userId === actor.userId && (target.role !== nextRole || target.status !== nextStatus)) {
-    return { success: false, message: "U kunt uw eigen platformrol of status niet via deze pagina wijzigen." };
+  if (
+    target?.userId === actor.userId &&
+    (target.role !== nextRole || target.status !== nextStatus)
+  ) {
+    return {
+      success: false,
+      message:
+        "U kunt uw eigen platformrol of status niet via deze pagina wijzigen.",
+    };
   }
 
   const removesActiveOwner =
@@ -278,18 +312,27 @@ async function validatePlatformUserManagement(input: {
     target.status === "active" &&
     (nextRole !== "owner" || nextStatus !== "active");
   if (removesActiveOwner && !(await hasAnotherActiveOwner(target.id))) {
-    return { success: false, message: "Er moet altijd minimaal een actieve platform-owner overblijven." };
+    return {
+      success: false,
+      message:
+        "Er moet altijd minimaal een actieve platform-owner overblijven.",
+    };
   }
 
   return { success: true };
 }
 
-async function platformAuthUsersById(userIds: string[]): Promise<Map<string, PlatformAuthUserSnapshot>> {
+async function platformAuthUsersById(
+  userIds: string[],
+): Promise<Map<string, PlatformAuthUserSnapshot>> {
   if (userIds.length === 0) return new Map();
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const { data, error } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
     if (error) return new Map();
 
     const requestedIds = new Set(userIds);
@@ -335,7 +378,10 @@ function supportGrantStatusFromDates(input: {
 }
 
 function supportGrantTtlMinutes(startsAt: Date, expiresAt: Date): number {
-  return Math.max(0, Math.ceil((expiresAt.getTime() - startsAt.getTime()) / 60000));
+  return Math.max(
+    0,
+    Math.ceil((expiresAt.getTime() - startsAt.getTime()) / 60000),
+  );
 }
 
 function mapSupportGrantRow(row: {
@@ -380,61 +426,125 @@ function securityEventText(event: PlatformSecurityEventTextSource): string {
   return `${event.source} ${event.action} ${event.resource ?? ""} ${event.resourceId ?? ""} ${JSON.stringify(event.metadata ?? {})}`.toLowerCase();
 }
 
-function isDownloadSecurityEvent(event: PlatformSecurityEventTextSource): boolean {
+function isDownloadSecurityEvent(
+  event: PlatformSecurityEventTextSource,
+): boolean {
   const text = securityEventText(event);
-  return ["download", "signed_url", "signed-url", "pdf"].some((marker) => text.includes(marker));
+  return ["download", "signed_url", "signed-url", "pdf"].some((marker) =>
+    text.includes(marker),
+  );
 }
 
-function platformSecurityDenialType(event: PlatformSecurityEventTextSource): PlatformSecurityDenialType | null {
+function platformSecurityDenialType(
+  event: PlatformSecurityEventTextSource,
+): PlatformSecurityDenialType | null {
   const text = securityEventText(event);
 
-  if (["direct_id", "direct-id", "direct id", "id_guess", "id-guess"].some((marker) => text.includes(marker))) {
+  if (
+    ["direct_id", "direct-id", "direct id", "id_guess", "id-guess"].some(
+      (marker) => text.includes(marker),
+    )
+  ) {
     return "direct_id_denial";
   }
-  if (["module_denied", "module-denied", "module_denial", "module-denial", "module toegang geweigerd"].some((marker) => text.includes(marker))) {
+  if (
+    [
+      "module_denied",
+      "module-denied",
+      "module_denial",
+      "module-denial",
+      "module toegang geweigerd",
+    ].some((marker) => text.includes(marker))
+  ) {
     return "module_denial";
   }
-  if (["storage_denied", "storage-denied", "storage_denial", "storage-denial", "path_guess", "path-guess", "storage path"].some((marker) => text.includes(marker))) {
+  if (
+    [
+      "storage_denied",
+      "storage-denied",
+      "storage_denial",
+      "storage-denial",
+      "path_guess",
+      "path-guess",
+      "storage path",
+    ].some((marker) => text.includes(marker))
+  ) {
     return "storage_denial";
   }
-  if (["tenant_mismatch", "tenant-mismatch", "wrong_tenant", "wrong-tenant", "cross-tenant", "cross_tenant"].some((marker) => text.includes(marker))) {
+  if (
+    [
+      "tenant_mismatch",
+      "tenant-mismatch",
+      "wrong_tenant",
+      "wrong-tenant",
+      "cross-tenant",
+      "cross_tenant",
+    ].some((marker) => text.includes(marker))
+  ) {
     return "tenant_mismatch";
   }
-  if (["platform_access_denied", "platform-access-denied", "platform access denied", "platformtoegang geweigerd"].some((marker) => text.includes(marker))) {
+  if (
+    [
+      "platform_access_denied",
+      "platform-access-denied",
+      "platform access denied",
+      "platformtoegang geweigerd",
+    ].some((marker) => text.includes(marker))
+  ) {
     return "platform_access_denial";
   }
-  if ([
-    "denied",
-    "denial",
-    "deny",
-    "geweigerd",
-    "forbidden",
-    "expired",
-  ].some((marker) => text.includes(marker))) {
+  if (
+    ["denied", "denial", "deny", "geweigerd", "forbidden", "expired"].some(
+      (marker) => text.includes(marker),
+    )
+  ) {
     return "other_denial";
   }
   return null;
 }
 
-function isDenialSecurityEvent(event: PlatformSecurityEventTextSource): boolean {
+function isDenialSecurityEvent(
+  event: PlatformSecurityEventTextSource,
+): boolean {
   return platformSecurityDenialType(event) !== null;
 }
 
-function isPlatformSecurityEvent(event: PlatformSecurityEventTextSource): boolean {
+function isPlatformSecurityEvent(
+  event: PlatformSecurityEventTextSource,
+): boolean {
   const text = securityEventText(event);
   return (
     event.scope === "platform" ||
     event.action.startsWith("grant_") ||
-    ["platform", "tenant", "module", "sector", "plan", "support_access_grants"].some((marker) => text.includes(marker))
+    [
+      "platform",
+      "tenant",
+      "module",
+      "sector",
+      "plan",
+      "support_access_grants",
+    ].some((marker) => text.includes(marker))
   );
 }
 
-function isSupportSecurityEvent(event: PlatformSecurityEventTextSource): boolean {
+function isSupportSecurityEvent(
+  event: PlatformSecurityEventTextSource,
+): boolean {
   const text = securityEventText(event);
-  return event.scope === "support" || ["support", "grant_", "support_access_grants"].some((marker) => text.includes(marker));
+  return (
+    event.scope === "support" ||
+    ["support", "grant_", "support_access_grants"].some((marker) =>
+      text.includes(marker),
+    )
+  );
 }
 
-function securityEventCategories(event: Omit<PlatformSecurityEventRow, "categories" | "severity" | "denialType">): PlatformSecurityEventCategory[] {
+function securityEventCategories(
+  event: Omit<
+    PlatformSecurityEventRow,
+    "categories" | "severity" | "denialType"
+  >,
+): PlatformSecurityEventCategory[] {
   const categories: PlatformSecurityEventCategory[] = [];
 
   if (isSupportSecurityEvent(event)) categories.push("support");
@@ -448,7 +558,9 @@ function securityEventCategories(event: Omit<PlatformSecurityEventRow, "categori
   return [];
 }
 
-function securityEventSeverity(event: PlatformSecurityEventTextSource): PlatformSecuritySeverity {
+function securityEventSeverity(
+  event: PlatformSecurityEventTextSource,
+): PlatformSecuritySeverity {
   const denialType = platformSecurityDenialType(event);
   if (
     denialType === "direct_id_denial" ||
@@ -458,8 +570,14 @@ function securityEventSeverity(event: PlatformSecurityEventTextSource): Platform
   ) {
     return "critical";
   }
-  if (denialType || event.action === "grant_create_denied" || event.action === "grant_revoked") return "warning";
-  if (["grant_created", "support_mode_entered"].includes(event.action)) return "warning";
+  if (
+    denialType ||
+    event.action === "grant_create_denied" ||
+    event.action === "grant_revoked"
+  )
+    return "warning";
+  if (["grant_created", "support_mode_entered"].includes(event.action))
+    return "warning";
   return "info";
 }
 
@@ -472,14 +590,18 @@ function parseDateFilter(value: string | undefined): Date | null {
 function normalizeSecurityFilters(
   filters: PlatformSecurityDashboardFilters = {},
 ): NormalizedPlatformSecurityDashboardFilters {
-  const eventType = ["support", "download", "denial", "platform"].includes(filters.eventType ?? "")
-    ? filters.eventType as PlatformSecurityEventCategory
+  const eventType = ["support", "download", "denial", "platform"].includes(
+    filters.eventType ?? "",
+  )
+    ? (filters.eventType as PlatformSecurityEventCategory)
     : "all";
   const scope = ["support", "tenant", "platform"].includes(filters.scope ?? "")
-    ? filters.scope as PlatformSecurityEventScope
+    ? (filters.scope as PlatformSecurityEventScope)
     : "all";
-  const severity = ["info", "warning", "critical"].includes(filters.severity ?? "")
-    ? filters.severity as PlatformSecuritySeverity
+  const severity = ["info", "warning", "critical"].includes(
+    filters.severity ?? "",
+  )
+    ? (filters.severity as PlatformSecuritySeverity)
     : "all";
   const limit = Number.isFinite(filters.limit ?? NaN)
     ? Math.max(25, Math.min(500, Math.round(filters.limit!)))
@@ -506,8 +628,13 @@ function matchesPlatformSecurityFilter(
   filters: ReturnType<typeof normalizeSecurityFilters>,
 ): boolean {
   if (filters.scope !== "all" && event.scope !== filters.scope) return false;
-  if (filters.eventType !== "all" && !event.categories.includes(filters.eventType)) return false;
-  if (filters.severity !== "all" && event.severity !== filters.severity) return false;
+  if (
+    filters.eventType !== "all" &&
+    !event.categories.includes(filters.eventType)
+  )
+    return false;
+  if (filters.severity !== "all" && event.severity !== filters.severity)
+    return false;
   return true;
 }
 
@@ -586,11 +713,15 @@ export async function upsertPlatformUser(input: {
   return { success: true, data: { id: row.id } };
 }
 
-export async function invitePlatformUserFromForm(formData: FormData): Promise<ActionResult<{ id: string }>> {
+export async function invitePlatformUserFromForm(
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
   const actor = await requirePlatformAdmin();
   const email = normalizeEmail(formValue(formData, "email"));
   const role = normalizePlatformRole(formValue(formData, "role"));
-  const status = normalizePlatformStatus(formValue(formData, "status") || "active");
+  const status = normalizePlatformStatus(
+    formValue(formData, "status") || "active",
+  );
 
   if (!email || !isValidEmail(email)) {
     return { success: false, message: "Vul een geldig e-mailadres in." };
@@ -620,12 +751,18 @@ export async function invitePlatformUserFromForm(formData: FormData): Promise<Ac
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Auth-beheer kon niet worden geladen.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Auth-beheer kon niet worden geladen.",
     };
   }
 
   if (!userId) {
-    return { success: false, message: "Auth-beheer gaf geen gebruiker terug voor deze uitnodiging." };
+    return {
+      success: false,
+      message: "Auth-beheer gaf geen gebruiker terug voor deze uitnodiging.",
+    };
   }
 
   const [row] = await db
@@ -654,7 +791,9 @@ export async function invitePlatformUserFromForm(formData: FormData): Promise<Ac
   return { success: true, data: { id: row.id } };
 }
 
-export async function updatePlatformUserFromForm(formData: FormData): Promise<ActionResult> {
+export async function updatePlatformUserFromForm(
+  formData: FormData,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const platformUserId = formValue(formData, "platformUserId");
   const role = normalizePlatformRole(formValue(formData, "role"));
@@ -705,9 +844,12 @@ export async function updatePlatformUserFromForm(formData: FormData): Promise<Ac
   return { success: true };
 }
 
-export async function sendPlatformUserPasswordResetFromForm(formData: FormData): Promise<void> {
+export async function sendPlatformUserPasswordResetFromForm(
+  formData: FormData,
+): Promise<void> {
   const actor = await requirePlatformAdmin();
-  if (actor.role === "support") throw new Error("Support kan geen platformgebruikers resetten.");
+  if (actor.role === "support")
+    throw new Error("Support kan geen platformgebruikers resetten.");
 
   const platformUserId = formValue(formData, "platformUserId");
   if (!platformUserId) throw new Error("Platformgebruiker ontbreekt.");
@@ -721,33 +863,41 @@ export async function sendPlatformUserPasswordResetFromForm(formData: FormData):
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.getUserById(target.userId);
-  if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+  if (error || !data.user?.email)
+    throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
 
   const email = data.user.email;
   const resetUrl = `${platformAdminUrl()}/wachtwoord-vergeten`;
-  const configuredOrigin = new URL(resetUrl).origin;
-  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
-    .split(",").map((value) => value.trim()).filter(Boolean);
+  const recoveryContext = await resolveBackofficeRecoveryContext(resetUrl);
+  if (recoveryContext.surface !== "platform-admin") {
+    throw new Error("Platformherstel verwijst niet naar het platformdomein.");
+  }
   const challenge = await issueCredentialRecoveryChallenge({
     surface: "platform-admin",
     purpose: "password-reset",
     tenantId: null,
     accountIdentifier: email,
     subjectUserId: target.userId,
-    redirectOrigin: resolveCredentialRecoveryOrigin({
-      configuredOrigin,
-      allowedOrigins,
-      allowHttpLocalhost: process.env.NODE_ENV !== "production",
-    }),
+    redirectOrigin: recoveryContext.origin,
     actorUserId: actor.userId,
     networkSignal: `actor:${actor.userId}`,
     clientSignal: "platform-user-reset",
   });
-  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
-    throw new Error("Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.");
+  if (
+    challenge.status !== "issued" ||
+    !challenge.challengeId ||
+    !challenge.code
+  ) {
+    throw new Error(
+      "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+    );
   }
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
+    recipientName: String(
+      data.user.user_metadata?.["full_name"] ??
+        data.user.user_metadata?.["name"] ??
+        email,
+    ),
     portalName: "Fieldgrid platformbeheer",
     resetUrl,
     code: challenge.code,
@@ -772,7 +922,9 @@ export async function sendPlatformUserPasswordResetFromForm(formData: FormData):
   revalidatePlatformUsers();
 }
 
-export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]> {
+export async function listSupportAccessGrants(): Promise<
+  SupportAccessGrantRow[]
+> {
   await requirePlatformAdmin();
 
   const rows = await db
@@ -790,7 +942,10 @@ export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]
       createdAt: supportAccessGrantsTable.createdAt,
     })
     .from(supportAccessGrantsTable)
-    .innerJoin(tenantsTable, eq(supportAccessGrantsTable.tenantId, tenantsTable.id))
+    .innerJoin(
+      tenantsTable,
+      eq(supportAccessGrantsTable.tenantId, tenantsTable.id),
+    )
     .orderBy(desc(supportAccessGrantsTable.createdAt));
 
   return rows.map(mapSupportGrantRow);
@@ -812,35 +967,73 @@ export async function createSupportAccessGrant(input: {
   const scope = input.scope?.trim() ?? "";
   const startsAt = input.startsAt ? new Date(input.startsAt) : new Date();
   const expiresAt = new Date(input.expiresAt);
-  const permissionKeys = Array.from(new Set(input.permissions ?? []))
-    .filter((permission) => FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.includes(
-      permission as (typeof FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS)[number],
-    ));
-  const moduleKeys = Array.from(new Set(permissionKeys.map(moduleForPermissionKey).filter(
-    (moduleKey): moduleKey is NonNullable<typeof moduleKey> => moduleKey !== null,
-  )));
+  const permissionKeys = Array.from(new Set(input.permissions ?? [])).filter(
+    (permission) =>
+      FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.includes(
+        permission as (typeof FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS)[number],
+      ),
+  );
+  const moduleKeys = Array.from(
+    new Set(
+      permissionKeys
+        .map(moduleForPermissionKey)
+        .filter(
+          (moduleKey): moduleKey is NonNullable<typeof moduleKey> =>
+            moduleKey !== null,
+        ),
+    ),
+  );
 
   if (!tenantId || !platformUserId) {
-    return { success: false, message: "Tenant en platformgebruiker zijn verplicht." };
+    return {
+      success: false,
+      message: "Tenant en platformgebruiker zijn verplicht.",
+    };
   }
 
-  if (permissionKeys.length === 0 || permissionKeys.length !== new Set(input.permissions ?? []).size) {
-    return { success: false, message: "Kies minimaal één geldige, beperkte supportpermissie." };
+  if (
+    permissionKeys.length === 0 ||
+    permissionKeys.length !== new Set(input.permissions ?? []).size
+  ) {
+    return {
+      success: false,
+      message: "Kies minimaal één geldige, beperkte supportpermissie.",
+    };
   }
 
   const [[tenant], [targetPlatformUser]] = await Promise.all([
-    db.select({ id: tenantsTable.id }).from(tenantsTable).where(and(
-      eq(tenantsTable.id, tenantId),
-      eq(tenantsTable.isActive, true),
-      inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
-    )).limit(1),
-    db.select({ role: platformUsersTable.role }).from(platformUsersTable).where(and(
-      eq(platformUsersTable.id, platformUserId),
-      eq(platformUsersTable.status, "active"),
-    )).limit(1),
+    db
+      .select({ id: tenantsTable.id })
+      .from(tenantsTable)
+      .where(
+        and(
+          eq(tenantsTable.id, tenantId),
+          eq(tenantsTable.isActive, true),
+          inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+        ),
+      )
+      .limit(1),
+    db
+      .select({ role: platformUsersTable.role })
+      .from(platformUsersTable)
+      .where(
+        and(
+          eq(platformUsersTable.id, platformUserId),
+          eq(platformUsersTable.status, "active"),
+        ),
+      )
+      .limit(1),
   ]);
-  if (!tenant || !targetPlatformUser || !isPlatformSupportRole(targetPlatformUser.role)) {
-    return { success: false, message: "Alleen een actieve supportgebruiker kan toegang krijgen tot een actieve tenant." };
+  if (
+    !tenant ||
+    !targetPlatformUser ||
+    !isPlatformSupportRole(targetPlatformUser.role)
+  ) {
+    return {
+      success: false,
+      message:
+        "Alleen een actieve supportgebruiker kan toegang krijgen tot een actieve tenant.",
+    };
   }
 
   if (scope !== "tenant") {
@@ -856,10 +1049,17 @@ export async function createSupportAccessGrant(input: {
         grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
       },
     });
-    return { success: false, message: "Scope is verplicht voor break-glass supporttoegang." };
+    return {
+      success: false,
+      message: "Scope is verplicht voor break-glass supporttoegang.",
+    };
   }
 
-  const breakGlassValidation = validateSupportBreakGlassGrant({ reason, startsAt, expiresAt });
+  const breakGlassValidation = validateSupportBreakGlassGrant({
+    reason,
+    startsAt,
+    expiresAt,
+  });
   if (!breakGlassValidation.success) {
     await writeSupportAccessAuditLog({
       tenantId,
@@ -917,31 +1117,52 @@ export async function createSupportAccessGrant(input: {
   return { success: true, data: { id: row.id } };
 }
 
-export async function createSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+export async function createSupportAccessGrantFromForm(
+  formData: FormData,
+): Promise<ActionResult> {
   const tenantId = formValue(formData, "tenantId");
   const platformUserId = formValue(formData, "platformUserId");
   const reason = formValue(formData, "reason");
-  const scope = formValue(formData, "scope") || formValue(formData, "supportScope");
+  const scope =
+    formValue(formData, "scope") || formValue(formData, "supportScope");
   const startsAt = formValue(formData, "startsAt") || null;
   const expiresAt = formValue(formData, "expiresAt");
-  const permissions = formData.getAll("permissions").map(String).map((value) => value.trim()).filter(Boolean);
+  const permissions = formData
+    .getAll("permissions")
+    .map(String)
+    .map((value) => value.trim())
+    .filter(Boolean);
 
-  const result = await createSupportAccessGrant({ tenantId, platformUserId, reason, scope, startsAt, expiresAt, permissions });
+  const result = await createSupportAccessGrant({
+    tenantId,
+    platformUserId,
+    reason,
+    scope,
+    startsAt,
+    expiresAt,
+    permissions,
+  });
   if (!result.success) return result;
 
   revalidatePlatformTenant(tenantId);
   return { success: true };
 }
 
-export async function revokeSupportAccessGrant(grantId: string): Promise<ActionResult> {
+export async function revokeSupportAccessGrant(
+  grantId: string,
+): Promise<ActionResult> {
   const actor = await requirePlatformAdmin();
   const [grant] = await db
-    .select({ id: supportAccessGrantsTable.id, tenantId: supportAccessGrantsTable.tenantId })
+    .select({
+      id: supportAccessGrantsTable.id,
+      tenantId: supportAccessGrantsTable.tenantId,
+    })
     .from(supportAccessGrantsTable)
     .where(eq(supportAccessGrantsTable.id, grantId))
     .limit(1);
 
-  if (!grant) return { success: false, message: "Supporttoegang niet gevonden." };
+  if (!grant)
+    return { success: false, message: "Supporttoegang niet gevonden." };
 
   await db
     .update(supportAccessGrantsTable)
@@ -953,7 +1174,10 @@ export async function revokeSupportAccessGrant(grantId: string): Promise<ActionR
     action: "grant_revoked",
     resource: "support_access_grants",
     resourceId: grant.id,
-    metadata: { grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE, scope: "tenant" },
+    metadata: {
+      grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
+      scope: "tenant",
+    },
   });
 
   revalidatePath("/platform");
@@ -962,12 +1186,16 @@ export async function revokeSupportAccessGrant(grantId: string): Promise<ActionR
   return { success: true };
 }
 
-export async function revokeSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+export async function revokeSupportAccessGrantFromForm(
+  formData: FormData,
+): Promise<ActionResult> {
   const grantId = formValue(formData, "grantId");
   return revokeSupportAccessGrant(grantId);
 }
 
-export async function assertSupportAccessForTenant(tenantId: string): Promise<ActionResult> {
+export async function assertSupportAccessForTenant(
+  tenantId: string,
+): Promise<ActionResult> {
   await requireSupportAccess(tenantId);
   await writeSupportAccessAuditLog({
     tenantId,
@@ -1006,7 +1234,10 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
       expiresAt: grant.expiresAt.toISOString(),
       grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
       scope: "tenant",
-      ttlSeconds: Math.max(0, Math.floor((grant.expiresAt.getTime() - Date.now()) / 1000)),
+      ttlSeconds: Math.max(
+        0,
+        Math.floor((grant.expiresAt.getTime() - Date.now()) / 1000),
+      ),
     },
   });
 
@@ -1040,10 +1271,14 @@ export async function exitSupportMode(): Promise<void> {
   revalidatePath("/");
 }
 
-export async function listSupportAccessAuditLog(tenantId?: string): Promise<SupportAccessAuditLogRow[]> {
+export async function listSupportAccessAuditLog(
+  tenantId?: string,
+): Promise<SupportAccessAuditLogRow[]> {
   await requirePlatformAdmin();
 
-  const where = tenantId ? eq(supportAccessAuditLogTable.tenantId, tenantId) : undefined;
+  const where = tenantId
+    ? eq(supportAccessAuditLogTable.tenantId, tenantId)
+    : undefined;
   const rows = await db
     .select()
     .from(supportAccessAuditLogTable)
@@ -1075,18 +1310,32 @@ export async function listPlatformSecurityDashboard(
   const grantConditions: SQL[] = [];
 
   if (normalizedFilters.tenantId) {
-    supportConditions.push(eq(supportAccessAuditLogTable.tenantId, normalizedFilters.tenantId));
-    auditConditions.push(eq(auditLogTable.tenantId, normalizedFilters.tenantId));
-    grantConditions.push(eq(supportAccessGrantsTable.tenantId, normalizedFilters.tenantId));
+    supportConditions.push(
+      eq(supportAccessAuditLogTable.tenantId, normalizedFilters.tenantId),
+    );
+    auditConditions.push(
+      eq(auditLogTable.tenantId, normalizedFilters.tenantId),
+    );
+    grantConditions.push(
+      eq(supportAccessGrantsTable.tenantId, normalizedFilters.tenantId),
+    );
   }
   if (normalizedFilters.actorId) {
-    supportConditions.push(eq(supportAccessAuditLogTable.platformUserId, normalizedFilters.actorId));
+    supportConditions.push(
+      eq(supportAccessAuditLogTable.platformUserId, normalizedFilters.actorId),
+    );
     auditConditions.push(eq(auditLogTable.userId, normalizedFilters.actorId));
-    grantConditions.push(eq(supportAccessGrantsTable.platformUserId, normalizedFilters.actorId));
+    grantConditions.push(
+      eq(supportAccessGrantsTable.platformUserId, normalizedFilters.actorId),
+    );
   }
   if (normalizedFilters.resource) {
-    supportConditions.push(eq(supportAccessAuditLogTable.resource, normalizedFilters.resource));
-    auditConditions.push(eq(auditLogTable.resource, normalizedFilters.resource));
+    supportConditions.push(
+      eq(supportAccessAuditLogTable.resource, normalizedFilters.resource),
+    );
+    auditConditions.push(
+      eq(auditLogTable.resource, normalizedFilters.resource),
+    );
   }
   if (normalizedFilters.dateFrom) {
     const dateFrom = new Date(normalizedFilters.dateFrom);
@@ -1101,8 +1350,12 @@ export async function listPlatformSecurityDashboard(
     grantConditions.push(lte(supportAccessGrantsTable.createdAt, dateTo));
   }
   if (normalizedFilters.supportGrantId) {
-    supportConditions.push(eq(supportAccessAuditLogTable.grantId, normalizedFilters.supportGrantId));
-    grantConditions.push(eq(supportAccessGrantsTable.id, normalizedFilters.supportGrantId));
+    supportConditions.push(
+      eq(supportAccessAuditLogTable.grantId, normalizedFilters.supportGrantId),
+    );
+    grantConditions.push(
+      eq(supportAccessGrantsTable.id, normalizedFilters.supportGrantId),
+    );
     auditConditions.push(sql`false`);
   }
 
@@ -1121,8 +1374,13 @@ export async function listPlatformSecurityDashboard(
         createdAt: supportAccessAuditLogTable.createdAt,
       })
       .from(supportAccessAuditLogTable)
-      .innerJoin(tenantsTable, eq(supportAccessAuditLogTable.tenantId, tenantsTable.id))
-      .where(supportConditions.length > 0 ? and(...supportConditions) : undefined)
+      .innerJoin(
+        tenantsTable,
+        eq(supportAccessAuditLogTable.tenantId, tenantsTable.id),
+      )
+      .where(
+        supportConditions.length > 0 ? and(...supportConditions) : undefined,
+      )
       .orderBy(desc(supportAccessAuditLogTable.createdAt))
       .limit(normalizedFilters.limit),
     db
@@ -1161,14 +1419,20 @@ export async function listPlatformSecurityDashboard(
         createdAt: supportAccessGrantsTable.createdAt,
       })
       .from(supportAccessGrantsTable)
-      .innerJoin(tenantsTable, eq(supportAccessGrantsTable.tenantId, tenantsTable.id))
+      .innerJoin(
+        tenantsTable,
+        eq(supportAccessGrantsTable.tenantId, tenantsTable.id),
+      )
       .where(grantConditions.length > 0 ? and(...grantConditions) : undefined)
       .orderBy(desc(supportAccessGrantsTable.createdAt))
       .limit(200),
   ]);
 
   const supportEvents = supportRows.map((row): PlatformSecurityEventRow => {
-    const eventWithoutCategories: Omit<PlatformSecurityEventRow, "categories" | "severity" | "denialType"> = {
+    const eventWithoutCategories: Omit<
+      PlatformSecurityEventRow,
+      "categories" | "severity" | "denialType"
+    > = {
       id: row.id,
       source: "support_access_audit_log",
       scope: "support",
@@ -1191,7 +1455,10 @@ export async function listPlatformSecurityDashboard(
   });
 
   const auditEvents = auditRows.map((row): PlatformSecurityEventRow => {
-    const eventWithoutCategories: Omit<PlatformSecurityEventRow, "categories" | "severity" | "denialType"> = {
+    const eventWithoutCategories: Omit<
+      PlatformSecurityEventRow,
+      "categories" | "severity" | "denialType"
+    > = {
       id: row.id,
       source: "audit_log",
       scope: row.tenantId ? "tenant" : "platform",
@@ -1216,22 +1483,33 @@ export async function listPlatformSecurityDashboard(
   const allEvents = [...supportEvents, ...auditEvents];
   const events = allEvents
     .filter((event) => matchesPlatformSecurityFilter(event, normalizedFilters))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
     .slice(0, normalizedFilters.limit);
   const supportGrants = grantRows.map(mapSupportGrantRow);
   const resourceOptions = Array.from(
-    new Set(allEvents.map((event) => event.resource).filter((resource): resource is string => Boolean(resource))),
+    new Set(
+      allEvents
+        .map((event) => event.resource)
+        .filter((resource): resource is string => Boolean(resource)),
+    ),
   )
     .sort((a, b) => a.localeCompare(b, "nl"))
     .map((resource) => ({ value: resource, label: resource }));
-  const severityCounts = events.reduce<Record<PlatformSecuritySeverity, number>>(
+  const severityCounts = events.reduce<
+    Record<PlatformSecuritySeverity, number>
+  >(
     (counts, event) => {
       counts[event.severity] += 1;
       return counts;
     },
     { info: 0, warning: 0, critical: 0 },
   );
-  const denialBreakdown = events.reduce<Record<PlatformSecurityDenialType, number>>(
+  const denialBreakdown = events.reduce<
+    Record<PlatformSecurityDenialType, number>
+  >(
     (counts, event) => {
       if (event.denialType) counts[event.denialType] += 1;
       return counts;
@@ -1282,10 +1560,17 @@ export async function markCurrentPlatformUserSeen(): Promise<void> {
   await db
     .update(platformUsersTable)
     .set({ lastSeenAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(platformUsersTable.id, platformUser.id), eq(platformUsersTable.status, "active")));
+    .where(
+      and(
+        eq(platformUsersTable.id, platformUser.id),
+        eq(platformUsersTable.status, "active"),
+      ),
+    );
 }
 
-export async function listActiveSupportGrantsForTenant(tenantId: string): Promise<SupportAccessGrantRow[]> {
+export async function listActiveSupportGrantsForTenant(
+  tenantId: string,
+): Promise<SupportAccessGrantRow[]> {
   await requirePlatformAdmin();
   const now = new Date();
 
@@ -1304,7 +1589,10 @@ export async function listActiveSupportGrantsForTenant(tenantId: string): Promis
       createdAt: supportAccessGrantsTable.createdAt,
     })
     .from(supportAccessGrantsTable)
-    .innerJoin(tenantsTable, eq(supportAccessGrantsTable.tenantId, tenantsTable.id))
+    .innerJoin(
+      tenantsTable,
+      eq(supportAccessGrantsTable.tenantId, tenantsTable.id),
+    )
     .where(
       and(
         eq(supportAccessGrantsTable.tenantId, tenantId),

@@ -23,7 +23,6 @@ import {
   getTenantPlanSnapshot,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
-  resolveCredentialRecoveryOrigin,
   resolveFieldgridDeploymentEnvironment,
   isPlatformHost,
   isTenantRuntimeActive,
@@ -71,6 +70,7 @@ import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
+import { resolveBackofficeRecoveryContext } from "@/lib/auth/recovery-origin";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = [
@@ -2657,96 +2657,135 @@ export async function deletePlatformTenantAdmin(
 
 export async function sendPlatformTenantAdminPasswordReset(
   formData: FormData,
-): Promise<void> {
-  const actor = await requirePlatformAdmin();
-  const tenantId = actionValue(formData, "tenantId");
-  const userId = actionValue(formData, "userId");
-  if (!tenantId || !userId) throw new Error("Tenantgebruiker ontbreekt.");
+): Promise<ActionResult<{ deliveryStatus: "sent"; expiresAt: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const tenantId = actionValue(formData, "tenantId");
+    const userId = actionValue(formData, "userId");
+    if (!tenantId || !userId) {
+      return { success: false, message: "Tenantgebruiker ontbreekt." };
+    }
 
-  await assertTenantExists(tenantId);
-  const [tenantUser] = await db
-    .select({ id: tenantUsersTable.id })
-    .from(tenantUsersTable)
-    .where(
-      and(
-        eq(tenantUsersTable.tenantId, tenantId),
-        eq(tenantUsersTable.userId, userId),
-      ),
-    )
-    .limit(1);
-  if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+    await assertTenantExists(tenantId);
+    const [tenantUser] = await db
+      .select({ id: tenantUsersTable.id })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .limit(1);
+    if (!tenantUser) {
+      return { success: false, message: "Tenantgebruiker niet gevonden." };
+    }
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error || !data.user?.email)
-    throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(userId);
+    if (error || !data.user?.email) {
+      return {
+        success: false,
+        message: "Auth-gebruiker heeft geen geldig e-mailadres.",
+      };
+    }
 
-  const email = data.user.email;
-  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(
-    /\/admin\/login$/u,
-    "/admin/wachtwoord-vergeten",
-  );
-  const configuredOrigin = new URL(resetUrl).origin;
-  const allowedOrigins = (
-    process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin
-  )
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const challenge = await issueCredentialRecoveryChallenge({
-    surface: "tenant-backoffice",
-    purpose: "password-reset",
-    tenantId,
-    accountIdentifier: email,
-    subjectUserId: userId,
-    redirectOrigin: resolveCredentialRecoveryOrigin({
-      configuredOrigin,
-      allowedOrigins,
-      allowHttpLocalhost: process.env.NODE_ENV !== "production",
-    }),
-    actorUserId: actor.userId,
-    networkSignal: `actor:${actor.userId}`,
-    clientSignal: "platform-tenant-admin-reset",
-  });
-  if (
-    challenge.status !== "issued" ||
-    !challenge.challengeId ||
-    !challenge.code
-  ) {
-    throw new Error(
-      "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+    const email = data.user.email;
+    const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(
+      /\/admin\/login$/u,
+      "/admin/wachtwoord-vergeten",
     );
-  }
-  const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: String(
-      data.user.user_metadata?.["full_name"] ??
-        data.user.user_metadata?.["name"] ??
+    const recoveryContext = await resolveBackofficeRecoveryContext(resetUrl);
+    if (
+      recoveryContext.surface !== "tenant-backoffice" ||
+      recoveryContext.tenantId !== tenantId
+    ) {
+      return {
+        success: false,
+        message:
+          "Het hersteladres hoort niet bij deze tenant of deze omgeving.",
+      };
+    }
+
+    const challenge = await issueCredentialRecoveryChallenge({
+      surface: "tenant-backoffice",
+      purpose: "password-reset",
+      tenantId,
+      accountIdentifier: email,
+      subjectUserId: userId,
+      redirectOrigin: recoveryContext.origin,
+      actorUserId: actor.userId,
+      networkSignal: `actor:${actor.userId}`,
+      clientSignal: "platform-tenant-admin-reset",
+    });
+    if (
+      challenge.status !== "issued" ||
+      !challenge.challengeId ||
+      !challenge.code ||
+      !challenge.expiresAt
+    ) {
+      return {
+        success: false,
+        message:
+          challenge.status === "rate-limited"
+            ? "Er zijn te veel herstelverzoeken gedaan. Probeer het later opnieuw."
+            : "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.",
+      };
+    }
+    const { subject, html } = buildPasswordResetCodeEmail({
+      recipientName: String(
+        data.user.user_metadata?.["full_name"] ??
+          data.user.user_metadata?.["name"] ??
+          email,
+      ),
+      portalName: "Tenant backoffice",
+      resetUrl,
+      code: challenge.code,
+    });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId,
+      purpose: "tenant_backoffice_password_reset",
+    });
+    await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+    if (!sent.success) {
+      return {
+        success: false,
+        message:
+          "Resetmail versturen mislukt. Controleer de actieve e-mailprovider.",
+      };
+    }
+
+    await auditPlatformTenantAction({
+      tenantId,
+      action: "tenant_admin_password_reset_sent",
+      resource: "tenant_users",
+      resourceId: userId,
+      metadata: {
         email,
-    ),
-    portalName: "Tenant backoffice",
-    resetUrl,
-    code: challenge.code,
-  });
-  const sent = await sendEmailWithResult({
-    to: email,
-    subject,
-    html,
-    tenantId,
-    purpose: "tenant_backoffice_password_reset",
-  });
-  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success) throw new Error("Resetmail versturen mislukt.");
+        actorUserId: actor.userId,
+        challengeId: challenge.challengeId,
+      },
+    });
 
-  await auditPlatformTenantAction({
-    tenantId,
-    action: "tenant_admin_password_reset_sent",
-    resource: "tenant_users",
-    resourceId: userId,
-    metadata: { email, actorUserId: actor.userId },
-  });
-
-  revalidatePlatformTenant(tenantId);
-  redirect(backofficeRedirectPath(`/platform/tenants/${tenantId}?tab=users`));
+    revalidatePlatformTenant(tenantId);
+    return {
+      success: true,
+      data: {
+        deliveryStatus: "sent",
+        expiresAt: challenge.expiresAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error("[platform] Tenant admin password reset failed:", error);
+    return {
+      success: false,
+      message:
+        "Resetcode kon niet worden verstuurd. Probeer het opnieuw of controleer de herstelconfiguratie.",
+    };
+  }
 }
 
 export async function updatePlatformTenantOwnerInvite(

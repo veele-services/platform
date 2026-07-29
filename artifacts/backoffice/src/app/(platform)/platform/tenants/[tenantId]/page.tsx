@@ -70,6 +70,7 @@ import {
   approvePlatformWebsiteDeploymentAction,
   checkPlatformWebsiteDeploymentHealthAction,
   getPlatformWebsiteDeliveryAction,
+  initializePlatformManagedWebsiteAction,
   registerPlatformWebsiteDeploymentAction,
   rollbackPlatformWebsiteDeliveryAction,
 } from "@/app/actions/platform-websites";
@@ -79,7 +80,9 @@ import {
   type PlatformTenantDetailTab,
 } from "@/components/platform/PlatformTenantDetailNav";
 import { PlatformLifecycleAction } from "@/components/platform/PlatformLifecycleAction";
+import { PlatformManagedWebsiteInitializer } from "@/components/platform/PlatformManagedWebsiteInitializer";
 import { PlatformSupportAccessPanel } from "@/components/platform/PlatformSupportAccessPanel";
+import { PlatformTenantPasswordResetAction } from "@/components/platform/PlatformTenantPasswordResetAction";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 
 export const metadata = {
@@ -186,9 +189,16 @@ async function deletePlatformTenantAdminFormAction(
 
 async function sendPlatformTenantAdminPasswordResetFormAction(
   formData: FormData,
-): Promise<void> {
+): Promise<Awaited<ReturnType<typeof sendPlatformTenantAdminPasswordReset>>> {
   "use server";
-  await sendPlatformTenantAdminPasswordReset(formData);
+  return sendPlatformTenantAdminPasswordReset(formData);
+}
+
+async function initializePlatformManagedWebsiteFormAction(
+  formData: FormData,
+): Promise<Awaited<ReturnType<typeof initializePlatformManagedWebsiteAction>>> {
+  "use server";
+  return initializePlatformManagedWebsiteAction(formData);
 }
 
 async function updatePlatformTenantOwnerInviteFormAction(
@@ -796,10 +806,18 @@ function WebsiteDeliveryTab({
         title="Website delivery"
         helper="Initialiseer eerst de managed website voor deze tenant."
       >
-        <p className="text-sm text-slate-500">
-          Er bestaat nog geen primaire website-site. Custom deploymentbeheer
-          blijft daarom geblokkeerd.
-        </p>
+        <div className="grid gap-4">
+          <p className="text-sm text-slate-500">
+            Er bestaat nog geen primaire website-site. Custom deploymentbeheer
+            blijft daarom geblokkeerd.
+          </p>
+          <div>
+            <PlatformManagedWebsiteInitializer
+              tenantId={tenantId}
+              action={initializePlatformManagedWebsiteFormAction}
+            />
+          </div>
+        </div>
       </Section>
     );
   }
@@ -2039,16 +2057,11 @@ function UsersTab({
                 </div>
               </form>
               <div className="mt-2 flex flex-wrap justify-end gap-2">
-                <form action={sendPlatformTenantAdminPasswordResetFormAction}>
-                  <input type="hidden" name="tenantId" value={tenant.id} />
-                  <input type="hidden" name="userId" value={user.userId} />
-                  <button
-                    type="submit"
-                    className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
-                  >
-                    Resetcode mailen
-                  </button>
-                </form>
+                <PlatformTenantPasswordResetAction
+                  tenantId={tenant.id}
+                  userId={user.userId}
+                  action={sendPlatformTenantAdminPasswordResetFormAction}
+                />
                 <form action={deletePlatformTenantAdminFormAction}>
                   <input type="hidden" name="tenantId" value={tenant.id} />
                   <input type="hidden" name="userId" value={user.userId} />

@@ -29,6 +29,72 @@ export type {
   WebsiteTemplateKey,
 } from "@workspace/website-core";
 
+export function createInitialWebsiteSettings(
+  tenantName: string,
+): WebsiteSiteSettings {
+  const websiteName = tenantName.trim().slice(0, 160) || "Mijn website";
+  return {
+    schemaVersion: 1,
+    name: websiteName,
+    defaultLocale: "nl-NL",
+    theme: {
+      schemaVersion: 1,
+      colors: {
+        background: "#FFFFFF",
+        foreground: "#081D3A",
+        primary: "#00B7B3",
+        primaryForeground: "#FFFFFF",
+        accent: "#E0FAFB",
+        accentForeground: "#081D3A",
+      },
+      headingFont: "manrope",
+      bodyFont: "inter",
+      radius: "medium",
+      spacing: "comfortable",
+      contentWidth: "standard",
+      buttonStyle: "solid",
+      surfaceStyle: "bordered",
+      logoMediaId: null,
+      faviconMediaId: null,
+    },
+    contact: {
+      companyName: websiteName,
+      email: null,
+      phone: null,
+      street: null,
+      postalCode: null,
+      city: null,
+      countryCode: "NL",
+      openingHours: [],
+    },
+    socialLinks: [],
+    defaultSeo: {
+      title: websiteName.slice(0, 70),
+      description:
+        `${websiteName} — betrouwbare service en duidelijke afspraken.`.slice(
+          0,
+          170,
+        ),
+      canonicalPath: null,
+      socialImageMediaId: null,
+      socialImageUrl: null,
+      indexable: true,
+    },
+    analytics: { provider: "none" },
+    seoSettings: {
+      schemaVersion: 1,
+      structuredData: {
+        enabled: true,
+        organizationType: "organization",
+      },
+      webmasterVerification: {
+        google: null,
+        bing: null,
+      },
+    },
+  };
+}
+
 const commandContextSchema = z
   .object({
     tenantId: z.string().uuid(),
