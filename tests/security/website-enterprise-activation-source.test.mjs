@@ -62,6 +62,42 @@ test("activation evidence is append-only, tenant-scoped and staging-only", () =>
   assert.match(migration, /REVOKE ALL ON TABLE[\s\S]*anon, authenticated/u);
 });
 
+test("custom candidate registration is idempotent and reports bounded UI feedback", () => {
+  const actions = read(
+    "artifacts/backoffice/src/app/actions/platform-websites.ts",
+  );
+  const registrar = read(
+    "artifacts/backoffice/src/components/platform/PlatformWebsiteDeploymentRegistrar.tsx",
+  );
+  const service = read("lib/db/src/website-enterprise-activation-service.ts");
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx",
+  );
+
+  assert.match(
+    service,
+    /ON CONFLICT \(site_id, provider_key, release_id\) DO NOTHING/u,
+  );
+  assert.match(service, /created: false/u);
+  assert.match(
+    service,
+    /deployment\.route_key !== input\.routeKey[\s\S]*deployment\.expected_host !== input\.expectedHost[\s\S]*deployment\.health_path !== input\.healthPath/u,
+  );
+  assert.match(
+    actions,
+    /registerPlatformWebsiteDeploymentAction[\s\S]*try \{[\s\S]*deployment\.created[\s\S]*catch \(error\)/u,
+  );
+  assert.match(registrar, /useActionState/u);
+  assert.match(registrar, /role=\{state\.success \? "status" : "alert"\}/u);
+  assert.match(registrar, /minLength=\{3\}/u);
+  assert.match(registrar, /maxLength=\{160\}/u);
+  assert.match(registrar, /pattern="\[A-Za-z0-9\]\[A-Za-z0-9\._:\/# -\]\*"/u);
+  assert.match(registrar, /dit hoeft geen Git-commit of release-SHA te zijn/u);
+  assert.match(page, /Alleen voor een afzonderlijke custom Next\.js-website/u);
+  assert.match(page, /registeredDeployment/u);
+  assert.match(page, /Open managed publicatiereview/u);
+});
+
 test("runtime and deployment controls are staging-only and production-safe", () => {
   const resolver = read("lib/db/src/website-public-runtime.ts");
   const deploy = read(".github/workflows/deploy.yml");

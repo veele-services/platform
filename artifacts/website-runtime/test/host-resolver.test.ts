@@ -235,7 +235,12 @@ test("unknown and malformed hosts fail closed", async () => {
 test("disabled domains, custom mode and stale publication revisions are unavailable", async () => {
   for (const [overrides, reason] of [
     [{ binding_status: "disabled" }, "domain_inactive"],
+    [{ site_status: "draft" }, "site_inactive"],
     [{ delivery_mode: "custom_nextjs" }, "delivery_mode_mismatch"],
+    [
+      { active_publication_id: null, publication_id: null },
+      "publication_inactive",
+    ],
     [
       { publication_target_delivery_revision: 2 },
       "publication_revision_mismatch",
