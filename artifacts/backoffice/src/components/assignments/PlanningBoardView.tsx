@@ -148,7 +148,12 @@ const APPOINTMENT_PASTELS: Pastel[] = [
   { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" },
   { bg: "#FFEAF0", border: "#FDA4AF", text: "#7F1D1D", rail: "#F43F5E" },
   { bg: "#FFF7D6", border: "#FCD34D", text: "#6B4E00", rail: "#EAB308" },
-  { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "var(--color-primary)" },
+  {
+    bg: "#E2FAF8",
+    border: "#8CE7E2",
+    text: "#075E5D",
+    rail: "var(--color-primary)",
+  },
   { bg: "#EFF6F1", border: "#B7D3C3", text: "#264D3C", rail: "#16A34A" },
 ];
 
@@ -168,6 +173,7 @@ type GhostInfo = {
 type PlanningBoardViewProps = {
   data: PlanningBoardData;
   canWrite: boolean;
+  mapEnabled: boolean;
 };
 
 function addDaysLocal(dateStr: string, days: number): string {
@@ -823,7 +829,11 @@ function FilterSelect({
   );
 }
 
-export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
+export function PlanningBoardView({
+  data,
+  canWrite,
+  mapEnabled,
+}: PlanningBoardViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1773,6 +1783,15 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const selectedRegion = searchParams.get("region") ?? "all";
   const selectedPriority = searchParams.get("priority") ?? "all";
   const selectedStatus = searchParams.get("status") ?? "all";
+  const mapHref = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("week");
+    params.delete("day");
+    params.delete("month");
+    params.set("date", data.date);
+    params.set("view", "map");
+    return `${pathname}?${params.toString()}`;
+  }, [data.date, pathname, searchParams]);
   const activeFilterCount = [
     searchParams.get("search"),
     selectedCustomer !== "all" ? selectedCustomer : null,
@@ -1885,6 +1904,14 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     Maand
                   </Link>
                 </Button>
+                {mapEnabled && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={mapHref}>
+                      <MapPin className="h-4 w-4" />
+                      Kaart
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -2084,7 +2111,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   className="flex items-center gap-2 font-heading text-sm font-semibold"
                   style={{ color: "var(--color-foreground)" }}
                 >
-                  <Layers3 className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                  <Layers3
+                    className="h-4 w-4"
+                    style={{ color: "var(--color-primary)" }}
+                  />
                   Werkbon-wachtrij
                 </h3>
                 <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
@@ -2150,7 +2180,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       }}
                       className="group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       style={{
-                        borderColor: selected ? "var(--color-primary)" : "#E2E8F0",
+                        borderColor: selected
+                          ? "var(--color-primary)"
+                          : "#E2E8F0",
                         boxShadow: selected
                           ? "0 0 0 3px rgba(0,183,179,0.12)"
                           : undefined,
@@ -2858,7 +2890,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           />
                           <span
                             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm"
-                            style={{ background: "var(--color-primary)", color: "var(--color-foreground)" }}
+                            style={{
+                              background: "var(--color-primary)",
+                              color: "var(--color-foreground)",
+                            }}
                           >
                             Nu {minutesToTime(liveMinute)}
                           </span>
@@ -3001,7 +3036,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   >
                                     <p
                                       className="font-semibold"
-                                      style={{ color: "var(--color-foreground)" }}
+                                      style={{
+                                        color: "var(--color-foreground)",
+                                      }}
                                     >
                                       {person.lastName}, {person.firstName}
                                     </p>

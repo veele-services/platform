@@ -22,7 +22,7 @@ export function TenantPageShell({
   return (
     <div
       className={cn(
-        "platform-page mx-auto flex w-full flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8",
+        "platform-page mx-auto flex w-full flex-col gap-4 px-3 py-4 sm:px-4 lg:px-5",
         shellSizeClass[size],
         className,
       )}
@@ -31,7 +31,10 @@ export function TenantPageShell({
   );
 }
 
-export interface TenantPageSectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
+export interface TenantPageSectionProps extends Omit<
+  React.HTMLAttributes<HTMLElement>,
+  "title"
+> {
   title?: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -46,14 +49,26 @@ export function TenantPageSection({
   ...props
 }: TenantPageSectionProps) {
   return (
-    <section className={cn("flex flex-col gap-4", className)} {...props}>
+    <section className={cn("flex flex-col gap-3", className)} {...props}>
       {(title || description || actions) && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
-            {title && <h2 className="text-lg font-semibold leading-7 text-foreground">{title}</h2>}
-            {description && <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
+            {title && (
+              <h2 className="text-base font-semibold leading-6 text-foreground">
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">
+                {description}
+              </p>
+            )}
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+          {actions && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {actions}
+            </div>
+          )}
         </div>
       )}
       {children}

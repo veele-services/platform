@@ -104,9 +104,11 @@ export function Sidebar({
   }
 
   const whitelabel = Boolean(branding?.customBrandingEnabled);
-  const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "var(--color-foreground)";
+  const sidebarBackgroundColor =
+    branding?.sidebarBackgroundColor ?? "var(--color-foreground)";
   const configuredSidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
-  const sidebarAccentColor = branding?.sidebarAccentColor ?? "var(--color-primary)";
+  const sidebarAccentColor =
+    branding?.sidebarAccentColor ?? "var(--color-primary)";
   const sidebarTextColor = ensureAccessibleBrandTextColor(
     sidebarBackgroundColor,
     configuredSidebarTextColor,
@@ -183,7 +185,7 @@ export function Sidebar({
     <>
       <div
         className={cn(
-          "flex h-20 shrink-0 items-center px-5",
+          "flex h-16 shrink-0 items-center px-4",
           collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
         )}
       >
@@ -205,7 +207,8 @@ export function Sidebar({
                 className="max-w-[170px] truncate text-center text-sm font-bold"
                 style={{
                   color: sidebarTextColor,
-                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                  fontFamily:
+                    "var(--font-tenant-roboto), Roboto, system-ui, sans-serif",
                 }}
               >
                 {displayName}
@@ -222,7 +225,8 @@ export function Sidebar({
             <span
               className="font-bold tracking-widest text-white"
               style={{
-                fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                fontFamily:
+                  "var(--font-tenant-roboto), Roboto, system-ui, sans-serif",
                 fontSize: "15px",
               }}
             >
@@ -231,7 +235,8 @@ export function Sidebar({
             <span
               className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-[#44D6D1]"
               style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
+                fontFamily:
+                  "var(--font-tenant-roboto), Roboto, system-ui, sans-serif",
               }}
             >
               Services
@@ -252,7 +257,7 @@ export function Sidebar({
       </div>
 
       <nav
-        className="flex-1 overflow-y-auto px-3 py-3"
+        className="flex-1 overflow-y-auto px-2 py-2"
         aria-label="Hoofdnavigatie"
       >
         {routes.length === 0 ? (
@@ -268,7 +273,7 @@ export function Sidebar({
             )}
           </div>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-1">
             {TENANT_NAVIGATION_GROUPS.map((group) => {
               const items = groupedRoutes.get(group.id) ?? [];
               if (items.length === 0) return null;
@@ -323,7 +328,7 @@ export function Sidebar({
       <aside
         className={cn(
           "hidden h-full shrink-0 select-none flex-col md:flex",
-          collapsed ? "w-[72px]" : "w-[240px]",
+          collapsed ? "w-[64px]" : "w-[224px]",
         )}
         style={sidebarStyle}
       >

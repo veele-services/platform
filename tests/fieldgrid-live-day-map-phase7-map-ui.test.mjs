@@ -10,7 +10,9 @@ function read(relativePath) {
 }
 
 test("phase 7 planning map tab is guarded by the feature flag", () => {
-  const page = read("artifacts/backoffice/src/app/(dashboard)/planning/page.tsx");
+  const page = read(
+    "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+  );
   const flag = read("artifacts/backoffice/src/lib/planning/day-map-feature.ts");
 
   assert.match(flag, /PLANNING_DAY_MAP_ENABLED_BY_DEFAULT = false/);
@@ -18,14 +20,19 @@ test("phase 7 planning map tab is guarded by the feature flag", () => {
   assert.match(page, /if \(mapEnabled && view === "map"\)/);
   assert.match(page, /getPlanningDayMapData/);
   assert.match(page, /PlanningMapView/);
+  assert.match(page, /mapEnabled=\{mapEnabled\}/);
   assert.doesNotMatch(page, /Planning workbench/);
   assert.doesNotMatch(page, /Tenant planning/);
   assert.doesNotMatch(page, /TenantConflictStrip/);
 });
 
 test("phase 7 map component is now backed by the shared lazy Google map", () => {
-  const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
-  const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
+  const mapView = read(
+    "artifacts/backoffice/src/components/assignments/PlanningMapView.tsx",
+  );
+  const canvas = read(
+    "artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx",
+  );
 
   assert.match(mapView, /"use client";/);
   assert.match(mapView, /GoogleMapCanvas/);
@@ -36,12 +43,26 @@ test("phase 7 map component is now backed by the shared lazy Google map", () => 
   assert.doesNotMatch(mapView, /tile\.openstreetmap\.org/);
   assert.doesNotMatch(mapView, /maplibre-gl/);
   assert.doesNotMatch(mapView, /NEXT_PUBLIC/);
-  assert.doesNotMatch(mapView, /MAPBOX|GOOGLE_ROUTES_API_KEY|GOOGLE_MAPS_SERVER_API_KEY/);
+  assert.doesNotMatch(
+    mapView,
+    /MAPBOX|GOOGLE_ROUTES_API_KEY|GOOGLE_MAPS_SERVER_API_KEY/,
+  );
 });
 
 test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => {
-  const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const mapView = read(
+    "artifacts/backoffice/src/components/assignments/PlanningMapView.tsx",
+  );
+  const boardView = read(
+    "artifacts/backoffice/src/components/assignments/PlanningBoardView.tsx",
+  );
 
+  assert.match(boardView, /mapEnabled: boolean/);
+  assert.match(boardView, /params\.set\("date", data\.date\)/);
+  assert.match(boardView, /params\.set\("view", "map"\)/);
+  assert.match(boardView, /const mapHref = useMemo/);
+  assert.match(boardView, /<Link href=\{mapHref\}>/);
+  assert.match(boardView, />\s*Kaart\s*</);
   assert.match(mapView, /markerTone/);
   assert.match(mapView, /GOOGLE_MAPS_MARKER_STATUS/);
   assert.match(mapView, /markerStatusForAssignment/);

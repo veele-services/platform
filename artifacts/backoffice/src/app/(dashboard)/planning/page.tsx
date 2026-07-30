@@ -15,10 +15,7 @@ import { PlanningDayView } from "@/components/assignments/PlanningDayView";
 import { PlanningMapView } from "@/components/assignments/PlanningMapView";
 import { PlanningMonthView } from "@/components/assignments/PlanningMonthView";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import {
-  TenantPageShell,
-  TenantWorkbenchPanel,
-} from "@/components/tenant-ui";
+import { TenantPageShell, TenantWorkbenchPanel } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getGoogleMapsClientBootstrapConfig } from "@/lib/google-maps/config";
 import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";
@@ -28,7 +25,10 @@ export const metadata: Metadata = {
 };
 
 function isValidDate(str: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(str) && !Number.isNaN(new Date(`${str}T00:00:00`).getTime());
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(str) &&
+    !Number.isNaN(new Date(`${str}T00:00:00`).getTime())
+  );
 }
 
 function isValidMonth(str: string): boolean {
@@ -95,7 +95,9 @@ export default async function PlanningPage({ searchParams }: Props) {
 
   const [canWrite, customers] = await Promise.all([
     hasPermission("planning", "write"),
-    hasPermission("planning", "write").then((w) => (w ? getCustomerOptions() : Promise.resolve([]))),
+    hasPermission("planning", "write").then((w) =>
+      w ? getCustomerOptions() : Promise.resolve([]),
+    ),
   ]);
 
   if (day && isValidDate(day)) {
@@ -104,7 +106,13 @@ export default async function PlanningPage({ searchParams }: Props) {
     return (
       <TenantPageShell size="wide" className="max-w-[1800px]">
         <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
-          <PlanningDayView dateStr={day} rows={rows} unassigned={unassigned} canWrite={canWrite} customers={customers} />
+          <PlanningDayView
+            dateStr={day}
+            rows={rows}
+            unassigned={unassigned}
+            canWrite={canWrite}
+            customers={customers}
+          />
         </TenantWorkbenchPanel>
       </TenantPageShell>
     );
@@ -122,7 +130,12 @@ export default async function PlanningPage({ searchParams }: Props) {
     );
   }
 
-  const boardDate = date && isValidDate(date) ? date : week && isValidDate(week) ? week : undefined;
+  const boardDate =
+    date && isValidDate(date)
+      ? date
+      : week && isValidDate(week)
+        ? week
+        : undefined;
   if (mapEnabled && view === "map") {
     const mapDate = boardDate ?? todayKey();
     const googleMapsConfig = getGoogleMapsClientBootstrapConfig();
@@ -153,13 +166,19 @@ export default async function PlanningPage({ searchParams }: Props) {
     sectorId,
     region,
     priority: priority as PlanningBoardFilters["priority"],
-    statuses: status ? [status as NonNullable<PlanningBoardFilters["statuses"]>[number]] : undefined,
+    statuses: status
+      ? [status as NonNullable<PlanningBoardFilters["statuses"]>[number]]
+      : undefined,
   });
 
   return (
     <TenantPageShell size="wide" className="max-w-[1800px]">
       <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
-        <PlanningBoardView data={boardData} canWrite={canWrite} />
+        <PlanningBoardView
+          data={boardData}
+          canWrite={canWrite}
+          mapEnabled={mapEnabled}
+        />
       </TenantWorkbenchPanel>
     </TenantPageShell>
   );

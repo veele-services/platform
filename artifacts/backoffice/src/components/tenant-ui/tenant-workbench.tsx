@@ -13,7 +13,10 @@ const toneClass: Record<WorkbenchTone, string> = {
   info: "border-sky-200 bg-sky-50 text-sky-900",
 };
 
-export interface TenantCommandBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+export interface TenantCommandBarProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "title"
+> {
   title?: React.ReactNode;
   description?: React.ReactNode;
   search?: React.ReactNode;
@@ -34,14 +37,30 @@ export function TenantCommandBar({
   ...props
 }: TenantCommandBarProps) {
   return (
-    <div className={cn("rounded-lg border border-border bg-card p-3 shadow-card", className)} {...props}>
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card p-3 shadow-card",
+        className,
+      )}
+      {...props}
+    >
       {(title || description || actions) && (
         <div className="mb-3 flex flex-col gap-3 border-b border-border pb-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-1">
-            {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
-            {description && <p className="max-w-3xl text-xs leading-5 text-muted-foreground">{description}</p>}
+            {title && (
+              <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+            )}
+            {description && (
+              <p className="max-w-3xl text-xs leading-5 text-muted-foreground">
+                {description}
+              </p>
+            )}
           </div>
-          {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
+          {actions && (
+            <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">
+              {actions}
+            </div>
+          )}
         </div>
       )}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -51,7 +70,9 @@ export function TenantCommandBar({
           {children}
         </div>
       </div>
-      {activeFilters && <div className="mt-3 border-t border-border pt-3">{activeFilters}</div>}
+      {activeFilters && (
+        <div className="mt-3 border-t border-border pt-3">{activeFilters}</div>
+      )}
     </div>
   );
 }
@@ -76,19 +97,39 @@ export function TenantConflictStrip({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)} {...props}>
+    <div
+      className={cn("grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4", className)}
+      {...props}
+    >
       {items.map((item, index) => {
         const tone = item.tone ?? "neutral";
         const content = (
-          <div className={cn("h-full rounded-lg border px-4 py-3 shadow-card", toneClass[tone])}>
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{item.label}</p>
-            <p className="mt-2 text-2xl font-semibold leading-none">{item.value}</p>
-            {item.description && <p className="mt-1 text-xs leading-5 opacity-75">{item.description}</p>}
+          <div
+            className={cn(
+              "h-full rounded-lg border px-3 py-2.5 shadow-card",
+              toneClass[tone],
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+              {item.label}
+            </p>
+            <p className="mt-1.5 text-xl font-semibold leading-none">
+              {item.value}
+            </p>
+            {item.description && (
+              <p className="mt-1 text-xs leading-5 opacity-75">
+                {item.description}
+              </p>
+            )}
           </div>
         );
 
         return item.href ? (
-          <Link key={index} href={item.href} className="block transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link
+            key={index}
+            href={item.href}
+            className="block transition hover:-translate-y-0.5 hover:shadow-md"
+          >
             {content}
           </Link>
         ) : (
@@ -117,7 +158,9 @@ export function TenantWorkbenchLayout({
   return (
     <div
       className={cn(
-        aside ? "grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_390px]" : "grid gap-4",
+        aside
+          ? "grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]"
+          : "grid gap-3",
         className,
       )}
       {...props}
@@ -129,7 +172,10 @@ export function TenantWorkbenchLayout({
   );
 }
 
-export interface TenantWorkbenchPanelProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
+export interface TenantWorkbenchPanelProps extends Omit<
+  React.HTMLAttributes<HTMLElement>,
+  "title"
+> {
   title?: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -144,14 +190,30 @@ export function TenantWorkbenchPanel({
   ...props
 }: TenantWorkbenchPanelProps) {
   return (
-    <section className={cn("rounded-lg border border-border bg-card shadow-card", className)} {...props}>
+    <section
+      className={cn(
+        "rounded-lg border border-border bg-card shadow-card",
+        className,
+      )}
+      {...props}
+    >
       {(title || description || actions) && (
         <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
-            {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
-            {description && <p className="max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p>}
+            {title && (
+              <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+            )}
+            {description && (
+              <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                {description}
+              </p>
+            )}
           </div>
-          {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">{actions}</div>}
+          {actions && (
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+              {actions}
+            </div>
+          )}
         </div>
       )}
       {children}

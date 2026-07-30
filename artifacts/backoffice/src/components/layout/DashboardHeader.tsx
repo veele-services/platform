@@ -63,7 +63,7 @@ export function DashboardHeader({
       : null;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:gap-3 sm:px-5">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
       <Button
         type="button"
         variant="ghost"
@@ -93,7 +93,7 @@ export function DashboardHeader({
 
       <div className="min-w-0 flex-1 md:max-w-[16rem] md:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate font-heading text-base font-semibold leading-tight text-foreground sm:text-lg">
+          <h1 className="truncate font-heading text-sm font-semibold leading-tight text-foreground sm:text-base">
             {title}
           </h1>
           {help ? (
