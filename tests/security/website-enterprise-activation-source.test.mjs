@@ -95,7 +95,14 @@ test("custom candidate registration is idempotent and reports bounded UI feedbac
   assert.match(registrar, /dit hoeft geen Git-commit of release-SHA te zijn/u);
   assert.match(page, /Alleen voor een afzonderlijke custom Next\.js-website/u);
   assert.match(page, /registeredDeployment/u);
-  assert.match(page, /Open managed publicatiereview/u);
+  assert.match(
+    page,
+    /een platformsessie wordt niet tussen[\s\S]*hosts[\s\S]*gedeeld/u,
+  );
+  assert.doesNotMatch(
+    page,
+    /href=\{`https:\/\/\$\{site\.canonicalHostname\}\/admin\/website\/review`\}/u,
+  );
 });
 
 test("runtime and deployment controls are staging-only and production-safe", () => {

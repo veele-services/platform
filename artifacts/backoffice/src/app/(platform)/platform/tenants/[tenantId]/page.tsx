@@ -903,15 +903,13 @@ function WebsiteDeliveryTab({
               kandidaat registreren activeert bewust niets.
             </p>
             {site.canonicalHostname && (
-              <a
-                href={`https://${site.canonicalHostname}/admin/website/review`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex min-h-10 items-center rounded border border-amber-300 bg-white px-3 text-sm font-semibold text-amber-950"
-              >
-                Open managed publicatiereview
-                <ExternalLink className="ml-2 size-4" aria-hidden="true" />
-              </a>
+              <p className="mt-2 text-sm text-amber-800">
+                De publicatiereview blijft bewust in de tenantbackoffice op{" "}
+                <span className="font-medium">{site.canonicalHostname}</span>.
+                Meld je daar afzonderlijk aan met een tenantaccount dat websites
+                mag publiceren; een platformsessie wordt niet tussen hosts
+                gedeeld.
+              </p>
             )}
           </div>
         )}
