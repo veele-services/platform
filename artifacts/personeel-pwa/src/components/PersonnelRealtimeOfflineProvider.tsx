@@ -364,7 +364,9 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
           window.setTimeout(() => setSyncedNotice(false), 4500);
         }
         scheduleRetryTimer();
-        scheduleRefresh();
+        if (syncedAnyAction) {
+          scheduleRefresh();
+        }
       }
     };
 
