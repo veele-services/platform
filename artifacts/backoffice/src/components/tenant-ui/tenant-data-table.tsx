@@ -52,7 +52,12 @@ export function TenantDataTable<TData>({
 }: TenantDataTableProps<TData>) {
   if (rows.length === 0) {
     return (
-      <Empty className={cn("border border-dashed border-border bg-card shadow-card", className)}>
+      <Empty
+        className={cn(
+          "border border-dashed border-border bg-card shadow-card",
+          className,
+        )}
+      >
         <EmptyHeader>
           <EmptyTitle>{emptyTitle}</EmptyTitle>
           <EmptyDescription>{emptyDescription}</EmptyDescription>
@@ -66,14 +71,16 @@ export function TenantDataTable<TData>({
       {renderMobileCard && (
         <div className="grid gap-3 md:hidden">
           {rows.map((row, index) => (
-            <React.Fragment key={getRowKey(row, index)}>{renderMobileCard(row, index)}</React.Fragment>
+            <React.Fragment key={getRowKey(row, index)}>
+              {renderMobileCard(row, index)}
+            </React.Fragment>
           ))}
         </div>
       )}
 
       <div
         className={cn(
-          "max-w-full overflow-x-auto rounded-lg border border-border bg-card shadow-card",
+          "tenant-data-table max-w-full overflow-x-auto rounded-lg border border-border bg-card shadow-card",
           renderMobileCard && "hidden md:block",
         )}
       >
@@ -92,7 +99,11 @@ export function TenantDataTable<TData>({
             {rows.map((row, index) => (
               <TableRow
                 key={getRowKey(row, index)}
-                className={typeof rowClassName === "function" ? rowClassName(row, index) : rowClassName}
+                className={
+                  typeof rowClassName === "function"
+                    ? rowClassName(row, index)
+                    : rowClassName
+                }
               >
                 {columns.map((column) => (
                   <TableCell key={column.id} className={column.className}>

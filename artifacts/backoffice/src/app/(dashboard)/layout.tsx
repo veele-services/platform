@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Roboto } from "next/font/google";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 import type { ReleaseHighlightSummary } from "@workspace/db";
 import {
@@ -42,9 +43,18 @@ import {
 } from "@/lib/auth/backoffice-profile";
 import { Suspense, type CSSProperties } from "react";
 
+const tenantRoboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-tenant-roboto",
+  display: "swap",
+});
+
 function NoActiveTenantAccess() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+    <main
+      className={`${tenantRoboto.variable} tenant-admin-compact flex min-h-screen items-center justify-center bg-slate-50 px-6`}
+    >
       <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1
           className="font-heading text-2xl font-semibold"
@@ -216,7 +226,7 @@ export default async function DashboardLayout({
       <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>
         <SidebarProvider>
           <div
-            className="flex h-screen overflow-hidden"
+            className={`${tenantRoboto.variable} tenant-admin-compact flex h-screen overflow-hidden`}
             style={{
               ...brandingStyle,
               backgroundColor: "var(--color-background)",

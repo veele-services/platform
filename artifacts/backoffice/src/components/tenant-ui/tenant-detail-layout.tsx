@@ -38,29 +38,29 @@ export function TenantDetailHeader({
   return (
     <header
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-4 shadow-card sm:px-5 sm:py-5",
+        "rounded-lg border border-border bg-card px-3 py-3 shadow-card sm:px-4 sm:py-4",
         className,
       )}
       {...props}
     >
       <Link
         href={backHref}
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline"
+        className="mb-3 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {backLabel}
       </Link>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 space-y-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 max-w-full break-words text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
+            <h1 className="min-w-0 max-w-full break-words text-xl font-semibold leading-tight text-foreground sm:text-2xl">
               {title}
             </h1>
             {badges}
           </div>
           {description && (
-            <p className="max-w-3xl break-words text-sm leading-6 text-muted-foreground">
+            <p className="max-w-3xl break-words text-[13px] leading-5 text-muted-foreground">
               {description}
             </p>
           )}
@@ -87,7 +87,7 @@ export function TenantDetailHeader({
         )}
       </div>
 
-      {summary && <div className="mt-5">{summary}</div>}
+      {summary && <div className="mt-4">{summary}</div>}
     </header>
   );
 }
@@ -106,8 +106,8 @@ export function TenantDetailLayout({
     <div
       className={cn(
         aside
-          ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]"
-          : "flex flex-col gap-6",
+          ? "grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"
+          : "flex flex-col gap-4",
         className,
       )}
       {...props}
@@ -136,7 +136,7 @@ export function TenantDetailActionPanel({
   return (
     <aside
       className={cn(
-        "flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start",
+        "flex flex-col gap-3 xl:sticky xl:top-20 xl:self-start",
         className,
       )}
       {...props}
