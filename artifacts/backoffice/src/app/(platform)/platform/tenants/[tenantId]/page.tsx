@@ -82,6 +82,7 @@ import {
 } from "@/components/platform/PlatformTenantDetailNav";
 import { PlatformLifecycleAction } from "@/components/platform/PlatformLifecycleAction";
 import { PlatformManagedWebsiteInitializer } from "@/components/platform/PlatformManagedWebsiteInitializer";
+import { PlatformWebsiteDeploymentRegistrar } from "@/components/platform/PlatformWebsiteDeploymentRegistrar";
 import { PlatformWebsiteDomainBinder } from "@/components/platform/PlatformWebsiteDomainBinder";
 import { PlatformSupportAccessPanel } from "@/components/platform/PlatformSupportAccessPanel";
 import { PlatformTenantPasswordResetAction } from "@/components/platform/PlatformTenantPasswordResetAction";
@@ -839,7 +840,11 @@ function WebsiteDeliveryTab({
         helper="Staging-only registratie, health, goedkeuring, exact-revision activatie en expliciete rollback. Production is hier technisch uitgeschakeld."
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Stat label="Mode" value={site.deliveryMode} />
+          <Stat
+            label="Mode"
+            value={site.deliveryMode}
+            detail={`Site ${site.status}`}
+          />
           <Stat label="Delivery revision" value={site.deliveryRevision} />
           <Stat
             label="Routeconfig"
@@ -886,17 +891,47 @@ function WebsiteDeliveryTab({
             </div>
           </div>
         )}
+        {site.deliveryMode === "managed_cms" && !site.activeTargetId && (
+          <div className="mt-4 rounded border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-950">
+              Er staat nog geen website live
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Kies één route. Publiceer de gecontroleerde conceptinhoud via
+              Website → Review voor de managed website, of rond hieronder de
+              aparte custom Next.js-workflow volledig af. Alleen een domein of
+              kandidaat registreren activeert bewust niets.
+            </p>
+            {site.canonicalHostname && (
+              <p className="mt-2 text-sm text-amber-800">
+                De publicatiereview blijft bewust in de tenantbackoffice op{" "}
+                <span className="font-medium">{site.canonicalHostname}</span>.
+                Meld je daar afzonderlijk aan met een tenantaccount dat websites
+                mag publiceren; een platformsessie wordt niet tussen hosts
+                gedeeld.
+              </p>
+            )}
+          </div>
+        )}
       </Section>
 
       <Section
         title="Code-owned kandidaten"
-        helper="Origins komen uitsluitend uit operator-owned stagingconfiguratie. Tenantvelden kunnen nooit een origin of secret aanleveren."
+        helper="Alleen voor een afzonderlijke custom Next.js-website. Voor managed CMS is geen kandidaatregistratie nodig. Origins komen uitsluitend uit operator-owned stagingconfiguratie."
       >
         <div className="grid gap-3">
           {delivery.candidates.map((candidate) => {
             const matchingHost =
               site.canonicalHostname &&
               candidate.expectedHosts.includes(site.canonicalHostname);
+            const registeredDeployment = delivery.deployments.find(
+              (deployment) =>
+                deployment.providerKey === candidate.providerKey &&
+                deployment.routeKey === candidate.routeKey &&
+                deployment.releaseId === candidate.releaseId &&
+                deployment.expectedHost === site.canonicalHostname &&
+                deployment.healthPath === candidate.healthPath,
+            );
             return (
               <div
                 key={`${candidate.providerKey}:${candidate.routeKey}:${candidate.releaseId}`}
@@ -927,56 +962,25 @@ function WebsiteDeliveryTab({
                     ))}
                   </ul>
                 )}
-                {matchingHost && (
-                  <form
+                {registeredDeployment && (
+                  <p className="mt-4 text-sm font-medium text-emerald-700">
+                    Deze exacte kandidaat is al geregistreerd en staat hieronder
+                    als deployment.
+                  </p>
+                )}
+                {matchingHost && !registeredDeployment && (
+                  <PlatformWebsiteDeploymentRegistrar
                     action={registerPlatformWebsiteDeploymentAction}
-                    className="mt-4 flex flex-wrap items-end gap-3"
-                  >
-                    <input type="hidden" name="tenantId" value={tenantId} />
-                    <input type="hidden" name="siteId" value={site.id} />
-                    <input
-                      type="hidden"
-                      name="providerKey"
-                      value={candidate.providerKey}
-                    />
-                    <input
-                      type="hidden"
-                      name="routeKey"
-                      value={candidate.routeKey}
-                    />
-                    <input
-                      type="hidden"
-                      name="releaseId"
-                      value={candidate.releaseId}
-                    />
-                    <input
-                      type="hidden"
-                      name="expectedHost"
-                      value={site.canonicalHostname ?? ""}
-                    />
-                    <input
-                      type="hidden"
-                      name="healthPath"
-                      value={candidate.healthPath}
-                    />
-                    <label className="grid min-w-64 flex-1 gap-1 text-sm">
-                      <span className="font-medium text-slate-700">
-                        Change reference
-                      </span>
-                      <input
-                        required
-                        name="changeReference"
-                        placeholder="FG-WEB-9/register"
-                        className="rounded border border-slate-300 px-3 py-2"
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      Registreer exact candidate
-                    </button>
-                  </form>
+                    identity={{
+                      tenantId,
+                      siteId: site.id,
+                      providerKey: candidate.providerKey,
+                      routeKey: candidate.routeKey,
+                      releaseId: candidate.releaseId,
+                      expectedHost: site.canonicalHostname ?? "",
+                      healthPath: candidate.healthPath,
+                    }}
+                  />
                 )}
               </div>
             );

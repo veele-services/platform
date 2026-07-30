@@ -503,7 +503,7 @@ async function writeAudit(
 
 export async function registerPlatformWebsiteDeployment(
   rawInput: z.input<typeof registerInputSchema>,
-): Promise<{ id: string }> {
+): Promise<{ id: string; created: boolean }> {
   const input = registerInputSchema.parse(rawInput);
   const identity = identitySchema.parse(input);
   const registry = configuredRegistry();
@@ -521,11 +521,13 @@ export async function registerPlatformWebsiteDeployment(
       throw new Error("Phase 9 deployment registration is staging-only");
     }
     const id = randomUUID();
-    await client.query(
+    const inserted = await client.query<{ id: string }>(
       `INSERT INTO public.website_custom_deployments (
          id, tenant_id, site_id, provider_key, route_key, release_id,
          expected_host, health_path, status, created_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)`,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
+       ON CONFLICT (site_id, provider_key, release_id) DO NOTHING
+       RETURNING id`,
       [
         id,
         input.tenantId,
@@ -538,11 +540,39 @@ export async function registerPlatformWebsiteDeployment(
         input.actorUserId,
       ],
     );
+    const insertedId = inserted.rows[0]?.id;
+    if (!insertedId) {
+      const existing = await client.query<{
+        id: string;
+        route_key: string;
+        expected_host: string;
+        health_path: string;
+      }>(
+        `SELECT id, route_key, expected_host, health_path
+         FROM public.website_custom_deployments
+         WHERE tenant_id = $1
+           AND site_id = $2
+           AND provider_key = $3
+           AND release_id = $4
+         LIMIT 1`,
+        [input.tenantId, input.siteId, input.providerKey, input.releaseId],
+      );
+      const deployment = existing.rows[0];
+      if (
+        !deployment ||
+        deployment.route_key !== input.routeKey ||
+        deployment.expected_host !== input.expectedHost ||
+        deployment.health_path !== input.healthPath
+      ) {
+        throw new Error("Custom website deployment release identity conflict");
+      }
+      return { id: deployment.id, created: false };
+    }
     await writeAudit(client, {
       tenantId: input.tenantId,
       actorUserId: input.actorUserId,
       action: "website_custom_deployment_registered",
-      resourceId: id,
+      resourceId: insertedId,
       metadata: {
         siteId: input.siteId,
         providerKey: input.providerKey,
@@ -554,7 +584,7 @@ export async function registerPlatformWebsiteDeployment(
         environment: "staging",
       },
     });
-    return { id };
+    return { id: insertedId, created: true };
   });
 }
 
