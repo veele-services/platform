@@ -809,6 +809,14 @@ test("offline synchronization uses one observable generation coordinator and ali
   assert.match(coordinator, /pass-completed/);
   assert.match(queue, /FIELDGRID_REQUEST_OFFLINE_SYNC/);
   assert.match(worker, /FIELDGRID_REQUEST_OFFLINE_SYNC/);
+  assert.match(
+    provider,
+    /scheduleRetryTimer\(\);\s+if \(syncedAnyAction\) \{\s+scheduleRefresh\(\);\s+\}/u,
+  );
+  assert.doesNotMatch(
+    provider,
+    /scheduleRetryTimer\(\);\s+scheduleRefresh\(\);/u,
+  );
   assert.match(validator, /triggerDuringActiveSync === true/);
   assert.match(validator, /coalescedFollowUpPass === true/);
   assert.match(validator, /firstStillDurable === true/);
