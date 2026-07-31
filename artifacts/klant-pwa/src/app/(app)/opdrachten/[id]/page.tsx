@@ -8,7 +8,6 @@ import {
   Camera,
   CheckSquare,
   ChevronLeft,
-  Clock,
   Download,
   FileCheck2,
   FileText,
@@ -22,6 +21,7 @@ import { getMyReports } from "@/actions/reports";
 import { DocumentDownloadButton } from "@/components/DocumentDownloadButton";
 import { PortalPageShell } from "@/components/portal-ui";
 import { STATUS_COLOR, STATUS_LABEL } from "@/types/assignments";
+import { getCustomerPortalFeatureFlags } from "@/lib/portal-features";
 import type {
   AssignmentStatus,
   InvoiceStatus,
@@ -193,15 +193,15 @@ function AssignmentTimeline({
       key: "scheduled",
       label: "Ingepland",
       description: assignment.scheduledDate
-        ? `${formatDate(assignment.scheduledDate)}${plannedWindow ? `, ${plannedWindow}` : ""}`
-        : "We delen het tijdvenster zodra de planning definitief is.",
+        ? `Gepland tijdvenster: ${formatDate(assignment.scheduledDate)}${plannedWindow ? `, ${plannedWindow}` : ""}`
+        : "Gepland tijdvenster: nog niet bekend.",
       state: phase === "pre_scheduled" ? "upcoming" : "done",
     },
     {
       key: "in_progress",
       label: "Uitvoering",
       description: assignment.actualStartedAt
-        ? `Gestart op ${formatDateTime(assignment.actualStartedAt)}${assignment.actualCompletedAt ? `, afgerond om ${formatTimelineTime(assignment.actualCompletedAt)}` : ""}`
+        ? `Werkelijke uitvoering: ${actualWindow || formatDateTime(assignment.actualStartedAt)}`
         : phase === "in_progress"
           ? "De uitvoering is gestart of de medewerker is onderweg."
           : "Nog niet gestart.",
@@ -220,7 +220,7 @@ function AssignmentTimeline({
 
   return (
     <div
-      className="rounded-2xl border bg-white p-4"
+      className="rounded-xl border bg-white p-4"
       style={{ borderColor: "var(--color-border)" }}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -279,42 +279,6 @@ function AssignmentTimeline({
           );
         })}
       </ol>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div
-          className="rounded-2xl border border-dashed px-4 py-3"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <p
-            className="text-xs font-black uppercase"
-            style={{ color: "var(--color-muted-fg)" }}
-          >
-            Gepland tijdvenster
-          </p>
-          <p
-            className="mt-1 text-sm font-black"
-            style={{ color: "var(--color-primary)" }}
-          >
-            {plannedWindow || "Nog geen tijdvenster"}
-          </p>
-        </div>
-        <div
-          className="rounded-2xl border border-dashed px-4 py-3"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <p
-            className="text-xs font-black uppercase"
-            style={{ color: "var(--color-muted-fg)" }}
-          >
-            Werkelijke uitvoering
-          </p>
-          <p
-            className="mt-1 text-sm font-black"
-            style={{ color: "var(--color-primary)" }}
-          >
-            {actualWindow || "Nog niet gestart"}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -335,11 +299,11 @@ function Section({
   return (
     <section
       id={id}
-      className="scroll-mt-24 rounded-2xl border bg-white p-5 shadow-sm"
+      className="scroll-mt-24 rounded-xl border bg-white p-4"
       style={{ borderColor: "var(--color-border)" }}
     >
       <div className="mb-4 flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,white)] text-[var(--color-accent-accessible)]">
           {icon}
         </span>
         <div className="min-w-0">
@@ -390,25 +354,31 @@ function EmptyState({
   );
 }
 
-function SectionNav() {
+function SectionNav({
+  documentsEnabled,
+  reportingEnabled,
+}: {
+  documentsEnabled: boolean;
+  reportingEnabled: boolean;
+}) {
   const items = [
     ["status", "Status"],
     ["planning", "Planning"],
-    ["rapportage", "Rapportage"],
-    ["documenten", "Documenten"],
+    ...(reportingEnabled ? [["rapportage", "Rapportage"] as const] : []),
+    ...(documentsEnabled ? [["documenten", "Documenten"] as const] : []),
     ["support", "Support"],
   ] as const;
 
   return (
     <nav
-      className="flex gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm"
+      className="flex gap-1 overflow-x-auto rounded-xl border bg-white p-1"
       style={{ borderColor: "var(--color-border)" }}
     >
       {items.map(([href, label]) => (
         <a
           key={href}
           href={`#${href}`}
-          className="whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition hover:bg-slate-50"
+          className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition hover:bg-slate-50"
           style={{ color: "var(--color-primary)" }}
         >
           {label}
@@ -420,11 +390,12 @@ function SectionNav() {
 
 export default async function KlantWerkbonDetailPage({ params }: Props) {
   const { id } = await params;
+  const featureFlags = await getCustomerPortalFeatureFlags();
 
   const [assignment, reports, documents] = await Promise.all([
     getMyAssignmentDetail(id),
-    getMyReports(),
-    getMyDocuments(),
+    featureFlags.reporting ? getMyReports() : Promise.resolve([]),
+    featureFlags.documents ? getMyDocuments() : Promise.resolve([]),
   ]);
 
   if (!assignment) notFound();
@@ -437,9 +408,6 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
   );
   const showTasks =
     SHOW_TASKS_STATUSES.has(assignment.status) && assignment.tasks.length > 0;
-  const timeSlot = [assignment.scheduledStart, assignment.scheduledEnd]
-    .filter(Boolean)
-    .join(" - ");
   const addressLine = [
     assignment.objectAddress,
     assignment.objectPostalCode,
@@ -484,7 +452,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
         </>
       }
     >
-      <SectionNav />
+      <SectionNav
+        documentsEnabled={featureFlags.documents}
+        reportingEnabled={featureFlags.reporting}
+      />
 
       <Section
         id="status"
@@ -554,7 +525,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         ) : null}
 
-        {quote || invoice ? (
+        {featureFlags.finance && (quote || invoice) ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {quote ? (
               <div
@@ -656,37 +627,8 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
       >
         <AssignmentTimeline assignment={assignment} />
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <p
-              className="text-xs font-black uppercase"
-              style={{ color: "var(--color-muted-fg)" }}
-            >
-              Datum
-            </p>
-            <p
-              className="mt-2 text-sm font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              {formatDate(assignment.scheduledDate)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <p
-              className="text-xs font-black uppercase"
-              style={{ color: "var(--color-muted-fg)" }}
-            >
-              Tijd
-            </p>
-            <p
-              className="mt-2 flex items-center gap-2 text-sm font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              <Clock size={15} />
-              {timeSlot || "Geen tijdvenster"}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
+        <div className="mt-4">
+          <div className="rounded-lg bg-slate-50 p-3">
             <p
               className="text-xs font-black uppercase"
               style={{ color: "var(--color-muted-fg)" }}
@@ -736,127 +678,131 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
         )}
       </Section>
 
-      <Section
-        id="rapportage"
-        icon={<FileCheck2 size={20} />}
-        title="Rapportage"
-        subtitle="Goedgekeurd werkrapport en zichtbare foto's vanuit de uitvoering."
-      >
-        {report ? (
-          <div
-            className="rounded-2xl border p-4"
-            style={{ borderColor: "var(--color-border)" }}
-          >
-            <p
-              className="whitespace-pre-wrap text-sm font-semibold leading-6"
-              style={{ color: "var(--color-primary)" }}
-            >
-              {report.customerVisibleSummary}
-            </p>
+      {featureFlags.reporting ? (
+        <Section
+          id="rapportage"
+          icon={<FileCheck2 size={20} />}
+          title="Rapportage"
+          subtitle="Goedgekeurd werkrapport en zichtbare foto's vanuit de uitvoering."
+        >
+          {report ? (
             <div
-              className="mt-4 flex flex-wrap gap-2 text-xs font-black"
-              style={{ color: "var(--color-secondary)" }}
+              className="rounded-2xl border p-4"
+              style={{ borderColor: "var(--color-border)" }}
             >
-              <span className="rounded-full bg-slate-100 px-3 py-1.5">
-                {formatDate(report.submittedAt)}
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1.5">
-                {report.hoursWorked
-                  ? `${Number.parseFloat(report.hoursWorked).toLocaleString("nl-NL")} uur`
-                  : "Geen uren"}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <EmptyState
-            title="Rapport nog niet beschikbaar"
-            description={
-              FINAL_REPORT_STATUSES.has(assignment.status)
-                ? "Er is nog geen klantzichtbaar rapport gekoppeld."
-                : "Het werkrapport verschijnt zodra de opdracht uitgevoerd en goedgekeurd is."
-            }
-          />
-        )}
-
-        {assignment.approvedPhotos.length > 0 &&
-        FINAL_REPORT_STATUSES.has(assignment.status) ? (
-          <div className="mt-4">
-            <h3
-              className="mb-3 flex items-center gap-2 text-sm font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              <Camera size={16} />
-              Foto's werkbon
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {assignment.approvedPhotos.map((photo) =>
-                photo.signedUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={photo.id}
-                    src={photo.signedUrl}
-                    alt="Werkbon foto"
-                    className="h-24 w-24 rounded-xl object-cover"
-                  />
-                ) : (
-                  <div
-                    key={photo.id}
-                    className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100"
-                  >
-                    <Camera
-                      size={20}
-                      style={{ color: "var(--color-muted-fg)" }}
-                    />
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-        ) : null}
-      </Section>
-
-      <Section
-        id="documenten"
-        icon={<FileText size={20} />}
-        title="Documenten"
-        subtitle="Bestanden die direct aan deze opdracht gekoppeld zijn."
-      >
-        {assignmentDocuments.length > 0 ? (
-          <div className="grid gap-2">
-            {assignmentDocuments.map((document) => (
-              <div
-                key={document.id}
-                className="flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                style={{ borderColor: "var(--color-border)" }}
+              <p
+                className="whitespace-pre-wrap text-sm font-semibold leading-6"
+                style={{ color: "var(--color-primary)" }}
               >
-                <span className="min-w-0">
-                  <span
-                    className="block truncate text-sm font-black"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {document.name}
-                  </span>
-                  <span
-                    className="mt-0.5 block truncate text-xs font-semibold"
-                    style={{ color: "var(--color-muted-fg)" }}
-                  >
-                    {document.filename}
-                  </span>
+                {report.customerVisibleSummary}
+              </p>
+              <div
+                className="mt-4 flex flex-wrap gap-2 text-xs font-black"
+                style={{ color: "var(--color-secondary)" }}
+              >
+                <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                  {formatDate(report.submittedAt)}
                 </span>
-                <DocumentDownloadButton
-                  documentId={document.id}
-                  filename={document.filename}
-                />
+                <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                  {report.hoursWorked
+                    ? `${Number.parseFloat(report.hoursWorked).toLocaleString("nl-NL")} uur`
+                    : "Geen uren"}
+                </span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="Geen opdrachtdocumenten"
-            description="Documenten voor deze opdracht verschijnen hier zodra ze gedeeld zijn."
-          />
-        )}
-      </Section>
+            </div>
+          ) : (
+            <EmptyState
+              title="Rapport nog niet beschikbaar"
+              description={
+                FINAL_REPORT_STATUSES.has(assignment.status)
+                  ? "Er is nog geen klantzichtbaar rapport gekoppeld."
+                  : "Het werkrapport verschijnt zodra de opdracht uitgevoerd en goedgekeurd is."
+              }
+            />
+          )}
+
+          {assignment.approvedPhotos.length > 0 &&
+          FINAL_REPORT_STATUSES.has(assignment.status) ? (
+            <div className="mt-4">
+              <h3
+                className="mb-3 flex items-center gap-2 text-sm font-black"
+                style={{ color: "var(--color-primary)" }}
+              >
+                <Camera size={16} />
+                Foto's werkbon
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {assignment.approvedPhotos.map((photo) =>
+                  photo.signedUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={photo.id}
+                      src={photo.signedUrl}
+                      alt="Werkbon foto"
+                      className="h-24 w-24 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div
+                      key={photo.id}
+                      className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100"
+                    >
+                      <Camera
+                        size={20}
+                        style={{ color: "var(--color-muted-fg)" }}
+                      />
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
+
+      {featureFlags.documents ? (
+        <Section
+          id="documenten"
+          icon={<FileText size={20} />}
+          title="Documenten"
+          subtitle="Bestanden die direct aan deze opdracht gekoppeld zijn."
+        >
+          {assignmentDocuments.length > 0 ? (
+            <div className="grid gap-2">
+              {assignmentDocuments.map((document) => (
+                <div
+                  key={document.id}
+                  className="flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <span className="min-w-0">
+                    <span
+                      className="block truncate text-sm font-black"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {document.name}
+                    </span>
+                    <span
+                      className="mt-0.5 block truncate text-xs font-semibold"
+                      style={{ color: "var(--color-muted-fg)" }}
+                    >
+                      {document.filename}
+                    </span>
+                  </span>
+                  <DocumentDownloadButton
+                    documentId={document.id}
+                    filename={document.filename}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Geen opdrachtdocumenten"
+              description="Documenten voor deze opdracht verschijnen hier zodra ze gedeeld zijn."
+            />
+          )}
+        </Section>
+      ) : null}
 
       <Section
         id="support"
