@@ -43,7 +43,7 @@ function MessageBubble({
         }}
       >
         <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-sm font-black text-[var(--color-primary)]">
+          <p className="text-sm font-semibold text-[var(--color-primary)]">
             {isPersonnel ? "Jij" : message.authorName}
           </p>
           <span className="text-xs font-bold text-slate-400">
@@ -71,7 +71,7 @@ function ConversationTimeline({ ticket }: { ticket: PersonnelTicketDetail }) {
           <MessageSquare size={21} strokeWidth={2.4} />
         </span>
         <div>
-          <h2 className="text-lg font-black text-[var(--color-primary)]">
+          <h2 className="text-lg font-semibold text-[var(--color-primary)]">
             Gesprekstijdlijn
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
@@ -101,10 +101,10 @@ function TicketContextPanel({
       <section className="rounded-[22px] border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               Gesprek
             </p>
-            <h2 className="mt-1 text-[17px] font-black leading-tight text-[var(--color-primary)]">
+            <h2 className="mt-1 text-[17px] font-semibold leading-tight text-[var(--color-primary)]">
               {isClosed ? "Afgerond" : "Actief ticket"}
             </h2>
           </div>
@@ -112,25 +112,25 @@ function TicketContextPanel({
         </div>
         <div className="mt-4 grid gap-2">
           <div className="rounded-2xl bg-[#F8FBFE] px-3 py-2">
-            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               Afdeling
             </p>
-            <p className="mt-1 text-[14px] font-black text-[var(--color-primary)]">
+            <p className="mt-1 text-[14px] font-semibold text-[var(--color-primary)]">
               {departmentLabel(ticket.department)}
             </p>
           </div>
           <div className="rounded-2xl bg-[#F8FBFE] px-3 py-2">
-            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               Laatste activiteit
             </p>
-            <p className="mt-1 text-[14px] font-black text-[var(--color-primary)]">
+            <p className="mt-1 text-[14px] font-semibold text-[var(--color-primary)]">
               {formatDateTime(ticket.lastMessageAt)}
             </p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-1.5">
           <PriorityBadge priority={ticket.priority} />
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
             <Clock3 size={12} />
             {ticket.messages.length} bericht{ticket.messages.length === 1 ? "" : "en"}
           </span>
@@ -140,7 +140,7 @@ function TicketContextPanel({
       <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5">
         <div className="mb-3 flex items-center gap-2">
           <Send size={18} style={{ color: "var(--color-accent)" }} />
-          <h2 className="text-lg font-black text-[var(--color-primary)]">
+          <h2 className="text-lg font-semibold text-[var(--color-primary)]">
             Reageren
           </h2>
         </div>
@@ -177,13 +177,13 @@ export default async function TicketDetailPage({
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">
           Bericht
         </p>
-        <h1 className="mt-1 text-[27px] font-black leading-tight text-white md:text-3xl">
+        <h1 className="mt-1 text-[27px] font-semibold leading-tight text-white md:text-3xl">
           {ticket.subject}
         </h1>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <TicketStatusBadge status={ticket.status} />
           <PriorityBadge priority={ticket.priority} />
-          <span className="rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-black text-white">
+          <span className="rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white">
             {departmentLabel(ticket.department)}
           </span>
         </div>
