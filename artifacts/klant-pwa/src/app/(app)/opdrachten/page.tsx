@@ -434,7 +434,7 @@ export default async function OpdrachtenPage({
 
       {featureFlags.finance && actionRequired.length > 0 ? (
         <section
-          className="rounded-2xl border bg-white p-4 shadow-sm"
+          className="min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm"
           style={{ borderColor: "#FDE68A" }}
         >
           <div className="mb-3 flex items-start gap-3">
@@ -460,11 +460,11 @@ export default async function OpdrachtenPage({
             {actionRequired.map((assignment) => (
               <article
                 key={assignment.id}
-                className="rounded-2xl border p-4"
+                className="min-w-0 rounded-2xl border p-4"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p
                       className="font-mono text-xs font-semibold"
                       style={{ color: "var(--color-muted-fg)" }}

@@ -157,8 +157,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
           <ReleaseHighlightBanner highlight={releaseHighlight} />
 
-          <main className="min-w-0 flex-1 pb-[calc(4.8rem+var(--safe-bottom))] md:pb-0">
-            <div className="w-full px-0 md:px-7 md:py-7">{children}</div>
+          <main className="min-w-0 flex-1 overflow-x-hidden pb-[calc(4.8rem+var(--safe-bottom))] md:pb-0">
+            <div className="min-w-0 max-w-full overflow-x-hidden px-0 md:px-7 md:py-7">
+              {children}
+            </div>
           </main>
 
           <BottomNav />

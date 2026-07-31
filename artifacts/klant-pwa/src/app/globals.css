@@ -70,7 +70,8 @@
     textarea,
     [tabindex]:not([tabindex="-1"])
   ):focus-visible {
-    outline: 3px solid var(--color-accent-accessible);
-    outline-offset: 2px;
+    outline: 3px solid #fff !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 5px var(--color-accent-accessible) !important;
   }
 }

@@ -75,7 +75,7 @@ export function PortalPageShell({
     <MobilePageShell title={title} subtitle={subtitle}>
       <div
         className={cx(
-          "mx-auto w-full space-y-4 md:px-1 md:py-1",
+          "mx-auto min-w-0 w-full max-w-full space-y-4 overflow-x-hidden md:px-1 md:py-1",
           size === "wide" ? "max-w-[1280px]" : "max-w-6xl",
           className,
         )}
