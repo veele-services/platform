@@ -44,7 +44,7 @@ export function InfoRow({ label, value }: { label: string; value: string }) {
         {label}
       </dt>
       <dd
-        className="text-[14px] font-black leading-tight"
+        className="text-[14px] font-semibold leading-tight"
         style={{ color: "var(--color-primary)" }}
       >
         {value}
@@ -62,7 +62,7 @@ export function CustomerNotes({ description }: { description: string | null }) {
       style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
     >
       <h2
-        className="text-[15px] font-black"
+        className="text-[15px] font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         Klantopmerkingen
@@ -141,7 +141,7 @@ export function AssignmentQuestionCard({
           </span>
           <div className="min-w-0">
             <h2
-              className="text-[15px] font-black"
+              className="text-[15px] font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               Vraag aan planning
@@ -157,7 +157,7 @@ export function AssignmentQuestionCard({
         <button
           type="button"
           onClick={() => setIsOpen((value) => !value)}
-          className="rounded-2xl px-3 py-2 text-[12px] font-black text-white"
+          className="rounded-2xl px-3 py-2 text-[12px] font-semibold text-white"
           style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Vraag
@@ -167,7 +167,7 @@ export function AssignmentQuestionCard({
       {ticketId ? (
         <Link
           href={`/berichten/${ticketId}`}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[13px] font-black"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[13px] font-semibold"
           style={{ backgroundColor: "#E8F2FF", color: "#1D4ED8" }}
         >
           <MessageSquare size={14} />
@@ -199,7 +199,7 @@ export function AssignmentQuestionCard({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="rounded-2xl px-4 py-2 text-[13px] font-black"
+              className="rounded-2xl px-4 py-2 text-[13px] font-semibold"
               style={{ color: "var(--color-secondary)" }}
               disabled={isPending}
             >
@@ -209,7 +209,7 @@ export function AssignmentQuestionCard({
               type="button"
               onClick={submitQuestion}
               disabled={isPending}
-              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               {isPending ? (
@@ -338,7 +338,7 @@ export function TaskChecklistCard({
     >
       <div className="flex items-center justify-between gap-3">
         <h2
-          className="text-[19px] font-black leading-tight"
+          className="text-[19px] font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
           Taken / Checklist
@@ -460,7 +460,7 @@ export function ExtraWorkSummaryCard({
         className="mb-3 flex items-center justify-between gap-3"
       >
         <h2
-          className="text-[19px] font-black leading-tight"
+          className="text-[19px] font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
           Meerwerk
@@ -491,7 +491,7 @@ export function ExtraWorkSummaryCard({
                 </p>
               </div>
               <span
-                className="text-[14px] font-black"
+                className="text-[14px] font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {formatMoney(calculateExtraWorkLineTotal(item))}
@@ -513,13 +513,13 @@ export function ExtraWorkSummaryCard({
         style={{ borderColor: "var(--color-border)" }}
       >
         <span
-          className="text-[17px] font-black"
+          className="text-[17px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Totaal meerwerk
         </span>
         <span
-          className="text-[17px] font-black"
+          className="text-[17px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {formatMoney(total)}
@@ -557,7 +557,7 @@ function MaterialBadges({ item }: { item: MaterialUsageItem }) {
       {badges.map((badge) => (
         <span
           key={badge}
-          className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide"
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
           style={{ backgroundColor: "#E8F2FF", color: "#2563A9" }}
         >
           {badge}
@@ -584,7 +584,7 @@ export function MaterialSummaryCard({
         className="mb-3 flex items-center justify-between gap-3"
       >
         <h2
-          className="text-[19px] font-black leading-tight"
+          className="text-[19px] font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
           Materiaal / Verbruik
@@ -630,13 +630,13 @@ export function MaterialSummaryCard({
         style={{ borderColor: "var(--color-border)" }}
       >
         <span
-          className="text-[15px] font-black"
+          className="text-[15px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Registraties
         </span>
         <span
-          className="text-[15px] font-black"
+          className="text-[15px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {items.length}

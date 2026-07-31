@@ -99,7 +99,7 @@ function ResponseBottomSheet({
           </span>
           <div className="min-w-0 flex-1">
             <DialogTitle
-              className="text-[18px] font-black leading-tight"
+              className="text-[18px] font-semibold leading-tight"
               style={{ color: "var(--color-primary)" }}
             >
               {title}
@@ -231,7 +231,7 @@ export function ApplyButton({
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold"
             style={{
               backgroundColor: isUnavailable
                 ? "#FEE2E2"
@@ -257,7 +257,7 @@ export function ApplyButton({
           {ticketId ? (
             <Link
               href={`/berichten/${ticketId}`}
-              className="text-[12px] font-black"
+              className="text-[12px] font-semibold"
               style={{ color: "var(--color-accent)" }}
             >
               Ticket bekijken
@@ -355,7 +355,7 @@ export function ApplyButton({
               className="block rounded-2xl border bg-white px-3 py-2.5"
               style={{ borderColor: "var(--color-border)" }}
             >
-              <span className="block text-[11px] font-black uppercase tracking-wide text-slate-400">
+              <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 Bericht aan planning
               </span>
               <textarea
@@ -377,7 +377,7 @@ export function ApplyButton({
                 type="button"
                 onClick={closeSheet}
                 disabled={pending}
-                className="rounded-2xl border px-4 py-3 text-[14px] font-black disabled:opacity-60"
+                className="rounded-2xl border px-4 py-3 text-[14px] font-semibold disabled:opacity-60"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-secondary)",
@@ -389,7 +389,7 @@ export function ApplyButton({
                 type="button"
                 onClick={handleQuestion}
                 disabled={pending}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-black text-white disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
                 style={{ backgroundColor: "var(--color-accent)" }}
               >
                 {pending ? (
@@ -413,7 +413,7 @@ export function ApplyButton({
                 type="button"
                 onClick={closeSheet}
                 disabled={pending}
-                className="rounded-2xl border px-4 py-3 text-[14px] font-black disabled:opacity-60"
+                className="rounded-2xl border px-4 py-3 text-[14px] font-semibold disabled:opacity-60"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-secondary)",
@@ -429,7 +429,7 @@ export function ApplyButton({
                   )
                 }
                 disabled={pending}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-black text-white disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
                 style={{
                   backgroundColor:
                     sheetAction === "decline"

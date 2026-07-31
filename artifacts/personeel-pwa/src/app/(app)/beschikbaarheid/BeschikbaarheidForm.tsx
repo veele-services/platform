@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -24,6 +23,12 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/shared-ui";
 import {
   deleteAvailabilityDay,
   saveAvailabilityDay,
@@ -195,6 +200,7 @@ export function BeschikbaarheidForm({
   const [viewMonth, setViewMonth] = useState(firstOfMonth(data.today));
   const [editorOpen, setEditorOpen] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>(() => defaultEditor(null));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -338,36 +344,34 @@ export function BeschikbaarheidForm({
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-4 pb-[calc(6.4rem+var(--safe-bottom))] md:max-w-3xl md:pb-0">
-      <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)] md:p-5">
-        <div className="mb-5 flex items-center justify-between">
+    <div className="mx-auto max-w-xl space-y-3 pb-[calc(6.4rem+var(--safe-bottom))] md:max-w-4xl md:pb-0">
+      <section className="-mx-3.5 rounded-none border-y border-[var(--color-border)] bg-white px-1 py-3 shadow-sm md:mx-0 md:rounded-2xl md:border md:p-4">
+        <div className="mb-3 flex items-center justify-between px-1 md:px-0">
           <button
             type="button"
             onClick={() =>
               canGoPrevious && selectMonth(shiftMonth(viewMonth, -1))
             }
             disabled={!canGoPrevious}
-            className="flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-30"
             style={{ color: "var(--color-primary)" }}
             aria-label="Vorige maand"
           >
             <ChevronLeft size={21} strokeWidth={2.4} />
           </button>
 
-          <button
-            type="button"
-            className="flex items-center gap-2 text-lg font-black"
+          <p
+            className="text-base font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {monthLabel(viewMonth)}
-            <ChevronDown size={16} strokeWidth={2.5} />
-          </button>
+          </p>
 
           <button
             type="button"
             onClick={() => canGoNext && selectMonth(shiftMonth(viewMonth, 1))}
             disabled={!canGoNext}
-            className="flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-30"
             style={{ color: "var(--color-primary)" }}
             aria-label="Volgende maand"
           >
@@ -399,7 +403,7 @@ export function BeschikbaarheidForm({
                 type="button"
                 disabled={isDisabled}
                 onClick={() => setSelectedDate(day.key)}
-                className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-base font-black transition-all disabled:cursor-not-allowed"
+                className="mx-auto flex h-11 w-11 items-center justify-center rounded-full text-sm font-medium transition-all disabled:cursor-not-allowed"
                 style={{
                   color: hasAvailability
                     ? "#FFFFFF"
@@ -429,9 +433,9 @@ export function BeschikbaarheidForm({
         </div>
       </section>
 
-      <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5">
+      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
         <h2
-          className="text-[22px] font-black leading-tight"
+          className="text-lg font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
           {fullDateLabel(selectedDate)}
@@ -478,7 +482,7 @@ export function BeschikbaarheidForm({
               type="button"
               onClick={openEditor}
               disabled={!selectedIsEditable}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-50"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: "var(--color-accent-dark)" }}
             >
               <PencilLine size={20} strokeWidth={2.4} />
@@ -504,7 +508,7 @@ export function BeschikbaarheidForm({
               type="button"
               onClick={openEditor}
               disabled={!selectedIsEditable}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-50"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               <CalendarDays size={20} strokeWidth={2.4} />
@@ -542,48 +546,29 @@ export function BeschikbaarheidForm({
         ) : null}
       </section>
 
-      {editorOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-end bg-[#061F44]/45 px-3 pb-[calc(0.7rem+var(--safe-bottom))] backdrop-blur-sm md:hidden">
-          <div className="w-full rounded-[28px] bg-white p-4 shadow-2xl">
-            <div className="mx-auto mb-4 h-1 w-14 rounded-full bg-slate-300" />
-            <EditorBody
-              selectedDate={selectedDate}
-              editor={editor}
-              setEditor={setEditor}
-              isPending={isPending}
-              hasEntry={Boolean(selectedEntry)}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              error={error}
-              conflict={conflict}
-              isDirty={editorIsDirty}
-              onRefresh={() => router.refresh()}
-              onClose={closeEditor}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {editorOpen ? (
-        <div className="hidden md:fixed md:inset-0 md:z-[60] md:flex md:items-center md:justify-center md:bg-[#061F44]/45 md:p-6 md:backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl">
-            <EditorBody
-              selectedDate={selectedDate}
-              editor={editor}
-              setEditor={setEditor}
-              isPending={isPending}
-              hasEntry={Boolean(selectedEntry)}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              error={error}
-              conflict={conflict}
-              isDirty={editorIsDirty}
-              onRefresh={() => router.refresh()}
-              onClose={closeEditor}
-            />
-          </div>
-        </div>
-      ) : null}
+      <Dialog
+        open={editorOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isPending) closeEditor();
+        }}
+      >
+        <DialogContent className="max-w-md bg-white p-4 sm:p-5">
+          <EditorBody
+            selectedDate={selectedDate}
+            editor={editor}
+            setEditor={setEditor}
+            isPending={isPending}
+            hasEntry={Boolean(selectedEntry)}
+            onSave={handleSave}
+            onDelete={() => setDeleteDialogOpen(true)}
+            error={error}
+            conflict={conflict}
+            isDirty={editorIsDirty}
+            onRefresh={() => router.refresh()}
+            onClose={closeEditor}
+          />
+        </DialogContent>
+      </Dialog>
 
       <PersonnelConfirmDialog
         open={discardDialogOpen}
@@ -593,6 +578,19 @@ export function BeschikbaarheidForm({
         tone="danger"
         onConfirm={discardEditorChanges}
         onClose={() => setDiscardDialogOpen(false)}
+      />
+      <PersonnelConfirmDialog
+        open={deleteDialogOpen}
+        title="Beschikbaarheid verwijderen?"
+        description={`De beschikbaarheid voor ${fullDateLabel(selectedDate)} wordt verwijderd.`}
+        confirmLabel="Verwijderen"
+        tone="danger"
+        pending={isPending}
+        onConfirm={() => {
+          setDeleteDialogOpen(false);
+          handleDelete();
+        }}
+        onClose={() => setDeleteDialogOpen(false)}
       />
     </div>
   );
@@ -644,14 +642,17 @@ function EditorBody({
 }) {
   return (
     <div>
+      <DialogDescription className="sr-only">
+        Bewerk de tijden, herhaling en spoedbeschikbaarheid voor deze datum.
+      </DialogDescription>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h3
-            className="text-xl font-black leading-tight"
+          <DialogTitle
+            className="text-xl font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             {fullDateLabel(selectedDate)}
-          </h3>
+          </DialogTitle>
         </div>
         <div className="flex items-center gap-2">
           {hasEntry ? (
@@ -659,7 +660,7 @@ function EditorBody({
               type="button"
               onClick={onDelete}
               disabled={isPending}
-              className="flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-50"
               style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
               aria-label="Beschikbaarheid verwijderen"
             >
@@ -670,7 +671,7 @@ function EditorBody({
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 disabled:opacity-50"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 disabled:opacity-50"
             style={{ color: "var(--color-primary)" }}
             aria-label="Sluiten"
           >
@@ -698,7 +699,7 @@ function EditorBody({
 
       <div className="mt-5">
         <p
-          className="mb-2 text-base font-black"
+          className="mb-2 text-base font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Herhalen
@@ -716,7 +717,7 @@ function EditorBody({
                     repeatType: option.value,
                   }))
                 }
-                className="rounded-2xl border px-3 py-2.5 text-sm font-black"
+                className="rounded-2xl border px-3 py-2.5 text-sm font-semibold"
                 style={{
                   color: active ? "#087C79" : "var(--color-primary)",
                   borderColor: active
@@ -785,7 +786,7 @@ function EditorBody({
         type="button"
         onClick={onSave}
         disabled={isPending}
-        className="mt-6 w-full rounded-2xl px-4 py-4 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="mt-6 w-full rounded-2xl px-4 py-4 text-base font-semibold text-white shadow-lg disabled:opacity-60"
         style={{ backgroundColor: "var(--color-accent)" }}
       >
         {isPending ? "Opslaan..." : "Beschikbaarheid opslaan"}
@@ -795,7 +796,7 @@ function EditorBody({
         type="button"
         onClick={onClose}
         disabled={isPending}
-        className="mt-3 w-full rounded-2xl px-4 py-2.5 text-base font-black disabled:opacity-60"
+        className="mt-3 w-full rounded-2xl px-4 py-2.5 text-base font-semibold disabled:opacity-60"
         style={{ color: "#718096" }}
       >
         Annuleren
@@ -834,7 +835,7 @@ function TimeField({
           type="time"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-lg font-black outline-none"
+          className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none"
           style={{ color: "var(--color-primary)" }}
         />
       </span>

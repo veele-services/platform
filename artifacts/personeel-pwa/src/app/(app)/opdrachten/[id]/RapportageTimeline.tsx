@@ -295,7 +295,7 @@ function AttachmentPreview({ attachment }: { attachment: ReportNoteAttachment })
       </span>
 
       <span className="min-w-0">
-        <span className="block truncate text-[14px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+        <span className="block truncate text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
           {attachment.fileName}
         </span>
         <span className="mt-1 block text-[13px] font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -343,14 +343,14 @@ function LocalFileRow({
         )}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+        <span className="block truncate text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
           {item.file.name}
         </span>
         <span className="block text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
           {meta}
         </span>
         <span
-          className="mt-1 block text-[11px] font-black"
+          className="mt-1 block text-[11px] font-semibold"
           style={{ color: item.status === "failed" ? "#DC2626" : item.status === "uploaded" ? "#059669" : "var(--color-secondary)" }}
         >
           {statusLabel}
@@ -361,7 +361,7 @@ function LocalFileRow({
           <button
             type="button"
             onClick={() => onRetry(item.id)}
-            className="rounded-full border px-3 py-1.5 text-[11px] font-black"
+            className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
             style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
           >
             Opnieuw
@@ -420,14 +420,14 @@ function ReportNoteCard({ note }: { note: ReportNote }) {
               {time}
             </span>
           </div>
-          <span className="mt-1 block text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+          <span className="mt-1 block text-[14px] font-semibold" style={{ color: "var(--color-primary)" }}>
             {note.authorName}
           </span>
         </div>
 
         {report ? (
           <span
-            className="rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide"
+            className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide"
             style={{ backgroundColor: "#E9FBF8", color: "#087F7B" }}
           >
             {report.kind}
@@ -439,7 +439,7 @@ function ReportNoteCard({ note }: { note: ReportNote }) {
         <div className="mt-4">
           <div className="flex flex-wrap gap-2">
             <span
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold"
               style={{ backgroundColor: statusStyle.backgroundColor, color: statusStyle.color }}
             >
               <CheckCircle2 size={14} strokeWidth={2.6} />
@@ -475,7 +475,7 @@ function ReportNoteCard({ note }: { note: ReportNote }) {
 function ReportSection({ title, body }: { title: string; body: string }) {
   return (
     <div className="border-l-[3px] pl-3" style={{ borderColor: "var(--color-accent)" }}>
-      <p className="text-[11px] font-black uppercase tracking-[0.08em]" style={{ color: "var(--color-secondary)" }}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-secondary)" }}>
         {title}
       </p>
       <p className="mt-1 whitespace-pre-wrap text-[15px] font-semibold leading-6" style={{ color: "var(--color-primary)" }}>
@@ -790,7 +790,7 @@ export function RapportageTimeline({
     <section className="rounded-[24px] bg-white px-4 py-5 shadow-sm" style={{ boxShadow: "0 16px 36px rgba(8,29,58,0.08)" }}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[22px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+          <h2 className="text-[22px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
             Rapportage
           </h2>
           <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -802,7 +802,7 @@ export function RapportageTimeline({
           <button
             type="button"
             onClick={() => setShowForm((value) => !value)}
-            className="flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-black text-white shadow-lg active:scale-95"
+            className="flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold text-white shadow-lg active:scale-95"
             style={{ backgroundColor: "var(--color-accent)", boxShadow: "0 12px 24px rgba(0,183,179,0.28)" }}
             aria-label={showForm ? "Rapportageformulier sluiten" : "Nieuwe rapportage openen"}
           >
@@ -820,7 +820,7 @@ export function RapportageTimeline({
                 <FileText size={20} strokeWidth={2.4} />
               </span>
               <div>
-                <h3 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
+                <h3 className="text-[17px] font-semibold" style={{ color: "var(--color-primary)" }}>
                   Nieuwe werkrapportage
                 </h3>
                 <p className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -832,7 +832,7 @@ export function RapportageTimeline({
 
           <div className="space-y-6 p-4">
             <fieldset>
-              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <legend className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 1. Type rapportage
               </legend>
               <RadioGroup
@@ -865,7 +865,7 @@ export function RapportageTimeline({
                         <Icon size={18} strokeWidth={2.4} />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+                        <span className="block text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
                           {option.label}
                         </span>
                         <span className="mt-0.5 block text-[11px] font-semibold leading-4" style={{ color: "var(--color-secondary)" }}>
@@ -879,7 +879,7 @@ export function RapportageTimeline({
             </fieldset>
 
             <fieldset>
-              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <legend className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 2. Uitvoeringsstatus
               </legend>
               <RadioGroup
@@ -917,7 +917,7 @@ export function RapportageTimeline({
             </fieldset>
 
             <div>
-              <label htmlFor={`report-work-${assignmentId}`} className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <label htmlFor={`report-work-${assignmentId}`} className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 3. Uitgevoerde werkzaamheden <span style={{ color: "#DC2626" }}>*</span>
               </label>
               <p className="mt-1 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -936,7 +936,7 @@ export function RapportageTimeline({
             </div>
 
             <div>
-              <label htmlFor={`report-particulars-${assignmentId}`} className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <label htmlFor={`report-particulars-${assignmentId}`} className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 4. Bijzonderheden
                 {(reportKind === "incident" || executionStatus !== "as-planned") ? (
                   <span style={{ color: "#DC2626" }}> *</span>
@@ -960,7 +960,7 @@ export function RapportageTimeline({
             <div className="rounded-2xl border bg-white p-3" style={{ borderColor: "var(--color-border)" }}>
               <div className="flex min-h-[44px] w-full items-center justify-between gap-4">
                 <span>
-                  <span className="block text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+                  <span className="block text-[14px] font-semibold" style={{ color: "var(--color-primary)" }}>
                     Vervolgactie nodig
                   </span>
                   <span className="mt-0.5 block text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -976,7 +976,7 @@ export function RapportageTimeline({
 
               {followUpNeeded ? (
                 <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
-                  <label htmlFor={`report-follow-up-${assignmentId}`} className="text-[12px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                  <label htmlFor={`report-follow-up-${assignmentId}`} className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                     Gewenste vervolgactie <span style={{ color: "#DC2626" }}>*</span>
                   </label>
                   <textarea
@@ -994,7 +994,7 @@ export function RapportageTimeline({
             </div>
 
             <fieldset>
-              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <legend className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 Klant geïnformeerd
               </legend>
               <RadioGroup
@@ -1010,7 +1010,7 @@ export function RapportageTimeline({
                   return (
                     <label
                       key={option.value}
-                      className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[12px] font-black"
+                      className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[12px] font-semibold"
                       style={{
                         borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
                         backgroundColor: selected ? "#E9FBF8" : "white",
@@ -1026,7 +1026,7 @@ export function RapportageTimeline({
             </fieldset>
 
             <div>
-              <p className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 Foto&apos;s en bewijs
               </p>
               <p className="mt-1 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -1041,7 +1041,7 @@ export function RapportageTimeline({
                 </div>
               ) : null}
 
-              <label className="mt-3 flex min-h-[52px] cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed bg-white px-3 py-3 text-[14px] font-black" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent-accessible)" }}>
+              <label className="mt-3 flex min-h-[52px] cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed bg-white px-3 py-3 text-[14px] font-semibold" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent-accessible)" }}>
                 <Paperclip size={18} strokeWidth={2.4} />
                 Foto of video toevoegen
                 <input
@@ -1073,7 +1073,7 @@ export function RapportageTimeline({
               type="button"
               onClick={resetForm}
               disabled={isPending}
-              className="min-h-[50px] flex-1 rounded-2xl border px-3 text-[14px] font-black disabled:opacity-60"
+              className="min-h-[50px] flex-1 rounded-2xl border px-3 text-[14px] font-semibold disabled:opacity-60"
               style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
             >
               Annuleren
@@ -1081,7 +1081,7 @@ export function RapportageTimeline({
             <button
               type="submit"
               disabled={isPending}
-              className="flex min-h-[50px] flex-[1.5] items-center justify-center gap-2 rounded-2xl px-3 text-[14px] font-black text-white disabled:opacity-60"
+              className="flex min-h-[50px] flex-[1.5] items-center justify-center gap-2 rounded-2xl px-3 text-[14px] font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               {isPending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} strokeWidth={2.3} />}
@@ -1097,7 +1097,7 @@ export function RapportageTimeline({
         )) : (
           <div className="rounded-[18px] border bg-[#FAFBFD] px-4 py-6 text-center" style={{ borderColor: "var(--color-border)" }}>
             <ClipboardCheck size={26} className="mx-auto" style={{ color: "var(--color-muted-fg)" }} />
-            <p className="mt-2 text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+            <p className="mt-2 text-[14px] font-semibold" style={{ color: "var(--color-primary)" }}>
               Nog geen rapportages
             </p>
             <p className="mt-1 text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>

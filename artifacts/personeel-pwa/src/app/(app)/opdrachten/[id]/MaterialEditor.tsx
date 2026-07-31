@@ -292,13 +292,13 @@ export function MaterialEditor({
       >
         <div className="flex items-center justify-between gap-3">
           <h2
-            className="text-[19px] font-black leading-tight"
+            className="text-[19px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             Materiaal / Verbruik
           </h2>
           <span
-            className="text-[13px] font-black"
+            className="text-[13px] font-semibold"
             style={{ color: "var(--color-accent)" }}
           >
             {itemCountLabel}
@@ -330,17 +330,17 @@ export function MaterialEditor({
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {item.materialCode ? (
-                      <span className="rounded-full bg-[#E8F2FF] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#2563A9]">
+                      <span className="rounded-full bg-[#E8F2FF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#2563A9]">
                         {item.materialCode}
                       </span>
                     ) : null}
                     {item.usesStock ? (
-                      <span className="rounded-full bg-[#E9FBF8] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#0A837F]">
+                      <span className="rounded-full bg-[#E9FBF8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0A837F]">
                         Uit voorraad
                       </span>
                     ) : null}
                     {item.isOther ? (
-                      <span className="rounded-full bg-[#F4F6FA] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                      <span className="rounded-full bg-[#F4F6FA] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
                         Overig
                       </span>
                     ) : null}
@@ -375,7 +375,7 @@ export function MaterialEditor({
                 style={{ color: "var(--color-muted-fg)" }}
               />
               <p
-                className="text-[14px] font-black"
+                className="text-[14px] font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 Geen materiaal geregistreerd
@@ -399,7 +399,7 @@ export function MaterialEditor({
           style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
         >
           <h3
-            className="text-[17px] font-black"
+            className="text-[17px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Materiaal toevoegen
@@ -410,7 +410,7 @@ export function MaterialEditor({
               type="button"
               onClick={() => setMode("catalog")}
               disabled={catalog.length === 0}
-              className="rounded-xl px-3 py-2 text-[13px] font-black disabled:opacity-50"
+              className="rounded-xl px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
               style={
                 form.mode === "catalog"
                   ? { backgroundColor: "white", color: "var(--color-primary)" }
@@ -422,7 +422,7 @@ export function MaterialEditor({
             <button
               type="button"
               onClick={() => setMode("other")}
-              className="rounded-xl px-3 py-2 text-[13px] font-black"
+              className="rounded-xl px-3 py-2 text-[13px] font-semibold"
               style={
                 form.mode === "other"
                   ? { backgroundColor: "white", color: "var(--color-primary)" }
@@ -546,7 +546,7 @@ export function MaterialEditor({
               >
                 <label className="flex items-center justify-between gap-3">
                   <span
-                    className="text-[13px] font-black"
+                    className="text-[13px] font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     Uit voorraad gebruiken
@@ -637,7 +637,7 @@ export function MaterialEditor({
             <button
               type="submit"
               disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-black text-white disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               {isPending ? (

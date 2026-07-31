@@ -9,7 +9,7 @@ export default async function BeschikbaarheidPage() {
   return (
     <div className="min-h-[calc(100vh-4.2rem)] bg-[#F4F7FB] md:bg-transparent">
       <section className="bg-[#061F44] px-4 pb-10 pt-4 md:rounded-3xl md:bg-transparent md:px-6 md:pb-6">
-        <h1 className="text-[29px] font-black leading-tight text-white md:text-3xl">
+        <h1 className="text-[29px] font-semibold leading-tight text-white md:text-3xl">
           Beschikbaarheid
         </h1>
         <p className="mt-1 text-base font-medium text-white/68">

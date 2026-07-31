@@ -257,7 +257,7 @@ function OpenAssignmentsCommandBar({
         <div>
           <label
             htmlFor="open-assignment-search"
-            className="mb-1.5 block text-[11px] font-black uppercase tracking-wide"
+            className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: "var(--color-secondary)" }}
           >
             Zoeken
@@ -283,7 +283,7 @@ function OpenAssignmentsCommandBar({
         <div>
           <label
             htmlFor="open-assignment-status"
-            className="mb-1.5 block text-[11px] font-black uppercase tracking-wide"
+            className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: "var(--color-secondary)" }}
           >
             Status
@@ -292,7 +292,7 @@ function OpenAssignmentsCommandBar({
             id="open-assignment-status"
             name="status"
             defaultValue={status}
-            className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-black outline-none"
+            className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-semibold outline-none"
             style={{
               borderColor: "var(--color-border)",
               color: "var(--color-primary)",
@@ -308,7 +308,7 @@ function OpenAssignmentsCommandBar({
         <div>
           <label
             htmlFor="open-assignment-priority"
-            className="mb-1.5 block text-[11px] font-black uppercase tracking-wide"
+            className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: "var(--color-secondary)" }}
           >
             Prioriteit
@@ -317,7 +317,7 @@ function OpenAssignmentsCommandBar({
             id="open-assignment-priority"
             name="priority"
             defaultValue={priority}
-            className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-black outline-none"
+            className="h-11 w-full rounded-2xl border bg-white px-3 text-[14px] font-semibold outline-none"
             style={{
               borderColor: "var(--color-border)",
               color: "var(--color-primary)",
@@ -332,7 +332,7 @@ function OpenAssignmentsCommandBar({
         </div>
         <button
           type="submit"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-black text-white"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-semibold text-white"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
           <SlidersHorizontal size={16} strokeWidth={2.4} />
@@ -353,7 +353,7 @@ function OpenAssignmentsCommandBar({
               <a
                 key={filter.label}
                 href={filter.href}
-                className="inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-[11px] font-black"
+                className="inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-[11px] font-semibold"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-primary)",
@@ -365,7 +365,7 @@ function OpenAssignmentsCommandBar({
             ))}
             <a
               href="/openstaand"
-              className="rounded-full px-2.5 py-1 text-[11px] font-black"
+              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
               style={{ color: "var(--color-secondary)" }}
             >
               Wissen
@@ -442,7 +442,7 @@ export default async function OpenstaandePage({ searchParams }: Props) {
             style={{ color: "var(--color-muted-fg)" }}
           />
           <p
-            className="text-sm font-black"
+            className="text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Geen diensten gevonden
@@ -528,7 +528,7 @@ function AssignmentCard({ assignment }: { assignment: OpenAssignment }) {
             {assignment.code}
           </p>
           <p
-            className="mt-1 line-clamp-2 text-[16px] font-black leading-5"
+            className="mt-1 line-clamp-2 text-[16px] font-semibold leading-5"
             style={{ color: "var(--color-primary)" }}
           >
             {assignment.title}
@@ -537,7 +537,7 @@ function AssignmentCard({ assignment }: { assignment: OpenAssignment }) {
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           {assignment.isInterestInvite ? (
             <span
-              className="rounded-full px-2.5 py-1 text-[11px] font-black"
+              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
               style={{ backgroundColor: "#ecfeff", color: "#0f766e" }}
             >
               Uitnodiging
@@ -545,7 +545,7 @@ function AssignmentCard({ assignment }: { assignment: OpenAssignment }) {
           ) : null}
           {priorityLabel && priorityStyle ? (
             <span
-              className="rounded-full px-2.5 py-1 text-[11px] font-black"
+              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
               style={{
                 backgroundColor: priorityStyle.bg,
                 color: priorityStyle.fg,
@@ -576,7 +576,7 @@ function AssignmentCard({ assignment }: { assignment: OpenAssignment }) {
             />
             <span className="min-w-0 truncate">
               <span
-                className="font-black"
+                className="font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {service}

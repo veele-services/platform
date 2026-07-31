@@ -51,8 +51,8 @@ function formatDate(dateStr: string | null, today: string): string {
   if (!dateStr) return "Datum nog niet bekend";
 
   const date = new Date(`${dateStr}T00:00:00`);
-  const tomorrow = new Date(`${today}T00:00:00`);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrow = new Date(`${today}T00:00:00Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const tomorrowKey = tomorrow.toISOString().slice(0, 10);
 
   const formatted = date.toLocaleDateString("nl-NL", {
@@ -74,13 +74,20 @@ function formatTime(start: string | null, end: string | null): string {
 
 function getNextAssignment(assignments: MyAssignment[], today: string): MyAssignment | null {
   return assignments
-    .filter((assignment) =>
-      assignment.scheduledDate &&
-      assignment.scheduledDate >= today &&
-      ACTIVE_ASSIGNMENT_STATUSES.includes(assignment.status),
-    )
+    .filter((assignment) => {
+      const assignmentDate =
+        assignment.effectiveDate ?? assignment.scheduledDate;
+      return (
+        Boolean(assignmentDate) &&
+        (assignment.isRunning || assignmentDate! >= today) &&
+        ACTIVE_ASSIGNMENT_STATUSES.includes(assignment.status)
+      );
+    })
     .sort((a, b) => {
-      const byDate = dateValue(a.scheduledDate) - dateValue(b.scheduledDate);
+      if (a.isRunning !== b.isRunning) return a.isRunning ? -1 : 1;
+      const byDate =
+        dateValue(a.effectiveDate ?? a.scheduledDate) -
+        dateValue(b.effectiveDate ?? b.scheduledDate);
       if (byDate !== 0) return byDate;
       return timeValue(a.effectiveStart).localeCompare(timeValue(b.effectiveStart));
     })[0] ?? null;
@@ -97,11 +104,11 @@ function QuickLink({ href, label, Icon, badge }: QuickLinkProps) {
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[62px] items-center gap-2.5 rounded-2xl border bg-white px-3 py-2.5 shadow-sm transition active:scale-[0.98] sm:min-h-20 sm:gap-3 sm:px-4 sm:py-4"
+      className="group relative flex min-h-14 items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 shadow-sm transition active:scale-[0.98] sm:gap-3"
       style={{ borderColor: "rgba(226,232,240,0.9)", boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition sm:h-11 sm:w-11 sm:rounded-2xl"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition"
         style={{ backgroundColor: "rgba(0,183,179,0.09)", color: "var(--color-primary)" }}
       >
         <Icon size={17} strokeWidth={2.2} />
@@ -139,32 +146,31 @@ export default async function DashboardPage() {
   const objectCity = nextAssignment?.objectCity || "Plaats nog niet bekend";
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
+    <div className="min-h-screen bg-[var(--color-muted)] md:min-h-0">
       <section
-        className="relative z-0 overflow-hidden px-5 pb-[72px] pt-4 text-white md:rounded-[32px] md:px-6 md:pb-28 md:pt-9"
-        style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
+        className="relative z-0 overflow-hidden bg-[var(--color-primary)] px-5 pb-16 pt-4 text-white md:rounded-2xl md:px-6 md:pb-8 md:pt-6"
       >
-        <div className="md:mt-4">
-          <h1 className="text-[25px] font-black leading-tight tracking-tight md:text-[34px]">
+        <div>
+          <h1 className="text-2xl font-semibold leading-tight md:text-[28px]">
             {getDayGreeting()}, {firstName}
           </h1>
-          <p className="mt-2 text-[16px] font-medium leading-none md:mt-3 md:text-[22px]" style={{ color: "rgba(255,255,255,0.72)" }}>
+          <p className="mt-1 text-sm font-normal text-white/70">
             Welkom terug
           </p>
         </div>
       </section>
 
-      <section className="relative z-10 -mt-[64px] space-y-6 px-3.5 pb-6 md:-mt-20 md:space-y-8 md:px-5 md:pb-8">
-        <div className="rounded-[22px] bg-white p-3 shadow-xl sm:p-4" style={{ boxShadow: "0 18px 42px rgba(8,29,58,0.16)" }}>
-          <h2 className="px-1 pb-2.5 text-base font-black sm:pb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
+      <section className="relative z-10 -mt-12 grid gap-4 px-3.5 pb-6 md:mt-4 md:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] md:items-start md:px-0 md:pb-0">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm md:row-span-2">
+          <h2 className="pb-3 text-base font-semibold" style={{ color: "var(--color-primary)" }}>
             Eerstvolgende dienst
           </h2>
 
           {nextAssignment ? (
-            <div className="rounded-[18px] border bg-white p-3 shadow-sm sm:p-4" style={{ borderColor: "var(--color-border)" }}>
-              <Link href={`/opdrachten/${nextAssignment.id}`} className="flex gap-3 sm:gap-4">
+            <div>
+              <div className="flex gap-3">
                 <span
-                  className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl sm:h-10 sm:w-10"
+                  className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                   style={{ backgroundColor: "rgba(0,183,179,0.11)", color: "var(--color-accent)" }}
                 >
                   <CalendarDays size={20} strokeWidth={2.4} />
@@ -176,8 +182,8 @@ export default async function DashboardPage() {
                       <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
                         Datum
                       </span>
-                      <span className="block text-base font-black leading-tight sm:text-lg" style={{ color: "var(--color-primary)" }}>
-                        {formatDate(nextAssignment.scheduledDate, today)}
+                      <span className="block text-base font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
+                        {formatDate(nextAssignment.effectiveDate ?? nextAssignment.scheduledDate, today)}
                       </span>
                     </span>
 
@@ -185,7 +191,7 @@ export default async function DashboardPage() {
                       <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
                         Tijd
                       </span>
-                      <span className="block text-base font-black leading-tight sm:text-lg" style={{ color: "var(--color-primary)" }}>
+                      <span className="block text-base font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                         {nextAssignmentHasActualTime ? "Werkelijk " : ""}{formatTime(nextAssignment.effectiveStart, nextAssignment.effectiveEnd)}
                         {nextAssignmentHasActualTime ? (
                           <span className="mt-1 block text-xs font-bold" style={{ color: "var(--color-secondary)" }}>
@@ -199,7 +205,7 @@ export default async function DashboardPage() {
                       <span className="block text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
                         Object
                       </span>
-                      <span className="block truncate text-[18px] font-black leading-tight sm:text-[21px]" style={{ color: "var(--color-primary)" }}>
+                      <span className="block truncate text-base font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                         {objectName}
                       </span>
                       <span className="mt-1 block text-sm font-medium sm:text-base" style={{ color: "var(--color-secondary)" }}>
@@ -209,12 +215,11 @@ export default async function DashboardPage() {
                   </span>
                 </span>
 
-                <ChevronRight className="mt-3 shrink-0" size={21} strokeWidth={2.4} />
-              </Link>
+              </div>
 
               <Link
                 href={`/opdrachten/${nextAssignment.id}`}
-                className="mt-3.5 flex h-11 items-center justify-center rounded-2xl text-sm font-black text-white shadow-md active:scale-[0.99] sm:mt-5 sm:h-14 sm:text-base"
+                className="mt-4 flex min-h-11 items-center justify-center rounded-xl text-sm font-medium text-white active:scale-[0.99]"
                 style={{ background: "linear-gradient(135deg, #0FBDB8 0%, #089DA6 100%)" }}
               >
                 Bekijk details
@@ -228,7 +233,7 @@ export default async function DashboardPage() {
               >
                 <CalendarDays size={18} strokeWidth={2.4} />
               </div>
-              <p className="mt-2.5 text-sm font-black sm:mt-3 sm:text-base" style={{ color: "var(--color-primary)" }}>
+              <p className="mt-2.5 text-sm font-semibold sm:mt-3 sm:text-base" style={{ color: "var(--color-primary)" }}>
                 Geen dienst gepland
               </p>
               <p className="mt-1 text-xs leading-relaxed sm:text-sm" style={{ color: "var(--color-secondary)" }}>
@@ -236,7 +241,7 @@ export default async function DashboardPage() {
               </p>
               <Link
                 href="/openstaand"
-                className="mt-3.5 flex h-11 items-center justify-center rounded-2xl text-sm font-black text-white sm:mt-5 sm:h-14 sm:text-base"
+                className="mt-3.5 flex h-11 items-center justify-center rounded-2xl text-sm font-semibold text-white sm:mt-5 sm:h-14 sm:text-base"
                 style={{ background: "linear-gradient(135deg, #0FBDB8 0%, #089DA6 100%)" }}
               >
                 Open diensten bekijken
@@ -245,11 +250,11 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div>
-          <h2 className="mb-2.5 text-[17px] font-black sm:mb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-base font-semibold" style={{ color: "var(--color-primary)" }}>
             Snelle acties
           </h2>
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-1 xl:grid-cols-2">
             <QuickLink href="/opdrachten" label="Mijn planning" Icon={CalendarDays} />
             <QuickLink href="/openstaand" label="Open diensten" Icon={ClipboardCheck} badge={openCount || undefined} />
             <QuickLink href="/uren" label="Uren registreren" Icon={Clock} />
@@ -264,14 +269,14 @@ export default async function DashboardPage() {
 
         <Link
           href="/nieuws"
-          className="flex items-center gap-2.5 rounded-2xl border bg-white px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 sm:py-4"
+          className="flex min-h-14 items-center gap-2.5 rounded-xl border bg-white px-3 py-2.5 shadow-sm"
           style={{ borderColor: "rgba(226,232,240,0.9)", boxShadow: "0 14px 30px rgba(8,29,58,0.05)" }}
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF6FF] text-[#2563EB] sm:h-11 sm:w-11 sm:rounded-2xl">
             <Newspaper size={17} strokeWidth={2.3} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <span className="block text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
               Laatste nieuws
             </span>
             <span className="block truncate text-sm" style={{ color: "var(--color-secondary)" }}>

@@ -128,7 +128,7 @@ function StatusPill({ status }: { status: PlanningStatus }) {
 
   return (
     <span
-      className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-black tracking-wide"
+      className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide"
       style={{ backgroundColor: style.background, color: style.color }}
     >
       {status}
@@ -153,19 +153,19 @@ function PlanningCard({
   return (
     <Link
       href={`/opdrachten/${assignment.id}`}
-      className="relative block rounded-[18px] bg-white px-4 py-3 shadow-sm active:scale-[0.99]"
+      className="relative block rounded-xl border border-[var(--color-border)] bg-white px-4 py-3 shadow-sm active:scale-[0.99]"
       aria-label={`Bekijk werkbon ${assignment.code || assignment.title}`}
       style={{ boxShadow: "0 10px 24px rgba(8,29,58,0.06)" }}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="whitespace-nowrap text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
+          <p className="whitespace-nowrap text-lg font-semibold leading-none" style={{ color: "var(--color-primary)" }}>
             {formatTime(
               assignment.effectiveStart,
               assignment.isRunning ? "nu" : assignment.effectiveEnd,
             )}
           </p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-black leading-tight" style={{ color: "var(--color-secondary)" }}>
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-tight" style={{ color: "var(--color-secondary)" }}>
             {assignment.code || "Werkbon"}
           </p>
         </div>
@@ -173,14 +173,14 @@ function PlanningCard({
       </div>
 
       {isAssignmentNow(assignment, selectedDateKey) ? (
-        <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-black uppercase" style={{ color: "var(--color-accent)" }}>
+        <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase" style={{ color: "var(--color-accent)" }}>
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
           Nu
         </span>
       ) : null}
 
       <div className="mt-2 min-w-0 pr-8">
-        <h2 className="text-[16px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+        <h2 className="text-[15px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
           {objectName}
         </h2>
         <p className="mt-1 text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
@@ -229,14 +229,13 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
   const selectedListClassName = "grid gap-3 md:grid-cols-2 xl:grid-cols-3";
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
+    <div className="min-h-screen bg-[var(--color-muted)] md:min-h-0">
       <section
-        className="relative overflow-hidden px-4 pb-3 pt-4 text-white md:rounded-t-[32px]"
-        style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
+        className="relative overflow-hidden bg-[var(--color-primary)] px-4 pb-3 pt-4 text-white md:rounded-2xl md:px-5"
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-[27px] font-black leading-none tracking-tight">Mijn planning</h1>
+            <h1 className="text-2xl font-semibold leading-none">Mijn planning</h1>
             <p className="mt-2 text-[13px] font-semibold capitalize text-white/65">
               {formatSelectedDate(selectedDateKey)}
             </p>
@@ -247,7 +246,7 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
         <PlanningWeekStrip days={planningDays} />
       </section>
 
-      <section className="space-y-4 px-3.5 pb-28 pt-3 md:px-5">
+      <section className="space-y-4 px-3.5 pb-28 pt-3 md:px-0 md:pb-0 md:pt-4">
         {selectedAssignments.length > 0 ? (
           <div className={selectedListClassName}>
             {selectedAssignments.map((assignment) => (
@@ -259,9 +258,9 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
             ))}
           </div>
         ) : (
-          <div className="rounded-[18px] bg-white px-5 py-8 text-center shadow-sm">
+          <div className="rounded-xl border border-[var(--color-border)] bg-white px-5 py-8 text-center shadow-sm">
             <CalendarDays size={30} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
-            <p className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+            <p className="text-[15px] font-semibold" style={{ color: "var(--color-primary)" }}>
               Geen werkbonnen op deze dag
             </p>
             <p className="mx-auto mt-1 max-w-[280px] text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -273,7 +272,7 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
         {unscheduledAssignments.length > 0 ? (
           <div className="space-y-3 pt-1">
             <div className="px-1">
-              <p className="text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
                 Gekoppeld, nog niet ingepland
               </p>
               <p className="mt-0.5 text-[12px] leading-4" style={{ color: "var(--color-secondary)" }}>
