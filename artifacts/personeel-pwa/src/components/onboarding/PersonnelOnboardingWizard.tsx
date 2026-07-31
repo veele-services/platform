@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import {
   Controller,
   useForm,
@@ -28,9 +35,14 @@ import {
   savePersonnelOnboardingStep,
   type PersonnelOnboardingWorkspace,
 } from "@/actions/onboarding";
-import { saveMyPushSubscription } from "@/actions/push";
+import {
+  saveMyNativePushToken,
+  saveMyPushSubscription,
+} from "@/actions/push";
 import { signOut } from "@/actions/auth";
 import { ensureBrowserPushSubscription } from "@/lib/browser-push";
+import { isNativeCapacitorRuntime } from "@/lib/capacitor";
+import { ensureNativePushRegistration } from "@/lib/native-push";
 
 type FormValues = FieldValues;
 
@@ -80,13 +92,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const inputClass =
-  "mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100";
-const labelClass = "block text-sm font-bold text-slate-700";
+  "mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100";
+const labelClass = "block text-sm font-medium text-slate-700";
 
 function sectionTitle(title: string, description?: string) {
   return (
-    <div className="mb-5">
-      <h2 className="text-xl font-black text-slate-950">{title}</h2>
+    <div className="mb-4">
+      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
       {description ? (
         <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
       ) : null}
@@ -98,7 +110,8 @@ function ErrorSummary({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"
+      tabIndex={-1}
+      className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800"
     >
       {message}
     </div>
@@ -117,27 +130,54 @@ export function PersonnelOnboardingWizard({
   const [completeness, setCompleteness] = useState(workspace.completeness);
   const [message, setMessage] = useState("");
   const [pushMessage, setPushMessage] = useState("");
+  const [nativeRuntime, setNativeRuntime] = useState(false);
   const [pending, startTransition] = useTransition();
-  const { control, register, handleSubmit, reset, setValue, watch } =
-    useForm<FormValues>({
-      defaultValues: (workspace.draft[workspace.currentStep] ??
-        {}) as FormValues,
-    });
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    setFocus,
+    setValue,
+    watch,
+    formState: { isDirty },
+  } = useForm<FormValues>({
+    defaultValues: (workspace.draft[workspace.currentStep] ??
+      {}) as FormValues,
+  });
   const currentIndex = PERSONNEL_ONBOARDING_STEPS.indexOf(step);
   const progress = Math.max(
     completeness,
     Math.round((currentIndex / (PERSONNEL_ONBOARDING_STEPS.length - 1)) * 100),
   );
 
+  useEffect(() => {
+    setNativeRuntime(isNativeCapacitorRuntime());
+  }, []);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isDirty]);
+
   function openStep(next: PersonnelOnboardingStep, nextDraft = draft) {
     setStep(next);
     reset((nextDraft[next] ?? {}) as FormValues);
     setMessage("");
     setPushMessage("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  function save(values: FormValues, continueToNext: boolean) {
+  function save(
+    values: FormValues,
+    continueToNext: boolean,
+    destination?: PersonnelOnboardingStep,
+  ) {
     setMessage("");
     startTransition(async () => {
       const result = await savePersonnelOnboardingStep({
@@ -146,13 +186,34 @@ export function PersonnelOnboardingWizard({
         continueToNext,
       });
       if (!result.success) {
+        const fieldNames = Object.keys(result.fieldErrors ?? {});
+        fieldNames.forEach((fieldName) => {
+          const fieldMessage = result.fieldErrors?.[fieldName]?.[0];
+          if (fieldMessage) {
+            setError(fieldName, { type: "server", message: fieldMessage });
+          }
+        });
         setMessage(result.error);
+        if (fieldNames[0]) {
+          requestAnimationFrame(() => {
+            try {
+              setFocus(fieldNames[0]!);
+            } catch {
+              document.querySelector<HTMLElement>('[role="alert"]')?.focus();
+            }
+          });
+        }
         return;
       }
       const nextDraft = { ...draft, [step]: values };
       setDraft(nextDraft);
       setCompleteness(result.completeness);
+      if (destination) {
+        openStep(destination, nextDraft);
+        return;
+      }
       if (!continueToNext) {
+        reset(values);
         setMessage("Opgeslagen. Je kunt later veilig verdergaan.");
         return;
       }
@@ -174,19 +235,35 @@ export function PersonnelOnboardingWizard({
     startTransition(async () => {
       let status: PortalPushStatus = "unsupported";
       try {
-        const subscription = await ensureBrowserPushSubscription();
-        const serialized = subscription.toJSON();
-        const saved = await saveMyPushSubscription({
-          endpoint: serialized.endpoint ?? "",
-          keys: {
-            p256dh: serialized.keys?.p256dh,
-            auth: serialized.keys?.auth,
-          },
-          userAgent: navigator.userAgent,
-        });
+        const saved = nativeRuntime
+          ? await ensureNativePushRegistration().then((registration) =>
+              saveMyNativePushToken({
+                token: registration.token,
+                platform: registration.platform,
+                appId: registration.appId,
+                appVersion: registration.appVersion,
+                appBuild: registration.appBuild,
+                userAgent: navigator.userAgent,
+              }),
+            )
+          : await ensureBrowserPushSubscription().then((subscription) => {
+              const serialized = subscription.toJSON();
+              return saveMyPushSubscription({
+                endpoint: serialized.endpoint ?? "",
+                keys: {
+                  p256dh: serialized.keys?.p256dh,
+                  auth: serialized.keys?.auth,
+                },
+                userAgent: navigator.userAgent,
+              });
+            });
         if (!saved.success) throw new Error(saved.error);
         status = "allowed";
-        setPushMessage("Pushmeldingen zijn op dit apparaat geactiveerd.");
+        setPushMessage(
+          nativeRuntime
+            ? "Appmeldingen zijn op dit apparaat geactiveerd."
+            : "Browsermeldingen zijn op dit apparaat geactiveerd.",
+        );
       } catch (error) {
         status =
           typeof Notification !== "undefined" &&
@@ -202,28 +279,38 @@ export function PersonnelOnboardingWizard({
     });
   }
 
+  function skipPush() {
+    setValue("pushAttempted", true, { shouldDirty: true });
+    setValue("pushStatus", "not_asked", { shouldDirty: true });
+    setPushMessage(
+      "Push is overgeslagen. Je kunt dit later bij Instellingen activeren.",
+    );
+  }
+
   const review = useMemo(
     () => ({
       profile: draft.profile as FormValues | undefined,
       transport: draft.transport as FormValues | undefined,
       work: draft.work as FormValues | undefined,
+      availability: draft.availability as FormValues | undefined,
+      notifications: draft.notifications as FormValues | undefined,
     }),
     [draft],
   );
 
   return (
-    <main className="min-h-dvh bg-slate-100 pb-36 text-slate-950">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 pb-4 pt-[calc(1rem+var(--safe-top))] backdrop-blur">
-        <div className="mx-auto max-w-2xl">
+    <main className="min-h-dvh bg-slate-100 pb-32 text-slate-950">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 pb-3 pt-[calc(.75rem+var(--safe-top))] backdrop-blur">
+        <div className="mx-auto max-w-3xl">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-teal-700">
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">
                 {workspace.organizationName}
               </p>
-              <h1 className="text-lg font-black">Account instellen</h1>
+              <h1 className="text-base font-semibold">Account instellen</h1>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-black text-teal-800">
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-800">
                 {progress}%
               </span>
               <form action={signOut}>
@@ -238,8 +325,12 @@ export function PersonnelOnboardingWizard({
             </div>
           </div>
           <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200"
-            aria-label={`${progress}% voltooid`}
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200"
+            role="progressbar"
+            aria-label="Voortgang onboarding"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
           >
             <div
               className="h-full rounded-full bg-teal-500 transition-all"
@@ -255,9 +346,9 @@ export function PersonnelOnboardingWizard({
 
       <form
         onSubmit={handleSubmit((values) => save(values, true))}
-        className="mx-auto max-w-2xl px-4 py-6"
+        className="mx-auto max-w-3xl px-4 py-5"
       >
-        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           {step === "welcome" ? (
             <>
               <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
@@ -285,12 +376,13 @@ export function PersonnelOnboardingWizard({
               </ul>
               <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
                 Je invoer wordt na elke stap veilig opgeslagen. Lees meer in de{" "}
-                <a
-                  className="font-black text-teal-700 underline"
-                  href="/personeel/privacy"
+                <Link
+                  className="font-medium text-teal-700 underline"
+                  href="/privacy"
+                  target="_blank"
                 >
                   help- en privacy-informatie
-                </a>
+                </Link>
                 .
               </p>
             </>
@@ -400,8 +492,8 @@ export function PersonnelOnboardingWizard({
                   />
                 </label>
               </div>
-              <fieldset className="mt-6 rounded-2xl border border-slate-200 p-4">
-                <legend className="px-2 text-sm font-black">
+              <fieldset className="mt-5 rounded-xl border border-slate-200 p-4">
+                <legend className="px-2 text-sm font-semibold">
                   Noodcontact (optioneel)
                 </legend>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -664,7 +756,7 @@ export function PersonnelOnboardingWizard({
                     key={day}
                     className="rounded-2xl border border-slate-200 p-3"
                   >
-                    <legend className="px-1 text-sm font-black">{day}</legend>
+                    <legend className="px-1 text-sm font-semibold">{day}</legend>
                     <input
                       type="hidden"
                       value={(index + 1) % 7}
@@ -727,10 +819,20 @@ export function PersonnelOnboardingWizard({
                 type="button"
                 onClick={activatePush}
                 disabled={pending}
-                className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 font-black text-white disabled:opacity-60"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-medium text-white disabled:opacity-60"
               >
                 <BellRing size={18} />
-                Push op dit apparaat instellen
+                {nativeRuntime
+                  ? "Appmeldingen instellen"
+                  : "Browsermeldingen instellen"}
+              </button>
+              <button
+                type="button"
+                onClick={skipPush}
+                disabled={pending}
+                className="mb-4 mt-2 min-h-11 w-full rounded-lg px-4 text-sm font-medium text-slate-600 underline-offset-4 hover:underline disabled:opacity-60"
+              >
+                Nu niet, later instellen
               </button>
               {pushMessage ? (
                 <p
@@ -747,9 +849,9 @@ export function PersonnelOnboardingWizard({
                     return (
                       <fieldset
                         key={category}
-                        className="rounded-2xl border border-slate-200 p-4"
+                        className="rounded-xl border border-slate-200 p-3"
                       >
-                        <legend className="px-1 text-sm font-black">
+                        <legend className="px-1 text-sm font-semibold">
                           {CATEGORY_LABELS[category]}
                           {critical ? " (kritiek)" : ""}
                         </legend>
@@ -761,7 +863,7 @@ export function PersonnelOnboardingWizard({
                           ].map(([channel, label]) => (
                             <label
                               key={channel}
-                              className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl bg-slate-50 text-xs font-bold"
+                              className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg bg-slate-50 text-xs font-medium"
                             >
                               <ControlledCheckbox
                                 control={control}
@@ -799,7 +901,7 @@ export function PersonnelOnboardingWizard({
                 "Controleren en afronden",
                 "Bekijk de belangrijkste gegevens en bevestig dat alles klopt.",
               )}
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <ReviewCard
                   title="Profiel"
                   values={[
@@ -807,6 +909,7 @@ export function PersonnelOnboardingWizard({
                     String(review.profile?.phone ?? ""),
                     `${review.profile?.addressPostalCode ?? ""} ${review.profile?.addressCity ?? ""}`,
                   ]}
+                  onEdit={() => openStep("profile")}
                 />
                 <ReviewCard
                   title="Vervoer"
@@ -814,6 +917,7 @@ export function PersonnelOnboardingWizard({
                     String(review.transport?.primaryTransportType ?? ""),
                     `Max. ${review.transport?.maxTravelDistanceKm ?? "-"} km`,
                   ]}
+                  onEdit={() => openStep("transport")}
                 />
                 <ReviewCard
                   title="Werk"
@@ -823,6 +927,40 @@ export function PersonnelOnboardingWizard({
                       ? review.work.languages.join(", ")
                       : "",
                   ]}
+                  onEdit={() => openStep("work")}
+                />
+                <ReviewCard
+                  title="Beschikbaarheid"
+                  values={[
+                    `${
+                      Array.isArray(review.availability?.windows)
+                        ? review.availability.windows.filter((window) =>
+                            Boolean((window as FormValues).available),
+                          ).length
+                        : 0
+                    } dag(en) per week`,
+                  ]}
+                  onEdit={() => openStep("availability")}
+                />
+                <ReviewCard
+                  title="Meldingen"
+                  values={[
+                    `${
+                      Array.isArray(review.notifications?.preferences)
+                        ? review.notifications.preferences.filter((preference) =>
+                            Boolean((preference as FormValues).emailEnabled),
+                          ).length
+                        : 0
+                    } onderwerpen per e-mail`,
+                    `${
+                      Array.isArray(review.notifications?.preferences)
+                        ? review.notifications.preferences.filter((preference) =>
+                            Boolean((preference as FormValues).pushEnabled),
+                          ).length
+                        : 0
+                    } onderwerpen via push`,
+                  ]}
+                  onEdit={() => openStep("notifications")}
                 />
               </div>
               <div className="mt-5 space-y-3">
@@ -844,12 +982,38 @@ export function PersonnelOnboardingWizard({
                 <Confirm
                   control={control}
                   name="privacyViewed"
-                  label="Ik heb de privacy-informatie bekeken."
+                  ariaLabel="Ik heb de privacy-informatie bekeken."
+                  label={
+                    <>
+                      Ik heb de{" "}
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        className="text-teal-700 underline"
+                      >
+                        privacy-informatie
+                      </Link>{" "}
+                      bekeken.
+                    </>
+                  }
                 />
                 <Confirm
                   control={control}
                   name="termsAccepted"
-                  label="Ik accepteer de toepasselijke voorwaarden."
+                  ariaLabel="Ik accepteer de toepasselijke voorwaarden."
+                  label={
+                    <>
+                      Ik accepteer de{" "}
+                      <Link
+                        href="/privacy#voorwaarden"
+                        target="_blank"
+                        className="text-teal-700 underline"
+                      >
+                        toepasselijke voorwaarden
+                      </Link>
+                      .
+                    </>
+                  }
                 />
               </div>
             </>
@@ -872,14 +1036,18 @@ export function PersonnelOnboardingWizard({
         ) : null}
 
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 pb-[calc(1rem+var(--safe-bottom))] pt-3 shadow-[0_-8px_24px_rgba(15,23,42,.08)]">
-          <div className="mx-auto flex max-w-2xl items-center gap-2">
+          <div className="mx-auto flex max-w-3xl items-center gap-2">
             <button
               type="button"
               disabled={pending || currentIndex === 0}
-              onClick={() =>
-                openStep(PERSONNEL_ONBOARDING_STEPS[currentIndex - 1]!)
-              }
-              className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-3 font-black disabled:opacity-40"
+              onClick={handleSubmit((values) =>
+                save(
+                  values,
+                  false,
+                  PERSONNEL_ONBOARDING_STEPS[currentIndex - 1]!,
+                ),
+              )}
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-slate-300 px-3 font-medium disabled:opacity-40"
               aria-label="Vorige stap"
             >
               <ChevronLeft />
@@ -889,7 +1057,7 @@ export function PersonnelOnboardingWizard({
                 type="button"
                 disabled={pending}
                 onClick={handleSubmit((values) => save(values, false))}
-                className="min-h-12 flex-1 rounded-xl border border-slate-300 px-3 text-sm font-black disabled:opacity-50"
+                className="min-h-11 flex-1 rounded-lg border border-slate-300 px-3 text-sm font-medium disabled:opacity-50"
               >
                 Opslaan en later
               </button>
@@ -897,7 +1065,7 @@ export function PersonnelOnboardingWizard({
             <button
               type="submit"
               disabled={pending}
-              className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-sm font-black text-white disabled:opacity-60"
+              className="flex min-h-11 flex-[1.4] items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 text-sm font-medium text-white disabled:opacity-60"
             >
               {pending ? <Loader2 size={18} className="animate-spin" /> : null}
               {step === "welcome"
@@ -923,7 +1091,7 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 px-3 text-sm font-bold">
+    <label className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 px-3 text-sm font-medium">
       <ControlledCheckbox control={control} name={name} ariaLabel={label} />
       {label}
     </label>
@@ -934,19 +1102,21 @@ function Confirm({
   control,
   name,
   label,
+  ariaLabel = typeof label === "string" ? label : name,
 }: {
   control: Control<FormValues>;
   name: string;
-  label: string;
+  label: ReactNode;
+  ariaLabel?: string;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold">
+    <label className="flex min-h-11 items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm font-medium">
       <ControlledCheckbox
         control={control}
         name={name}
         required
         className="mt-0.5"
-        ariaLabel={label}
+        ariaLabel={ariaLabel}
       />
       {label}
     </label>
@@ -1009,10 +1179,27 @@ function ControlledCheckbox({
   );
 }
 
-function ReviewCard({ title, values }: { title: string; values: string[] }) {
+function ReviewCard({
+  title,
+  values,
+  onEdit,
+}: {
+  title: string;
+  values: string[];
+  onEdit: () => void;
+}) {
   return (
-    <div className="rounded-2xl border border-slate-200 p-4">
-      <h3 className="font-black">{title}</h3>
+    <div className="rounded-xl border border-slate-200 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">{title}</h3>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="min-h-11 rounded-lg px-2 text-xs font-medium text-teal-700 underline-offset-4 hover:underline"
+        >
+          Wijzigen
+        </button>
+      </div>
       {values.filter(Boolean).map((value) => (
         <p key={value} className="mt-1 break-words text-sm text-slate-600">
           {value}

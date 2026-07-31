@@ -8,10 +8,10 @@ export default function PersonnelOnboardingPrivacyPage() {
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-8">
       <article className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-teal-700">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
           Personeelsportaal
         </p>
-        <h1 className="mt-2 text-2xl font-black text-slate-950">
+        <h1 className="mt-2 text-2xl font-semibold text-slate-950">
           Privacy en uw gegevens
         </h1>
         <div className="mt-4 space-y-4 text-sm leading-6 text-slate-700">
@@ -30,10 +30,24 @@ export default function PersonnelOnboardingPrivacyPage() {
             aanpassen. Neem voor verwijdering of inzage contact op met uw
             organisatiebeheerder.
           </p>
+          <section
+            id="voorwaarden"
+            className="scroll-mt-6 border-t border-slate-200 pt-4"
+          >
+            <h2 className="text-lg font-semibold text-slate-950">
+              Voorwaarden voor gebruik
+            </h2>
+            <p className="mt-2">
+              Gebruik het personeelsportaal alleen voor uw werkzaamheden,
+              bescherm uw inloggegevens en meld onjuiste planning of
+              profielinformatie direct bij uw organisatie. De voorwaarden van
+              uw arbeidsovereenkomst en organisatie blijven van toepassing.
+            </p>
+          </section>
         </div>
         <Link
-          href="/personeel/onboarding"
-          className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-black text-white"
+          href="/onboarding"
+          className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white"
         >
           Terug naar onboarding
         </Link>
