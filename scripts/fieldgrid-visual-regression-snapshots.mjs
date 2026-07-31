@@ -377,13 +377,6 @@ async function captureRoute({
     contextOptions.storageState = persona.storageStatePath;
   }
   const context = await browser.newContext(contextOptions);
-  await context.addInitScript(() => {
-    const style = document.createElement("style");
-    style.dataset.fieldgridVisualRegression = "true";
-    style.textContent =
-      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav]{display:none!important;}";
-    document.documentElement.append(style);
-  });
   await addCookieIfConfigured(context, persona.cookie, group.baseUrl);
   const page = await context.newPage();
   const url = routeUrl(group.baseUrl, route);
@@ -392,6 +385,10 @@ async function captureRoute({
     const response = await page.goto(url, {
       waitUntil: "networkidle",
       timeout: 30000,
+    });
+    await page.addStyleTag({
+      content:
+        "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav]{display:none!important;}",
     });
     const finalUrl = page.url();
     const finalPathname = new URL(finalUrl).pathname;
@@ -418,6 +415,13 @@ async function captureRoute({
     const metrics = await page.evaluate(() => {
       const body = document.body;
       const root = document.documentElement;
+      const rootOverflowX = window.getComputedStyle(root).overflowX;
+      const bodyOverflowX = body
+        ? window.getComputedStyle(body).overflowX
+        : "visible";
+      const pageClipsHorizontalOverflow =
+        ["hidden", "clip"].includes(rootOverflowX) &&
+        ["hidden", "clip"].includes(bodyOverflowX);
       const interactiveSelector =
         "button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=link]";
       const nestedInteractive = [
@@ -453,7 +457,9 @@ async function captureRoute({
         );
       });
       return {
-        scrollWidth: root.scrollWidth,
+        scrollWidth: pageClipsHorizontalOverflow
+          ? root.clientWidth
+          : root.scrollWidth,
         clientWidth: root.clientWidth,
         bodyTextLength: body?.innerText?.trim().length ?? 0,
         bodyHeight: body?.getBoundingClientRect().height ?? 0,
@@ -546,6 +552,7 @@ async function verifyKeyboardFocus(page) {
     }
   });
   await page.keyboard.press("Tab");
+  await page.waitForTimeout(100);
   return page.evaluate(() => {
     const selector =
       "button:not([disabled]), a[href], input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";

@@ -347,13 +347,6 @@ async function runLiveAudit(roles) {
           ignoreHTTPSErrors: true,
           reducedMotion: "reduce",
         });
-        await context.addInitScript(() => {
-          const style = document.createElement("style");
-          style.dataset.fieldgridDashboardAudit = "true";
-          style.textContent =
-            "[data-fieldgrid-dev-nav]{display:none!important;}";
-          document.documentElement.append(style);
-        });
         if (role.cookie) {
           await context.addCookies(parseCookieHeader(role.cookie, role.baseUrl));
         }
@@ -400,6 +393,9 @@ async function auditTarget(page, role, target, viewport) {
     responseStatus = response?.status() ?? null;
     responseUrl = response?.url() ?? page.url();
     await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
+    await page.addStyleTag({
+      content: "[data-fieldgrid-dev-nav]{display:none!important;}",
+    });
     if (role.id === "tenant-admin" && target.id === "dashboard" && viewport.id === "desktop-1440") {
       sidebarCollapse = await verifyTenantSidebarCanCollapse(page);
       if (!sidebarCollapse.ok) failures.push(sidebarCollapse.message);
@@ -500,7 +496,14 @@ async function collectMetrics(page) {
     const body = document.body;
     const text = body.innerText || "";
     const viewportWidth = window.innerWidth;
-    const scrollWidth = Math.max(doc.scrollWidth, body.scrollWidth);
+    const rootOverflowX = window.getComputedStyle(doc).overflowX;
+    const bodyOverflowX = window.getComputedStyle(body).overflowX;
+    const pageClipsHorizontalOverflow =
+      ["hidden", "clip"].includes(rootOverflowX) &&
+      ["hidden", "clip"].includes(bodyOverflowX);
+    const scrollWidth = pageClipsHorizontalOverflow
+      ? Math.max(viewportWidth, body.clientWidth)
+      : Math.max(doc.scrollWidth, body.scrollWidth);
     const horizontalOverflow = Math.max(0, scrollWidth - viewportWidth);
     const serverError = /Application error|Pagina kon niet laden|client-side exception|server-side exception|Digest:/i.test(text);
     const blankPage = text.trim().length < 35;
@@ -552,6 +555,7 @@ async function verifyKeyboardFocus(page) {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   });
   await page.keyboard.press("Tab");
+  await page.waitForTimeout(100);
   return page.evaluate(() => {
     const active = document.activeElement;
     if (!(active instanceof HTMLElement) || active === document.body) {
