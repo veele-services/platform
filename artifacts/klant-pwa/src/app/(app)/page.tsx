@@ -530,10 +530,10 @@ export default async function DashboardPage() {
 
       <SummaryStrip items={summaryItems} />
 
-      <section className="grid gap-4 xl:grid-cols-[0.92fr_1.55fr]">
+      <section className="grid gap-4 xl:grid-cols-3">
         <ActionInbox items={visibleActionItems} />
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 xl:contents">
           <FocusPanel
             href="/opdrachten"
             title="Opdrachten"
