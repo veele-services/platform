@@ -133,6 +133,18 @@ test("section authoring validates shared schemas and scopes every mutation", () 
 test("section canvas remains schema driven and provides accessible ordering", () => {
   assert.match(sectionCanvas, /createDefaultWebsiteSection/u);
   assert.match(sectionCanvas, /WebsiteRichTextEditor/u);
+  assert.match(
+    sectionCanvas,
+    /function toEditableSection[\s\S]*position: _position[\s\S]*authoringRevision: _authoringRevision/u,
+  );
+  assert.match(
+    sectionCanvas,
+    /useState<WebsiteSection>\(\(\) =>[\s\S]*toEditableSection\(section\)/u,
+  );
+  assert.match(
+    sectionCanvas,
+    /useEffect\(\(\) => setDraft\(toEditableSection\(section\)\), \[section\]\)/u,
+  );
   assert.match(sectionCanvas, /aria-label=\{`\$\{WEBSITE_SECTION_LABELS/u);
   assert.match(sectionCanvas, /label="Omhoog"/u);
   assert.match(sectionCanvas, /label="Omlaag"/u);

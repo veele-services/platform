@@ -52,6 +52,15 @@ type CanvasSection = WebsiteSection & {
   authoringRevision: number;
 };
 
+function toEditableSection(section: CanvasSection): WebsiteSection {
+  const {
+    position: _position,
+    authoringRevision: _authoringRevision,
+    ...editableSection
+  } = section;
+  return editableSection as WebsiteSection;
+}
+
 type Props = {
   siteId: string;
   pageId: string;
@@ -489,13 +498,15 @@ function WebsiteSectionCard({
   onDeleted: (id: string, revisions: RevisionResult) => void;
   onError: (message: string) => void;
 }) {
-  const [draft, setDraft] = useState<WebsiteSection>(section);
+  const [draft, setDraft] = useState<WebsiteSection>(() =>
+    toEditableSection(section),
+  );
   const [expanded, setExpanded] = useState(true);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const disabled = !canWrite || busy || isPending;
 
-  useEffect(() => setDraft(section), [section]);
+  useEffect(() => setDraft(toEditableSection(section)), [section]);
 
   function save() {
     startTransition(async () => {
