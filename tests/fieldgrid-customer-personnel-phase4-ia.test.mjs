@@ -9,13 +9,30 @@ function read(path) {
 test("phase 4 defines the customer desktop navigation around daily tasks", () => {
   const sidebar = read("artifacts/klant-pwa/src/components/DesktopSidebar.tsx");
 
-  for (const label of ["Overzicht", "Opdrachten", "Objecten", "Support", "Offertes", "Facturen", "Documenten"]) {
+  for (const label of [
+    "Overzicht",
+    "Opdrachten",
+    "Objecten",
+    "Contact & tickets",
+    "Rapportages",
+    "Financieel",
+    "Documenten",
+    "Hulpcentrum",
+    "Wat is nieuw",
+  ]) {
     assert.match(sidebar, new RegExp(`label:\\s*"${label}"`, "u"));
   }
 
-  assert.match(sidebar, /href:\s*"\/facturen"[\s\S]*match:\s*\["\/financieel", "\/facturen", "\/betalingen"\]/u);
-  assert.match(sidebar, /href:\s*"\/offertes"[\s\S]*match:\s*\["\/offertes"\]/u);
-  assert.match(sidebar, /href:\s*"\/meldingen\/tickets"[\s\S]*label:\s*"Support"/u);
+  assert.match(
+    sidebar,
+    /href:\s*"\/financieel"[\s\S]*moduleKey:\s*"finance"[\s\S]*match:\s*\["\/financieel", "\/facturen", "\/offertes", "\/betalingen"\]/u,
+  );
+  assert.match(
+    sidebar,
+    /href:\s*"\/meldingen\/tickets"[\s\S]*label:\s*"Contact & tickets"[\s\S]*match:\s*\["\/meldingen"\]/u,
+  );
+  assert.match(sidebar, /visibleItems = NAV_ITEMS\.filter/u);
+  assert.match(sidebar, /isVisible\(item\.moduleKey, featureFlags\)/u);
   assert.doesNotMatch(sidebar, /label:\s*"Afspraken"/u);
   assert.doesNotMatch(sidebar, /label:\s*"Aanvragen"/u);
 });

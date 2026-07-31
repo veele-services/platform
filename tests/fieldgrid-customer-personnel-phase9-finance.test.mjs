@@ -28,7 +28,7 @@ test("phase 9 makes the customer finance landing page action oriented", () => {
     "Vervallen",
     "Binnenkort te betalen",
     "Laatste betaling",
-    "Financiele inbox",
+    "Financiële acties",
     "getMyInvoices",
     "getMyPayments",
     "getMyPaymentBatches",
@@ -57,15 +57,17 @@ test("phase 9 keeps invoice payment and PDF flows while compacting batch payment
   }
 
   for (const marker of [
-    "Verzamelbetaling starten",
-    "Verzamelfactuur wizard",
+    "Samen betalen",
+    "DialogContent",
+    "DialogDescription",
     "Selecteer facturen",
     "Controleer totaal",
-    "fixed inset-0",
     "PaymentActionButton",
   ]) {
     assert.match(batchPanel, new RegExp(marker, "u"));
   }
+
+  assert.doesNotMatch(batchPanel, /fixed inset-0/u);
 });
 
 test("phase 9 aligns customer payments and quotes with the finance pattern", () => {

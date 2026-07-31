@@ -16,8 +16,10 @@ test("phase 5 turns the customer dashboard into summary action and focus section
   assert.match(dashboard, /<SummaryStrip/u);
   assert.match(dashboard, /<ActionInbox items=\{visibleActionItems\}/u);
   assert.match(dashboard, /title="Opdrachten"/u);
-  assert.match(dashboard, /title="Financieel"/u);
   assert.match(dashboard, /title="Support"/u);
+  assert.match(dashboard, /\.\.\.\(featureFlags\.finance/u);
+  assert.match(dashboard, /label: "Openstaand"/u);
+  assert.match(dashboard, /featureFlags\.finance\s*\?\s*getMyInvoiceSummary/u);
   assert.doesNotMatch(dashboard, /function StatCard/u);
   assert.doesNotMatch(dashboard, /function QuickAction/u);
 });
