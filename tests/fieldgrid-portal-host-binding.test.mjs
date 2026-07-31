@@ -127,7 +127,7 @@ test("customer portal identity is scoped to the host tenant", () => {
     customer,
     /const tenantId = await requireCurrentCustomerPortalTenantId\(\);/u,
   );
-  assert.match(customer, /if \(!tenantId\) return null;/u);
+  assert.match(customer, /if \(!tenantId\) return \[\];/u);
   assert.match(customer, /eq\(customerUsersTable\.tenantId, tenantId\)/u);
   assert.match(customer, /eq\(customersTable\.tenantId, tenantId\)/u);
   assert.match(
