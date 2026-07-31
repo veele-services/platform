@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getMyInvoice } from "@/actions/invoices";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default async function FactuurDetailPage({ params }: Props) {
+  await requireCustomerPortalFeature("finance");
   const { id } = await params;
   const invoice = await getMyInvoice(id);
 

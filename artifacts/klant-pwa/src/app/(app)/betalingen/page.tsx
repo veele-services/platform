@@ -16,6 +16,7 @@ import {
   FinanceSectionHeader,
   FinanceSummaryStrip,
 } from "@/components/FinanceWorkspace";
+import { FinanceNavigation } from "@/components/FinanceNavigation";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
 import {
   PortalActionMenu,
@@ -31,6 +32,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerPayment = Awaited<ReturnType<typeof getMyPayments>>[number];
 type CustomerPaymentBatch = Awaited<
@@ -306,7 +308,7 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
           </PortalActionMenuLink>
           {batch.status === "open" && batch.checkoutUrl ? (
             <PortalActionMenuLink href={batch.checkoutUrl} external>
-              Mollie checkout openen
+              Beveiligde betaling openen
             </PortalActionMenuLink>
           ) : null}
         </PortalActionMenu>
@@ -320,6 +322,7 @@ export default async function BetalingenPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string }>;
 }) {
+  await requireCustomerPortalFeature("finance");
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const status = normalizeStatus(params.status);
@@ -364,7 +367,7 @@ export default async function BetalingenPage({
   return (
     <PortalPageShell
       title="Betalingen"
-      subtitle="Mollie betalingen, losse facturen en verzamelbetalingen."
+      subtitle="Losse facturen en verzamelbetalingen op één plek."
       status={{
         label:
           openCount > 0
@@ -373,6 +376,7 @@ export default async function BetalingenPage({
         tone: openCount > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceNavigation />
       <FinanceSummaryStrip
         items={[
           {
@@ -701,7 +705,7 @@ function BatchCard({ batch }: { batch: CustomerPaymentBatch }) {
             rel="noopener noreferrer"
             className="inline-flex w-full items-center justify-center rounded-xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]"
           >
-            Mollie checkout openen
+            Beveiligde betaling openen
           </Link>
         ) : null}
       </div>

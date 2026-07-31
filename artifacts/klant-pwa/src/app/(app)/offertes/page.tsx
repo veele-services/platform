@@ -15,6 +15,7 @@ import {
   FinanceActionPanel,
   FinanceSummaryStrip,
 } from "@/components/FinanceWorkspace";
+import { FinanceNavigation } from "@/components/FinanceNavigation";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import { OfferteRegelitems } from "@/components/OfferteRegelitems";
 import {
@@ -31,6 +32,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerQuote = Awaited<ReturnType<typeof getMyQuotes>>[number];
 type QuoteFilter =
@@ -273,6 +275,7 @@ export default async function OffertesPage({
 }: {
   searchParams: Promise<{ q?: string; filter?: string }>;
 }) {
+  await requireCustomerPortalFeature("finance");
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const filter = normalizeFilter(params.filter);
@@ -317,6 +320,7 @@ export default async function OffertesPage({
         tone: actionRequired.length > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceNavigation />
       <FinanceSummaryStrip
         items={[
           {

@@ -3,12 +3,14 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { XCircle, RefreshCw, Receipt } from "lucide-react";
 import { getMyInvoice } from "@/actions/invoices";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 interface Props {
   searchParams: Promise<{ invoice?: string }>;
 }
 
 export default async function BetaalingMisluktPage({ searchParams }: Props) {
+  await requireCustomerPortalFeature("finance");
   const { invoice: invoiceId } = await searchParams;
 
   const invoice = invoiceId ? await getMyInvoice(invoiceId) : null;
@@ -16,7 +18,6 @@ export default async function BetaalingMisluktPage({ searchParams }: Props) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-
         <div
           className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
           style={{ backgroundColor: "#FEE2E2" }}
@@ -25,14 +26,24 @@ export default async function BetaalingMisluktPage({ searchParams }: Props) {
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
+          <h1
+            className="text-2xl font-bold"
+            style={{ color: "var(--color-primary)" }}
+          >
             Betaling niet geslaagd
           </h1>
-          <p className="mt-2 text-sm" style={{ color: "var(--color-secondary)" }}>
-            De betaling is niet afgerond. U kunt het opnieuw proberen via onderstaande knop.
+          <p
+            className="mt-2 text-sm"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            De betaling is niet afgerond. U kunt het opnieuw proberen via
+            onderstaande knop.
           </p>
           {invoice && (
-            <p className="mt-1 text-xs font-mono" style={{ color: "var(--color-secondary)" }}>
+            <p
+              className="mt-1 text-xs font-mono"
+              style={{ color: "var(--color-secondary)" }}
+            >
               Factuur {invoice.invoiceNumber}
             </p>
           )}
@@ -56,8 +67,8 @@ export default async function BetaalingMisluktPage({ searchParams }: Props) {
             href="/facturen"
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
             style={{
-              borderColor:     "var(--color-border)",
-              color:           "var(--color-primary)",
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
               backgroundColor: "white",
             }}
           >
