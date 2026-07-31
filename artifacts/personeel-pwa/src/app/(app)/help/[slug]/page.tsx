@@ -32,11 +32,11 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
 
       <article className="grid gap-4">
         <header className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-          <Link href="/help" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+          <Link href="/help" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold" style={{ color: "var(--color-accent-accessible)" }}>
             <ArrowLeft className="h-4 w-4" />
             Terug naar help
           </Link>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--color-accent)" }}>{article.category?.name ?? "Handleiding"}</p>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--color-accent-accessible)" }}>{article.category?.name ?? "Handleiding"}</p>
           <h1 className="mt-2 text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>{article.title}</h1>
           {article.summary && <p className="mt-3 text-sm leading-6 text-slate-600">{article.summary}</p>}
         </header>
@@ -90,10 +90,10 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
               className="min-h-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
             />
             <div className="flex flex-wrap gap-2">
-              <button type="submit" name="isHelpful" value="true" className="rounded-xl px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+              <button type="submit" name="isHelpful" value="true" className="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent-accessible)" }}>
                 Ja, duidelijk
               </button>
-              <button type="submit" name="isHelpful" value="false" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+              <button type="submit" name="isHelpful" value="false" className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                 Nee, kan beter
               </button>
             </div>

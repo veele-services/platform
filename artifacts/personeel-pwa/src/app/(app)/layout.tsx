@@ -2,7 +2,10 @@ import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { getMyPersonnel } from "@/actions/personnel";
 import { personnelOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
-import { dismissPersonnelReleaseHighlight, getPersonnelReleaseHighlight } from "@/actions/releases";
+import {
+  dismissPersonnelReleaseHighlight,
+  getPersonnelReleaseHighlight,
+} from "@/actions/releases";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
@@ -19,7 +22,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 
-function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+function ReleaseHighlightBanner({
+  highlight,
+}: {
+  highlight: ReleaseHighlightSummary | null;
+}) {
   if (!highlight) return null;
 
   return (
@@ -27,7 +34,9 @@ function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSumm
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold">{highlight.title}</p>
-          <p className="mt-1 text-sm leading-5 text-amber-900">{highlight.message}</p>
+          <p className="mt-1 text-sm leading-5 text-amber-900">
+            {highlight.message}
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Link
@@ -60,12 +69,13 @@ export default async function AppLayout({
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("De personeelsapp is niet beschikbaar voor deze organisatie."),
+        encodeURIComponent(
+          "De personeelsapp is niet beschikbaar voor deze organisatie.",
+        ),
     );
   }
   const [
     branding,
-    notificationSummary,
     ticketSummary,
     personnel,
     documentsEnabled,
@@ -74,7 +84,6 @@ export default async function AppLayout({
     releasesEnabled,
   ] = await Promise.all([
     getTenantBranding(tenantId),
-    getMyNotificationSummary(),
     getMyTicketSummary(),
     getMyPersonnel(),
     isTenantModuleEnabled(tenantId, "documents"),
@@ -99,8 +108,15 @@ export default async function AppLayout({
     knowledgebase: knowledgebaseEnabled,
     releases: releasesEnabled,
   };
-  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
-  const releaseHighlight = releasesEnabled ? await getPersonnelReleaseHighlight() : null;
+  const brandingStyle = getTenantBrandingCssVariables(
+    branding,
+  ) as CSSProperties;
+  const notificationSummary = notificationsEnabled
+    ? await getMyNotificationSummary()
+    : undefined;
+  const releaseHighlight = releasesEnabled
+    ? await getPersonnelReleaseHighlight()
+    : null;
 
   return (
     <PersonnelRealtimeOfflineProvider personnelId={personnel.id}>
@@ -116,7 +132,9 @@ export default async function AppLayout({
             notificationSummary={notificationSummary}
             ticketSummary={ticketSummary}
           />
-          <NativePushTokenSync enabled={personnel.notificationPushEnabled ?? false} />
+          <NativePushTokenSync
+            enabled={personnel.notificationPushEnabled ?? false}
+          />
           <ReleaseHighlightBanner highlight={releaseHighlight} />
 
           <main className="min-w-0 flex-1 overflow-x-hidden pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">

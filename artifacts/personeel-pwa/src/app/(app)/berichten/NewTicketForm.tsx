@@ -107,7 +107,7 @@ export function NewTicketForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent-accessible)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
         Bericht versturen
@@ -119,7 +119,7 @@ export function NewTicketForm() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
-      <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
+      <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">
         {label}
       </span>
       {children}

@@ -31,7 +31,7 @@ export default async function PersonnelReleasesPage() {
       <OfflineContentNotice message="Je bent offline. Eerder geopende release notes blijven beschikbaar; media en bijlagen openen weer zodra je online bent." />
 
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--color-accent-accessible)" }}>
           Releases
         </p>
         <h1 className="mt-2 text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>
@@ -47,7 +47,7 @@ export default async function PersonnelReleasesPage() {
               {latest.version} - {latest.title}
             </h2>
             {latest.summary && <p className="mt-2 text-sm leading-6 text-slate-600">{latest.summary}</p>}
-            <Link href={`/releases/${latest.slug}`} className="mt-3 inline-flex text-sm font-semibold text-cyan-700">
+            <Link href={`/releases/${latest.slug}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700">
               Lees meer
             </Link>
           </div>

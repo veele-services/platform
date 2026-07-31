@@ -4,12 +4,16 @@ import { FieldgridLogo, MobileHeaderBar } from "@/components/MobileHeader";
 import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
-import { getTenantBranding } from "@workspace/db";
-import { getHeaderStatus, type AssignmentView, type WorkOrderTab } from "./work-order-data";
+import { getTenantBranding, isTenantModuleEnabled } from "@workspace/db";
+import {
+  getHeaderStatus,
+  type AssignmentView,
+  type WorkOrderTab,
+} from "./work-order-data";
 
 type Props = {
   assignment: AssignmentView;
-  activeTab:  WorkOrderTab;
+  activeTab: WorkOrderTab;
 };
 
 const TABS: { key: WorkOrderTab; label: string }[] = [
@@ -26,8 +30,13 @@ function tabHref(id: string, tab: WorkOrderTab): string {
 export async function WorkOrderHeader({ assignment, activeTab }: Props) {
   const statusBadge = getHeaderStatus(assignment.status);
   const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const notificationsEnabled = tenantId
+    ? await isTenantModuleEnabled(tenantId, "notifications")
+    : false;
   const [notificationSummary, ticketSummary, branding] = await Promise.all([
-    getMyNotificationSummary(),
+    notificationsEnabled
+      ? getMyNotificationSummary()
+      : Promise.resolve(undefined),
     getMyTicketSummary(),
     tenantId ? getTenantBranding(tenantId) : Promise.resolve(null),
   ]);
@@ -35,7 +44,9 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
   return (
     <section
       className="overflow-hidden text-white md:rounded-2xl"
-      style={{ background: `linear-gradient(180deg, ${branding?.primaryColor ?? "#06224A"} 0%, #061F44 100%)` }}
+      style={{
+        background: `linear-gradient(180deg, ${branding?.primaryColor ?? "#06224A"} 0%, #061F44 100%)`,
+      }}
     >
       <div className="md:hidden">
         <MobileHeaderBar
@@ -66,17 +77,20 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
             <ChevronLeft size={24} />
           </Link>
           <div className="min-w-0">
-          <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-white/72">
-            Werkbon
-          </p>
-          <h1 className="min-w-0 truncate font-mono text-2xl font-semibold leading-none">
-            {assignment.code || "Werkbon"}
-          </h1>
+            <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-white/72">
+              Werkbon
+            </p>
+            <h1 className="min-w-0 truncate font-mono text-2xl font-semibold leading-none">
+              {assignment.code || "Werkbon"}
+            </h1>
           </div>
         </div>
         <span
           className="shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold"
-          style={{ backgroundColor: statusBadge.background, color: statusBadge.color }}
+          style={{
+            backgroundColor: statusBadge.background,
+            color: statusBadge.color,
+          }}
         >
           {statusBadge.label}
         </span>
@@ -91,11 +105,18 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
               key={tab.key}
               href={tabHref(assignment.id, tab.key)}
               className="relative min-h-11 py-3"
-              style={{ color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.78)" }}
+              style={{
+                color: isActive
+                  ? "var(--color-accent)"
+                  : "rgba(255,255,255,0.78)",
+              }}
             >
               {tab.label}
               {isActive ? (
-                <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--color-accent)" }}
+                />
               ) : null}
             </Link>
           );

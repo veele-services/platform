@@ -48,7 +48,7 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
               color:       "#FFFFFF",
               boxShadow:   day.isActive ? "0 16px 34px rgba(0,183,179,0.32)" : "none",
             }}
-            aria-pressed={day.isActive}
+            aria-current={day.isActive ? "date" : undefined}
           >
             <span className="text-[12px] font-semibold leading-tight" style={{ color: "rgba(255,255,255,0.78)" }}>
               {day.label}

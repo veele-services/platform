@@ -16,12 +16,12 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<PlanningStatus, { background: string; color: string }> = {
-  NIEUW:          { background: "#EAF5FF", color: "#2563A9" },
-  GEZIEN:         { background: "#E9FBF5", color: "#139873" },
+  NIEUW:          { background: "#EAF5FF", color: "#1D4E89" },
+  GEZIEN:         { background: "#E9FBF5", color: "#0F6F56" },
   ONDERWEG:       { background: "#CCFBF1", color: "#115E59" },
-  GESTART:        { background: "#FFF4D8", color: "#C68212" },
-  AFGEROND:       { background: "#E6F8ED", color: "#249357" },
-  "NIET AFGEROND": { background: "#FEE2E2", color: "#DC2626" },
+  GESTART:        { background: "#FFF4D8", color: "#704400" },
+  AFGEROND:       { background: "#E6F8ED", color: "#166534" },
+  "NIET AFGEROND": { background: "#FEE2E2", color: "#B91C1C" },
 };
 
 const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];

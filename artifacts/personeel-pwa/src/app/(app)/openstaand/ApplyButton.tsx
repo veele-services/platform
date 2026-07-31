@@ -257,8 +257,8 @@ export function ApplyButton({
           {ticketId ? (
             <Link
               href={`/berichten/${ticketId}`}
-              className="text-[12px] font-semibold"
-              style={{ color: "var(--color-accent)" }}
+              className="inline-flex min-h-11 items-center text-[12px] font-semibold"
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               Ticket bekijken
             </Link>
@@ -295,7 +295,7 @@ export function ApplyButton({
             type="button"
             onClick={() => setSheetAction("question")}
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
             style={{ backgroundColor: "#E8F2FF", color: "#1D4ED8" }}
           >
             <MessageSquare size={12} />
@@ -307,7 +307,7 @@ export function ApplyButton({
             type="button"
             onClick={() => setSheetAction("decline")}
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
             style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}
           >
             <UserMinus size={12} />
@@ -318,8 +318,8 @@ export function ApplyButton({
           type="button"
           onClick={() => setSheetAction("apply")}
           disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           {pending && sheetAction === "apply" ? (
             <Loader2 size={12} className="animate-spin" />
@@ -390,7 +390,7 @@ export function ApplyButton({
                 onClick={handleQuestion}
                 disabled={pending}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
-                style={{ backgroundColor: "var(--color-accent)" }}
+                style={{ backgroundColor: "var(--color-accent-accessible)" }}
               >
                 {pending ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -434,7 +434,7 @@ export function ApplyButton({
                   backgroundColor:
                     sheetAction === "decline"
                       ? "#DC2626"
-                      : "var(--color-accent)",
+                      : "var(--color-accent-accessible)",
                 }}
               >
                 {pending ? (

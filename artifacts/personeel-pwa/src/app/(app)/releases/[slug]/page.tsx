@@ -30,7 +30,7 @@ export default async function PersonnelReleaseDetailPage({ params }: Props) {
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-0">
       <OfflineContentNotice message="Je bent offline. Deze release note komt uit de lokale cache. Media en bijlagen openen weer zodra je online bent." />
 
-      <Link href="/releases" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+      <Link href="/releases" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-600">
         <ArrowLeft className="h-4 w-4" />
         Terug naar releases
       </Link>

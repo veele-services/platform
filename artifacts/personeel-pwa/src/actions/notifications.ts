@@ -2,6 +2,7 @@
 
 import {
   db,
+  isTenantModuleEnabled,
   personnelNotificationsTable,
   personnelTable,
 } from "@workspace/db";
@@ -29,7 +30,10 @@ export type NotificationSummary = {
 
 type ActionResult = { success: boolean; error?: string };
 
-async function getCurrentPersonnelIdentity(): Promise<{ personnelId: string; tenantId: string } | null> {
+async function getCurrentPersonnelIdentity(): Promise<{
+  personnelId: string;
+  tenantId: string;
+} | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,10 +43,27 @@ async function getCurrentPersonnelIdentity(): Promise<{ personnelId: string; ten
   const [row] = await db
     .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .limit(1);
 
   return row ? { personnelId: row.id, tenantId: row.tenantId } : null;
+}
+
+async function getNotificationIdentity(): Promise<{
+  personnelId: string;
+  tenantId: string;
+} | null> {
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return null;
+
+  return (await isTenantModuleEnabled(identity.tenantId, "notifications"))
+    ? identity
+    : null;
 }
 
 function mapNotification(
@@ -67,8 +88,10 @@ function revalidateNotificationSurfaces() {
   revalidatePath("/berichten");
 }
 
-export async function getMyNotifications(): Promise<PersonnelNotificationItem[]> {
-  const identity = await getCurrentPersonnelIdentity();
+export async function getMyNotifications(): Promise<
+  PersonnelNotificationItem[]
+> {
+  const identity = await getNotificationIdentity();
   if (!identity) return [];
 
   const rows = await db
@@ -88,7 +111,7 @@ export async function getMyNotifications(): Promise<PersonnelNotificationItem[]>
 }
 
 export async function getMyNotificationSummary(): Promise<NotificationSummary> {
-  const identity = await getCurrentPersonnelIdentity();
+  const identity = await getNotificationIdentity();
   if (!identity) return { unreadCount: 0, recentUnread: [] };
 
   const unreadRows = await db
@@ -112,8 +135,10 @@ export async function getMyNotificationSummary(): Promise<NotificationSummary> {
 }
 
 export async function markNotificationRead(id: string): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(personnelNotificationsTable)
@@ -131,9 +156,13 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function markNotificationUnread(id: string): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+export async function markNotificationUnread(
+  id: string,
+): Promise<ActionResult> {
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(personnelNotificationsTable)
@@ -152,8 +181,10 @@ export async function markNotificationUnread(id: string): Promise<ActionResult> 
 }
 
 export async function markAllNotificationsRead(): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(personnelNotificationsTable)
@@ -171,8 +202,10 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
 }
 
 export async function markAllNotificationsUnread(): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(personnelNotificationsTable)
@@ -193,9 +226,13 @@ export async function deleteNotification(id: string): Promise<ActionResult> {
   return deleteNotifications([id]);
 }
 
-export async function deleteNotifications(ids: string[]): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+export async function deleteNotifications(
+  ids: string[],
+): Promise<ActionResult> {
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { success: true };
 
@@ -216,8 +253,10 @@ export async function deleteNotifications(ids: string[]): Promise<ActionResult> 
 }
 
 export async function clearAllNotifications(): Promise<ActionResult> {
-  const identity = await getCurrentPersonnelIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(personnelNotificationsTable)

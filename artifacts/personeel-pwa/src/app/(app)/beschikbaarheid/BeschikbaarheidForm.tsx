@@ -413,7 +413,7 @@ export function BeschikbaarheidForm({
                         ? "var(--color-primary)"
                         : "#94A3B8",
                   backgroundColor: hasAvailability
-                    ? "var(--color-accent-dark)"
+                    ? "var(--color-accent-accessible)"
                     : "transparent",
                   border: isSelected
                     ? "2px solid var(--color-accent)"
@@ -473,7 +473,7 @@ export function BeschikbaarheidForm({
               style={{
                 borderColor: "#D8E8F3",
                 backgroundColor: "#F8FBFE",
-                color: "#718096",
+                color: "#526174",
               }}
             >
               Niet ingevulde dagen blijven leeg
@@ -483,7 +483,7 @@ export function BeschikbaarheidForm({
               onClick={openEditor}
               disabled={!selectedIsEditable}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "var(--color-accent-dark)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <PencilLine size={20} strokeWidth={2.4} />
               Beschikbaarheid bewerken
@@ -509,7 +509,7 @@ export function BeschikbaarheidForm({
               onClick={openEditor}
               disabled={!selectedIsEditable}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <CalendarDays size={20} strokeWidth={2.4} />
               Vul beschikbaarheid in
@@ -540,7 +540,13 @@ export function BeschikbaarheidForm({
           >
 {error}
             {conflict ? (
-              <button type="button" onClick={() => router.refresh()} className="ml-2 underline">Vernieuw en probeer opnieuw</button>
+              <button
+                type="button"
+                onClick={() => router.refresh()}
+                className="ml-2 inline-flex min-h-11 items-center underline"
+              >
+                Vernieuw en probeer opnieuw
+              </button>
             ) : null}
           </p>
         ) : null}
@@ -717,7 +723,7 @@ function EditorBody({
                     repeatType: option.value,
                   }))
                 }
-                className="rounded-2xl border px-3 py-2.5 text-sm font-semibold"
+                className="min-h-11 rounded-2xl border px-3 py-2.5 text-sm font-semibold"
                 style={{
                   color: active ? "#087C79" : "var(--color-primary)",
                   borderColor: active
@@ -777,7 +783,13 @@ function EditorBody({
         <div className="mt-4 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
           {error}
           {conflict ? (
-            <button type="button" onClick={onRefresh} className="ml-2 underline">Vernieuw/retry</button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="ml-2 inline-flex min-h-11 items-center underline"
+            >
+              Vernieuw/retry
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -787,7 +799,7 @@ function EditorBody({
         onClick={onSave}
         disabled={isPending}
         className="mt-6 w-full rounded-2xl px-4 py-4 text-base font-semibold text-white shadow-lg disabled:opacity-60"
-        style={{ backgroundColor: "var(--color-accent)" }}
+        style={{ backgroundColor: "var(--color-accent-accessible)" }}
       >
         {isPending ? "Opslaan..." : "Beschikbaarheid opslaan"}
       </button>

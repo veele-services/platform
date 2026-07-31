@@ -45,25 +45,39 @@ export type PortalBrandingProps = {
 };
 
 function initialsFor(value: string): string {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "FG";
+  return (
+    value
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "FG"
+  );
 }
 
-export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) {
+export function FieldgridLogo({
+  branding,
+}: {
+  branding?: PortalBrandingProps;
+}) {
   const displayName = branding?.displayName || "Fieldgrid";
   const platformName = branding ? branding.platformName.trim() : "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
   const accentColor = branding?.accentColor || "var(--color-accent)";
 
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label={`${displayName} home`}>
+    <Link
+      href="/"
+      className="flex min-h-11 items-center gap-2.5"
+      aria-label={`${displayName} home`}
+    >
       <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-white/10">
         {logoUrl ? (
-          <img src={logoUrl} alt="" className="h-full w-full object-contain p-1" />
+          <img
+            src={logoUrl}
+            alt=""
+            className="h-full w-full object-contain p-1"
+          />
         ) : (
           <span
             className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-semibold text-white"
@@ -103,7 +117,7 @@ export function MobileHeaderActions({
   notificationSummary,
   ticketSummary,
 }: {
-  notificationSummary: NotificationSummary;
+  notificationSummary?: NotificationSummary;
   ticketSummary: TicketSummary;
 }) {
   const router = useRouter();
@@ -131,135 +145,144 @@ export function MobileHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
-            style={{ backgroundColor: "rgba(255,255,255,0.11)" }}
+      {notificationSummary ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
+              style={{ backgroundColor: "rgba(255,255,255,0.11)" }}
+              aria-label="Meldingen"
+            >
+              <Bell size={18} strokeWidth={2.15} />
+              <CountBadge count={notificationSummary.unreadCount} />
+            </button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            side="bottom"
+            align="end"
+            sideOffset={8}
+            collisionPadding={12}
             aria-label="Meldingen"
+            className="max-h-[calc(100vh-5.25rem)] w-[calc(100vw-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl p-0 text-sm"
           >
-            <Bell size={18} strokeWidth={2.15} />
-            <CountBadge count={notificationSummary.unreadCount} />
-          </button>
-        </PopoverTrigger>
-
-        <PopoverContent
-          side="bottom"
-          align="end"
-          sideOffset={8}
-          collisionPadding={12}
-          aria-label="Meldingen"
-          className="max-h-[calc(100vh-5.25rem)] w-[calc(100vw-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl p-0 text-sm"
-        >
-          <div className="border-b px-3.5 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-[var(--color-primary)]">Meldingen</p>
-                <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                  {notificationSummary.unreadCount} ongelezen
-                </p>
-              </div>
-              <PopoverClose asChild>
-                <Link
-                  href="/meldingen"
-                  className="inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-medium text-[var(--color-accent-accessible)]"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in srgb, var(--color-accent) 12%, white)",
-                  }}
-                >
-                  Open
-                </Link>
-              </PopoverClose>
-            </div>
-          </div>
-
-          <div className="max-h-72 overflow-y-auto py-1">
-            {notificationSummary.recentUnread.length > 0 ? (
-              notificationSummary.recentUnread.map((item) => (
-                <div
-                  key={item.id}
-                  className="border-b px-3.5 py-3 last:border-b-0"
-                >
-                  <PopoverClose asChild>
-                    <Link href={item.href ?? "/meldingen"} className="block">
-                      <p className="line-clamp-1 text-sm font-semibold text-[var(--color-primary)]">
-                        {item.title}
-                      </p>
-                      {item.body ? (
-                        <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">
-                          {item.body}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                        {item.sourceLabel ?? item.category}
-                      </p>
-                    </Link>
-                  </PopoverClose>
-                  <div className="mt-2 flex gap-1.5">
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() =>
-                        runNotificationAction(() =>
-                          markNotificationRead(item.id),
-                        )
-                      }
-                      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 disabled:opacity-50"
-                    >
-                      <CheckCheck size={13} />
-                      Gelezen
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() =>
-                        setDeleteTarget({ kind: "one", id: item.id })
-                      }
-                      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 disabled:opacity-50"
-                    >
-                      <Trash2 size={13} />
-                      Wissen
-                    </button>
-                  </div>
+            <div className="border-b px-3.5 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-[var(--color-primary)]">
+                    Meldingen
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                    {notificationSummary.unreadCount} ongelezen
+                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="px-3.5 py-5 text-center text-sm font-semibold text-slate-500">
-                Geen ongelezen meldingen.
-              </p>
-            )}
-          </div>
+                <PopoverClose asChild>
+                  <Link
+                    href="/meldingen"
+                    className="inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-medium text-[var(--color-accent-accessible)]"
+                    style={{
+                      backgroundColor:
+                        "color-mix(in srgb, var(--color-accent) 12%, white)",
+                    }}
+                  >
+                    Open
+                  </Link>
+                </PopoverClose>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-3 gap-1 border-t p-2">
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => runNotificationAction(markAllNotificationsRead)}
-              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
-            >
-              Alles gelezen
-            </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => runNotificationAction(markAllNotificationsUnread)}
-              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
-            >
-              Alles ongelezen
-            </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setDeleteTarget({ kind: "all" })}
-              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-red-600 disabled:opacity-50"
-            >
-              Alles wissen
-            </button>
-          </div>
-        </PopoverContent>
-      </Popover>
+            <div className="max-h-72 overflow-y-auto py-1">
+              {notificationSummary.recentUnread.length > 0 ? (
+                notificationSummary.recentUnread.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border-b px-3.5 py-3 last:border-b-0"
+                  >
+                    <PopoverClose asChild>
+                    <Link
+                      href={item.href ?? "/meldingen"}
+                      className="flex min-h-11 flex-col justify-center"
+                    >
+                        <p className="line-clamp-1 text-sm font-semibold text-[var(--color-primary)]">
+                          {item.title}
+                        </p>
+                        {item.body ? (
+                          <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">
+                            {item.body}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                          {item.sourceLabel ?? item.category}
+                        </p>
+                      </Link>
+                    </PopoverClose>
+                    <div className="mt-2 flex gap-1.5">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          runNotificationAction(() =>
+                            markNotificationRead(item.id),
+                          )
+                        }
+                        className="inline-flex min-h-11 items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 disabled:opacity-50"
+                      >
+                        <CheckCheck size={13} />
+                        Gelezen
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          setDeleteTarget({ kind: "one", id: item.id })
+                        }
+                        className="inline-flex min-h-11 items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 size={13} />
+                        Wissen
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="px-3.5 py-5 text-center text-sm font-semibold text-slate-500">
+                  Geen ongelezen meldingen.
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 border-t p-2">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => runNotificationAction(markAllNotificationsRead)}
+                className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
+              >
+                Alles gelezen
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() =>
+                  runNotificationAction(markAllNotificationsUnread)
+                }
+                className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
+              >
+                Alles ongelezen
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => setDeleteTarget({ kind: "all" })}
+                className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-red-600 disabled:opacity-50"
+              >
+                Alles wissen
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
 
       <Link
         href="/berichten"
@@ -350,7 +373,7 @@ export function MobileHeader({
   ticketSummary,
 }: {
   branding?: PortalBrandingProps;
-  notificationSummary: NotificationSummary;
+  notificationSummary?: NotificationSummary;
   ticketSummary: TicketSummary;
 }) {
   const pathname = usePathname();
@@ -361,7 +384,10 @@ export function MobileHeader({
   return (
     <header
       className="sticky top-0 z-40 md:hidden"
-      style={{ background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)" }}
+      style={{
+        background:
+          "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
+      }}
     >
       <MobileHeaderBar
         branding={branding}
@@ -379,7 +405,7 @@ export function MobileHeaderBar({
   leading,
 }: {
   branding?: PortalBrandingProps;
-  notificationSummary: NotificationSummary;
+  notificationSummary?: NotificationSummary;
   ticketSummary: TicketSummary;
   leading?: ReactNode;
 }) {

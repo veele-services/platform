@@ -333,7 +333,7 @@ function OpenAssignmentsCommandBar({
         <button
           type="submit"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-semibold text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           <SlidersHorizontal size={16} strokeWidth={2.4} />
           Filter
@@ -353,7 +353,7 @@ function OpenAssignmentsCommandBar({
               <a
                 key={filter.label}
                 href={filter.href}
-                className="inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-[11px] font-semibold"
+                className="inline-flex min-h-11 items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-[11px] font-semibold"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-primary)",
@@ -365,7 +365,7 @@ function OpenAssignmentsCommandBar({
             ))}
             <a
               href="/openstaand"
-              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              className="inline-flex min-h-11 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
               style={{ color: "var(--color-secondary)" }}
             >
               Wissen

@@ -25,7 +25,7 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
       <OfflineContentNotice />
 
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>Help</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--color-accent-accessible)" }}>Help</p>
         <h1 className="mt-2 text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>Waar kunnen we mee helpen?</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Zoek in handleidingen voor de personeelsapp, uw planning en operationele processen.
@@ -60,7 +60,7 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
           <div className="mt-3 grid gap-3">
             {index.featured.map((article) => (
               <Link key={article.id} href={`/help/${article.slug}`} className="block rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--color-accent)" }}>{article.category?.name ?? "Handleiding"}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--color-accent-accessible)" }}>{article.category?.name ?? "Handleiding"}</p>
                 <h3 className="mt-2 font-semibold" style={{ color: "var(--color-primary)" }}>{article.title}</h3>
                 {article.summary && <p className="mt-2 text-sm leading-6 text-slate-600">{article.summary}</p>}
               </Link>
@@ -85,10 +85,10 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
             <p className="font-semibold" style={{ color: "var(--color-primary)" }}>Geen artikelen gevonden.</p>
             <p className="mt-1">Probeer een andere zoekterm of stuur een bericht naar de backoffice.</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Link href="/help" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+              <Link href="/help" className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                 Wis zoekterm
               </Link>
-              <Link href="/berichten" className="rounded-xl px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+              <Link href="/berichten" className="inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent-accessible)" }}>
                 Bericht sturen
               </Link>
             </div>

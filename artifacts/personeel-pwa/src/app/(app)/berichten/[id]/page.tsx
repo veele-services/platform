@@ -167,7 +167,7 @@ export default async function TicketDetailPage({
         <div className="mb-5 flex items-center justify-between gap-3">
           <Link
             href="/berichten"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/12 text-white"
             aria-label="Terug naar berichten"
           >
             <ArrowLeft size={21} strokeWidth={2.4} />

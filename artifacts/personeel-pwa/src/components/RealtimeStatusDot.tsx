@@ -28,6 +28,7 @@ export function RealtimeStatusDot() {
           ? "0 0 0 4px rgba(78,217,213,0.15)"
           : "0 0 0 4px rgba(245,158,11,0.16)",
       }}
+      role="img"
       aria-label={online ? "Realtime actief" : "Offline"}
       title={online ? "Realtime actief" : "Offline"}
     />

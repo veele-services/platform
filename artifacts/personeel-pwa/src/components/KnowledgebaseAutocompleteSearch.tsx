@@ -140,7 +140,7 @@ export function KnowledgebaseAutocompleteSearch({
           </div>
         )}
       </div>
-      <button type="submit" className="rounded-xl px-4 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+      <button type="submit" className="rounded-xl px-4 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent-accessible)" }}>
         {submitLabel}
       </button>
     </form>
