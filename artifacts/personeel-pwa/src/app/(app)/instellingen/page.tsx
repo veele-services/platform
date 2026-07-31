@@ -1,64 +1,32 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
-import { BellRing, ChevronRight, KeyRound, UserCircle } from "lucide-react";
 import {
   PersonnelSettingsCard,
   PersonnelSettingsShell,
 } from "@/components/SettingsShell";
+import { isTenantModuleEnabled } from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
-const SETTINGS_LINKS = [
-  {
-    href: "/profiel",
-    label: "Profiel",
-    description: "NAW-gegevens, telefoonnummer en profielfoto.",
-    Icon: UserCircle,
-  },
-  {
-    href: "/beveiliging",
-    label: "Beveiliging",
-    description: "Wachtwoord wijzigen en tweestapsverificatie beheren.",
-    Icon: KeyRound,
-  },
-  {
-    href: "/instellingen/meldingen",
-    label: "Meldingen",
-    description: "E-mail, push en planningvoorkeuren instellen.",
-    Icon: BellRing,
-  },
-];
-
-export default function InstellingenPage() {
+export default async function InstellingenPage() {
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const notificationsEnabled = tenantId
+    ? await isTenantModuleEnabled(tenantId, "notifications")
+    : false;
   return (
     <PersonnelSettingsShell
       active="overview"
       title="Instellingen"
       subtitle="Beheer je profiel, beveiliging en meldingen."
+      notificationsEnabled={notificationsEnabled}
     >
       <PersonnelSettingsCard>
-        <div className="space-y-3">
-          {SETTINGS_LINKS.map(({ href, label, description, Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex min-w-0 items-center gap-3 rounded-[20px] border bg-white px-3 py-3 shadow-sm active:scale-[0.99]"
-              style={{ borderColor: "var(--color-border)" }}
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#009E9A]">
-                <Icon size={21} strokeWidth={2.4} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-black text-[var(--color-primary)]">
-                  {label}
-                </span>
-                <span className="line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
-                  {description}
-                </span>
-              </span>
-              <ChevronRight size={19} className="shrink-0 text-slate-400" />
-            </Link>
-          ))}
-        </div>
+        <h2 className="text-base font-semibold text-[var(--color-primary)]">
+          Kies een onderdeel
+        </h2>
+        <p className="mt-1 text-sm leading-5 text-[var(--color-secondary)]">
+          Gebruik de navigatie om je profiel, meldingen of beveiliging te
+          beheren.
+        </p>
       </PersonnelSettingsCard>
     </PersonnelSettingsShell>
   );

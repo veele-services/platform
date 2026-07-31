@@ -60,7 +60,7 @@ export default async function VerlofPage() {
       <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-[var(--color-primary)]">Nieuwe aanvraag</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-primary)]">Nieuwe aanvraag</h2>
             <p className="mt-0.5 text-xs font-semibold text-slate-500">
               Compact invullen, daarna verwerkt planning je aanvraag.
             </p>
@@ -88,8 +88,8 @@ function LeaveGroup({
   return (
     <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.09)]">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-base font-black text-[var(--color-primary)]">{title}</h2>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-500">
+        <h2 className="text-base font-semibold text-[var(--color-primary)]">{title}</h2>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
           {items.length}
         </span>
       </div>
@@ -119,7 +119,7 @@ function LeaveItem({ period }: { period: LeavePeriod }) {
     <article className="rounded-2xl border border-slate-100 bg-[#F8FAFC] px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-black text-[var(--color-primary)]">
+          <p className="text-sm font-semibold text-[var(--color-primary)]">
             {LEAVE_TYPE_LABELS[period.leaveType] ?? period.leaveType}
           </p>
           <p className="mt-0.5 text-xs font-bold text-slate-500">{range}</p>
@@ -130,7 +130,7 @@ function LeaveItem({ period }: { period: LeavePeriod }) {
           ) : null}
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
             STATUS_STYLES[period.status] ?? "bg-slate-100 text-slate-600"
           }`}
         >

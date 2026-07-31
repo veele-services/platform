@@ -525,7 +525,7 @@ export function NotificationSettingsForm({
               <Icon size={20} strokeWidth={2.4} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-[var(--color-primary)]">
+              <span className="block text-sm font-semibold text-[var(--color-primary)]">
                 {label}
               </span>
               <span className="block text-xs font-semibold text-slate-500">
@@ -533,7 +533,7 @@ export function NotificationSettingsForm({
               </span>
               {isPushOption ? (
                 <span
-                  className={`mt-1 block text-[11px] font-black ${renderPushStatusClass()}`}
+                  className={`mt-1 block text-[11px] font-semibold ${renderPushStatusClass()}`}
                 >
                   {isNativeApp ? "App push" : "Browser push"} -{" "}
                   {pushDevice.text}

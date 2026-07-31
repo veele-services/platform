@@ -7,15 +7,22 @@ import {
 } from "@/components/SettingsShell";
 import { MfaSettings } from "./MfaSettings";
 import { SecurityPasswordForm } from "./SecurityPasswordForm";
+import { isTenantModuleEnabled } from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
 const isPersonnelMfaEnabled = process.env.NEXT_PUBLIC_ENABLE_PERSONNEL_MFA === "true";
 
-export default function BeveiligingPage() {
+export default async function BeveiligingPage() {
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const notificationsEnabled = tenantId
+    ? await isTenantModuleEnabled(tenantId, "notifications")
+    : false;
   return (
     <PersonnelSettingsShell
       active="security"
       title="Beveiliging"
       subtitle="Beheer je wachtwoord en toegangsbeveiliging."
+      notificationsEnabled={notificationsEnabled}
     >
       <div className="mx-auto max-w-3xl space-y-4">
         <PersonnelSettingsCard>
@@ -24,7 +31,7 @@ export default function BeveiligingPage() {
               <KeyRound size={21} strokeWidth={2.4} />
             </span>
             <div>
-              <h2 className="text-lg font-black text-[var(--color-primary)]">
+              <h2 className="text-lg font-semibold text-[var(--color-primary)]">
                 Wachtwoord wijzigen
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
@@ -42,7 +49,7 @@ export default function BeveiligingPage() {
                 <ShieldCheck size={21} strokeWidth={2.4} />
               </span>
               <div>
-                <h2 className="text-lg font-black text-[var(--color-primary)]">
+                <h2 className="text-lg font-semibold text-[var(--color-primary)]">
                   Tweestapsverificatie
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">

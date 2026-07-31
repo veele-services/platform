@@ -23,7 +23,7 @@ export function VerlofForm() {
   return (
     <form ref={formRef} action={formAction} className="space-y-3">
       <div>
-        <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
           Type verlof <span className="text-red-500">*</span>
         </label>
         <SelectAdapter
@@ -44,7 +44,7 @@ export function VerlofForm() {
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Start <span className="text-red-500">*</span>
           </label>
           <input
@@ -60,7 +60,7 @@ export function VerlofForm() {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Eind
           </label>
           <input
@@ -76,7 +76,7 @@ export function VerlofForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
           Reden (optioneel)
         </label>
         <textarea
@@ -106,7 +106,7 @@ export function VerlofForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-2xl px-4 py-3.5 text-sm font-black text-white transition-opacity disabled:opacity-60"
+        className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
         style={{ backgroundColor: "var(--color-accent)" }}
       >
         {isPending ? "Indienen..." : "Verlof aanvragen"}
