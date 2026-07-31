@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: "/",           icon: Home,         label: "Home",     match: ["/"] },
   { href: "/uren",       icon: Clock,        label: "Uren",     match: ["/uren"] },
   { href: "/opdrachten", icon: CalendarDays, label: "Planning", match: ["/opdrachten", "/openstaand"] },
-  { href: "/berichten",  icon: MessageSquare, label: "Berichten", match: ["/berichten", "/meldingen"] },
+  { href: "/berichten",  icon: MessageSquare, label: "Inbox", match: ["/berichten", "/meldingen"] },
   { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/instellingen", "/profiel", "/beveiliging", "/documenten", "/verlof", "/beschikbaarheid", "/nieuws", "/help", "/releases"] },
 ];
 
@@ -24,8 +24,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div
-        className="mx-2.5 mb-[calc(0.45rem+var(--safe-bottom))] flex items-stretch rounded-[20px] px-1.5 py-1 shadow-2xl"
-        style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
+        className="mx-2.5 mb-[calc(0.45rem+var(--safe-bottom))] flex items-stretch rounded-2xl bg-[var(--color-primary)] px-1.5 py-1 shadow-xl"
       >
         {NAV_ITEMS.map((item) => {
           const isActive = item.match.some((path) =>
@@ -37,7 +36,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors"
+              className="relative flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-colors"
               style={{ color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.62)" }}
             >
               <span

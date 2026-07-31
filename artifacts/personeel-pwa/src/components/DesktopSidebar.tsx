@@ -36,27 +36,71 @@ type NavIcon = ComponentType<{
   strokeWidth?: number;
 }>;
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home", Icon: Home },
-  { href: "/opdrachten", label: "Planning", Icon: ClipboardList },
-  { href: "/openstaand", label: "Open diensten", Icon: ClipboardCheck },
-  { href: "/uren", label: "Uren", Icon: Clock },
-  { href: "/berichten", label: "Berichten", Icon: MessageSquare },
-  { href: "/nieuws", label: "Nieuws", Icon: Newspaper },
-  { href: "/meldingen", label: "Meldingen", Icon: Bell, moduleKey: "notifications" },
-  { href: "/beschikbaarheid", label: "Beschikbaarheid", Icon: Calendar },
-  { href: "/verlof", label: "Verlof", Icon: Plane },
-  { href: "/documenten", label: "Documenten", Icon: FolderOpen, moduleKey: "documents" },
-  { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },
-  { href: "/releases", label: "Releases", Icon: Megaphone, moduleKey: "releases" },
-  { href: "/instellingen", label: "Instellingen", Icon: Settings },
-  { href: "/profiel", label: "Profiel", Icon: User },
-] satisfies Array<{
+type NavItem = {
   href: string;
   label: string;
   Icon: NavIcon;
   moduleKey?: keyof PersonnelPortalFeatureFlags;
-}>;
+};
+
+const NAV_GROUPS = [
+  {
+    id: "werk",
+    label: "Werk",
+    items: [
+      { href: "/", label: "Home", Icon: Home },
+      { href: "/opdrachten", label: "Planning", Icon: ClipboardList },
+      { href: "/openstaand", label: "Open diensten", Icon: ClipboardCheck },
+      { href: "/uren", label: "Uren", Icon: Clock },
+    ],
+  },
+  {
+    id: "inbox",
+    label: "Inbox",
+    items: [
+      { href: "/berichten", label: "Berichten", Icon: MessageSquare },
+      {
+        href: "/meldingen",
+        label: "Meldingen",
+        Icon: Bell,
+        moduleKey: "notifications",
+      },
+    ],
+  },
+  {
+    id: "mijn-zaken",
+    label: "Mijn zaken",
+    items: [
+      { href: "/beschikbaarheid", label: "Beschikbaarheid", Icon: Calendar },
+      { href: "/verlof", label: "Verlof", Icon: Plane },
+      {
+        href: "/documenten",
+        label: "Documenten",
+        Icon: FolderOpen,
+        moduleKey: "documents",
+      },
+    ],
+  },
+  {
+    id: "ondersteuning",
+    label: "Ondersteuning",
+    items: [
+      { href: "/nieuws", label: "Nieuws", Icon: Newspaper },
+      {
+        href: "/help",
+        label: "Help",
+        Icon: HelpCircle,
+        moduleKey: "knowledgebase",
+      },
+      {
+        href: "/releases",
+        label: "Wat is nieuw",
+        Icon: Megaphone,
+        moduleKey: "releases",
+      },
+    ],
+  },
+] satisfies Array<{ id: string; label: string; items: NavItem[] }>;
 
 function isVisible(
   moduleKey: keyof PersonnelPortalFeatureFlags | undefined,
@@ -73,54 +117,77 @@ export function DesktopSidebar({
   featureFlags?: PersonnelPortalFeatureFlags;
 }) {
   const pathname = usePathname();
-  const visibleItems = NAV_ITEMS.filter((item) => isVisible(item.moduleKey, featureFlags));
 
   return (
     <aside
-      className="hidden h-screen w-60 shrink-0 flex-col border-r md:flex"
-      style={{ backgroundColor: "#FFFFFF", borderColor: "#E2E8F0" }}
+      className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-[var(--color-border)] bg-white md:flex"
     >
       <div
-        className="border-b px-5 py-5"
-        style={{
-          background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
-          borderColor: "#E2E8F0",
-        }}
+        className="border-b border-[var(--color-border)] bg-[var(--color-primary)] px-5 py-4"
       >
         <FieldgridLogo branding={branding} />
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {visibleItems.map(({ href, label, Icon }) => {
-          const isActive =
-            href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(href);
-
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter((item) =>
+            isVisible(item.moduleKey, featureFlags),
+          );
+          if (visibleItems.length === 0) return null;
           return (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: isActive ? "rgba(0,183,179,0.12)" : "transparent",
-                color: isActive ? "var(--color-primary)" : "#475569",
-              }}
-            >
-              <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} />
-              <span className="min-w-0 flex-1 truncate">{label}</span>
-            </Link>
+            <section key={group.id} aria-labelledby={`nav-${group.id}`}>
+              <h2
+                id={`nav-${group.id}`}
+                className="mb-1 px-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-secondary)]"
+              >
+                {group.label}
+              </h2>
+              <div className="space-y-0.5">
+                {visibleItems.map(({ href, label, Icon }) => {
+                  const isActive =
+                    href === "/" ? pathname === "/" : pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: isActive
+                          ? "color-mix(in srgb, var(--color-accent) 12%, transparent)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--color-primary)"
+                          : "var(--color-secondary)",
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={isActive ? 2.2 : 1.75} />
+                      <span className="min-w-0 flex-1 truncate">{label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </nav>
 
-      <div
-        className="border-t px-3 py-4"
-        style={{ borderColor: "#E2E8F0" }}
-      >
+      <div className="border-t border-[var(--color-border)] px-3 py-3">
+        <Link
+          href="/profiel"
+          className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-secondary)]"
+        >
+          <User size={18} />
+          Profiel
+        </Link>
+        <Link
+          href="/instellingen"
+          className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-secondary)]"
+        >
+          <Settings size={18} />
+          Instellingen
+        </Link>
         <NativeAwareSignOutButton
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-            style={{ color: "#475569" }}
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-secondary)] transition-colors"
         >
             <LogOut size={18} strokeWidth={1.75} />
             Uitloggen

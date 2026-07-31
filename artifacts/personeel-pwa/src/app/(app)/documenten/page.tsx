@@ -4,6 +4,8 @@ import { FolderOpen, FileText } from "lucide-react";
 import { getMyDocuments } from "@/actions/documents";
 import { DocumentDownloadButton } from "@/components/DocumentDownloadButton";
 import { MobilePageShell } from "@/components/MobilePageShell";
+import { notFound } from "next/navigation";
+import { requireCurrentPortalModule } from "@/lib/auth/tenant";
 
 function formatDate(isoStr: string): string {
   return new Date(isoStr).toLocaleDateString("nl-NL", {
@@ -28,6 +30,7 @@ function mimeLabel(mimeType: string): string {
 }
 
 export default async function DocumentenPage() {
+  if (!(await requireCurrentPortalModule("documents"))) notFound();
   const documents = await getMyDocuments();
 
   return (

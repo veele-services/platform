@@ -2,8 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { ReactNode } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/shared-ui";
 import {
   Bell,
   CheckCheck,
@@ -24,6 +35,7 @@ import {
   type NotificationSummary,
 } from "@/actions/notifications";
 import type { TicketSummary } from "@/actions/messages";
+import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 
 export type PortalBrandingProps = {
   displayName: string;
@@ -54,7 +66,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
           <img src={logoUrl} alt="" className="h-full w-full object-contain p-1" />
         ) : (
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-black text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-semibold text-white"
             style={{ backgroundColor: accentColor }}
           >
             {initialsFor(displayName)}
@@ -62,7 +74,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
         )}
       </span>
       <span className="min-w-0 leading-none">
-        <span className="block max-w-32 truncate text-[16px] font-black tracking-[0.08em] text-white">
+        <span className="block max-w-32 truncate text-[16px] font-semibold tracking-[0.08em] text-white">
           {displayName.toUpperCase()}
         </span>
         {platformName ? (
@@ -81,7 +93,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black leading-none text-white">
+    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white">
       {count > 9 ? "9+" : count}
     </span>
   );
@@ -94,16 +106,11 @@ export function MobileHeaderActions({
   notificationSummary: NotificationSummary;
   ticketSummary: TicketSummary;
 }) {
-  const pathname = usePathname();
   const router = useRouter();
-  const [openMenu, setOpenMenu] = useState<"notifications" | "profile" | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<
+    { kind: "all" } | { kind: "one"; id: string } | null
+  >(null);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    setOpenMenu(null);
-  }, [pathname]);
 
   function runNotificationAction(action: () => Promise<unknown>) {
     startTransition(async () => {
@@ -112,62 +119,72 @@ export function MobileHeaderActions({
     });
   }
 
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    runNotificationAction(() =>
+      deleteTarget.kind === "all"
+        ? clearAllNotifications()
+        : deleteNotification(deleteTarget.id),
+    );
+    setDeleteTarget(null);
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <div className="relative">
-        <button
-          type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
-          style={{ backgroundColor: "rgba(255,255,255,0.11)" }}
-          aria-label="Meldingen"
-          aria-haspopup="menu"
-          aria-expanded={openMenu === "notifications"}
-          onClick={() =>
-            setOpenMenu((current) =>
-              current === "notifications" ? null : "notifications",
-            )
-          }
-        >
-          <Bell size={18} strokeWidth={2.15} />
-          <CountBadge count={notificationSummary.unreadCount} />
-        </button>
-
-        {openMenu === "notifications" ? (
-          <div
-            className="fixed left-3 right-3 top-[calc(4.25rem+var(--safe-top))] z-50 max-h-[calc(100vh-5.25rem)] overflow-hidden rounded-2xl border bg-white text-sm shadow-2xl sm:left-auto sm:right-3 sm:w-[22rem]"
-            role="menu"
-            style={{
-              borderColor: "var(--color-border)",
-              boxShadow: "0 18px 42px rgba(8,29,58,0.22)",
-            }}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
+            style={{ backgroundColor: "rgba(255,255,255,0.11)" }}
+            aria-label="Meldingen"
           >
-            <div className="border-b px-3.5 py-3" style={{ borderColor: "var(--color-border)" }}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-black text-[var(--color-primary)]">Meldingen</p>
-                  <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                    {notificationSummary.unreadCount} ongelezen
-                  </p>
-                </div>
+            <Bell size={18} strokeWidth={2.15} />
+            <CountBadge count={notificationSummary.unreadCount} />
+          </button>
+        </PopoverTrigger>
+
+        <PopoverContent
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          aria-label="Meldingen"
+          className="max-h-[calc(100vh-5.25rem)] w-[calc(100vw-1.5rem)] max-w-[22rem] overflow-hidden rounded-2xl p-0 text-sm"
+        >
+          <div className="border-b px-3.5 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-[var(--color-primary)]">Meldingen</p>
+                <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                  {notificationSummary.unreadCount} ongelezen
+                </p>
+              </div>
+              <PopoverClose asChild>
                 <Link
                   href="/meldingen"
-                  className="rounded-full bg-[#E8FBFA] px-3 py-1.5 text-xs font-black text-[#087C79]"
+                  className="inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-medium text-[var(--color-accent-accessible)]"
+                  style={{
+                    backgroundColor:
+                      "color-mix(in srgb, var(--color-accent) 12%, white)",
+                  }}
                 >
                   Open
                 </Link>
-              </div>
+              </PopoverClose>
             </div>
+          </div>
 
-            <div className="max-h-72 overflow-y-auto py-1">
-              {notificationSummary.recentUnread.length > 0 ? (
-                notificationSummary.recentUnread.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border-b px-3.5 py-3 last:border-b-0"
-                    style={{ borderColor: "var(--color-border)" }}
-                  >
+          <div className="max-h-72 overflow-y-auto py-1">
+            {notificationSummary.recentUnread.length > 0 ? (
+              notificationSummary.recentUnread.map((item) => (
+                <div
+                  key={item.id}
+                  className="border-b px-3.5 py-3 last:border-b-0"
+                >
+                  <PopoverClose asChild>
                     <Link href={item.href ?? "/meldingen"} className="block">
-                      <p className="line-clamp-1 text-sm font-black text-[var(--color-primary)]">
+                      <p className="line-clamp-1 text-sm font-semibold text-[var(--color-primary)]">
                         {item.title}
                       </p>
                       {item.body ? (
@@ -179,76 +196,74 @@ export function MobileHeaderActions({
                         {item.sourceLabel ?? item.category}
                       </p>
                     </Link>
-                    <div className="mt-2 flex gap-1.5">
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() =>
-                          runNotificationAction(() =>
-                            markNotificationRead(item.id),
-                          )
-                        }
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600 disabled:opacity-50"
-                      >
-                        <CheckCheck size={13} />
-                        Gelezen
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() =>
-                          runNotificationAction(() =>
-                            deleteNotification(item.id),
-                          )
-                        }
-                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-black text-red-600 disabled:opacity-50"
-                      >
-                        <Trash2 size={13} />
-                        Wissen
-                      </button>
-                    </div>
+                  </PopoverClose>
+                  <div className="mt-2 flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() =>
+                        runNotificationAction(() =>
+                          markNotificationRead(item.id),
+                        )
+                      }
+                      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 disabled:opacity-50"
+                    >
+                      <CheckCheck size={13} />
+                      Gelezen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() =>
+                        setDeleteTarget({ kind: "one", id: item.id })
+                      }
+                      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      Wissen
+                    </button>
                   </div>
-                ))
-              ) : (
-                <p className="px-3.5 py-5 text-center text-sm font-semibold text-slate-500">
-                  Geen ongelezen meldingen.
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-1 border-t p-2" style={{ borderColor: "var(--color-border)" }}>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => runNotificationAction(markAllNotificationsRead)}
-                className="rounded-xl px-2 py-2 text-[11px] font-black text-[var(--color-primary)] disabled:opacity-50"
-              >
-                Alles gelezen
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => runNotificationAction(markAllNotificationsUnread)}
-                className="rounded-xl px-2 py-2 text-[11px] font-black text-[var(--color-primary)] disabled:opacity-50"
-              >
-                Alles ongelezen
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => runNotificationAction(clearAllNotifications)}
-                className="rounded-xl px-2 py-2 text-[11px] font-black text-red-600 disabled:opacity-50"
-              >
-                Alles wissen
-              </button>
-            </div>
+                </div>
+              ))
+            ) : (
+              <p className="px-3.5 py-5 text-center text-sm font-semibold text-slate-500">
+                Geen ongelezen meldingen.
+              </p>
+            )}
           </div>
-        ) : null}
-      </div>
+
+          <div className="grid grid-cols-3 gap-1 border-t p-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => runNotificationAction(markAllNotificationsRead)}
+              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
+            >
+              Alles gelezen
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => runNotificationAction(markAllNotificationsUnread)}
+              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-[var(--color-primary)] disabled:opacity-50"
+            >
+              Alles ongelezen
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setDeleteTarget({ kind: "all" })}
+              className="min-h-11 rounded-xl px-2 py-2 text-[11px] font-medium text-red-600 disabled:opacity-50"
+            >
+              Alles wissen
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <Link
         href="/berichten"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg active:scale-95"
         style={{ backgroundColor: "rgba(255,255,255,0.11)" }}
         aria-label="Berichten"
       >
@@ -256,61 +271,75 @@ export function MobileHeaderActions({
         <CountBadge count={ticketSummary.unreadCount} />
       </Link>
 
-      <div className="relative">
-        <button
-          type="button"
-          className="flex h-9 items-center gap-1.5 rounded-full bg-white px-1.5 text-[#061F44] shadow-lg active:scale-95"
-          aria-haspopup="menu"
-          aria-expanded={openMenu === "profile"}
-          aria-label="Profielmenu"
-          onClick={() =>
-            setOpenMenu((current) => (current === "profile" ? null : "profile"))
-          }
-        >
-          <UserCircle size={25} strokeWidth={2.5} />
-          <ChevronDown
-            size={14}
-            strokeWidth={2.4}
-            className={`transition-transform ${openMenu === "profile" ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {openMenu === "profile" ? (
-          <div
-            className="absolute right-0 top-11 w-48 overflow-hidden rounded-2xl border bg-white py-1.5 text-sm shadow-2xl"
-            role="menu"
-            style={{ borderColor: "var(--color-border)", boxShadow: "0 18px 42px rgba(8,29,58,0.22)" }}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="group flex h-11 min-w-11 items-center gap-1.5 rounded-full bg-white px-1.5 text-[var(--color-primary)] shadow-lg active:scale-95"
+            aria-label="Profielmenu"
           >
+            <UserCircle size={25} strokeWidth={2.5} />
+            <ChevronDown
+              size={14}
+              strokeWidth={2.4}
+              className="transition-transform group-data-[state=open]:rotate-180"
+            />
+          </button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="end"
+          sideOffset={6}
+          collisionPadding={12}
+          className="w-48 rounded-2xl"
+        >
+          <DropdownMenuItem asChild>
             <Link
               href="/profiel"
-              className="flex items-center gap-2.5 px-3.5 py-2.5 font-bold"
-              role="menuitem"
-              style={{ color: "var(--color-primary)" }}
+              className="gap-2.5 font-medium text-[var(--color-primary)]"
             >
               <UserCircle size={17} strokeWidth={2.3} />
               Profiel
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link
               href="/instellingen"
-              className="flex items-center gap-2.5 px-3.5 py-2.5 font-bold"
-              role="menuitem"
-              style={{ color: "var(--color-primary)" }}
+              className="gap-2.5 font-medium text-[var(--color-primary)]"
             >
               <Settings size={17} strokeWidth={2.3} />
               Instellingen
             </Link>
-            <div className="my-1 border-t" style={{ borderColor: "var(--color-border)" }} />
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            asChild
+            onSelect={(event) => event.preventDefault()}
+          >
             <NativeAwareSignOutButton
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-bold"
-                role="menuitem"
-                style={{ color: "var(--color-destructive)" }}
+              menuItem
+              className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left font-medium text-[var(--color-destructive)]"
             >
-                <LogOut size={17} strokeWidth={2.3} />
-                Uitloggen
+              <LogOut size={17} strokeWidth={2.3} />
+              Uitloggen
             </NativeAwareSignOutButton>
-          </div>
-        ) : null}
-      </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <PersonnelConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={
+          deleteTarget?.kind === "all"
+            ? "Alle meldingen wissen?"
+            : "Melding wissen?"
+        }
+        description="De melding verdwijnt uit je inbox. Dit kan niet ongedaan worden gemaakt."
+        confirmLabel="Wissen"
+        tone="danger"
+        pending={isPending}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

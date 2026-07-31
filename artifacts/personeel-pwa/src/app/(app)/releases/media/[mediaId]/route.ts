@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPersonnelReleaseMedia } from "@/actions/releases";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireCurrentPortalModule } from "@/lib/auth/tenant";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ mediaId: string }> },
 ) {
+  if (!(await requireCurrentPortalModule("releases"))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
   const { mediaId } = await params;
   const media = await getPersonnelReleaseMedia(mediaId);
   if (!media) return new NextResponse("Not found", { status: 404 });

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CalendarDays, Megaphone } from "lucide-react";
 import { listPersonnelReleases } from "@/actions/releases";
 import { OfflineContentNotice } from "@/components/OfflineContentNotice";
+import { notFound } from "next/navigation";
+import { requireCurrentPortalModule } from "@/lib/auth/tenant";
 
 export const metadata = {
   title: "Release notes",
@@ -20,6 +22,7 @@ function impactLabel(value: string): string {
 }
 
 export default async function PersonnelReleasesPage() {
+  if (!(await requireCurrentPortalModule("releases"))) notFound();
   const releases = await listPersonnelReleases();
   const latest = releases[0] ?? null;
 
@@ -28,10 +31,10 @@ export default async function PersonnelReleasesPage() {
       <OfflineContentNotice message="Je bent offline. Eerder geopende release notes blijven beschikbaar; media en bijlagen openen weer zodra je online bent." />
 
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-        <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>
           Releases
         </p>
-        <h1 className="mt-2 text-2xl font-black" style={{ color: "var(--color-primary)" }}>
+        <h1 className="mt-2 text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>
           Nieuw in de personeelsapp
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -39,12 +42,12 @@ export default async function PersonnelReleasesPage() {
         </p>
         {latest && (
           <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-700">Laatste release</p>
-            <h2 className="mt-2 font-black" style={{ color: "var(--color-primary)" }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">Laatste release</p>
+            <h2 className="mt-2 font-semibold" style={{ color: "var(--color-primary)" }}>
               {latest.version} - {latest.title}
             </h2>
             {latest.summary && <p className="mt-2 text-sm leading-6 text-slate-600">{latest.summary}</p>}
-            <Link href={`/releases/${latest.slug}`} className="mt-3 inline-flex text-sm font-black text-cyan-700">
+            <Link href={`/releases/${latest.slug}`} className="mt-3 inline-flex text-sm font-semibold text-cyan-700">
               Lees meer
             </Link>
           </div>
@@ -63,7 +66,7 @@ export default async function PersonnelReleasesPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Megaphone className="h-5 w-5" style={{ color: "var(--color-accent)" }} />
-                  <h2 className="font-black" style={{ color: "var(--color-primary)" }}>
+                  <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>
                     {release.version} - {release.title}
                   </h2>
                 </div>
