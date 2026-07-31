@@ -379,7 +379,7 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 
 test("8. Negative guards", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.context().clearCookies();
+  await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
   let response = await page.goto(customerUrl("/klant"), {
     waitUntil: "domcontentloaded",
   });
