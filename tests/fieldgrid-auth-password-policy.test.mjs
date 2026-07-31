@@ -164,6 +164,8 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
 test("portal password reset and logged-out routes are tenant-aware behind /klant and /personeel prefixes", () => {
   const customerMiddleware = read("artifacts/klant-pwa/src/middleware.ts");
   const personnelMiddleware = read("artifacts/personeel-pwa/src/middleware.ts");
+  const customerAppLayout = read("artifacts/klant-pwa/src/app/(app)/layout.tsx");
+  const personnelAppLayout = read("artifacts/personeel-pwa/src/app/(app)/layout.tsx");
   const personnelActions = read("artifacts/personeel-pwa/src/actions/auth.ts");
   const personnelMailHelper = read("artifacts/personeel-pwa/src/lib/email.ts");
 
@@ -179,9 +181,12 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "portalOnboardingAccessState(user.app_metadata, \"customer\")",
     "access.passwordChangeRequired",
     "`${BASE}/wachtwoord-wijzigen`",
-    "access.onboardingRequired",
-    "`${BASE}/onboarding`",
   ], "customer portal middleware");
+  assert.doesNotMatch(customerMiddleware, /access\.onboardingRequired/u);
+  assertContains(customerAppLayout, [
+    "customerOnboardingRequiredForCurrentMembership",
+    "redirect(\"/klant/onboarding\")",
+  ], "customer membership onboarding gate");
 
   assertContains(personnelMiddleware, [
     "function routePath",
@@ -193,9 +198,12 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "portalOnboardingAccessState(user.app_metadata, \"personnel\")",
     "access.passwordChangeRequired",
     "`${BASE}/wachtwoord-wijzigen`",
-    "access.onboardingRequired",
-    "`${BASE}/onboarding`",
   ], "personnel portal middleware");
+  assert.doesNotMatch(personnelMiddleware, /access\.onboardingRequired/u);
+  assertContains(personnelAppLayout, [
+    "personnelOnboardingRequiredForCurrentMembership",
+    "redirect(\"/personeel/onboarding\")",
+  ], "personnel membership onboarding gate");
 
   assertContains(personnelActions, [
     "requireCurrentPersonnelPortalTenantId",
