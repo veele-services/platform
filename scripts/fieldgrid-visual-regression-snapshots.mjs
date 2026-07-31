@@ -388,7 +388,7 @@ async function captureRoute({
     });
     await page.addStyleTag({
       content:
-        "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav]{display:none!important;}",
+        "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav],nextjs-portal{display:none!important;}",
     });
     const finalUrl = page.url();
     const finalPathname = new URL(finalUrl).pathname;

@@ -394,7 +394,8 @@ async function auditTarget(page, role, target, viewport) {
     responseUrl = response?.url() ?? page.url();
     await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
     await page.addStyleTag({
-      content: "[data-fieldgrid-dev-nav]{display:none!important;}",
+      content:
+        "[data-fieldgrid-dev-nav],nextjs-portal{display:none!important;}",
     });
     if (role.id === "tenant-admin" && target.id === "dashboard" && viewport.id === "desktop-1440") {
       sidebarCollapse = await verifyTenantSidebarCanCollapse(page);
