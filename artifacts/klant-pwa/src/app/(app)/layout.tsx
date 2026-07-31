@@ -64,13 +64,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (customerContext.selectionRequired) {
     redirect("/klant/context-kiezen");
   }
+  const profile = await getMyCustomerProfile();
+  if (!profile) {
+    redirect(
+      "/login?error=" +
+        encodeURIComponent("Log in om het klantportaal te gebruiken."),
+    );
+  }
   if (await customerOnboardingRequiredForCurrentMembership()) {
     redirect("/klant/onboarding");
   }
 
   const [
     branding,
-    profile,
     notificationSummary,
     documentsEnabled,
     financeEnabled,
@@ -79,7 +85,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     releasesEnabled,
   ] = await Promise.all([
     getTenantBranding(tenantId),
-    getMyCustomerProfile(),
     getMyCustomerNotificationSummary(),
     isTenantModuleEnabled(tenantId, "documents"),
     isTenantModuleEnabled(tenantId, "finance"),

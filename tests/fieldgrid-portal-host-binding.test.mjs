@@ -121,6 +121,9 @@ test("platform support and login reject cross-environment fixed hosts", () => {
 
 test("customer portal identity is scoped to the host tenant", () => {
   const customer = read("artifacts/klant-pwa/src/actions/customer.ts");
+  const customerLayout = read(
+    "artifacts/klant-pwa/src/app/(app)/layout.tsx",
+  );
 
   assert.match(customer, /requireCurrentCustomerPortalTenantId/u);
   assert.match(
@@ -137,6 +140,13 @@ test("customer portal identity is scoped to the host tenant", () => {
   assert.match(customer, /eq\(customerUsersTable\.userId, user\.id\)/u);
   assert.match(customer, /eq\(customerUsersTable\.status, "active"\)/u);
   assert.doesNotMatch(customer, /isNull\(customerUsersTable\.userId\)/u);
+  assert.ok(
+    customerLayout.indexOf("if (!profile)") >= 0 &&
+      customerLayout.indexOf(
+        "await customerOnboardingRequiredForCurrentMembership()",
+      ) > customerLayout.indexOf("if (!profile)"),
+    "unauthenticated customers must be denied before the onboarding membership lookup",
+  );
 });
 
 test("personnel portal profile and mutations are scoped to the host tenant", () => {

@@ -379,6 +379,12 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 
 test("8. Negative guards", async ({ page }) => {
   test.setTimeout(60_000);
+  await page.context().clearCookies();
+  let response = await page.goto(customerUrl("/klant"), {
+    waitUntil: "domcontentloaded",
+  });
+  await expectDeniedOrLogin(page, response);
+
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
   let rootCookieHeader = "";
   const captureRootRequest = (request: import("@playwright/test").Request) => {
@@ -387,7 +393,7 @@ test("8. Negative guards", async ({ page }) => {
     }
   };
   page.on("request", captureRootRequest);
-  let response = await page.goto(`http://${tenantAHost}:9321/`, { waitUntil: "domcontentloaded" });
+  response = await page.goto(`http://${tenantAHost}:9321/`, { waitUntil: "domcontentloaded" });
   page.off("request", captureRootRequest);
   expect(response?.status()).toBe(404);
   expect(rootCookieHeader).not.toContain("fieldgrid_e2e_auth_user");
