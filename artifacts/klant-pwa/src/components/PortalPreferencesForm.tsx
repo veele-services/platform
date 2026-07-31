@@ -44,7 +44,7 @@ const OPTIONS = [
   },
   {
     name: "marketingEmails",
-    label: "Commerciele updates",
+    label: "Commerciële updates",
     description: "Nieuws over diensten en algemene campagnes.",
   },
   {
@@ -134,7 +134,11 @@ export function PortalPreferencesForm({
   }
 
   return (
-    <form action={formAction} className="rounded-[22px] bg-white p-5 shadow-sm">
+    <form
+      action={formAction}
+      className="rounded-xl border bg-white p-4"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2
@@ -153,11 +157,11 @@ export function PortalPreferencesForm({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
+      <div className="mt-4 grid gap-2 md:grid-cols-2">
         {OPTIONS.map((option) => (
           <label
             key={option.name}
-            className="flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3"
+            className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5"
             style={{ borderColor: "var(--color-border)" }}
           >
             <CheckboxAdapter
@@ -205,7 +209,7 @@ export function PortalPreferencesForm({
             type="button"
             disabled={isRegisteringPush}
             onClick={registerPush}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-medium disabled:opacity-60"
             style={{
               borderColor: "var(--color-border)",
               color: "var(--color-primary)",
@@ -216,11 +220,11 @@ export function PortalPreferencesForm({
             ) : (
               <Smartphone size={16} />
             )}
-            Browser push activeren
+            Push op dit apparaat activeren
           </button>
         ) : (
           <span
-            className="inline-flex min-h-11 items-center rounded-2xl bg-slate-50 px-4 py-2.5 text-sm font-bold"
+            className="inline-flex min-h-11 items-center rounded-lg bg-slate-50 px-4 py-2 text-sm font-medium"
             style={{ color: "var(--color-secondary)" }}
           >
             Pushregistratie is niet actief voor deze omgeving.

@@ -597,9 +597,9 @@ export default async function CustomerTicketsPage({
               className="mt-1 text-sm font-semibold leading-6"
               style={{ color: "var(--color-secondary)" }}
             >
-              Open tickets worden opgepakt door de juiste afdeling. Prioriteit
-              en afdeling bepalen de volgorde; SLA-tijden kunnen later per
-              contract worden getoond.
+              Open tickets worden opgepakt door de juiste afdeling. Urgentie en
+              onderwerp bepalen de volgorde. Bij een kritieke melding neemt ons
+              serviceteam zo snel mogelijk contact met u op.
             </p>
           </div>
 

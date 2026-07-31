@@ -29,7 +29,7 @@ export function PortalFilterSheet({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border bg-white px-3 text-sm font-black shadow-sm transition-colors hover:bg-slate-50 motion-reduce:transition-none"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border bg-white px-3 text-sm font-medium transition-colors hover:bg-slate-50 motion-reduce:transition-none sm:hidden"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -54,7 +54,7 @@ export function PortalFilterSheet({
         >
           <div className="min-w-0">
             <DialogTitle
-              className="text-lg font-black"
+              className="text-lg font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {title}
@@ -71,7 +71,7 @@ export function PortalFilterSheet({
           <DialogClose asChild>
             <button
               type="button"
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg border"
               style={{
                 borderColor: "var(--color-border)",
                 color: "var(--color-primary)",

@@ -10,9 +10,9 @@ export function MobilePageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-[calc(100vh-4.2rem)] bg-[#061F44] md:bg-transparent">
-      <section className="px-4 pb-6 pt-4 md:hidden">
-        <h1 className="text-[29px] font-black leading-tight text-white">
+    <div className="min-h-[calc(100vh-4.2rem)] bg-[var(--color-primary)] md:bg-transparent">
+      <section className="px-4 pb-5 pt-3 md:hidden">
+        <h1 className="text-2xl font-semibold leading-tight text-white">
           {title}
         </h1>
         {subtitle ? (
@@ -22,7 +22,7 @@ export function MobilePageShell({
         ) : null}
       </section>
 
-      <section className="rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:rounded-none md:bg-transparent md:px-0 md:pb-0 md:pt-0">
+      <section className="rounded-t-2xl bg-[var(--color-muted)] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:rounded-none md:bg-transparent md:px-0 md:pb-0 md:pt-0">
         {children}
       </section>
     </div>

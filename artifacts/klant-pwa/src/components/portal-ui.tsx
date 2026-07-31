@@ -75,8 +75,8 @@ export function PortalPageShell({
     <MobilePageShell title={title} subtitle={subtitle}>
       <div
         className={cx(
-          "mx-auto w-full space-y-5 md:px-1 md:py-1 xl:space-y-6",
-          size === "wide" ? "max-w-[1500px]" : "max-w-6xl",
+          "mx-auto w-full space-y-4 md:px-1 md:py-1",
+          size === "wide" ? "max-w-[1280px]" : "max-w-6xl",
           className,
         )}
       >
@@ -118,7 +118,7 @@ export function PortalPageHeader({
   return (
     <header
       className={cx(
-        "items-start justify-between gap-5 rounded-2xl border bg-white px-6 py-5 shadow-sm",
+        "items-start justify-between gap-4 border-b px-1 pb-4",
         className,
       )}
       style={{ borderColor: "var(--color-border)" }}
@@ -126,7 +126,7 @@ export function PortalPageHeader({
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <p
-            className="text-[11px] font-black uppercase"
+            className="text-[11px] font-medium uppercase"
             style={{ color: "var(--color-accent-accessible)" }}
           >
             {eyebrow}
@@ -142,14 +142,14 @@ export function PortalPageHeader({
           ) : null}
         </div>
         <h1
-          className="text-[28px] font-black leading-tight xl:text-[32px]"
+          className="text-[26px] font-semibold leading-tight xl:text-[30px]"
           style={{ color: "var(--color-primary)" }}
         >
           {title}
         </h1>
         {subtitle ? (
           <p
-            className="mt-1 max-w-3xl text-sm font-semibold leading-6"
+            className="mt-1 max-w-3xl text-sm leading-6"
             style={{ color: "var(--color-secondary)" }}
           >
             {subtitle}
@@ -162,7 +162,7 @@ export function PortalPageHeader({
           {primaryAction ? (
             <Link
               href={primaryAction.href}
-              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               {primaryAction.label}
@@ -189,17 +189,17 @@ export function PortalToolbar({
 }) {
   return (
     <section
-      className={cx("rounded-2xl border bg-white p-3 shadow-sm", className)}
+      className={cx("rounded-xl border bg-white p-3", className)}
       style={{ borderColor: "var(--color-border)" }}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="hidden min-w-0 flex-1 gap-2 sm:flex sm:flex-row sm:items-center">
           {children}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {resultLabel ? (
             <span
-              className="rounded-xl px-3 py-2 text-xs font-black"
+              className="rounded-lg px-3 py-2 text-xs font-medium"
               style={{
                 backgroundColor: "var(--color-muted)",
                 color: "var(--color-secondary)",
@@ -240,7 +240,7 @@ export function PortalToolbarSearch({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-10 w-full rounded-xl border bg-white py-2 pl-9 pr-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+        className="min-h-11 w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm outline-none transition-shadow focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_14%,transparent)]"
         style={{
           borderColor: "var(--color-border)",
           color: "var(--color-primary)",
@@ -269,7 +269,7 @@ export function PortalToolbarSelect({
       <SelectAdapter
         name={name}
         defaultValue={defaultValue}
-        className="h-10 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+        className="min-h-11 w-full rounded-lg border bg-white px-3 text-sm font-medium outline-none transition-shadow [&_svg]:!h-4 [&_svg]:!w-4 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_14%,transparent)]"
         style={{
           borderColor: "var(--color-border)",
           color: "var(--color-primary)",
@@ -374,13 +374,13 @@ export function PortalDataList<TItem>({
   return (
     <section className={cx("space-y-3", className)}>
       <div
-        className="hidden overflow-x-auto rounded-2xl border bg-white shadow-sm md:block"
+        className="hidden overflow-x-auto rounded-xl border bg-white md:block"
         style={{ borderColor: "var(--color-border)" }}
       >
         <table className="min-w-full text-left" aria-label={tableLabel}>
           <thead>
             <tr
-              className="border-b text-xs font-black uppercase"
+              className="border-b text-xs font-medium uppercase"
               style={{
                 borderColor: "var(--color-border)",
                 color: "var(--color-secondary)",
@@ -391,7 +391,7 @@ export function PortalDataList<TItem>({
                   key={column.key}
                   scope="col"
                   className={cx(
-                    "whitespace-nowrap px-5 py-3",
+                    "whitespace-nowrap px-4 py-2.5",
                     column.align === "right" && "text-right",
                     column.className,
                   )}
@@ -411,7 +411,7 @@ export function PortalDataList<TItem>({
                   <td
                     key={column.key}
                     className={cx(
-                      "px-5 py-4 text-sm",
+                      "px-4 py-3 text-sm",
                       column.align === "right" && "text-right",
                       column.cellClassName,
                     )}
