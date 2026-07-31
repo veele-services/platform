@@ -8,6 +8,7 @@ function read(path) {
 
 test("personnel planning keeps the date strip and removes the secondary filter container", () => {
   const planningPage = read("artifacts/personeel-pwa/src/app/(app)/opdrachten/page.tsx");
+  const planningWeekStrip = read("artifacts/personeel-pwa/src/components/PlanningWeekStrip.tsx");
 
   for (const marker of ["PlanningWeekStrip", "buildPlanningHref", "getPlanningDays"]) {
     assert.match(planningPage, new RegExp(marker, "u"));
@@ -21,6 +22,11 @@ test("personnel planning keeps the date strip and removes the secondary filter c
   ]) {
     assert.doesNotMatch(planningPage, new RegExp(removedMarker, "u"));
   }
+  assert.doesNotMatch(
+    planningWeekStrip,
+    /boxShadow:\s*day\.isActive/u,
+    "the active planning date should not render a glow",
+  );
 });
 
 test("planning cards show one effective time with the work order number below and status alongside", () => {

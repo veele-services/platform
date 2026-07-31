@@ -46,7 +46,6 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
                 : "rgba(255,255,255,0.09)",
               borderColor: day.isActive ? "rgba(255,255,255,0.26)" : "rgba(255,255,255,0.08)",
               color:       "#FFFFFF",
-              boxShadow:   day.isActive ? "0 16px 34px rgba(0,183,179,0.32)" : "none",
             }}
             aria-current={day.isActive ? "date" : undefined}
           >
