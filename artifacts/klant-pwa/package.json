@@ -9,9 +9,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.3.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@workspace/db": "workspace:*",
+    "@workspace/shared-ui": "workspace:*",
     "clsx": "catalog:",
     "drizzle-orm": "catalog:",
     "lucide-react": "catalog:",
@@ -22,8 +24,7 @@
     "react-dom": "catalog:",
     "react-hook-form": "^7.55.0",
     "tailwind-merge": "catalog:",
-    "zod": "catalog:",
-    "@workspace/shared-ui": "workspace:*"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",

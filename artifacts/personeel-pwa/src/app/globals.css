@@ -33,7 +33,7 @@
   --color-status-gefactureerd: #8b5cf6;
 
   /* ── Typography ───────────────────────────────────────────────────── */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", "Helvetica Neue", Arial, sans-serif;
 
   /* ── Radius — rounder for field-worker mobile feel ───────────────── */
   --radius: 0.625rem;
@@ -68,6 +68,13 @@
     /* Slightly warmer than backoffice muted */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
   }
 
   /* Safe area for PWA bottom nav */

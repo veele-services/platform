@@ -4,6 +4,9 @@ import { DevNav } from "@/components/DevNav";
 import { OfflineContentNavigation } from "@/components/OfflineContentNavigation";
 import { PwaSplashScreen } from "@/components/PwaSplashScreen";
 import { getPersonnelPwaBranding } from "@/lib/pwa-branding";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,8 +23,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#081D3A",
 };
 

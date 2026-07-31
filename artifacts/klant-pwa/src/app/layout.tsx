@@ -5,6 +5,9 @@ import { PwaSplashScreen } from "@/components/PwaSplashScreen";
 import { getCustomerPwaBranding } from "@/lib/pwa-branding";
 import "./globals.css";
 import type { ReactNode } from "react";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
 
 export const metadata: Metadata = {
   title: "Klantportaal",
@@ -20,8 +23,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#081D3A",
 };
 
