@@ -4,7 +4,7 @@ import { test } from "node:test";
 
 const migration = readFileSync(
   new URL(
-    "../../lib/db/migrations/20260721130000_portal_user_onboarding.sql",
+    "../../lib/db/migrations/20260731170000_portal_user_onboarding.sql",
     import.meta.url,
   ),
   "utf8",
@@ -51,6 +51,15 @@ test("onboarding drafts and preferences are private server-only tenant data", ()
     migration,
     /FOREIGN KEY \(session_id, tenant_id\)[\s\S]*REFERENCES public\.portal_onboarding_sessions\(id, tenant_id\)/u,
   );
+  assert.match(
+    migration,
+    /CREATE UNIQUE INDEX IF NOT EXISTS portal_onboarding_session_identity_idx[\s\S]*\(tenant_id, user_id, portal, subject_id\)/u,
+  );
+  assert.match(migration, /revision integer NOT NULL DEFAULT 1/u);
+  assert.match(
+    migration,
+    /portal_onboarding_status varchar\(40\) NOT NULL/u,
+  );
 });
 
 test("onboarding actions derive tenant and user identity on the server", () => {
@@ -76,5 +85,10 @@ test("onboarding actions derive tenant and user identity on the server", () => {
     assert.match(actions, /requestedStepIndex/u);
     assert.match(actions, /requestedStepIndex > currentStepIndex/u);
     assert.match(actions, /session\.completedSteps\.includes\(input\.step\)/u);
+    assert.match(actions, /eq\(portalOnboardingSessionsTable\.subjectId,/u);
+    assert.match(
+      actions,
+      /ne\(portalOnboardingSessionsTable\.status, "completed"\)/u,
+    );
   }
 });

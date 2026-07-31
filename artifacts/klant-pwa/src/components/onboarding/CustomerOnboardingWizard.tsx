@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useForm, type FieldValues } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  type Control,
+  type FieldValues,
+} from "react-hook-form";
 import {
   BellRing,
   Building2,
@@ -17,6 +22,7 @@ import {
   type PortalOnboardingDraft,
   type PortalPushStatus,
 } from "@workspace/db/portal-onboarding-client";
+import { CheckboxAdapter } from "@workspace/shared-ui";
 import {
   completeCustomerOnboarding,
   saveCustomerOnboardingStep,
@@ -65,14 +71,17 @@ export function CustomerOnboardingWizard({
   const [message, setMessage] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const { register, handleSubmit, reset, setValue } = useForm<FormValues>({
-    defaultValues: (workspace.draft[workspace.currentStep] ?? {}) as FormValues,
-  });
+  const { control, register, handleSubmit, reset, setValue } =
+    useForm<FormValues>({
+      defaultValues: (workspace.draft[workspace.currentStep] ??
+        {}) as FormValues,
+    });
   const currentIndex = CUSTOMER_ONBOARDING_STEPS.indexOf(step);
   const progress = Math.max(
     completeness,
     Math.round((currentIndex / (CUSTOMER_ONBOARDING_STEPS.length - 1)) * 100),
   );
+  const organizationReadOnly = !workspace.canManageOrganization;
 
   function openStep(next: CustomerOnboardingStep, nextDraft = draft) {
     setStep(next);
@@ -172,7 +181,7 @@ export function CustomerOnboardingWizard({
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
                   aria-label="Uitloggen"
                 >
                   <LogOut size={18} />
@@ -240,7 +249,11 @@ export function CustomerOnboardingWizard({
             <>
               <Title
                 title="Organisatiegegevens"
-                description="Controleer de gegevens die al door uw beheerder zijn ingevuld."
+                description={
+                  organizationReadOnly
+                    ? "Deze gedeelde organisatiegegevens zijn alleen-lezen. Een primaire klantbeheerder of administrator kan ze wijzigen."
+                    : "Controleer de gegevens die al door uw beheerder zijn ingevuld."
+                }
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
@@ -248,6 +261,7 @@ export function CustomerOnboardingWizard({
                   name="officialName"
                   label="Officiële bedrijfsnaam"
                   required
+                  readOnly={organizationReadOnly}
                   autoComplete="organization"
                 />
                 <Field
@@ -255,36 +269,42 @@ export function CustomerOnboardingWizard({
                   name="tradeName"
                   label="Handelsnaam"
                   required
+                  readOnly={organizationReadOnly}
                 />
                 <Field
                   register={register}
                   name="legalForm"
                   label="Rechtsvorm"
                   required
+                  readOnly={organizationReadOnly}
                 />
                 <Field
                   register={register}
                   name="chamberOfCommerceNumber"
                   label="KvK-nummer"
                   required
+                  readOnly={organizationReadOnly}
                   inputMode="numeric"
                 />
                 <Field
                   register={register}
                   name="vatNumber"
                   label="Btw-nummer"
+                  readOnly={organizationReadOnly}
                 />
                 <Field
                   register={register}
                   name="registrationCountry"
                   label="Land van registratie"
                   required
+                  readOnly={organizationReadOnly}
                 />
                 <Field
                   register={register}
                   name="businessPhone"
                   label="Zakelijk telefoonnummer"
                   required
+                  readOnly={organizationReadOnly}
                   type="tel"
                   autoComplete="tel"
                 />
@@ -293,6 +313,7 @@ export function CustomerOnboardingWizard({
                   name="businessEmail"
                   label="Algemeen zakelijk e-mailadres"
                   required
+                  readOnly={organizationReadOnly}
                   type="email"
                   autoComplete="email"
                 />
@@ -302,6 +323,7 @@ export function CustomerOnboardingWizard({
                     name="addressStreet"
                     label="Bezoekadres"
                     required
+                    readOnly={organizationReadOnly}
                     autoComplete="street-address"
                   />
                 </div>
@@ -310,6 +332,7 @@ export function CustomerOnboardingWizard({
                   name="postalCode"
                   label="Postcode"
                   required
+                  readOnly={organizationReadOnly}
                   autoComplete="postal-code"
                 />
                 <Field
@@ -317,6 +340,7 @@ export function CustomerOnboardingWizard({
                   name="city"
                   label="Plaats"
                   required
+                  readOnly={organizationReadOnly}
                   autoComplete="address-level2"
                 />
                 <Field
@@ -324,6 +348,7 @@ export function CustomerOnboardingWizard({
                   name="country"
                   label="Land"
                   required
+                  readOnly={organizationReadOnly}
                   autoComplete="country-name"
                 />
                 <Field
@@ -331,6 +356,7 @@ export function CustomerOnboardingWizard({
                   name="website"
                   label="Website"
                   type="url"
+                  readOnly={organizationReadOnly}
                 />
               </div>
             </>
@@ -439,9 +465,10 @@ export function CustomerOnboardingWizard({
                               key={channel}
                               className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl bg-slate-50 text-xs font-bold"
                             >
-                              <input
-                                type="checkbox"
-                                {...register(`preferences.${index}.${channel}`)}
+                              <ControlledCheckbox
+                                control={control}
+                                name={`preferences.${index}.${channel}`}
+                                ariaLabel={`${CATEGORY_LABELS[category]}: ${label}`}
                               />
                               {label}
                             </label>
@@ -494,27 +521,27 @@ export function CustomerOnboardingWizard({
               </div>
               <div className="mt-5 space-y-3">
                 <Confirm
-                  register={register}
+                  control={control}
                   name="authorized"
                   label="Ik ben bevoegd om deze organisatiegegevens te bevestigen."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="organizationConfirmed"
                   label="De organisatiegegevens zijn correct."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="contactConfirmed"
                   label="Mijn contactgegevens zijn correct."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="privacyViewed"
                   label="Ik heb de privacy-informatie bekeken."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="termsAccepted"
                   label="Ik accepteer de toepasselijke voorwaarden."
                 />
@@ -586,6 +613,7 @@ function Field({
   name,
   label,
   required = false,
+  readOnly = false,
   type = "text",
   ...input
 }: {
@@ -593,6 +621,7 @@ function Field({
   name: string;
   label: string;
   required?: boolean;
+  readOnly?: boolean;
   type?: string;
   [key: string]: unknown;
 }) {
@@ -602,8 +631,9 @@ function Field({
       {required ? " *" : ""}
       <input
         required={required}
+        readOnly={readOnly}
         type={type}
-        className={inputClass}
+        className={`${inputClass} ${readOnly ? "bg-slate-100 text-slate-600" : ""}`}
         {...input}
         {...register(name)}
       />
@@ -611,24 +641,57 @@ function Field({
   );
 }
 function Confirm({
-  register,
+  control,
   name,
   label,
 }: {
-  register: ReturnType<typeof useForm<FormValues>>["register"];
+  control: Control<FormValues>;
   name: string;
   label: string;
 }) {
   return (
     <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold">
-      <input
+      <ControlledCheckbox
+        control={control}
+        name={name}
         required
-        type="checkbox"
-        className="mt-0.5 h-5 w-5 accent-teal-600"
-        {...register(name)}
+        className="mt-0.5"
+        ariaLabel={label}
       />
       {label}
     </label>
+  );
+}
+
+function ControlledCheckbox({
+  control,
+  name,
+  required = false,
+  className,
+  ariaLabel,
+}: {
+  control: Control<FormValues>;
+  name: string;
+  required?: boolean;
+  className?: string;
+  ariaLabel: string;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      rules={{ required }}
+      render={({ field }) => (
+        <CheckboxAdapter
+          checked={Boolean(field.value)}
+          required={required}
+          className={className}
+          aria-label={ariaLabel}
+          onBlur={field.onBlur}
+          onChange={(event) => field.onChange(event.currentTarget.checked)}
+        />
+      )}
+    />
   );
 }
 function ReviewCard({ title, values }: { title: string; values: string[] }) {

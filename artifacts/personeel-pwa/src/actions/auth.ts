@@ -323,13 +323,16 @@ export async function completeRequiredPasswordChange(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Log opnieuw in om je wachtwoord te wijzigen." };
 
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: "Wachtwoord wijzigen mislukt. Probeer het opnieuw." };
-
   const admin = createAdminClient();
   const { data: current, error: currentError } = await admin.auth.admin.getUserById(user.id);
   if (currentError || !current.user) {
-    return { error: "Wachtwoord is gewijzigd, maar de toegangsstatus kon niet worden bijgewerkt." };
+    return { error: "De beveiligde wachtwoordsessie kon niet worden gecontroleerd." };
+  }
+  if (
+    current.user.app_metadata?.["force_password_change"] !== true ||
+    current.user.app_metadata?.["portal"] !== "personnel"
+  ) {
+    return { error: "Deze verplichte wachtwoordsessie is niet meer geldig." };
   }
   const appMetadata: Record<string, unknown> = { ...(current.user.app_metadata ?? {}) };
   appMetadata["force_password_change"] = false;
@@ -337,11 +340,12 @@ export async function completeRequiredPasswordChange(
   delete appMetadata["temporary_password_issued_at"];
   delete appMetadata["temporary_password_expires_at"];
   delete appMetadata["temporary_password_kind"];
-  const { error: metadataError } = await admin.auth.admin.updateUserById(user.id, {
+  const { error } = await admin.auth.admin.updateUserById(user.id, {
+    password,
     app_metadata: appMetadata,
   });
-  if (metadataError) {
-    return { error: "Wachtwoord is gewijzigd, maar de toegangsstatus kon niet worden bijgewerkt." };
+  if (error) {
+    return { error: "Wachtwoord wijzigen mislukt. Probeer het opnieuw." };
   }
 
   redirect("/personeel/onboarding");

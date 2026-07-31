@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import {
   AlertTriangle,
-  Check,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
@@ -40,6 +39,8 @@ import {
   compressImageIfUseful,
   validateAssignmentMediaFile,
 } from "@/lib/uploads/client-assignment-media";
+import { RadioGroup, RadioGroupItem } from "@workspace/shared-ui";
+import type { StructuredReportNoteV1 } from "@workspace/db";
 
 type Props = {
   assignmentId: string;
@@ -161,6 +162,41 @@ function buildStructuredReportBody(input: {
     "Vervolgactie",
     input.followUp.trim() || "Geen vervolgactie nodig.",
   ].join("\n");
+}
+
+function buildStructuredReportData(input: {
+  kind:                  ReportKind;
+  executionStatus:       ExecutionStatus;
+  customerContactStatus: CustomerContactStatus;
+  workPerformed:         string;
+  particulars:           string;
+  followUp:              string;
+}): StructuredReportNoteV1 {
+  return {
+    version: 1,
+    kind: input.kind,
+    executionStatus: input.executionStatus,
+    customerContactStatus: input.customerContactStatus,
+    workPerformed: input.workPerformed.trim(),
+    particulars: input.particulars.trim(),
+    followUp: input.followUp.trim(),
+  };
+}
+
+function structuredReportForDisplay(input: StructuredReportNoteV1): StructuredReport {
+  return {
+    kind: selectedLabel(REPORT_KINDS, input.kind),
+    executionStatus:
+      EXECUTION_STATUSES.find((option) => option.value === input.executionStatus)
+        ?.shortLabel ?? input.executionStatus,
+    customerContact: selectedLabel(
+      CUSTOMER_CONTACT_OPTIONS,
+      input.customerContactStatus,
+    ),
+    workPerformed: input.workPerformed,
+    particulars: input.particulars || "Geen bijzonderheden gemeld.",
+    followUp: input.followUp || "Geen vervolgactie nodig.",
+  };
 }
 
 function parseStructuredReportBody(body: string): StructuredReport | null {
@@ -335,7 +371,7 @@ function LocalFileRow({
           type="button"
           onClick={() => onRemove(item.id)}
           disabled={isBusy}
-          className="flex h-8 w-8 items-center justify-center rounded-full border disabled:opacity-40"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full border disabled:opacity-40"
           style={{ borderColor: "#FECACA", color: "#DC2626" }}
           aria-label="Bijlage verwijderen"
         >
@@ -365,7 +401,9 @@ function LocalFileRow({
 
 function ReportNoteCard({ note }: { note: ReportNote }) {
   const { date, time } = formatNoteDate(note.createdAt);
-  const report = parseStructuredReportBody(note.body);
+  const report = note.structuredData
+    ? structuredReportForDisplay(note.structuredData)
+    : parseStructuredReportBody(note.body);
   const statusStyle =
     EXECUTION_STATUSES.find((option) => option.shortLabel === report?.executionStatus) ??
     EXECUTION_STATUSES[0];
@@ -674,7 +712,7 @@ export function RapportageTimeline({
       return;
     }
 
-    const trimmedBody = buildStructuredReportBody({
+    const structuredData = buildStructuredReportData({
       kind:                  reportKind,
       executionStatus,
       customerContactStatus,
@@ -682,6 +720,7 @@ export function RapportageTimeline({
       particulars,
       followUp:              followUpNeeded ? followUp : "",
     });
+    const trimmedBody = buildStructuredReportBody(structuredData);
 
     startTransition(async () => {
       if (!canPersist || isOfflineNow()) {
@@ -695,6 +734,7 @@ export function RapportageTimeline({
           {
             id:          `local-report-note-${Date.now()}`,
             body:        trimmedBody,
+            structuredData,
             authorName:  "Backoffice",
             createdAt:   now,
             attachments: files.map((item) => ({
@@ -714,7 +754,7 @@ export function RapportageTimeline({
             type: "add-report-note",
             assignmentId,
             expectedParticipantVersion,
-            payload: { body: trimmedBody },
+            payload: { body: trimmedBody, structuredData },
           });
         }
         resetForm();
@@ -726,6 +766,7 @@ export function RapportageTimeline({
         uploaded = await uploadFiles();
         const result = await addReportNote(assignmentId, {
           body:        trimmedBody,
+          structuredData,
           attachments: uploaded,
         });
 
@@ -794,24 +835,26 @@ export function RapportageTimeline({
               <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 1. Type rapportage
               </legend>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Type rapportage">
+              <RadioGroup
+                value={reportKind}
+                onValueChange={(value) => setReportKind(value as ReportKind)}
+                className="mt-3 grid gap-2 sm:grid-cols-3"
+                aria-label="Type rapportage"
+              >
                 {REPORT_KINDS.map((option) => {
                   const Icon = option.icon;
                   const selected = reportKind === option.value;
 
                   return (
-                    <button
+                    <label
                       key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setReportKind(option.value)}
-                      className="flex min-h-[64px] items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left transition-colors"
+                      className="flex min-h-[64px] cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left transition-colors"
                       style={{
                         borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
                         boxShadow: selected ? "0 0 0 2px rgba(0,183,179,0.12)" : "none",
                       }}
                     >
+                      <RadioGroupItem value={option.value} aria-label={option.label} />
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                         style={{
@@ -829,47 +872,48 @@ export function RapportageTimeline({
                           {option.description}
                         </span>
                       </span>
-                    </button>
+                    </label>
                   );
                 })}
-              </div>
+              </RadioGroup>
             </fieldset>
 
             <fieldset>
               <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 2. Uitvoeringsstatus
               </legend>
-              <div className="mt-3 space-y-2" role="radiogroup" aria-label="Uitvoeringsstatus">
+              <RadioGroup
+                value={executionStatus}
+                onValueChange={(value) =>
+                  setExecutionStatus(value as ExecutionStatus)
+                }
+                className="mt-3 space-y-2"
+                aria-label="Uitvoeringsstatus"
+              >
                 {EXECUTION_STATUSES.map((option) => {
                   const selected = executionStatus === option.value;
 
                   return (
-                    <button
+                    <label
                       key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setExecutionStatus(option.value)}
-                      className="flex min-h-[48px] w-full items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left"
+                      className="flex min-h-[48px] w-full cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left"
                       style={{ borderColor: selected ? option.color : "var(--color-border)" }}
                     >
-                      <span
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2"
+                      <RadioGroupItem
+                        value={option.value}
+                        aria-label={option.label}
                         style={{
                           borderColor: selected ? option.color : "#CBD5E1",
-                          backgroundColor: selected ? option.color : "white",
-                          color: "white",
+                          color: option.color,
                         }}
-                      >
-                        {selected ? <Check size={14} strokeWidth={3} /> : null}
-                      </span>
+                      />
                       <span className="text-[14px] font-bold" style={{ color: selected ? option.color : "var(--color-primary)" }}>
                         {option.label}
                       </span>
-                    </button>
+                    </label>
                   );
                 })}
-              </div>
+              </RadioGroup>
             </fieldset>
 
             <div>
@@ -963,28 +1007,32 @@ export function RapportageTimeline({
               <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
                 Klant geïnformeerd
               </legend>
-              <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Klant geïnformeerd">
+              <RadioGroup
+                value={customerContactStatus}
+                onValueChange={(value) =>
+                  setCustomerContactStatus(value as CustomerContactStatus)
+                }
+                className="mt-2 grid grid-cols-3 gap-2"
+                aria-label="Klant geïnformeerd"
+              >
                 {CUSTOMER_CONTACT_OPTIONS.map((option) => {
                   const selected = customerContactStatus === option.value;
                   return (
-                    <button
+                    <label
                       key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setCustomerContactStatus(option.value)}
-                      className="min-h-[44px] rounded-xl border px-2 py-2 text-[12px] font-black"
+                      className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-2 text-[12px] font-black"
                       style={{
                         borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
                         backgroundColor: selected ? "#E9FBF8" : "white",
                         color: selected ? "var(--color-accent-accessible)" : "var(--color-secondary)",
                       }}
                     >
-                      {option.label}
-                    </button>
+                      <RadioGroupItem value={option.value} aria-label={option.label} />
+                      <span>{option.label}</span>
+                    </label>
                   );
                 })}
-              </div>
+              </RadioGroup>
             </fieldset>
 
             <div>

@@ -11,15 +11,15 @@ export default function RequiredPasswordChangePage() {
   );
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F4F7FB] px-4 py-8">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--color-muted)] px-4 py-8">
       <section className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(8,29,58,0.14)] sm:p-8">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-[var(--color-accent-accessible)]">
           <ShieldCheck size={28} />
         </span>
-        <p className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-[#087C79]">
+        <p className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-accent-accessible)]">
           Veilige eerste login
         </p>
-        <h1 className="mt-2 text-3xl font-black text-[#081D3A]">
+        <h1 className="mt-2 text-3xl font-black text-[var(--color-primary)]">
           Kies een nieuw wachtwoord
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
@@ -43,7 +43,7 @@ export default function RequiredPasswordChangePage() {
           ) : null}
           <button
             disabled={pending}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-5 py-3 font-black text-white disabled:opacity-60"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-5 py-3 font-black text-white disabled:opacity-60"
           >
             <KeyRound size={19} />
             {pending ? "Opslaan…" : "Wachtwoord wijzigen"}
@@ -62,7 +62,7 @@ export default function RequiredPasswordChangePage() {
 function PasswordField({ name, label }: { name: string; label: string }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-[#081D3A]">
+      <span className="mb-2 block text-sm font-black text-[var(--color-primary)]">
         {label}
       </span>
       <input
@@ -70,7 +70,7 @@ function PasswordField({ name, label }: { name: string; label: string }) {
         type="password"
         required
         autoComplete="new-password"
-        className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 text-base font-semibold outline-none focus:border-[#00B7B3] focus:ring-4 focus:ring-[#00B7B3]/10"
+        className="min-h-12 w-full rounded-2xl border border-slate-200 px-4 text-base font-semibold outline-none focus:border-[var(--color-accent)] focus:ring-4 focus:ring-teal-100"
       />
     </label>
   );

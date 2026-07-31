@@ -8,12 +8,16 @@ ALTER TABLE public.personnel
   ADD COLUMN IF NOT EXISTS personal_email varchar(255),
   ADD COLUMN IF NOT EXISTS emergency_contact jsonb NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS travel_preferences jsonb NOT NULL DEFAULT '{}'::jsonb,
-  ADD COLUMN IF NOT EXISTS work_preferences jsonb NOT NULL DEFAULT '{}'::jsonb;
+  ADD COLUMN IF NOT EXISTS work_preferences jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS portal_onboarding_status varchar(40) NOT NULL DEFAULT 'completed',
+  ADD COLUMN IF NOT EXISTS portal_onboarding_version integer NOT NULL DEFAULT 1;
 
 ALTER TABLE public.customer_users
   ADD COLUMN IF NOT EXISTS function varchar(120),
   ADD COLUMN IF NOT EXISTS phone varchar(50),
-  ADD COLUMN IF NOT EXISTS mobile varchar(50);
+  ADD COLUMN IF NOT EXISTS mobile varchar(50),
+  ADD COLUMN IF NOT EXISTS portal_onboarding_status varchar(40) NOT NULL DEFAULT 'completed',
+  ADD COLUMN IF NOT EXISTS portal_onboarding_version integer NOT NULL DEFAULT 1;
 
 ALTER TABLE public.customers
   ADD COLUMN IF NOT EXISTS trade_name varchar(255),
@@ -30,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.portal_onboarding_sessions (
   completed_steps jsonb NOT NULL DEFAULT '[]'::jsonb,
   draft_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   onboarding_version integer NOT NULL DEFAULT 1,
+  revision integer NOT NULL DEFAULT 1,
   profile_completeness_percentage integer NOT NULL DEFAULT 0,
   push_status varchar(32) NOT NULL DEFAULT 'not_asked',
   push_attempted_at timestamptz,
@@ -47,6 +52,7 @@ CREATE TABLE IF NOT EXISTS public.portal_onboarding_sessions (
     push_status IN ('not_asked', 'allowed', 'denied', 'unsupported', 'revoked', 'expired')
   ),
   CONSTRAINT portal_onboarding_version_check CHECK (onboarding_version > 0),
+  CONSTRAINT portal_onboarding_revision_check CHECK (revision > 0),
   CONSTRAINT portal_onboarding_completeness_check CHECK (
     profile_completeness_percentage BETWEEN 0 AND 100
   ),
@@ -54,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.portal_onboarding_sessions (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS portal_onboarding_session_identity_idx
-  ON public.portal_onboarding_sessions (tenant_id, user_id, portal);
+  ON public.portal_onboarding_sessions (tenant_id, user_id, portal, subject_id);
 CREATE INDEX IF NOT EXISTS portal_onboarding_session_status_idx
   ON public.portal_onboarding_sessions (tenant_id, portal, status, last_activity_at DESC);
 CREATE INDEX IF NOT EXISTS portal_onboarding_session_subject_idx
@@ -98,6 +104,76 @@ CREATE TABLE IF NOT EXISTS public.portal_notification_preferences (
 
 CREATE INDEX IF NOT EXISTS portal_notification_preference_tenant_idx
   ON public.portal_notification_preferences (tenant_id, portal, user_id);
+
+ALTER TABLE public.assignment_report_notes
+  ADD COLUMN IF NOT EXISTS structured_data jsonb;
+
+ALTER TABLE public.assignment_report_notes
+  DROP CONSTRAINT IF EXISTS assignment_report_notes_structured_data_check,
+  ADD CONSTRAINT assignment_report_notes_structured_data_check CHECK (
+    structured_data IS NULL OR (
+      jsonb_typeof(structured_data) = 'object'
+      AND structured_data @> '{"version": 1}'::jsonb
+      AND structured_data->>'kind' IN (
+        'work-report',
+        'particularity',
+        'incident'
+      )
+      AND structured_data->>'executionStatus' IN (
+        'as-planned',
+        'partially-completed',
+        'not-completed'
+      )
+      AND structured_data->>'customerContactStatus' IN (
+        'yes',
+        'no',
+        'not-applicable'
+      )
+      AND jsonb_typeof(structured_data->'workPerformed') = 'string'
+      AND jsonb_typeof(structured_data->'particulars') = 'string'
+      AND jsonb_typeof(structured_data->'followUp') = 'string'
+      AND structured_data ?& ARRAY[
+        'kind',
+        'executionStatus',
+        'customerContactStatus',
+        'workPerformed',
+        'particulars',
+        'followUp'
+      ]
+    )
+  );
+
+ALTER TABLE public.personnel
+  DROP CONSTRAINT IF EXISTS personnel_portal_onboarding_status_check,
+  ADD CONSTRAINT personnel_portal_onboarding_status_check CHECK (
+    portal_onboarding_status IN (
+      'not_started',
+      'in_progress',
+      'awaiting_review',
+      'completed',
+      'waived_by_admin'
+    )
+  ),
+  DROP CONSTRAINT IF EXISTS personnel_portal_onboarding_version_check,
+  ADD CONSTRAINT personnel_portal_onboarding_version_check CHECK (
+    portal_onboarding_version > 0
+  );
+
+ALTER TABLE public.customer_users
+  DROP CONSTRAINT IF EXISTS customer_users_portal_onboarding_status_check,
+  ADD CONSTRAINT customer_users_portal_onboarding_status_check CHECK (
+    portal_onboarding_status IN (
+      'not_started',
+      'in_progress',
+      'awaiting_review',
+      'completed',
+      'waived_by_admin'
+    )
+  ),
+  DROP CONSTRAINT IF EXISTS customer_users_portal_onboarding_version_check,
+  ADD CONSTRAINT customer_users_portal_onboarding_version_check CHECK (
+    portal_onboarding_version > 0
+  );
 
 ALTER TABLE public.portal_onboarding_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.portal_onboarding_sessions FORCE ROW LEVEL SECURITY;

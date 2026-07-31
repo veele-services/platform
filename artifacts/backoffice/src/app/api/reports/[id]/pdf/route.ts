@@ -5,7 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { fetchReportPdfImageBuffer } from "@/lib/report-pdf-images";
+import {
+  fetchReportPdfImage,
+  REPORT_PDF_MAX_ATTACHMENTS,
+  REPORT_PDF_MAX_TOTAL_SOURCE_BYTES,
+} from "@/lib/report-pdf-images";
 import { getSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { db } from "@workspace/db";
 import {
@@ -109,9 +113,7 @@ export async function GET(
   const sensitiveAccess = await getSensitiveRuntimeAccess({
     tenantId,
     scope: "reports",
-    // An individual report PDF follows the reports:read product contract.
-    // exportDownload keeps the download audited without requiring bulk-export permission.
-    accessLevel: "full_read",
+    accessLevel: "export",
     resourceType: "reports",
     resourceId: id,
     exportDownload: true,
@@ -159,26 +161,39 @@ export async function GET(
     .orderBy(asc(assignmentPhotosTable.createdAt));
 
   const admin = createAdminClient();
-  const signed = await Promise.all(
-    rawPhotos.map(async (photo) => {
-      const safeStoragePath = getTenantBoundAssignmentMediaStoragePath(
-        photo.storagePath,
-        tenantId,
-        row.assignmentId,
-        { allowLegacyAssignmentRoot: true, allowLegacyPluralTenantRoot: true, allowLegacyTenantRoot: true },
+  const photoBuffers: Buffer[] = [];
+  let remainingSourceBudget = REPORT_PDF_MAX_TOTAL_SOURCE_BYTES;
+  const selectedPhotos = rawPhotos.slice(0, REPORT_PDF_MAX_ATTACHMENTS);
+
+  // Process one source at a time so an untrusted report cannot make several
+  // maximum-sized downloads consume memory concurrently.
+  for (const photo of selectedPhotos) {
+    if (remainingSourceBudget <= 0) break;
+    const safeStoragePath = getTenantBoundAssignmentMediaStoragePath(
+      photo.storagePath,
+      tenantId,
+      row.assignmentId,
+      { allowLegacyAssignmentRoot: true, allowLegacyPluralTenantRoot: true, allowLegacyTenantRoot: true },
+    );
+    if (!safeStoragePath) continue;
+
+    try {
+      const { data, error } = await admin.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(safeStoragePath, 300);
+      if (error || !data?.signedUrl) continue;
+      const image = await fetchReportPdfImage(
+        data.signedUrl,
+        fetch,
+        remainingSourceBudget,
       );
-      if (!safeStoragePath) return null;
-      try {
-        const { data, error } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(safeStoragePath, 300);
-        if (error) return null;
-        return data?.signedUrl ?? null;
-      } catch {
-        return null;
-      }
-    }),
-  );
-  const photoBuffers = (await Promise.all(signed.map((url) => (url ? fetchReportPdfImageBuffer(url) : null))))
-    .filter((buffer): buffer is Buffer => Boolean(buffer));
+      if (!image) continue;
+      remainingSourceBudget -= image.sourceBytes;
+      photoBuffers.push(image.buffer);
+    } catch {
+      // An unusable attachment must not make the complete report fail.
+    }
+  }
   const omittedAttachmentCount = rawPhotos.length - photoBuffers.length;
 
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });

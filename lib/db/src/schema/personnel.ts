@@ -8,6 +8,7 @@ import {
   jsonb,
   text,
   numeric,
+  integer,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -97,6 +98,12 @@ export const personnelTable = pgTable("personnel", {
     .$type<Record<string, unknown>>()
     .notNull()
     .default(sql`'{}'::jsonb`),
+  portalOnboardingStatus: varchar("portal_onboarding_status", { length: 40 })
+    .notNull()
+    .default("completed"),
+  portalOnboardingVersion: integer("portal_onboarding_version")
+    .notNull()
+    .default(1),
 
   /** Primary role used for planning eligibility checks. */
   roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),

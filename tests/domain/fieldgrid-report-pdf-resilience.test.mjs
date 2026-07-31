@@ -13,10 +13,10 @@ const route = read(
 );
 const imagePipeline = read("artifacts/backoffice/src/lib/report-pdf-images.ts");
 
-test("report PDF access follows the reports:read product contract and fails closed with HTTP 403", () => {
+test("report PDF access requires audited report export and fails closed with HTTP 403", () => {
   assert.match(
     route,
-    /getSensitiveRuntimeAccess\(\{[\s\S]*scope: "reports",[\s\S]*accessLevel: "full_read"/u,
+    /getSensitiveRuntimeAccess\(\{[\s\S]*scope: "reports",[\s\S]*accessLevel: "export"/u,
   );
   assert.match(route, /exportDownload: true/u);
   assert.match(
@@ -32,18 +32,16 @@ test("report PDF attachments are bounded, normalized and individually fail-safe"
   assert.match(imagePipeline, /\.resize\(\{/u);
   assert.match(imagePipeline, /\.jpeg\(\{ quality: 84/u);
   assert.match(imagePipeline, /!contentType\.startsWith\("image\/"\)/u);
-  assert.match(
-    imagePipeline,
-    /declaredLength > REPORT_PDF_MAX_SOURCE_IMAGE_BYTES/u,
-  );
-  assert.match(
-    route,
-    /createSignedUrl\(safeStoragePath, 300\)[\s\S]*catch \{/u,
-  );
+  assert.match(imagePipeline, /declaredLength > effectiveLimit/u);
+  assert.match(imagePipeline, /response\.body\.getReader\(\)/u);
+  assert.match(imagePipeline, /receivedBytes > maxBytes/u);
+  assert.match(route, /REPORT_PDF_MAX_TOTAL_SOURCE_BYTES/u);
+  assert.match(route, /rawPhotos\.slice\(0, REPORT_PDF_MAX_ATTACHMENTS\)/u);
   assert.match(
     route,
-    /omittedAttachmentCount = rawPhotos\.length - photoBuffers\.length/u,
+    /for \(const photo of selectedPhotos\)[\s\S]*createSignedUrl\(safeStoragePath, 300\)/u,
   );
+  assert.match(route, /remainingSourceBudget -= image\.sourceBytes/u);
   assert.match(route, /try \{[\s\S]*doc\.image\(photoBuffers\[i\]!/u);
 });
 

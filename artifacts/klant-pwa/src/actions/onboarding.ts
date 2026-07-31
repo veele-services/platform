@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, notInArray, sql } from "drizzle-orm";
 import {
   auditLogTable,
   customerContactOnboardingSchema,
@@ -13,6 +13,7 @@ import {
   customerUsersTable,
   CUSTOMER_ONBOARDING_STEPS,
   db,
+  hasGeocodableAddress,
   mergeOnboardingDraft,
   nextOnboardingStep,
   notificationOnboardingSchema,
@@ -26,6 +27,7 @@ import {
   PORTAL_ONBOARDING_VERSION,
   PORTAL_ONBOARDING_VERSION_METADATA,
   type CustomerOnboardingStep,
+  type CustomerUserRole,
   type PortalOnboardingDraft,
   type PortalPushStatus,
 } from "@workspace/db";
@@ -40,6 +42,7 @@ export type CustomerOnboardingWorkspace = {
   completeness: number;
   pushStatus: PortalPushStatus;
   organizationName: string;
+  canManageOrganization: boolean;
 };
 
 export type CustomerOnboardingActionResult =
@@ -56,6 +59,8 @@ type CustomerIdentity = {
   tenantId: string;
   customerId: string;
   customerUserId: string;
+  role: CustomerUserRole;
+  portalOnboardingStatus: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -106,10 +111,12 @@ async function requireCustomerIdentity(): Promise<CustomerIdentity> {
   const tenantId = await requireCurrentCustomerPortalTenantId();
   if (!tenantId) throw new Error("Geen geldige organisatiecontext.");
 
-  const [identity] = await db
+  const identities = await db
     .select({
       customerId: customersTable.id,
       customerUserId: customerUsersTable.id,
+      role: customerUsersTable.role,
+      portalOnboardingStatus: customerUsersTable.portalOnboardingStatus,
       email: customerUsersTable.email,
       firstName: customerUsersTable.firstName,
       lastName: customerUsersTable.lastName,
@@ -146,9 +153,127 @@ async function requireCustomerIdentity(): Promise<CustomerIdentity> {
         eq(customersTable.isActive, true),
       ),
     )
-    .limit(1);
-  if (!identity) throw new Error("Klantprofiel niet gevonden.");
+    .limit(2);
+  if (identities.length === 0) throw new Error("Klantprofiel niet gevonden.");
+  if (identities.length > 1) {
+    throw new Error(
+      "Dit account heeft meerdere klantprofielen binnen dezelfde organisatie. Laat een beheerder eerst één expliciete portaalcontext instellen.",
+    );
+  }
+  const identity = identities[0]!;
   return { ...identity, userId: user.id, tenantId };
+}
+
+function canManageCustomerOrganization(identity: CustomerIdentity): boolean {
+  return identity.role === "primary" || identity.role === "admin";
+}
+
+function normalizedAddressPart(value: string | null | undefined): string {
+  return (value ?? "").trim().toLocaleLowerCase("nl-NL");
+}
+
+function customerAddressChanged(
+  identity: CustomerIdentity,
+  organization: {
+    addressStreet: string;
+    postalCode: string;
+    city: string;
+    country: string;
+  },
+): boolean {
+  return (
+    normalizedAddressPart(identity.addressStreet) !==
+      normalizedAddressPart(organization.addressStreet) ||
+    normalizedAddressPart(identity.postalCode) !==
+      normalizedAddressPart(organization.postalCode) ||
+    normalizedAddressPart(identity.city) !==
+      normalizedAddressPart(organization.city) ||
+    normalizedAddressPart(identity.country) !==
+      normalizedAddressPart(organization.country)
+  );
+}
+
+function customerGeocodingReset(organization: {
+  addressStreet: string;
+  postalCode: string;
+  city: string;
+  country: string;
+}) {
+  return {
+    addressLine2: null,
+    stateOrRegion: null,
+    countryCode: null,
+    formattedAddress: null,
+    googlePlaceId: null,
+    locationSource: null,
+    locationVerifiedAt: null,
+    locationUpdatedAt: new Date(),
+    latitude: null,
+    longitude: null,
+    geocodedAt: null,
+    geocodingProvider: null,
+    geocodingStatus: hasGeocodableAddress({
+      address: organization.addressStreet,
+      postalCode: organization.postalCode,
+      city: organization.city,
+      country: organization.country,
+    })
+      ? "pending"
+      : "not_required",
+    geocodingConfidence: null,
+    geocodingError: null,
+  };
+}
+
+async function synchronizeCustomerOnboardingMetadata(
+  identity: CustomerIdentity,
+  completedAt: Date,
+): Promise<void> {
+  const [pendingSession] = await db
+    .select({ id: portalOnboardingSessionsTable.id })
+    .from(portalOnboardingSessionsTable)
+    .where(
+      and(
+        eq(portalOnboardingSessionsTable.userId, identity.userId),
+        eq(portalOnboardingSessionsTable.portal, "customer"),
+        notInArray(portalOnboardingSessionsTable.status, [
+          "completed",
+          "waived_by_admin",
+        ]),
+      ),
+    )
+    .limit(1);
+
+  const admin = createAdminClient();
+  const { data: current, error: currentError } =
+    await admin.auth.admin.getUserById(identity.userId);
+  if (currentError || !current.user) {
+    throw new Error(
+      "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
+    );
+  }
+
+  const appMetadata: Record<string, unknown> = {
+    ...(current.user.app_metadata ?? {}),
+  };
+  appMetadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = Boolean(pendingSession);
+  appMetadata[PORTAL_ONBOARDING_STATUS_METADATA] = pendingSession
+    ? "in_progress"
+    : "completed";
+  appMetadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
+  if (!pendingSession) {
+    appMetadata["portal_onboarding_completed_at"] = completedAt.toISOString();
+  }
+
+  const { error: metadataError } = await admin.auth.admin.updateUserById(
+    identity.userId,
+    { app_metadata: appMetadata },
+  );
+  if (metadataError) {
+    throw new Error(
+      "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
+    );
+  }
 }
 
 async function buildInitialDraft(
@@ -222,6 +347,7 @@ async function getOrCreateSession(identity: CustomerIdentity) {
         portalOnboardingSessionsTable.tenantId,
         portalOnboardingSessionsTable.userId,
         portalOnboardingSessionsTable.portal,
+        portalOnboardingSessionsTable.subjectId,
       ],
     });
   const [session] = await db
@@ -252,7 +378,15 @@ export async function getCustomerOnboardingWorkspace(
     completeness: session.profileCompletenessPercentage,
     pushStatus: session.pushStatus,
     organizationName: organizationName ?? identity.officialName,
+    canManageOrganization: canManageCustomerOrganization(identity),
   };
+}
+
+export async function customerOnboardingRequiredForCurrentMembership(): Promise<boolean> {
+  const identity = await requireCustomerIdentity();
+  return !["completed", "waived_by_admin"].includes(
+    identity.portalOnboardingStatus,
+  );
 }
 
 function parseStep(
@@ -301,11 +435,18 @@ function parseStep(
         success: true as const,
         data: {
           ...parsed.data,
-          preferences: parsed.data.preferences.map((preference) => ({
-            ...preference,
-            emailEnabled: true,
-            inAppEnabled: true,
-          })),
+          preferences: parsed.data.preferences.map((preference) => {
+            const critical =
+              preference.category === "incidents" ||
+              preference.category === "announcements";
+            return {
+              ...preference,
+              critical,
+              pushEnabled: false,
+              emailEnabled: critical || preference.emailEnabled,
+              inAppEnabled: critical || preference.inAppEnabled,
+            };
+          }),
         },
       };
     }
@@ -323,6 +464,10 @@ export async function saveCustomerOnboardingStep(input: {
     const identity = await requireCustomerIdentity();
     const session = await getOrCreateSession(identity);
     if (session.status === "completed") {
+      await synchronizeCustomerOnboardingMetadata(
+        identity,
+        session.completedAt ?? new Date(),
+      );
       return {
         success: true,
         currentStep: "review",
@@ -347,6 +492,24 @@ export async function saveCustomerOnboardingStep(input: {
     }
     const parsed = parseStep(input.step, input.payload);
     if (!parsed.success) return zodFailure(parsed.error);
+    let parsedData = parsed.data as Record<string, unknown>;
+    if (
+      input.step === "organization" &&
+      !canManageCustomerOrganization(identity)
+    ) {
+      const canonicalOrganization =
+        customerOrganizationOnboardingSchema.safeParse(
+          (await buildInitialDraft(identity)).organization,
+        );
+      if (!canonicalOrganization.success) {
+        return {
+          success: false,
+          error:
+            "De organisatiegegevens zijn onvolledig. Laat een beheerder deze eerst bijwerken.",
+        };
+      }
+      parsedData = canonicalOrganization.data;
+    }
     const completedSteps = Array.from(
       new Set([...session.completedSteps, input.step]),
     );
@@ -356,17 +519,17 @@ export async function saveCustomerOnboardingStep(input: {
     const draft = mergeOnboardingDraft(
       session.draftData,
       input.step,
-      parsed.data as Record<string, unknown>,
+      parsedData,
     );
     const completeness = onboardingCompleteness("customer", completedSteps);
     const now = new Date();
     const pushStatus =
       input.step === "notifications"
-        ? (parsed.data as { pushStatus: PortalPushStatus }).pushStatus
+        ? (parsedData as { pushStatus: PortalPushStatus }).pushStatus
         : session.pushStatus;
 
     await db.transaction(async (tx) => {
-      await tx
+      const [updatedSession] = await tx
         .update(portalOnboardingSessionsTable)
         .set({
           status: nextStep === "review" ? "awaiting_review" : "in_progress",
@@ -379,6 +542,7 @@ export async function saveCustomerOnboardingStep(input: {
             input.step === "notifications" ? now : session.pushAttemptedAt,
           startedAt: session.startedAt ?? now,
           lastActivityAt: now,
+          revision: sql`${portalOnboardingSessionsTable.revision} + 1`,
           updatedAt: now,
         })
         .where(
@@ -386,6 +550,33 @@ export async function saveCustomerOnboardingStep(input: {
             eq(portalOnboardingSessionsTable.id, session.id),
             eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
             eq(portalOnboardingSessionsTable.userId, identity.userId),
+            eq(
+              portalOnboardingSessionsTable.subjectId,
+              identity.customerUserId,
+            ),
+            eq(portalOnboardingSessionsTable.revision, session.revision),
+            ne(portalOnboardingSessionsTable.status, "completed"),
+          ),
+        )
+        .returning({ id: portalOnboardingSessionsTable.id });
+      if (!updatedSession) {
+        throw new Error(
+          "De onboarding is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.",
+        );
+      }
+      await tx
+        .update(customerUsersTable)
+        .set({
+          portalOnboardingStatus:
+            nextStep === "review" ? "awaiting_review" : "in_progress",
+          portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(customerUsersTable.id, identity.customerUserId),
+            eq(customerUsersTable.tenantId, identity.tenantId),
+            eq(customerUsersTable.userId, identity.userId),
           ),
         );
       await tx
@@ -396,7 +587,7 @@ export async function saveCustomerOnboardingStep(input: {
           stepKey: input.step,
           onboardingVersion: PORTAL_ONBOARDING_VERSION,
           metadata: {
-            fields: Object.keys(parsed.data as Record<string, unknown>),
+            fields: Object.keys(parsedData),
           },
         })
         .onConflictDoUpdate({
@@ -407,7 +598,7 @@ export async function saveCustomerOnboardingStep(input: {
           set: {
             onboardingVersion: PORTAL_ONBOARDING_VERSION,
             metadata: {
-              fields: Object.keys(parsed.data as Record<string, unknown>),
+              fields: Object.keys(parsedData),
             },
             completedAt: now,
             updatedAt: now,
@@ -453,6 +644,18 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
   try {
     const identity = await requireCustomerIdentity();
     const session = await getOrCreateSession(identity);
+    if (session.status === "completed") {
+      await synchronizeCustomerOnboardingMetadata(
+        identity,
+        session.completedAt ?? new Date(),
+      );
+      return {
+        success: true,
+        currentStep: "review",
+        completed: true,
+        completeness: 100,
+      };
+    }
     const required = ["organization", "contact", "notifications", "review"];
     if (required.some((step) => !session.completedSteps.includes(step))) {
       return {
@@ -485,35 +688,81 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
     }
 
     const now = new Date();
+    const canManageOrganization = canManageCustomerOrganization(identity);
+    const resetGeocoding =
+      canManageOrganization &&
+      customerAddressChanged(identity, organization.data);
+
     await db.transaction(async (tx) => {
-      await tx
-        .update(customersTable)
+      const [completedSession] = await tx
+        .update(portalOnboardingSessionsTable)
         .set({
-          name: organization.data.officialName,
-          tradeName: organization.data.tradeName,
-          legalEntity: organization.data.legalForm,
-          registrationCountry: organization.data.registrationCountry,
-          chamberOfCommerceNumber: organization.data.chamberOfCommerceNumber,
-          vatNumber: organization.data.vatNumber || null,
-          contactName:
-            `${contact.data.firstName} ${contact.data.lastName}`.trim(),
-          contactEmail: organization.data.businessEmail,
-          contactPhone: organization.data.businessPhone,
-          mobile: contact.data.mobile || null,
-          address: organization.data.addressStreet,
-          addressLine1: organization.data.addressStreet,
-          postalCode: organization.data.postalCode,
-          city: organization.data.city,
-          country: organization.data.country,
-          website: organization.data.website || null,
+          status: "completed",
+          currentStep: "review",
+          profileCompletenessPercentage: 100,
+          completedAt: now,
+          completedBy: identity.userId,
+          lastActivityAt: now,
+          revision: sql`${portalOnboardingSessionsTable.revision} + 1`,
           updatedAt: now,
         })
         .where(
           and(
-            eq(customersTable.id, identity.customerId),
-            eq(customersTable.tenantId, identity.tenantId),
+            eq(portalOnboardingSessionsTable.id, session.id),
+            eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
+            eq(portalOnboardingSessionsTable.userId, identity.userId),
+            eq(
+              portalOnboardingSessionsTable.subjectId,
+              identity.customerUserId,
+            ),
+            eq(portalOnboardingSessionsTable.revision, session.revision),
+            ne(portalOnboardingSessionsTable.status, "completed"),
           ),
+        )
+        .returning({ id: portalOnboardingSessionsTable.id });
+      if (!completedSession) {
+        throw new Error(
+          "De onboarding is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.",
         );
+      }
+
+      if (canManageOrganization) {
+        await tx
+          .update(customersTable)
+          .set({
+            name: organization.data.officialName,
+            tradeName: organization.data.tradeName,
+            legalEntity: organization.data.legalForm,
+            registrationCountry: organization.data.registrationCountry,
+            chamberOfCommerceNumber: organization.data.chamberOfCommerceNumber,
+            vatNumber: organization.data.vatNumber || null,
+            ...(identity.role === "primary"
+              ? {
+                  contactName:
+                    `${contact.data.firstName} ${contact.data.lastName}`.trim(),
+                  mobile: contact.data.mobile || null,
+                }
+              : {}),
+            contactEmail: organization.data.businessEmail,
+            contactPhone: organization.data.businessPhone,
+            address: organization.data.addressStreet,
+            addressLine1: organization.data.addressStreet,
+            postalCode: organization.data.postalCode,
+            city: organization.data.city,
+            country: organization.data.country,
+            website: organization.data.website || null,
+            ...(resetGeocoding
+              ? customerGeocodingReset(organization.data)
+              : {}),
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(customersTable.id, identity.customerId),
+              eq(customersTable.tenantId, identity.tenantId),
+            ),
+          );
+      }
       await tx
         .update(customerUsersTable)
         .set({
@@ -522,6 +771,8 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
           function: contact.data.function,
           phone: contact.data.businessPhone,
           mobile: contact.data.mobile || null,
+          portalOnboardingStatus: "completed",
+          portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
           updatedAt: now,
         })
         .where(
@@ -534,7 +785,10 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
         );
 
       const [existingContact] = await tx
-        .select({ id: customerContactsTable.id })
+        .select({
+          id: customerContactsTable.id,
+          isPrimary: customerContactsTable.isPrimary,
+        })
         .from(customerContactsTable)
         .where(
           and(
@@ -543,6 +797,17 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
           ),
         )
         .limit(1);
+      if (identity.role === "primary") {
+        await tx
+          .update(customerContactsTable)
+          .set({ isPrimary: false, updatedAt: now })
+          .where(
+            and(
+              eq(customerContactsTable.customerId, identity.customerId),
+              ne(customerContactsTable.email, identity.email),
+            ),
+          );
+      }
       if (existingContact) {
         await tx
           .update(customerContactsTable)
@@ -553,10 +818,16 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
             email: identity.email,
             phone: contact.data.businessPhone,
             mobile: contact.data.mobile || null,
-            isPrimary: true,
+            isPrimary:
+              identity.role === "primary" ? true : existingContact.isPrimary,
             updatedAt: now,
           })
-          .where(eq(customerContactsTable.id, existingContact.id));
+          .where(
+            and(
+              eq(customerContactsTable.id, existingContact.id),
+              eq(customerContactsTable.customerId, identity.customerId),
+            ),
+          );
       } else {
         await tx.insert(customerContactsTable).values({
           customerId: identity.customerId,
@@ -566,7 +837,7 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
           email: identity.email,
           phone: contact.data.businessPhone,
           mobile: contact.data.mobile || null,
-          isPrimary: true,
+          isPrimary: identity.role === "primary",
         });
       }
 
@@ -602,47 +873,31 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
             },
           });
       }
-      await tx
-        .insert(customerPortalPreferencesTable)
-        .values({
-          customerId: identity.customerId,
-          emailNotifications: notifications.data.preferences.some(
-            (item) => item.emailEnabled,
-          ),
-          pushNotifications: notifications.data.preferences.some(
-            (item) => item.pushEnabled,
-          ),
-        })
-        .onConflictDoUpdate({
-          target: customerPortalPreferencesTable.customerId,
-          set: {
+      if (identity.role === "primary") {
+        await tx
+          .insert(customerPortalPreferencesTable)
+          .values({
+            customerId: identity.customerId,
             emailNotifications: notifications.data.preferences.some(
               (item) => item.emailEnabled,
             ),
             pushNotifications: notifications.data.preferences.some(
               (item) => item.pushEnabled,
             ),
-            updatedAt: now,
-          },
-        });
-      await tx
-        .update(portalOnboardingSessionsTable)
-        .set({
-          status: "completed",
-          currentStep: "review",
-          profileCompletenessPercentage: 100,
-          completedAt: now,
-          completedBy: identity.userId,
-          lastActivityAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(portalOnboardingSessionsTable.id, session.id),
-            eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
-            eq(portalOnboardingSessionsTable.userId, identity.userId),
-          ),
-        );
+          })
+          .onConflictDoUpdate({
+            target: customerPortalPreferencesTable.customerId,
+            set: {
+              emailNotifications: notifications.data.preferences.some(
+                (item) => item.emailEnabled,
+              ),
+              pushNotifications: notifications.data.preferences.some(
+                (item) => item.pushEnabled,
+              ),
+              updatedAt: now,
+            },
+          });
+      }
       await tx.insert(auditLogTable).values({
         tenantId: identity.tenantId,
         userId: identity.userId,
@@ -657,28 +912,7 @@ export async function completeCustomerOnboarding(): Promise<CustomerOnboardingAc
       });
     });
 
-    const admin = createAdminClient();
-    const { data: current, error: currentError } =
-      await admin.auth.admin.getUserById(identity.userId);
-    if (currentError || !current.user)
-      throw new Error(
-        "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
-      );
-    const appMetadata: Record<string, unknown> = {
-      ...(current.user.app_metadata ?? {}),
-    };
-    appMetadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = false;
-    appMetadata[PORTAL_ONBOARDING_STATUS_METADATA] = "completed";
-    appMetadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
-    appMetadata["portal_onboarding_completed_at"] = now.toISOString();
-    const { error: metadataError } = await admin.auth.admin.updateUserById(
-      identity.userId,
-      { app_metadata: appMetadata },
-    );
-    if (metadataError)
-      throw new Error(
-        "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
-      );
+    await synchronizeCustomerOnboardingMetadata(identity, now);
 
     revalidatePath("/");
     revalidatePath("/profiel");

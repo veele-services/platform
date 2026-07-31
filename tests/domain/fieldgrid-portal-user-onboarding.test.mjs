@@ -98,21 +98,28 @@ test("new personnel and customer invitations require versioned onboarding", () =
   assert.match(invites, /delete metadata\["force_password_change"\]/u);
 });
 
-test("portal onboarding access is fail-closed and ordered after required password change", () => {
+test("portal onboarding access is tenant-bound and ordered after required password change", () => {
   const contract = read("lib/db/src/portal-onboarding-client.ts");
-  for (const portal of ["personeel", "klant"]) {
+  for (const [portal, actionPrefix] of [
+    ["personeel", "personnel"],
+    ["klant", "customer"],
+  ]) {
     const middleware = read(`artifacts/${portal}-pwa/src/middleware.ts`);
-    const passwordGuard = middleware.indexOf(
-      "access.passwordChangeRequired && !isRequiredPasswordPage",
+    const layout = read(`artifacts/${portal}-pwa/src/app/(app)/layout.tsx`);
+    const onboardingPage = read(
+      `artifacts/${portal}-pwa/src/app/(onboarding)/onboarding/page.tsx`,
     );
-    const onboardingGuard = middleware.indexOf("access.onboardingRequired &&");
-    assert.ok(
-      passwordGuard >= 0,
-      `${portal} must enforce required password changes`,
+    const membershipGuard =
+      `${actionPrefix}OnboardingRequiredForCurrentMembership`;
+    assert.match(
+      middleware,
+      /access\.passwordChangeRequired && !isRequiredPasswordPage/u,
     );
-    assert.ok(
-      onboardingGuard > passwordGuard,
-      `${portal} must enforce onboarding after password changes`,
+    assert.doesNotMatch(middleware, /access\.onboardingRequired/u);
+    assert.match(layout, new RegExp(membershipGuard, "u"));
+    assert.match(
+      onboardingPage,
+      new RegExp(`!\\(await ${membershipGuard}\\(\\)\\)`, "u"),
     );
     assert.match(middleware, /auth\.getUser\(\)/u);
   }
@@ -136,18 +143,37 @@ test("onboarding is resumable and canonical data is committed only at completion
     assert.match(actions, /action: "save_onboarding_step"/u);
     assert.match(actions, /action: "complete_onboarding"/u);
     assert.match(actions, /profileCompletenessPercentage: 100/u);
-    assert.match(actions, /PORTAL_ONBOARDING_REQUIRED_METADATA\] = false/u);
-    assert.match(actions, /PORTAL_ONBOARDING_STATUS_METADATA\] = "completed"/u);
+    assert.match(
+      actions,
+      /PORTAL_ONBOARDING_REQUIRED_METADATA\] = Boolean\(pendingSession\)/u,
+    );
+    assert.match(actions, /portalOnboardingStatus: "completed"/u);
+    assert.match(
+      actions,
+      /portalOnboardingVersion: PORTAL_ONBOARDING_VERSION/u,
+    );
+    assert.match(
+      actions,
+      /eq\(portalOnboardingSessionsTable\.revision, session\.revision\)/u,
+    );
+    assert.match(
+      actions,
+      /revision: sql`\$\{portalOnboardingSessionsTable\.revision\} \+ 1`/u,
+    );
   }
   const personnel = read("artifacts/personeel-pwa/src/actions/onboarding.ts");
   const customer = read("artifacts/klant-pwa/src/actions/onboarding.ts");
-  assert.ok(
-    personnel.indexOf("update(personnelTable)") >
-      personnel.indexOf("completePersonnelOnboarding"),
+  const personnelCompletion = personnel.slice(
+    personnel.indexOf("completePersonnelOnboarding"),
+  );
+  const customerCompletion = customer.slice(
+    customer.indexOf("completeCustomerOnboarding"),
   );
   assert.ok(
-    customer.indexOf("update(customersTable)") >
-      customer.indexOf("completeCustomerOnboarding"),
+    personnelCompletion.indexOf("update(personnelTable)") >= 0,
+  );
+  assert.ok(
+    customerCompletion.indexOf("update(customersTable)") >= 0,
   );
 });
 
@@ -239,4 +265,48 @@ test("availability validation rejects backwards windows", () => {
     availabilityConfirmed: true,
   });
   assert.equal(parsed.success, false);
+});
+
+test("on-request-only availability cannot be silently discarded at completion", () => {
+  const windows = Array.from({ length: 7 }, (_, dayOfWeek) => ({
+    dayOfWeek,
+    available: false,
+    onRequest: dayOfWeek === 0,
+    startTime: "08:00",
+    endTime: "17:00",
+  }));
+  const parsed = contract.personnelAvailabilityOnboardingSchema.safeParse({
+    windows,
+    availabilityConfirmed: true,
+  });
+  assert.equal(parsed.success, false);
+});
+
+test("required password change updates password and metadata in one admin operation", () => {
+  for (const [portal, expectedPortal] of [
+    ["personeel", "personnel"],
+    ["klant", "customer"],
+  ]) {
+    const actions = read(`artifacts/${portal}-pwa/src/actions/auth.ts`);
+    const start = actions.indexOf(
+      "export async function completeRequiredPasswordChange",
+    );
+    const end = actions.indexOf(
+      "export async function completePasswordReset",
+      start,
+    );
+    const body = actions.slice(start, end);
+    assert.match(
+      body,
+      new RegExp(
+        `app_metadata\\?\\.\\["portal"\\] !== "${expectedPortal}"`,
+        "u",
+      ),
+    );
+    assert.match(
+      body,
+      /admin\.auth\.admin\.updateUserById\(user\.id, \{[\s\S]*password,[\s\S]*app_metadata: appMetadata/u,
+    );
+    assert.doesNotMatch(body, /supabase\.auth\.updateUser/u);
+  }
 });

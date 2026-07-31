@@ -16,6 +16,7 @@ import {
   beginOfflineOperation,
   completeOfflineOperation,
   getAssignmentChecklistCompletionIssues,
+  type StructuredReportNoteV1,
 } from "@workspace/db";
 import { eq, and, inArray, desc, asc, ne, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +53,7 @@ export type ReportNoteAttachment = {
 export type ReportNote = {
   id:          string;
   body:        string;
+  structuredData: StructuredReportNoteV1 | null;
   authorName:  string;
   createdAt:   string;
   attachments: ReportNoteAttachment[];
@@ -83,6 +85,7 @@ export type PreparedReportNoteUpload = {
 
 export type ReportNoteInput = {
   body:         string;
+  structuredData?: StructuredReportNoteV1 | null;
   attachments?: ReportNoteAttachmentInput[];
   expectedParticipantVersion?: number | null;
   clientMutationId?: string | null;
@@ -96,6 +99,56 @@ const LOCKED_REPORT_NOTE_STATUSES = new Set([
 ]);
 
 const DEFAULT_PUBLIC_REPORT_AUTHOR = "Backoffice";
+const MAX_REPORT_NOTE_BODY_LENGTH = 20_000;
+const MAX_REPORT_WORK_LENGTH = 5_000;
+const MAX_REPORT_DETAIL_LENGTH = 3_000;
+
+const REPORT_NOTE_KINDS = new Set<StructuredReportNoteV1["kind"]>([
+  "work-report",
+  "particularity",
+  "incident",
+]);
+const REPORT_NOTE_EXECUTION_STATUSES = new Set<
+  StructuredReportNoteV1["executionStatus"]
+>(["as-planned", "partially-completed", "not-completed"]);
+const REPORT_NOTE_CONTACT_STATUSES = new Set<
+  StructuredReportNoteV1["customerContactStatus"]
+>(["yes", "no", "not-applicable"]);
+
+function normalizeStructuredReportNote(
+  input: StructuredReportNoteV1,
+): StructuredReportNoteV1 | null {
+  if (
+    input.version !== 1 ||
+    !REPORT_NOTE_KINDS.has(input.kind) ||
+    !REPORT_NOTE_EXECUTION_STATUSES.has(input.executionStatus) ||
+    !REPORT_NOTE_CONTACT_STATUSES.has(input.customerContactStatus)
+  ) {
+    return null;
+  }
+
+  const workPerformed = input.workPerformed.trim();
+  const particulars = input.particulars.trim();
+  const followUp = input.followUp.trim();
+  if (
+    !workPerformed ||
+    workPerformed.length > MAX_REPORT_WORK_LENGTH ||
+    particulars.length > MAX_REPORT_DETAIL_LENGTH ||
+    followUp.length > MAX_REPORT_DETAIL_LENGTH
+  ) {
+    return null;
+  }
+
+  return {
+    version: 1,
+    kind: input.kind,
+    executionStatus: input.executionStatus,
+    customerContactStatus: input.customerContactStatus,
+    workPerformed,
+    particulars,
+    followUp,
+  };
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -436,6 +489,7 @@ export async function getReportNotesForAssignment(
       .select({
         id:        assignmentReportNotesTable.id,
         body:      assignmentReportNotesTable.body,
+        structuredData: assignmentReportNotesTable.structuredData,
         createdAt: assignmentReportNotesTable.createdAt,
       })
       .from(assignmentReportNotesTable)
@@ -476,6 +530,7 @@ export async function getReportNotesForAssignment(
   return notes.map((note) => ({
     id:          note.id,
     body:        note.body,
+    structuredData: note.structuredData,
     authorName:  publicAuthorName,
     createdAt:   note.createdAt.toISOString(),
     attachments: attachments
@@ -625,6 +680,19 @@ async function addReportNoteInternal(
 
   const body = input.body.trim();
   if (!body) return permanentOfflineActionFailure("Notitie is verplicht", "validation_failed");
+  if (body.length > MAX_REPORT_NOTE_BODY_LENGTH) {
+    return permanentOfflineActionFailure("De rapportage is te lang", "validation_failed");
+  }
+  const structuredData =
+    input.structuredData == null
+      ? null
+      : normalizeStructuredReportNote(input.structuredData);
+  if (input.structuredData != null && !structuredData) {
+    return permanentOfflineActionFailure(
+      "De gestructureerde rapportage is ongeldig",
+      "validation_failed",
+    );
+  }
 
   const [assignment] = await db
     .select({
@@ -692,12 +760,13 @@ async function addReportNoteInternal(
         operationId,
         operationType: "add-report-note",
         expectedVersion,
-        payload: { body, attachments: normalizedAttachments },
+        payload: { body, structuredData, attachments: normalizedAttachments },
       });
       if (replay) {
         const [existingNote] = await tx.select({
           id: assignmentReportNotesTable.id,
           body: assignmentReportNotesTable.body,
+          structuredData: assignmentReportNotesTable.structuredData,
           createdAt: assignmentReportNotesTable.createdAt,
         }).from(assignmentReportNotesTable).where(eq(assignmentReportNotesTable.id, replay.noteId)).limit(1);
         const existingAttachments = await tx.select({
@@ -716,12 +785,14 @@ async function addReportNoteInternal(
         .values({
           assignmentId,
           body,
+          structuredData,
           createdBy: auth.userId,
           clientMutationId: operationId,
         })
         .returning({
           id:        assignmentReportNotesTable.id,
           body:      assignmentReportNotesTable.body,
+          structuredData: assignmentReportNotesTable.structuredData,
           createdAt: assignmentReportNotesTable.createdAt,
         });
 
@@ -777,6 +848,7 @@ async function addReportNoteInternal(
       note:    {
         id:          note.id,
         body:        note.body,
+        structuredData: note.structuredData,
         authorName:  publicAuthorName,
         createdAt:   note.createdAt.toISOString(),
         attachments: signedAttachments,

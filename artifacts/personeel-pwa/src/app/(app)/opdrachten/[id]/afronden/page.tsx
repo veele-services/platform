@@ -24,6 +24,7 @@ function reportAsNote(report: MyReport | null): ReportNote[] {
   return [{
     id:          report.id,
     body:        report.content,
+    structuredData: null,
     authorName:  "Backoffice",
     createdAt:   report.submittedAt,
     attachments: [],

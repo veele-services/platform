@@ -17,6 +17,7 @@ import {
   insertCustomerSchema,
   updateCustomerSchema,
   personnelTable,
+  PORTAL_ONBOARDING_VERSION,
   tenantsTable,
 } from "@workspace/db";
 import {
@@ -442,6 +443,8 @@ async function upsertCustomerPortalInviteLink(input: {
         lastName: name.lastName,
         role: existing.role ?? "primary",
         status,
+        portalOnboardingStatus: "not_started",
+        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
         updatedAt: new Date(),
       })
       .where(
@@ -465,6 +468,8 @@ async function upsertCustomerPortalInviteLink(input: {
         lastName: name.lastName,
         role: "primary",
         status,
+        portalOnboardingStatus: "not_started",
+        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
       })
       .returning({ id: customerUsersTable.id });
     return created!.id;
@@ -477,6 +482,8 @@ async function upsertCustomerPortalInviteLink(input: {
         firstName: name.firstName,
         lastName: name.lastName,
         status,
+        portalOnboardingStatus: "not_started",
+        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
         updatedAt: new Date(),
       })
       .where(

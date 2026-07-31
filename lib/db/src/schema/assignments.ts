@@ -421,6 +421,16 @@ export const assignmentMaterialUsageTable = pgTable("assignment_material_usage",
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
+export type StructuredReportNoteV1 = {
+  version: 1;
+  kind: "work-report" | "particularity" | "incident";
+  executionStatus: "as-planned" | "partially-completed" | "not-completed";
+  customerContactStatus: "yes" | "no" | "not-applicable";
+  workPerformed: string;
+  particulars: string;
+  followUp: string;
+};
+
 /** Timeline notes written by personnel during assignment execution. */
 export const assignmentReportNotesTable = pgTable("assignment_report_notes", {
   id:           uuid("id").primaryKey().defaultRandom(),
@@ -428,6 +438,7 @@ export const assignmentReportNotesTable = pgTable("assignment_report_notes", {
     .notNull()
     .references(() => assignmentsTable.id, { onDelete: "cascade" }),
   body:         text("body").notNull(),
+  structuredData: jsonb("structured_data").$type<StructuredReportNoteV1>(),
   createdBy:    uuid("created_by").notNull(),
   clientMutationId: varchar("client_mutation_id", { length: 512 }),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

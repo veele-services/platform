@@ -189,14 +189,10 @@ export const personnelAvailabilityOnboardingSchema = z
       error: "Bevestig dat je beschikbaarheid klopt.",
     }),
   })
-  .refine(
-    (value) =>
-      value.windows.some((window) => window.available || window.onRequest),
-    {
-      path: ["windows"],
-      message: "Vul voor minimaal één dag beschikbaarheid in.",
-    },
-  )
+  .refine((value) => value.windows.some((window) => window.available), {
+    path: ["windows"],
+    message: "Vul voor minimaal één dag beschikbaarheid in.",
+  })
   .superRefine((value, context) => {
     if (new Set(value.windows.map((window) => window.dayOfWeek)).size !== 7) {
       context.addIssue({

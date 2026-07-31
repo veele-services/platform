@@ -2,6 +2,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { HeaderActions, MobileHeader } from "@/components/MobileHeader";
 import { getMyCustomerProfile } from "@/actions/customer";
+import { customerOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
 import { getMyCustomerNotificationSummary } from "@/actions/notifications";
 import { dismissCustomerReleaseHighlight, getCustomerReleaseHighlight } from "@/actions/releases";
 import { CustomerRealtimeProvider } from "@/components/CustomerRealtimeProvider";
@@ -55,6 +56,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       "/login?error=" +
         encodeURIComponent("Het klantportaal is niet beschikbaar voor deze organisatie."),
     );
+  }
+  if (await customerOnboardingRequiredForCurrentMembership()) {
+    redirect("/klant/onboarding");
   }
 
   const [

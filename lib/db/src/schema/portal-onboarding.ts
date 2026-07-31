@@ -60,6 +60,7 @@ export const portalOnboardingSessionsTable = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
     onboardingVersion: integer("onboarding_version").notNull().default(1),
+    revision: integer("revision").notNull().default(1),
     profileCompletenessPercentage: integer("profile_completeness_percentage")
       .notNull()
       .default(0),
@@ -86,6 +87,7 @@ export const portalOnboardingSessionsTable = pgTable(
       table.tenantId,
       table.userId,
       table.portal,
+      table.subjectId,
     ),
     uniqueIndex("portal_onboarding_session_id_tenant_idx").on(
       table.id,

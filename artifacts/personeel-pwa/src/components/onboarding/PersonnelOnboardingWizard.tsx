@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useForm, type FieldValues } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  type Control,
+  type FieldValues,
+} from "react-hook-form";
 import {
   BellRing,
   Check,
@@ -17,6 +22,7 @@ import {
   type PortalOnboardingDraft,
   type PortalPushStatus,
 } from "@workspace/db/portal-onboarding-client";
+import { CheckboxAdapter, SelectAdapter } from "@workspace/shared-ui";
 import {
   completePersonnelOnboarding,
   savePersonnelOnboardingStep,
@@ -112,7 +118,7 @@ export function PersonnelOnboardingWizard({
   const [message, setMessage] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [pending, startTransition] = useTransition();
-  const { register, handleSubmit, reset, setValue, watch } =
+  const { control, register, handleSubmit, reset, setValue, watch } =
     useForm<FormValues>({
       defaultValues: (workspace.draft[workspace.currentStep] ??
         {}) as FormValues,
@@ -223,7 +229,7 @@ export function PersonnelOnboardingWizard({
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
                   aria-label="Uitloggen"
                 >
                   <LogOut size={18} />
@@ -434,36 +440,48 @@ export function PersonnelOnboardingWizard({
               )}
               <label className={labelClass}>
                 Primair vervoerstype *
-                <select
-                  required
-                  className={inputClass}
-                  {...register("primaryTransportType")}
-                >
-                  {TRANSPORT_OPTIONS.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  control={control}
+                  name="primaryTransportType"
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <SelectAdapter
+                      required
+                      className={inputClass}
+                      value={String(field.value ?? "")}
+                      onChange={(event) =>
+                        field.onChange(event.currentTarget.value)
+                      }
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    >
+                      {TRANSPORT_OPTIONS.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </SelectAdapter>
+                  )}
+                />
               </label>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <Toggle
-                  register={register}
+                  control={control}
                   name="ownTransport"
                   label="Ik beschik over eigen vervoer"
                 />
                 <Toggle
-                  register={register}
+                  control={control}
                   name="validDrivingLicense"
                   label="Ik heb een geldig rijbewijs"
                 />
                 <Toggle
-                  register={register}
+                  control={control}
                   name="willingToCarpool"
                   label="Ik wil collega's meenemen"
                 />
                 <Toggle
-                  register={register}
+                  control={control}
                   name="departureSameAsHome"
                   label="Vertreklocatie is mijn woonadres"
                 />
@@ -570,10 +588,11 @@ export function PersonnelOnboardingWizard({
                       key={value}
                       className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-bold"
                     >
-                      <input
-                        type="checkbox"
+                      <ControlledCheckbox
+                        control={control}
+                        name="preferredShifts"
                         value={value}
-                        {...register("preferredShifts")}
+                        ariaLabel={label}
                       />
                       {label}
                     </label>
@@ -582,12 +601,12 @@ export function PersonnelOnboardingWizard({
               </fieldset>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <Toggle
-                  register={register}
+                  control={control}
                   name="weekendAvailable"
                   label="Beschikbaar in weekenden"
                 />
                 <Toggle
-                  register={register}
+                  control={control}
                   name="holidayAvailable"
                   label="Beschikbaar op feestdagen"
                 />
@@ -637,7 +656,7 @@ export function PersonnelOnboardingWizard({
             <>
               {sectionTitle(
                 "Eerste beschikbaarheid",
-                "Geef voor minimaal één dag aan wanneer je terugkerend beschikbaar of op aanvraag inzetbaar bent.",
+                "Geef voor minimaal één dag aan wanneer je terugkerend beschikbaar bent.",
               )}
               <div className="space-y-3">
                 {DAYS.map((day, index) => (
@@ -655,14 +674,9 @@ export function PersonnelOnboardingWizard({
                     />
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Toggle
-                        register={register}
+                        control={control}
                         name={`windows.${index}.available`}
                         label="Beschikbaar"
-                      />
-                      <Toggle
-                        register={register}
-                        name={`windows.${index}.onRequest`}
-                        label="Alleen op aanvraag"
                       />
                       <label className={labelClass}>
                         Vanaf
@@ -685,11 +699,12 @@ export function PersonnelOnboardingWizard({
                 ))}
               </div>
               <label className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 p-4 text-sm font-bold text-teal-950">
-                <input
+                <ControlledCheckbox
+                  control={control}
+                  name="availabilityConfirmed"
                   required
-                  type="checkbox"
                   className="mt-1"
-                  {...register("availabilityConfirmed")}
+                  ariaLabel="Beschikbaarheid gecontroleerd"
                 />
                 <span>
                   Ik heb mijn beschikbaarheid gecontroleerd en begrijp dat
@@ -748,9 +763,10 @@ export function PersonnelOnboardingWizard({
                               key={channel}
                               className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl bg-slate-50 text-xs font-bold"
                             >
-                              <input
-                                type="checkbox"
-                                {...register(`preferences.${index}.${channel}`)}
+                              <ControlledCheckbox
+                                control={control}
+                                name={`preferences.${index}.${channel}`}
+                                ariaLabel={`${CATEGORY_LABELS[category]}: ${label}`}
                               />
                               {label}
                             </label>
@@ -811,27 +827,27 @@ export function PersonnelOnboardingWizard({
               </div>
               <div className="mt-5 space-y-3">
                 <Confirm
-                  register={register}
+                  control={control}
                   name="profileConfirmed"
                   label="Mijn profielgegevens zijn correct."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="availabilityConfirmed"
                   label="Mijn beschikbaarheid is correct."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="notificationsConfirmed"
                   label="Ik heb mijn notificatie-instellingen gecontroleerd."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="privacyViewed"
                   label="Ik heb de privacy-informatie bekeken."
                 />
                 <Confirm
-                  register={register}
+                  control={control}
                   name="termsAccepted"
                   label="Ik accepteer de toepasselijke voorwaarden."
                 />
@@ -898,45 +914,98 @@ export function PersonnelOnboardingWizard({
 }
 
 function Toggle({
-  register,
+  control,
   name,
   label,
 }: {
-  register: ReturnType<typeof useForm<FormValues>>["register"];
+  control: Control<FormValues>;
   name: string;
   label: string;
 }) {
   return (
     <label className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 px-3 text-sm font-bold">
-      <input
-        type="checkbox"
-        className="h-5 w-5 accent-teal-600"
-        {...register(name)}
-      />
+      <ControlledCheckbox control={control} name={name} ariaLabel={label} />
       {label}
     </label>
   );
 }
 
 function Confirm({
-  register,
+  control,
   name,
   label,
 }: {
-  register: ReturnType<typeof useForm<FormValues>>["register"];
+  control: Control<FormValues>;
   name: string;
   label: string;
 }) {
   return (
     <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold">
-      <input
+      <ControlledCheckbox
+        control={control}
+        name={name}
         required
-        type="checkbox"
-        className="mt-0.5 h-5 w-5 accent-teal-600"
-        {...register(name)}
+        className="mt-0.5"
+        ariaLabel={label}
       />
       {label}
     </label>
+  );
+}
+
+function ControlledCheckbox({
+  control,
+  name,
+  value,
+  required = false,
+  className,
+  ariaLabel,
+}: {
+  control: Control<FormValues>;
+  name: string;
+  value?: string;
+  required?: boolean;
+  className?: string;
+  ariaLabel: string;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      rules={{ required }}
+      render={({ field }) => {
+        const checked =
+          value === undefined
+            ? Boolean(field.value)
+            : Array.isArray(field.value) && field.value.includes(value);
+
+        return (
+          <CheckboxAdapter
+            checked={checked}
+            value={value}
+            required={required}
+            className={className}
+            aria-label={ariaLabel}
+            onBlur={field.onBlur}
+            onChange={(event) => {
+              if (value === undefined) {
+                field.onChange(event.currentTarget.checked);
+                return;
+              }
+
+              const selected = Array.isArray(field.value)
+                ? field.value.map(String)
+                : [];
+              field.onChange(
+                event.currentTarget.checked
+                  ? Array.from(new Set([...selected, value]))
+                  : selected.filter((item) => item !== value),
+              );
+            }}
+          />
+        );
+      }}
+    />
   );
 }
 

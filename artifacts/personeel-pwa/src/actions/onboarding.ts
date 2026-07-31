@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, notInArray, sql } from "drizzle-orm";
 import {
   assignmentRouteContextsTable,
   auditLogTable,
   availabilityWindowsTable,
   canonicalVehicleType,
   db,
+  hasGeocodableAddress,
   mergeOnboardingDraft,
   nextOnboardingStep,
   onboardingCompleteness,
@@ -78,6 +79,7 @@ type PersonnelIdentity = {
   notificationPlanningEnabled: boolean;
   notificationNewsEnabled: boolean;
   notificationHoursEnabled: boolean;
+  portalOnboardingStatus: string;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -133,6 +135,7 @@ async function requirePersonnelIdentity(): Promise<PersonnelIdentity> {
       notificationPlanningEnabled: personnelTable.notificationPlanningEnabled,
       notificationNewsEnabled: personnelTable.notificationNewsEnabled,
       notificationHoursEnabled: personnelTable.notificationHoursEnabled,
+      portalOnboardingStatus: personnelTable.portalOnboardingStatus,
     })
     .from(personnelTable)
     .where(
@@ -145,6 +148,115 @@ async function requirePersonnelIdentity(): Promise<PersonnelIdentity> {
     .limit(1);
   if (!personnel) throw new Error("Personeelsprofiel niet gevonden.");
   return { ...personnel, userId: user.id, tenantId };
+}
+
+function normalizedAddressPart(value: string | null | undefined): string {
+  return (value ?? "").trim().toLocaleLowerCase("nl-NL");
+}
+
+function personnelAddressChanged(
+  identity: PersonnelIdentity,
+  profile: {
+    addressStreet: string;
+    addressPostalCode: string;
+    addressCity: string;
+    addressCountry: string;
+  },
+): boolean {
+  return (
+    normalizedAddressPart(identity.addressStreet) !==
+      normalizedAddressPart(profile.addressStreet) ||
+    normalizedAddressPart(identity.addressPostalCode) !==
+      normalizedAddressPart(profile.addressPostalCode) ||
+    normalizedAddressPart(identity.addressCity) !==
+      normalizedAddressPart(profile.addressCity) ||
+    normalizedAddressPart(identity.addressCountry) !==
+      normalizedAddressPart(profile.addressCountry)
+  );
+}
+
+function personnelGeocodingReset(profile: {
+  addressStreet: string;
+  addressPostalCode: string;
+  addressCity: string;
+  addressCountry: string;
+}) {
+  return {
+    addressLine1: profile.addressStreet,
+    addressLine2: null,
+    stateOrRegion: null,
+    countryCode: null,
+    formattedAddress: null,
+    googlePlaceId: null,
+    locationSource: null,
+    locationVerifiedAt: null,
+    locationUpdatedAt: new Date(),
+    addressLatitude: null,
+    addressLongitude: null,
+    addressGeocodedAt: null,
+    addressGeocodingProvider: null,
+    addressGeocodingStatus: hasGeocodableAddress({
+      address: profile.addressStreet,
+      postalCode: profile.addressPostalCode,
+      city: profile.addressCity,
+      country: profile.addressCountry,
+    })
+      ? "pending"
+      : "not_required",
+    addressGeocodingConfidence: null,
+    addressGeocodingError: null,
+  };
+}
+
+async function synchronizePersonnelOnboardingMetadata(
+  identity: PersonnelIdentity,
+  completedAt: Date,
+): Promise<void> {
+  const [pendingSession] = await db
+    .select({ id: portalOnboardingSessionsTable.id })
+    .from(portalOnboardingSessionsTable)
+    .where(
+      and(
+        eq(portalOnboardingSessionsTable.userId, identity.userId),
+        eq(portalOnboardingSessionsTable.portal, "personnel"),
+        notInArray(portalOnboardingSessionsTable.status, [
+          "completed",
+          "waived_by_admin",
+        ]),
+      ),
+    )
+    .limit(1);
+
+  const admin = createAdminClient();
+  const { data: current, error: currentError } =
+    await admin.auth.admin.getUserById(identity.userId);
+  if (currentError || !current.user) {
+    throw new Error(
+      "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
+    );
+  }
+
+  const appMetadata: Record<string, unknown> = {
+    ...(current.user.app_metadata ?? {}),
+  };
+  appMetadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = Boolean(pendingSession);
+  appMetadata[PORTAL_ONBOARDING_STATUS_METADATA] = pendingSession
+    ? "in_progress"
+    : "completed";
+  appMetadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
+  if (!pendingSession) {
+    appMetadata["portal_onboarding_completed_at"] = completedAt.toISOString();
+  }
+
+  const { error: metadataError } = await admin.auth.admin.updateUserById(
+    identity.userId,
+    { app_metadata: appMetadata },
+  );
+  if (metadataError) {
+    throw new Error(
+      "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
+    );
+  }
 }
 
 function transportTypeFromCanonical(value: string): string {
@@ -261,6 +373,7 @@ async function getOrCreateSession(identity: PersonnelIdentity) {
         portalOnboardingSessionsTable.tenantId,
         portalOnboardingSessionsTable.userId,
         portalOnboardingSessionsTable.portal,
+        portalOnboardingSessionsTable.subjectId,
       ],
     });
 
@@ -278,6 +391,13 @@ async function getOrCreateSession(identity: PersonnelIdentity) {
     .limit(1);
   if (!session) throw new Error("Onboardingsessie kon niet worden gestart.");
   return session;
+}
+
+export async function personnelOnboardingRequiredForCurrentMembership(): Promise<boolean> {
+  const identity = await requirePersonnelIdentity();
+  return !["completed", "waived_by_admin"].includes(
+    identity.portalOnboardingStatus,
+  );
 }
 
 export async function getPersonnelOnboardingWorkspace(
@@ -345,11 +465,16 @@ function parseStep(
         success: true as const,
         data: {
           ...parsed.data,
-          preferences: parsed.data.preferences.map((preference) => ({
-            ...preference,
-            emailEnabled: true,
-            inAppEnabled: true,
-          })),
+          preferences: parsed.data.preferences.map((preference) => {
+            const critical = preference.category === "urgent_operations";
+            return {
+              ...preference,
+              critical,
+              pushEnabled: false,
+              emailEnabled: critical || preference.emailEnabled,
+              inAppEnabled: critical || preference.inAppEnabled,
+            };
+          }),
         },
       };
     }
@@ -367,6 +492,10 @@ export async function savePersonnelOnboardingStep(input: {
     const identity = await requirePersonnelIdentity();
     const session = await getOrCreateSession(identity);
     if (session.status === "completed") {
+      await synchronizePersonnelOnboardingMetadata(
+        identity,
+        session.completedAt ?? new Date(),
+      );
       return {
         success: true,
         currentStep: "review",
@@ -411,7 +540,7 @@ export async function savePersonnelOnboardingStep(input: {
         : session.pushStatus;
 
     await db.transaction(async (tx) => {
-      await tx
+      const [updatedSession] = await tx
         .update(portalOnboardingSessionsTable)
         .set({
           status: nextStep === "review" ? "awaiting_review" : "in_progress",
@@ -424,6 +553,7 @@ export async function savePersonnelOnboardingStep(input: {
             input.step === "notifications" ? now : session.pushAttemptedAt,
           startedAt: session.startedAt ?? now,
           lastActivityAt: now,
+          revision: sql`${portalOnboardingSessionsTable.revision} + 1`,
           updatedAt: now,
         })
         .where(
@@ -431,6 +561,30 @@ export async function savePersonnelOnboardingStep(input: {
             eq(portalOnboardingSessionsTable.id, session.id),
             eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
             eq(portalOnboardingSessionsTable.userId, identity.userId),
+            eq(portalOnboardingSessionsTable.subjectId, identity.personnelId),
+            eq(portalOnboardingSessionsTable.revision, session.revision),
+            ne(portalOnboardingSessionsTable.status, "completed"),
+          ),
+        )
+        .returning({ id: portalOnboardingSessionsTable.id });
+      if (!updatedSession) {
+        throw new Error(
+          "De onboarding is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.",
+        );
+      }
+      await tx
+        .update(personnelTable)
+        .set({
+          portalOnboardingStatus:
+            nextStep === "review" ? "awaiting_review" : "in_progress",
+          portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(personnelTable.id, identity.personnelId),
+            eq(personnelTable.tenantId, identity.tenantId),
+            eq(personnelTable.userId, identity.userId),
           ),
         );
       await tx
@@ -499,6 +653,18 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
   try {
     const identity = await requirePersonnelIdentity();
     const session = await getOrCreateSession(identity);
+    if (session.status === "completed") {
+      await synchronizePersonnelOnboardingMetadata(
+        identity,
+        session.completedAt ?? new Date(),
+      );
+      return {
+        success: true,
+        currentStep: "review",
+        completed: true,
+        completeness: 100,
+      };
+    }
     const required = [
       "profile",
       "transport",
@@ -540,7 +706,37 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
     if (!review.success) return zodFailure(review.error);
 
     const now = new Date();
+    const resetGeocoding = personnelAddressChanged(identity, profile.data);
     await db.transaction(async (tx) => {
+      const [completedSession] = await tx
+        .update(portalOnboardingSessionsTable)
+        .set({
+          status: "completed",
+          currentStep: "review",
+          profileCompletenessPercentage: 100,
+          completedAt: now,
+          completedBy: identity.userId,
+          lastActivityAt: now,
+          revision: sql`${portalOnboardingSessionsTable.revision} + 1`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(portalOnboardingSessionsTable.id, session.id),
+            eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
+            eq(portalOnboardingSessionsTable.userId, identity.userId),
+            eq(portalOnboardingSessionsTable.subjectId, identity.personnelId),
+            eq(portalOnboardingSessionsTable.revision, session.revision),
+            ne(portalOnboardingSessionsTable.status, "completed"),
+          ),
+        )
+        .returning({ id: portalOnboardingSessionsTable.id });
+      if (!completedSession) {
+        throw new Error(
+          "De onboarding is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.",
+        );
+      }
+
       await tx
         .update(personnelTable)
         .set({
@@ -554,6 +750,7 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
           addressPostalCode: profile.data.addressPostalCode,
           addressCity: profile.data.addressCity,
           addressCountry: profile.data.addressCountry,
+          ...(resetGeocoding ? personnelGeocodingReset(profile.data) : {}),
           birthDate: profile.data.birthDate || null,
           emergencyContact: {
             name: profile.data.emergencyContactName || undefined,
@@ -582,6 +779,8 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
               (item.pushEnabled || item.emailEnabled || item.inAppEnabled),
           ),
           notificationHoursEnabled: true,
+          portalOnboardingStatus: "completed",
+          portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
           profileUpdatedAt: now,
           updatedAt: now,
         })
@@ -650,24 +849,6 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
             eq(assignmentRouteContextsTable.personnelId, identity.personnelId),
           ),
         );
-      await tx
-        .update(portalOnboardingSessionsTable)
-        .set({
-          status: "completed",
-          currentStep: "review",
-          profileCompletenessPercentage: 100,
-          completedAt: now,
-          completedBy: identity.userId,
-          lastActivityAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(portalOnboardingSessionsTable.id, session.id),
-            eq(portalOnboardingSessionsTable.tenantId, identity.tenantId),
-            eq(portalOnboardingSessionsTable.userId, identity.userId),
-          ),
-        );
       await tx.insert(auditLogTable).values({
         tenantId: identity.tenantId,
         userId: identity.userId,
@@ -682,28 +863,7 @@ export async function completePersonnelOnboarding(): Promise<PersonnelOnboarding
       });
     });
 
-    const admin = createAdminClient();
-    const { data: current, error: currentError } =
-      await admin.auth.admin.getUserById(identity.userId);
-    if (currentError || !current.user)
-      throw new Error(
-        "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
-      );
-    const appMetadata: Record<string, unknown> = {
-      ...(current.user.app_metadata ?? {}),
-    };
-    appMetadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = false;
-    appMetadata[PORTAL_ONBOARDING_STATUS_METADATA] = "completed";
-    appMetadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
-    appMetadata["portal_onboarding_completed_at"] = now.toISOString();
-    const { error: metadataError } = await admin.auth.admin.updateUserById(
-      identity.userId,
-      { app_metadata: appMetadata },
-    );
-    if (metadataError)
-      throw new Error(
-        "Onboarding is opgeslagen, maar toegang kon niet worden vrijgegeven.",
-      );
+    await synchronizePersonnelOnboardingMetadata(identity, now);
 
     revalidatePath("/");
     revalidatePath("/profiel");

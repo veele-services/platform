@@ -99,6 +99,28 @@ async function main() {
     "oversized responses must be rejected before buffering",
   );
 
+  const rejectedStreamedSize = await fetchReportPdfImageBuffer(
+    "https://storage.invalid/chunked-oversized.jpg",
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new Uint8Array(REPORT_PDF_MAX_SOURCE_IMAGE_BYTES),
+            );
+            controller.enqueue(new Uint8Array(1));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { "content-type": "image/jpeg" } },
+      ),
+  );
+  assert.equal(
+    rejectedStreamedSize,
+    null,
+    "chunked responses must be rejected while streaming past the byte limit",
+  );
+
   console.log(
     JSON.stringify({
       normalizedWebp: true,
@@ -106,6 +128,7 @@ async function main() {
       invalidImageRejected: true,
       videoRejected: true,
       oversizedRejected: true,
+      chunkedOversizedRejected: true,
     }),
   );
 }
