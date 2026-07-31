@@ -45,9 +45,19 @@ test("phase 6 primitives use existing portal styling tokens and responsive list 
   }
 
   assert.match(filterSheet, /var\(--color-border\)/u);
-  assert.match(filterSheet, /var\(--color-accent\)/u);
-  assert.match(portalUi, /hidden overflow-x-auto[\s\S]+md:block/u);
-  assert.match(portalUi, /grid gap-3 md:hidden/u);
+  assert.match(filterSheet, /var\(--color-accent-accessible\)/u);
+  const desktopListClasses = portalUi.match(
+    /className="([^"]*hidden[^"]*overflow-x-auto[^"]*md:block[^"]*)"/u,
+  )?.[1];
+  assert.ok(desktopListClasses, "desktop data list remains hidden until md");
+  for (const className of ["hidden", "overflow-x-auto", "md:block"]) {
+    assert.ok(desktopListClasses.split(/\s+/u).includes(className));
+  }
+
+  const mobileListClasses = portalUi.match(
+    /className="([^"]*grid[^"]*gap-3[^"]*md:hidden[^"]*)"/u,
+  )?.[1];
+  assert.ok(mobileListClasses, "mobile card list remains visible below md");
   assert.match(portalUi, /renderMobileCard/u);
 });
 

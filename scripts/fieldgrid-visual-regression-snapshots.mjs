@@ -206,6 +206,17 @@ function normalizeBaseUrl(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function browserLaunchOptions() {
+  const hostResolverRules =
+    process.env.FIELDGRID_BROWSER_HOST_RESOLVER_RULES?.trim();
+  return {
+    headless: true,
+    ...(hostResolverRules
+      ? { args: [`--host-resolver-rules=${hostResolverRules}`] }
+      : {}),
+  };
+}
+
 function routeUrl(baseUrl, route) {
   const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
   return `${baseUrl}${normalizedRoute}`;
@@ -356,7 +367,11 @@ async function captureRoute({
     `${sanitizeFilename(route)}.png`,
   );
   const contextOptions = {
-    viewport: { width: viewport.width, height: viewport.height },
+    viewport: {
+      width: Math.round(viewport.width / (viewport.cssZoom ?? 1)),
+      height: Math.round(viewport.height / (viewport.cssZoom ?? 1)),
+    },
+    deviceScaleFactor: viewport.cssZoom ?? 1,
   };
   if (persona.storageStatePath) {
     contextOptions.storageState = persona.storageStatePath;
@@ -366,7 +381,7 @@ async function captureRoute({
     const style = document.createElement("style");
     style.dataset.fieldgridVisualRegression = "true";
     style.textContent =
-      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}";
+      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav]{display:none!important;}";
     document.documentElement.append(style);
   });
   await addCookieIfConfigured(context, persona.cookie, group.baseUrl);
@@ -378,11 +393,6 @@ async function captureRoute({
       waitUntil: "networkidle",
       timeout: 30000,
     });
-    if (viewport.cssZoom) {
-      await page.evaluate((zoom) => {
-        document.documentElement.style.zoom = String(zoom);
-      }, viewport.cssZoom);
-    }
     const finalUrl = page.url();
     const finalPathname = new URL(finalUrl).pathname;
     const authRedirected = /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(
@@ -436,6 +446,7 @@ async function captureRoute({
         return (
           rect.width > 0 &&
           rect.height > 0 &&
+          element.getAttribute("aria-hidden") !== "true" &&
           style.visibility !== "hidden" &&
           style.display !== "none" &&
           (rect.width < 44 || rect.height < 44)
@@ -681,7 +692,7 @@ export async function runVisualRegressionSnapshots(
   }
 
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch(browserLaunchOptions());
   const results = [];
 
   try {

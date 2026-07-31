@@ -325,16 +325,34 @@ async function runLiveAudit(roles) {
   const results = [];
   await mkdir(screenshotDir, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true });
+  const hostResolverRules =
+    process.env.FIELDGRID_BROWSER_HOST_RESOLVER_RULES?.trim();
+  const browser = await chromium.launch({
+    headless: true,
+    ...(hostResolverRules
+      ? { args: [`--host-resolver-rules=${hostResolverRules}`] }
+      : {}),
+  });
   try {
     for (const role of roles) {
       if (!role.baseUrl || !role.hasAuth) continue;
       for (const viewport of viewports) {
         const context = await browser.newContext({
-          viewport: { width: viewport.width, height: viewport.height },
+          viewport: {
+            width: Math.round(viewport.width / (viewport.cssZoom ?? 1)),
+            height: Math.round(viewport.height / (viewport.cssZoom ?? 1)),
+          },
+          deviceScaleFactor: viewport.cssZoom ?? 1,
           storageState: role.storageState || undefined,
           ignoreHTTPSErrors: true,
           reducedMotion: "reduce",
+        });
+        await context.addInitScript(() => {
+          const style = document.createElement("style");
+          style.dataset.fieldgridDashboardAudit = "true";
+          style.textContent =
+            "[data-fieldgrid-dev-nav]{display:none!important;}";
+          document.documentElement.append(style);
         });
         if (role.cookie) {
           await context.addCookies(parseCookieHeader(role.cookie, role.baseUrl));
@@ -382,12 +400,6 @@ async function auditTarget(page, role, target, viewport) {
     responseStatus = response?.status() ?? null;
     responseUrl = response?.url() ?? page.url();
     await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
-    if (viewport.cssZoom) {
-      await page.evaluate((zoom) => {
-        document.documentElement.style.zoom = String(zoom);
-      }, viewport.cssZoom);
-    }
-
     if (role.id === "tenant-admin" && target.id === "dashboard" && viewport.id === "desktop-1440") {
       sidebarCollapse = await verifyTenantSidebarCanCollapse(page);
       if (!sidebarCollapse.ok) failures.push(sidebarCollapse.message);
@@ -513,6 +525,7 @@ async function collectMetrics(page) {
       return (
         rect.width > 0 &&
         rect.height > 0 &&
+        element.getAttribute("aria-hidden") !== "true" &&
         style.display !== "none" &&
         style.visibility !== "hidden" &&
         (rect.width < 44 || rect.height < 44)
