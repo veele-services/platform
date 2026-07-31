@@ -12,15 +12,17 @@ type FetchImage = (
 ) => Promise<Response>;
 
 export type ReportPdfImage = {
-  buffer: Buffer;
+  buffer: Buffer | null;
   sourceBytes: number;
 };
 
 async function readBoundedResponseBody(
   response: Response,
   maxBytes: number,
-): Promise<Buffer | null> {
-  if (!response.body || maxBytes <= 0) return null;
+): Promise<{ buffer: Buffer | null; sourceBytes: number }> {
+  if (!response.body || maxBytes <= 0) {
+    return { buffer: null, sourceBytes: 0 };
+  }
 
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -35,20 +37,28 @@ async function readBoundedResponseBody(
       receivedBytes += value.byteLength;
       if (receivedBytes > maxBytes) {
         await reader.cancel("Fieldgrid report PDF source limit exceeded");
-        return null;
+        return { buffer: null, sourceBytes: maxBytes };
       }
       chunks.push(value);
     }
+  } catch {
+    return {
+      buffer: null,
+      sourceBytes: Math.min(receivedBytes, maxBytes),
+    };
   } finally {
     reader.releaseLock();
   }
 
-  return Buffer.concat(
-    chunks.map((chunk) =>
-      Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength),
+  return {
+    buffer: Buffer.concat(
+      chunks.map((chunk) =>
+        Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength),
+      ),
+      receivedBytes,
     ),
-    receivedBytes,
-  );
+    sourceBytes: receivedBytes,
+  };
 }
 
 /**
@@ -125,10 +135,14 @@ export async function fetchReportPdfImage(
       return null;
 
     const source = await readBoundedResponseBody(response, effectiveLimit);
-    if (!source) return null;
+    if (!source.buffer) {
+      return source.sourceBytes > 0
+        ? { buffer: null, sourceBytes: source.sourceBytes }
+        : null;
+    }
 
-    const buffer = await normalizeReportPdfImageBuffer(source);
-    return buffer ? { buffer, sourceBytes: source.byteLength } : null;
+    const buffer = await normalizeReportPdfImageBuffer(source.buffer);
+    return { buffer, sourceBytes: source.sourceBytes };
   } catch {
     return null;
   }

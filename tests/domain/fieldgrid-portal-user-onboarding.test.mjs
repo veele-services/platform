@@ -82,6 +82,9 @@ function read(path) {
 
 test("new personnel and customer invitations require versioned onboarding", () => {
   const invites = read("artifacts/backoffice/src/lib/auth/portal-invites.ts");
+  const customerActions = read(
+    "artifacts/backoffice/src/app/actions/customers.ts",
+  );
   assert.match(invites, /portal === "personnel" \|\| portal === "customer"/u);
   assert.match(
     invites,
@@ -96,6 +99,14 @@ test("new personnel and customer invitations require versioned onboarding", () =
     /metadata\[PORTAL_ONBOARDING_VERSION_METADATA\] = PORTAL_ONBOARDING_VERSION/u,
   );
   assert.match(invites, /delete metadata\["force_password_change"\]/u);
+  assert.match(
+    customerActions,
+    /portalOnboardingStatus\} in \('completed', 'waived_by_admin'\)/u,
+  );
+  assert.match(
+    customerActions,
+    /then \$\{customerUsersTable\.portalOnboardingStatus\}/u,
+  );
 });
 
 test("portal onboarding access is tenant-bound and ordered after required password change", () => {
@@ -208,6 +219,65 @@ test("onboarding wizard clients stay browser-safe and mobile-first", () => {
     assert.match(wizard, /min-h-12/u);
     assert.doesNotMatch(wizard, /overflow-x-auto|min-w-\[480px\]/u);
   }
+  const personnelWizard = read(
+    "artifacts/personeel-pwa/src/components/onboarding/PersonnelOnboardingWizard.tsx",
+  );
+  const personnelActions = read(
+    "artifacts/personeel-pwa/src/actions/onboarding.ts",
+  );
+  const customerWizard = read(
+    "artifacts/klant-pwa/src/components/onboarding/CustomerOnboardingWizard.tsx",
+  );
+  assert.match(personnelWizard, /href="\/personeel\/privacy"/u);
+  assert.match(customerWizard, /href="\/klant\/privacy"/u);
+  assert.match(personnelWizard, /value=\{\(index \+ 1\) % 7\}/u);
+  assert.match(
+    personnelActions,
+    /\[1, 2, 3, 4, 5, 6, 0\]\.map\(\(dayOfWeek\)/u,
+  );
+});
+
+test("multi-membership customer accounts require an explicit tenant-bound context", () => {
+  const customerActions = read("artifacts/klant-pwa/src/actions/customer.ts");
+  const customerLayout = read(
+    "artifacts/klant-pwa/src/app/(app)/layout.tsx",
+  );
+  const customerOnboarding = read(
+    "artifacts/klant-pwa/src/actions/onboarding.ts",
+  );
+  const contextPage = read(
+    "artifacts/klant-pwa/src/app/(onboarding)/context-kiezen/page.tsx",
+  );
+
+  assert.match(customerActions, /fieldgrid_customer_context/u);
+  assert.match(
+    customerActions,
+    /memberships\.length > 1 && !selected/u,
+  );
+  assert.match(
+    customerActions,
+    /membership\.customerUserId === parsed\.data/u,
+  );
+  assert.match(customerActions, /httpOnly: true/u);
+  assert.match(customerActions, /path: "\/klant"/u);
+  assert.match(customerLayout, /redirect\("\/klant\/context-kiezen"\)/u);
+  assert.match(customerLayout, /Klantorganisatie wisselen/u);
+  assert.match(
+    customerOnboarding,
+    /eq\(customerUsersTable\.id, selectedIdentity\.customerUserId\)/u,
+  );
+  assert.match(contextPage, /action=\{selectMyCustomerContext\}/u);
+});
+
+test("structured reporting uses the shared Radix switch", () => {
+  const reporting = read(
+    "artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/RapportageTimeline.tsx",
+  );
+  const sharedUi = read("lib/shared-ui/src/radix-adapters/switch.tsx");
+  assert.match(reporting, /import \{[^}]*Switch[^}]*\} from "@workspace\/shared-ui"/u);
+  assert.match(reporting, /<Switch[\s\S]*onCheckedChange=\{setFollowUpNeeded\}/u);
+  assert.doesNotMatch(reporting, /role="switch"/u);
+  assert.match(sharedUi, /@radix-ui\/react-switch/u);
 });
 
 test("profile validation normalizes contact data and validates Dutch postcodes", () => {

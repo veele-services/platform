@@ -334,7 +334,7 @@ async function buildInitialDraft(
       planningNotes: work["planningNotes"] ?? "",
     },
     availability: {
-      windows: Array.from({ length: 7 }, (_, dayOfWeek) => {
+      windows: [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
         const existing = windowByDay.get(dayOfWeek);
         return {
           dayOfWeek,

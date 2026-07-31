@@ -31,9 +31,8 @@ import {
   type PortalOnboardingDraft,
   type PortalPushStatus,
 } from "@workspace/db";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
+import { getMyCustomerIdentity } from "@/actions/customer";
 
 export type CustomerOnboardingWorkspace = {
   currentStep: CustomerOnboardingStep;
@@ -103,15 +102,14 @@ function zodFailure(error: {
 }
 
 async function requireCustomerIdentity(): Promise<CustomerIdentity> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Niet ingelogd.");
-  const tenantId = await requireCurrentCustomerPortalTenantId();
-  if (!tenantId) throw new Error("Geen geldige organisatiecontext.");
+  const selectedIdentity = await getMyCustomerIdentity();
+  if (!selectedIdentity) {
+    throw new Error(
+      "Kies eerst voor welke klantorganisatie u het portaal wilt openen.",
+    );
+  }
 
-  const identities = await db
+  const [identity] = await db
     .select({
       customerId: customersTable.id,
       customerUserId: customerUsersTable.id,
@@ -147,21 +145,20 @@ async function requireCustomerIdentity(): Promise<CustomerIdentity> {
     )
     .where(
       and(
-        eq(customerUsersTable.tenantId, tenantId),
-        eq(customerUsersTable.userId, user.id),
+        eq(customerUsersTable.id, selectedIdentity.customerUserId),
+        eq(customerUsersTable.tenantId, selectedIdentity.tenantId),
+        eq(customerUsersTable.userId, selectedIdentity.userId),
         eq(customerUsersTable.status, "active"),
         eq(customersTable.isActive, true),
       ),
     )
-    .limit(2);
-  if (identities.length === 0) throw new Error("Klantprofiel niet gevonden.");
-  if (identities.length > 1) {
-    throw new Error(
-      "Dit account heeft meerdere klantprofielen binnen dezelfde organisatie. Laat een beheerder eerst één expliciete portaalcontext instellen.",
-    );
-  }
-  const identity = identities[0]!;
-  return { ...identity, userId: user.id, tenantId };
+    .limit(1);
+  if (!identity) throw new Error("Klantprofiel niet gevonden.");
+  return {
+    ...identity,
+    userId: selectedIdentity.userId,
+    tenantId: selectedIdentity.tenantId,
+  };
 }
 
 function canManageCustomerOrganization(identity: CustomerIdentity): boolean {

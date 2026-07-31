@@ -60,6 +60,18 @@ test("onboarding drafts and preferences are private server-only tenant data", ()
     migration,
     /portal_onboarding_status varchar\(40\) NOT NULL/u,
   );
+  assert.match(
+    migration,
+    /CREATE TRIGGER personnel_portal_onboarding_subject_cleanup[\s\S]*AFTER DELETE ON public\.personnel/u,
+  );
+  assert.match(
+    migration,
+    /CREATE TRIGGER customer_user_portal_onboarding_subject_cleanup[\s\S]*AFTER DELETE ON public\.customer_users/u,
+  );
+  assert.match(
+    migration,
+    /DELETE FROM public\.portal_onboarding_sessions[\s\S]*tenant_id = OLD\.tenant_id[\s\S]*subject_id = OLD\.id/u,
+  );
 });
 
 test("onboarding actions derive tenant and user identity on the server", () => {
@@ -71,13 +83,20 @@ test("onboarding actions derive tenant and user identity on the server", () => {
       ),
       "utf8",
     );
-    assert.match(actions, /auth\.getUser\(\)/u);
-    assert.match(
-      actions,
-      portal === "personeel"
-        ? /requireCurrentPersonnelPortalTenantId\(\)/u
-        : /requireCurrentCustomerPortalTenantId\(\)/u,
-    );
+    if (portal === "personeel") {
+      assert.match(actions, /auth\.getUser\(\)/u);
+      assert.match(actions, /requireCurrentPersonnelPortalTenantId\(\)/u);
+    } else {
+      assert.match(actions, /getMyCustomerIdentity\(\)/u);
+      assert.match(
+        actions,
+        /eq\(customerUsersTable\.id, selectedIdentity\.customerUserId\)/u,
+      );
+      assert.match(
+        actions,
+        /eq\(customerUsersTable\.tenantId, selectedIdentity\.tenantId\)/u,
+      );
+    }
     assert.doesNotMatch(
       actions,
       /input\.tenantId|input\.userId|input\.sessionId/u,

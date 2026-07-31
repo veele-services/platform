@@ -189,6 +189,7 @@ export async function GET(
       );
       if (!image) continue;
       remainingSourceBudget -= image.sourceBytes;
+      if (!image.buffer) continue;
       photoBuffers.push(image.buffer);
     } catch {
       // An unusable attachment must not make the complete report fail.

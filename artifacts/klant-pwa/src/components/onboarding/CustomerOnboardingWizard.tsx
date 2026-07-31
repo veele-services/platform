@@ -236,7 +236,7 @@ export function CustomerOnboardingWizard({
                 privé-adresgegevens gevraagd. Lees meer in de{" "}
                 <a
                   className="font-black text-teal-700 underline"
-                  href="/klant/help"
+                  href="/klant/privacy"
                 >
                   help- en privacy-informatie
                 </a>

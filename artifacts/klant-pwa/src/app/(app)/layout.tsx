@@ -1,7 +1,10 @@
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { HeaderActions, MobileHeader } from "@/components/MobileHeader";
-import { getMyCustomerProfile } from "@/actions/customer";
+import {
+  getMyCustomerContextState,
+  getMyCustomerProfile,
+} from "@/actions/customer";
 import { customerOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
 import { getMyCustomerNotificationSummary } from "@/actions/notifications";
 import { dismissCustomerReleaseHighlight, getCustomerReleaseHighlight } from "@/actions/releases";
@@ -56,6 +59,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       "/login?error=" +
         encodeURIComponent("Het klantportaal is niet beschikbaar voor deze organisatie."),
     );
+  }
+  const customerContext = await getMyCustomerContextState();
+  if (customerContext.selectionRequired) {
+    redirect("/klant/context-kiezen");
   }
   if (await customerOnboardingRequiredForCurrentMembership()) {
     redirect("/klant/onboarding");
@@ -143,6 +150,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </header>
 
           <ReleaseHighlightBanner highlight={releaseHighlight} />
+          {customerContext.options.length > 1 ? (
+            <div className="px-4 pt-3 md:px-7">
+              <Link
+                href="/klant/context-kiezen"
+                className="inline-flex min-h-11 items-center rounded-xl border bg-white px-3 py-2 text-sm font-black"
+                style={{
+                  borderColor: "var(--color-border)",
+                  color: "var(--color-primary)",
+                }}
+              >
+                Klantorganisatie wisselen
+              </Link>
+            </div>
+          ) : null}
 
           <main className="min-w-0 flex-1 pb-[calc(4.8rem+var(--safe-bottom))] md:pb-0">
             <div className="w-full px-0 md:px-7 md:py-7">{children}</div>

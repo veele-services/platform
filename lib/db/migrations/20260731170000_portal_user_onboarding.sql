@@ -105,6 +105,55 @@ CREATE TABLE IF NOT EXISTS public.portal_notification_preferences (
 CREATE INDEX IF NOT EXISTS portal_notification_preference_tenant_idx
   ON public.portal_notification_preferences (tenant_id, portal, user_id);
 
+CREATE OR REPLACE FUNCTION public.fieldgrid_cleanup_personnel_onboarding_subject()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  DELETE FROM public.portal_onboarding_sessions
+  WHERE tenant_id = OLD.tenant_id
+    AND portal = 'personnel'
+    AND subject_id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fieldgrid_cleanup_customer_onboarding_subject()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  DELETE FROM public.portal_onboarding_sessions
+  WHERE tenant_id = OLD.tenant_id
+    AND portal = 'customer'
+    AND subject_id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.fieldgrid_cleanup_personnel_onboarding_subject()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fieldgrid_cleanup_customer_onboarding_subject()
+  FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS personnel_portal_onboarding_subject_cleanup
+  ON public.personnel;
+CREATE TRIGGER personnel_portal_onboarding_subject_cleanup
+AFTER DELETE ON public.personnel
+FOR EACH ROW
+EXECUTE FUNCTION public.fieldgrid_cleanup_personnel_onboarding_subject();
+
+DROP TRIGGER IF EXISTS customer_user_portal_onboarding_subject_cleanup
+  ON public.customer_users;
+CREATE TRIGGER customer_user_portal_onboarding_subject_cleanup
+AFTER DELETE ON public.customer_users
+FOR EACH ROW
+EXECUTE FUNCTION public.fieldgrid_cleanup_customer_onboarding_subject();
+
 ALTER TABLE public.assignment_report_notes
   ADD COLUMN IF NOT EXISTS structured_data jsonb;
 

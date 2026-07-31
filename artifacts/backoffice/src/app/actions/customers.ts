@@ -443,8 +443,20 @@ async function upsertCustomerPortalInviteLink(input: {
         lastName: name.lastName,
         role: existing.role ?? "primary",
         status,
-        portalOnboardingStatus: "not_started",
-        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+        portalOnboardingStatus: sql`
+          case
+            when ${customerUsersTable.portalOnboardingStatus} in ('completed', 'waived_by_admin')
+              then ${customerUsersTable.portalOnboardingStatus}
+            else 'not_started'
+          end
+        `,
+        portalOnboardingVersion: sql`
+          case
+            when ${customerUsersTable.portalOnboardingStatus} in ('completed', 'waived_by_admin')
+              then ${customerUsersTable.portalOnboardingVersion}
+            else ${PORTAL_ONBOARDING_VERSION}
+          end
+        `,
         updatedAt: new Date(),
       })
       .where(
@@ -482,8 +494,20 @@ async function upsertCustomerPortalInviteLink(input: {
         firstName: name.firstName,
         lastName: name.lastName,
         status,
-        portalOnboardingStatus: "not_started",
-        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+        portalOnboardingStatus: sql`
+          case
+            when ${customerUsersTable.portalOnboardingStatus} in ('completed', 'waived_by_admin')
+              then ${customerUsersTable.portalOnboardingStatus}
+            else 'not_started'
+          end
+        `,
+        portalOnboardingVersion: sql`
+          case
+            when ${customerUsersTable.portalOnboardingStatus} in ('completed', 'waived_by_admin')
+              then ${customerUsersTable.portalOnboardingVersion}
+            else ${PORTAL_ONBOARDING_VERSION}
+          end
+        `,
         updatedAt: new Date(),
       })
       .where(

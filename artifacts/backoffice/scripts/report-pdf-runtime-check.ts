@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import PDFDocument from "pdfkit";
 import {
   REPORT_PDF_MAX_SOURCE_IMAGE_BYTES,
+  fetchReportPdfImage,
   fetchReportPdfImageBuffer,
   normalizeReportPdfImageBuffer,
 } from "../src/lib/report-pdf-images.ts";
@@ -121,6 +122,23 @@ async function main() {
     "chunked responses must be rejected while streaming past the byte limit",
   );
 
+  const invalidFetchedImage = await fetchReportPdfImage(
+    "https://storage.invalid/corrupt.jpg",
+    async () =>
+      new Response(Buffer.from("not-an-image"), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" },
+      }),
+  );
+  assert.deepEqual(
+    invalidFetchedImage,
+    {
+      buffer: null,
+      sourceBytes: Buffer.byteLength("not-an-image"),
+    },
+    "corrupt image sources must still consume the aggregate source budget",
+  );
+
   console.log(
     JSON.stringify({
       normalizedWebp: true,
@@ -129,6 +147,7 @@ async function main() {
       videoRejected: true,
       oversizedRejected: true,
       chunkedOversizedRejected: true,
+      corruptImageCharged: true,
     }),
   );
 }

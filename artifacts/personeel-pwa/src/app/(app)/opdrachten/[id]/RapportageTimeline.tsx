@@ -39,7 +39,7 @@ import {
   compressImageIfUseful,
   validateAssignmentMediaFile,
 } from "@/lib/uploads/client-assignment-media";
-import { RadioGroup, RadioGroupItem } from "@workspace/shared-ui";
+import { RadioGroup, RadioGroupItem, Switch } from "@workspace/shared-ui";
 import type { StructuredReportNoteV1 } from "@workspace/db";
 
 type Props = {
@@ -958,13 +958,7 @@ export function RapportageTimeline({
             </div>
 
             <div className="rounded-2xl border bg-white p-3" style={{ borderColor: "var(--color-border)" }}>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={followUpNeeded}
-                onClick={() => setFollowUpNeeded((value) => !value)}
-                className="flex min-h-[44px] w-full items-center justify-between gap-4 text-left"
-              >
+              <div className="flex min-h-[44px] w-full items-center justify-between gap-4">
                 <span>
                   <span className="block text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
                     Vervolgactie nodig
@@ -973,16 +967,12 @@ export function RapportageTimeline({
                     Zet aan wanneer planning of management iets moet oppakken.
                   </span>
                 </span>
-                <span
-                  className="flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors"
-                  style={{ backgroundColor: followUpNeeded ? "var(--color-accent)" : "#CBD5E1" }}
-                >
-                  <span
-                    className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-                    style={{ transform: followUpNeeded ? "translateX(20px)" : "translateX(0)" }}
-                  />
-                </span>
-              </button>
+                <Switch
+                  checked={followUpNeeded}
+                  onCheckedChange={setFollowUpNeeded}
+                  aria-label="Vervolgactie nodig"
+                />
+              </div>
 
               {followUpNeeded ? (
                 <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>

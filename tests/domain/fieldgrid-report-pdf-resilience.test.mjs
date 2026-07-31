@@ -42,6 +42,7 @@ test("report PDF attachments are bounded, normalized and individually fail-safe"
     /for \(const photo of selectedPhotos\)[\s\S]*createSignedUrl\(safeStoragePath, 300\)/u,
   );
   assert.match(route, /remainingSourceBudget -= image\.sourceBytes/u);
+  assert.match(route, /if \(!image\.buffer\) continue/u);
   assert.match(route, /try \{[\s\S]*doc\.image\(photoBuffers\[i\]!/u);
 });
 
@@ -71,4 +72,5 @@ test("WebP normalization renders with PDFKit while invalid, video and oversized 
   assert.equal(result.invalidImageRejected, true);
   assert.equal(result.videoRejected, true);
   assert.equal(result.oversizedRejected, true);
+  assert.equal(result.corruptImageCharged, true);
 });

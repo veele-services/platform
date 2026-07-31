@@ -287,7 +287,7 @@ export function PersonnelOnboardingWizard({
                 Je invoer wordt na elke stap veilig opgeslagen. Lees meer in de{" "}
                 <a
                   className="font-black text-teal-700 underline"
-                  href="/personeel/help"
+                  href="/personeel/privacy"
                 >
                   help- en privacy-informatie
                 </a>
@@ -667,7 +667,7 @@ export function PersonnelOnboardingWizard({
                     <legend className="px-1 text-sm font-black">{day}</legend>
                     <input
                       type="hidden"
-                      value={index}
+                      value={(index + 1) % 7}
                       {...register(`windows.${index}.dayOfWeek`, {
                         valueAsNumber: true,
                       })}
