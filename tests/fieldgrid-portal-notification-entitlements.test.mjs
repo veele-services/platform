@@ -66,6 +66,9 @@ test("customer notifications respect module access, tenant scope and safe destin
     'notification.category === "report"',
     'notification.category === "releases"',
     '"/facturen"',
+    '"/api/factuur"',
+    '"/api/offerte"',
+    '"/api/verzamelfactuur"',
     '"/documenten"',
     '"/help"',
     '"/rapporten"',
@@ -110,6 +113,7 @@ test("personnel notifications hide destinations for disabled target modules", ()
     'pathname === "/help"',
     'pathname === "/releases"',
     'pathname === "/scan/inventory"',
+    'pathname === "/i"',
     "/materiaal",
     "/inventaris",
   ]) {

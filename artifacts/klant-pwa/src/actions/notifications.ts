@@ -143,7 +143,15 @@ function isNotificationAccessible(
   const requiresFinance =
     notification.category === "invoice" ||
     notification.category === "quote" ||
-    ["/financieel", "/facturen", "/offertes", "/betalingen"].some(
+    [
+      "/financieel",
+      "/facturen",
+      "/offertes",
+      "/betalingen",
+      "/api/factuur",
+      "/api/offerte",
+      "/api/verzamelfactuur",
+    ].some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
   const requiresReporting =

@@ -119,6 +119,8 @@ function isNotificationAccessible(
   const requiresInventory =
     pathname === "/scan/inventory" ||
     pathname.startsWith("/scan/inventory/") ||
+    pathname === "/i" ||
+    pathname.startsWith("/i/") ||
     /^\/opdrachten\/[^/]+\/inventaris(?:\/|$)/u.test(pathname);
   const requiresMaterials =
     /^\/opdrachten\/[^/]+\/materiaal(?:\/|$)/u.test(pathname);
