@@ -14,17 +14,25 @@ import {
 import { getMyInvoices } from "@/actions/invoices";
 import { getMyPaymentBatches, getMyPayments } from "@/actions/payments";
 import { getMyQuotes } from "@/actions/quotes";
-import { FinanceActionPanel, FinanceSummaryStrip } from "@/components/FinanceWorkspace";
+import {
+  FinanceActionPanel,
+  FinanceSummaryStrip,
+} from "@/components/FinanceWorkspace";
+import { FinanceNavigation } from "@/components/FinanceNavigation";
 import { PortalPageShell } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerInvoice = Awaited<ReturnType<typeof getMyInvoices>>[number];
 type CustomerPayment = Awaited<ReturnType<typeof getMyPayments>>[number];
-type CustomerPaymentBatch = Awaited<ReturnType<typeof getMyPaymentBatches>>[number];
+type CustomerPaymentBatch = Awaited<
+  ReturnType<typeof getMyPaymentBatches>
+>[number];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function formatAmount(amount: number | string): string {
-  const value = typeof amount === "number" ? amount : Number.parseFloat(amount || "0");
+  const value =
+    typeof amount === "number" ? amount : Number.parseFloat(amount || "0");
   return value.toLocaleString("nl-NL", {
     style: "currency",
     currency: "EUR",
@@ -56,7 +64,10 @@ function daysUntil(dateStr: string): number {
 }
 
 function invoiceTotal(invoices: CustomerInvoice[]): number {
-  return invoices.reduce((sum, invoice) => sum + Number.parseFloat(invoice.totalAmount || "0"), 0);
+  return invoices.reduce(
+    (sum, invoice) => sum + Number.parseFloat(invoice.totalAmount || "0"),
+    0,
+  );
 }
 
 function latestPaymentRecord(
@@ -111,8 +122,16 @@ function FinanceCard({
         <span
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
           style={{
-            backgroundColor: isWarning ? "#FEF3C7" : isAccent ? "#E8FBFA" : "#F1F5F9",
-            color: isWarning ? "#92400E" : isAccent ? "#087C79" : "var(--color-primary)",
+            backgroundColor: isWarning
+              ? "#FEF3C7"
+              : isAccent
+                ? "#E8FBFA"
+                : "#F1F5F9",
+            color: isWarning
+              ? "#92400E"
+              : isAccent
+                ? "#087C79"
+                : "var(--color-primary)",
           }}
         >
           <Icon size={22} strokeWidth={2.35} />
@@ -127,10 +146,16 @@ function FinanceCard({
           {meta}
         </span>
       </div>
-      <h2 className="mt-4 text-lg font-black" style={{ color: "var(--color-primary)" }}>
+      <h2
+        className="mt-4 text-lg font-black"
+        style={{ color: "var(--color-primary)" }}
+      >
         {title}
       </h2>
-      <p className="mt-1 min-h-12 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
+      <p
+        className="mt-1 min-h-12 text-sm font-semibold leading-6"
+        style={{ color: "var(--color-secondary)" }}
+      >
         {description}
       </p>
       <span
@@ -138,13 +163,17 @@ function FinanceCard({
         style={{ color: "var(--color-accent)" }}
       >
         {actionLabel}
-        <ArrowRight size={15} className="transition group-hover:translate-x-0.5" />
+        <ArrowRight
+          size={15}
+          className="transition group-hover:translate-x-0.5"
+        />
       </span>
     </Link>
   );
 }
 
 export default async function FinancieelPage() {
+  await requireCustomerPortalFeature("finance");
   const [invoices, payments, batches, quotes] = await Promise.all([
     getMyInvoices(),
     getMyPayments(),
@@ -153,13 +182,17 @@ export default async function FinancieelPage() {
   ]);
 
   const openInvoices = invoices.filter((invoice) => invoice.status === "sent");
-  const overdueInvoices = openInvoices.filter((invoice) => invoice.dueDate && daysUntil(invoice.dueDate) < 0);
+  const overdueInvoices = openInvoices.filter(
+    (invoice) => invoice.dueDate && daysUntil(invoice.dueDate) < 0,
+  );
   const dueSoonInvoices = openInvoices.filter((invoice) => {
     if (!invoice.dueDate) return false;
     const days = daysUntil(invoice.dueDate);
     return days >= 0 && days <= 14;
   });
-  const pendingQuotes = quotes.filter((quote) => quote.assignmentStatus === "awaiting_approval");
+  const pendingQuotes = quotes.filter(
+    (quote) => quote.assignmentStatus === "awaiting_approval",
+  );
   const latestPayment = latestPaymentRecord(payments, batches);
   const openPaymentCount =
     payments.filter((payment) => payment.status === "open").length +
@@ -170,10 +203,14 @@ export default async function FinancieelPage() {
       title="Financieel"
       subtitle="Facturen, betalingen en offertes op een vaste plek."
       status={{
-        label: openInvoices.length > 0 ? `${openInvoices.length} te betalen` : "Bijgewerkt",
+        label:
+          openInvoices.length > 0
+            ? `${openInvoices.length} te betalen`
+            : "Bijgewerkt",
         tone: openInvoices.length > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceNavigation />
       <FinanceSummaryStrip
         items={[
           {
@@ -212,7 +249,7 @@ export default async function FinancieelPage() {
       {openInvoices.length > 0 || pendingQuotes.length > 0 ? (
         <FinanceActionPanel
           eyebrow="Actie nodig"
-          title="Financiele inbox"
+          title="Financiële acties"
           description="Betaal openstaande facturen of rond offertes af voordat ze verlopen."
           tone={overdueInvoices.length > 0 ? "danger" : "warning"}
           action={
@@ -234,14 +271,23 @@ export default async function FinancieelPage() {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="block truncate font-mono text-xs font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {invoice.invoiceNumber}
                   </span>
-                  <span className="mt-1 block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  <span
+                    className="mt-1 block text-xs font-semibold"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
                     Vervalt {formatDate(invoice.dueDate)}
                   </span>
                 </span>
-                <span className="shrink-0 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                <span
+                  className="shrink-0 text-sm font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {formatAmount(invoice.totalAmount)}
                 </span>
               </Link>
@@ -254,14 +300,23 @@ export default async function FinancieelPage() {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="block truncate font-mono text-xs font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {quote.quoteNumber}
                   </span>
-                  <span className="mt-1 block truncate text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  <span
+                    className="mt-1 block truncate text-xs font-semibold"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
                     {quote.assignmentTitle}
                   </span>
                 </span>
-                <span className="shrink-0 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                <span
+                  className="shrink-0 text-sm font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {formatAmount(quote.amount)}
                 </span>
               </Link>
@@ -283,8 +338,8 @@ export default async function FinancieelPage() {
         <FinanceCard
           href="/betalingen"
           title="Betalingen"
-          description="Volg Mollie betalingen, losse facturen en verzamelbetalingen."
-          meta={`${payments.length + batches.length} records`}
+          description="Volg betalingen van losse facturen en verzamelbetalingen."
+          meta={`${payments.length + batches.length} betalingen`}
           actionLabel="Betalingen openen"
           Icon={WalletCards}
           tone={openPaymentCount > 0 ? "accent" : "neutral"}

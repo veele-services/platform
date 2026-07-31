@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";
 import { FinanceSummaryStrip } from "@/components/FinanceWorkspace";
+import { FinanceNavigation } from "@/components/FinanceNavigation";
 import { InvoiceBatchPaymentPanel } from "@/components/InvoiceBatchPaymentPanel";
 import { PaidBanner } from "@/components/PaidBanner";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
@@ -30,6 +31,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerInvoice = Awaited<ReturnType<typeof getMyInvoices>>[number];
 type InvoiceStatusFilter = "all" | "sent" | "paid" | "other";
@@ -237,6 +239,7 @@ export default async function FacturenPage({
 }: {
   searchParams: Promise<{ paid?: string; q?: string; status?: string }>;
 }) {
+  await requireCustomerPortalFeature("finance");
   const params = await searchParams;
   const paid = params.paid;
   const query = normalizeQuery(params.q);
@@ -281,6 +284,7 @@ export default async function FacturenPage({
         tone: openInvoices.length > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceNavigation />
       {paid === "1" ? <PaidBanner /> : null}
 
       <FinanceSummaryStrip

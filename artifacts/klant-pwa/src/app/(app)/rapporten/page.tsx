@@ -18,6 +18,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerReport = Awaited<ReturnType<typeof getMyReports>>[number];
 type ReportFilter = "all" | "hours" | "summary";
@@ -249,6 +250,7 @@ export default async function RapportenPage({
     date?: string;
   }>;
 }) {
+  await requireCustomerPortalFeature("reporting");
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const filter = normalizeFilter(params.filter);

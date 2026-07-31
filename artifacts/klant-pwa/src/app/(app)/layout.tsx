@@ -7,20 +7,27 @@ import {
 } from "@/actions/customer";
 import { customerOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
 import { getMyCustomerNotificationSummary } from "@/actions/notifications";
-import { dismissCustomerReleaseHighlight, getCustomerReleaseHighlight } from "@/actions/releases";
+import {
+  dismissCustomerReleaseHighlight,
+  getCustomerReleaseHighlight,
+} from "@/actions/releases";
 import { CustomerRealtimeProvider } from "@/components/CustomerRealtimeProvider";
 import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import {
   getTenantBranding,
   getTenantBrandingCssVariables,
-  isTenantModuleEnabled,
 } from "@workspace/db";
 import type { ReleaseHighlightSummary } from "@workspace/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
+import { getCustomerPortalFeatureFlags } from "@/lib/portal-features";
 
-function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+function ReleaseHighlightBanner({
+  highlight,
+}: {
+  highlight: ReleaseHighlightSummary | null;
+}) {
   if (!highlight) return null;
 
   return (
@@ -28,7 +35,9 @@ function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSumm
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-black">{highlight.title}</p>
-          <p className="mt-1 text-sm leading-6 text-amber-900">{highlight.message}</p>
+          <p className="mt-1 text-sm leading-6 text-amber-900">
+            {highlight.message}
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Link
@@ -57,7 +66,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze organisatie."),
+        encodeURIComponent(
+          "Het klantportaal is niet beschikbaar voor deze organisatie.",
+        ),
     );
   }
   const customerContext = await getMyCustomerContextState();
@@ -75,39 +86,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect("/klant/onboarding");
   }
 
-  const [
-    branding,
-    notificationSummary,
-    documentsEnabled,
-    financeEnabled,
-    reportingEnabled,
-    knowledgebaseEnabled,
-    releasesEnabled,
-  ] = await Promise.all([
+  const [branding, notificationSummary, featureFlags] = await Promise.all([
     getTenantBranding(tenantId),
     getMyCustomerNotificationSummary(),
-    isTenantModuleEnabled(tenantId, "documents"),
-    isTenantModuleEnabled(tenantId, "finance"),
-    isTenantModuleEnabled(tenantId, "reporting"),
-    isTenantModuleEnabled(tenantId, "knowledgebase"),
-    isTenantModuleEnabled(tenantId, "releases"),
+    getCustomerPortalFeatureFlags(tenantId),
   ]);
 
-  const featureFlags = {
-    documents: documentsEnabled,
-    finance: financeEnabled,
-    reporting: reportingEnabled,
-    knowledgebase: knowledgebaseEnabled,
-    releases: releasesEnabled,
-  };
-  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
-  const releaseHighlight = releasesEnabled ? await getCustomerReleaseHighlight() : null;
+  const brandingStyle = getTenantBrandingCssVariables(
+    branding,
+  ) as CSSProperties;
+  const releaseHighlight = featureFlags.releases
+    ? await getCustomerReleaseHighlight()
+    : null;
 
   return (
     <CustomerRealtimeProvider customerId={profile?.id ?? null}>
       <div
         className="flex min-h-screen"
-        style={{ ...brandingStyle, backgroundColor: "#F4F7FB" }}
+        style={{ ...brandingStyle, backgroundColor: "var(--color-muted)" }}
       >
         <DesktopSidebar branding={branding} featureFlags={featureFlags} />
 
@@ -116,6 +112,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             branding={branding}
             notificationSummary={notificationSummary}
             profile={profile}
+            canSwitchOrganization={customerContext.options.length > 1}
           />
 
           <header
@@ -149,26 +146,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               <HeaderActions
                 notificationSummary={notificationSummary}
                 profile={profile}
+                canSwitchOrganization={customerContext.options.length > 1}
+                organizationSwitchLabel="Klantorganisatie wisselen"
                 tone="light"
               />
             </div>
           </header>
 
           <ReleaseHighlightBanner highlight={releaseHighlight} />
-          {customerContext.options.length > 1 ? (
-            <div className="px-4 pt-3 md:px-7">
-              <Link
-                href="/klant/context-kiezen"
-                className="inline-flex min-h-11 items-center rounded-xl border bg-white px-3 py-2 text-sm font-black"
-                style={{
-                  borderColor: "var(--color-border)",
-                  color: "var(--color-primary)",
-                }}
-              >
-                Klantorganisatie wisselen
-              </Link>
-            </div>
-          ) : null}
 
           <main className="min-w-0 flex-1 pb-[calc(4.8rem+var(--safe-bottom))] md:pb-0">
             <div className="w-full px-0 md:px-7 md:py-7">{children}</div>

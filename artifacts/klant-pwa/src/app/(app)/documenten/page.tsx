@@ -16,6 +16,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 const DOCUMENT_TYPE_OPTIONS = [
   { value: "all", label: "Alle typen" },
@@ -296,6 +297,7 @@ export default async function DocumentenPage({
     date?: string;
   }>;
 }) {
+  await requireCustomerPortalFeature("documents");
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const selectedType = normalizeTypeFilter(params.type);
