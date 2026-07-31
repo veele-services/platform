@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import {
   Bell,
   Building2,
@@ -12,7 +14,10 @@ import {
   UserCircle,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
-import type { CustomerNotificationSummary } from "@/actions/notifications";
+import {
+  markCustomerNotificationRead,
+  type CustomerNotificationSummary,
+} from "@/actions/notifications";
 import type { CustomerProfile } from "@/actions/customer";
 import {
   DropdownMenu,
@@ -58,7 +63,7 @@ export function FieldgridLogo({
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5"
+      className="flex min-h-11 items-center gap-2.5"
       aria-label={`${displayName} home`}
     >
       <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-white/10">
@@ -70,7 +75,7 @@ export function FieldgridLogo({
           />
         ) : (
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-black text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-semibold text-white"
             style={{ backgroundColor: accentColor }}
           >
             {initialsFor(displayName)}
@@ -78,7 +83,7 @@ export function FieldgridLogo({
         )}
       </span>
       <span className="min-w-0 leading-none">
-        <span className="block max-w-32 truncate text-[16px] font-black tracking-[0.08em] text-white">
+        <span className="block max-w-32 truncate text-[16px] font-semibold tracking-[0.08em] text-white">
           {displayName.toUpperCase()}
         </span>
         {platformName ? (
@@ -97,7 +102,7 @@ export function FieldgridLogo({
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black leading-none text-white">
+    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white">
       {count > 9 ? "9+" : count}
     </span>
   );
@@ -110,65 +115,102 @@ export function HeaderActions({
   canSwitchOrganization = false,
   organizationSwitchLabel = "Klantorganisatie wisselen",
 }: {
-  notificationSummary: CustomerNotificationSummary;
+  notificationSummary?: CustomerNotificationSummary;
   profile: CustomerProfile | null;
   tone?: "dark" | "light";
   canSwitchOrganization?: boolean;
   organizationSwitchLabel?: string;
 }) {
+  const router = useRouter();
+  const [visibleSummary, setVisibleSummary] = useState(
+    notificationSummary ?? { unreadCount: 0, recent: [] },
+  );
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null,
+  );
+  const [isNotificationPending, startNotificationTransition] = useTransition();
+
+  useEffect(() => {
+    setVisibleSummary(notificationSummary ?? { unreadCount: 0, recent: [] });
+  }, [notificationSummary]);
+
+  function openNotification(id: string, href: string) {
+    setNotificationError(null);
+    startNotificationTransition(async () => {
+      const result = await markCustomerNotificationRead(id);
+      if (!result.success) {
+        setNotificationError(
+          result.error ?? "De melding kon niet worden bijgewerkt.",
+        );
+        return;
+      }
+
+      setVisibleSummary((current) => ({
+        unreadCount: Math.max(0, current.unreadCount - 1),
+        recent: current.recent.filter((item) => item.id !== id),
+      }));
+      router.push(href);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-full active:scale-95"
-            style={{
-              backgroundColor:
-                tone === "dark"
-                  ? "color-mix(in srgb, white 11%, transparent)"
-                  : "var(--color-muted)",
-              color: tone === "dark" ? "white" : "var(--color-primary)",
-            }}
-            aria-label="Meldingen"
-          >
-            <Bell size={18} strokeWidth={2.15} />
-            <CountBadge count={notificationSummary.unreadCount} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden p-0 text-sm">
-          <div
-            className="border-b px-3.5 py-3"
-            style={{ borderColor: "var(--color-border)" }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-[var(--color-primary)]">
-                  Meldingen
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {notificationSummary.unreadCount} ongelezen
-                </p>
-              </div>
-              <PopoverClose asChild>
-                <Link
-                  href="/meldingen"
-                  className="inline-flex min-h-11 items-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,white)] px-3 text-xs font-medium text-[var(--color-accent-accessible)]"
-                >
-                  Open
-                </Link>
-              </PopoverClose>
-            </div>
-          </div>
-
-          <div className="max-h-72 overflow-y-auto py-1">
-            {notificationSummary.recent.length > 0 ? (
-              notificationSummary.recent.map((item) => (
-                <PopoverClose asChild key={item.id}>
+      {notificationSummary ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-full active:scale-95"
+              style={{
+                backgroundColor:
+                  tone === "dark"
+                    ? "color-mix(in srgb, white 11%, transparent)"
+                    : "var(--color-muted)",
+                color: tone === "dark" ? "white" : "var(--color-primary)",
+              }}
+              aria-label="Meldingen"
+            >
+              <Bell size={18} strokeWidth={2.15} />
+              <CountBadge count={visibleSummary.unreadCount} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden p-0 text-sm">
+            <div
+              className="border-b px-3.5 py-3"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-[var(--color-primary)]">
+                    Meldingen
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {visibleSummary.unreadCount} ongelezen
+                  </p>
+                </div>
+                <PopoverClose asChild>
                   <Link
-                    href={item.href}
-                    className="block border-b px-3.5 py-3 last:border-b-0"
+                    href="/meldingen"
+                    className="inline-flex min-h-11 items-center rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,white)] px-3 text-xs font-medium text-[var(--color-accent-accessible)]"
+                  >
+                    Open
+                  </Link>
+                </PopoverClose>
+              </div>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto py-1">
+              {visibleSummary.recent.length > 0 ? (
+                visibleSummary.recent.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isNotificationPending}
+                    onClick={() => openNotification(item.id, item.href)}
+                    className="block w-full border-b px-3.5 py-3 text-left last:border-b-0 disabled:opacity-60"
                     style={{ borderColor: "var(--color-border)" }}
+                    aria-busy={isNotificationPending}
                   >
                     <p className="line-clamp-1 text-sm font-semibold text-[var(--color-primary)]">
                       {item.title}
@@ -176,17 +218,25 @@ export function HeaderActions({
                     <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-500">
                       {item.body}
                     </p>
-                  </Link>
-                </PopoverClose>
-              ))
-            ) : (
-              <p className="px-3.5 py-5 text-center text-sm text-slate-500">
-                Geen actuele meldingen.
-              </p>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+                  </button>
+                ))
+              ) : (
+                <p className="px-3.5 py-5 text-center text-sm text-slate-500">
+                  Geen actuele meldingen.
+                </p>
+              )}
+              {notificationError ? (
+                <p
+                  role="alert"
+                  className="border-t px-3.5 py-2 text-xs text-[var(--color-destructive)]"
+                >
+                  {notificationError}
+                </p>
+              ) : null}
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -231,12 +281,14 @@ export function HeaderActions({
               Voorkeuren
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/meldingen" className="gap-2.5 font-medium">
-              <MailOpen size={17} strokeWidth={2.3} />
-              Meldingen
-            </Link>
-          </DropdownMenuItem>
+          {notificationSummary ? (
+            <DropdownMenuItem asChild>
+              <Link href="/meldingen" className="gap-2.5 font-medium">
+                <MailOpen size={17} strokeWidth={2.3} />
+                Meldingen
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
           {canSwitchOrganization ? (
             <DropdownMenuItem asChild>
               <Link href="/context-kiezen" className="gap-2.5 font-medium">
@@ -270,7 +322,7 @@ export function MobileHeader({
   canSwitchOrganization = false,
 }: {
   branding?: PortalBrandingProps;
-  notificationSummary: CustomerNotificationSummary;
+  notificationSummary?: CustomerNotificationSummary;
   profile: CustomerProfile | null;
   canSwitchOrganization?: boolean;
 }) {

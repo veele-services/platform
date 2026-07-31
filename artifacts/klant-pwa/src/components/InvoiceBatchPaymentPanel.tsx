@@ -66,7 +66,7 @@ export function InvoiceBatchPaymentPanel({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
               style={{
                 backgroundColor: "#E8FBFA",
-                color: "var(--color-accent)",
+                color: "var(--color-accent-accessible)",
               }}
             >
               <WalletCards size={20} />
@@ -74,7 +74,7 @@ export function InvoiceBatchPaymentPanel({
             <div className="min-w-0">
               <p
                 className="text-[11px] font-medium uppercase"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: "var(--color-accent-accessible)" }}
               >
                 Meerdere facturen
               </p>
@@ -95,13 +95,13 @@ export function InvoiceBatchPaymentPanel({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="rounded-xl bg-slate-50 px-4 py-3 sm:text-right">
               <p
-                className="text-xs font-black uppercase"
+                className="text-xs font-semibold uppercase"
                 style={{ color: "var(--color-muted-fg)" }}
               >
                 Totaal beschikbaar
               </p>
               <p
-                className="text-lg font-black"
+                className="text-lg font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {formatAmount(selectedTotal)}
@@ -128,7 +128,7 @@ export function InvoiceBatchPaymentPanel({
             <div>
               <p
                 className="text-[11px] font-medium uppercase"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: "var(--color-accent-accessible)" }}
               >
                 Meerdere facturen
               </p>
@@ -165,13 +165,13 @@ export function InvoiceBatchPaymentPanel({
             <section>
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-black"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   1
                 </span>
                 <h4
-                  className="text-sm font-black"
+                  className="text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   Selecteer facturen
@@ -220,7 +220,7 @@ export function InvoiceBatchPaymentPanel({
                       {checked ? (
                         <CheckSquare2
                           size={16}
-                          style={{ color: "var(--color-accent)" }}
+                          style={{ color: "var(--color-accent-accessible)" }}
                         />
                       ) : null}
                     </label>
@@ -232,13 +232,13 @@ export function InvoiceBatchPaymentPanel({
             <section className="mt-6">
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-black"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   2
                 </span>
                 <h4
-                  className="text-sm font-black"
+                  className="text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   Controleer totaal

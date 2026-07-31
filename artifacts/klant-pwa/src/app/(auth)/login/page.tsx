@@ -23,7 +23,7 @@ export default async function LoginPage({ searchParams }: Props) {
           <div className="mb-10 text-center">
             <div
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <img
                 src="/klant/api/pwa/icon?size=192"

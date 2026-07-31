@@ -30,7 +30,7 @@ export function RapportCard({ report }: Props) {
           className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
         >
-          <Clock size={18} style={{ color: "var(--color-accent)" }} />
+          <Clock size={18} style={{ color: "var(--color-accent-accessible)" }} />
         </div>
 
         <div className="min-w-0 flex-1">

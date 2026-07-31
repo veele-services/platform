@@ -155,7 +155,7 @@ export function AddressAutocomplete({
   return (
     <div className="relative">
       <label htmlFor={inputId} className="block space-y-1.5">
-        <span className="text-xs font-black uppercase tracking-[0.04em]" style={{ color: "var(--color-secondary)" }}>
+        <span className="text-xs font-semibold uppercase tracking-[0.04em]" style={{ color: "var(--color-secondary)" }}>
           {label}
         </span>
         {description ? <span className="block text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>{description}</span> : null}
@@ -194,7 +194,7 @@ export function AddressAutocomplete({
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => { void selectSuggestion(suggestion); }}
                 >
-                  <span className="block font-black" style={{ color: "var(--color-primary)" }}>{suggestion.mainText ?? suggestion.label}</span>
+                  <span className="block font-semibold" style={{ color: "var(--color-primary)" }}>{suggestion.mainText ?? suggestion.label}</span>
                   <span className="text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>{suggestion.secondaryText ?? "Google Places"}</span>
                 </button>
               ))}

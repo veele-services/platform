@@ -88,6 +88,7 @@ export function DesktopSidebar({
     documents: true,
     finance: true,
     reporting: true,
+    notifications: true,
     knowledgebase: true,
     releases: true,
   },

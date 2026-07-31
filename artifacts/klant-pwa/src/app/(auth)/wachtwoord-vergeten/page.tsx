@@ -112,7 +112,7 @@ export default function WachtwoordVergetenPage() {
           <div className="mb-10 text-center">
             <div
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <span className="text-2xl font-bold text-white">V</span>
             </div>
@@ -176,7 +176,7 @@ export default function WachtwoordVergetenPage() {
                   type="submit"
                   disabled={pending || !code.trim()}
                   className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: "var(--color-accent)" }}
+                  style={{ backgroundColor: "var(--color-accent-accessible)" }}
                 >
                   {pending ? "Controleren..." : "Code controleren"}
                 </button>
@@ -189,7 +189,7 @@ export default function WachtwoordVergetenPage() {
                     setError(null);
                   }}
                   className="block w-full text-center text-sm font-medium"
-                  style={{ color: "var(--color-accent)" }}
+                  style={{ color: "var(--color-accent-accessible)" }}
                 >
                   Andere e-mail gebruiken
                 </button>
@@ -239,7 +239,7 @@ export default function WachtwoordVergetenPage() {
                   type="submit"
                   disabled={pending || !email}
                   className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: "var(--color-accent)" }}
+                  style={{ backgroundColor: "var(--color-accent-accessible)" }}
                 >
                   {pending ? "Bezig..." : "Herstelcode versturen"}
                 </button>

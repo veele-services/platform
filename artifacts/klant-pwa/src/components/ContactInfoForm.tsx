@@ -48,7 +48,7 @@ export function ContactInfoForm({ contactName, contactPhone, mobile }: Props) {
           <button
             onClick={() => setEditing(true)}
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors"
-            style={{ color: "var(--color-accent)", backgroundColor: "var(--color-accent-muted)" }}
+            style={{ color: "var(--color-accent-accessible)", backgroundColor: "var(--color-accent-muted)" }}
           >
             <Pencil size={13} />
             Bewerken
@@ -200,7 +200,7 @@ export function ContactInfoForm({ contactName, contactPhone, mobile }: Props) {
             type="submit"
             disabled={pending}
             className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-opacity disabled:opacity-60"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             {pending ? (
               <>

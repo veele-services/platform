@@ -17,11 +17,11 @@ export function PasswordChangeForm() {
   return (
     <form action={formAction} className="rounded-[22px] bg-white p-5 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: "#E8FBFA", color: "var(--color-accent)" }}>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: "#E8FBFA", color: "var(--color-accent-accessible)" }}>
           <LockKeyhole size={21} />
         </span>
         <div>
-          <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--color-primary)" }}>
             Wachtwoord wijzigen
           </h2>
           <p className="mt-1 text-sm font-medium" style={{ color: "var(--color-secondary)" }}>

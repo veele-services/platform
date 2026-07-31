@@ -28,13 +28,13 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
         style={{ borderColor: "var(--color-border)" }}
       >
         <p
-          className="text-xs font-black uppercase tracking-[0.16em]"
-          style={{ color: "var(--color-accent)" }}
+          className="text-xs font-semibold uppercase tracking-[0.16em]"
+          style={{ color: "var(--color-accent-accessible)" }}
         >
           Help
         </p>
         <h1
-          className="mt-2 text-2xl font-black"
+          className="mt-2 text-2xl font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Waar kunnen we mee helpen?
@@ -68,10 +68,10 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
               >
                 <BookOpen
                   className="h-5 w-5"
-                  style={{ color: "var(--color-accent)" }}
+                  style={{ color: "var(--color-accent-accessible)" }}
                 />
                 <h3
-                  className="mt-3 font-black"
+                  className="mt-3 font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {category.name}
@@ -94,12 +94,12 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
       {index.featured.length > 0 && (
         <section className="mt-5">
           <h2
-            className="flex items-center gap-2 text-lg font-black"
+            className="flex items-center gap-2 text-lg font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             <Sparkles
               className="h-5 w-5"
-              style={{ color: "var(--color-accent)" }}
+              style={{ color: "var(--color-accent-accessible)" }}
             />
             Uitgelicht
           </h2>
@@ -112,13 +112,13 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <p
-                  className="text-xs font-black uppercase tracking-[0.12em]"
-                  style={{ color: "var(--color-accent)" }}
+                  className="text-xs font-semibold uppercase tracking-[0.12em]"
+                  style={{ color: "var(--color-accent-accessible)" }}
                 >
                   {article.category?.name ?? "Handleiding"}
                 </p>
                 <h3
-                  className="mt-2 font-black"
+                  className="mt-2 font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {article.title}
@@ -136,7 +136,7 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
 
       <section className="mt-5">
         <h2
-          className="text-lg font-black"
+          className="text-lg font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {q ? "Zoekresultaten" : "Recente artikelen"}
@@ -149,11 +149,11 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
               className="block rounded-2xl border bg-white p-4 shadow-sm"
               style={{ borderColor: "var(--color-border)" }}
             >
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                 {article.category?.name ?? "Handleiding"}
               </p>
               <h3
-                className="mt-2 font-black"
+                className="mt-2 font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {article.title}
@@ -168,7 +168,7 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
         </div>
         {articles.length === 0 && (
           <div className="mt-3 rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
-            <p className="font-black" style={{ color: "var(--color-primary)" }}>
+            <p className="font-semibold" style={{ color: "var(--color-primary)" }}>
               Geen artikelen gevonden.
             </p>
             <p className="mt-1">
@@ -177,7 +177,7 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Link
                 href="/help"
-                className="rounded-xl border px-3 py-2 text-sm font-black"
+                className="rounded-xl border px-3 py-2 text-sm font-semibold"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-primary)",
@@ -187,8 +187,8 @@ export default async function CustomerHelpPage({ searchParams }: Props) {
               </Link>
               <Link
                 href="/meldingen/tickets"
-                className="rounded-xl px-3 py-2 text-sm font-black text-white"
-                style={{ backgroundColor: "var(--color-accent)" }}
+                className="rounded-xl px-3 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: "var(--color-accent-accessible)" }}
               >
                 Ticket maken
               </Link>

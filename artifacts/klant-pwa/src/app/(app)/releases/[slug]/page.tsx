@@ -37,7 +37,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
 
       <Link
         href="/releases"
-        className="mb-4 inline-flex items-center gap-2 text-sm font-black text-slate-600"
+        className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600"
       >
         <ArrowLeft className="h-4 w-4" />
         Terug naar releases
@@ -51,7 +51,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
           {formatDate(release.publishedAt)}
         </p>
         <h1
-          className="mt-2 text-2xl font-black"
+          className="mt-2 text-2xl font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {release.version} - {release.title}
@@ -84,7 +84,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
           className="mt-5 rounded-2xl border bg-white p-5 shadow-sm"
           style={{ borderColor: "var(--color-border)" }}
         >
-          <h2 className="font-black" style={{ color: "var(--color-primary)" }}>
+          <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>
             Media en bijlagen
           </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -110,7 +110,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
                 )}
                 <div className="p-3">
                   <p
-                    className="truncate font-black"
+                    className="truncate font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {item.caption || item.altText || item.storagePath}
@@ -131,7 +131,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
           style={{ borderColor: "var(--color-border)" }}
         >
           <h2
-            className="text-lg font-black"
+            className="text-lg font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Wijzigingen
@@ -146,7 +146,7 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <div>
                     <p
-                      className="font-black"
+                      className="font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {item.title}

@@ -60,7 +60,7 @@ export function ReplyForm({
       <button
         type="submit"
         disabled={disabled || isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? (
           <Loader2 size={19} className="animate-spin" />

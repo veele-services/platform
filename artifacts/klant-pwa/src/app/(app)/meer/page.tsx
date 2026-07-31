@@ -86,6 +86,7 @@ const ITEMS = [
     label: "Meldingen",
     description: "Actuele meldingen en acties.",
     Icon: MailOpen,
+    moduleKey: "notifications",
   },
   {
     href: "/profiel",
@@ -157,7 +158,7 @@ export default async function MeerPage({ searchParams }: Props) {
               </span>
               <span className="min-w-0">
                 <span
-                  className="block text-sm font-black"
+                  className="block text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {label}
@@ -184,7 +185,7 @@ export default async function MeerPage({ searchParams }: Props) {
           </span>
           <div>
             <h2
-              className="text-lg font-black"
+              className="text-lg font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               Hulp & contact
@@ -198,8 +199,8 @@ export default async function MeerPage({ searchParams }: Props) {
             </p>
             <Link
               href="/meldingen/tickets"
-              className="mt-4 inline-flex rounded-2xl px-4 py-2.5 text-sm font-black text-white"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="mt-4 inline-flex rounded-2xl px-4 py-2.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               Naar Support
             </Link>

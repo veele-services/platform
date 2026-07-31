@@ -17,7 +17,7 @@ export default async function NieuwObjectPage() {
       actions={
         <Link
           href="/objecten"
-          className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black"
+          className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <ArrowLeft size={16} />
@@ -31,7 +31,7 @@ export default async function NieuwObjectPage() {
             <ShieldCheck size={20} />
           </span>
           <div>
-            <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+            <h2 className="text-base font-semibold" style={{ color: "var(--color-primary)" }}>
               Eerst kiezen: concept, review of direct actief
             </h2>
             <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -43,7 +43,7 @@ export default async function NieuwObjectPage() {
       <div className="mb-3 md:hidden">
         <Link
           href="/objecten"
-          className="inline-flex items-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black shadow-sm"
+          className="inline-flex items-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <ArrowLeft size={16} />

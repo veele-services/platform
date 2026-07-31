@@ -39,8 +39,8 @@ export function PortalFilterSheet({
           {triggerLabel}
           {activeCount > 0 ? (
             <span
-              className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-black text-white"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold text-white"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               {activeCount > 99 ? "99+" : activeCount}
             </span>

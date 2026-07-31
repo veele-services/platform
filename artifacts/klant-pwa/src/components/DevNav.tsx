@@ -11,6 +11,7 @@ export function DevNav({ current }: { current: AppId }) {
 
   return (
     <div
+      data-fieldgrid-dev-nav
       style={{
         position: "fixed",
         top: 0,

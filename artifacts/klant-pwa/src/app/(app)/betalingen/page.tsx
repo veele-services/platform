@@ -193,7 +193,7 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       header: "Factuur",
       render: (payment) => (
         <span
-          className="font-mono text-xs font-black"
+          className="font-mono text-xs font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {payment.invoiceNumber}
@@ -205,7 +205,7 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
       header: "Bedrag",
       render: (payment) => (
         <span
-          className="text-sm font-black"
+          className="text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {cents(payment.amountCents)}
@@ -263,13 +263,13 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
       render: (batch) => (
         <span className="block min-w-[14rem]">
           <span
-            className="block text-xs font-black uppercase"
+            className="block text-xs font-semibold uppercase"
             style={{ color: "var(--color-muted-fg)" }}
           >
             {batch.invoices.length} facturen
           </span>
           <span
-            className="mt-0.5 block text-sm font-black"
+            className="mt-0.5 block text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {batch.invoices.map((invoice) => invoice.invoiceNumber).join(", ")}
@@ -282,7 +282,7 @@ function batchColumns(): Array<PortalDataColumn<CustomerPaymentBatch>> {
       header: "Bedrag",
       render: (batch) => (
         <span
-          className="text-sm font-black"
+          className="text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {cents(batch.amountCents)}
@@ -451,8 +451,8 @@ export default async function BetalingenPage({
           </PortalToolbarSelect>
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -536,7 +536,7 @@ function PaymentFilterForm({
       <div>
         <label
           htmlFor="payment-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -557,7 +557,7 @@ function PaymentFilterForm({
       <div>
         <label
           htmlFor="payment-filter-status"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Status
@@ -566,7 +566,7 @@ function PaymentFilterForm({
           id="payment-filter-status"
           name="status"
           defaultValue={status}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -581,7 +581,7 @@ function PaymentFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/betalingen"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -591,8 +591,8 @@ function PaymentFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>
@@ -610,13 +610,13 @@ function PaymentCard({ payment }: { payment: CustomerPayment }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p
-            className="font-mono text-xs font-black"
+            className="font-mono text-xs font-semibold"
             style={{ color: "var(--color-muted-fg)" }}
           >
             {payment.invoiceNumber}
           </p>
           <p
-            className="mt-1 text-xl font-black"
+            className="mt-1 text-xl font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {cents(payment.amountCents)}
@@ -633,7 +633,7 @@ function PaymentCard({ payment }: { payment: CustomerPayment }) {
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <Link
           href={`/facturen/${payment.invoiceId}`}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-black"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           <Receipt size={15} />
@@ -660,13 +660,13 @@ function BatchCard({ batch }: { batch: CustomerPaymentBatch }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p
-            className="text-xs font-black uppercase tracking-wide"
+            className="text-xs font-semibold uppercase tracking-wide"
             style={{ color: "var(--color-muted-fg)" }}
           >
             {batch.invoices.length} facturen
           </p>
           <p
-            className="mt-1 text-xl font-black"
+            className="mt-1 text-xl font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {cents(batch.amountCents)}
@@ -692,7 +692,7 @@ function BatchCard({ batch }: { batch: CustomerPaymentBatch }) {
           href={`/api/verzamelfactuur/${batch.id}/pdf`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           <Download size={15} />
@@ -703,7 +703,7 @@ function BatchCard({ batch }: { batch: CustomerPaymentBatch }) {
             href={batch.checkoutUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-[#E8FBFA] px-4 py-3 text-sm font-semibold text-[#087C79]"
           >
             Beveiligde betaling openen
           </Link>
@@ -718,7 +718,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
   const StatusIcon = config.Icon;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
       style={{ backgroundColor: config.bg, color: config.color }}
     >
       <StatusIcon size={12} />

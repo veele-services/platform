@@ -49,10 +49,12 @@ export function PaymentActionButton({
         type="button"
         disabled={pending}
         onClick={handleClick}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-60"
         style={{
           backgroundColor:
-            variant === "primary" ? "var(--color-accent)" : "#E8FBFA",
+            variant === "primary"
+              ? "var(--color-accent-accessible)"
+              : "#E8FBFA",
           color: variant === "primary" ? "#FFFFFF" : "#087C79",
         }}
       >

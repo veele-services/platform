@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
   AlertTriangle,
   Bell,
@@ -16,10 +17,12 @@ import {
 import {
   getMyCustomerNotifications,
   getMyCustomerOpenActions,
+  markCustomerNotificationReadAndOpen,
 } from "@/actions/notifications";
 import { getMyCustomerTicketSummary } from "@/actions/tickets";
 import { PageShell } from "@/components/PageShell";
 import { getCustomerPortalFeatureFlags } from "@/lib/portal-features";
+import { NotificationOpenButton } from "./NotificationOpenButton";
 
 const CATEGORY_ICON = {
   invoice: Receipt,
@@ -45,6 +48,8 @@ function formatDate(iso: string): string {
 
 export default async function MeldingenPage() {
   const featureFlags = await getCustomerPortalFeatureFlags();
+  if (!featureFlags.notifications) notFound();
+
   const [communication, openActions, ticketSummary] = await Promise.all([
     getMyCustomerNotifications(),
     getMyCustomerOpenActions({
@@ -85,53 +90,56 @@ export default async function MeldingenPage() {
                   const Icon = CATEGORY_ICON[item.category] ?? Bell;
                   const high = item.priority === "high";
                   return (
-                    <Link
+                    <form
                       key={item.id}
-                      href={item.href}
-                      className="block rounded-xl border bg-white p-3 transition hover:bg-slate-50"
-                      style={{
-                        borderColor: high ? "#FDE68A" : "var(--color-border)",
-                      }}
+                      action={markCustomerNotificationReadAndOpen}
                     >
-                      <div className="flex items-start gap-3">
-                        <span
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                          style={{
-                            backgroundColor: high ? "#FEF3C7" : "#E8FBFA",
-                            color: high ? "#B45309" : "var(--color-accent)",
-                          }}
-                        >
-                          <Icon size={20} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-2">
-                            <span
-                              className="text-sm font-black"
-                              style={{ color: "var(--color-primary)" }}
-                            >
-                              {item.title}
-                            </span>
-                            {high ? (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                                Actie nodig
+                      <input
+                        type="hidden"
+                        name="notificationId"
+                        value={item.id}
+                      />
+                      <NotificationOpenButton highlighted={high}>
+                        <span className="flex items-start gap-3">
+                          <span
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                            style={{
+                              backgroundColor: high ? "#FEF3C7" : "#E8FBFA",
+                              color: high ? "#B45309" : "var(--color-accent)",
+                            }}
+                          >
+                            <Icon size={20} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span
+                                className="text-sm font-semibold"
+                                style={{ color: "var(--color-primary)" }}
+                              >
+                                {item.title}
                               </span>
-                            ) : null}
-                          </span>
-                          <span
-                            className="mt-1 block text-sm font-semibold leading-6"
-                            style={{ color: "var(--color-secondary)" }}
-                          >
-                            {item.body}
-                          </span>
-                          <span
-                            className="mt-2 block text-xs font-bold"
-                            style={{ color: "var(--color-muted-fg)" }}
-                          >
-                            {formatDate(item.createdAt)}
+                              {high ? (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                  Actie nodig
+                                </span>
+                              ) : null}
+                            </span>
+                            <span
+                              className="mt-1 block text-sm font-semibold leading-6"
+                              style={{ color: "var(--color-secondary)" }}
+                            >
+                              {item.body}
+                            </span>
+                            <span
+                              className="mt-2 block text-xs font-bold"
+                              style={{ color: "var(--color-muted-fg)" }}
+                            >
+                              {formatDate(item.createdAt)}
+                            </span>
                           </span>
                         </span>
-                      </div>
-                    </Link>
+                      </NotificationOpenButton>
+                    </form>
                   );
                 })
               ) : (
@@ -204,7 +212,7 @@ export default async function MeldingenPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <h2
-                  className="text-lg font-black"
+                  className="text-lg font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   Contact & tickets
@@ -219,7 +227,7 @@ export default async function MeldingenPage() {
                 </p>
               </div>
               {ticketSummary.unreadCount > 0 ? (
-                <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-black text-white">
+                <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-semibold text-white">
                   {ticketSummary.unreadCount}
                 </span>
               ) : null}
@@ -233,7 +241,7 @@ export default async function MeldingenPage() {
                     className="rounded-2xl bg-slate-50 px-3 py-2.5"
                   >
                     <p
-                      className="line-clamp-1 text-sm font-black"
+                      className="line-clamp-1 text-sm font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {ticket.subject}
@@ -265,7 +273,7 @@ export default async function MeldingenPage() {
               </span>
               <div>
                 <h2
-                  className="text-lg font-black"
+                  className="text-lg font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   Actueel overzicht

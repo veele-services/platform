@@ -293,7 +293,7 @@ export function PortalActiveFilterChips({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span
-        className="text-xs font-black"
+        className="text-xs font-semibold"
         style={{ color: "var(--color-muted-fg)" }}
       >
         Actieve filters
@@ -302,7 +302,7 @@ export function PortalActiveFilterChips({
         <Link
           key={`${filter.label}-${filter.href}`}
           href={filter.href}
-          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition-colors hover:bg-slate-50"
+          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-slate-50"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -320,8 +320,8 @@ export function PortalActiveFilterChips({
       ))}
       <Link
         href={clearHref}
-        className="text-xs font-black"
-        style={{ color: "var(--color-accent)" }}
+        className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold"
+        style={{ color: "var(--color-accent-accessible)" }}
       >
         Wis alles
       </Link>
@@ -372,9 +372,9 @@ export function PortalDataList<TItem>({
   }
 
   return (
-    <section className={cx("space-y-3", className)}>
+    <section className={cx("min-w-0 space-y-3", className)}>
       <div
-        className="hidden overflow-x-auto rounded-xl border bg-white md:block"
+        className="hidden min-w-0 max-w-full overflow-x-auto rounded-xl border bg-white md:block"
         style={{ borderColor: "var(--color-border)" }}
       >
         <table className="min-w-full text-left" aria-label={tableLabel}>
@@ -425,9 +425,11 @@ export function PortalDataList<TItem>({
         </table>
       </div>
 
-      <div className="grid gap-3 md:hidden">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 md:hidden">
         {items.map((item) => (
-          <div key={getItemKey(item)}>{renderMobileCard(item)}</div>
+          <div className="min-w-0" key={getItemKey(item)}>
+            {renderMobileCard(item)}
+          </div>
         ))}
       </div>
     </section>
@@ -437,7 +439,7 @@ export function PortalDataList<TItem>({
 function PortalStatusBadge({ status }: { status: PortalStatus }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={toneStyles[status.tone ?? "neutral"]}
     >
       {status.label}
@@ -463,7 +465,7 @@ function PortalEmptyState({
     >
       {icon ? <div className="mb-3 flex justify-center">{icon}</div> : null}
       <p
-        className="text-sm font-black"
+        className="text-sm font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         {title}

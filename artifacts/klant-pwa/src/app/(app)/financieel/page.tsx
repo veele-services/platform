@@ -137,7 +137,7 @@ function FinanceCard({
           <Icon size={22} strokeWidth={2.35} />
         </span>
         <span
-          className="rounded-full px-3 py-1 text-xs font-black"
+          className="rounded-full px-3 py-1 text-xs font-semibold"
           style={{
             backgroundColor: isWarning ? "#FEF3C7" : "#F1F5F9",
             color: isWarning ? "#92400E" : "var(--color-secondary)",
@@ -147,7 +147,7 @@ function FinanceCard({
         </span>
       </div>
       <h2
-        className="mt-4 text-lg font-black"
+        className="mt-4 text-lg font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         {title}
@@ -159,8 +159,8 @@ function FinanceCard({
         {description}
       </p>
       <span
-        className="mt-4 inline-flex items-center gap-2 text-sm font-black"
-        style={{ color: "var(--color-accent)" }}
+        className="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
+        style={{ color: "var(--color-accent-accessible)" }}
       >
         {actionLabel}
         <ArrowRight
@@ -255,8 +255,8 @@ export default async function FinancieelPage() {
           action={
             <Link
               href="/facturen"
-              className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               Naar facturen
             </Link>
@@ -272,7 +272,7 @@ export default async function FinancieelPage() {
               >
                 <span className="min-w-0">
                   <span
-                    className="block truncate font-mono text-xs font-black"
+                    className="block truncate font-mono text-xs font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {invoice.invoiceNumber}
@@ -285,7 +285,7 @@ export default async function FinancieelPage() {
                   </span>
                 </span>
                 <span
-                  className="shrink-0 text-sm font-black"
+                  className="shrink-0 text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {formatAmount(invoice.totalAmount)}
@@ -301,7 +301,7 @@ export default async function FinancieelPage() {
               >
                 <span className="min-w-0">
                   <span
-                    className="block truncate font-mono text-xs font-black"
+                    className="block truncate font-mono text-xs font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {quote.quoteNumber}
@@ -314,7 +314,7 @@ export default async function FinancieelPage() {
                   </span>
                 </span>
                 <span
-                  className="shrink-0 text-sm font-black"
+                  className="shrink-0 text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {formatAmount(quote.amount)}

@@ -37,7 +37,7 @@ function DetailItem({
   return (
     <div className="rounded-lg bg-slate-50 px-3 py-2.5">
       <dt
-        className="text-[11px] font-black uppercase tracking-[0.05em]"
+        className="text-[11px] font-semibold uppercase tracking-[0.05em]"
         style={{ color: "var(--color-secondary)" }}
       >
         {label}
@@ -79,7 +79,7 @@ function Section({
         </span>
         <div className="min-w-0">
           <h2
-            className="text-lg font-black"
+            className="text-lg font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {title}
@@ -110,7 +110,7 @@ function EmptyState({
       style={{ borderColor: "var(--color-border)" }}
     >
       <p
-        className="text-sm font-black"
+        className="text-sm font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         {title}
@@ -229,14 +229,14 @@ export default async function ObjectDetailPage({ params }: Props) {
         <>
           <Link
             href={supportHref}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#E8FBFA] px-4 py-2 text-sm font-black text-[#087C79]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#E8FBFA] px-4 py-2 text-sm font-semibold text-[#087C79]"
           >
             <MessageSquare size={16} />
             Vraag over object
           </Link>
           <Link
             href="/objecten"
-            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black"
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"
             style={{
               borderColor: "var(--color-border)",
               color: "var(--color-primary)",
@@ -278,11 +278,11 @@ export default async function ObjectDetailPage({ params }: Props) {
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-[#E8FBFA] px-3 py-1.5 text-xs font-black text-[#087C79]">
+            <span className="rounded-full bg-[#E8FBFA] px-3 py-1.5 text-xs font-semibold text-[#087C79]">
               {object.isActive ? "Actief" : "Review nodig"}
             </span>
             {object.sectorName ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700">
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
                 {object.sectorName}
               </span>
             ) : null}
@@ -336,13 +336,13 @@ export default async function ObjectDetailPage({ params }: Props) {
               >
                 <span className="min-w-0">
                   <span
-                    className="block truncate font-mono text-xs font-black"
-                    style={{ color: "var(--color-accent)" }}
+                    className="block truncate font-mono text-xs font-semibold"
+                    style={{ color: "var(--color-accent-accessible)" }}
                   >
                     {assignment.code}
                   </span>
                   <span
-                    className="block truncate text-sm font-black"
+                    className="block truncate text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {assignment.title}
@@ -383,7 +383,7 @@ export default async function ObjectDetailPage({ params }: Props) {
                 >
                   <span className="min-w-0">
                     <span
-                      className="block truncate text-sm font-black"
+                      className="block truncate text-sm font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {document.name}
@@ -431,7 +431,7 @@ export default async function ObjectDetailPage({ params }: Props) {
                   style={{ borderColor: "var(--color-border)" }}
                 >
                   <span
-                    className="block text-sm font-black"
+                    className="block text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {report.assignmentCode} - {report.assignmentTitle}
@@ -466,7 +466,7 @@ export default async function ObjectDetailPage({ params }: Props) {
         <div className="mb-4">
           <Link
             href={supportHref}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#E8FBFA] px-4 py-2.5 text-sm font-black text-[#087C79]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#E8FBFA] px-4 py-2.5 text-sm font-semibold text-[#087C79]"
           >
             <MessageSquare size={16} />
             Nieuw objectticket
@@ -482,7 +482,7 @@ export default async function ObjectDetailPage({ params }: Props) {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span
-                  className="block text-sm font-black"
+                  className="block text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {ticket.subject}
@@ -513,7 +513,7 @@ export default async function ObjectDetailPage({ params }: Props) {
         {object.contacts.length > 0 ? (
           <div className="mb-4 rounded-2xl bg-slate-50 p-4">
             <div
-              className="mb-3 flex items-center gap-2 text-sm font-black"
+              className="mb-3 flex items-center gap-2 text-sm font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               <UserRound size={16} />
@@ -526,12 +526,12 @@ export default async function ObjectDetailPage({ params }: Props) {
                   className="rounded-xl bg-white px-3 py-2.5"
                 >
                   <p
-                    className="text-sm font-black"
+                    className="text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {contact.firstName} {contact.lastName}
                     {contact.isPrimary ? (
-                      <span className="ml-2 text-[10px] font-black text-[#087C79]">
+                      <span className="ml-2 text-[10px] font-semibold text-[#087C79]">
                         Primair
                       </span>
                     ) : null}

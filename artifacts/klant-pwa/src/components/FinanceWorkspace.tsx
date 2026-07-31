@@ -21,7 +21,7 @@ const toneStyles: Record<
   },
   accent: {
     bg: "rgba(0,183,179,0.10)",
-    color: "var(--color-accent)",
+    color: "var(--color-accent-accessible)",
     border: "rgba(0,183,179,0.22)",
   },
   success: {
@@ -62,7 +62,7 @@ export function FinanceSummaryStrip({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p
-                  className="truncate text-[11px] font-black uppercase"
+                  className="truncate text-[11px] font-semibold uppercase"
                   style={{ color: "var(--color-muted-fg)" }}
                 >
                   {item.label}

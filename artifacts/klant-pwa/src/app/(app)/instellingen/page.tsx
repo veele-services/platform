@@ -25,7 +25,7 @@ export default async function InstellingenPage() {
               </span>
               <div>
                 <h2
-                  className="text-lg font-black"
+                  className="text-lg font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   E-mailflows
@@ -51,7 +51,7 @@ export default async function InstellingenPage() {
               </span>
               <div>
                 <h2
-                  className="text-lg font-black"
+                  className="text-lg font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   Apparaatmeldingen

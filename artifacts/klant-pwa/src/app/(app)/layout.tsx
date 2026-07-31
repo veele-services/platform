@@ -34,7 +34,7 @@ function ReleaseHighlightBanner({
     <div className="mx-4 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm md:mx-7">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-black">{highlight.title}</p>
+          <p className="text-sm font-semibold">{highlight.title}</p>
           <p className="mt-1 text-sm leading-6 text-amber-900">
             {highlight.message}
           </p>
@@ -42,7 +42,7 @@ function ReleaseHighlightBanner({
         <div className="flex shrink-0 flex-wrap gap-2">
           <Link
             href={`/releases/${highlight.releaseSlug}`}
-            className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-950"
+            className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-950"
           >
             Lees meer
           </Link>
@@ -50,7 +50,7 @@ function ReleaseHighlightBanner({
             <input type="hidden" name="highlightId" value={highlight.id} />
             <button
               type="submit"
-              className="rounded-xl border border-amber-200 px-3 py-2 text-xs font-black text-amber-900"
+              className="rounded-xl border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-900"
             >
               Sluiten
             </button>
@@ -86,11 +86,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect("/klant/onboarding");
   }
 
-  const [branding, notificationSummary, featureFlags] = await Promise.all([
+  const [branding, featureFlags] = await Promise.all([
     getTenantBranding(tenantId),
-    getMyCustomerNotificationSummary(),
     getCustomerPortalFeatureFlags(tenantId),
   ]);
+  const notificationSummary = featureFlags.notifications
+    ? await getMyCustomerNotificationSummary()
+    : undefined;
 
   const brandingStyle = getTenantBrandingCssVariables(
     branding,
@@ -121,7 +123,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           >
             <div>
               <p
-                className="text-xs font-black uppercase tracking-[0.16em]"
+                className="text-xs font-semibold uppercase tracking-[0.16em]"
                 style={{ color: "var(--color-accent-accessible)" }}
               >
                 {branding.displayName}
@@ -135,7 +137,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center gap-3">
               <div
-                className="rounded-full border px-4 py-2 text-sm font-black"
+                className="rounded-full border px-4 py-2 text-sm font-semibold"
                 style={{
                   borderColor: "var(--color-border)",
                   color: "var(--color-primary)",

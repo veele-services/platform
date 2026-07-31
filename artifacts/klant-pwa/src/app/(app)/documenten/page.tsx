@@ -200,7 +200,7 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
           <DocumentIcon />
           <span className="min-w-0">
             <span
-              className="block truncate text-sm font-black"
+              className="block truncate text-sm font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {doc.name}
@@ -233,7 +233,7 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       render: (doc) => (
         <span className="block min-w-[12rem]">
           <span
-            className="block text-sm font-black"
+            className="block text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {entityLabel(doc)}
@@ -476,8 +476,8 @@ export default async function DocumentenPage({
           ) : null}
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -511,7 +511,7 @@ export default async function DocumentenPage({
               <DocumentIcon />
               <div className="min-w-0 flex-1">
                 <p
-                  className="truncate text-sm font-black"
+                  className="truncate text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {doc.name}
@@ -575,7 +575,7 @@ function DocumentFilterForm({
       <div>
         <label
           htmlFor="document-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -596,7 +596,7 @@ function DocumentFilterForm({
       <div>
         <label
           htmlFor="document-filter-type"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Type
@@ -605,7 +605,7 @@ function DocumentFilterForm({
           id="document-filter-type"
           name="type"
           defaultValue={selectedType}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -621,7 +621,7 @@ function DocumentFilterForm({
       <div>
         <label
           htmlFor="document-filter-object"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Object
@@ -630,7 +630,7 @@ function DocumentFilterForm({
           id="document-filter-object"
           name="object"
           defaultValue={selectedObject}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -647,7 +647,7 @@ function DocumentFilterForm({
       <div>
         <label
           htmlFor="document-filter-assignment"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Opdracht
@@ -656,7 +656,7 @@ function DocumentFilterForm({
           id="document-filter-assignment"
           name="assignment"
           defaultValue={selectedAssignment}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -673,7 +673,7 @@ function DocumentFilterForm({
       <div>
         <label
           htmlFor="document-filter-date"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Datum
@@ -682,7 +682,7 @@ function DocumentFilterForm({
           id="document-filter-date"
           name="date"
           defaultValue={selectedDate}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -698,7 +698,7 @@ function DocumentFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <a
           href="/documenten"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -708,8 +708,8 @@ function DocumentFilterForm({
         </a>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>

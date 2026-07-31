@@ -36,13 +36,13 @@ export default async function CustomerReleasesPage() {
         style={{ borderColor: "var(--color-border)" }}
       >
         <p
-          className="text-xs font-black uppercase tracking-[0.16em]"
-          style={{ color: "var(--color-accent)" }}
+          className="text-xs font-semibold uppercase tracking-[0.16em]"
+          style={{ color: "var(--color-accent-accessible)" }}
         >
           Releases
         </p>
         <h1
-          className="mt-2 text-2xl font-black"
+          className="mt-2 text-2xl font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Nieuw in uw klantportaal
@@ -56,11 +56,11 @@ export default async function CustomerReleasesPage() {
         </p>
         {latest && (
           <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
               Laatste release
             </p>
             <h2
-              className="mt-2 font-black"
+              className="mt-2 font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {latest.version} - {latest.title}
@@ -72,7 +72,7 @@ export default async function CustomerReleasesPage() {
             )}
             <Link
               href={`/releases/${latest.slug}`}
-              className="mt-3 inline-flex text-sm font-black text-cyan-700"
+              className="mt-3 inline-flex text-sm font-semibold text-cyan-700"
             >
               Lees meer
             </Link>
@@ -93,10 +93,10 @@ export default async function CustomerReleasesPage() {
                 <div className="flex items-center gap-2">
                   <Megaphone
                     className="h-5 w-5"
-                    style={{ color: "var(--color-accent)" }}
+                    style={{ color: "var(--color-accent-accessible)" }}
                   />
                   <h2
-                    className="font-black"
+                    className="font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {release.version} - {release.title}

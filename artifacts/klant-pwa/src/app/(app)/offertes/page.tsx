@@ -190,7 +190,7 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       header: "Offerte",
       render: (quote) => (
         <span
-          className="font-mono text-xs font-black"
+          className="font-mono text-xs font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {quote.quoteNumber}
@@ -203,14 +203,14 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       render: (quote) => (
         <span className="block min-w-[18rem]">
           <span
-            className="block truncate text-sm font-black"
+            className="block truncate text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {quote.assignmentTitle}
           </span>
           {quote.assignmentStatus === "awaiting_approval" &&
           !quote.isExpired ? (
-            <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">
+            <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
               Actie vereist
             </span>
           ) : null}
@@ -222,7 +222,7 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       header: "Bedrag",
       render: (quote) => (
         <span
-          className="text-sm font-black"
+          className="text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {formatAmount(quote.amount)}
@@ -395,8 +395,8 @@ export default async function OffertesPage({
           </PortalToolbarSelect>
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -412,8 +412,8 @@ export default async function OffertesPage({
           action={
             <Link
               href="/offertes?filter=action_required"
-              className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               Alle acties tonen
             </Link>
@@ -429,13 +429,13 @@ export default async function OffertesPage({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p
-                      className="font-mono text-xs font-black"
+                      className="font-mono text-xs font-semibold"
                       style={{ color: "var(--color-muted-fg)" }}
                     >
                       {quote.quoteNumber}
                     </p>
                     <h2
-                      className="mt-1 truncate text-sm font-black"
+                      className="mt-1 truncate text-sm font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {quote.assignmentTitle}
@@ -460,7 +460,7 @@ export default async function OffertesPage({
                   href={`/api/offerte/${quote.id}/pdf`}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
+                  className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold shadow-sm"
                   style={{
                     borderColor: "var(--color-border)",
                     color: "var(--color-primary)",
@@ -502,7 +502,7 @@ export default async function OffertesPage({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <span
-                  className="rounded px-1.5 py-0.5 font-mono text-xs font-black"
+                  className="rounded px-1.5 py-0.5 font-mono text-xs font-semibold"
                   style={{
                     backgroundColor: "var(--color-muted)",
                     color: "var(--color-secondary)",
@@ -511,13 +511,13 @@ export default async function OffertesPage({
                   {quote.quoteNumber}
                 </span>
                 <h3
-                  className="mt-2 truncate font-black"
+                  className="mt-2 truncate font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {quote.assignmentTitle}
                 </h3>
                 <p
-                  className="mt-1 text-2xl font-black"
+                  className="mt-1 text-2xl font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {formatAmount(quote.amount)}
@@ -578,7 +578,7 @@ function QuoteFilterForm({
       <div>
         <label
           htmlFor="quote-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -599,7 +599,7 @@ function QuoteFilterForm({
       <div>
         <label
           htmlFor="quote-filter-status"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Status
@@ -608,7 +608,7 @@ function QuoteFilterForm({
           id="quote-filter-status"
           name="filter"
           defaultValue={filter}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -625,7 +625,7 @@ function QuoteFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/offertes"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -635,8 +635,8 @@ function QuoteFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>
@@ -651,7 +651,7 @@ function QuoteStatusBadge({ quote }: { quote: CustomerQuote }) {
   const StatusIcon = config.Icon;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={{ backgroundColor: config.bg, color: config.color }}
     >
       <StatusIcon size={11} />

@@ -100,7 +100,7 @@ function SummaryStrip({
 }) {
   return (
     <section
-      className="grid gap-1 rounded-xl border bg-white p-1 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-2 gap-1 rounded-xl border bg-white p-1 lg:grid-cols-4"
       style={{ borderColor: "var(--color-border)" }}
     >
       {items.map((item) => (
@@ -110,7 +110,7 @@ function SummaryStrip({
           className="rounded-lg px-3 py-2.5 transition hover:bg-slate-50"
         >
           <span
-            className="block text-[11px] font-black uppercase tracking-[0.12em]"
+            className="block text-[11px] font-semibold uppercase tracking-[0.12em]"
             style={{ color: "var(--color-secondary)" }}
           >
             {item.label}
@@ -123,7 +123,7 @@ function SummaryStrip({
           </span>
           <span
             className="mt-1 block text-xs font-semibold"
-            style={{ color: "var(--color-accent)" }}
+            style={{ color: "var(--color-accent-accessible)" }}
           >
             {item.hint}
           </span>
@@ -142,7 +142,7 @@ function ActionInbox({ items }: { items: ActionInboxItem[] }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2
-            className="text-base font-black"
+            className="text-base font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Actie nodig
@@ -155,7 +155,7 @@ function ActionInbox({ items }: { items: ActionInboxItem[] }) {
           </p>
         </div>
         <span
-          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black"
+          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           {items.length}
@@ -191,14 +191,14 @@ function ActionInbox({ items }: { items: ActionInboxItem[] }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
-                    className="block text-sm font-black"
+                    className="block text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {item.title}
                   </span>
                   <span
                     className="mt-0.5 block text-xs font-semibold leading-5"
-                    style={{ color: "var(--color-secondary)" }}
+                    style={{ color: "#475569" }}
                   >
                     {item.description}
                   </span>
@@ -252,8 +252,8 @@ function FocusPanel({
           </span>
           <div>
             <p
-              className="text-[11px] font-black uppercase tracking-[0.12em]"
-              style={{ color: "var(--color-accent)" }}
+              className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               {eyebrow}
             </p>
@@ -297,20 +297,20 @@ function SecondaryCard({
 }) {
   return (
     <section
-      className="rounded-xl border bg-white p-4"
+      className="min-w-0 rounded-xl border bg-white p-4"
       style={{ borderColor: "var(--color-border)" }}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <h2
-          className="text-base font-black"
+          className="min-w-0 text-base font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {title}
         </h2>
         <Link
           href={href}
-          className="text-xs font-black"
-          style={{ color: "var(--color-accent)" }}
+          className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-1 text-xs font-semibold"
+          style={{ color: "var(--color-accent-accessible)" }}
         >
           {actionLabel}
         </Link>
@@ -353,7 +353,9 @@ export default async function DashboardPage() {
     featureFlags.finance ? getMyPendingQuoteCount() : Promise.resolve(0),
     getMyObjects(),
     featureFlags.reporting ? getMyReports() : Promise.resolve([]),
-    getMyCustomerNotifications(),
+    featureFlags.notifications
+      ? getMyCustomerNotifications()
+      : Promise.resolve([]),
     getMyCustomerTicketSummary(),
     featureFlags.documents ? getMyDocuments() : Promise.resolve([]),
   ]);
@@ -414,7 +416,7 @@ export default async function DashboardPage() {
   if (invoiceSummary.openCount > 0) {
     actionItems.push({
       href: "/financieel",
-      title: `${invoiceSummary.openCount} factuur${invoiceSummary.openCount === 1 ? "" : "en"} open`,
+      title: `${invoiceSummary.openCount} ${invoiceSummary.openCount === 1 ? "factuur" : "facturen"} open`,
       description: `${formatAmount(invoiceSummary.openTotal)} staat klaar voor betaling.`,
       tone: "danger",
     });
@@ -452,7 +454,7 @@ export default async function DashboardPage() {
             label: "Openstaand",
             value: formatAmount(invoiceSummary.openTotal),
             href: "/financieel",
-            hint: `${invoiceSummary.openCount} factuur${invoiceSummary.openCount === 1 ? "" : "en"}`,
+            hint: `${invoiceSummary.openCount} ${invoiceSummary.openCount === 1 ? "factuur" : "facturen"}`,
           },
         ]
       : []),
@@ -550,20 +552,20 @@ export default async function DashboardPage() {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span
-                  className="block font-mono text-xs font-black"
+                  className="block font-mono text-xs font-semibold"
                   style={{ color: "var(--color-secondary)" }}
                 >
                   {activeAssignment.code}
                 </span>
                 <span
-                  className="mt-1 block line-clamp-1 text-sm font-black"
+                  className="mt-1 block line-clamp-1 text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {activeAssignment.title}
                 </span>
                 <span className="mt-2 flex flex-wrap items-center gap-2">
                   <span
-                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
                     style={{
                       backgroundColor: (
                         STATUS_COLOR[activeAssignment.status] ?? {
@@ -591,7 +593,7 @@ export default async function DashboardPage() {
             ) : (
               <Link
                 href="/opdrachten/aanvragen"
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-semibold text-[#087C79]"
               >
                 Nieuwe opdracht aanvragen
               </Link>
@@ -610,13 +612,13 @@ export default async function DashboardPage() {
               style={{ borderColor: "var(--color-border)" }}
             >
               <span
-                className="block text-xs font-black uppercase tracking-[0.12em]"
+                className="block text-xs font-semibold uppercase tracking-[0.12em]"
                 style={{ color: "var(--color-secondary)" }}
               >
                 Open tickets
               </span>
               <span
-                className="mt-1 block text-xl font-black"
+                className="mt-1 block text-xl font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {ticketSummary.openCount}
@@ -631,7 +633,7 @@ export default async function DashboardPage() {
             </div>
             <Link
               href={generalSupportHref}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-semibold text-[#087C79]"
             >
               <PlusCircle size={16} />
               Nieuw ticket
@@ -640,7 +642,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-3">
         <SecondaryCard
           title="Recente opdrachten"
           href="/opdrachten"
@@ -666,7 +668,7 @@ export default async function DashboardPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block font-mono text-xs font-black"
+                        className="block font-mono text-xs font-semibold"
                         style={{ color: "var(--color-primary)" }}
                       >
                         {assignment.code}
@@ -680,7 +682,7 @@ export default async function DashboardPage() {
                       </span>
                     </span>
                     <span
-                      className="rounded-full px-2 py-1 text-[10px] font-black"
+                      className="rounded-full px-2 py-1 text-[10px] font-semibold"
                       style={{ backgroundColor: cfg.bg, color: cfg.color }}
                     >
                       {STATUS_LABEL[assignment.status] ?? assignment.status}
@@ -726,7 +728,7 @@ export default async function DashboardPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block truncate text-sm font-black"
+                        className="block truncate text-sm font-semibold"
                         style={{ color: "var(--color-primary)" }}
                       >
                         {document.name}
@@ -754,7 +756,7 @@ export default async function DashboardPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block truncate text-sm font-black"
+                        className="block truncate text-sm font-semibold"
                         style={{ color: "var(--color-primary)" }}
                       >
                         {report.assignmentTitle}
@@ -796,7 +798,7 @@ export default async function DashboardPage() {
                   style={{ borderColor: "var(--color-border)" }}
                 >
                   <span
-                    className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white"
+                    className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white"
                     style={{
                       background: ["#0E7490", "#155E75", "#0369A1"][index % 3],
                     }}
@@ -805,7 +807,7 @@ export default async function DashboardPage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span
-                      className="block truncate text-sm font-black"
+                      className="block truncate text-sm font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {object.name}
@@ -838,7 +840,7 @@ export default async function DashboardPage() {
                 <Bell size={16} style={{ color: "var(--color-secondary)" }} />
                 <span className="min-w-0 flex-1">
                   <span
-                    className="block line-clamp-1 text-sm font-black"
+                    className="block line-clamp-1 text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {recentNotifications[0]?.title}

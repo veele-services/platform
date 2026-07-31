@@ -22,7 +22,7 @@ export function PageShell({
           <div>
             <p
               className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em]"
-              style={{ color: "var(--color-accent)" }}
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               Klantportaal
             </p>

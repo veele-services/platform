@@ -1,12 +1,17 @@
 "use server";
 
-import { customerNotificationsTable, db } from "@workspace/db";
+import {
+  customerNotificationsTable,
+  db,
+  isTenantModuleEnabled,
+} from "@workspace/db";
 import {
   customerPortalRoutes,
   sanitizeCustomerPortalHref,
 } from "@workspace/db/portal-routes";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getMyAssignments } from "./assignments";
 import { getMyCustomerIdentity } from "./customer";
 import { getMyInvoices } from "./invoices";
@@ -45,6 +50,12 @@ export type CustomerNotificationSummary = {
 };
 
 type ActionResult = { success: boolean; error?: string };
+
+type CustomerNotificationEntitlements = {
+  finance: boolean;
+  reporting: boolean;
+  releases: boolean;
+};
 
 const CATEGORY_SET = new Set<CustomerNotificationCategory>([
   "invoice",
@@ -93,6 +104,53 @@ function mapPersistedNotification(
   };
 }
 
+async function getNotificationIdentity() {
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return null;
+
+  return (await isTenantModuleEnabled(identity.tenantId, "notifications"))
+    ? identity
+    : null;
+}
+
+async function getNotificationEntitlements(
+  tenantId: string,
+): Promise<CustomerNotificationEntitlements> {
+  const [finance, reporting, releases] = await Promise.all([
+    isTenantModuleEnabled(tenantId, "finance"),
+    isTenantModuleEnabled(tenantId, "reporting"),
+    isTenantModuleEnabled(tenantId, "releases"),
+  ]);
+  return { finance, reporting, releases };
+}
+
+function isNotificationAccessible(
+  notification: CustomerNotification,
+  entitlements: CustomerNotificationEntitlements,
+): boolean {
+  const pathname = notification.href.split(/[?#]/u, 1)[0] ?? "/";
+  const requiresFinance =
+    notification.category === "invoice" ||
+    notification.category === "quote" ||
+    ["/financieel", "/facturen", "/offertes", "/betalingen"].some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+  const requiresReporting =
+    notification.category === "report" ||
+    pathname === "/rapporten" ||
+    pathname.startsWith("/rapporten/");
+  const requiresReleases =
+    notification.category === "releases" ||
+    pathname === "/releases" ||
+    pathname.startsWith("/releases/");
+
+  return (
+    (!requiresFinance || entitlements.finance) &&
+    (!requiresReporting || entitlements.reporting) &&
+    (!requiresReleases || entitlements.releases)
+  );
+}
+
 function revalidateNotificationSurfaces() {
   revalidatePath("/");
   revalidatePath("/meldingen");
@@ -101,12 +159,11 @@ function revalidateNotificationSurfaces() {
 export async function getMyCustomerNotifications(): Promise<
   CustomerNotification[]
 > {
-  const identity = await getMyCustomerIdentity();
+  const identity = await getNotificationIdentity();
+  if (!identity) return [];
 
-  const notifications: CustomerNotification[] = [];
-
-  if (identity) {
-    const persistedRows = await db
+  const [persistedRows, entitlements] = await Promise.all([
+    db
       .select()
       .from(customerNotificationsTable)
       .where(
@@ -117,23 +174,33 @@ export async function getMyCustomerNotifications(): Promise<
         ),
       )
       .orderBy(desc(customerNotificationsTable.createdAt))
-      .limit(80);
+      .limit(80),
+    getNotificationEntitlements(identity.tenantId),
+  ]);
 
-    notifications.push(...persistedRows.map(mapPersistedNotification));
-  }
-
-  return notifications.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return persistedRows
+    .map(mapPersistedNotification)
+    .filter((notification) =>
+      isNotificationAccessible(notification, entitlements),
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getMyCustomerOpenActions(options: {
   finance: boolean;
   reporting: boolean;
 }): Promise<CustomerNotification[]> {
+  const identity = await getNotificationIdentity();
+  if (!identity) return [];
+  const entitlements = await getNotificationEntitlements(identity.tenantId);
+  const financeEnabled = options.finance && entitlements.finance;
+  const reportingEnabled = options.reporting && entitlements.reporting;
+
   const [assignments, invoices, quotes, reports] = await Promise.all([
     getMyAssignments(),
-    options.finance ? getMyInvoices() : Promise.resolve([]),
-    options.finance ? getMyQuotes() : Promise.resolve([]),
-    options.reporting ? getMyReports() : Promise.resolve([]),
+    financeEnabled ? getMyInvoices() : Promise.resolve([]),
+    financeEnabled ? getMyQuotes() : Promise.resolve([]),
+    reportingEnabled ? getMyReports() : Promise.resolve([]),
   ]);
   const notifications: CustomerNotification[] = [];
 
@@ -223,8 +290,10 @@ export async function getMyCustomerNotificationSummary(): Promise<CustomerNotifi
 export async function markCustomerNotificationRead(
   id: string,
 ): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(customerNotificationsTable)
@@ -242,11 +311,60 @@ export async function markCustomerNotificationRead(
   return { success: true };
 }
 
+export async function markCustomerNotificationReadAndOpen(
+  formData: FormData,
+): Promise<never> {
+  const identity = await getNotificationIdentity();
+  if (!identity) redirect("/");
+
+  const id = String(formData.get("notificationId") ?? "").trim();
+  if (!id) redirect("/meldingen");
+
+  const [[row], entitlements] = await Promise.all([
+    db
+      .select()
+      .from(customerNotificationsTable)
+      .where(
+        and(
+          eq(customerNotificationsTable.id, id),
+          eq(customerNotificationsTable.customerId, identity.customerId),
+          eq(customerNotificationsTable.tenantId, identity.tenantId),
+          isNull(customerNotificationsTable.deletedAt),
+        ),
+      )
+      .limit(1),
+    getNotificationEntitlements(identity.tenantId),
+  ]);
+  if (!row) redirect("/meldingen");
+
+  const notification = mapPersistedNotification(row);
+  if (!isNotificationAccessible(notification, entitlements)) {
+    redirect("/meldingen");
+  }
+
+  await db
+    .update(customerNotificationsTable)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(customerNotificationsTable.id, id),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
+        isNull(customerNotificationsTable.deletedAt),
+      ),
+    );
+
+  revalidateNotificationSurfaces();
+  redirect(notification.href);
+}
+
 export async function markCustomerNotificationUnread(
   id: string,
 ): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(customerNotificationsTable)
@@ -265,8 +383,10 @@ export async function markCustomerNotificationUnread(
 }
 
 export async function markAllCustomerNotificationsRead(): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(customerNotificationsTable)
@@ -284,8 +404,10 @@ export async function markAllCustomerNotificationsRead(): Promise<ActionResult> 
 }
 
 export async function markAllCustomerNotificationsUnread(): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(customerNotificationsTable)
@@ -311,8 +433,10 @@ export async function deleteCustomerNotification(
 export async function deleteCustomerNotifications(
   ids: string[],
 ): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { success: true };
 
@@ -333,8 +457,10 @@ export async function deleteCustomerNotifications(
 }
 
 export async function clearAllCustomerNotifications(): Promise<ActionResult> {
-  const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, error: "Niet ingelogd" };
+  const identity = await getNotificationIdentity();
+  if (!identity) {
+    return { success: false, error: "Meldingen zijn niet beschikbaar" };
+  }
 
   await db
     .update(customerNotificationsTable)

@@ -142,7 +142,7 @@ export function PortalPreferencesForm({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2
-            className="text-lg font-black"
+            className="text-lg font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Notificatie- en e-mailinstellingen
@@ -172,7 +172,7 @@ export function PortalPreferencesForm({
             />
             <span>
               <span
-                className="block text-sm font-black"
+                className="block text-sm font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {option.label}
