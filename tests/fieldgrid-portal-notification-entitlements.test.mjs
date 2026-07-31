@@ -57,13 +57,17 @@ test("customer notifications respect module access, tenant scope and safe destin
     /isTenantModuleEnabled\(identity\.tenantId,\s*"notifications"\)/u,
   );
   for (const marker of [
+    'isTenantModuleEnabled(tenantId, "documents")',
     'isTenantModuleEnabled(tenantId, "finance")',
+    'isTenantModuleEnabled(tenantId, "knowledgebase")',
     'isTenantModuleEnabled(tenantId, "reporting")',
     'isTenantModuleEnabled(tenantId, "releases")',
     'notification.category === "invoice"',
     'notification.category === "report"',
     'notification.category === "releases"',
     '"/facturen"',
+    '"/documenten"',
+    '"/help"',
     '"/rapporten"',
     '"/releases"',
   ]) {
@@ -90,6 +94,37 @@ test("customer notifications respect module access, tenant scope and safe destin
   assert.match(
     more,
     /href:\s*"\/meldingen"[\s\S]*?moduleKey:\s*"notifications"/u,
+  );
+});
+
+test("personnel notifications hide destinations for disabled target modules", () => {
+  const actions = read("artifacts/personeel-pwa/src/actions/notifications.ts");
+
+  for (const marker of [
+    'isTenantModuleEnabled(tenantId, "documents")',
+    'isTenantModuleEnabled(tenantId, "inventory")',
+    'isTenantModuleEnabled(tenantId, "knowledgebase")',
+    'isTenantModuleEnabled(tenantId, "materials")',
+    'isTenantModuleEnabled(tenantId, "releases")',
+    'pathname === "/documenten"',
+    'pathname === "/help"',
+    'pathname === "/releases"',
+    'pathname === "/scan/inventory"',
+    "/materiaal",
+    "/inventaris",
+  ]) {
+    assert.ok(
+      actions.includes(marker),
+      `missing personnel entitlement marker: ${marker}`,
+    );
+  }
+  assert.match(
+    actions,
+    /getMyNotifications[\s\S]*?getNotificationEntitlements\(identity\.tenantId\)[\s\S]*?isNotificationAccessible\(notification,\s*entitlements\)/u,
+  );
+  assert.match(
+    actions,
+    /getMyNotificationSummary[\s\S]*?getNotificationEntitlements\(identity\.tenantId\)[\s\S]*?visibleUnread/u,
   );
 });
 

@@ -52,7 +52,9 @@ export type CustomerNotificationSummary = {
 type ActionResult = { success: boolean; error?: string };
 
 type CustomerNotificationEntitlements = {
+  documents: boolean;
   finance: boolean;
+  knowledgebase: boolean;
   reporting: boolean;
   releases: boolean;
 };
@@ -116,12 +118,21 @@ async function getNotificationIdentity() {
 async function getNotificationEntitlements(
   tenantId: string,
 ): Promise<CustomerNotificationEntitlements> {
-  const [finance, reporting, releases] = await Promise.all([
-    isTenantModuleEnabled(tenantId, "finance"),
-    isTenantModuleEnabled(tenantId, "reporting"),
-    isTenantModuleEnabled(tenantId, "releases"),
-  ]);
-  return { finance, reporting, releases };
+  const [documents, finance, knowledgebase, reporting, releases] =
+    await Promise.all([
+      isTenantModuleEnabled(tenantId, "documents"),
+      isTenantModuleEnabled(tenantId, "finance"),
+      isTenantModuleEnabled(tenantId, "knowledgebase"),
+      isTenantModuleEnabled(tenantId, "reporting"),
+      isTenantModuleEnabled(tenantId, "releases"),
+    ]);
+  return {
+    documents,
+    finance,
+    knowledgebase,
+    reporting,
+    releases,
+  };
 }
 
 function isNotificationAccessible(
@@ -139,13 +150,19 @@ function isNotificationAccessible(
     notification.category === "report" ||
     pathname === "/rapporten" ||
     pathname.startsWith("/rapporten/");
+  const requiresDocuments =
+    pathname === "/documenten" || pathname.startsWith("/documenten/");
+  const requiresKnowledgebase =
+    pathname === "/help" || pathname.startsWith("/help/");
   const requiresReleases =
     notification.category === "releases" ||
     pathname === "/releases" ||
     pathname.startsWith("/releases/");
 
   return (
+    (!requiresDocuments || entitlements.documents) &&
     (!requiresFinance || entitlements.finance) &&
+    (!requiresKnowledgebase || entitlements.knowledgebase) &&
     (!requiresReporting || entitlements.reporting) &&
     (!requiresReleases || entitlements.releases)
   );
