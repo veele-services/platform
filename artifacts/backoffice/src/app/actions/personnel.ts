@@ -15,6 +15,7 @@ import {
   updatePersonnelSchema,
   availabilityWindowsTable,
   leavePeriodsTable,
+  PORTAL_ONBOARDING_VERSION,
 } from "@workspace/db";
 import { geocodeAddress, hasGeocodableAddress } from "@workspace/db/address-geocoding";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
@@ -871,7 +872,13 @@ export async function createPersonnel(
         });
         await db
           .update(personnelTable)
-          .set({ userId: invite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
+          .set({
+            userId: invite.userId,
+            inviteSentAt: new Date(),
+            portalOnboardingStatus: "not_started",
+            portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+            updatedAt: new Date(),
+          })
           .where(eq(personnelTable.id, createdId));
 
         await db.insert(auditLogTable).values({
@@ -1132,7 +1139,13 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   await db
     .update(personnelTable)
-    .set({ userId: activationInvite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
+    .set({
+      userId: activationInvite.userId,
+      inviteSentAt: new Date(),
+      portalOnboardingStatus: "not_started",
+      portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+      updatedAt: new Date(),
+    })
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({

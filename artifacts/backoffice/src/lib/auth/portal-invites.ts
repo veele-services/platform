@@ -4,6 +4,10 @@ import {
   generateInternalAuthPassword,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
+  PORTAL_ONBOARDING_REQUIRED_METADATA,
+  PORTAL_ONBOARDING_STATUS_METADATA,
+  PORTAL_ONBOARDING_VERSION,
+  PORTAL_ONBOARDING_VERSION_METADATA,
   resolveCredentialRecoveryOrigin,
   resolveFieldgridDeploymentEnvironment,
   type CredentialRecoverySurface,
@@ -69,6 +73,11 @@ function activationAppMetadata(
     portal,
     credential_activation_pending: true,
   };
+  if (portal === "personnel" || portal === "customer") {
+    metadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = true;
+    metadata[PORTAL_ONBOARDING_STATUS_METADATA] = "not_started";
+    metadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
+  }
   if (portal === "tenant-admin" && profileNameRequired) {
     metadata[BACKOFFICE_PROFILE_NAME_REQUIRED] = true;
   } else {

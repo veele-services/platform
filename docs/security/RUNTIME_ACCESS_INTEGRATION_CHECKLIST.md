@@ -33,7 +33,7 @@ This checklist maps the sensitive-data access model to actual runtime paths. Sta
 | `api/invoices/[id]/pdf` | `tenant_invoices` | 4 | `export` | platform export requires grant | `exportDownload: true` | integrated |
 | `api/quotes/[id]/pdf` | `tenant_invoices` | 4 | `export` | platform export requires grant | `exportDownload: true` | integrated |
 | `api/invoices/batches/[id]/pdf` | `tenant_invoices` | 4 | `export` | platform export requires grant | `exportDownload: true`; batch and items tenant-filtered | integrated |
-| `api/reports/[id]/pdf` | `reports` | 3 | `export` | platform export requires grant for sensitive classifications | `exportDownload: true`; report tenant-filtered | integrated |
+| `api/reports/[id]/pdf` | `reports` | 3 | `full_read` | individual PDF follows `reports:read`; bulk export permission is not implied | `exportDownload: true`; audited, report tenant-filtered and ownership-filtered | integrated |
 | Customer subresources in `actions/customers.ts` | `tenant_customers_contacts` | 3 | tenant write/read | direct customer IDs checked against active tenant | audit rows include tenant context where mutated | integrated |
 
 ## Platform And API Runtime Paths

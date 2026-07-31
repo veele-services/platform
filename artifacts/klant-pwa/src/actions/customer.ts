@@ -4,8 +4,12 @@ import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod/v4";
+
+const CUSTOMER_CONTEXT_COOKIE = "fieldgrid_customer_context";
 
 export type CustomerProfile = {
   id:                      string;
@@ -38,15 +42,26 @@ export type CustomerIdentity = {
 
 export type CustomerScope = CustomerIdentity;
 
-export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> {
+export type CustomerContextOption = {
+  customerUserId: string;
+  customerId: string;
+  customerName: string;
+  role: string;
+};
+
+type CustomerMembership = CustomerIdentity & {
+  role: string;
+};
+
+async function loadMyCustomerMemberships(): Promise<CustomerMembership[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return [];
 
   const tenantId = await requireCurrentCustomerPortalTenantId();
-  if (!tenantId) return null;
+  if (!tenantId) return [];
 
-  const [linked] = await db
+  const links = await db
     .select({
       id: customerUsersTable.id,
       customerId: customerUsersTable.customerId,
@@ -55,6 +70,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
       email: customerUsersTable.email,
       firstName: customerUsersTable.firstName,
       lastName: customerUsersTable.lastName,
+      role: customerUsersTable.role,
       customerName: customersTable.name,
       contactName: customersTable.contactName,
     })
@@ -70,15 +86,13 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
         eq(customersTable.isActive, true),
       ),
     )
-    .limit(1);
+    .orderBy(asc(customersTable.name), asc(customerUsersTable.id));
 
-  if (linked) {
-    await db
-      .update(customerUsersTable)
-      .set({ lastLoginAt: new Date() })
-      .where(and(eq(customerUsersTable.id, linked.id), eq(customerUsersTable.tenantId, tenantId)));
-
-    const linkedName = [linked.firstName, linked.lastName].filter(Boolean).join(" ").trim();
+  return links.map((linked) => {
+    const linkedName = [linked.firstName, linked.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     return {
       customerId: linked.customerId,
       customerUserId: linked.id,
@@ -87,10 +101,78 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
       contactName: linkedName || linked.contactName,
       email: linked.email,
       userId: user.id,
+      role: linked.role,
     };
-  }
+  });
+}
 
-  return null;
+export async function getMyCustomerContextState(): Promise<{
+  options: CustomerContextOption[];
+  selectedCustomerUserId: string | null;
+  selectionRequired: boolean;
+}> {
+  const memberships = await loadMyCustomerMemberships();
+  const selectedCookie =
+    (await cookies()).get(CUSTOMER_CONTEXT_COOKIE)?.value ?? null;
+  const selected = memberships.find(
+    (membership) => membership.customerUserId === selectedCookie,
+  );
+  return {
+    options: memberships.map((membership) => ({
+      customerUserId: membership.customerUserId,
+      customerId: membership.customerId,
+      customerName: membership.customerName,
+      role: membership.role,
+    })),
+    selectedCustomerUserId: selected?.customerUserId ?? null,
+    selectionRequired: memberships.length > 1 && !selected,
+  };
+}
+
+export async function selectMyCustomerContext(formData: FormData): Promise<void> {
+  const parsed = z.string().uuid().safeParse(formData.get("customerUserId"));
+  if (!parsed.success) redirect("/klant/context-kiezen?fout=ongeldig");
+
+  const memberships = await loadMyCustomerMemberships();
+  const selected = memberships.find(
+    (membership) => membership.customerUserId === parsed.data,
+  );
+  if (!selected) redirect("/klant/context-kiezen?fout=niet-toegestaan");
+
+  (await cookies()).set(CUSTOMER_CONTEXT_COOKIE, selected.customerUserId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/klant",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  redirect("/klant");
+}
+
+export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> {
+  const memberships = await loadMyCustomerMemberships();
+  if (memberships.length === 0) return null;
+
+  const selectedCookie =
+    (await cookies()).get(CUSTOMER_CONTEXT_COOKIE)?.value ?? null;
+  const linked =
+    memberships.find(
+      (membership) => membership.customerUserId === selectedCookie,
+    ) ?? (memberships.length === 1 ? memberships[0] : null);
+  if (!linked) return null;
+
+  await db
+    .update(customerUsersTable)
+    .set({ lastLoginAt: new Date() })
+    .where(
+      and(
+        eq(customerUsersTable.id, linked.customerUserId),
+        eq(customerUsersTable.tenantId, linked.tenantId),
+        eq(customerUsersTable.userId, linked.userId),
+      ),
+    );
+
+  return linked;
 }
 
 /**

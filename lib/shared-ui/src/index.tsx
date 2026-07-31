@@ -12,6 +12,7 @@ export {
   type CheckboxAdapterChangeEvent,
 } from "./radix-adapters/checkbox-adapter";
 export { RadioGroup, RadioGroupItem } from "./radix-adapters/radio-group";
+export { Switch, type SwitchProps } from "./radix-adapters/switch";
 export {
   AlertDialog,
   AlertDialogAction,

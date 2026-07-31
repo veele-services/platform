@@ -1,6 +1,7 @@
 import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { getMyPersonnel } from "@/actions/personnel";
+import { personnelOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
 import { dismissPersonnelReleaseHighlight, getPersonnelReleaseHighlight } from "@/actions/releases";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { BottomNav } from "@/components/BottomNav";
@@ -62,7 +63,6 @@ export default async function AppLayout({
         encodeURIComponent("De personeelsapp is niet beschikbaar voor deze organisatie."),
     );
   }
-
   const [
     branding,
     notificationSummary,
@@ -88,6 +88,9 @@ export default async function AppLayout({
       "/login?error=" +
         encodeURIComponent("Log in om de personeelsapp te gebruiken."),
     );
+  }
+  if (await personnelOnboardingRequiredForCurrentMembership()) {
+    redirect("/personeel/onboarding");
   }
 
   const featureFlags = {

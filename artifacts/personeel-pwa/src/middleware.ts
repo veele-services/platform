@@ -5,6 +5,7 @@ import {
   createSupabaseCookieOptions,
   withHostOnlyCookieOptions,
 } from "@/lib/supabase/session-cookies";
+import { portalOnboardingAccessState } from "@workspace/db/portal-onboarding-client";
 
 const BASE = "/personeel";
 
@@ -33,6 +34,7 @@ export async function middleware(request: NextRequest) {
   const normalizedPathname = routePath(pathname);
   const isLoginPage  = normalizedPathname === "/login";
   const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isRequiredPasswordPage = normalizedPathname === "/wachtwoord-wijzigen";
   const isPwaAsset =
     normalizedPathname === "/manifest.json" ||
     normalizedPathname === "/manifest.webmanifest" ||
@@ -87,8 +89,20 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await authClient.auth.getUser();
 
+  if (isPwaAsset) return supabaseResponse;
+
   if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));
+  }
+
+  if (user) {
+    const access = portalOnboardingAccessState(user.app_metadata, "personnel");
+    if (access.passwordChangeRequired && !isRequiredPasswordPage) {
+      return NextResponse.redirect(proxyAwareUrl(`${BASE}/wachtwoord-wijzigen`, request));
+    }
+    if (!access.passwordChangeRequired && isRequiredPasswordPage) {
+      return NextResponse.redirect(proxyAwareUrl(`${BASE}/onboarding`, request));
+    }
   }
 
   return supabaseResponse;

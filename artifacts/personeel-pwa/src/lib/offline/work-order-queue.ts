@@ -1,5 +1,7 @@
 "use client";
 
+import type { StructuredReportNoteV1 } from "@workspace/db";
+
 export type OfflineActionStatus = "pending" | "syncing" | "retry_wait" | "synced" | "failed" | "conflict";
 export type OfflineQueueEventReason = "enqueue" | "manual-retry" | "state" | "storage";
 export type OfflineErrorClassification = "transient" | "permanent" | "conflict";
@@ -94,6 +96,7 @@ export type OfflineWorkOrderAction =
       type: "add-report-note";
       payload: {
         body: string;
+        structuredData: StructuredReportNoteV1;
       };
     })
   | (OfflineActionBase & {

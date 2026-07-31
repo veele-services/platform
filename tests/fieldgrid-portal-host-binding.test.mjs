@@ -127,7 +127,7 @@ test("customer portal identity is scoped to the host tenant", () => {
     customer,
     /const tenantId = await requireCurrentCustomerPortalTenantId\(\);/u,
   );
-  assert.match(customer, /if \(!tenantId\) return null;/u);
+  assert.match(customer, /if \(!tenantId\) return \[\];/u);
   assert.match(customer, /eq\(customerUsersTable\.tenantId, tenantId\)/u);
   assert.match(customer, /eq\(customersTable\.tenantId, tenantId\)/u);
   assert.match(
@@ -141,6 +141,9 @@ test("customer portal identity is scoped to the host tenant", () => {
 
 test("personnel portal profile and mutations are scoped to the host tenant", () => {
   const personnel = read("artifacts/personeel-pwa/src/actions/personnel.ts");
+  const personnelLayout = read(
+    "artifacts/personeel-pwa/src/app/(app)/layout.tsx",
+  );
 
   assert.match(personnel, /getCurrentPortalTenantId/u);
   assert.match(
@@ -168,5 +171,12 @@ test("personnel portal profile and mutations are scoped to the host tenant", () 
   assert.match(
     personnel,
     /persistMyNotificationSettings\(user\.id, tenantId,/u,
+  );
+  assert.ok(
+    personnelLayout.indexOf("if (!personnel)") >= 0 &&
+      personnelLayout.indexOf(
+        "await personnelOnboardingRequiredForCurrentMembership()",
+      ) > personnelLayout.indexOf("if (!personnel)"),
+    "inactive personnel must be denied before the onboarding membership lookup",
   );
 });

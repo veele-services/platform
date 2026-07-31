@@ -63,7 +63,9 @@ export const customersTable = pgTable(
     contactPhone: varchar("contact_phone", { length: 50 }),
 
     // Extended CRM fields
+    tradeName:                varchar("trade_name", { length: 255 }),
     legalEntity:              varchar("legal_entity", { length: 255 }),
+    registrationCountry:      varchar("registration_country", { length: 100 }),
     vatNumber:                varchar("vat_number", { length: 50 }),
     chamberOfCommerceNumber:  varchar("chamber_of_commerce_number", { length: 50 }),
     website:                  varchar("website", { length: 255 }),

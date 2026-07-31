@@ -110,6 +110,7 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "add-report-note") {
     return addReportNote(action.assignmentId, {
       body: action.payload.body,
+      structuredData: action.payload.structuredData,
       expectedParticipantVersion: action.expectedParticipantVersion ?? null,
       clientMutationId: action.idempotencyKey,
     });

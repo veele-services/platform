@@ -164,10 +164,11 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
 test("portal password reset and logged-out routes are tenant-aware behind /klant and /personeel prefixes", () => {
   const customerMiddleware = read("artifacts/klant-pwa/src/middleware.ts");
   const personnelMiddleware = read("artifacts/personeel-pwa/src/middleware.ts");
+  const customerAppLayout = read("artifacts/klant-pwa/src/app/(app)/layout.tsx");
+  const personnelAppLayout = read("artifacts/personeel-pwa/src/app/(app)/layout.tsx");
   const personnelActions = read("artifacts/personeel-pwa/src/actions/auth.ts");
   const personnelMailHelper = read("artifacts/personeel-pwa/src/lib/email.ts");
 
-  assert.doesNotMatch(customerMiddleware, /force_password_change|mustChangePassword|canBypassForcedPasswordChange/u);
   assertContains(customerMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
@@ -177,9 +178,16 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "normalizedPathname.startsWith(\"/api/auth/password-reset\")",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
+    "portalOnboardingAccessState(user.app_metadata, \"customer\")",
+    "access.passwordChangeRequired",
+    "`${BASE}/wachtwoord-wijzigen`",
   ], "customer portal middleware");
+  assert.doesNotMatch(customerMiddleware, /access\.onboardingRequired/u);
+  assertContains(customerAppLayout, [
+    "customerOnboardingRequiredForCurrentMembership",
+    "redirect(\"/klant/onboarding\")",
+  ], "customer membership onboarding gate");
 
-  assert.doesNotMatch(personnelMiddleware, /force_password_change|mustChangePassword/u);
   assertContains(personnelMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
@@ -187,7 +195,15 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "normalizedPathname === \"/wachtwoord-vergeten\"",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
+    "portalOnboardingAccessState(user.app_metadata, \"personnel\")",
+    "access.passwordChangeRequired",
+    "`${BASE}/wachtwoord-wijzigen`",
   ], "personnel portal middleware");
+  assert.doesNotMatch(personnelMiddleware, /access\.onboardingRequired/u);
+  assertContains(personnelAppLayout, [
+    "personnelOnboardingRequiredForCurrentMembership",
+    "redirect(\"/personeel/onboarding\")",
+  ], "personnel membership onboarding gate");
 
   assertContains(personnelActions, [
     "requireCurrentPersonnelPortalTenantId",

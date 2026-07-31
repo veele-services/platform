@@ -325,3 +325,48 @@ export async function changeMyPassword(
 
   return { success: true };
 }
+
+export async function completeRequiredPasswordChange(
+  _prev: { error?: string } | undefined,
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const password = String(formData.get("password") ?? "");
+  const passwordTwo = String(formData.get("passwordTwo") ?? "");
+  if (!password || !evaluatePasswordStrength(password).isMedium) {
+    return { error: mediumPasswordMessage() };
+  }
+  if (password !== passwordTwo) {
+    return { error: "Wachtwoorden komen niet overeen" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Log opnieuw in om uw wachtwoord te wijzigen." };
+
+  const admin = createAdminClient();
+  const { data: current, error: currentError } = await admin.auth.admin.getUserById(user.id);
+  if (currentError || !current.user) {
+    return { error: "De beveiligde wachtwoordsessie kon niet worden gecontroleerd." };
+  }
+  if (
+    current.user.app_metadata?.["force_password_change"] !== true ||
+    current.user.app_metadata?.["portal"] !== "customer"
+  ) {
+    return { error: "Deze verplichte wachtwoordsessie is niet meer geldig." };
+  }
+  const appMetadata: Record<string, unknown> = { ...(current.user.app_metadata ?? {}) };
+  appMetadata["force_password_change"] = false;
+  appMetadata["password_changed_at"] = new Date().toISOString();
+  delete appMetadata["temporary_password_issued_at"];
+  delete appMetadata["temporary_password_expires_at"];
+  delete appMetadata["temporary_password_kind"];
+  const { error } = await admin.auth.admin.updateUserById(user.id, {
+    password,
+    app_metadata: appMetadata,
+  });
+  if (error) {
+    return { error: "Wachtwoord wijzigen mislukt. Probeer het opnieuw." };
+  }
+
+  redirect("/klant/onboarding");
+}
