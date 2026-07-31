@@ -175,19 +175,19 @@ function AssignmentTimeline({
   assignment: Awaited<ReturnType<typeof getMyAssignmentDetail>> & {};
 }) {
   if (!assignment) return null;
-  const phase = customerTimelinePhase(
-    assignment.status,
-    assignment.scheduledDate,
-  );
+  const phase = assignment.actualCompletedAt
+    ? "completed"
+    : assignment.actualStartedAt
+      ? "in_progress"
+      : customerTimelinePhase(assignment.status, assignment.scheduledDate);
   const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
     .filter(Boolean)
     .join(" - ");
-  const actualWindow = [
-    formatTimelineTime(assignment.actualStartedAt),
-    formatTimelineTime(assignment.actualCompletedAt),
-  ]
-    .filter(Boolean)
-    .join(" - ");
+  const actualStart = formatTimelineTime(assignment.actualStartedAt);
+  const actualEnd = formatTimelineTime(assignment.actualCompletedAt);
+  const actualWindow = actualStart
+    ? `${actualStart} - ${actualEnd ?? "nu"}`
+    : null;
   const steps = [
     {
       key: "scheduled",
@@ -201,7 +201,7 @@ function AssignmentTimeline({
       key: "in_progress",
       label: "Uitvoering",
       description: assignment.actualStartedAt
-        ? `Werkelijke uitvoering: ${actualWindow || formatDateTime(assignment.actualStartedAt)}`
+        ? `Werkelijke uitvoering: ${actualWindow ?? formatDateTime(assignment.actualStartedAt)}`
         : phase === "in_progress"
           ? "De uitvoering is gestart of de medewerker is onderweg."
           : "Nog niet gestart.",
@@ -426,7 +426,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
       title={assignment.title}
       subtitle={`${assignment.code} - status, planning, documenten en support`}
       status={{
-        label: STATUS_LABEL[assignment.status] ?? assignment.status,
+        label:
+          !featureFlags.finance && assignment.status === "awaiting_approval"
+            ? "In behandeling"
+            : (STATUS_LABEL[assignment.status] ?? assignment.status),
         tone: "accent",
       }}
       actions={
@@ -461,7 +464,11 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
         id="status"
         icon={<CheckSquare size={20} />}
         title="Status"
-        subtitle="Waar deze opdracht nu staat en welke financiele documenten eraan hangen."
+        subtitle={
+          featureFlags.finance
+            ? "Waar deze opdracht nu staat en welke financiële documenten eraan hangen."
+            : "Waar deze opdracht nu staat en wat de volgende stap is."
+        }
       >
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl bg-slate-50 p-4">

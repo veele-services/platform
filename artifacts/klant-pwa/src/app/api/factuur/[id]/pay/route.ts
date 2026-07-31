@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import {
-  db,
-  invoicesTable,
-  paymentsTable,
-} from "@workspace/db";
+import { db, invoicesTable, paymentsTable } from "@workspace/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getMyCustomerIdentity } from "@/actions/customer";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +13,9 @@ export async function GET(
 ) {
   const identity = await getMyCustomerIdentity();
   if (!identity) return new NextResponse("Unauthorized", { status: 401 });
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const { id } = await params;
   const [payment] = await db
@@ -35,7 +35,8 @@ export async function GET(
     .orderBy(desc(paymentsTable.createdAt))
     .limit(1);
 
-  if (!payment?.checkoutUrl) return new NextResponse("Payment link not found", { status: 404 });
+  if (!payment?.checkoutUrl)
+    return new NextResponse("Payment link not found", { status: 404 });
 
   return NextResponse.redirect(payment.checkoutUrl, 302);
 }
