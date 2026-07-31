@@ -63,10 +63,6 @@ export default async function AppLayout({
         encodeURIComponent("De personeelsapp is niet beschikbaar voor deze organisatie."),
     );
   }
-  if (await personnelOnboardingRequiredForCurrentMembership()) {
-    redirect("/personeel/onboarding");
-  }
-
   const [
     branding,
     notificationSummary,
@@ -92,6 +88,9 @@ export default async function AppLayout({
       "/login?error=" +
         encodeURIComponent("Log in om de personeelsapp te gebruiken."),
     );
+  }
+  if (await personnelOnboardingRequiredForCurrentMembership()) {
+    redirect("/personeel/onboarding");
   }
 
   const featureFlags = {
