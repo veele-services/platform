@@ -14,6 +14,22 @@ export {
 export { RadioGroup, RadioGroupItem } from "./radix-adapters/radio-group";
 export { Switch, type SwitchProps } from "./radix-adapters/switch";
 export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./radix-adapters/dropdown-menu";
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+} from "./radix-adapters/popover";
+export {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
