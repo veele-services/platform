@@ -204,7 +204,7 @@ test("role-specific wizards validate on the server and require an explicit push 
   assert.match(customer, /critical \? true : preference\.inAppEnabled/u);
 });
 
-test("onboarding wizard clients stay browser-safe and mobile-first", () => {
+test("onboarding wizard clients stay browser-safe and mobile-first with compact 44px controls", () => {
   for (const [portal, component] of [
     ["personeel", "PersonnelOnboardingWizard.tsx"],
     ["klant", "CustomerOnboardingWizard.tsx"],
@@ -216,7 +216,7 @@ test("onboarding wizard clients stay browser-safe and mobile-first", () => {
     assert.match(wizard, /from "@workspace\/db\/portal-onboarding-client"/u);
     assert.doesNotMatch(wizard, /from "@workspace\/db"/u);
     assert.match(wizard, /Opslaan en later/u);
-    assert.match(wizard, /min-h-12/u);
+    assert.match(wizard, /min-h-11/u);
     assert.doesNotMatch(wizard, /overflow-x-auto|min-w-\[480px\]/u);
   }
   const personnelWizard = read(
@@ -228,8 +228,11 @@ test("onboarding wizard clients stay browser-safe and mobile-first", () => {
   const customerWizard = read(
     "artifacts/klant-pwa/src/components/onboarding/CustomerOnboardingWizard.tsx",
   );
-  assert.match(personnelWizard, /href="\/personeel\/privacy"/u);
-  assert.match(customerWizard, /href="\/klant\/privacy"/u);
+  for (const wizard of [personnelWizard, customerWizard]) {
+    assert.match(wizard, /import Link from "next\/link"/u);
+    assert.match(wizard, /href="\/privacy"/u);
+    assert.doesNotMatch(wizard, /href="\/(?:personeel|klant)\/privacy"/u);
+  }
   assert.match(personnelWizard, /value=\{\(index \+ 1\) % 7\}/u);
   assert.match(
     personnelActions,
@@ -352,7 +355,7 @@ test("on-request-only availability cannot be silently discarded at completion", 
   assert.equal(parsed.success, false);
 });
 
-test("required password change updates password and metadata in one admin operation", () => {
+test("required password change rejects expired temporary sessions before one atomic admin update", () => {
   for (const [portal, expectedPortal] of [
     ["personeel", "personnel"],
     ["klant", "customer"],
@@ -376,6 +379,24 @@ test("required password change updates password and metadata in one admin operat
     assert.match(
       body,
       /admin\.auth\.admin\.updateUserById\(user\.id, \{[\s\S]*password,[\s\S]*app_metadata: appMetadata/u,
+    );
+    assert.match(
+      body,
+      /app_metadata\?\.\["temporary_password_expires_at"\]/u,
+    );
+    assert.match(body, /Date\.parse\(temporaryPasswordExpiresAt\)/u);
+    assert.match(
+      body,
+      /!Number\.isFinite\(expiresAt\) \|\| expiresAt <= Date\.now\(\)/u,
+    );
+    assert.match(
+      body,
+      /await supabase\.auth\.signOut\(\)[\s\S]*tijdelijke wachtwoord is verlopen/iu,
+    );
+    assert.ok(
+      body.indexOf("Date.parse(temporaryPasswordExpiresAt)") <
+        body.indexOf("admin.auth.admin.updateUserById(user.id"),
+      `${portal} must validate temporary_password_expires_at before updating credentials`,
     );
     assert.doesNotMatch(body, /supabase\.auth\.updateUser/u);
   }
