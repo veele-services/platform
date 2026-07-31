@@ -117,10 +117,10 @@ export default async function UrenPage({ searchParams }: Props) {
           </Link>
 
           <div className="min-w-0 text-center">
-            <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
               Weekoverzicht
             </p>
-            <p className="mt-0.5 truncate text-[15px] font-black capitalize" style={{ color: "var(--color-primary)" }}>
+            <p className="mt-0.5 truncate text-[15px] font-semibold capitalize" style={{ color: "var(--color-primary)" }}>
               {formatWeekRange(weeklyHours.weekStart, weeklyHours.weekEnd)}
             </p>
           </div>
@@ -137,7 +137,7 @@ export default async function UrenPage({ searchParams }: Props) {
 
         <Link
           href="/uren"
-          className="mt-3 flex h-10 items-center justify-center rounded-2xl text-[13px] font-black"
+          className="mt-3 flex h-10 items-center justify-center rounded-2xl text-[13px] font-semibold"
           style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
         >
           Naar huidige week
@@ -147,16 +147,16 @@ export default async function UrenPage({ searchParams }: Props) {
       <div className="rounded-[24px] p-4 shadow-sm" style={{ backgroundColor: "var(--color-primary)" }}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/55">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/55">
               Totaal deze week
             </p>
-            <p className="mt-1 text-[34px] font-black leading-none text-white">
+            <p className="mt-1 text-[34px] font-semibold leading-none text-white">
               {formatHours(weeklyHours.totalHours)}
-              <span className="ml-1.5 text-[16px] font-black text-white/70">uur</span>
+              <span className="ml-1.5 text-[16px] font-semibold text-white/70">uur</span>
             </p>
           </div>
           <div className="rounded-2xl bg-white/10 px-3 py-2 text-right">
-            <p className="text-[20px] font-black leading-none text-white">
+            <p className="text-[20px] font-semibold leading-none text-white">
               {weeklyHours.reportCount}
             </p>
             <p className="mt-1 text-[11px] font-bold text-white/60">
@@ -172,7 +172,7 @@ export default async function UrenPage({ searchParams }: Props) {
             className="border-b px-4 py-3"
             style={{ borderColor: "var(--color-border)", backgroundColor: "rgba(249,115,22,0.06)" }}
           >
-            <p className="text-[14px] font-black" style={{ color: "var(--color-action)" }}>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--color-action)" }}>
               Uren indienen ({pendingAssignments.length})
             </p>
             <p className="mt-0.5 text-[12px] font-medium" style={{ color: "var(--color-secondary)" }}>
@@ -190,7 +190,7 @@ export default async function UrenPage({ searchParams }: Props) {
                     {formatCompactDate(assignment.scheduledDate)}
                     {assignment.status === "not_completed" && (
                       <span
-                        className="ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-black"
+                        className="ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                         style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
                       >
                         Niet afgerond
@@ -222,12 +222,12 @@ export default async function UrenPage({ searchParams }: Props) {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+                    <p className="truncate text-[14px] font-semibold" style={{ color: "var(--color-primary)" }}>
                       {formatDayLabel(day.date)}
                     </p>
                     {isToday && (
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase"
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
                         style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
                       >
                         Vandaag
@@ -260,15 +260,15 @@ export default async function UrenPage({ searchParams }: Props) {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
                               {entry.assignmentCode}
                             </p>
-                            <p className="mt-1 line-clamp-2 text-[14px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+                            <p className="mt-1 line-clamp-2 text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                               {entry.assignmentTitle}
                             </p>
                           </div>
                           <span
-                            className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black"
+                            className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold"
                             style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
                           >
                             {formatHours(entry.hoursWorked)}u
@@ -278,7 +278,17 @@ export default async function UrenPage({ searchParams }: Props) {
                         <div className="mt-2.5 grid gap-1.5 text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
                           <div className="flex items-center gap-2">
                             <Clock size={14} className="shrink-0" />
-                            <span>{formatTimeRange(entry.scheduledStart, entry.scheduledEnd)}</span>
+                            <span>
+                              {entry.timeSource === "planned"
+                                ? "Gepland "
+                                : entry.timeSource === "actual"
+                                  ? "Werkelijk "
+                                  : "Deels werkelijk "}
+                              {formatTimeRange(
+                                entry.effectiveStart,
+                                entry.effectiveEnd,
+                              )}
+                            </span>
                           </div>
                           {entry.objectName && (
                             <div className="flex items-center gap-2">

@@ -42,7 +42,7 @@ export function InventoryIssueReportForm({
       style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
     >
       <h2
-        className="mb-3 flex items-center gap-2 text-base font-black"
+        className="mb-3 flex items-center gap-2 text-base font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         <AlertTriangle size={18} />
@@ -50,7 +50,7 @@ export function InventoryIssueReportForm({
       </h2>
       <form onSubmit={handleSubmit} className="space-y-3">
         <label
-          className="block text-sm font-black"
+          className="block text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Prioriteit
@@ -70,7 +70,7 @@ export function InventoryIssueReportForm({
           </SelectAdapter>
         </label>
         <label
-          className="block text-sm font-black"
+          className="block text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Omschrijving
@@ -88,7 +88,7 @@ export function InventoryIssueReportForm({
           />
         </label>
         <label
-          className="block text-sm font-black"
+          className="block text-sm font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Bewijs / foto-video notitie
@@ -120,7 +120,7 @@ export function InventoryIssueReportForm({
         <button
           type="submit"
           disabled={pending}
-          className="h-12 w-full rounded-xl px-4 text-base font-black text-white disabled:opacity-60"
+          className="h-12 w-full rounded-xl px-4 text-base font-semibold text-white disabled:opacity-60"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
           {pending ? "Melden..." : "Storing melden"}

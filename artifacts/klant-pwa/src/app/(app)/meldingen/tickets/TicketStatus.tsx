@@ -71,7 +71,7 @@ export function TicketStatusBadge({
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={{ color, backgroundColor: bg }}
     >
       <Icon size={13} strokeWidth={2.4} />
@@ -96,7 +96,7 @@ export function PriorityBadge({
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold"
       style={{ color }}
     >
       <Clock3 size={13} strokeWidth={2.4} />

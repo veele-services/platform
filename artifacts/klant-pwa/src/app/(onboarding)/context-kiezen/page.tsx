@@ -31,10 +31,10 @@ export default async function CustomerContextPage({
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-8">
       <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-teal-700">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
           Klantportaal
         </p>
-        <h1 className="mt-2 text-2xl font-black text-slate-950">
+        <h1 className="mt-2 text-2xl font-semibold text-slate-950">
           Welke organisatie wilt u openen?
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -65,14 +65,14 @@ export default async function CustomerContextPage({
                 className="flex min-h-14 w-full items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:border-teal-500 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <span>
-                  <span className="block font-black text-slate-950">
+                  <span className="block font-semibold text-slate-950">
                     {option.customerName}
                   </span>
                   <span className="mt-0.5 block text-xs font-semibold text-slate-500">
                     {ROLE_LABELS[option.role] ?? option.role}
                   </span>
                 </span>
-                <span className="text-sm font-black text-teal-700">Openen</span>
+                <span className="text-sm font-semibold text-teal-700">Openen</span>
               </button>
             </form>
           ))}

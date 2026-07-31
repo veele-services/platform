@@ -28,7 +28,7 @@ export default async function InventoryManualScanPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#F4F6FA] px-4 py-8">
       <div className="mx-auto max-w-md space-y-4">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
           <ArrowLeft size={18} />
           Terug
         </Link>
@@ -37,7 +37,7 @@ export default async function InventoryManualScanPage({ searchParams }: Props) {
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F2FF] text-[#2563A9]">
             <QrCode size={26} />
           </div>
-          <h1 className="text-2xl font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+          <h1 className="text-2xl font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
             Inventaris scannen
           </h1>
           <p className="mt-2 text-sm leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -45,7 +45,7 @@ export default async function InventoryManualScanPage({ searchParams }: Props) {
           </p>
 
           <form method="get" className="mt-6 space-y-3">
-            <label className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <label className="block text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
               Inventariscode
               <div className="relative mt-2">
                 <input
@@ -54,7 +54,7 @@ export default async function InventoryManualScanPage({ searchParams }: Props) {
                   placeholder="I000001"
                   autoCapitalize="characters"
                   autoComplete="off"
-                  className="h-12 w-full rounded-xl border px-4 pr-12 text-base font-black uppercase outline-none"
+                  className="h-12 w-full rounded-xl border px-4 pr-12 text-base font-semibold uppercase outline-none"
                   style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
                 />
                 <Keyboard className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2" style={{ color: "var(--color-muted-fg)" }} />
@@ -65,7 +65,7 @@ export default async function InventoryManualScanPage({ searchParams }: Props) {
                 {message}
               </p>
             ) : null}
-            <button type="submit" className="h-12 w-full rounded-xl px-4 text-base font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+            <button type="submit" className="h-12 w-full rounded-xl px-4 text-base font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
               Code zoeken
             </button>
           </form>

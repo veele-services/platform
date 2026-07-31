@@ -17,10 +17,11 @@ test("phase 8 turns customer tickets into a contextual support inbox", () => {
     "PortalActiveFilterChips",
     "PortalDataList",
     "Supportstatus",
-    "SLA-tijden",
   ]) {
     assert.match(source, new RegExp(marker, "u"));
   }
+
+  assert.doesNotMatch(source, /SLA-tijden/u);
 
   for (const context of ['context: "object"', 'context: "assignment"', 'context: "invoice"', 'context: "general"']) {
     assert.match(source, new RegExp(context, "u"));

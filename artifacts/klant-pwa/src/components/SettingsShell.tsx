@@ -29,7 +29,7 @@ const SETTINGS_LINKS: Array<{
   {
     key: "preferences",
     href: "/instellingen",
-    label: "Meldingen",
+    label: "Voorkeuren",
     description: "E-mail en pushvoorkeuren",
     Icon: BellRing,
   },
@@ -87,7 +87,7 @@ export function CustomerSettingsFeedback({
   }[type];
 
   return (
-    <p className={`rounded-2xl px-4 py-3 text-sm font-bold ${styles}`}>
+    <p className={`rounded-xl px-4 py-3 text-sm font-medium ${styles}`}>
       {children}
     </p>
   );
@@ -113,8 +113,8 @@ export function CustomerSettingsSaveBar({
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white disabled:opacity-60 md:min-h-0"
-        style={{ backgroundColor: "var(--color-accent)" }}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
+        style={{ backgroundColor: "var(--color-accent-accessible)" }}
       >
         {pending ? (
           <Loader2 size={16} className="animate-spin" />
@@ -131,7 +131,7 @@ function CustomerSettingsNav({ active }: { active: CustomerSettingsSection }) {
   return (
     <nav
       aria-label="Instellingen"
-      className="rounded-[22px] border bg-white p-2 shadow-sm xl:sticky xl:top-24 xl:self-start"
+      className="rounded-xl border bg-white p-2 xl:sticky xl:top-24 xl:self-start"
       style={{ borderColor: "var(--color-border)" }}
     >
       <div className="flex gap-2 overflow-x-auto xl:block xl:space-y-1 xl:overflow-visible">
@@ -142,23 +142,29 @@ function CustomerSettingsNav({ active }: { active: CustomerSettingsSection }) {
               key={key}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className="flex min-w-[13rem] items-center gap-3 rounded-2xl px-3 py-3 transition xl:min-w-0"
+              className="flex min-h-11 min-w-[13rem] items-center gap-3 rounded-lg px-3 py-2 transition xl:min-w-0"
               style={{
-                backgroundColor: isActive ? "rgba(0,183,179,0.10)" : "transparent",
-                color: isActive ? "var(--color-primary)" : "var(--color-secondary)",
+                backgroundColor: isActive
+                  ? "rgba(0,183,179,0.10)"
+                  : "transparent",
+                color: isActive
+                  ? "var(--color-primary)"
+                  : "var(--color-secondary)",
               }}
             >
               <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
-                  backgroundColor: isActive ? "var(--color-accent)" : "var(--color-muted)",
+                  backgroundColor: isActive
+                    ? "var(--color-accent)"
+                    : "var(--color-muted)",
                   color: isActive ? "#FFFFFF" : "var(--color-accent)",
                 }}
               >
                 <Icon size={19} strokeWidth={2.4} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-black">{label}</span>
+                <span className="block text-sm font-semibold">{label}</span>
                 <span className="block truncate text-xs font-semibold">
                   {description}
                 </span>
@@ -167,7 +173,7 @@ function CustomerSettingsNav({ active }: { active: CustomerSettingsSection }) {
                 <CheckCircle2
                   size={16}
                   className="ml-auto hidden shrink-0 xl:block"
-                  style={{ color: "var(--color-accent)" }}
+                  style={{ color: "var(--color-accent-accessible)" }}
                 />
               ) : null}
             </Link>

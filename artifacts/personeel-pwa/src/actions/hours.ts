@@ -1,12 +1,13 @@
 "use server";
 
-import { db } from "@workspace/db";
 import {
+  db,
   reportsTable,
   assignmentsTable,
   assignmentPersonnelTable,
   objectsTable,
   personnelTable,
+  resolveAssignmentEffectiveInterval,
 } from "@workspace/db";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +47,9 @@ export type WeeklyHoursEntry = HoursEntry & {
   workDate:        string;
   scheduledStart:  string | null;
   scheduledEnd:    string | null;
+  effectiveStart:  string | null;
+  effectiveEnd:    string | null;
+  timeSource:      "planned" | "partly_actual" | "actual";
   objectName:      string | null;
   objectCity:      string | null;
 };
@@ -119,17 +123,10 @@ function normalizeWeekStart(weekStart?: string | null): string {
   return startOfWeek(baseDate);
 }
 
-function resolveWorkDate(scheduledDate: string | null, submittedAt: Date): string {
-  return isValidDateKey(scheduledDate)
-    ? scheduledDate
-    : dateKeyInAmsterdam(submittedAt);
-}
-
 /**
  * Fetch approved reports for the current field worker and group them into a
- * Monday-Sunday week. The worked day is based on assignment.scheduled_date,
- * falling back to the report submission date when a legacy assignment has no
- * scheduled date.
+ * Monday-Sunday week. Actual execution timestamps are leading; planned values
+ * remain available as context and are never overwritten.
  */
 export async function getMyWeeklyHours(weekStart?: string | null): Promise<WeeklyHoursSummary> {
   const identity = await getPersonnelIdentity();
@@ -163,6 +160,9 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
       scheduledDate:   assignmentsTable.scheduledDate,
       scheduledStart:  assignmentsTable.scheduledStart,
       scheduledEnd:    assignmentsTable.scheduledEnd,
+      actualStartedAt:  assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
+      status:           assignmentsTable.status,
       objectName:      objectsTable.name,
       objectCity:      objectsTable.city,
       hoursWorked:     reportsTable.hoursWorked,
@@ -183,7 +183,17 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
   const dayMap = new Map(days.map((day) => [day.date, day]));
 
   for (const row of rows) {
-    const workDate = resolveWorkDate(row.scheduledDate ?? null, row.submittedAt);
+    const interval = resolveAssignmentEffectiveInterval({
+      scheduledDate: row.scheduledDate ?? null,
+      scheduledStart: row.scheduledStart ?? null,
+      scheduledEnd: row.scheduledEnd ?? null,
+      actualStartedAt: row.actualStartedAt,
+      actualCompletedAt: row.actualCompletedAt,
+      status: row.status,
+    });
+    const workDate = isValidDateKey(interval.effectiveDate)
+      ? interval.effectiveDate
+      : dateKeyInAmsterdam(row.submittedAt);
     if (workDate < normalizedWeekStart || workDate > normalizedWeekEnd) continue;
 
     const day = dayMap.get(workDate);
@@ -199,6 +209,9 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
       workDate,
       scheduledStart:  row.scheduledStart ?? null,
       scheduledEnd:    row.scheduledEnd ?? null,
+      effectiveStart:  interval.effectiveStart,
+      effectiveEnd:    interval.effectiveEnd,
+      timeSource:      interval.source,
       objectName:      row.objectName ?? null,
       objectCity:      row.objectCity ?? null,
       hoursWorked:     hours,
@@ -211,7 +224,9 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
 
   for (const day of days) {
     day.entries.sort((a, b) => {
-      const startCompare = (a.scheduledStart ?? "99:99").localeCompare(b.scheduledStart ?? "99:99");
+      const startCompare = (a.effectiveStart ?? "99:99").localeCompare(
+        b.effectiveStart ?? "99:99",
+      );
       if (startCompare !== 0) return startCompare;
       return a.assignmentTitle.localeCompare(b.assignmentTitle, "nl-NL");
     });

@@ -24,6 +24,7 @@ import {
   formatDateTimeTime,
   getActiveStep,
   getDisplayedTimeSlot,
+  getHeaderStatus,
   type AssignmentView,
 } from "./work-order-data";
 
@@ -103,7 +104,7 @@ function FinishChoiceDialog({
     >
       <DialogContent className="max-w-sm rounded-t-[24px] bg-white sm:rounded-[24px]">
         <DialogTitle
-          className="text-[18px] font-black leading-tight"
+          className="text-[18px] font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
           Zijn alle werkzaamheden afgerond?
@@ -119,7 +120,7 @@ function FinishChoiceDialog({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Link
             href={`/opdrachten/${assignmentId}/afronden?result=not_completed`}
-            className="rounded-2xl border px-4 py-3 text-center text-[14px] font-black active:scale-[0.98]"
+            className="rounded-2xl border px-4 py-3 text-center text-[14px] font-semibold active:scale-[0.98]"
             style={{
               borderColor: "#FCA5A5",
               backgroundColor: "#FEF2F2",
@@ -130,7 +131,7 @@ function FinishChoiceDialog({
           </Link>
           <Link
             href={`/opdrachten/${assignmentId}/afronden?result=completed`}
-            className="rounded-2xl px-4 py-3 text-center text-[14px] font-black text-white active:scale-[0.98]"
+            className="rounded-2xl px-4 py-3 text-center text-[14px] font-semibold text-white active:scale-[0.98]"
             style={{ backgroundColor: "var(--color-accent)" }}
           >
             Ja
@@ -169,6 +170,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     assignment.status === "scheduled" &&
     (status === "assigned" || status === "scheduled");
   const activeStep = getActiveStep(status);
+  const currentStatus = getHeaderStatus(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
   const canMarkEnRoute =
@@ -330,23 +332,29 @@ export function InteractiveStatusProgress({ assignment }: Props) {
 
   return (
     <section
-      className="rounded-[18px] bg-white px-5 py-4 shadow-sm"
-      style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
+      className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-3">
         <h2
-          className="text-[15px] font-black leading-tight"
+          className="text-[15px] font-semibold leading-tight"
           style={{ color: "var(--color-primary)" }}
         >
-          Status werkbon
+          Voortgang
         </h2>
         <span
-          className="text-[15px] font-black"
+          className="text-[15px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {getDisplayedTimeSlot(assignment)}
         </span>
       </div>
+      <p className="mt-1 text-xs text-[var(--color-secondary)]">
+        Huidige status:{" "}
+        <span className="font-medium text-[var(--color-primary)]">
+          {currentStatus.label}
+        </span>
+        . De gemarkeerde stap is de volgende actie.
+      </p>
 
       {error ? (
         <p
@@ -400,7 +408,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
                 </span>
                 {step.time ? (
                   <span
-                    className="mt-0.5 text-[10px] font-black"
+                    className="mt-0.5 text-[10px] font-semibold"
                     style={{ color: "var(--color-secondary)" }}
                   >
                     {step.time}

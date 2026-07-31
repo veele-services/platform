@@ -16,6 +16,10 @@ import {
   WalletCards,
 } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
+import {
+  getCustomerPortalFeatureFlags,
+  type CustomerPortalFeatureFlags,
+} from "@/lib/portal-features";
 
 const ITEMS = [
   {
@@ -41,30 +45,35 @@ const ITEMS = [
     label: "Offertes",
     description: "Offertes en akkoordstatus bekijken.",
     Icon: FileText,
+    moduleKey: "finance",
   },
   {
     href: "/facturen",
     label: "Facturen",
     description: "Facturen, status en bestaande betaalopties.",
     Icon: WalletCards,
+    moduleKey: "finance",
   },
   {
     href: "/documenten",
     label: "Documenten",
     description: "Gedeelde documenten downloaden.",
     Icon: FileText,
+    moduleKey: "documents",
   },
   {
     href: "/rapporten",
     label: "Rapportages",
     description: "Goedgekeurde werkrapportages.",
     Icon: FileCheck2,
+    moduleKey: "reporting",
   },
   {
     href: "/help",
     label: "Support",
     description: "Handleidingen en uitleg bij functies.",
     Icon: HelpCircle,
+    moduleKey: "knowledgebase",
   },
   {
     href: "/roadmap/new",
@@ -77,6 +86,7 @@ const ITEMS = [
     label: "Meldingen",
     description: "Actuele meldingen en acties.",
     Icon: MailOpen,
+    moduleKey: "notifications",
   },
   {
     href: "/profiel",
@@ -96,7 +106,13 @@ const ITEMS = [
     description: "E-mail- en notificatievoorkeuren.",
     Icon: Settings,
   },
-];
+] satisfies Array<{
+  href: string;
+  label: string;
+  description: string;
+  Icon: typeof Building2;
+  moduleKey?: keyof CustomerPortalFeatureFlags;
+}>;
 
 type Props = {
   searchParams?: Promise<{ featureRequest?: string }>;
@@ -104,6 +120,10 @@ type Props = {
 
 export default async function MeerPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
+  const featureFlags = await getCustomerPortalFeatureFlags();
+  const visibleItems = ITEMS.filter(
+    (item) => !item.moduleKey || featureFlags[item.moduleKey],
+  );
 
   return (
     <PageShell
@@ -116,21 +136,29 @@ export default async function MeerPage({ searchParams }: Props) {
         </div>
       )}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {ITEMS.map(({ href, label, description, Icon }) => (
+      <section
+        className="hidden rounded-xl border bg-white p-4 text-sm text-[var(--color-secondary)] md:block"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        Op desktop vindt u deze onderdelen rechtstreeks in het hoofdmenu en het
+        accountmenu.
+      </section>
+
+      <section className="grid gap-2 md:hidden">
+        {visibleItems.map(({ href, label, description, Icon }) => (
           <Link
             key={href}
             href={href}
-            className="rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-xl border bg-white p-3 transition hover:bg-slate-50"
             style={{ borderColor: "var(--color-border)" }}
           >
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
-                <Icon size={21} />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E8FBFA] text-[#087C79]">
+                <Icon size={19} />
               </span>
               <span className="min-w-0">
                 <span
-                  className="block text-sm font-black"
+                  className="block text-sm font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {label}
@@ -147,14 +175,17 @@ export default async function MeerPage({ searchParams }: Props) {
         ))}
       </section>
 
-      <section className="rounded-[22px] bg-white p-5 shadow-sm">
+      <section
+        className="rounded-xl border bg-white p-4 md:hidden"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E8FBFA] text-[#087C79]">
             <Headphones size={21} />
           </span>
           <div>
             <h2
-              className="text-lg font-black"
+              className="text-lg font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               Hulp & contact
@@ -168,8 +199,8 @@ export default async function MeerPage({ searchParams }: Props) {
             </p>
             <Link
               href="/meldingen/tickets"
-              className="mt-4 inline-flex rounded-2xl px-4 py-2.5 text-sm font-black text-white"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="mt-4 inline-flex rounded-2xl px-4 py-2.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               Naar Support
             </Link>

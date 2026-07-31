@@ -20,6 +20,7 @@ import {
   markNotificationUnread,
   type PersonnelNotificationItem,
 } from "@/actions/notifications";
+import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("nl-NL", {
@@ -46,6 +47,10 @@ export function NotificationsInbox({
   const router = useRouter();
   const [items, setItems] = useState(notifications);
   const [selected, setSelected] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<
+    { kind: "all" } | { kind: "selection"; ids: string[] } | { kind: "one"; id: string } | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const unreadCount = items.filter((item) => !item.readAt).length;
   const selectedItems = useMemo(
@@ -54,10 +59,52 @@ export function NotificationsInbox({
   );
 
   function run(action: () => Promise<unknown>, onDone?: () => void) {
+    setError(null);
     startTransition(async () => {
-      await action();
+      const result = await action();
+      if (
+        result &&
+        typeof result === "object" &&
+        "success" in result &&
+        result.success === false
+      ) {
+        setError(
+          "error" in result && typeof result.error === "string"
+            ? result.error
+            : "De actie is mislukt. Probeer het opnieuw.",
+        );
+        return;
+      }
       onDone?.();
       router.refresh();
+    });
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const action =
+      target.kind === "all"
+        ? clearAllNotifications
+        : () =>
+            deleteNotifications(
+              target.kind === "selection" ? target.ids : [target.id],
+            );
+    run(action, () => {
+      if (target.kind === "all") {
+        setItems([]);
+        setSelected([]);
+      } else {
+        const deletedIds =
+          target.kind === "selection" ? target.ids : [target.id];
+        setItems((current) =>
+          current.filter((item) => !deletedIds.includes(item.id)),
+        );
+        setSelected((current) =>
+          current.filter((id) => !deletedIds.includes(id)),
+        );
+      }
+      setDeleteTarget(null);
     });
   }
 
@@ -78,13 +125,13 @@ export function NotificationsInbox({
   }
 
   return (
-    <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)] md:p-5">
+    <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#009E9A]">
           <BellRing size={21} strokeWidth={2.4} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-black text-[var(--color-primary)]">
+          <h2 className="text-lg font-semibold text-[var(--color-primary)]">
             Inbox meldingen
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
@@ -132,18 +179,22 @@ export function NotificationsInbox({
           Icon={Trash2}
           danger
           disabled={isPending || items.length === 0}
-          onClick={() =>
-            run(clearAllNotifications, () => {
-              setItems([]);
-              setSelected([]);
-            })
-          }
+          onClick={() => setDeleteTarget({ kind: "all" })}
         />
       </div>
 
+      {error ? (
+        <p
+          role="alert"
+          className="mb-3 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700"
+        >
+          {error}
+        </p>
+      ) : null}
+
       {selected.length > 0 ? (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-[#D8E8F3] bg-[#F8FBFE] px-3 py-2.5">
-          <p className="mr-auto text-xs font-black text-[var(--color-primary)]">
+          <p className="mr-auto text-xs font-semibold text-[var(--color-primary)]">
             {selected.length} geselecteerd
           </p>
           <button
@@ -174,7 +225,7 @@ export function NotificationsInbox({
                   ),
               )
             }
-            className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[var(--color-primary)] shadow-sm disabled:opacity-50"
+            className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] shadow-sm disabled:opacity-50"
           >
             Wissel gelezen
           </button>
@@ -182,14 +233,9 @@ export function NotificationsInbox({
             type="button"
             disabled={isPending}
             onClick={() =>
-              run(() => deleteNotifications(selected), () => {
-                setItems((current) =>
-                  current.filter((item) => !selected.includes(item.id)),
-                );
-                setSelected([]);
-              })
+              setDeleteTarget({ kind: "selection", ids: [...selected] })
             }
-            className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-black text-red-600 disabled:opacity-50"
+            className="min-h-11 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 disabled:opacity-50"
           >
             Selectie wissen
           </button>
@@ -218,7 +264,7 @@ export function NotificationsInbox({
                   <button
                     type="button"
                     onClick={() => toggleSelected(item.id)}
-                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
+                    className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border"
                     style={{
                       borderColor: isSelected
                         ? "var(--color-accent)"
@@ -235,7 +281,7 @@ export function NotificationsInbox({
                   <Link href={item.href ?? "/meldingen"} className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-black text-[var(--color-primary)]">
+                        <p className="line-clamp-2 text-sm font-semibold text-[var(--color-primary)]">
                           {item.title}
                         </p>
                         {item.body ? (
@@ -245,7 +291,7 @@ export function NotificationsInbox({
                         ) : null}
                       </div>
                       <span
-                        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase"
+                        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase"
                         style={{
                           backgroundColor: isUnread ? "#E8FBFA" : "#F1F5F9",
                           color: isUnread ? "#087C79" : "#64748B",
@@ -286,7 +332,7 @@ export function NotificationsInbox({
                           ),
                       )
                     }
-                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600 disabled:opacity-50"
+                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-50"
                   >
                     {item.readAt ? "Ongelezen" : "Gelezen"}
                   </button>
@@ -294,13 +340,9 @@ export function NotificationsInbox({
                     type="button"
                     disabled={isPending}
                     onClick={() =>
-                      run(() => deleteNotifications([item.id]), () =>
-                        setItems((current) =>
-                          current.filter((currentItem) => currentItem.id !== item.id),
-                        ),
-                      )
+                      setDeleteTarget({ kind: "one", id: item.id })
                     }
-                    className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-black text-red-600 disabled:opacity-50"
+                    className="min-h-11 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 disabled:opacity-50"
                   >
                     Wissen
                   </button>
@@ -311,7 +353,7 @@ export function NotificationsInbox({
         ) : (
           <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] px-4 py-10 text-center">
             <MailOpen className="mx-auto text-slate-400" size={30} />
-            <p className="mt-3 text-sm font-black text-[var(--color-primary)]">
+            <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
               Geen meldingen
             </p>
             <p className="mt-1 text-sm font-medium text-slate-500">
@@ -320,6 +362,22 @@ export function NotificationsInbox({
           </div>
         )}
       </div>
+      <PersonnelConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={
+          deleteTarget?.kind === "all"
+            ? "Alle meldingen wissen?"
+            : deleteTarget?.kind === "selection"
+              ? `${deleteTarget.ids.length} meldingen wissen?`
+              : "Melding wissen?"
+        }
+        description="Deze meldingen verdwijnen uit je inbox. Dit kan niet ongedaan worden gemaakt."
+        confirmLabel="Wissen"
+        tone="danger"
+        pending={isPending}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </section>
   );
 }
@@ -342,7 +400,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border bg-white px-2 py-2 text-xs font-black shadow-sm disabled:opacity-50"
+      className="flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border bg-white px-2 py-2 text-xs font-semibold shadow-sm disabled:opacity-50"
       style={{
         borderColor: danger ? "#FECACA" : "var(--color-border)",
         color: danger ? "#DC2626" : "var(--color-primary)",

@@ -234,13 +234,13 @@ export function ExtraWorkEditor({
       >
         <div className="flex items-center justify-between gap-3">
           <h2
-            className="text-[19px] font-black leading-tight"
+            className="text-[19px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             Meerwerk
           </h2>
           <span
-            className="text-[17px] font-black"
+            className="text-[17px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {formatMoney(total)}
@@ -269,7 +269,7 @@ export function ExtraWorkEditor({
                   </p>
                 </div>
                 <span
-                  className="text-[14px] font-black"
+                  className="text-[14px] font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {formatMoney(calculateExtraWorkLineTotal(item))}
@@ -310,7 +310,7 @@ export function ExtraWorkEditor({
           style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
         >
           <h3
-            className="text-[17px] font-black"
+            className="text-[17px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Meerwerk toevoegen
@@ -430,7 +430,7 @@ export function ExtraWorkEditor({
                 Regel totaal
               </span>
               <span
-                className="text-[17px] font-black"
+                className="text-[17px] font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 {formatMoney(selectedLineTotal)}
@@ -457,7 +457,7 @@ export function ExtraWorkEditor({
             <button
               type="submit"
               disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-black text-white disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               {isPending ? (

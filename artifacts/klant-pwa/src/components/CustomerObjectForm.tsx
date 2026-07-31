@@ -69,7 +69,7 @@ function Field({
   return (
     <label className="block space-y-1.5">
       <span
-        className="text-xs font-black uppercase tracking-[0.04em]"
+        className="text-xs font-semibold uppercase tracking-[0.04em]"
         style={{ color: "var(--color-secondary)" }}
       >
         {label}
@@ -113,7 +113,7 @@ function TextArea({
   return (
     <label className="block space-y-1.5">
       <span
-        className="text-xs font-black uppercase tracking-[0.04em]"
+        className="text-xs font-semibold uppercase tracking-[0.04em]"
         style={{ color: "var(--color-secondary)" }}
       >
         {label}
@@ -153,13 +153,13 @@ function Section({
       <div className="mb-5 flex items-start gap-3">
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA]"
-          style={{ color: "var(--color-accent)" }}
+          style={{ color: "var(--color-accent-accessible)" }}
         >
           {icon}
         </span>
         <span>
           <h2
-            className="text-lg font-black leading-tight"
+            className="text-lg font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             {title}
@@ -320,7 +320,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
                 <RadioGroupItem value={option.value} className="mt-1" />
                 <span className="min-w-0">
                   <span
-                    className="block text-sm font-black"
+                    className="block text-sm font-semibold"
                     style={{ color: "var(--color-primary)" }}
                   >
                     {option.title}
@@ -355,7 +355,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
           />
           <label className="block space-y-1.5">
             <span
-              className="text-xs font-black uppercase tracking-[0.04em]"
+              className="text-xs font-semibold uppercase tracking-[0.04em]"
               style={{ color: "var(--color-secondary)" }}
             >
               Sector
@@ -570,8 +570,8 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white disabled:opacity-60 md:w-auto"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 md:w-auto"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           {pending ? (
             <Loader2 size={17} className="animate-spin" />

@@ -14,12 +14,21 @@ import {
 } from "@workspace/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getMyCustomerIdentity } from "@/actions/customer";
-import { generateCustomerQuotePdf, type CustomerQuotePdfLineItem } from "@/lib/quote-pdf";
+import {
+  generateCustomerQuotePdf,
+  type CustomerQuotePdfLineItem,
+} from "@/lib/quote-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 
 export const runtime = "nodejs";
 
-const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rejected", "expired"];
+const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = [
+  "sent",
+  "approved",
+  "rejected",
+  "expired",
+];
 
 export async function GET(
   _request: Request,
@@ -27,6 +36,9 @@ export async function GET(
 ) {
   const identity = await getMyCustomerIdentity();
   if (!identity) return new NextResponse("Unauthorized", { status: 401 });
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);
@@ -48,7 +60,10 @@ export async function GET(
       customerCity: customersTable.city,
     })
     .from(quotesTable)
-    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .innerJoin(
+      assignmentsTable,
+      eq(quotesTable.assignmentId, assignmentsTable.id),
+    )
     .innerJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
     .where(
       and(
@@ -72,7 +87,10 @@ export async function GET(
       invoiceable: taskCodesTable.invoiceable,
     })
     .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(taskCodesTable.id, assignmentTasksTable.taskCodeId))
+    .leftJoin(
+      taskCodesTable,
+      eq(taskCodesTable.id, assignmentTasksTable.taskCodeId),
+    )
     .where(eq(assignmentTasksTable.assignmentId, quote.assignmentId))
     .orderBy(asc(assignmentTasksTable.sortOrder));
 

@@ -21,6 +21,7 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 import { getMyCustomerIdentity } from "./customer";
 
 type ActionResult<T> =
@@ -138,6 +139,14 @@ export async function createCustomerInvoicePayment(
       message: "Niet ingelogd of geen klantprofiel gevonden.",
     };
 
+  if (!(await isCustomerPortalFeatureEnabled("finance", auth.tenantId))) {
+    return {
+      success: false,
+      message:
+        "Financiële functies zijn niet beschikbaar voor deze organisatie.",
+    };
+  }
+
   const [invoice] = await db
     .select({
       id: invoicesTable.id,
@@ -206,6 +215,14 @@ export async function createCustomerBatchPayment(
       success: false,
       message: "Niet ingelogd of geen klantprofiel gevonden.",
     };
+
+  if (!(await isCustomerPortalFeatureEnabled("finance", auth.tenantId))) {
+    return {
+      success: false,
+      message:
+        "Financiële functies zijn niet beschikbaar voor deze organisatie.",
+    };
+  }
 
   const uniqueInvoiceIds = [...new Set(invoiceIds)].filter(Boolean);
   if (uniqueInvoiceIds.length === 0) {
@@ -282,6 +299,9 @@ export async function createCustomerBatchPayment(
 export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
   const identity = await getMyCustomerIdentity();
   if (!identity) return [];
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return [];
+  }
 
   const rows = await db
     .select({
@@ -329,6 +349,9 @@ export async function getMyPaymentBatches(): Promise<
 > {
   const identity = await getMyCustomerIdentity();
   if (!identity) return [];
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return [];
+  }
 
   const batches = await db
     .select({

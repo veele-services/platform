@@ -129,7 +129,7 @@ export function KnowledgebaseAutocompleteSearch({
               >
                 {suggestion.type === "article" ? <BookOpen className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--color-accent)" }} /> : <Tags className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-500" />}
                 <span className="min-w-0">
-                  <span className="block truncate font-black" style={{ color: "var(--color-primary)" }}>{suggestion.label}</span>
+                  <span className="block truncate font-semibold" style={{ color: "var(--color-primary)" }}>{suggestion.label}</span>
                   <span className="mt-0.5 block truncate text-xs text-slate-500">
                     {suggestionLabel(suggestion.type)}
                     {suggestion.description ? ` - ${suggestion.description}` : ""}
@@ -140,7 +140,7 @@ export function KnowledgebaseAutocompleteSearch({
           </div>
         )}
       </div>
-      <button type="submit" className="rounded-xl px-4 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+      <button type="submit" className="rounded-xl px-4 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent-accessible)" }}>
         {submitLabel}
       </button>
     </form>

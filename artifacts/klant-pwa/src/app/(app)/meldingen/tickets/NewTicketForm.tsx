@@ -77,14 +77,14 @@ export function NewTicketForm({
           <Send size={21} strokeWidth={2.4} />
         </span>
         <div>
-          <h2 className="text-lg font-black text-[var(--color-primary)]">
+          <h2 className="text-lg font-semibold text-[var(--color-primary)]">
             Nieuw contactverzoek
           </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
             Stuur uw vraag direct naar de juiste afdeling.
           </p>
           {contextLabel ? (
-            <p className="mt-2 rounded-xl bg-[#F0FDFB] px-3 py-2 text-xs font-black text-[#087C79]">
+            <p className="mt-2 rounded-xl bg-[#F0FDFB] px-3 py-2 text-xs font-semibold text-[#087C79]">
               Context: {contextLabel}
             </p>
           ) : null}
@@ -143,7 +143,7 @@ export function NewTicketForm({
       </div>
 
       <div className="mt-3 rounded-2xl border border-[#D8E8F3] bg-[#F8FBFE] px-3 py-2.5">
-        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
           Bijlagen
         </p>
         <p className="mt-1 text-sm font-semibold leading-5 text-slate-500">
@@ -167,7 +167,7 @@ export function NewTicketForm({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+        className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent-accessible)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
       >
         {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
         Ticket versturen
@@ -179,7 +179,7 @@ export function NewTicketForm({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
-      <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
+      <span className="block text-xs font-medium uppercase tracking-wide text-slate-600">
         {label}
       </span>
       {children}

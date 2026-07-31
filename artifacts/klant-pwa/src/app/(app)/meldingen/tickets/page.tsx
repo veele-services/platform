@@ -312,7 +312,7 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
       render: (ticket) => (
         <span className="block min-w-[18rem]">
           <span
-            className="block truncate text-sm font-black"
+            className="block truncate text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {ticket.subject}
@@ -332,7 +332,7 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
       header: "Afdeling",
       render: (ticket) => (
         <span
-          className="truncate text-xs font-black"
+          className="truncate text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           {departmentLabel(ticket.department)}
@@ -355,7 +355,7 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
       align: "right",
       render: (ticket) =>
         ticket.unreadCount > 0 ? (
-          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-black text-white">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
             {ticket.unreadCount}
           </span>
         ) : (
@@ -509,7 +509,7 @@ export default async function CustomerTicketsPage({
               <Icon size={18} />
             </span>
             <h2
-              className="mt-3 text-sm font-black"
+              className="mt-3 text-sm font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {label}
@@ -575,8 +575,8 @@ export default async function CustomerTicketsPage({
               <input type="hidden" name="date" value={date} />
               <button
                 type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-                style={{ backgroundColor: "var(--color-accent)" }}
+                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--color-accent-accessible)" }}
               >
                 Toepassen
               </button>
@@ -588,7 +588,7 @@ export default async function CustomerTicketsPage({
             style={{ borderColor: "var(--color-border)" }}
           >
             <p
-              className="text-sm font-black"
+              className="text-sm font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               Supportstatus
@@ -597,9 +597,9 @@ export default async function CustomerTicketsPage({
               className="mt-1 text-sm font-semibold leading-6"
               style={{ color: "var(--color-secondary)" }}
             >
-              Open tickets worden opgepakt door de juiste afdeling. Prioriteit
-              en afdeling bepalen de volgorde; SLA-tijden kunnen later per
-              contract worden getoond.
+              Open tickets worden opgepakt door de juiste afdeling. Urgentie en
+              onderwerp bepalen de volgorde. Bij een kritieke melding neemt ons
+              serviceteam zo snel mogelijk contact met u op.
             </p>
           </div>
 
@@ -646,7 +646,7 @@ export default async function CustomerTicketsPage({
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <h3
-                          className="line-clamp-1 text-sm font-black"
+                          className="line-clamp-1 text-sm font-semibold"
                           style={{ color: "var(--color-primary)" }}
                         >
                           {ticket.subject}
@@ -660,7 +660,7 @@ export default async function CustomerTicketsPage({
                         </p>
                       </div>
                       {ticket.unreadCount > 0 ? (
-                        <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-black text-white">
+                        <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
                           {ticket.unreadCount}
                         </span>
                       ) : null}
@@ -668,7 +668,7 @@ export default async function CustomerTicketsPage({
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <TicketStatusBadge status={ticket.status} />
                       <PriorityBadge priority={ticket.priority} />
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                         {departmentLabel(ticket.department)}
                       </span>
                       <span className="text-[11px] font-bold text-slate-400">
@@ -681,8 +681,8 @@ export default async function CustomerTicketsPage({
                     >
                       <Link
                         href={`/meldingen/tickets/${ticket.id}`}
-                        className="text-xs font-black"
-                        style={{ color: "var(--color-accent)" }}
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--color-accent-accessible)" }}
                       >
                         Ticket openen
                       </Link>
@@ -735,7 +735,7 @@ function TicketFilterForm({
       <div>
         <label
           htmlFor="ticket-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -756,7 +756,7 @@ function TicketFilterForm({
       <div>
         <label
           htmlFor="ticket-filter-status"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Status
@@ -765,7 +765,7 @@ function TicketFilterForm({
           id="ticket-filter-status"
           name="status"
           defaultValue={status}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -781,7 +781,7 @@ function TicketFilterForm({
       <div>
         <label
           htmlFor="ticket-filter-priority"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Prioriteit
@@ -790,7 +790,7 @@ function TicketFilterForm({
           id="ticket-filter-priority"
           name="priority"
           defaultValue={priority}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -806,7 +806,7 @@ function TicketFilterForm({
       <div>
         <label
           htmlFor="ticket-filter-context"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Context
@@ -815,7 +815,7 @@ function TicketFilterForm({
           id="ticket-filter-context"
           name="context"
           defaultValue={context}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -831,7 +831,7 @@ function TicketFilterForm({
       <div>
         <label
           htmlFor="ticket-filter-date"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Datum
@@ -840,7 +840,7 @@ function TicketFilterForm({
           id="ticket-filter-date"
           name="date"
           defaultValue={date}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -856,7 +856,7 @@ function TicketFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/meldingen/tickets"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -866,8 +866,8 @@ function TicketFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>

@@ -46,13 +46,13 @@ function DenialCard({ title, message }: { title: string; message: string }) {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#B91C1C]">
           <AlertTriangle size={26} />
         </div>
-        <h1 className="text-xl font-black" style={{ color: "var(--color-primary)" }}>{title}</h1>
+        <h1 className="text-xl font-semibold" style={{ color: "var(--color-primary)" }}>{title}</h1>
         <p className="mt-2 text-sm leading-6" style={{ color: "var(--color-secondary)" }}>{message}</p>
         <div className="mt-6 flex flex-col gap-2">
-          <Link href="/scan/inventory" className="rounded-xl px-4 py-3 text-center text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+          <Link href="/scan/inventory" className="rounded-xl px-4 py-3 text-center text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
             Handmatig zoeken
           </Link>
-          <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-black" style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}>
+          <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold" style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}>
             <ArrowLeft size={18} />
             Terug
           </Link>
@@ -66,7 +66,7 @@ function AllowedCard({ item }: { item: InventoryScanItem }) {
   return (
     <main className="min-h-screen bg-[#F4F6FA] px-4 py-6">
       <div className="mx-auto max-w-md space-y-4">
-        <Link href="/scan/inventory" className="inline-flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+        <Link href="/scan/inventory" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
           <ArrowLeft size={18} />
           Scan of code
         </Link>
@@ -76,10 +76,10 @@ function AllowedCard({ item }: { item: InventoryScanItem }) {
             <QrCode size={26} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#E8F2FF] px-3 py-1 font-mono text-xs font-black text-[#2563A9]">{item.code}</span>
-            <span className="rounded-full bg-[#ECFDF5] px-3 py-1 text-xs font-black text-[#047857]">{statusLabel(item.status)}</span>
+            <span className="rounded-full bg-[#E8F2FF] px-3 py-1 font-mono text-xs font-semibold text-[#2563A9]">{item.code}</span>
+            <span className="rounded-full bg-[#ECFDF5] px-3 py-1 text-xs font-semibold text-[#047857]">{statusLabel(item.status)}</span>
           </div>
-          <h1 className="mt-3 text-2xl font-black leading-tight" style={{ color: "var(--color-primary)" }}>{item.name}</h1>
+          <h1 className="mt-3 text-2xl font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>{item.name}</h1>
           <p className="mt-2 flex items-center gap-1 text-sm" style={{ color: "var(--color-secondary)" }}>
             <MapPin size={15} />
             {locationLabel(item)}
@@ -87,7 +87,7 @@ function AllowedCard({ item }: { item: InventoryScanItem }) {
         </section>
 
         <section className="rounded-[22px] bg-white p-5 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-          <h2 className="mb-3 flex items-center gap-2 text-base font-black" style={{ color: "var(--color-primary)" }}>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold" style={{ color: "var(--color-primary)" }}>
             <ClipboardList size={18} />
             Toegestane details
           </h2>
@@ -103,7 +103,7 @@ function AllowedCard({ item }: { item: InventoryScanItem }) {
         <InventoryIssueReportForm inventoryItemId={item.id} assignmentId={item.relatedAssignmentId} />
 
         {item.relatedAssignmentId ? (
-          <Link href={`/opdrachten/${item.relatedAssignmentId}/inventaris`} className="block rounded-xl px-4 py-4 text-center text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+          <Link href={`/opdrachten/${item.relatedAssignmentId}/inventaris`} className="block rounded-xl px-4 py-4 text-center text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent)" }}>
             Open inventaris op werkbon
           </Link>
         ) : null}
@@ -116,7 +116,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <dt style={{ color: "var(--color-secondary)" }}>{label}</dt>
-      <dd className="text-right font-black" style={{ color: "var(--color-primary)" }}>{value}</dd>
+      <dd className="text-right font-semibold" style={{ color: "var(--color-primary)" }}>{value}</dd>
     </div>
   );
 }

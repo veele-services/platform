@@ -128,7 +128,7 @@ export function LoginForm() {
         type="submit"
         disabled={pending || !email || !password}
         className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: "var(--color-accent)" }}
+        style={{ backgroundColor: "var(--color-accent-accessible)" }}
       >
         {pending ? "Bezig met inloggen..." : "Inloggen"}
       </button>

@@ -114,19 +114,19 @@ function objectColumns(): Array<PortalDataColumn<CustomerObject>> {
           <ObjectIcon />
           <span className="min-w-0">
             <span
-              className="block truncate text-sm font-black"
+              className="block truncate text-sm font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {object.name}
             </span>
             <span
-              className="mt-0.5 block font-mono text-xs font-black"
+              className="mt-0.5 block font-mono text-xs font-semibold"
               style={{ color: "var(--color-muted-fg)" }}
             >
               {object.code}
             </span>
             {object.sectorName ? (
-              <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-700">
+              <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
                 {object.sectorName}
               </span>
             ) : null}
@@ -307,8 +307,8 @@ export default async function ObjectenPage({
           <input type="hidden" name="service" value={service} />
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -321,7 +321,7 @@ export default async function ObjectenPage({
         getItemKey={(object) => object.id}
         tableLabel="Objecten"
         emptyState={{
-          icon: <MapPin size={34} style={{ color: "var(--color-accent)" }} />,
+          icon: <MapPin size={34} style={{ color: "var(--color-accent-accessible)" }} />,
           title:
             activeFilters.length > 0
               ? "Geen objecten gevonden"
@@ -333,8 +333,8 @@ export default async function ObjectenPage({
           action: (
             <Link
               href="/objecten/nieuw"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <Plus size={16} />
               Object toevoegen
@@ -352,13 +352,13 @@ export default async function ObjectenPage({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p
-                      className="truncate font-black"
+                      className="truncate font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {object.name}
                     </p>
                     <p
-                      className="mt-0.5 font-mono text-xs font-black"
+                      className="mt-0.5 font-mono text-xs font-semibold"
                       style={{ color: "var(--color-secondary)" }}
                     >
                       {object.code}
@@ -377,17 +377,17 @@ export default async function ObjectenPage({
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {object.sectorName ? (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-700">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
                       {object.sectorName}
                     </span>
                   ) : null}
                   {object.serviceType ? (
-                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-black text-blue-700">
+                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
                       {object.serviceType}
                     </span>
                   ) : null}
                   {object.accessInfo || object.keyInfo || object.alarmInfo ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
                       <KeyRound size={12} />
                       Toegang ingesteld
                     </span>
@@ -416,8 +416,8 @@ export default async function ObjectenPage({
                 >
                   <Link
                     href={`/objecten/${object.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-black"
-                    style={{ color: "var(--color-accent)" }}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-semibold"
+                    style={{ color: "var(--color-accent-accessible)" }}
                   >
                     <ShieldCheck size={14} />
                     Gegevens beheren
@@ -474,7 +474,7 @@ function ObjectFilterForm({
           id="object-filter-status"
           name="status"
           defaultValue={status}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -490,7 +490,7 @@ function ObjectFilterForm({
           id="object-filter-service"
           name="service"
           defaultValue={service}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -507,7 +507,7 @@ function ObjectFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/objecten"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -517,8 +517,8 @@ function ObjectFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>
@@ -540,7 +540,7 @@ function FilterField({
     <div>
       <label
         htmlFor={id}
-        className="text-xs font-black"
+        className="text-xs font-semibold"
         style={{ color: "var(--color-secondary)" }}
       >
         {label}
@@ -556,7 +556,7 @@ function ObjectIcon() {
       className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
       style={{ backgroundColor: "rgba(0,183,179,0.10)" }}
     >
-      <Building2 size={18} style={{ color: "var(--color-accent)" }} />
+      <Building2 size={18} style={{ color: "var(--color-accent-accessible)" }} />
     </span>
   );
 }
@@ -564,7 +564,7 @@ function ObjectIcon() {
 function ObjectStatusBadge({ active }: { active: boolean }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={{
         backgroundColor: active ? "#E8FBFA" : "#F1F5F9",
         color: active ? "#087C79" : "#64748B",

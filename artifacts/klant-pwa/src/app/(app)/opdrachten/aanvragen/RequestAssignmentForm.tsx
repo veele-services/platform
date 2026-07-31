@@ -182,7 +182,7 @@ export function RequestAssignmentForm({
                 >
                   <ShieldCheck
                     size={16}
-                    style={{ color: "var(--color-accent)" }}
+                    style={{ color: "var(--color-accent-accessible)" }}
                   />
                 </span>
                 <span className="block text-sm font-semibold">
@@ -450,7 +450,7 @@ export function RequestAssignmentForm({
           !scheduledEnd
         }
         className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: "var(--color-accent)" }}
+        style={{ backgroundColor: "var(--color-accent-accessible)" }}
       >
         {pending ? "Aanvraag indienen..." : "Aanvraag indienen"}
       </button>

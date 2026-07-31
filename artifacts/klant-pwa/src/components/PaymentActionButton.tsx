@@ -10,7 +10,7 @@ import {
 export function PaymentActionButton({
   invoiceId,
   invoiceIds,
-  label = "Betalen met Mollie",
+  label = "Veilig betalen",
   variant = "primary",
 }: {
   invoiceId?: string;
@@ -24,11 +24,15 @@ export function PaymentActionButton({
   function handleClick() {
     setError(null);
     startTransition(async () => {
-      const result = invoiceIds && invoiceIds.length > 0
-        ? await createCustomerBatchPayment(invoiceIds)
-        : invoiceId
-          ? await createCustomerInvoicePayment(invoiceId)
-          : { success: false as const, message: "Geen factuur geselecteerd." };
+      const result =
+        invoiceIds && invoiceIds.length > 0
+          ? await createCustomerBatchPayment(invoiceIds)
+          : invoiceId
+            ? await createCustomerInvoicePayment(invoiceId)
+            : {
+                success: false as const,
+                message: "Geen factuur geselecteerd.",
+              };
 
       if (!result.success) {
         setError(result.message);
@@ -45,20 +49,30 @@ export function PaymentActionButton({
         type="button"
         disabled={pending}
         onClick={handleClick}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition active:scale-[0.99] disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-60"
         style={{
-          backgroundColor: variant === "primary" ? "var(--color-accent)" : "#E8FBFA",
-          color:           variant === "primary" ? "#FFFFFF" : "#087C79",
+          backgroundColor:
+            variant === "primary"
+              ? "var(--color-accent-accessible)"
+              : "#E8FBFA",
+          color: variant === "primary" ? "#FFFFFF" : "#087C79",
         }}
       >
-        {pending ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+        {pending ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <CreditCard size={16} />
+        )}
         {pending ? "Betaallink openen..." : label}
       </button>
       {error ? (
         <p
           role="alert"
           className="mt-2 inline-flex w-full items-start gap-2 rounded-2xl px-3 py-2 text-xs font-bold"
-          style={{ backgroundColor: "#FEF2F2", color: "var(--color-destructive)" }}
+          style={{
+            backgroundColor: "#FEF2F2",
+            color: "var(--color-destructive)",
+          }}
         >
           <AlertCircle size={14} className="mt-0.5 shrink-0" />
           <span>{error}</span>

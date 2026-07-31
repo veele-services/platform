@@ -39,7 +39,7 @@ export function DocumentDownloadButton({ documentId, filename }: Props) {
         onClick={handleDownload}
         disabled={pending}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
+        style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent-accessible)" }}
       >
         {pending ? (
           <Loader2 size={12} className="animate-spin" />

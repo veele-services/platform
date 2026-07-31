@@ -31,7 +31,7 @@ export function TicketActions({
       type="button"
       disabled={isPending}
       onClick={run}
-      className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-2 text-xs font-black text-white shadow-lg disabled:opacity-60"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/12 px-3 py-2 text-xs font-semibold text-white shadow-lg disabled:opacity-60"
     >
       {isClosed ? (
         <RotateCcw size={16} strokeWidth={2.4} />

@@ -18,6 +18,7 @@ import {
   PortalToolbarSelect,
   type PortalDataColumn,
 } from "@/components/portal-ui";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type CustomerReport = Awaited<ReturnType<typeof getMyReports>>[number];
 type ReportFilter = "all" | "hours" | "summary";
@@ -170,7 +171,7 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
       render: (report) => (
         <span className="block min-w-[18rem]">
           <span
-            className="block truncate text-sm font-black"
+            className="block truncate text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {report.assignmentTitle}
@@ -249,6 +250,7 @@ export default async function RapportenPage({
     date?: string;
   }>;
 }) {
+  await requireCustomerPortalFeature("reporting");
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const filter = normalizeFilter(params.filter);
@@ -418,8 +420,8 @@ export default async function RapportenPage({
           ) : null}
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -452,7 +454,7 @@ export default async function RapportenPage({
               </span>
               <div className="min-w-0 flex-1">
                 <h3
-                  className="text-sm font-black leading-snug"
+                  className="text-sm font-semibold leading-snug"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {report.assignmentTitle}
@@ -478,8 +480,8 @@ export default async function RapportenPage({
                 >
                   <Link
                     href={`/opdrachten/${report.assignmentId}`}
-                    className="text-xs font-black"
-                    style={{ color: "var(--color-accent)" }}
+                    className="text-xs font-semibold"
+                    style={{ color: "var(--color-accent-accessible)" }}
                   >
                     Opdracht bekijken
                   </Link>
@@ -524,7 +526,7 @@ function ReportFilterForm({
       <div>
         <label
           htmlFor="report-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -545,7 +547,7 @@ function ReportFilterForm({
       <div>
         <label
           htmlFor="report-filter-kind"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Type
@@ -554,7 +556,7 @@ function ReportFilterForm({
           id="report-filter-kind"
           name="filter"
           defaultValue={filter}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -568,7 +570,7 @@ function ReportFilterForm({
       <div>
         <label
           htmlFor="report-filter-object"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Object
@@ -577,7 +579,7 @@ function ReportFilterForm({
           id="report-filter-object"
           name="object"
           defaultValue={selectedObject}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -594,7 +596,7 @@ function ReportFilterForm({
       <div>
         <label
           htmlFor="report-filter-assignment"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Opdracht
@@ -603,7 +605,7 @@ function ReportFilterForm({
           id="report-filter-assignment"
           name="assignment"
           defaultValue={selectedAssignment}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -620,7 +622,7 @@ function ReportFilterForm({
       <div>
         <label
           htmlFor="report-filter-date"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Datum
@@ -629,7 +631,7 @@ function ReportFilterForm({
           id="report-filter-date"
           name="date"
           defaultValue={selectedDate}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -645,7 +647,7 @@ function ReportFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/rapporten"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -655,8 +657,8 @@ function ReportFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>

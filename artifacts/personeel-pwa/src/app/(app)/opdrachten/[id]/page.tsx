@@ -105,10 +105,10 @@ function WorkbenchStat({
 }) {
   return (
     <div className="rounded-2xl border bg-white px-3 py-2" style={{ borderColor: "var(--color-border)" }}>
-      <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
         {label}
       </p>
-      <p className="mt-1 text-[15px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+      <p className="mt-1 text-[15px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
         {value}
       </p>
     </div>
@@ -140,18 +140,18 @@ function WorkbenchRail({
 
   return (
     <aside className="space-y-4 md:sticky md:top-4">
-      <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
+      <section className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
               Volgende actie
             </p>
-            <h2 className="mt-1 text-[19px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+            <h2 className="mt-1 text-[19px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
               {nextAction.label}
             </h2>
           </div>
           <span
-            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black"
+            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold"
             style={{ backgroundColor: statusBadge.background, color: statusBadge.color }}
           >
             {statusBadge.label}
@@ -166,15 +166,15 @@ function WorkbenchRail({
         </div>
       </section>
 
-      <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-        <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+      <section className="hidden rounded-xl border border-[var(--color-border)] bg-white px-4 py-4 shadow-sm md:block">
+        <h2 className="text-[15px] font-semibold" style={{ color: "var(--color-primary)" }}>
           Object en contact
         </h2>
         <div className="mt-4 space-y-3">
           <div className="flex gap-3">
             <MapPin size={18} className="mt-0.5 shrink-0" style={{ color: "var(--color-accent)" }} />
             <div className="min-w-0">
-              <p className="text-[14px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+              <p className="text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                 {companyName}
               </p>
               <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -185,7 +185,7 @@ function WorkbenchRail({
           <div className="flex gap-3">
             <Phone size={18} className="mt-0.5 shrink-0" style={{ color: "var(--color-accent)" }} />
             <div className="min-w-0">
-              <p className="text-[14px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+              <p className="text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                 {contactName}
               </p>
               <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
@@ -196,38 +196,38 @@ function WorkbenchRail({
         </div>
       </section>
 
-      <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-        <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+      <section className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-4 shadow-sm">
+        <h2 className="text-[15px] font-semibold" style={{ color: "var(--color-primary)" }}>
           Werkbon onderdelen
         </h2>
         <div className="mt-4 grid gap-2">
           <Link href={`/opdrachten/${assignment.id}?tab=werkzaamheden`} className="flex items-center justify-between rounded-2xl border px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
-            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
               <ClipboardList size={16} style={{ color: "var(--color-accent)" }} />
               Checklist
             </span>
-            <span className="text-[12px] font-black" style={{ color: "var(--color-secondary)" }}>{completedTasks}/{taskTotal}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>{completedTasks}/{taskTotal}</span>
           </Link>
           <Link href={`/opdrachten/${assignment.id}/materiaal`} className="flex items-center justify-between rounded-2xl border px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
-            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
               <Package size={16} style={{ color: "var(--color-accent)" }} />
               Materiaal
             </span>
-            <span className="text-[12px] font-black" style={{ color: "var(--color-secondary)" }}>{materialCount}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>{materialCount}</span>
           </Link>
           <Link href={`/opdrachten/${assignment.id}/inventaris`} className="flex items-center justify-between rounded-2xl border px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
-            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
               <Wrench size={16} style={{ color: "var(--color-accent)" }} />
               Inventaris
             </span>
-            <span className="text-[12px] font-black" style={{ color: "var(--color-secondary)" }}>{inventoryCount}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>{inventoryCount}</span>
           </Link>
           <Link href={`/opdrachten/${assignment.id}?tab=rapportage`} className="flex items-center justify-between rounded-2xl border px-3 py-2.5" style={{ borderColor: "var(--color-border)" }}>
-            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+            <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-primary)" }}>
               <FileText size={16} style={{ color: "var(--color-accent)" }} />
               Rapportage
             </span>
-            <span className="text-[12px] font-black" style={{ color: "var(--color-secondary)" }}>{reportCount}</span>
+            <span className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>{reportCount}</span>
           </Link>
         </div>
       </section>
@@ -243,7 +243,7 @@ function WorkbenchSection({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="px-4 pb-28 pt-5 md:px-5">
+    <section id={id} className="px-4 pb-28 pt-4 md:px-0 md:pb-0">
       <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-[minmax(0,1fr)_22rem] md:items-start">
         {children}
       </div>
@@ -281,7 +281,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
   );
 
   return (
-    <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">
+    <div className="min-h-screen bg-[var(--color-muted)] md:min-h-0">
       <WorkOrderHeader assignment={assignment} activeTab={activeTab} />
 
       {isScheduled ? (
@@ -344,7 +344,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
             <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
               <div className="flex items-center gap-3">
                 <CheckCircle2 size={20} style={{ color: "var(--color-accent)" }} />
-                <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+                <h2 className="text-[15px] font-semibold" style={{ color: "var(--color-primary)" }}>
                   Rapportagecontrole
                 </h2>
               </div>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getMyInvoice } from "@/actions/invoices";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
+import { requireCustomerPortalFeature } from "@/lib/portal-features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default async function FactuurDetailPage({ params }: Props) {
+  await requireCustomerPortalFeature("finance");
   const { id } = await params;
   const invoice = await getMyInvoice(id);
 
@@ -88,7 +90,7 @@ export default async function FactuurDetailPage({ params }: Props) {
         <div className="min-w-0 flex-1">
           <span
             className="font-mono text-xs font-bold"
-            style={{ color: "var(--color-accent)" }}
+            style={{ color: "var(--color-accent-accessible)" }}
           >
             {invoice.invoiceNumber}
           </span>
@@ -115,13 +117,13 @@ export default async function FactuurDetailPage({ params }: Props) {
         >
           <div>
             <p
-              className="font-mono text-xs font-black"
-              style={{ color: "var(--color-accent)" }}
+              className="font-mono text-xs font-semibold"
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               {invoice.invoiceNumber}
             </p>
             <h1
-              className="mt-1 text-2xl font-black"
+              className="mt-1 text-2xl font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               Factuurdetail
@@ -129,7 +131,7 @@ export default async function FactuurDetailPage({ params }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <span
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black"
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold"
               style={{ backgroundColor: cfg.bg, color: cfg.color }}
             >
               <StatusIcon size={12} />
@@ -137,7 +139,7 @@ export default async function FactuurDetailPage({ params }: Props) {
             </span>
             <Link
               href="/facturen"
-              className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black"
+              className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold"
               style={{
                 borderColor: "var(--color-border)",
                 color: "var(--color-primary)",
@@ -243,7 +245,7 @@ export default async function FactuurDetailPage({ params }: Props) {
             <Link
               href={`/opdrachten/${invoice.assignmentId}`}
               className="text-sm font-medium"
-              style={{ color: "var(--color-accent)" }}
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               Bekijk opdracht →
             </Link>

@@ -8,9 +8,15 @@ const outputDir = args.outDir || process.env.FIELDGRID_DASHBOARD_UI_AUDIT_OUT_DI
 const screenshotDir = join(outputDir, "screenshots");
 
 const viewports = [
+  { id: "mobile-320", width: 320, height: 568 },
   { id: "mobile-390", width: 390, height: 844 },
+  { id: "mobile-430", width: 430, height: 932 },
   { id: "tablet-768", width: 768, height: 1024 },
+  { id: "tablet-landscape-1024", width: 1024, height: 768 },
+  { id: "desktop-1280", width: 1280, height: 800 },
   { id: "desktop-1440", width: 1440, height: 1100 },
+  { id: "desktop-1920", width: 1920, height: 1080 },
+  { id: "zoom-200-1024", width: 1024, height: 768, cssZoom: 2 },
 ];
 
 const staticChecks = [
@@ -23,7 +29,7 @@ const roleConfigs = buildRoleConfigs();
 let liveResults = [];
 let liveError = null;
 
-if (!args.check && roleConfigs.some((role) => role.baseUrl)) {
+if (roleConfigs.some((role) => role.baseUrl && role.hasAuth)) {
   try {
     liveResults = await runLiveAudit(roleConfigs);
   } catch (error) {
@@ -87,7 +93,11 @@ if (staticFailures.length || liveFailures.length || liveError || missingStrictEv
   process.exit(1);
 }
 
-console.log(`Fieldgrid dashboard UI audit passed. Report: ${reportPath}`);
+if (liveResults.length === 0) {
+  console.log(`Fieldgrid dashboard UI audit static checks passed; authenticated runtime evidence is manual. Report: ${reportPath}`);
+} else {
+  console.log(`Fieldgrid dashboard UI audit passed with authenticated runtime evidence. Report: ${reportPath}`);
+}
 
 function parseArgs(argv) {
   const parsed = {
@@ -315,15 +325,27 @@ async function runLiveAudit(roles) {
   const results = [];
   await mkdir(screenshotDir, { recursive: true });
 
-  const browser = await chromium.launch({ headless: true });
+  const hostResolverRules =
+    process.env.FIELDGRID_BROWSER_HOST_RESOLVER_RULES?.trim();
+  const browser = await chromium.launch({
+    headless: true,
+    ...(hostResolverRules
+      ? { args: [`--host-resolver-rules=${hostResolverRules}`] }
+      : {}),
+  });
   try {
     for (const role of roles) {
       if (!role.baseUrl || !role.hasAuth) continue;
       for (const viewport of viewports) {
         const context = await browser.newContext({
-          viewport: { width: viewport.width, height: viewport.height },
+          viewport: {
+            width: Math.round(viewport.width / (viewport.cssZoom ?? 1)),
+            height: Math.round(viewport.height / (viewport.cssZoom ?? 1)),
+          },
+          deviceScaleFactor: viewport.cssZoom ?? 1,
           storageState: role.storageState || undefined,
           ignoreHTTPSErrors: true,
+          reducedMotion: "reduce",
         });
         if (role.cookie) {
           await context.addCookies(parseCookieHeader(role.cookie, role.baseUrl));
@@ -362,6 +384,8 @@ async function auditTarget(page, role, target, viewport) {
   let screenshotPath = "";
   let metrics = null;
   let sidebarCollapse = null;
+  let focusCheck = null;
+  let axe = null;
   const failures = [];
 
   try {
@@ -369,18 +393,36 @@ async function auditTarget(page, role, target, viewport) {
     responseStatus = response?.status() ?? null;
     responseUrl = response?.url() ?? page.url();
     await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
-
+    await page.addStyleTag({
+      content:
+        "[data-fieldgrid-dev-nav],nextjs-portal{display:none!important;}",
+    });
     if (role.id === "tenant-admin" && target.id === "dashboard" && viewport.id === "desktop-1440") {
       sidebarCollapse = await verifyTenantSidebarCanCollapse(page);
       if (!sidebarCollapse.ok) failures.push(sidebarCollapse.message);
     }
 
     metrics = await collectMetricsWithRetry(page);
-    if (responseStatus && responseStatus >= 400) failures.push(`HTTP status ${responseStatus}`);
+    const authRedirected = isAuthenticationRedirect(responseUrl);
+    const routeChanged =
+      ["customer", "personnel"].includes(role.id) &&
+      !samePathname(responseUrl, url);
+    focusCheck = await verifyKeyboardFocus(page);
+    axe = await scanAccessibility(page);
+    if (responseStatus === null || responseStatus >= 400) failures.push(`HTTP status ${responseStatus ?? "ontbreekt"}`);
+    if (authRedirected) failures.push(`Authenticated route redirected to ${redactUrl(responseUrl)}.`);
+    if (routeChanged) failures.push(`Authenticated route resolved to an unexpected path: ${redactUrl(responseUrl)}.`);
     if (metrics.serverError) failures.push("Application error text is visible.");
     if (metrics.blankPage) failures.push("Page appears blank or not loaded.");
     if (metrics.horizontalOverflow > 8) failures.push(`Horizontal overflow ${metrics.horizontalOverflow}px.`);
     if (metrics.visibleDialogOverflowCount > 0) failures.push(`Visible dialog/sheet overflow count ${metrics.visibleDialogOverflowCount}.`);
+    if (viewport.width <= 430 && metrics.undersizedTouchTargetCount > 0) {
+      failures.push(`Touch targets smaller than 44x44: ${metrics.undersizedTouchTargetCount}.`);
+    }
+    if (!focusCheck.ok) failures.push(`Keyboard focus check failed: ${focusCheck.reason}.`);
+    if (axe.seriousOrCriticalViolations > 0) {
+      failures.push(`Axe serious/critical violations: ${axe.seriousOrCriticalViolations}.`);
+    }
     if (consoleErrors.some((entry) => /Application error|server action|chunk|hydration|not found on the server/i.test(entry))) {
       failures.push("Console contains high-risk runtime errors.");
     }
@@ -403,10 +445,14 @@ async function auditTarget(page, role, target, viewport) {
     url: redactUrl(url),
     responseUrl: redactUrl(responseUrl),
     responseStatus,
+    authRedirected: isAuthenticationRedirect(responseUrl),
+    routeMatches: samePathname(responseUrl, url),
     durationMs: Date.now() - startedAt,
     status: failures.length === 0 ? "passed" : "failed",
     failures,
     metrics,
+    focusCheck,
+    axe,
     sidebarCollapse,
     consoleErrors: consoleErrors.slice(0, 8),
     failedRequests: failedRequests.slice(0, 8),
@@ -451,7 +497,14 @@ async function collectMetrics(page) {
     const body = document.body;
     const text = body.innerText || "";
     const viewportWidth = window.innerWidth;
-    const scrollWidth = Math.max(doc.scrollWidth, body.scrollWidth);
+    const rootOverflowX = window.getComputedStyle(doc).overflowX;
+    const bodyOverflowX = window.getComputedStyle(body).overflowX;
+    const pageClipsHorizontalOverflow =
+      ["hidden", "clip"].includes(rootOverflowX) &&
+      ["hidden", "clip"].includes(bodyOverflowX);
+    const scrollWidth = pageClipsHorizontalOverflow
+      ? Math.max(viewportWidth, body.clientWidth)
+      : Math.max(doc.scrollWidth, body.scrollWidth);
     const horizontalOverflow = Math.max(0, scrollWidth - viewportWidth);
     const serverError = /Application error|Pagina kon niet laden|client-side exception|server-side exception|Digest:/i.test(text);
     const blankPage = text.trim().length < 35;
@@ -466,6 +519,22 @@ async function collectMetrics(page) {
         const rect = element.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 && (rect.right > viewportWidth + 8 || rect.left < -8);
       }).length;
+    const undersizedTouchTargetCount = Array.from(
+      document.querySelectorAll(
+        "button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=link]",
+      ),
+    ).filter((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        element.getAttribute("aria-hidden") !== "true" &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        (rect.width < 44 || rect.height < 44)
+      );
+    }).length;
 
     return {
       textLength: text.trim().length,
@@ -477,8 +546,69 @@ async function collectMetrics(page) {
       blankPage,
       visibleDialogOverflowCount,
       incoherentOverlapCount,
+      undersizedTouchTargetCount,
     };
   });
+}
+
+async function verifyKeyboardFocus(page) {
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(100);
+  return page.evaluate(() => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body) {
+      return { ok: false, reason: "tab-did-not-focus-a-control", tagName: active?.tagName ?? null };
+    }
+    const rect = active.getBoundingClientRect();
+    const style = window.getComputedStyle(active);
+    const visibleIndicator =
+      (style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) > 0) ||
+      style.boxShadow !== "none";
+    return {
+      ok:
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        visibleIndicator,
+      reason: visibleIndicator ? null : "focused-control-has-no-visible-indicator",
+      tagName: active.tagName,
+      visibleIndicator,
+    };
+  });
+}
+
+async function scanAccessibility(page) {
+  const { default: AxeBuilder } = await import("@axe-core/playwright");
+  const analysis = await new AxeBuilder({ page }).analyze();
+  const violations = analysis.violations
+    .filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""))
+    .map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      nodes: violation.nodes.length,
+    }));
+  return {
+    seriousOrCriticalViolations: violations.length,
+    violations,
+  };
+}
+
+function isAuthenticationRedirect(value) {
+  if (!value) return false;
+  const pathname = new URL(value).pathname;
+  return /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(pathname);
+}
+
+function samePathname(left, right) {
+  const normalize = (value) => {
+    const pathname = new URL(value).pathname.replace(/\/+$/u, "");
+    return pathname || "/";
+  };
+  return normalize(left) === normalize(right);
 }
 
 async function collectMetricsWithRetry(page) {
@@ -506,7 +636,8 @@ async function loadPlaywright() {
 }
 
 function parseCookieHeader(cookieHeader, baseUrl) {
-  const domain = new URL(baseUrl).hostname;
+  const parsedUrl = new URL(baseUrl);
+  const domain = parsedUrl.hostname;
   return cookieHeader
     .split(";")
     .map((part) => part.trim())
@@ -519,7 +650,7 @@ function parseCookieHeader(cookieHeader, baseUrl) {
         domain,
         path: "/",
         httpOnly: false,
-        secure: true,
+        secure: parsedUrl.protocol === "https:",
         sameSite: "Lax",
       };
     });
@@ -549,7 +680,12 @@ function redactUrl(value) {
 function buildSummary(checks, results, error) {
   const failures = checks.filter((item) => item.status === "failed").length + results.filter((item) => item.status === "failed").length + (error ? 1 : 0);
   return {
-    status: failures === 0 ? "passed" : "failed",
+    status:
+      failures > 0
+        ? "failed"
+        : results.length > 0
+          ? "passed"
+          : "manual",
     staticChecks: checks.length,
     liveResults: results.length,
     failures,

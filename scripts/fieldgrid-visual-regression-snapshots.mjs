@@ -3,6 +3,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 
 export const FIELDGRID_VISUAL_REGRESSION_VERSION =
   "fieldgrid-visual-regression-snapshots-v1";
@@ -105,7 +107,15 @@ export const visualRegressionTargetGroups = [
         cookieEnv: "FIELDGRID_CUSTOMER_PORTAL_COOKIE",
       },
     ],
-    routes: ["/", "/dashboard", "/documenten", "/facturen"],
+    routes: [
+      "/",
+      "/opdrachten",
+      "/objecten",
+      "/financieel",
+      "/documenten",
+      "/meldingen/tickets",
+      "/help",
+    ],
   },
   {
     id: "personnel-portal",
@@ -120,11 +130,23 @@ export const visualRegressionTargetGroups = [
         cookieEnv: "FIELDGRID_PERSONNEL_PORTAL_COOKIE",
       },
     ],
-    routes: ["/", "/planning", "/berichten", "/documenten"],
+    routes: [
+      "/",
+      "/opdrachten",
+      "/openstaand",
+      "/uren",
+      "/berichten",
+      "/beschikbaarheid",
+      "/documenten",
+      "/help",
+    ],
   },
 ];
 
 const DEFAULT_ARTIFACT_DIR = "artifacts/visual-regression";
+const DEFAULT_BASELINE_DIR = "tests/visual-regression/baselines";
+const DEFAULT_MAX_DIFF_PIXEL_RATIO = 0.001;
+const require = createRequire(import.meta.url);
 
 function parseArgs(argv) {
   const args = {
@@ -133,6 +155,14 @@ function parseArgs(argv) {
     strict: false,
     target: "all",
     artifactDir: DEFAULT_ARTIFACT_DIR,
+    baselineDir:
+      process.env.FIELDGRID_VISUAL_REGRESSION_BASELINE_DIR ||
+      DEFAULT_BASELINE_DIR,
+    updateBaselines: false,
+    maxDiffPixelRatio: Number(
+      process.env.FIELDGRID_VISUAL_REGRESSION_MAX_DIFF_PIXEL_RATIO ||
+        DEFAULT_MAX_DIFF_PIXEL_RATIO,
+    ),
   };
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -150,6 +180,20 @@ function parseArgs(argv) {
       index += 1;
     } else if (value?.startsWith("--artifact-dir=")) {
       args.artifactDir = value.slice("--artifact-dir=".length);
+    } else if (value === "--baseline-dir") {
+      args.baselineDir = argv[index + 1] ?? DEFAULT_BASELINE_DIR;
+      index += 1;
+    } else if (value?.startsWith("--baseline-dir=")) {
+      args.baselineDir = value.slice("--baseline-dir=".length);
+    } else if (value === "--update-baselines") {
+      args.updateBaselines = true;
+    } else if (value === "--max-diff-pixel-ratio") {
+      args.maxDiffPixelRatio = Number(argv[index + 1]);
+      index += 1;
+    } else if (value?.startsWith("--max-diff-pixel-ratio=")) {
+      args.maxDiffPixelRatio = Number(
+        value.slice("--max-diff-pixel-ratio=".length),
+      );
     }
   }
 
@@ -160,6 +204,17 @@ function parseArgs(argv) {
 function normalizeBaseUrl(value) {
   if (!value) return null;
   return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+function browserLaunchOptions() {
+  const hostResolverRules =
+    process.env.FIELDGRID_BROWSER_HOST_RESOLVER_RULES?.trim();
+  return {
+    headless: true,
+    ...(hostResolverRules
+      ? { args: [`--host-resolver-rules=${hostResolverRules}`] }
+      : {}),
+  };
 }
 
 function routeUrl(baseUrl, route) {
@@ -181,7 +236,7 @@ function selectedGroups(target) {
   return visualRegressionTargetGroups.filter((group) => group.id === target);
 }
 
-function validatePlan(groups) {
+function validatePlan(groups, options = {}) {
   const errors = [];
   const targetIds = new Set();
 
@@ -222,6 +277,13 @@ function validatePlan(groups) {
   if (!visualRegressionViewports.some((viewport) => viewport.cssZoom === 2)) {
     errors.push("Een 200%-zoomcontrole ontbreekt.");
   }
+  if (
+    !Number.isFinite(options.maxDiffPixelRatio) ||
+    options.maxDiffPixelRatio < 0 ||
+    options.maxDiffPixelRatio > 1
+  ) {
+    errors.push("maxDiffPixelRatio moet een getal tussen 0 en 1 zijn.");
+  }
   return errors;
 }
 
@@ -239,7 +301,9 @@ export function buildVisualRegressionPlan(env = process.env, options = {}) {
       cookie: env[persona.cookieEnv] || env[persona.fallbackCookieEnv] || null,
     })),
   }));
-  const errors = validatePlan(groups);
+  const maxDiffPixelRatio =
+    options.maxDiffPixelRatio ?? DEFAULT_MAX_DIFF_PIXEL_RATIO;
+  const errors = validatePlan(groups, { maxDiffPixelRatio });
   if (groups.length === 0)
     errors.push(`Onbekende visual regression target: ${target}`);
 
@@ -247,6 +311,10 @@ export function buildVisualRegressionPlan(env = process.env, options = {}) {
     version: FIELDGRID_VISUAL_REGRESSION_VERSION,
     generatedAt: new Date().toISOString(),
     artifactDir: options.artifactDir ?? DEFAULT_ARTIFACT_DIR,
+    baselineDir: options.baselineDir ?? DEFAULT_BASELINE_DIR,
+    requireBaselines: Boolean(options.strict),
+    updateBaselines: Boolean(options.updateBaselines),
+    maxDiffPixelRatio,
     viewports: visualRegressionViewports,
     groups,
     errors,
@@ -283,12 +351,27 @@ async function captureRoute({
   route,
   viewport,
   artifactRoot,
+  baselineRoot,
+  requireBaselines,
+  updateBaselines,
+  maxDiffPixelRatio,
 }) {
   const targetDir = path.join(artifactRoot, group.id, persona.id, viewport.id);
   await fs.mkdir(targetDir, { recursive: true });
   const screenshotPath = path.join(targetDir, `${sanitizeFilename(route)}.png`);
+  const baselinePath = path.join(
+    baselineRoot,
+    group.id,
+    persona.id,
+    viewport.id,
+    `${sanitizeFilename(route)}.png`,
+  );
   const contextOptions = {
-    viewport: { width: viewport.width, height: viewport.height },
+    viewport: {
+      width: Math.round(viewport.width / (viewport.cssZoom ?? 1)),
+      height: Math.round(viewport.height / (viewport.cssZoom ?? 1)),
+    },
+    deviceScaleFactor: viewport.cssZoom ?? 1,
   };
   if (persona.storageStatePath) {
     contextOptions.storageState = persona.storageStatePath;
@@ -303,15 +386,42 @@ async function captureRoute({
       waitUntil: "networkidle",
       timeout: 30000,
     });
-    if (viewport.cssZoom) {
-      await page.evaluate((zoom) => {
-        document.documentElement.style.zoom = String(zoom);
-      }, viewport.cssZoom);
-    }
-    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await page.addStyleTag({
+      content:
+        "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important;}[data-fieldgrid-dev-nav],nextjs-portal{display:none!important;}",
+    });
+    const finalUrl = page.url();
+    const finalPathname = new URL(finalUrl).pathname;
+    const authRedirected = /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(
+      finalPathname,
+    );
+    const routeMatches =
+      !["customer-portal", "personnel-portal"].includes(group.id) ||
+      samePathname(finalUrl, url);
+    const focusCheck = await verifyKeyboardFocus(page);
+    const axe = await scanAccessibility(page);
+    await page.screenshot({
+      path: screenshotPath,
+      fullPage: true,
+      animations: "disabled",
+      caret: "hide",
+    });
+    const baseline = await compareVisualSnapshot({
+      screenshotPath,
+      baselinePath,
+      updateBaselines,
+      maxDiffPixelRatio,
+    });
     const metrics = await page.evaluate(() => {
       const body = document.body;
       const root = document.documentElement;
+      const rootOverflowX = window.getComputedStyle(root).overflowX;
+      const bodyOverflowX = body
+        ? window.getComputedStyle(body).overflowX
+        : "visible";
+      const pageClipsHorizontalOverflow =
+        ["hidden", "clip"].includes(rootOverflowX) &&
+        ["hidden", "clip"].includes(bodyOverflowX);
       const interactiveSelector =
         "button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=link]";
       const nestedInteractive = [
@@ -333,19 +443,23 @@ async function captureRoute({
         return !label;
       });
       const undersizedControls = [
-        ...document.querySelectorAll(
-          "button, input:not([type=hidden]), select, textarea, [role=button]",
-        ),
+        ...document.querySelectorAll(interactiveSelector),
       ].filter((element) => {
         const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
         return (
           rect.width > 0 &&
           rect.height > 0 &&
+          element.getAttribute("aria-hidden") !== "true" &&
+          style.visibility !== "hidden" &&
+          style.display !== "none" &&
           (rect.width < 44 || rect.height < 44)
         );
       });
       return {
-        scrollWidth: root.scrollWidth,
+        scrollWidth: pageClipsHorizontalOverflow
+          ? root.clientWidth
+          : root.scrollWidth,
         clientWidth: root.clientWidth,
         bodyTextLength: body?.innerText?.trim().length ?? 0,
         bodyHeight: body?.getBoundingClientRect().height ?? 0,
@@ -359,7 +473,13 @@ async function captureRoute({
     const hasAccessibilityWarnings =
       metrics.nestedInteractiveCount > 0 ||
       metrics.unnamedControlCount > 0 ||
-      metrics.undersizedControlCount > 0;
+      (viewport.width <= 430 && metrics.undersizedControlCount > 0) ||
+      !focusCheck.ok ||
+      axe.seriousOrCriticalViolations > 0;
+    const hasHttpFailure = !response || response.status() >= 400;
+    const hasVisualRegression =
+      baseline.status === "changed" ||
+      (requireBaselines && baseline.status === "missing");
 
     return {
       groupId: group.id,
@@ -368,19 +488,30 @@ async function captureRoute({
       viewport: viewport.id,
       zoom: viewport.cssZoom ?? 1,
       url,
+      finalUrl,
       screenshotPath,
+      baselinePath,
       status:
-        response?.ok() &&
+        !hasHttpFailure &&
+        !authRedirected &&
+        routeMatches &&
         !hasHorizontalOverflow &&
         !isBlank &&
-        !hasAccessibilityWarnings
+        !hasAccessibilityWarnings &&
+        !hasVisualRegression
           ? "ok"
           : "warning",
       httpStatus: response?.status() ?? null,
+      authRedirected,
+      routeMatches,
       hasHorizontalOverflow,
       hasAccessibilityWarnings,
+      hasVisualRegression,
       isBlank,
       metrics,
+      focusCheck,
+      axe,
+      baseline,
       error: null,
     };
   } catch (error) {
@@ -394,6 +525,7 @@ async function captureRoute({
       screenshotPath: null,
       status: "blocked",
       httpStatus: null,
+      authRedirected: false,
       hasHorizontalOverflow: false,
       hasAccessibilityWarnings: false,
       isBlank: true,
@@ -405,12 +537,156 @@ async function captureRoute({
   }
 }
 
+function samePathname(left, right) {
+  const normalize = (value) => {
+    const pathname = new URL(value).pathname.replace(/\/+$/u, "");
+    return pathname || "/";
+  };
+  return normalize(left) === normalize(right);
+}
+
+async function verifyKeyboardFocus(page) {
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  });
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(100);
+  return page.evaluate(() => {
+    const selector =
+      "button:not([disabled]), a[href], input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+    const visibleFocusables = [...document.querySelectorAll(selector)].filter(
+      (element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== "none" &&
+          style.visibility !== "hidden"
+        );
+      },
+    );
+    if (visibleFocusables.length === 0) {
+      return { ok: false, reason: "no-visible-focusable-control" };
+    }
+    const active = document.activeElement;
+    const rect =
+      active instanceof HTMLElement ? active.getBoundingClientRect() : null;
+    return {
+      ok:
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        visibleFocusables.includes(active) &&
+        rect !== null &&
+        rect.width > 0 &&
+        rect.height > 0,
+      reason:
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        visibleFocusables.includes(active)
+          ? null
+          : "tab-did-not-reach-a-visible-control",
+      tagName: active?.tagName ?? null,
+    };
+  });
+}
+
+async function scanAccessibility(page) {
+  const { default: AxeBuilder } = await import("@axe-core/playwright");
+  const analysis = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = analysis.violations.filter((violation) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  return {
+    violationCount: analysis.violations.length,
+    seriousOrCriticalViolations: seriousOrCritical.length,
+    violations: seriousOrCritical.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      nodes: violation.nodes.length,
+    })),
+  };
+}
+
+export async function compareVisualSnapshot({
+  screenshotPath,
+  baselinePath,
+  updateBaselines,
+  maxDiffPixelRatio,
+}) {
+  const screenshot = await fs.readFile(screenshotPath);
+  const actualSha256 = createHash("sha256").update(screenshot).digest("hex");
+
+  if (updateBaselines) {
+    await fs.mkdir(path.dirname(baselinePath), { recursive: true });
+    await fs.copyFile(screenshotPath, baselinePath);
+    return {
+      status: "updated",
+      actualSha256,
+      expectedSha256: actualSha256,
+    };
+  }
+
+  try {
+    const expected = await fs.readFile(baselinePath);
+    const expectedSha256 = createHash("sha256")
+      .update(expected)
+      .digest("hex");
+    const comparator = playwrightPngComparator();
+    const comparison = comparator(screenshot, expected, {
+      threshold: 0.2,
+      maxDiffPixelRatio,
+    });
+    const diffPath = `${screenshotPath.replace(/\.png$/u, "")}.diff.png`;
+    if (comparison?.diff) {
+      await fs.writeFile(diffPath, comparison.diff);
+    } else {
+      await fs.rm(diffPath, { force: true });
+    }
+    return {
+      status: comparison ? "changed" : "matched",
+      actualSha256,
+      expectedSha256,
+      maxDiffPixelRatio,
+      diffPath: comparison?.diff ? diffPath : null,
+      errorMessage: comparison?.errorMessage ?? null,
+    };
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      return {
+        status: "missing",
+        actualSha256,
+        expectedSha256: null,
+      };
+    }
+    throw error;
+  }
+}
+
+function playwrightPngComparator() {
+  const playwrightPackagePath = require.resolve("playwright/package.json");
+  const comparatorPath = path.resolve(
+    path.dirname(playwrightPackagePath),
+    "..",
+    "playwright-core",
+    "lib",
+    "server",
+    "utils",
+    "comparators.js",
+  );
+  const { getComparator } = require(comparatorPath);
+  return getComparator("image/png");
+}
+
 export async function runVisualRegressionSnapshots(
   options = {},
   env = process.env,
 ) {
   const plan = buildVisualRegressionPlan(env, options);
   const artifactRoot = path.resolve(process.cwd(), plan.artifactDir);
+  const baselineRoot = path.resolve(process.cwd(), plan.baselineDir);
   await fs.mkdir(artifactRoot, { recursive: true });
 
   if (plan.errors.length > 0) {
@@ -423,7 +699,7 @@ export async function runVisualRegressionSnapshots(
   }
 
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch(browserLaunchOptions());
   const results = [];
 
   try {
@@ -461,6 +737,10 @@ export async function runVisualRegressionSnapshots(
                 route,
                 viewport,
                 artifactRoot,
+                baselineRoot,
+                requireBaselines: plan.requireBaselines,
+                updateBaselines: plan.updateBaselines,
+                maxDiffPixelRatio: plan.maxDiffPixelRatio,
               }),
             );
           }
@@ -507,13 +787,37 @@ async function main() {
   const plan = buildVisualRegressionPlan(process.env, args);
 
   if (args.check) {
-    const status = plan.errors.length > 0 ? "blocked" : "ok";
+    const runtimeReady =
+      plan.groups.length > 0 &&
+      plan.groups.every(
+        (group) =>
+          group.baseUrl &&
+          group.personas.every(
+            (persona) => persona.storageStatePath || persona.cookie,
+          ),
+      );
+    if (runtimeReady && plan.errors.length === 0) {
+      const summary = await runVisualRegressionSnapshots({
+        ...args,
+        check: false,
+        run: true,
+        strict: true,
+      });
+      console.log(JSON.stringify(summary, null, 2));
+      process.exit(summary.status === "ok" ? 0 : 1);
+    }
+
+    const status = plan.errors.length > 0 ? "blocked" : "manual";
     console.log(
       JSON.stringify(
         {
           version: plan.version,
           status,
           artifactDir: plan.artifactDir,
+          baselineDir: plan.baselineDir,
+          maxDiffPixelRatio: plan.maxDiffPixelRatio,
+          evidence:
+            "not-run-authenticated-base-url-or-state-missing",
           targets: plan.groups.map((group) => ({
             id: group.id,
             label: group.label,
@@ -537,7 +841,7 @@ async function main() {
         2,
       ),
     );
-    process.exit(status === "ok" ? 0 : 1);
+    process.exit(status === "blocked" ? 1 : 0);
   }
 
   const summary = await runVisualRegressionSnapshots(args);

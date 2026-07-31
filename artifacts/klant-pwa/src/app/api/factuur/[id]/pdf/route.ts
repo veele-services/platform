@@ -29,6 +29,7 @@ import {
   type CustomerInvoicePdfTemplateSettings,
 } from "@/lib/invoice-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,10 @@ function parseMoney(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+function displayInvoiceNumber(
+  value: string | null | undefined,
+  fallback = "Factuur",
+): string {
   return value?.trim() || fallback;
 }
 
@@ -50,15 +54,21 @@ function nullableString(value: unknown): string | null {
 }
 
 function safeHexColor(value: unknown, fallback: string): string {
-  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/u.test(value.trim()) ? value.trim() : fallback;
+  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/u.test(value.trim())
+    ? value.trim()
+    : fallback;
 }
 
 function paymentTerm(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? Math.min(365, Math.max(1, Math.round(parsed))) : 30;
+  return Number.isFinite(parsed)
+    ? Math.min(365, Math.max(1, Math.round(parsed)))
+    : 30;
 }
 
-function normalizeCompany(value: Record<string, unknown> | null | undefined): CustomerInvoicePdfCompanySnapshot {
+function normalizeCompany(
+  value: Record<string, unknown> | null | undefined,
+): CustomerInvoicePdfCompanySnapshot {
   return {
     legalName: nullableString(value?.legalName) ?? "",
     tradeName: nullableString(value?.tradeName),
@@ -81,15 +91,18 @@ function normalizeCompany(value: Record<string, unknown> | null | undefined): Cu
   };
 }
 
-function normalizeTemplate(value: Record<string, unknown> | null | undefined): CustomerInvoicePdfTemplateSettings {
+function normalizeTemplate(
+  value: Record<string, unknown> | null | undefined,
+): CustomerInvoicePdfTemplateSettings {
   return {
     logoUrl: nullableString(value?.logoUrl),
     primaryColor: safeHexColor(value?.primaryColor, "#081D3A"),
     secondaryColor: safeHexColor(value?.secondaryColor, "#00B7B3"),
     introText: nullableString(value?.introText),
     footerText: nullableString(value?.footerText),
-    paymentInstruction: nullableString(value?.paymentInstruction)
-      ?? "Gelieve het bedrag binnen {{payment_term_days}} dagen te voldoen onder vermelding van factuurnummer {{invoice_number}}.",
+    paymentInstruction:
+      nullableString(value?.paymentInstruction) ??
+      "Gelieve het bedrag binnen {{payment_term_days}} dagen te voldoen onder vermelding van factuurnummer {{invoice_number}}.",
     showLogo: value?.showLogo !== false,
     showCompanyFooter: value?.showCompanyFooter !== false,
     showKvkFooter: value?.showKvkFooter !== false,
@@ -98,15 +111,21 @@ function normalizeTemplate(value: Record<string, unknown> | null | undefined): C
   };
 }
 
-function normalizePayment(value: Record<string, unknown> | null | undefined): CustomerInvoicePdfPaymentSettings {
+function normalizePayment(
+  value: Record<string, unknown> | null | undefined,
+): CustomerInvoicePdfPaymentSettings {
   return {
     paymentProvider: value?.paymentProvider === "mollie" ? "mollie" : "none",
     mollieEnabled: value?.mollieEnabled === true,
     showPaymentLinkOnInvoice: value?.showPaymentLinkOnInvoice === true,
     showPaymentQrOnInvoice: value?.showPaymentQrOnInvoice === true,
-    paymentBlockTitle: nullableString(value?.paymentBlockTitle) ?? "Online betalen",
-    paymentBlockText: nullableString(value?.paymentBlockText) ?? "Betaal deze factuur veilig via de betaallink.",
-    paymentLinkLabel: nullableString(value?.paymentLinkLabel) ?? "Betaal factuur",
+    paymentBlockTitle:
+      nullableString(value?.paymentBlockTitle) ?? "Online betalen",
+    paymentBlockText:
+      nullableString(value?.paymentBlockText) ??
+      "Betaal deze factuur veilig via de betaallink.",
+    paymentLinkLabel:
+      nullableString(value?.paymentLinkLabel) ?? "Betaal factuur",
   };
 }
 
@@ -116,34 +135,40 @@ export async function GET(
 ) {
   const identity = await getMyCustomerIdentity();
   if (!identity) return new NextResponse("Unauthorized", { status: 401 });
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const { id } = await params;
 
   const [invoice] = await db
     .select({
-      id:                 invoicesTable.id,
-      invoiceNumber:      invoicesTable.invoiceNumber,
-      assignmentId:       invoicesTable.assignmentId,
-      amount:             invoicesTable.amount,
-      vatPercentage:      invoicesTable.vatPercentage,
-      vatAmount:          invoicesTable.vatAmount,
-      totalAmount:        invoicesTable.totalAmount,
-      status:             invoicesTable.status,
-      dueDate:            invoicesTable.dueDate,
-      createdAt:          invoicesTable.createdAt,
-      customerName:       customersTable.name,
-      customerAddress:    customersTable.address,
+      id: invoicesTable.id,
+      invoiceNumber: invoicesTable.invoiceNumber,
+      assignmentId: invoicesTable.assignmentId,
+      amount: invoicesTable.amount,
+      vatPercentage: invoicesTable.vatPercentage,
+      vatAmount: invoicesTable.vatAmount,
+      totalAmount: invoicesTable.totalAmount,
+      status: invoicesTable.status,
+      dueDate: invoicesTable.dueDate,
+      createdAt: invoicesTable.createdAt,
+      customerName: customersTable.name,
+      customerAddress: customersTable.address,
       customerPostalCode: customersTable.postalCode,
-      customerCity:       customersTable.city,
-      assignmentCode:     assignmentsTable.code,
-      objectName:         objectsTable.name,
+      customerCity: customersTable.city,
+      assignmentCode: assignmentsTable.code,
+      objectName: objectsTable.name,
       companySnapshotJson: invoicesTable.companySnapshotJson,
       paymentSettingsSnapshotJson: invoicesTable.paymentSettingsSnapshotJson,
       templateSnapshotJson: invoicesTable.templateSnapshotJson,
     })
     .from(invoicesTable)
     .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
-    .innerJoin(assignmentsTable, eq(assignmentsTable.id, invoicesTable.assignmentId))
+    .innerJoin(
+      assignmentsTable,
+      eq(assignmentsTable.id, invoicesTable.assignmentId),
+    )
     .leftJoin(objectsTable, eq(objectsTable.id, assignmentsTable.objectId))
     .where(
       and(
@@ -159,7 +184,16 @@ export async function GET(
 
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 
-  const [snapshotRows, taskRows, extraRows, materialRows, companyRows, templateRows, paymentRows, openPaymentRows] = await Promise.all([
+  const [
+    snapshotRows,
+    taskRows,
+    extraRows,
+    materialRows,
+    companyRows,
+    templateRows,
+    paymentRows,
+    openPaymentRows,
+  ] = await Promise.all([
     db
       .select({
         category: invoiceLineItemSnapshotsTable.category,
@@ -171,18 +205,26 @@ export async function GET(
         invoiceable: invoiceLineItemSnapshotsTable.invoiceable,
       })
       .from(invoiceLineItemSnapshotsTable)
-      .where(and(eq(invoiceLineItemSnapshotsTable.invoiceId, invoice.id), eq(invoiceLineItemSnapshotsTable.tenantId, identity.tenantId)))
+      .where(
+        and(
+          eq(invoiceLineItemSnapshotsTable.invoiceId, invoice.id),
+          eq(invoiceLineItemSnapshotsTable.tenantId, identity.tenantId),
+        ),
+      )
       .orderBy(asc(invoiceLineItemSnapshotsTable.sortOrder)),
 
     db
       .select({
-        code:        taskCodesTable.code,
-        name:        taskCodesTable.name,
-        price:       taskCodesTable.price,
+        code: taskCodesTable.code,
+        name: taskCodesTable.name,
+        price: taskCodesTable.price,
         invoiceable: taskCodesTable.invoiceable,
       })
       .from(assignmentTasksTable)
-      .leftJoin(taskCodesTable, eq(taskCodesTable.id, assignmentTasksTable.taskCodeId))
+      .leftJoin(
+        taskCodesTable,
+        eq(taskCodesTable.id, assignmentTasksTable.taskCodeId),
+      )
       .where(eq(assignmentTasksTable.assignmentId, invoice.assignmentId))
       .orderBy(asc(assignmentTasksTable.sortOrder)),
 
@@ -195,7 +237,10 @@ export async function GET(
         price: assignmentExtraWorkTable.price,
       })
       .from(assignmentExtraWorkTable)
-      .leftJoin(taskCodesTable, eq(taskCodesTable.id, assignmentExtraWorkTable.taskCodeId))
+      .leftJoin(
+        taskCodesTable,
+        eq(taskCodesTable.id, assignmentExtraWorkTable.taskCodeId),
+      )
       .where(eq(assignmentExtraWorkTable.assignmentId, invoice.assignmentId))
       .orderBy(asc(assignmentExtraWorkTable.createdAt)),
 
@@ -207,16 +252,36 @@ export async function GET(
         unitLabel: assignmentMaterialUsageTable.unitLabel,
       })
       .from(assignmentMaterialUsageTable)
-      .where(eq(assignmentMaterialUsageTable.assignmentId, invoice.assignmentId))
+      .where(
+        eq(assignmentMaterialUsageTable.assignmentId, invoice.assignmentId),
+      )
       .orderBy(asc(assignmentMaterialUsageTable.createdAt)),
 
-    db.select().from(tenantCompanySettingsTable).where(eq(tenantCompanySettingsTable.tenantId, identity.tenantId)).limit(1),
-    db.select().from(invoiceTemplateSettingsTable).where(eq(invoiceTemplateSettingsTable.tenantId, identity.tenantId)).limit(1),
-    db.select().from(invoicePaymentSettingsTable).where(eq(invoicePaymentSettingsTable.tenantId, identity.tenantId)).limit(1),
+    db
+      .select()
+      .from(tenantCompanySettingsTable)
+      .where(eq(tenantCompanySettingsTable.tenantId, identity.tenantId))
+      .limit(1),
+    db
+      .select()
+      .from(invoiceTemplateSettingsTable)
+      .where(eq(invoiceTemplateSettingsTable.tenantId, identity.tenantId))
+      .limit(1),
+    db
+      .select()
+      .from(invoicePaymentSettingsTable)
+      .where(eq(invoicePaymentSettingsTable.tenantId, identity.tenantId))
+      .limit(1),
     db
       .select({ checkoutUrl: paymentsTable.checkoutUrl })
       .from(paymentsTable)
-      .where(and(eq(paymentsTable.invoiceId, invoice.id), eq(paymentsTable.tenantId, identity.tenantId), eq(paymentsTable.status, "open")))
+      .where(
+        and(
+          eq(paymentsTable.invoiceId, invoice.id),
+          eq(paymentsTable.tenantId, identity.tenantId),
+          eq(paymentsTable.status, "open"),
+        ),
+      )
       .orderBy(desc(paymentsTable.createdAt))
       .limit(1),
   ]);
@@ -236,7 +301,9 @@ export async function GET(
       code: row.code ?? null,
       description: row.description,
       quantity: row.hours ?? "1",
-      unitPrice: row.hours ? money(parseMoney(row.price) / Math.max(parseMoney(row.hours), 1)) : money(parseMoney(row.price)),
+      unitPrice: row.hours
+        ? money(parseMoney(row.price) / Math.max(parseMoney(row.hours), 1))
+        : money(parseMoney(row.price)),
       price: money(parseMoney(row.price)),
       invoiceable: parseMoney(row.price) > 0,
     })),
@@ -246,7 +313,9 @@ export async function GET(
       return {
         category: "material" as const,
         code: null,
-        description: row.unitLabel ? `${row.name} (${row.unitLabel})` : row.name,
+        description: row.unitLabel
+          ? `${row.name} (${row.unitLabel})`
+          : row.name,
         quantity: row.quantity ?? "1",
         unitPrice: money(unitPrice),
         price: money(quantity * unitPrice),
@@ -254,19 +323,26 @@ export async function GET(
       };
     }),
   ];
-  const lineItems: CustomerInvoicePdfLineItem[] = snapshotRows.length > 0
-    ? snapshotRows.map((row) => ({
-        category: row.category === "extra_work" || row.category === "material" ? row.category : "task",
-        code: row.code ?? null,
-        description: row.description,
-        quantity: row.quantity ?? "1",
-        unitPrice: row.unitPrice ?? "0",
-        price: row.totalPrice ?? "0",
-        invoiceable: row.invoiceable,
-      }))
-    : liveLineItems;
+  const lineItems: CustomerInvoicePdfLineItem[] =
+    snapshotRows.length > 0
+      ? snapshotRows.map((row) => ({
+          category:
+            row.category === "extra_work" || row.category === "material"
+              ? row.category
+              : "task",
+          code: row.code ?? null,
+          description: row.description,
+          quantity: row.quantity ?? "1",
+          unitPrice: row.unitPrice ?? "0",
+          price: row.totalPrice ?? "0",
+          invoiceable: row.invoiceable,
+        }))
+      : liveLineItems;
   const branding = await getTenantBranding(identity.tenantId);
-  const invoiceNumber = displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8));
+  const invoiceNumber = displayInvoiceNumber(
+    invoice.invoiceNumber,
+    invoice.id.slice(0, 8),
+  );
   const companySnapshot = invoice.companySnapshotJson
     ? normalizeCompany(invoice.companySnapshotJson)
     : normalizeCompany(companyRows[0] ?? null);
@@ -281,47 +357,53 @@ export async function GET(
     ? new URL(`/api/factuur/${invoice.id}/pay`, _request.url).toString()
     : null;
 
-  const pdfBuffer = await generateCustomerInvoicePdf({
-    brandName: companySnapshot.tradeName || companySnapshot.legalName || branding.displayName,
-    invoiceNumber,
-    customerName: invoice.customerName ?? identity.customerName,
-    customerAddress: invoice.customerAddress ?? null,
-    customerPostalCode: invoice.customerPostalCode ?? null,
-    customerCity: invoice.customerCity ?? null,
-    assignmentCode: invoice.assignmentCode,
-    objectName: invoice.objectName ?? null,
-    amount: invoice.amount ?? "0",
-    vatPercentage: invoice.vatPercentage ?? "21",
-    vatAmount: invoice.vatAmount ?? "0",
-    totalAmount: invoice.totalAmount ?? "0",
-    dueDate: invoice.dueDate,
-    createdAt: invoice.createdAt.toISOString(),
-    paymentUrl,
-    paymentSettings,
-    companySnapshot,
-    templateSettings,
-    lineItems,
-  }, { paymentQrUrl });
+  const pdfBuffer = await generateCustomerInvoicePdf(
+    {
+      brandName:
+        companySnapshot.tradeName ||
+        companySnapshot.legalName ||
+        branding.displayName,
+      invoiceNumber,
+      customerName: invoice.customerName ?? identity.customerName,
+      customerAddress: invoice.customerAddress ?? null,
+      customerPostalCode: invoice.customerPostalCode ?? null,
+      customerCity: invoice.customerCity ?? null,
+      assignmentCode: invoice.assignmentCode,
+      objectName: invoice.objectName ?? null,
+      amount: invoice.amount ?? "0",
+      vatPercentage: invoice.vatPercentage ?? "21",
+      vatAmount: invoice.vatAmount ?? "0",
+      totalAmount: invoice.totalAmount ?? "0",
+      dueDate: invoice.dueDate,
+      createdAt: invoice.createdAt.toISOString(),
+      paymentUrl,
+      paymentSettings,
+      companySnapshot,
+      templateSettings,
+      lineItems,
+    },
+    { paymentQrUrl },
+  );
 
   await db.insert(auditLogTable).values({
-    userId:     identity.userId,
-    action:     "customer_download_invoice_pdf",
-    resource:   "invoices",
+    userId: identity.userId,
+    action: "customer_download_invoice_pdf",
+    resource: "invoices",
     resourceId: invoice.id,
     metadata: {
       invoiceNumber,
-      assignmentId:  invoice.assignmentId,
-      customerId:    identity.customerId,
-      tenantId:      identity.tenantId,
+      assignmentId: invoice.assignmentId,
+      customerId: identity.customerId,
+      tenantId: identity.tenantId,
     },
   });
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
-      "Content-Type":        "application/pdf",
+      "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${sanitizePdfFilename(invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
-      "Content-Length":      String(pdfBuffer.byteLength),
-      "Cache-Control":       "private, no-store, max-age=0",
+      "Content-Length": String(pdfBuffer.byteLength),
+      "Cache-Control": "private, no-store, max-age=0",
       "X-Content-Type-Options": "nosniff",
     },
   });

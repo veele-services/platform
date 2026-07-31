@@ -45,7 +45,7 @@ export function PersonnelConfirmDialog({
       <AlertDialogContent className="max-w-sm">
         <div className="flex items-start gap-3">
           <span
-            className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl"
+            className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl"
             style={{
               backgroundColor: isDanger ? "#FEF2F2" : "#E8FBFA",
               color: isDanger ? "#DC2626" : "var(--color-accent)",
@@ -55,7 +55,7 @@ export function PersonnelConfirmDialog({
           </span>
           <div>
             <AlertDialogTitle
-              className="text-[18px] font-black leading-tight"
+              className="text-base font-semibold leading-tight"
               style={{ color: "var(--color-primary)" }}
             >
               {title}
@@ -72,7 +72,7 @@ export function PersonnelConfirmDialog({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <AlertDialogCancel
             disabled={pending}
-            className="min-h-11 rounded-2xl border px-4 py-3 text-[14px] font-black transition active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
+          className="min-h-11 rounded-xl border px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
             style={{
               borderColor: "#D7DDE8",
               backgroundColor: "#FFFFFF",
@@ -84,7 +84,7 @@ export function PersonnelConfirmDialog({
           <AlertDialogAction
             disabled={pending}
             onClick={onConfirm}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-black text-white transition active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white transition active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
             style={{
               backgroundColor: isDanger ? "#DC2626" : "var(--color-accent)",
             }}
