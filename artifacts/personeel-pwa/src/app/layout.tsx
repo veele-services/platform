@@ -6,6 +6,7 @@ import { PwaSplashScreen } from "@/components/PwaSplashScreen";
 import { getPersonnelPwaBranding } from "@/lib/pwa-branding";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/600.css";
 import "@fontsource/roboto/700.css";
 import "./globals.css";
 

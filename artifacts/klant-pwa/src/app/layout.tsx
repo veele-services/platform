@@ -7,6 +7,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/600.css";
 import "@fontsource/roboto/700.css";
 
 export const metadata: Metadata = {
@@ -40,7 +41,9 @@ export default async function RootLayout({
       <head>
         <link rel="icon" href="/klant/api/pwa/icon?size=192" sizes="any" />
         <link rel="apple-touch-icon" href="/klant/api/pwa/icon?size=192" />
-        {splashUrl ? <link rel="apple-touch-startup-image" href="/klant/api/pwa/splash" /> : null}
+        {splashUrl ? (
+          <link rel="apple-touch-startup-image" href="/klant/api/pwa/splash" />
+        ) : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -54,7 +57,10 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <PwaSplashScreen splashUrl={splashUrl} backgroundColor={splashBackgroundColor} />
+        <PwaSplashScreen
+          splashUrl={splashUrl}
+          backgroundColor={splashBackgroundColor}
+        />
         <OfflineContentNavigation />
         <DevNav current="klant" />
         {children}
