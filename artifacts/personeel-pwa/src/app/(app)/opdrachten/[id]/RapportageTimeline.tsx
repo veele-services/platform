@@ -1,7 +1,23 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { ChevronRight, FileText, ImageIcon, Loader2, Paperclip, Plus, Send, Trash2, Video, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  FileText,
+  ImageIcon,
+  Loader2,
+  Paperclip,
+  Plus,
+  Send,
+  ShieldAlert,
+  Trash2,
+  Video,
+  X,
+} from "lucide-react";
 import {
   addReportNote,
   prepareReportNoteAttachmentUploads,
@@ -32,6 +48,138 @@ type Props = {
   canAdd:       boolean;
   canPersist:   boolean;
 };
+
+type ReportKind = "work-report" | "particularity" | "incident";
+type ExecutionStatus = "as-planned" | "partially-completed" | "not-completed";
+type CustomerContactStatus = "yes" | "no" | "not-applicable";
+
+type StructuredReport = {
+  kind:               string;
+  executionStatus:    string;
+  customerContact:    string;
+  workPerformed:      string;
+  particulars:        string;
+  followUp:           string;
+};
+
+const REPORT_KINDS: {
+  value: ReportKind;
+  label: string;
+  description: string;
+  icon: typeof ClipboardCheck;
+}[] = [
+  {
+    value:       "work-report",
+    label:       "Werkverslag",
+    description: "Reguliere uitvoering",
+    icon:        ClipboardCheck,
+  },
+  {
+    value:       "particularity",
+    label:       "Bijzonderheid",
+    description: "Afwijking of aandachtspunt",
+    icon:        AlertTriangle,
+  },
+  {
+    value:       "incident",
+    label:       "Incident",
+    description: "Veiligheid of schade",
+    icon:        ShieldAlert,
+  },
+];
+
+const EXECUTION_STATUSES: {
+  value: ExecutionStatus;
+  label: string;
+  shortLabel: string;
+  color: string;
+  backgroundColor: string;
+}[] = [
+  {
+    value:           "as-planned",
+    label:           "Alles volgens planning uitgevoerd",
+    shortLabel:      "Volgens planning",
+    color:           "#047857",
+    backgroundColor: "#ECFDF5",
+  },
+  {
+    value:           "partially-completed",
+    label:           "Werkzaamheden deels uitgevoerd",
+    shortLabel:      "Deels uitgevoerd",
+    color:           "#B45309",
+    backgroundColor: "#FFFBEB",
+  },
+  {
+    value:           "not-completed",
+    label:           "Werkzaamheden niet uitgevoerd",
+    shortLabel:      "Niet uitgevoerd",
+    color:           "#B91C1C",
+    backgroundColor: "#FEF2F2",
+  },
+];
+
+const CUSTOMER_CONTACT_OPTIONS: { value: CustomerContactStatus; label: string }[] = [
+  { value: "yes", label: "Ja" },
+  { value: "no", label: "Nee" },
+  { value: "not-applicable", label: "Niet van toepassing" },
+];
+
+const STRUCTURED_REPORT_PREFIX = "Werkrapportage · ";
+
+function selectedLabel<T extends string>(
+  options: { value: T; label: string }[],
+  value: T,
+): string {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+function buildStructuredReportBody(input: {
+  kind:                  ReportKind;
+  executionStatus:       ExecutionStatus;
+  customerContactStatus: CustomerContactStatus;
+  workPerformed:         string;
+  particulars:           string;
+  followUp:              string;
+}): string {
+  const kind = selectedLabel(REPORT_KINDS, input.kind);
+  const executionStatus =
+    EXECUTION_STATUSES.find((option) => option.value === input.executionStatus)?.shortLabel ??
+    input.executionStatus;
+  const customerContact = selectedLabel(CUSTOMER_CONTACT_OPTIONS, input.customerContactStatus);
+
+  return [
+    `${STRUCTURED_REPORT_PREFIX}${kind}`,
+    `Uitvoering: ${executionStatus}`,
+    `Klant geïnformeerd: ${customerContact}`,
+    "",
+    "Uitgevoerde werkzaamheden",
+    input.workPerformed.trim(),
+    "",
+    "Bijzonderheden",
+    input.particulars.trim() || "Geen bijzonderheden gemeld.",
+    "",
+    "Vervolgactie",
+    input.followUp.trim() || "Geen vervolgactie nodig.",
+  ].join("\n");
+}
+
+function parseStructuredReportBody(body: string): StructuredReport | null {
+  if (!body.startsWith(STRUCTURED_REPORT_PREFIX)) return null;
+
+  const match = body.match(
+    /^Werkrapportage · (.+)\nUitvoering: (.+)\nKlant geïnformeerd: (.+)\n\nUitgevoerde werkzaamheden\n([\s\S]*?)\n\nBijzonderheden\n([\s\S]*?)\n\nVervolgactie\n([\s\S]*)$/u,
+  );
+  if (!match) return null;
+
+  return {
+    kind:            match[1]?.trim() ?? "",
+    executionStatus: match[2]?.trim() ?? "",
+    customerContact: match[3]?.trim() ?? "",
+    workPerformed:   match[4]?.trim() ?? "",
+    particulars:     match[5]?.trim() ?? "",
+    followUp:        match[6]?.trim() ?? "",
+  };
+}
 
 type LocalFile = {
   id:         string;
@@ -217,24 +365,67 @@ function LocalFileRow({
 
 function ReportNoteCard({ note }: { note: ReportNote }) {
   const { date, time } = formatNoteDate(note.createdAt);
+  const report = parseStructuredReportBody(note.body);
+  const statusStyle =
+    EXECUTION_STATUSES.find((option) => option.shortLabel === report?.executionStatus) ??
+    EXECUTION_STATUSES[0];
 
   return (
     <article className="rounded-[18px] border bg-white px-4 py-4 shadow-sm" style={{ borderColor: "var(--color-border)", boxShadow: "0 12px 28px rgba(8,29,58,0.06)" }}>
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span className="text-[15px] font-semibold" style={{ color: "var(--color-secondary)" }}>
-          {date}
-        </span>
-        <span className="text-[15px] font-semibold" style={{ color: "var(--color-secondary)" }}>
-          {time}
-        </span>
-        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
-          {note.authorName}:
-        </span>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-[14px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+              {date}
+            </span>
+            <span className="text-[14px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+              {time}
+            </span>
+          </div>
+          <span className="mt-1 block text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+            {note.authorName}
+          </span>
+        </div>
+
+        {report ? (
+          <span
+            className="rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide"
+            style={{ backgroundColor: "#E9FBF8", color: "#087F7B" }}
+          >
+            {report.kind}
+          </span>
+        ) : null}
       </div>
 
-      <p className="mt-4 whitespace-pre-wrap text-[16px] font-medium leading-7" style={{ color: "var(--color-primary)" }}>
-        {note.body}
-      </p>
+      {report ? (
+        <div className="mt-4">
+          <div className="flex flex-wrap gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black"
+              style={{ backgroundColor: statusStyle.backgroundColor, color: statusStyle.color }}
+            >
+              <CheckCircle2 size={14} strokeWidth={2.6} />
+              {report.executionStatus}
+            </span>
+            <span
+              className="rounded-full px-3 py-1.5 text-[12px] font-bold"
+              style={{ backgroundColor: "#F1F5F9", color: "var(--color-secondary)" }}
+            >
+              Klant geïnformeerd: {report.customerContact.toLowerCase()}
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            <ReportSection title="Uitgevoerde werkzaamheden" body={report.workPerformed} />
+            <ReportSection title="Bijzonderheden" body={report.particulars} />
+            <ReportSection title="Vervolgactie" body={report.followUp} />
+          </div>
+        </div>
+      ) : (
+        <p className="mt-4 whitespace-pre-wrap text-[16px] font-medium leading-7" style={{ color: "var(--color-primary)" }}>
+          {note.body}
+        </p>
+      )}
 
       {note.attachments.map((attachment) => (
         <AttachmentPreview key={attachment.id} attachment={attachment} />
@@ -243,10 +434,36 @@ function ReportNoteCard({ note }: { note: ReportNote }) {
   );
 }
 
-export function RapportageTimeline({ assignmentId, expectedParticipantVersion, initialNotes, canAdd, canPersist }: Props) {
+function ReportSection({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="border-l-[3px] pl-3" style={{ borderColor: "var(--color-accent)" }}>
+      <p className="text-[11px] font-black uppercase tracking-[0.08em]" style={{ color: "var(--color-secondary)" }}>
+        {title}
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-[15px] font-semibold leading-6" style={{ color: "var(--color-primary)" }}>
+        {body}
+      </p>
+    </div>
+  );
+}
+
+export function RapportageTimeline({
+  assignmentId,
+  expectedParticipantVersion,
+  initialNotes,
+  canAdd,
+  canPersist,
+}: Props) {
   const [notes, setNotes] = useState<ReportNote[]>(initialNotes);
   const [showForm, setShowForm] = useState(false);
-  const [body, setBody] = useState("");
+  const [reportKind, setReportKind] = useState<ReportKind>("work-report");
+  const [executionStatus, setExecutionStatus] = useState<ExecutionStatus>("as-planned");
+  const [workPerformed, setWorkPerformed] = useState("");
+  const [particulars, setParticulars] = useState("");
+  const [followUpNeeded, setFollowUpNeeded] = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const [customerContactStatus, setCustomerContactStatus] =
+    useState<CustomerContactStatus>("not-applicable");
   const [files, setFiles] = useState<LocalFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -331,7 +548,13 @@ export function RapportageTimeline({ assignmentId, expectedParticipantVersion, i
       if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
     });
     setFiles([]);
-    setBody("");
+    setReportKind("work-report");
+    setExecutionStatus("as-planned");
+    setWorkPerformed("");
+    setParticulars("");
+    setFollowUpNeeded(false);
+    setFollowUp("");
+    setCustomerContactStatus("not-applicable");
     setError(null);
     setShowForm(false);
   }
@@ -435,16 +658,35 @@ export function RapportageTimeline({ assignmentId, expectedParticipantVersion, i
     event.preventDefault();
     setError(null);
 
-    const trimmedBody = body.trim();
-    if (!trimmedBody) {
-      setError("Notitie is verplicht");
+    if (!workPerformed.trim()) {
+      setError("Beschrijf welke werkzaamheden zijn uitgevoerd");
       return;
     }
+    if (
+      (reportKind === "incident" || executionStatus !== "as-planned") &&
+      !particulars.trim()
+    ) {
+      setError("Beschrijf de bijzonderheid of reden van de afwijking");
+      return;
+    }
+    if (followUpNeeded && !followUp.trim()) {
+      setError("Beschrijf welke vervolgactie nodig is");
+      return;
+    }
+
+    const trimmedBody = buildStructuredReportBody({
+      kind:                  reportKind,
+      executionStatus,
+      customerContactStatus,
+      workPerformed,
+      particulars,
+      followUp:              followUpNeeded ? followUp : "",
+    });
 
     startTransition(async () => {
       if (!canPersist || isOfflineNow()) {
         if (files.length > 0 && isOfflineNow()) {
-          setError("Bijlagen kunnen pas online worden geupload. Sla de notitie zonder bijlage op of probeer opnieuw zodra je online bent.");
+          setError("Bijlagen kunnen pas online worden geupload. Sla de rapportage zonder bijlage op of probeer opnieuw zodra je online bent.");
           return;
         }
 
@@ -491,93 +733,323 @@ export function RapportageTimeline({ assignmentId, expectedParticipantVersion, i
           if (uploaded.length > 0) {
             await createClient().storage.from(ASSIGNMENT_MEDIA_BUCKET).remove(uploaded.map((item) => item.storagePath));
           }
-          setError(result.error ?? "Notitie opslaan mislukt");
+          setError(result.error ?? "Rapportage opslaan mislukt");
           return;
         }
 
         setNotes((current) => [result.note!, ...current]);
         resetForm();
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Bijlage uploaden of notitie opslaan mislukt");
+        setError(caught instanceof Error ? caught.message : "Bijlage uploaden of rapportage opslaan mislukt");
       }
     });
   }
 
   return (
     <section className="rounded-[24px] bg-white px-4 py-5 shadow-sm" style={{ boxShadow: "0 16px 36px rgba(8,29,58,0.08)" }}>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-[22px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
-          Rapportage
-        </h2>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[22px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+            Rapportage
+          </h2>
+          <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+            Leg de uitvoering, bijzonderheden en benodigde opvolging vast.
+          </p>
+        </div>
 
         {canAdd ? (
           <button
             type="button"
             onClick={() => setShowForm((value) => !value)}
-            className="flex h-[52px] w-[52px] items-center justify-center rounded-full text-white shadow-lg active:scale-95"
+            className="flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-black text-white shadow-lg active:scale-95"
             style={{ backgroundColor: "var(--color-accent)", boxShadow: "0 12px 24px rgba(0,183,179,0.28)" }}
-            aria-label={showForm ? "Notitieformulier sluiten" : "Notitie toevoegen"}
+            aria-label={showForm ? "Rapportageformulier sluiten" : "Nieuwe rapportage openen"}
           >
-            {showForm ? <X size={25} strokeWidth={2.3} /> : <Plus size={28} strokeWidth={2.35} />}
+            {showForm ? <X size={19} strokeWidth={2.3} /> : <Plus size={20} strokeWidth={2.35} />}
+            <span>{showForm ? "Sluiten" : "Nieuw rapport"}</span>
           </button>
         ) : null}
       </div>
 
       {showForm ? (
-        <form onSubmit={handleSubmit} className="mt-5 space-y-3 rounded-[18px] border bg-[#FAFBFD] p-3" style={{ borderColor: "var(--color-border)" }}>
-          <textarea
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            rows={4}
-            className="w-full resize-none rounded-2xl border bg-white px-4 py-3 text-[15px] font-semibold leading-6 outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-            placeholder="Notitie toevoegen"
-          />
-
-          {files.length > 0 ? (
-            <div className="space-y-2">
-              {files.map((item) => (
-                <LocalFileRow key={item.id} item={item} onRemove={removeFile} onRetry={retryFile} />
-              ))}
+        <form onSubmit={handleSubmit} className="mt-5 overflow-hidden rounded-[22px] border bg-[#FAFBFD]" style={{ borderColor: "var(--color-border)" }}>
+          <div className="border-b bg-white px-4 py-4" style={{ borderColor: "var(--color-border)" }}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: "#E9FBF8", color: "var(--color-accent-accessible)" }}>
+                <FileText size={20} strokeWidth={2.4} />
+              </span>
+              <div>
+                <h3 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
+                  Nieuwe werkrapportage
+                </h3>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  Velden met * zijn verplicht
+                </p>
+              </div>
             </div>
-          ) : null}
+          </div>
 
-          <p className="text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
-            Maximaal {MAX_REPORT_NOTE_ATTACHMENTS} bijlagen. Foto&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_IMAGE_BYTES)}, video&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_VIDEO_BYTES)}. Bijlagen uploaden is online-only; tekstnotities worden offline gesynchroniseerd.
-          </p>
+          <div className="space-y-6 p-4">
+            <fieldset>
+              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                1. Type rapportage
+              </legend>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Type rapportage">
+                {REPORT_KINDS.map((option) => {
+                  const Icon = option.icon;
+                  const selected = reportKind === option.value;
 
-          <div className="flex gap-2">
-            <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-[14px] font-black" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}>
-              <Paperclip size={17} strokeWidth={2.4} />
-              Bijlage
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                className="hidden"
-                onChange={(event) => {
-                  addFiles(event.target.files);
-                  event.currentTarget.value = "";
-                }}
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setReportKind(option.value)}
+                      className="flex min-h-[64px] items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left transition-colors"
+                      style={{
+                        borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
+                        boxShadow: selected ? "0 0 0 2px rgba(0,183,179,0.12)" : "none",
+                      }}
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                        style={{
+                          backgroundColor: selected ? "#E9FBF8" : "#F1F5F9",
+                          color: selected ? "var(--color-accent-accessible)" : "var(--color-secondary)",
+                        }}
+                      >
+                        <Icon size={18} strokeWidth={2.4} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+                          {option.label}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] font-semibold leading-4" style={{ color: "var(--color-secondary)" }}>
+                          {option.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                2. Uitvoeringsstatus
+              </legend>
+              <div className="mt-3 space-y-2" role="radiogroup" aria-label="Uitvoeringsstatus">
+                {EXECUTION_STATUSES.map((option) => {
+                  const selected = executionStatus === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setExecutionStatus(option.value)}
+                      className="flex min-h-[48px] w-full items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left"
+                      style={{ borderColor: selected ? option.color : "var(--color-border)" }}
+                    >
+                      <span
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2"
+                        style={{
+                          borderColor: selected ? option.color : "#CBD5E1",
+                          backgroundColor: selected ? option.color : "white",
+                          color: "white",
+                        }}
+                      >
+                        {selected ? <Check size={14} strokeWidth={3} /> : null}
+                      </span>
+                      <span className="text-[14px] font-bold" style={{ color: selected ? option.color : "var(--color-primary)" }}>
+                        {option.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div>
+              <label htmlFor={`report-work-${assignmentId}`} className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                3. Uitgevoerde werkzaamheden <span style={{ color: "#DC2626" }}>*</span>
+              </label>
+              <p className="mt-1 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                Beschrijf concreet wat is gedaan en wat het resultaat was.
+              </p>
+              <textarea
+                id={`report-work-${assignmentId}`}
+                value={workPerformed}
+                onChange={(event) => setWorkPerformed(event.target.value)}
+                rows={5}
+                required
+                className="mt-2 w-full resize-y rounded-2xl border bg-white px-4 py-3 text-[15px] font-semibold leading-6 outline-none focus:ring-2"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                placeholder="Bijvoorbeeld: entree, gangen en sanitaire ruimtes gereinigd. Eindcontrole uitgevoerd; locatie schoon en gebruiksklaar opgeleverd."
               />
-            </label>
+            </div>
 
+            <div>
+              <label htmlFor={`report-particulars-${assignmentId}`} className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                4. Bijzonderheden
+                {(reportKind === "incident" || executionStatus !== "as-planned") ? (
+                  <span style={{ color: "#DC2626" }}> *</span>
+                ) : null}
+              </label>
+              <p className="mt-1 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                Noteer afwijkingen, schade, veiligheidszaken of afspraken op locatie.
+              </p>
+              <textarea
+                id={`report-particulars-${assignmentId}`}
+                value={particulars}
+                onChange={(event) => setParticulars(event.target.value)}
+                rows={3}
+                required={reportKind === "incident" || executionStatus !== "as-planned"}
+                className="mt-2 w-full resize-y rounded-2xl border bg-white px-4 py-3 text-[15px] font-semibold leading-6 outline-none focus:ring-2"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                placeholder="Geen bijzonderheden? Laat dit veld leeg."
+              />
+            </div>
+
+            <div className="rounded-2xl border bg-white p-3" style={{ borderColor: "var(--color-border)" }}>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={followUpNeeded}
+                onClick={() => setFollowUpNeeded((value) => !value)}
+                className="flex min-h-[44px] w-full items-center justify-between gap-4 text-left"
+              >
+                <span>
+                  <span className="block text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+                    Vervolgactie nodig
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    Zet aan wanneer planning of management iets moet oppakken.
+                  </span>
+                </span>
+                <span
+                  className="flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors"
+                  style={{ backgroundColor: followUpNeeded ? "var(--color-accent)" : "#CBD5E1" }}
+                >
+                  <span
+                    className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                    style={{ transform: followUpNeeded ? "translateX(20px)" : "translateX(0)" }}
+                  />
+                </span>
+              </button>
+
+              {followUpNeeded ? (
+                <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
+                  <label htmlFor={`report-follow-up-${assignmentId}`} className="text-[12px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                    Gewenste vervolgactie <span style={{ color: "#DC2626" }}>*</span>
+                  </label>
+                  <textarea
+                    id={`report-follow-up-${assignmentId}`}
+                    value={followUp}
+                    onChange={(event) => setFollowUp(event.target.value)}
+                    rows={3}
+                    required
+                    className="mt-2 w-full resize-y rounded-2xl border bg-[#FAFBFD] px-4 py-3 text-[15px] font-semibold leading-6 outline-none focus:ring-2"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                    placeholder="Wie moet wat opvolgen en wanneer?"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <fieldset>
+              <legend className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                Klant geïnformeerd
+              </legend>
+              <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Klant geïnformeerd">
+                {CUSTOMER_CONTACT_OPTIONS.map((option) => {
+                  const selected = customerContactStatus === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setCustomerContactStatus(option.value)}
+                      className="min-h-[44px] rounded-xl border px-2 py-2 text-[12px] font-black"
+                      style={{
+                        borderColor: selected ? "var(--color-accent)" : "var(--color-border)",
+                        backgroundColor: selected ? "#E9FBF8" : "white",
+                        color: selected ? "var(--color-accent-accessible)" : "var(--color-secondary)",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div>
+              <p className="text-[13px] font-black uppercase tracking-[0.06em]" style={{ color: "var(--color-secondary)" }}>
+                Foto&apos;s en bewijs
+              </p>
+              <p className="mt-1 text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                Voeg waar nodig foto&apos;s of video&apos;s toe aan deze rapportage.
+              </p>
+
+              {files.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {files.map((item) => (
+                    <LocalFileRow key={item.id} item={item} onRemove={removeFile} onRetry={retryFile} />
+                  ))}
+                </div>
+              ) : null}
+
+              <label className="mt-3 flex min-h-[52px] cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed bg-white px-3 py-3 text-[14px] font-black" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent-accessible)" }}>
+                <Paperclip size={18} strokeWidth={2.4} />
+                Foto of video toevoegen
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => {
+                    addFiles(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+
+              <p className="mt-2 text-[11px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                Maximaal {MAX_REPORT_NOTE_ATTACHMENTS} bijlagen. Foto&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_IMAGE_BYTES)}, video&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_VIDEO_BYTES)}. Uploaden is online-only; de tekst wordt offline gesynchroniseerd.
+              </p>
+            </div>
+
+            {error ? (
+              <p role="alert" className="rounded-2xl px-3 py-2.5 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
+                {error}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex gap-2 border-t bg-white p-3" style={{ borderColor: "var(--color-border)" }}>
+            <button
+              type="button"
+              onClick={resetForm}
+              disabled={isPending}
+              className="min-h-[50px] flex-1 rounded-2xl border px-3 text-[14px] font-black disabled:opacity-60"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-secondary)" }}
+            >
+              Annuleren
+            </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-[14px] font-black text-white disabled:opacity-60"
+              className="flex min-h-[50px] flex-[1.5] items-center justify-center gap-2 rounded-2xl px-3 text-[14px] font-black text-white disabled:opacity-60"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               {isPending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} strokeWidth={2.3} />}
-              Opslaan
+              Rapportage opslaan
             </button>
           </div>
-
-          {error ? (
-            <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
-              {error}
-            </p>
-          ) : null}
         </form>
       ) : null}
 
@@ -586,8 +1058,12 @@ export function RapportageTimeline({ assignmentId, expectedParticipantVersion, i
           <ReportNoteCard key={note.id} note={note} />
         )) : (
           <div className="rounded-[18px] border bg-[#FAFBFD] px-4 py-6 text-center" style={{ borderColor: "var(--color-border)" }}>
-            <p className="text-[14px] font-semibold" style={{ color: "var(--color-secondary)" }}>
-              Nog geen rapportagenotities.
+            <ClipboardCheck size={26} className="mx-auto" style={{ color: "var(--color-muted-fg)" }} />
+            <p className="mt-2 text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+              Nog geen rapportages
+            </p>
+            <p className="mt-1 text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+              Leg de uitgevoerde werkzaamheden en bijzonderheden vast.
             </p>
           </div>
         )}
