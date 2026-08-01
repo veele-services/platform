@@ -1218,7 +1218,7 @@ async function readRecordedMigrationHistory(pgEnv) {
   const recordedMigrations = JSON.parse(
     await psql(
       pgEnv,
-      "select coalesce(jsonb_agg(name order by name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
+      "select coalesce(jsonb_agg(name order by applied_at, name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
     ),
   );
   if (

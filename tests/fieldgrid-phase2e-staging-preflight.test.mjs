@@ -230,6 +230,18 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
+        [
+          "001_legacy.sql",
+          "20260801000000_release_gate.sql",
+          "20260731170000_portal_user_onboarding.sql",
+        ],
+        committed,
+      ),
+    /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
         [...committed, "20260802000000_staging_only.sql"],
         committed,
       ),
@@ -586,6 +598,14 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
+  assert.match(
+    script,
+    /jsonb_agg\(name order by applied_at, name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
+  );
+  assert.doesNotMatch(
+    script,
+    /jsonb_agg\(name order by name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
+  );
   const diagnosticWrite = script.lastIndexOf("writePaymentIntentDiagnostic(");
   const sourcePublication = script.lastIndexOf(
     "collectRealtimePublicationMetadata(sourcePgEnv)",
