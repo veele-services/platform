@@ -13,11 +13,16 @@ function assertContains(content, phrases, label) {
 }
 
 test("phase 16 adds executable customer/personnel releasegate", () => {
-  const script = read("scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs");
+  const script = read(
+    "scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs",
+  );
+  const hrefContract = read(
+    "scripts/lib/fieldgrid-navigation-href-contract.mjs",
+  );
   const pkg = read("package.json");
 
   assertContains(
-    script,
+    `${script}\n${hrefContract}`,
     [
       "customerTargets",
       "personnelTargets",
@@ -31,6 +36,7 @@ test("phase 16 adds executable customer/personnel releasegate", () => {
       "desktop-1920",
       "zoom-200-1024",
       "checkNavigationHrefs",
+      "findBrokenLocalNavigationHrefs",
       '.replace(/\\$\\{[^}]+\\}/gu, ":param")',
       "checkRawDialogs",
       "checkSecurityCopy",
@@ -64,7 +70,9 @@ test("phase 16 adds executable customer/personnel releasegate", () => {
 });
 
 test("phase 16 documents screenshot evidence inputs and route coverage", () => {
-  const docs = read("docs/fieldgrid-customer-personnel-phase-16-releasegate.md");
+  const docs = read(
+    "docs/fieldgrid-customer-personnel-phase-16-releasegate.md",
+  );
 
   assertContains(
     docs,
@@ -98,10 +106,15 @@ test("phase 16 documents screenshot evidence inputs and route coverage", () => {
 });
 
 test("phase 16 releasegate enforces acceptance risks from the roadmap", () => {
-  const script = read("scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs");
+  const script = read(
+    "scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs",
+  );
+  const hrefContract = read(
+    "scripts/lib/fieldgrid-navigation-href-contract.mjs",
+  );
 
   assertContains(
-    script,
+    `${script}\n${hrefContract}`,
     [
       "broken-local-href",
       "raw-browser-dialog",

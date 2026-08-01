@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
+import { findBrokenLocalNavigationHrefs } from "./lib/fieldgrid-navigation-href-contract.mjs";
 
 const args = new Set(process.argv.slice(2));
 const checkOnly = args.has("--check");
@@ -23,8 +24,12 @@ const viewports = [
   { id: "zoom-200-1024", width: 1024, height: 768, cssZoom: 2 },
 ];
 
-const customerBaseUrl = trimTrailingSlash(process.env.FIELDGRID_CUSTOMER_PORTAL_BASE_URL || "");
-const personnelBaseUrl = trimTrailingSlash(process.env.FIELDGRID_PERSONNEL_PORTAL_BASE_URL || "");
+const customerBaseUrl = trimTrailingSlash(
+  process.env.FIELDGRID_CUSTOMER_PORTAL_BASE_URL || "",
+);
+const personnelBaseUrl = trimTrailingSlash(
+  process.env.FIELDGRID_PERSONNEL_PORTAL_BASE_URL || "",
+);
 const customerCookie = process.env.FIELDGRID_CUSTOMER_PORTAL_COOKIE || "";
 const personnelCookie = process.env.FIELDGRID_PERSONNEL_PORTAL_COOKIE || "";
 const customerStorageState =
@@ -35,9 +40,22 @@ const personnelStorageState =
 const customerTargets = [
   { id: "dashboard", path: "/", label: "Dashboard" },
   { id: "objects", path: "/objecten", label: "Objecten" },
-  { id: "object-detail", path: envPath("FIELDGRID_CUSTOMER_OBJECT_PATH", "/objecten/:objectId"), label: "Objectdetail", needsConcretePath: true },
+  {
+    id: "object-detail",
+    path: envPath("FIELDGRID_CUSTOMER_OBJECT_PATH", "/objecten/:objectId"),
+    label: "Objectdetail",
+    needsConcretePath: true,
+  },
   { id: "assignments", path: "/opdrachten", label: "Opdrachten" },
-  { id: "assignment-detail", path: envPath("FIELDGRID_CUSTOMER_ASSIGNMENT_PATH", "/opdrachten/:assignmentId"), label: "Opdrachtdetail", needsConcretePath: true },
+  {
+    id: "assignment-detail",
+    path: envPath(
+      "FIELDGRID_CUSTOMER_ASSIGNMENT_PATH",
+      "/opdrachten/:assignmentId",
+    ),
+    label: "Opdrachtdetail",
+    needsConcretePath: true,
+  },
   { id: "request-flow", path: "/opdrachten/aanvragen", label: "Aanvraagflow" },
   { id: "finance", path: "/financieel", label: "Financieel" },
   { id: "invoices", path: "/facturen", label: "Facturen" },
@@ -58,7 +76,15 @@ const customerTargets = [
 const personnelTargets = [
   { id: "dashboard", path: "/", label: "Dashboard" },
   { id: "planning", path: "/opdrachten", label: "Planning en opdrachten" },
-  { id: "assignment-detail", path: envPath("FIELDGRID_PERSONNEL_ASSIGNMENT_PATH", "/opdrachten/:assignmentId"), label: "Opdrachtdetail", needsConcretePath: true },
+  {
+    id: "assignment-detail",
+    path: envPath(
+      "FIELDGRID_PERSONNEL_ASSIGNMENT_PATH",
+      "/opdrachten/:assignmentId",
+    ),
+    label: "Opdrachtdetail",
+    needsConcretePath: true,
+  },
   { id: "open-assignments", path: "/openstaand", label: "Openstaand" },
   { id: "hours", path: "/uren", label: "Uren" },
   { id: "availability", path: "/beschikbaarheid", label: "Beschikbaarheid" },
@@ -77,7 +103,11 @@ const personnelTargets = [
 
 const staticChecks = [
   checkAppRoutes("klant-pwa", "artifacts/klant-pwa/src/app", customerTargets),
-  checkAppRoutes("personeel-pwa", "artifacts/personeel-pwa/src/app", personnelTargets),
+  checkAppRoutes(
+    "personeel-pwa",
+    "artifacts/personeel-pwa/src/app",
+    personnelTargets,
+  ),
   checkNavigationHrefs("klant-pwa", [
     "artifacts/klant-pwa/src/app",
     "artifacts/klant-pwa/src/components",
@@ -148,29 +178,36 @@ const screenshotFailures = report.screenshotResults.filter(
 );
 const missingEvidence =
   strictEvidence &&
-  (
-    !customerBaseUrl ||
+  (!customerBaseUrl ||
     !personnelBaseUrl ||
     (!customerCookie && !customerStorageState) ||
     (!personnelCookie && !personnelStorageState) ||
     report.screenshotResults.length !==
-      (customerTargets.length + personnelTargets.length) * viewports.length
-  );
+      (customerTargets.length + personnelTargets.length) * viewports.length);
 
 if (failures.length > 0 || screenshotFailures.length > 0 || missingEvidence) {
-  console.error(`Customer/personnel phase 16 releasegate failed. Report: ${reportPath}`);
+  console.error(
+    `Customer/personnel phase 16 releasegate failed. Report: ${reportPath}`,
+  );
   if (failures.length > 0) console.error(JSON.stringify(failures, null, 2));
-  if (screenshotFailures.length > 0) console.error(JSON.stringify(screenshotFailures, null, 2));
+  if (screenshotFailures.length > 0)
+    console.error(JSON.stringify(screenshotFailures, null, 2));
   if (missingEvidence) {
-    console.error("Strict evidence requires both portal base URLs, authenticated cookies/storage, concrete detail paths and a result for every target at every required viewport.");
+    console.error(
+      "Strict evidence requires both portal base URLs, authenticated cookies/storage, concrete detail paths and a result for every target at every required viewport.",
+    );
   }
   process.exit(1);
 }
 
 if (report.screenshotResults.length === 0) {
-  console.log(`Customer/personnel phase 16 static gate passed; authenticated runtime evidence is manual. Report: ${reportPath}`);
+  console.log(
+    `Customer/personnel phase 16 static gate passed; authenticated runtime evidence is manual. Report: ${reportPath}`,
+  );
 } else {
-  console.log(`Customer/personnel phase 16 releasegate passed with authenticated runtime evidence. Report: ${reportPath}`);
+  console.log(
+    `Customer/personnel phase 16 releasegate passed with authenticated runtime evidence. Report: ${reportPath}`,
+  );
 }
 
 function trimTrailingSlash(value) {
@@ -206,14 +243,23 @@ function toPosix(path) {
 
 function appRouteFromPage(root, file) {
   const rel = toPosix(relative(root, file));
-  if (!rel.endsWith("/page.tsx") && rel !== "page.tsx") return null;
+  if (
+    !rel.endsWith("/page.tsx") &&
+    rel !== "page.tsx" &&
+    !rel.endsWith("/route.ts") &&
+    rel !== "route.ts"
+  ) {
+    return null;
+  }
   const parts = rel
-    .replace(/\/page\.tsx$/u, "")
-    .replace(/^page\.tsx$/u, "")
+    .replace(/\/(?:page\.tsx|route\.ts)$/u, "")
+    .replace(/^(?:page\.tsx|route\.ts)$/u, "")
     .split("/")
     .filter(Boolean)
     .filter((part) => !(part.startsWith("(") && part.endsWith(")")))
-    .map((part) => (part.startsWith("[") && part.endsWith("]") ? ":param" : part));
+    .map((part) =>
+      part.startsWith("[") && part.endsWith("]") ? ":param" : part,
+    );
   return `/${parts.join("/")}`.replace(/\/$/u, "") || "/";
 }
 
@@ -252,7 +298,11 @@ function checkAppRoutes(appName, root, targets) {
     }
 
     if (!routePatterns.some((pattern) => pattern.test(target.path))) {
-      failures.push({ id: "missing-route", target: target.id, path: target.path });
+      failures.push({
+        id: "missing-route",
+        target: target.id,
+        path: target.path,
+      });
     }
   }
 
@@ -267,14 +317,16 @@ function checkAppRoutes(appName, root, targets) {
 
 function checkNavigationHrefs(appName, roots) {
   const appRoot = `artifacts/${appName}/src/app`;
-  const routePatterns = walkFiles(appRoot, (file) => file.endsWith("page.tsx"))
+  const routePatterns = walkFiles(
+    appRoot,
+    (file) => file.endsWith("page.tsx") || file.endsWith("route.ts"),
+  )
     .map((file) => appRouteFromPage(appRoot, file))
     .filter(Boolean)
     .map(routeRegex);
   const files = roots.flatMap((root) =>
     walkFiles(root, (file) => file.endsWith(".tsx") || file.endsWith(".ts")),
   );
-  const hrefPattern = /(?:href=|href:\s*)["'`]([^"'`$][^"'`]*)["'`]/gu;
   const failures = [];
   const checked = [];
 
@@ -282,19 +334,14 @@ function checkNavigationHrefs(appName, roots) {
     const normalizedFile = toPosix(file);
     if (normalizedFile.endsWith("/DevNav.tsx")) continue;
     const content = read(file);
-    for (const match of content.matchAll(hrefPattern)) {
-      const href = match[1];
-      if (!href.startsWith("/") || shouldSkipHref(href)) continue;
-      const pathname =
-        href
-          .split(/[?#]/u)[0]
-          .replace(/\$\{[^}]+\}/gu, ":param")
-          .replace(/\/$/u, "") || "/";
-      checked.push({ file: toPosix(file), href });
-      if (!routePatterns.some((pattern) => pattern.test(pathname))) {
-        failures.push({ id: "broken-local-href", file: toPosix(file), href });
-      }
-    }
+    const result = findBrokenLocalNavigationHrefs({
+      content,
+      file: normalizedFile,
+      routePatterns,
+      shouldSkipHref,
+    });
+    checked.push(...result.checked);
+    failures.push(...result.failures);
   }
 
   return {
@@ -319,8 +366,12 @@ function shouldSkipHref(href) {
 
 function checkRawDialogs() {
   const files = [
-    ...walkFiles("artifacts/klant-pwa/src", (file) => /\.(tsx?|jsx?)$/u.test(file)),
-    ...walkFiles("artifacts/personeel-pwa/src", (file) => /\.(tsx?|jsx?)$/u.test(file)),
+    ...walkFiles("artifacts/klant-pwa/src", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
+    ...walkFiles("artifacts/personeel-pwa/src", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
   ];
   const rawDialogPattern = /\b(?:window\.)?(?:confirm|alert|prompt)\s*\(/u;
   const failures = [];
@@ -342,11 +393,23 @@ function checkRawDialogs() {
 
 function checkSecurityCopy() {
   const files = [
-    ...walkFiles("artifacts/klant-pwa/src/app", (file) => /\.(tsx?|jsx?)$/u.test(file)),
-    ...walkFiles("artifacts/klant-pwa/src/components", (file) => /\.(tsx?|jsx?)$/u.test(file)),
-    ...walkFiles("artifacts/personeel-pwa/src/app", (file) => /\.(tsx?|jsx?)$/u.test(file)),
-    ...walkFiles("artifacts/personeel-pwa/src/components", (file) => /\.(tsx?|jsx?)$/u.test(file)),
-  ].filter((file) => /beveiliging|Security|Password|Mfa|auth|login|reset-wachtwoord|wachtwoord-vergeten/u.test(file));
+    ...walkFiles("artifacts/klant-pwa/src/app", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
+    ...walkFiles("artifacts/klant-pwa/src/components", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
+    ...walkFiles("artifacts/personeel-pwa/src/app", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
+    ...walkFiles("artifacts/personeel-pwa/src/components", (file) =>
+      /\.(tsx?|jsx?)$/u.test(file),
+    ),
+  ].filter((file) =>
+    /beveiliging|Security|Password|Mfa|auth|login|reset-wachtwoord|wachtwoord-vergeten/u.test(
+      file,
+    ),
+  );
   const blockedPatterns = [
     /MFA\/TOTP/u,
     /TODO/u,
@@ -361,7 +424,11 @@ function checkSecurityCopy() {
     const content = read(file);
     for (const pattern of blockedPatterns) {
       if (pattern.test(content)) {
-        failures.push({ id: "security-placeholder-copy", file: toPosix(file), pattern: String(pattern) });
+        failures.push({
+          id: "security-placeholder-copy",
+          file: toPosix(file),
+          pattern: String(pattern),
+        });
       }
     }
   }
@@ -376,7 +443,9 @@ function checkSecurityCopy() {
 
 function checkNotificationHrefs() {
   const files = [
-    ...walkFiles("artifacts/backoffice/src/app/actions", (file) => file.endsWith(".ts")),
+    ...walkFiles("artifacts/backoffice/src/app/actions", (file) =>
+      file.endsWith(".ts"),
+    ),
     ...walkFiles("lib/db/src", (file) => file.endsWith(".ts")),
   ];
   const contracts = {
@@ -400,7 +469,15 @@ function checkNotificationHrefs() {
         "/instellingen",
         "/financieel",
       ],
-      forbidden: ["/platform", "/berichten", "/openstaand", "/uren", "/beschikbaarheid", "/verlof", "/nieuws"],
+      forbidden: [
+        "/platform",
+        "/berichten",
+        "/openstaand",
+        "/uren",
+        "/beschikbaarheid",
+        "/verlof",
+        "/nieuws",
+      ],
     },
     personnel: {
       allowed: [
@@ -421,10 +498,25 @@ function checkNotificationHrefs() {
         "/verlof",
         "/nieuws",
       ],
-      forbidden: ["/platform", "/meldingen/tickets", "/facturen", "/betalingen", "/offertes", "/rapporten", "/objecten"],
+      forbidden: [
+        "/platform",
+        "/meldingen/tickets",
+        "/facturen",
+        "/betalingen",
+        "/offertes",
+        "/rapporten",
+        "/objecten",
+      ],
     },
     management: {
-      allowed: ["/", "/opdrachten", "/planning", "/tickets", "/instellingen", "/platform"],
+      allowed: [
+        "/",
+        "/opdrachten",
+        "/planning",
+        "/tickets",
+        "/instellingen",
+        "/platform",
+      ],
       forbidden: ["/meldingen/tickets", "/berichten"],
     },
   };
@@ -434,19 +526,46 @@ function checkNotificationHrefs() {
   for (const file of files) {
     const content = read(file);
     for (const audience of Object.keys(contracts)) {
-      const audienceRegex = new RegExp(`audience:\\s*["']${audience}["']`, "gu");
+      const audienceRegex = new RegExp(
+        `audience:\\s*["']${audience}["']`,
+        "gu",
+      );
       for (const audienceMatch of content.matchAll(audienceRegex)) {
-        const windowText = content.slice(audienceMatch.index, audienceMatch.index + 900);
-        const hrefMatches = [...windowText.matchAll(/href:\s*["'`]([^"'`$]+)["'`]/gu)];
+        const windowText = content.slice(
+          audienceMatch.index,
+          audienceMatch.index + 900,
+        );
+        const hrefMatches = [
+          ...windowText.matchAll(/href:\s*["'`]([^"'`$]+)["'`]/gu),
+        ];
         for (const hrefMatch of hrefMatches) {
-          const href = hrefMatch[1].split(/[?#]/u)[0].replace(/\/$/u, "") || "/";
+          const href =
+            hrefMatch[1].split(/[?#]/u)[0].replace(/\/$/u, "") || "/";
           checked.push({ file: toPosix(file), audience, href });
           const contract = contracts[audience];
-          if (contract.forbidden.some((prefix) => href === prefix || href.startsWith(`${prefix}/`))) {
-            failures.push({ id: "forbidden-audience-href", file: toPosix(file), audience, href });
+          if (
+            contract.forbidden.some(
+              (prefix) => href === prefix || href.startsWith(`${prefix}/`),
+            )
+          ) {
+            failures.push({
+              id: "forbidden-audience-href",
+              file: toPosix(file),
+              audience,
+              href,
+            });
           }
-          if (!contract.allowed.some((prefix) => href === prefix || href.startsWith(`${prefix}/`))) {
-            failures.push({ id: "unknown-audience-href", file: toPosix(file), audience, href });
+          if (
+            !contract.allowed.some(
+              (prefix) => href === prefix || href.startsWith(`${prefix}/`),
+            )
+          ) {
+            failures.push({
+              id: "unknown-audience-href",
+              file: toPosix(file),
+              audience,
+              href,
+            });
           }
         }
       }
@@ -536,10 +655,17 @@ async function runScreenshots() {
           }
 
           const url = `${app.baseUrl}${target.path}`;
-          const screenshot = join(outputDir, "screenshots", `${app.id}-${viewport.id}-${target.id}.png`);
+          const screenshot = join(
+            outputDir,
+            "screenshots",
+            `${app.id}-${viewport.id}-${target.id}.png`,
+          );
           await mkdir(join(outputDir, "screenshots"), { recursive: true });
           try {
-            const response = await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+            const response = await page.goto(url, {
+              waitUntil: "networkidle",
+              timeout: 30000,
+            });
             if (viewport.cssZoom) {
               await page.evaluate((zoom) => {
                 document.documentElement.style.zoom = String(zoom);
@@ -573,9 +699,14 @@ async function runScreenshots() {
               }).length;
               const text = document.body?.innerText || "";
               return {
-                horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+                horizontalOverflow:
+                  document.documentElement.scrollWidth >
+                  document.documentElement.clientWidth,
                 undersizedInteractiveElements: undersized,
-                hasServerError: /Application error|server-side exception|Digest:/iu.test(text),
+                hasServerError:
+                  /Application error|server-side exception|Digest:/iu.test(
+                    text,
+                  ),
                 currentPath: window.location.pathname,
               };
             });
@@ -624,7 +755,8 @@ async function runScreenshots() {
 
 async function verifyKeyboardFocus(page) {
   await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
   });
   await page.keyboard.press("Tab");
   return page.evaluate(() => {
@@ -635,7 +767,8 @@ async function verifyKeyboardFocus(page) {
     const rect = active.getBoundingClientRect();
     const style = window.getComputedStyle(active);
     const visibleIndicator =
-      (style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) > 0) ||
+      (style.outlineStyle !== "none" &&
+        Number.parseFloat(style.outlineWidth) > 0) ||
       style.boxShadow !== "none";
     return {
       ok:
@@ -644,7 +777,9 @@ async function verifyKeyboardFocus(page) {
         style.display !== "none" &&
         style.visibility !== "hidden" &&
         visibleIndicator,
-      reason: visibleIndicator ? null : "focused-control-has-no-visible-indicator",
+      reason: visibleIndicator
+        ? null
+        : "focused-control-has-no-visible-indicator",
       tagName: active.tagName,
     };
   });
@@ -654,7 +789,9 @@ async function scanAccessibility(page) {
   const { default: AxeBuilder } = await import("@axe-core/playwright");
   const analysis = await new AxeBuilder({ page }).analyze();
   const violations = analysis.violations
-    .filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""))
+    .filter((violation) =>
+      ["serious", "critical"].includes(violation.impact ?? ""),
+    )
     .map((violation) => ({
       id: violation.id,
       impact: violation.impact,
@@ -669,7 +806,9 @@ async function scanAccessibility(page) {
 function isAuthenticationRedirect(value) {
   if (!value) return false;
   const pathname = new URL(value).pathname;
-  return /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(pathname);
+  return /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(
+    pathname,
+  );
 }
 
 function samePathname(left, right) {
@@ -697,7 +836,10 @@ function buildBacklog() {
     });
   }
 
-  if (customerTargets.some((target) => target.path.includes(":")) || personnelTargets.some((target) => target.path.includes(":"))) {
+  if (
+    customerTargets.some((target) => target.path.includes(":")) ||
+    personnelTargets.some((target) => target.path.includes(":"))
+  ) {
     items.push({
       id: "CP16-P2-DYNAMIC-DETAIL-PATHS",
       priority: "P2",
