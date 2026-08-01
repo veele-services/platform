@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -15,10 +17,13 @@ import {
   REALTIME_PUBLICATION_METADATA_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
+  assertMatchingMigrationHistory,
   assertMatchingCounts,
   assertMigratedDataIntegrity,
+  committedMigrationManifest,
   isAllowedRouteStatus,
   isFullSha,
+  migrationHistoryEvidence,
   parseArgs,
   parsePaymentIntentDiagnostic,
   parsePostgresEnv,
@@ -113,6 +118,99 @@ test("Phase 2E arguments and immutable SHAs are fail closed", () => {
     ).join(" "),
     /dispatched from main/u,
   );
+});
+
+test("restore verification derives the complete committed migration manifest", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-phase2e-manifest-"),
+  );
+  try {
+    await mkdir(join(directory, "generated"));
+    await Promise.all([
+      writeFile(join(directory, "001_legacy.sql"), ""),
+      writeFile(
+        join(directory, "20260731170000_portal_user_onboarding.sql"),
+        "",
+      ),
+      writeFile(join(directory, "20260801000000_release_gate.sql"), ""),
+      writeFile(join(directory, "baseline.json"), "{}"),
+      writeFile(join(directory, "README.md"), ""),
+      writeFile(join(directory, "generated", "99999999999999_ignored.sql"), ""),
+    ]);
+
+    assert.deepEqual(await committedMigrationManifest(directory), [
+      "001_legacy.sql",
+      "20260731170000_portal_user_onboarding.sql",
+      "20260801000000_release_gate.sql",
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("restore verification rejects missing and unexpected migration history", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.doesNotThrow(() =>
+    assertMatchingMigrationHistory([...committed], committed),
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        committed,
+      ),
+    /missing: 20260731170000_portal_user_onboarding\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        [
+          "001_legacy.sql",
+          "20260730000000_staging_only.sql",
+          "20260731170000_portal_user_onboarding.sql",
+          "20260801000000_release_gate.sql",
+        ],
+        committed,
+      ),
+    /unexpected: 20260730000000_staging_only\.sql/u,
+  );
+});
+
+test("restore verification reports evidence from the validated manifest", () => {
+  assert.deepEqual(
+    migrationHistoryEvidence([
+      "001_legacy.sql",
+      "20260801000000_release_gate.sql",
+    ]),
+    {
+      latestMigration: "20260801000000_release_gate.sql",
+      migrationCount: 2,
+    },
+  );
+  assert.throws(
+    () => migrationHistoryEvidence([]),
+    /Committed SQL migration manifest is empty/u,
+  );
+});
+
+test("restore verification fails closed for empty or invalid migration manifests", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "fieldgrid-phase2e-empty-"));
+  try {
+    await Promise.all([
+      writeFile(join(directory, "baseline.json"), "{}"),
+      writeFile(join(directory, "release.sql"), ""),
+    ]);
+    await assert.rejects(
+      committedMigrationManifest(directory),
+      /release\.sql gebruikt geen toegestaan migratiepatroon/u,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("secret and routing preflight lists every required deployment dependency by name only", () => {

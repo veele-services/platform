@@ -16,6 +16,10 @@ import { createServer } from "node:net";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import {
+  buildMigrationOrderReport,
+  validateMigrationOrderReport,
+} from "./fieldgrid-migration-order-check.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,8 +28,6 @@ const repoRoot = join(__dirname, "..");
 export const PHASE2E_PREFLIGHT_VERSION = "phase2e-staging-preflight-v1";
 export const CONFIRMATION = "phase2e-staging-only";
 export const EXPECTED_STAGING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
-export const LATEST_PHASE2_MIGRATION =
-  "20260721290000_website_enterprise_activation.sql";
 export const BACKUP_SCHEMAS = [
   "public",
   "auth",
@@ -1145,13 +1147,65 @@ async function runMigrationRehearsal(target, outDir) {
   };
 }
 
-async function verifyMigratedRestore(pgEnv) {
-  const latest = await psql(
-    pgEnv,
-    "select name from drizzle.veele_sql_migrations order by name desc limit 1;",
+export async function committedMigrationManifest(
+  migrationsDir = join(repoRoot, "lib", "db", "migrations"),
+) {
+  const report = await buildMigrationOrderReport({ migrationsDir });
+  const validation = validateMigrationOrderReport(report);
+  if (validation.errors.length > 0) {
+    throw new Error(
+      `Committed SQL migration manifest is invalid: ${validation.errors.join(" ")}`,
+    );
+  }
+  return report.runnerOrder;
+}
+
+export function assertMatchingMigrationHistory(recorded, committed) {
+  if (
+    recorded.length === committed.length &&
+    recorded.every((name, index) => name === committed[index])
+  ) {
+    return;
+  }
+
+  const recordedNames = new Set(recorded);
+  const committedNames = new Set(committed);
+  const missing = committed.filter((name) => !recordedNames.has(name));
+  const unexpected = recorded.filter((name) => !committedNames.has(name));
+  const details = [
+    missing.length > 0 ? `missing: ${missing.join(", ")}` : "",
+    unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : "",
+  ].filter(Boolean);
+  throw new Error(
+    `Restored SQL migration history diverges from the committed manifest${details.length > 0 ? ` (${details.join("; ")})` : ""}.`,
   );
-  if (latest !== LATEST_PHASE2_MIGRATION)
-    throw new Error(`Latest restored migration is ${latest || "missing"}.`);
+}
+
+export function migrationHistoryEvidence(committed) {
+  if (!Array.isArray(committed) || committed.length === 0) {
+    throw new Error("Committed SQL migration manifest is empty.");
+  }
+  return {
+    latestMigration: committed.at(-1),
+    migrationCount: committed.length,
+  };
+}
+
+async function verifyMigratedRestore(pgEnv) {
+  const recordedMigrations = JSON.parse(
+    await psql(
+      pgEnv,
+      "select coalesce(jsonb_agg(name order by name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
+    ),
+  );
+  if (
+    !Array.isArray(recordedMigrations) ||
+    recordedMigrations.some((name) => typeof name !== "string")
+  ) {
+    throw new Error("Restored SQL migration history is invalid.");
+  }
+  const committedMigrations = await committedMigrationManifest();
+  assertMatchingMigrationHistory(recordedMigrations, committedMigrations);
   const rlsNames = PHASE2_RLS_RELATIONS.map((name) => `'${name}'`).join(",");
   const rlsCount = Number(
     await psql(
@@ -1182,7 +1236,7 @@ async function verifyMigratedRestore(pgEnv) {
       "The restored realtime projection table is not in supabase_realtime.",
     );
   return {
-    latestMigration: latest,
+    ...migrationHistoryEvidence(committedMigrations),
     rlsRelations: PHASE2_RLS_RELATIONS.length,
     unsafeAnonymousAclRelations: 0,
     realtimePublication: true,
