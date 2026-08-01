@@ -536,13 +536,12 @@ function InvoiceActions({
     return (
       <PortalActionMenu label={`Acties voor factuur ${invoice.invoiceNumber}`}>
         {invoice.status === "sent" ? (
-          <div className="px-2 py-1">
-            <PaymentActionButton
-              invoiceId={invoice.id}
-              label="Betalen"
-              variant="secondary"
-            />
-          </div>
+          <PaymentActionButton
+            invoiceId={invoice.id}
+            label="Betalen"
+            variant="secondary"
+            renderAsMenuItem
+          />
         ) : null}
         {invoice.status !== "draft" ? (
           <PortalActionMenuLink
