@@ -17,6 +17,7 @@ import {
   FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256,
   LEGACY_TIMESTAMP_FLOOR,
   MIGRATION_ORDER_POLICY,
+  allowedHistoricalRecordedMigrations,
   allowedLegacyTimestampMigrations,
   classifyMigrationFilename,
   buildMigrationOrderReport,
@@ -78,6 +79,19 @@ test("phase 4 migration order check accepts current legacy state and documents t
       LEGACY_TIMESTAMP_FLOOR,
     );
   }
+  assert.deepEqual(
+    report.historicalRecordedMigrations.map((entry) => entry.recordedName),
+    Object.keys(allowedHistoricalRecordedMigrations),
+  );
+  assert.ok(
+    report.historicalRecordedMigrations.every(
+      (entry) =>
+        entry.recordedNamePresentInRunner === false &&
+        (entry.kind === "tombstone" ||
+          (entry.canonicalNamePresentInRunner === true &&
+            entry.canonicalSha256 === entry.sqlSha256)),
+    ),
+  );
   const baseline = JSON.parse(read("lib/db/migrations/baseline.json"));
   assert.ok(
     baseline.sql.every((name) =>
@@ -112,6 +126,34 @@ test("phase 4 migration order check freezes every legacy filename and SQL hash",
     assert.match(
       validateMigrationOrderReport(report).errors.join("\n"),
       /bevroren legacy-migratiemanifest wijkt af/u,
+    );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("phase 4 migration order check freezes renamed historical migration aliases", async () => {
+  const source = new URL("../lib/db/migrations/", import.meta.url);
+  const fixture = mkdtempSync(
+    join(tmpdir(), "fieldgrid-historical-alias-freeze-"),
+  );
+  try {
+    for (const entry of readdirSync(source, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith(".sql")) {
+        copyFileSync(new URL(entry.name, source), join(fixture, entry.name));
+      }
+    }
+    const canonical = join(
+      fixture,
+      "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+    );
+    writeFileSync(canonical, `${readFileSync(canonical, "utf8")}\n`);
+    const report = await buildMigrationOrderReport({
+      migrationsDir: fixture,
+    });
+    assert.match(
+      validateMigrationOrderReport(report).errors.join("\n"),
+      /historische migratie-alias 102_cleanup_staging_demo_sector_descriptions\.sql wijkt af/iu,
     );
   } finally {
     rmSync(fixture, { recursive: true, force: true });
@@ -217,6 +259,21 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
     plan.layers
       .find((layer) => layer.id === "db-migration-smoke")
       ?.ciCommand.includes("fieldgrid:migration-order-check:check"),
+  );
+});
+
+test("phase 4 test layers reject no-op package scripts", async () => {
+  const plan = await buildFieldgridTestLayersPlan();
+  const packageManifest = JSON.parse(read("package.json"));
+  packageManifest.scripts["fieldgrid:test:security-source"] = "true";
+
+  assert.match(
+    (
+      await validateFieldgridTestLayersPlan(plan, {
+        packageManifest,
+      })
+    ).join("\n"),
+    /fieldgrid:test:security-source wijkt af/u,
   );
 });
 
