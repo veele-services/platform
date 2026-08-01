@@ -74,10 +74,10 @@ test("W09 assignment detail presents planned versus actual customer timeline", (
       "In uitvoering",
       "Afgerond",
       "Rustige weergave van planning, uitvoering en afronding zonder",
-      "timeZone: \"Europe/Amsterdam\"",
+      'timeZone: "Europe/Amsterdam"',
       "pre_scheduled",
       "Nog niet ingepland",
-      "status === \"scheduled\" && scheduledDate",
+      'status === "scheduled" && scheduledDate',
     ],
     "assignment detail",
   );
@@ -85,10 +85,11 @@ test("W09 assignment detail presents planned versus actual customer timeline", (
     detail,
     /participant_status|route_context|planning overload/u,
   );
-  const phaseFunction = detail.slice(
-    detail.indexOf("function customerTimelinePhase"),
-    detail.indexOf("function AssignmentTimeline"),
-  );
+  const phaseFunctionStart = detail.indexOf("function customerTimelinePhase");
+  const timelineFunctionStart = detail.indexOf("function AssignmentTimeline");
+  assert.notEqual(phaseFunctionStart, -1);
+  assert.ok(timelineFunctionStart > phaseFunctionStart);
+  const phaseFunction = detail.slice(phaseFunctionStart, timelineFunctionStart);
   assert.ok(
     !phaseFunction.trimEnd().endsWith('return "scheduled";\n}'),
     "assignment detail should not fall through to scheduled for pre-planning statuses",
