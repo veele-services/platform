@@ -848,6 +848,10 @@ test("browser scenarios include payment integrity, review remediation, recovery 
   assert.match(spec, /firstAttemptRelease/);
   assert.match(spec, /triggerWasRecordedDuringActivePass/);
   assert.match(spec, /maximumActiveClientAttempts/);
+  assert.match(
+    spec,
+    /await expect\(page\)\.toHaveURL\([\s\S]+?tab=werkzaamheden/u,
+  );
   assert.match(spec, /offline-reconnect-evidence\.json/);
   assert.match(
     spec,

@@ -19,9 +19,13 @@ export function createPortalRefreshScheduler(input: {
   lastRefreshAtRef: { current: number };
   debounceMs?: number;
   minRefreshIntervalMs?: number;
+  isOnline?: () => boolean;
 }) {
   const debounceMs = input.debounceMs ?? 220;
   const minRefreshIntervalMs = input.minRefreshIntervalMs ?? 15_000;
+  const isOnline =
+    input.isOnline ??
+    (() => typeof navigator === "undefined" || navigator.onLine !== false);
 
   return (force = false) => {
     const now = Date.now();
@@ -34,9 +38,12 @@ export function createPortalRefreshScheduler(input: {
     }
 
     input.timerRef.current = setTimeout(() => {
+      input.timerRef.current = null;
+      if (!isOnline()) {
+        return;
+      }
       input.lastRefreshAtRef.current = Date.now();
       input.router.refresh();
-      input.timerRef.current = null;
     }, debounceMs);
   };
 }
