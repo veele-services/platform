@@ -1181,6 +1181,29 @@ export function assertMatchingMigrationHistory(recorded, committed) {
   );
 }
 
+export function assertCommittedMigrationPrefix(recorded, committed) {
+  const isPrefix =
+    recorded.length <= committed.length &&
+    recorded.every((name, index) => name === committed[index]);
+  if (!isPrefix) {
+    const mismatchIndex = recorded.findIndex(
+      (name, index) => name !== committed[index],
+    );
+    const position =
+      mismatchIndex === -1 ? committed.length + 1 : mismatchIndex + 1;
+    const expected = committed[position - 1] ?? "<end-of-manifest>";
+    const actual = recorded[position - 1] ?? "<missing>";
+    throw new Error(
+      `Restored pre-rehearsal SQL migration history is not a committed prefix at position ${position}: expected ${expected}, recorded ${actual}.`,
+    );
+  }
+  return {
+    recordedMigrationCount: recorded.length,
+    pendingMigrationCount: committed.length - recorded.length,
+    latestRecordedMigration: recorded.at(-1) ?? null,
+  };
+}
+
 export function migrationHistoryEvidence(committed) {
   if (!Array.isArray(committed) || committed.length === 0) {
     throw new Error("Committed SQL migration manifest is empty.");
@@ -1191,7 +1214,7 @@ export function migrationHistoryEvidence(committed) {
   };
 }
 
-async function verifyMigratedRestore(pgEnv) {
+async function readRecordedMigrationHistory(pgEnv) {
   const recordedMigrations = JSON.parse(
     await psql(
       pgEnv,
@@ -1204,7 +1227,11 @@ async function verifyMigratedRestore(pgEnv) {
   ) {
     throw new Error("Restored SQL migration history is invalid.");
   }
-  const committedMigrations = await committedMigrationManifest();
+  return recordedMigrations;
+}
+
+async function verifyMigratedRestore(pgEnv, committedMigrations) {
+  const recordedMigrations = await readRecordedMigrationHistory(pgEnv);
   assertMatchingMigrationHistory(recordedMigrations, committedMigrations);
   const rlsNames = PHASE2_RLS_RELATIONS.map((name) => `'${name}'`).join(",");
   const rlsCount = Number(
@@ -1294,6 +1321,14 @@ export async function runPreflight(options, env = process.env) {
     const restoreMetadata = await restoreBackup(restoreTarget, backup);
     const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
+    const committedMigrations = await committedMigrationManifest();
+    const restoredMigrationHistory = await readRecordedMigrationHistory(
+      restoreTarget.pgEnv,
+    );
+    const migrationPrefix = assertCommittedMigrationPrefix(
+      restoredMigrationHistory,
+      committedMigrations,
+    );
     const liveRealtimeEventsBeforeMigration = await collectLiveRealtimeEvents(
       restoreTarget.pgEnv,
     );
@@ -1320,7 +1355,10 @@ export async function runPreflight(options, env = process.env) {
       migratedRealtimeEventIds,
       rehearsalCompletedAt,
     );
-    const databaseProof = await verifyMigratedRestore(restoreTarget.pgEnv);
+    const databaseProof = await verifyMigratedRestore(
+      restoreTarget.pgEnv,
+      committedMigrations,
+    );
 
     const evidence = {
       version: PHASE2E_PREFLIGHT_VERSION,
@@ -1360,6 +1398,7 @@ export async function runPreflight(options, env = process.env) {
           isolated: true,
           disposedAfterProof: true,
           criticalRowCounts: restoredCounts,
+          migrationHistory: migrationPrefix,
         },
         paymentIntentDiagnostic: {
           version: paymentIntentDiagnostic.diagnostic.version,
