@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -15,10 +17,14 @@ import {
   REALTIME_PUBLICATION_METADATA_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
+  assertCommittedMigrationPrefix,
+  assertMatchingMigrationHistory,
   assertMatchingCounts,
   assertMigratedDataIntegrity,
+  committedMigrationManifest,
   isAllowedRouteStatus,
   isFullSha,
+  migrationHistoryEvidence,
   parseArgs,
   parsePaymentIntentDiagnostic,
   parsePostgresEnv,
@@ -113,6 +119,167 @@ test("Phase 2E arguments and immutable SHAs are fail closed", () => {
     ).join(" "),
     /dispatched from main/u,
   );
+});
+
+test("restore verification derives the complete committed migration manifest", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-phase2e-manifest-"),
+  );
+  try {
+    await mkdir(join(directory, "generated"));
+    await Promise.all([
+      writeFile(join(directory, "001_legacy.sql"), ""),
+      writeFile(
+        join(directory, "20260731170000_portal_user_onboarding.sql"),
+        "",
+      ),
+      writeFile(join(directory, "20260801000000_release_gate.sql"), ""),
+      writeFile(join(directory, "baseline.json"), "{}"),
+      writeFile(join(directory, "README.md"), ""),
+      writeFile(join(directory, "generated", "99999999999999_ignored.sql"), ""),
+    ]);
+
+    assert.deepEqual(await committedMigrationManifest(directory), [
+      "001_legacy.sql",
+      "20260731170000_portal_user_onboarding.sql",
+      "20260801000000_release_gate.sql",
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("restore verification rejects missing and unexpected migration history", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.doesNotThrow(() =>
+    assertMatchingMigrationHistory([...committed], committed),
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        committed,
+      ),
+    /missing: 20260731170000_portal_user_onboarding\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        [
+          "001_legacy.sql",
+          "20260730000000_staging_only.sql",
+          "20260731170000_portal_user_onboarding.sql",
+          "20260801000000_release_gate.sql",
+        ],
+        committed,
+      ),
+    /unexpected: 20260730000000_staging_only\.sql/u,
+  );
+});
+
+test("pre-rehearsal history allows only an exact committed prefix", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.deepEqual(
+    assertCommittedMigrationPrefix(
+      ["001_legacy.sql", "20260731170000_portal_user_onboarding.sql"],
+      committed,
+    ),
+    {
+      recordedMigrationCount: 2,
+      pendingMigrationCount: 1,
+      latestRecordedMigration: "20260731170000_portal_user_onboarding.sql",
+    },
+  );
+  assert.deepEqual(assertCommittedMigrationPrefix([...committed], committed), {
+    recordedMigrationCount: 3,
+    pendingMigrationCount: 0,
+    latestRecordedMigration: "20260801000000_release_gate.sql",
+  });
+});
+
+test("pre-rehearsal history rejects missing-middle and staging-only entries", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        committed,
+      ),
+    /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        ["001_legacy.sql", "20260730000000_staging_only.sql"],
+        committed,
+      ),
+    /recorded 20260730000000_staging_only\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        [
+          "001_legacy.sql",
+          "20260801000000_release_gate.sql",
+          "20260731170000_portal_user_onboarding.sql",
+        ],
+        committed,
+      ),
+    /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        [...committed, "20260802000000_staging_only.sql"],
+        committed,
+      ),
+    /expected <end-of-manifest>, recorded 20260802000000_staging_only\.sql/u,
+  );
+});
+
+test("restore verification reports evidence from the validated manifest", () => {
+  assert.deepEqual(
+    migrationHistoryEvidence([
+      "001_legacy.sql",
+      "20260801000000_release_gate.sql",
+    ]),
+    {
+      latestMigration: "20260801000000_release_gate.sql",
+      migrationCount: 2,
+    },
+  );
+  assert.throws(
+    () => migrationHistoryEvidence([]),
+    /Committed SQL migration manifest is empty/u,
+  );
+});
+
+test("restore verification fails closed for empty or invalid migration manifests", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "fieldgrid-phase2e-empty-"));
+  try {
+    await Promise.all([
+      writeFile(join(directory, "baseline.json"), "{}"),
+      writeFile(join(directory, "release.sql"), ""),
+    ]);
+    await assert.rejects(
+      committedMigrationManifest(directory),
+      /release\.sql gebruikt geen toegestaan migratiepatroon/u,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("secret and routing preflight lists every required deployment dependency by name only", () => {
@@ -431,6 +598,14 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
+  assert.match(
+    script,
+    /jsonb_agg\(name order by applied_at, name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
+  );
+  assert.doesNotMatch(
+    script,
+    /jsonb_agg\(name order by name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
+  );
   const diagnosticWrite = script.lastIndexOf("writePaymentIntentDiagnostic(");
   const sourcePublication = script.lastIndexOf(
     "collectRealtimePublicationMetadata(sourcePgEnv)",
@@ -441,11 +616,20 @@ test("manual workflow is staging-only and never promotes or uploads the database
   const migrationRehearsal = script.indexOf(
     "runMigrationRehearsal(\n      restoreTarget",
   );
+  const prefixValidation = script.lastIndexOf(
+    "const migrationPrefix = assertCommittedMigrationPrefix(",
+  );
+  const postRehearsalHistoryProof = script.lastIndexOf(
+    "const databaseProof = await verifyMigratedRestore(",
+  );
   assert.ok(sourcePublication >= 0);
   assert.ok(sourcePublication < backupCreation);
   assert.ok(backupCreation < migrationRehearsal);
   assert.ok(diagnosticWrite >= 0);
   assert.ok(diagnosticWrite < migrationRehearsal);
+  assert.ok(prefixValidation >= 0);
+  assert.ok(prefixValidation < migrationRehearsal);
+  assert.ok(postRehearsalHistoryProof > migrationRehearsal);
   assert.match(script, /providerIdentifiersRecorded: false/u);
   assert.match(script, /checkoutUrlsRecorded: false/u);
   assert.match(script, /promotionPerformed: false/u);

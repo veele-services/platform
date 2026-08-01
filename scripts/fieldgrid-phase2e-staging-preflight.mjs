@@ -16,6 +16,10 @@ import { createServer } from "node:net";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import {
+  buildMigrationOrderReport,
+  validateMigrationOrderReport,
+} from "./fieldgrid-migration-order-check.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,8 +28,6 @@ const repoRoot = join(__dirname, "..");
 export const PHASE2E_PREFLIGHT_VERSION = "phase2e-staging-preflight-v1";
 export const CONFIRMATION = "phase2e-staging-only";
 export const EXPECTED_STAGING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
-export const LATEST_PHASE2_MIGRATION =
-  "20260721290000_website_enterprise_activation.sql";
 export const BACKUP_SCHEMAS = [
   "public",
   "auth",
@@ -1145,13 +1147,92 @@ async function runMigrationRehearsal(target, outDir) {
   };
 }
 
-async function verifyMigratedRestore(pgEnv) {
-  const latest = await psql(
-    pgEnv,
-    "select name from drizzle.veele_sql_migrations order by name desc limit 1;",
+export async function committedMigrationManifest(
+  migrationsDir = join(repoRoot, "lib", "db", "migrations"),
+) {
+  const report = await buildMigrationOrderReport({ migrationsDir });
+  const validation = validateMigrationOrderReport(report);
+  if (validation.errors.length > 0) {
+    throw new Error(
+      `Committed SQL migration manifest is invalid: ${validation.errors.join(" ")}`,
+    );
+  }
+  return report.runnerOrder;
+}
+
+export function assertMatchingMigrationHistory(recorded, committed) {
+  if (
+    recorded.length === committed.length &&
+    recorded.every((name, index) => name === committed[index])
+  ) {
+    return;
+  }
+
+  const recordedNames = new Set(recorded);
+  const committedNames = new Set(committed);
+  const missing = committed.filter((name) => !recordedNames.has(name));
+  const unexpected = recorded.filter((name) => !committedNames.has(name));
+  const details = [
+    missing.length > 0 ? `missing: ${missing.join(", ")}` : "",
+    unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : "",
+  ].filter(Boolean);
+  throw new Error(
+    `Restored SQL migration history diverges from the committed manifest${details.length > 0 ? ` (${details.join("; ")})` : ""}.`,
   );
-  if (latest !== LATEST_PHASE2_MIGRATION)
-    throw new Error(`Latest restored migration is ${latest || "missing"}.`);
+}
+
+export function assertCommittedMigrationPrefix(recorded, committed) {
+  const isPrefix =
+    recorded.length <= committed.length &&
+    recorded.every((name, index) => name === committed[index]);
+  if (!isPrefix) {
+    const mismatchIndex = recorded.findIndex(
+      (name, index) => name !== committed[index],
+    );
+    const position =
+      mismatchIndex === -1 ? committed.length + 1 : mismatchIndex + 1;
+    const expected = committed[position - 1] ?? "<end-of-manifest>";
+    const actual = recorded[position - 1] ?? "<missing>";
+    throw new Error(
+      `Restored pre-rehearsal SQL migration history is not a committed prefix at position ${position}: expected ${expected}, recorded ${actual}.`,
+    );
+  }
+  return {
+    recordedMigrationCount: recorded.length,
+    pendingMigrationCount: committed.length - recorded.length,
+    latestRecordedMigration: recorded.at(-1) ?? null,
+  };
+}
+
+export function migrationHistoryEvidence(committed) {
+  if (!Array.isArray(committed) || committed.length === 0) {
+    throw new Error("Committed SQL migration manifest is empty.");
+  }
+  return {
+    latestMigration: committed.at(-1),
+    migrationCount: committed.length,
+  };
+}
+
+async function readRecordedMigrationHistory(pgEnv) {
+  const recordedMigrations = JSON.parse(
+    await psql(
+      pgEnv,
+      "select coalesce(jsonb_agg(name order by applied_at, name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
+    ),
+  );
+  if (
+    !Array.isArray(recordedMigrations) ||
+    recordedMigrations.some((name) => typeof name !== "string")
+  ) {
+    throw new Error("Restored SQL migration history is invalid.");
+  }
+  return recordedMigrations;
+}
+
+async function verifyMigratedRestore(pgEnv, committedMigrations) {
+  const recordedMigrations = await readRecordedMigrationHistory(pgEnv);
+  assertMatchingMigrationHistory(recordedMigrations, committedMigrations);
   const rlsNames = PHASE2_RLS_RELATIONS.map((name) => `'${name}'`).join(",");
   const rlsCount = Number(
     await psql(
@@ -1182,7 +1263,7 @@ async function verifyMigratedRestore(pgEnv) {
       "The restored realtime projection table is not in supabase_realtime.",
     );
   return {
-    latestMigration: latest,
+    ...migrationHistoryEvidence(committedMigrations),
     rlsRelations: PHASE2_RLS_RELATIONS.length,
     unsafeAnonymousAclRelations: 0,
     realtimePublication: true,
@@ -1240,6 +1321,14 @@ export async function runPreflight(options, env = process.env) {
     const restoreMetadata = await restoreBackup(restoreTarget, backup);
     const restoredCounts = await collectCriticalCounts(restoreTarget.pgEnv);
     assertMatchingCounts(sourceCounts, restoredCounts);
+    const committedMigrations = await committedMigrationManifest();
+    const restoredMigrationHistory = await readRecordedMigrationHistory(
+      restoreTarget.pgEnv,
+    );
+    const migrationPrefix = assertCommittedMigrationPrefix(
+      restoredMigrationHistory,
+      committedMigrations,
+    );
     const liveRealtimeEventsBeforeMigration = await collectLiveRealtimeEvents(
       restoreTarget.pgEnv,
     );
@@ -1266,7 +1355,10 @@ export async function runPreflight(options, env = process.env) {
       migratedRealtimeEventIds,
       rehearsalCompletedAt,
     );
-    const databaseProof = await verifyMigratedRestore(restoreTarget.pgEnv);
+    const databaseProof = await verifyMigratedRestore(
+      restoreTarget.pgEnv,
+      committedMigrations,
+    );
 
     const evidence = {
       version: PHASE2E_PREFLIGHT_VERSION,
@@ -1306,6 +1398,7 @@ export async function runPreflight(options, env = process.env) {
           isolated: true,
           disposedAfterProof: true,
           criticalRowCounts: restoredCounts,
+          migrationHistory: migrationPrefix,
         },
         paymentIntentDiagnostic: {
           version: paymentIntentDiagnostic.diagnostic.version,
