@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -11,7 +14,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+  FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256,
+  LEGACY_TIMESTAMP_FLOOR,
   MIGRATION_ORDER_POLICY,
+  allowedLegacyTimestampMigrations,
   classifyMigrationFilename,
   buildMigrationOrderReport,
   validateMigrationOrderReport,
@@ -53,6 +59,63 @@ test("phase 4 migration order check accepts current legacy state and documents t
   assert.ok(
     Object.keys(report.legacy.allowedDuplicateNumericPrefixes).includes("064"),
   );
+  assert.equal(report.legacy.manifestFilenames.length, 95);
+  assert.equal(
+    new Set(report.legacy.manifestFilenames).size,
+    report.legacy.manifestFilenames.length,
+  );
+  assert.equal(
+    report.legacy.manifestSha256,
+    FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256,
+  );
+  for (const filename of allowedLegacyTimestampMigrations) {
+    assert.equal(
+      report.runnerOrder.filter((name) => name === filename).length,
+      1,
+    );
+    assert.equal(
+      classifyMigrationFilename(filename).prefix,
+      LEGACY_TIMESTAMP_FLOOR,
+    );
+  }
+  const baseline = JSON.parse(read("lib/db/migrations/baseline.json"));
+  assert.ok(
+    baseline.sql.every((name) =>
+      report.legacy.manifestFilenames.includes(name),
+    ),
+  );
+});
+
+test("phase 4 migration order check freezes every legacy filename and SQL hash", async () => {
+  const source = new URL("../lib/db/migrations/", import.meta.url);
+  const fixture = mkdtempSync(join(tmpdir(), "fieldgrid-legacy-freeze-"));
+  try {
+    for (const entry of readdirSync(source, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith(".sql")) {
+        copyFileSync(new URL(entry.name, source), join(fixture, entry.name));
+      }
+    }
+
+    writeFileSync(join(fixture, "003_retroactive.sql"), "select 1;\n");
+    let report = await buildMigrationOrderReport({ migrationsDir: fixture });
+    assert.match(
+      validateMigrationOrderReport(report).errors.join("\n"),
+      /bevroren legacy-migratiemanifest wijkt af/u,
+    );
+
+    rmSync(join(fixture, "003_retroactive.sql"));
+    renameSync(
+      join(fixture, "027_smtp_mail_settings.sql"),
+      join(fixture, "027_renamed_mail_settings.sql"),
+    );
+    report = await buildMigrationOrderReport({ migrationsDir: fixture });
+    assert.match(
+      validateMigrationOrderReport(report).errors.join("\n"),
+      /bevroren legacy-migratiemanifest wijkt af/u,
+    );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test("phase 4 migration order check blocks new numeric migrations after timestamp cutover", () => {
