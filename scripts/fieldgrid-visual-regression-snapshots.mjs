@@ -392,9 +392,10 @@ async function captureRoute({
     });
     const finalUrl = page.url();
     const finalPathname = new URL(finalUrl).pathname;
-    const authRedirected = /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(
-      finalPathname,
-    );
+    const authRedirected =
+      /\/(?:login|onboarding|wachtwoord-wijzigen|context-kiezen|privacy)(?:\/|$)/u.test(
+        finalPathname,
+      );
     const routeMatches =
       !["customer-portal", "personnel-portal"].includes(group.id) ||
       samePathname(finalUrl, url);
@@ -406,22 +407,58 @@ async function captureRoute({
       animations: "disabled",
       caret: "hide",
     });
-    const baseline = await compareVisualSnapshot({
-      screenshotPath,
-      baselinePath,
-      updateBaselines,
-      maxDiffPixelRatio,
-    });
     const metrics = await page.evaluate(() => {
       const body = document.body;
       const root = document.documentElement;
-      const rootOverflowX = window.getComputedStyle(root).overflowX;
-      const bodyOverflowX = body
-        ? window.getComputedStyle(body).overflowX
-        : "visible";
-      const pageClipsHorizontalOverflow =
-        ["hidden", "clip"].includes(rootOverflowX) &&
-        ["hidden", "clip"].includes(bodyOverflowX);
+      const viewportWidth = root.clientWidth;
+      const overflowStyles = new Set(["auto", "scroll", "hidden", "clip"]);
+      const isContainedByOverflowAncestor = (element, elementRect) => {
+        let ancestor = element.parentElement;
+        while (ancestor && ancestor !== body && ancestor !== root) {
+          const style = window.getComputedStyle(ancestor);
+          if (overflowStyles.has(style.overflowX)) {
+            const rect = ancestor.getBoundingClientRect();
+            const ancestorIsInsideViewport =
+              rect.left >= -4 && rect.right <= viewportWidth + 4;
+            const clipsElement =
+              elementRect.left < rect.left - 1 ||
+              elementRect.right > rect.right + 1;
+            if (ancestorIsInsideViewport && clipsElement) return true;
+          }
+          ancestor = ancestor.parentElement;
+        }
+        return false;
+      };
+      const selectorFor = (element) => {
+        const id = element.id ? `#${element.id}` : "";
+        const classes =
+          element.classList.length > 0
+            ? `.${[...element.classList].slice(0, 2).join(".")}`
+            : "";
+        return `${element.tagName.toLowerCase()}${id}${classes}`;
+      };
+      const overflowingElements = [...document.querySelectorAll("body *")]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          const visible =
+            rect.width > 0 &&
+            rect.height > 0 &&
+            style.display !== "none" &&
+            style.visibility !== "hidden";
+          const overflowPx = Math.max(
+            0,
+            rect.right - viewportWidth,
+            -rect.left,
+          );
+          return { element, rect, visible, overflowPx };
+        })
+        .filter(
+          ({ element, rect, visible, overflowPx }) =>
+            visible &&
+            overflowPx > 4 &&
+            !isContainedByOverflowAncestor(element, rect),
+        );
       const interactiveSelector =
         "button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=link]";
       const nestedInteractive = [
@@ -456,19 +493,35 @@ async function captureRoute({
           (rect.width < 44 || rect.height < 44)
         );
       });
+      const rootScrollWidth = root.scrollWidth;
+      const bodyScrollWidth = body?.scrollWidth ?? 0;
       return {
-        scrollWidth: pageClipsHorizontalOverflow
-          ? root.clientWidth
-          : root.scrollWidth,
-        clientWidth: root.clientWidth,
+        scrollWidth: Math.max(rootScrollWidth, bodyScrollWidth),
+        rootScrollWidth,
+        bodyScrollWidth,
+        clientWidth: viewportWidth,
+        overflowingElementCount: overflowingElements.length,
+        maxOverflowPx: Math.max(
+          0,
+          rootScrollWidth - viewportWidth,
+          bodyScrollWidth - viewportWidth,
+          ...overflowingElements.map(({ overflowPx }) => overflowPx),
+        ),
+        overflowingElementSelectors: overflowingElements
+          .slice(0, 10)
+          .map(({ element }) => selectorFor(element)),
         bodyTextLength: body?.innerText?.trim().length ?? 0,
         bodyHeight: body?.getBoundingClientRect().height ?? 0,
+        hasServerError:
+          /(?:internal server error|application error|unhandled runtime error)/iu.test(
+            body?.innerText ?? "",
+          ),
         nestedInteractiveCount: nestedInteractive.length,
         unnamedControlCount: unnamedControls.length,
         undersizedControlCount: undersizedControls.length,
       };
     });
-    const hasHorizontalOverflow = metrics.scrollWidth > metrics.clientWidth + 4;
+    const hasHorizontalOverflow = hasHorizontalOverflowFromMetrics(metrics);
     const isBlank = metrics.bodyTextLength < 10 || metrics.bodyHeight < 120;
     const hasAccessibilityWarnings =
       metrics.nestedInteractiveCount > 0 ||
@@ -477,8 +530,24 @@ async function captureRoute({
       !focusCheck.ok ||
       axe.seriousOrCriticalViolations > 0;
     const hasHttpFailure = !response || response.status() >= 400;
+    const captureIsValid =
+      !hasHttpFailure &&
+      !authRedirected &&
+      routeMatches &&
+      !metrics.hasServerError &&
+      !hasHorizontalOverflow &&
+      !isBlank &&
+      !hasAccessibilityWarnings;
+    const baseline = await compareVisualSnapshot({
+      screenshotPath,
+      baselinePath,
+      updateBaselines,
+      maxDiffPixelRatio,
+      captureIsValid,
+    });
     const hasVisualRegression =
       baseline.status === "changed" ||
+      baseline.status === "rejected" ||
       (requireBaselines && baseline.status === "missing");
 
     return {
@@ -504,6 +573,7 @@ async function captureRoute({
       httpStatus: response?.status() ?? null,
       authRedirected,
       routeMatches,
+      captureIsValid,
       hasHorizontalOverflow,
       hasAccessibilityWarnings,
       hasVisualRegression,
@@ -615,11 +685,20 @@ export async function compareVisualSnapshot({
   baselinePath,
   updateBaselines,
   maxDiffPixelRatio,
+  captureIsValid,
 }) {
   const screenshot = await fs.readFile(screenshotPath);
   const actualSha256 = createHash("sha256").update(screenshot).digest("hex");
 
   if (updateBaselines) {
+    if (captureIsValid !== true) {
+      return {
+        status: "rejected",
+        actualSha256,
+        expectedSha256: null,
+        reason: "capture-validation-failed",
+      };
+    }
     await fs.mkdir(path.dirname(baselinePath), { recursive: true });
     await fs.copyFile(screenshotPath, baselinePath);
     return {
@@ -631,9 +710,7 @@ export async function compareVisualSnapshot({
 
   try {
     const expected = await fs.readFile(baselinePath);
-    const expectedSha256 = createHash("sha256")
-      .update(expected)
-      .digest("hex");
+    const expectedSha256 = createHash("sha256").update(expected).digest("hex");
     const comparator = playwrightPngComparator();
     const comparison = comparator(screenshot, expected, {
       threshold: 0.2,
@@ -663,6 +740,14 @@ export async function compareVisualSnapshot({
     }
     throw error;
   }
+}
+
+export function hasHorizontalOverflowFromMetrics(metrics) {
+  return (
+    metrics.scrollWidth > metrics.clientWidth + 4 ||
+    metrics.overflowingElementCount > 0 ||
+    metrics.maxOverflowPx > 4
+  );
 }
 
 function playwrightPngComparator() {
@@ -816,8 +901,7 @@ async function main() {
           artifactDir: plan.artifactDir,
           baselineDir: plan.baselineDir,
           maxDiffPixelRatio: plan.maxDiffPixelRatio,
-          evidence:
-            "not-run-authenticated-base-url-or-state-missing",
+          evidence: "not-run-authenticated-base-url-or-state-missing",
           targets: plan.groups.map((group) => ({
             id: group.id,
             label: group.label,
@@ -846,7 +930,9 @@ async function main() {
 
   const summary = await runVisualRegressionSnapshots(args);
   console.log(JSON.stringify(summary, null, 2));
-  if (args.strict && summary.status !== "ok") process.exit(1);
+  if ((args.strict || args.updateBaselines) && summary.status !== "ok") {
+    process.exit(1);
+  }
 }
 
 const entrypoint = process.argv[1]
