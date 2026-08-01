@@ -103,6 +103,7 @@ test("W14 visual runtime fails auth, accessibility, touch and screenshot regress
     /requireBaselines && baseline\.status === "missing"/u,
     /captureIsValid/u,
     /captureIsValid !== true/u,
+    /status: visualCaptureStatus\(\{/u,
     /overflowingElementCount/u,
     /maxOverflowPx/u,
     /createHash\("sha256"\)/u,

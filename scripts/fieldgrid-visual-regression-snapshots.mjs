@@ -560,16 +560,10 @@ async function captureRoute({
       finalUrl,
       screenshotPath,
       baselinePath,
-      status:
-        !hasHttpFailure &&
-        !authRedirected &&
-        routeMatches &&
-        !hasHorizontalOverflow &&
-        !isBlank &&
-        !hasAccessibilityWarnings &&
-        !hasVisualRegression
-          ? "ok"
-          : "warning",
+      status: visualCaptureStatus({
+        captureIsValid,
+        hasVisualRegression,
+      }),
       httpStatus: response?.status() ?? null,
       authRedirected,
       routeMatches,
@@ -748,6 +742,10 @@ export function hasHorizontalOverflowFromMetrics(metrics) {
     metrics.overflowingElementCount > 0 ||
     metrics.maxOverflowPx > 4
   );
+}
+
+export function visualCaptureStatus({ captureIsValid, hasVisualRegression }) {
+  return captureIsValid === true && !hasVisualRegression ? "ok" : "warning";
 }
 
 function playwrightPngComparator() {

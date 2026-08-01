@@ -7,6 +7,7 @@ import { test } from "node:test";
 import {
   compareVisualSnapshot,
   hasHorizontalOverflowFromMetrics,
+  visualCaptureStatus,
 } from "../scripts/fieldgrid-visual-regression-snapshots.mjs";
 
 const TEAL_PNG = Buffer.from(
@@ -104,5 +105,22 @@ test("overflow detection cannot be disabled by clipping the page root", () => {
       maxOverflowPx: 0,
     }),
     false,
+  );
+});
+
+test("a capture that failed server-error validation can never be ok", () => {
+  assert.equal(
+    visualCaptureStatus({
+      captureIsValid: false,
+      hasVisualRegression: false,
+    }),
+    "warning",
+  );
+  assert.equal(
+    visualCaptureStatus({
+      captureIsValid: true,
+      hasVisualRegression: false,
+    }),
+    "ok",
   );
 });
