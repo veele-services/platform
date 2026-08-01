@@ -279,7 +279,11 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       align: "right",
       render: (doc) => (
         <PortalActionMenu label={`Acties voor ${doc.name}`}>
-          <DocumentDownloadButton documentId={doc.id} filename={doc.filename} />
+          <DocumentDownloadButton
+            documentId={doc.id}
+            filename={doc.filename}
+            renderAsMenuItem
+          />
         </PortalActionMenu>
       ),
     },
@@ -543,6 +547,7 @@ export default async function DocumentenPage({
                 <DocumentDownloadButton
                   documentId={doc.id}
                   filename={doc.filename}
+                  renderAsMenuItem
                 />
               </PortalActionMenu>
             </div>

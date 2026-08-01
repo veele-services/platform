@@ -58,7 +58,9 @@ test("W14 visual plan separates every required authorization persona", () => {
 test("W14 portal snapshots use real basePath-relative routes", () => {
   const plan = buildVisualRegressionPlan({}, { target: "all" });
   const customer = plan.groups.find((group) => group.id === "customer-portal");
-  const personnel = plan.groups.find((group) => group.id === "personnel-portal");
+  const personnel = plan.groups.find(
+    (group) => group.id === "personnel-portal",
+  );
 
   assert.deepEqual(customer?.routes, [
     "/",
@@ -97,7 +99,13 @@ test("W14 visual runtime fails auth, accessibility, touch and screenshot regress
     /AxeBuilder/u,
     /seriousOrCriticalViolations/u,
     /baseline\.status === "changed"/u,
+    /baseline\.status === "rejected"/u,
     /requireBaselines && baseline\.status === "missing"/u,
+    /captureIsValid/u,
+    /captureIsValid !== true/u,
+    /status: visualCaptureStatus\(\{/u,
+    /overflowingElementCount/u,
+    /maxOverflowPx/u,
     /createHash\("sha256"\)/u,
     /getComparator\("image\/png"\)/u,
     /maxDiffPixelRatio/u,
@@ -108,6 +116,7 @@ test("W14 visual runtime fails auth, accessibility, touch and screenshot regress
   ]) {
     assert.match(source, contract);
   }
+  assert.doesNotMatch(source, /pageClipsHorizontalOverflow/u);
 });
 
 test("released sources do not add forbidden interaction or brand literals", () => {

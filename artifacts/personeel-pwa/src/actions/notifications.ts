@@ -5,10 +5,12 @@ import {
   isTenantModuleEnabled,
   personnelNotificationsTable,
   personnelTable,
+  scanVisibleNotificationPages,
+  type NotificationPageCursor,
 } from "@workspace/db";
 import { sanitizePersonnelPortalHref } from "@workspace/db/portal-routes";
 import { createClient } from "@/lib/supabase/server";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export type PersonnelNotificationItem = {
@@ -37,6 +39,8 @@ type PersonnelNotificationEntitlements = {
   materials: boolean;
   releases: boolean;
 };
+const NOTIFICATION_PAGE_SIZE = 100;
+const NOTIFICATION_ITEM_LIMIT = 80;
 
 async function getCurrentPersonnelIdentity(): Promise<{
   personnelId: string;
@@ -122,8 +126,9 @@ function isNotificationAccessible(
     pathname === "/i" ||
     pathname.startsWith("/i/") ||
     /^\/opdrachten\/[^/]+\/inventaris(?:\/|$)/u.test(pathname);
-  const requiresMaterials =
-    /^\/opdrachten\/[^/]+\/materiaal(?:\/|$)/u.test(pathname);
+  const requiresMaterials = /^\/opdrachten\/[^/]+\/materiaal(?:\/|$)/u.test(
+    pathname,
+  );
 
   return (
     (!requiresDocuments || entitlements.documents) &&
@@ -140,64 +145,94 @@ function revalidateNotificationSurfaces() {
   revalidatePath("/berichten");
 }
 
+async function loadPersonnelNotificationPage({
+  personnelId,
+  tenantId,
+  cursor,
+  unreadOnly,
+}: {
+  personnelId: string;
+  tenantId: string;
+  cursor: NotificationPageCursor | null;
+  unreadOnly: boolean;
+}) {
+  return db
+    .select()
+    .from(personnelNotificationsTable)
+    .where(
+      and(
+        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.tenantId, tenantId),
+        isNull(personnelNotificationsTable.deletedAt),
+        unreadOnly ? isNull(personnelNotificationsTable.readAt) : undefined,
+        cursor
+          ? or(
+              lt(personnelNotificationsTable.createdAt, cursor.createdAt),
+              and(
+                eq(personnelNotificationsTable.createdAt, cursor.createdAt),
+                lt(personnelNotificationsTable.id, cursor.id),
+              ),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(
+      desc(personnelNotificationsTable.createdAt),
+      desc(personnelNotificationsTable.id),
+    )
+    .limit(NOTIFICATION_PAGE_SIZE);
+}
+
 export async function getMyNotifications(): Promise<
   PersonnelNotificationItem[]
 > {
   const identity = await getNotificationIdentity();
   if (!identity) return [];
 
-  const [rows, entitlements] = await Promise.all([
-    db
-      .select()
-      .from(personnelNotificationsTable)
-      .where(
-        and(
-          eq(personnelNotificationsTable.personnelId, identity.personnelId),
-          eq(personnelNotificationsTable.tenantId, identity.tenantId),
-          isNull(personnelNotificationsTable.deletedAt),
-        ),
-      )
-      .orderBy(desc(personnelNotificationsTable.createdAt))
-      .limit(80),
-    getNotificationEntitlements(identity.tenantId),
-  ]);
-
-  return rows
-    .map(mapNotification)
-    .filter((notification) =>
+  const entitlements = await getNotificationEntitlements(identity.tenantId);
+  const result = await scanVisibleNotificationPages({
+    pageSize: NOTIFICATION_PAGE_SIZE,
+    itemLimit: NOTIFICATION_ITEM_LIMIT,
+    countAll: false,
+    loadPage: (cursor) =>
+      loadPersonnelNotificationPage({
+        personnelId: identity.personnelId,
+        tenantId: identity.tenantId,
+        cursor,
+        unreadOnly: false,
+      }),
+    mapRow: mapNotification,
+    isVisible: (notification) =>
       isNotificationAccessible(notification, entitlements),
-    );
+  });
+
+  return result.items;
 }
 
 export async function getMyNotificationSummary(): Promise<NotificationSummary> {
   const identity = await getNotificationIdentity();
   if (!identity) return { unreadCount: 0, recentUnread: [] };
 
-  const [unreadRows, entitlements] = await Promise.all([
-    db
-      .select()
-      .from(personnelNotificationsTable)
-      .where(
-        and(
-          eq(personnelNotificationsTable.personnelId, identity.personnelId),
-          eq(personnelNotificationsTable.tenantId, identity.tenantId),
-          isNull(personnelNotificationsTable.deletedAt),
-          isNull(personnelNotificationsTable.readAt),
-        ),
-      )
-      .orderBy(desc(personnelNotificationsTable.createdAt))
-      .limit(40),
-    getNotificationEntitlements(identity.tenantId),
-  ]);
-  const visibleUnread = unreadRows
-    .map(mapNotification)
-    .filter((notification) =>
+  const entitlements = await getNotificationEntitlements(identity.tenantId);
+  const result = await scanVisibleNotificationPages({
+    pageSize: NOTIFICATION_PAGE_SIZE,
+    itemLimit: 3,
+    countAll: true,
+    loadPage: (cursor) =>
+      loadPersonnelNotificationPage({
+        personnelId: identity.personnelId,
+        tenantId: identity.tenantId,
+        cursor,
+        unreadOnly: true,
+      }),
+    mapRow: mapNotification,
+    isVisible: (notification) =>
       isNotificationAccessible(notification, entitlements),
-    );
+  });
 
   return {
-    unreadCount: visibleUnread.length,
-    recentUnread: visibleUnread.slice(0, 3),
+    unreadCount: result.visibleCount,
+    recentUnread: result.items,
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { AlertCircle, CreditCard, Loader2 } from "lucide-react";
+import { DropdownMenuItem } from "@workspace/shared-ui";
 import {
   createCustomerBatchPayment,
   createCustomerInvoicePayment,
@@ -12,11 +13,13 @@ export function PaymentActionButton({
   invoiceIds,
   label = "Veilig betalen",
   variant = "primary",
+  renderAsMenuItem = false,
 }: {
   invoiceId?: string;
   invoiceIds?: string[];
   label?: string;
   variant?: "primary" | "secondary";
+  renderAsMenuItem?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -43,6 +46,50 @@ export function PaymentActionButton({
     });
   }
 
+  const content = (
+    <>
+      {pending ? (
+        <Loader2 size={16} className="animate-spin" />
+      ) : (
+        <CreditCard size={16} />
+      )}
+      {pending ? "Betaallink openen..." : label}
+    </>
+  );
+
+  const errorMessage = error ? (
+    <p
+      role="alert"
+      className="mt-2 inline-flex w-full items-start gap-2 rounded-2xl px-3 py-2 text-xs font-bold"
+      style={{
+        backgroundColor: "#FEF2F2",
+        color: "var(--color-destructive)",
+      }}
+    >
+      <AlertCircle size={14} className="mt-0.5 shrink-0" />
+      <span>{error}</span>
+    </p>
+  ) : null;
+
+  if (renderAsMenuItem) {
+    return (
+      <>
+        <DropdownMenuItem
+          disabled={pending}
+          onSelect={(event) => {
+            event.preventDefault();
+            handleClick();
+          }}
+          className="w-full text-sm font-medium"
+          style={{ color: "var(--color-primary)" }}
+        >
+          {content}
+        </DropdownMenuItem>
+        {errorMessage}
+      </>
+    );
+  }
+
   return (
     <div className="w-full">
       <button
@@ -58,26 +105,9 @@ export function PaymentActionButton({
           color: variant === "primary" ? "#FFFFFF" : "#087C79",
         }}
       >
-        {pending ? (
-          <Loader2 size={16} className="animate-spin" />
-        ) : (
-          <CreditCard size={16} />
-        )}
-        {pending ? "Betaallink openen..." : label}
+        {content}
       </button>
-      {error ? (
-        <p
-          role="alert"
-          className="mt-2 inline-flex w-full items-start gap-2 rounded-2xl px-3 py-2 text-xs font-bold"
-          style={{
-            backgroundColor: "#FEF2F2",
-            color: "var(--color-destructive)",
-          }}
-        >
-          <AlertCircle size={14} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </p>
-      ) : null}
+      {errorMessage}
     </div>
   );
 }

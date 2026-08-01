@@ -100,6 +100,36 @@ test("non-running partial actual data falls back visibly and reports data qualit
   assert.match(result.dataQualityWarning ?? "", /mist een eindtijd/u);
 });
 
+test("paused participant time never runs through now while its assignment remains active", () => {
+  const paused = resolveAssignmentEffectiveInterval({
+    scheduledDate: "2026-07-27",
+    scheduledStart: "00:00",
+    scheduledEnd: "02:00",
+    actualStartedAt: "2026-07-26T22:15:00.000Z",
+    actualCompletedAt: null,
+    status: "paused",
+    now: "2026-07-27T03:00:00.000Z",
+  });
+  const running = resolveAssignmentEffectiveInterval({
+    scheduledDate: "2026-07-27",
+    scheduledStart: "00:00",
+    scheduledEnd: "02:00",
+    actualStartedAt: "2026-07-26T22:15:00.000Z",
+    actualCompletedAt: null,
+    status: "in_progress",
+    now: "2026-07-27T03:00:00.000Z",
+  });
+
+  assert.equal(paused.effectiveDate, "2026-07-27");
+  assert.equal(paused.effectiveStart, "00:15");
+  assert.equal(paused.effectiveEnd, "02:00");
+  assert.equal(paused.endMode, "planned");
+  assert.equal(paused.isRunning, false);
+  assert.equal(running.effectiveEnd, "05:00");
+  assert.equal(running.endMode, "now");
+  assert.equal(running.isRunning, true);
+});
+
 test("compatibility projection delegates to the effective interval resolver", () => {
   const result = buildAssignmentTimeProjection({
     scheduledDate: "2026-07-21",
@@ -177,24 +207,15 @@ test("completed actual intervals do not retain their obsolete planned conflict",
     });
 
   assert.equal(
-    effectiveAssignmentIntervalsOverlap(
-      completed,
-      candidate("13:00", "14:00"),
-    ),
+    effectiveAssignmentIntervalsOverlap(completed, candidate("13:00", "14:00")),
     false,
   );
   assert.equal(
-    effectiveAssignmentIntervalsOverlap(
-      completed,
-      candidate("09:30", "10:30"),
-    ),
+    effectiveAssignmentIntervalsOverlap(completed, candidate("09:30", "10:30")),
     true,
   );
   assert.equal(
-    effectiveAssignmentIntervalsOverlap(
-      completed,
-      candidate("10:00", "11:00"),
-    ),
+    effectiveAssignmentIntervalsOverlap(completed, candidate("10:00", "11:00")),
     false,
   );
   assert.equal(

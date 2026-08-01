@@ -241,13 +241,12 @@ function paymentColumns(): Array<PortalDataColumn<CustomerPayment>> {
             Factuur bekijken
           </PortalActionMenuLink>
           {payment.status === "open" && payment.checkoutUrl ? (
-            <div className="px-2 py-1">
-              <PaymentActionButton
-                invoiceId={payment.invoiceId}
-                label="Betaling openen"
-                variant="secondary"
-              />
-            </div>
+            <PaymentActionButton
+              invoiceId={payment.invoiceId}
+              label="Betaling openen"
+              variant="secondary"
+              renderAsMenuItem
+            />
           ) : null}
         </PortalActionMenu>
       ),
