@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { allowedHistoricalRecordedMigrations } from "../scripts/fieldgrid-migration-order-check.mjs";
 import {
   CONFIRMATION,
   BACKUP_SCHEMAS,
@@ -25,6 +26,7 @@ import {
   isAllowedRouteStatus,
   isFullSha,
   migrationHistoryEvidence,
+  normalizeRecordedMigrationHistory,
   parseArgs,
   parsePaymentIntentDiagnostic,
   parsePostgresEnv,
@@ -38,6 +40,16 @@ const repoRoot = join(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFileSync(join(repoRoot, path), "utf8");
 const mainSha = "a".repeat(40);
 const stagingSha = "b".repeat(40);
+
+function migrationRecords(names) {
+  return names.map((name, index) => ({
+    name,
+    hash:
+      allowedHistoricalRecordedMigrations[name]?.sqlSha256 ?? "0".repeat(64),
+    appliedAt: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+    baselined: false,
+  }));
+}
 
 function validEnvironment() {
   const env = {
@@ -136,12 +148,12 @@ test("restore verification rejects missing and unexpected migration history", ()
     "20260801000000_release_gate.sql",
   ];
   assert.doesNotThrow(() =>
-    assertMatchingMigrationHistory([...committed], committed),
+    assertMatchingMigrationHistory(migrationRecords(committed), committed),
   );
   assert.throws(
     () =>
       assertMatchingMigrationHistory(
-        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        migrationRecords(["001_legacy.sql", "20260801000000_release_gate.sql"]),
         committed,
       ),
     /missing: 20260731170000_portal_user_onboarding\.sql/u,
@@ -149,12 +161,12 @@ test("restore verification rejects missing and unexpected migration history", ()
   assert.throws(
     () =>
       assertMatchingMigrationHistory(
-        [
+        migrationRecords([
           "001_legacy.sql",
           "20260730000000_staging_only.sql",
           "20260731170000_portal_user_onboarding.sql",
           "20260801000000_release_gate.sql",
-        ],
+        ]),
         committed,
       ),
     /unexpected: 20260730000000_staging_only\.sql/u,
@@ -169,11 +181,17 @@ test("pre-rehearsal history allows a complete legacy set plus a modern prefix", 
   ];
   assert.deepEqual(
     assertCommittedMigrationPrefix(
-      ["001_legacy.sql", "20260731170000_portal_user_onboarding.sql"],
+      migrationRecords([
+        "001_legacy.sql",
+        "20260731170000_portal_user_onboarding.sql",
+      ]),
       committed,
     ),
     {
       recordedMigrationCount: 2,
+      recognizedHistoricalMigrationCount: 0,
+      activeRecordedMigrationCount: 2,
+      semanticRecordedMigrationCount: 2,
       pendingMigrationCount: 1,
       requiredLegacyMigrationCount: 1,
       recordedModernMigrationCount: 1,
@@ -182,14 +200,20 @@ test("pre-rehearsal history allows a complete legacy set plus a modern prefix", 
         "20260731170000_portal_user_onboarding.sql",
     },
   );
-  assert.deepEqual(assertCommittedMigrationPrefix([...committed], committed), {
-    recordedMigrationCount: 3,
-    pendingMigrationCount: 0,
-    requiredLegacyMigrationCount: 1,
-    recordedModernMigrationCount: 2,
-    pendingModernMigrationCount: 0,
-    latestRecordedModernMigration: "20260801000000_release_gate.sql",
-  });
+  assert.deepEqual(
+    assertCommittedMigrationPrefix(migrationRecords(committed), committed),
+    {
+      recordedMigrationCount: 3,
+      recognizedHistoricalMigrationCount: 0,
+      activeRecordedMigrationCount: 3,
+      semanticRecordedMigrationCount: 3,
+      pendingMigrationCount: 0,
+      requiredLegacyMigrationCount: 1,
+      recordedModernMigrationCount: 2,
+      pendingModernMigrationCount: 0,
+      latestRecordedModernMigration: "20260801000000_release_gate.sql",
+    },
+  );
 });
 
 test("pre-rehearsal history rejects missing-middle and staging-only entries", () => {
@@ -201,7 +225,7 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        migrationRecords(["001_legacy.sql", "20260801000000_release_gate.sql"]),
         committed,
       ),
     /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
@@ -209,7 +233,7 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        ["001_legacy.sql", "20260730000000_staging_only.sql"],
+        migrationRecords(["001_legacy.sql", "20260730000000_staging_only.sql"]),
         committed,
       ),
     /unexpected: 20260730000000_staging_only\.sql/u,
@@ -217,11 +241,11 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        [
+        migrationRecords([
           "001_legacy.sql",
           "20260801000000_release_gate.sql",
           "20260731170000_portal_user_onboarding.sql",
-        ],
+        ]),
         committed,
       ),
     /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
@@ -229,7 +253,7 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        [...committed, "20260802000000_staging_only.sql"],
+        migrationRecords([...committed, "20260802000000_staging_only.sql"]),
         committed,
       ),
     /unexpected: 20260802000000_staging_only\.sql/u,
@@ -253,9 +277,15 @@ test("historical legacy order is grandfathered while modern order stays strict",
   ];
 
   assert.deepEqual(
-    assertCommittedMigrationPrefix(historicallyApplied, committed),
+    assertCommittedMigrationPrefix(
+      migrationRecords(historicallyApplied),
+      committed,
+    ),
     {
       recordedMigrationCount: 4,
+      recognizedHistoricalMigrationCount: 0,
+      activeRecordedMigrationCount: 4,
+      semanticRecordedMigrationCount: 4,
       pendingMigrationCount: 1,
       requiredLegacyMigrationCount: 3,
       recordedModernMigrationCount: 1,
@@ -265,14 +295,21 @@ test("historical legacy order is grandfathered while modern order stays strict",
   );
   assert.doesNotThrow(() =>
     assertMatchingMigrationHistory(
-      [...historicallyApplied, "20260708120000_second_modern.sql"],
+      migrationRecords([
+        ...historicallyApplied,
+        "20260708120000_second_modern.sql",
+      ]),
       committed,
     ),
   );
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        ["001_legacy.sql", legacyTimestamp, "20260707191000_first_modern.sql"],
+        migrationRecords([
+          "001_legacy.sql",
+          legacyTimestamp,
+          "20260707191000_first_modern.sql",
+        ]),
         committed,
       ),
     /missing required legacy migrations: 002_legacy\.sql/u,
@@ -280,16 +317,186 @@ test("historical legacy order is grandfathered while modern order stays strict",
   assert.throws(
     () =>
       assertCommittedMigrationPrefix(
-        [
+        migrationRecords([
           "001_legacy.sql",
           legacyTimestamp,
           "002_legacy.sql",
           "20260708120000_second_modern.sql",
           "20260707191000_first_modern.sql",
-        ],
+        ]),
         committed,
       ),
     /invalid modern migration order/u,
+  );
+});
+
+test("historical main-line migration names normalize fail closed to current canon", () => {
+  const committed = [
+    "001_legacy.sql",
+    "056_fieldgrid_recovery_foundation.sql",
+    "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+    "20260708121100_enterprise_whitelabel_theme.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  const historical = [
+    "001_legacy.sql",
+    "055_platform_users.sql",
+    "056_fieldgrid_recovery_foundation.sql",
+    "102_cleanup_staging_demo_sector_descriptions.sql",
+    "103_enterprise_whitelabel_theme.sql",
+  ];
+
+  const normalized = normalizeRecordedMigrationHistory(
+    migrationRecords(historical),
+  );
+  assert.deepEqual(normalized.activeNames, [
+    "001_legacy.sql",
+    "056_fieldgrid_recovery_foundation.sql",
+  ]);
+  assert.deepEqual(normalized.semanticNames, committed.slice(0, 4));
+  assert.deepEqual(
+    normalized.historicalMigrationRecords.map((record) => record.name),
+    [
+      "055_platform_users.sql",
+      "102_cleanup_staging_demo_sector_descriptions.sql",
+      "103_enterprise_whitelabel_theme.sql",
+    ],
+  );
+  assert.ok(
+    normalized.historicalMigrationRecords.every(
+      (record) => record.hashVerified === true,
+    ),
+  );
+  assert.deepEqual(
+    assertCommittedMigrationPrefix(migrationRecords(historical), committed),
+    {
+      recordedMigrationCount: 5,
+      recognizedHistoricalMigrationCount: 3,
+      activeRecordedMigrationCount: 2,
+      semanticRecordedMigrationCount: 4,
+      pendingMigrationCount: 3,
+      requiredLegacyMigrationCount: 2,
+      recordedModernMigrationCount: 0,
+      pendingModernMigrationCount: 3,
+      latestRecordedModernMigration: null,
+    },
+  );
+
+  assert.doesNotThrow(() =>
+    assertMatchingMigrationHistory(
+      migrationRecords([
+        ...historical,
+        "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+        "20260708121100_enterprise_whitelabel_theme.sql",
+        "20260801000000_release_gate.sql",
+      ]),
+      committed,
+    ),
+  );
+  assert.doesNotThrow(() =>
+    assertMatchingMigrationHistory(
+      migrationRecords([
+        ...historical,
+        "20260801000000_release_gate.sql",
+        "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+        "20260708121100_enterprise_whitelabel_theme.sql",
+      ]),
+      committed,
+    ),
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        migrationRecords([
+          "001_legacy.sql",
+          "056_fieldgrid_recovery_foundation.sql",
+          "20260801000000_release_gate.sql",
+          "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+          "20260708121100_enterprise_whitelabel_theme.sql",
+        ]),
+        committed,
+      ),
+    /invalid modern migration order/u,
+  );
+  assert.throws(
+    () =>
+      assertMatchingMigrationHistory(
+        migrationRecords([...historical, "20260801000000_release_gate.sql"]),
+        committed,
+      ),
+    /missing: 20260708121000_cleanup_staging_demo_sector_descriptions\.sql, 20260708121100_enterprise_whitelabel_theme\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        migrationRecords([...historical, "104_staging_only.sql"]),
+        committed,
+      ),
+    /unexpected: 104_staging_only\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        migrationRecords([...historical, "055_platform_users.sql"]),
+        committed,
+      ),
+    /duplicate: 055_platform_users\.sql/u,
+  );
+  const wrongHash = migrationRecords(historical);
+  wrongHash.find((record) => record.name === "055_platform_users.sql").hash =
+    "f".repeat(64);
+  assert.throws(
+    () => assertCommittedMigrationPrefix(wrongHash, committed),
+    /055_platform_users\.sql is recorded with an unexpected hash/u,
+  );
+  const renamedWrongHash = migrationRecords(historical);
+  renamedWrongHash.find(
+    (record) =>
+      record.name === "102_cleanup_staging_demo_sector_descriptions.sql",
+  ).hash = "e".repeat(64);
+  assert.throws(
+    () => assertCommittedMigrationPrefix(renamedWrongHash, committed),
+    /102_cleanup_staging_demo_sector_descriptions\.sql is recorded with an unexpected hash/u,
+  );
+  const baselinedRename = migrationRecords(historical);
+  baselinedRename.find(
+    (record) =>
+      record.name === "102_cleanup_staging_demo_sector_descriptions.sql",
+  ).baselined = true;
+  assert.throws(
+    () => assertCommittedMigrationPrefix(baselinedRename, committed),
+    /102_cleanup_staging_demo_sector_descriptions\.sql was baselined without execution/u,
+  );
+  const reorderedAliases = migrationRecords([
+    "001_legacy.sql",
+    "055_platform_users.sql",
+    "056_fieldgrid_recovery_foundation.sql",
+    "103_enterprise_whitelabel_theme.sql",
+    "102_cleanup_staging_demo_sector_descriptions.sql",
+  ]);
+  assert.throws(
+    () => assertCommittedMigrationPrefix(reorderedAliases, committed),
+    /invalid modern migration order/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        migrationRecords(historical).map((record, index) =>
+          index === 0 ? { ...record, appliedAt: "not-a-date" } : record,
+        ),
+        committed,
+      ),
+    /migration history is invalid/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        migrationRecords(historical).map((record, index) =>
+          index === 0 ? { ...record, baselined: "false" } : record,
+        ),
+        committed,
+      ),
+    /migration history is invalid/u,
   );
 });
 
@@ -644,7 +851,7 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
   assert.match(
     script,
-    /jsonb_agg\(name order by applied_at, name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
+    /jsonb_agg\(jsonb_build_object\('name', name, 'hash', hash, 'appliedAt', applied_at, 'baselined', baselined\) order by applied_at, name\)[\s\S]*?from drizzle\.veele_sql_migrations/u,
   );
   assert.doesNotMatch(
     script,

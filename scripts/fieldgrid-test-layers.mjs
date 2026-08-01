@@ -57,7 +57,8 @@ export const fieldgridTestLayers = [
     owner: "Platform engineering",
     purpose:
       "Alle migraties draaien op een lege lokale PostgreSQL 17 database met Supabase-compatibiliteitsshims.",
-    ciCommand: "pnpm fieldgrid:runtime-safety:setup",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration",
     requiredTestFiles: [
       "tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs",
     ],
@@ -111,7 +112,7 @@ export const fieldgridTestLayers = [
     purpose:
       "Lokale API runtime bewijst middleware/routegedrag zonder live providers of staging.",
     ciCommand:
-      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm --filter @workspace/api-server run build && pnpm fieldgrid:runtime-safety:api",
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm --filter @workspace/api-server run build && pnpm fieldgrid:runtime-safety:api && pnpm fieldgrid:test:payment-provider-runtime",
     requiredTestFiles: [
       "tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs",
     ],
@@ -281,8 +282,9 @@ export async function buildFieldgridTestLayersPlan() {
         "pnpm --filter @workspace/website-core test && pnpm --filter @workspace/website-runtime test",
       "fieldgrid:test:security-source":
         "pnpm fieldgrid:test:security-recursive",
-      "fieldgrid:test:postgres17-migration-smoke":
-        "pnpm fieldgrid:runtime-safety:setup",
+      "fieldgrid:test:postgres17-migration-smoke": fieldgridTestLayers.find(
+        (layer) => layer.id === "postgres17-migration-smoke",
+      )?.ciCommand,
       "fieldgrid:test:db-integration-tenant-ab": fieldgridTestLayers.find(
         (layer) => layer.id === "db-integration-tenant-ab",
       )?.ciCommand,
@@ -305,7 +307,7 @@ export async function buildFieldgridTestLayersPlan() {
       "fieldgrid:test:domain-recursive":
         "node --test $(find tests/domain -name '*.test.mjs' -print | sort)",
       "fieldgrid:test:db-regressions":
-        "node --test tests/fieldgrid-phase2a-durable-staffing.test.mjs tests/fieldgrid-phase2c-security-reconciliation.test.mjs",
+        "node -e \"if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for fieldgrid:test:db-regressions')\" && node --test tests/fieldgrid-phase2a-durable-staffing.test.mjs tests/fieldgrid-phase2c-security-reconciliation.test.mjs",
       "fieldgrid:test:security": fieldgridTestLayers.find(
         (layer) => layer.id === "security-guards",
       )?.ciCommand,
@@ -322,7 +324,7 @@ export async function buildFieldgridTestLayersPlan() {
   };
 }
 
-export async function validateFieldgridTestLayersPlan(plan) {
+export async function validateFieldgridTestLayersPlan(plan, options = {}) {
   const resolvedPlan = plan ?? (await buildFieldgridTestLayersPlan());
   const errors = [];
   const layerIds = new Set(resolvedPlan.layers.map((layer) => layer.id));
@@ -356,10 +358,20 @@ export async function validateFieldgridTestLayersPlan(plan) {
     }
   }
 
-  const packageJson = await readFile(join(repoRoot, "package.json"), "utf8");
-  for (const scriptName of Object.keys(resolvedPlan.packageScripts)) {
-    if (!packageJson.includes(`"${scriptName}"`))
+  const packageManifest =
+    options.packageManifest ??
+    JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"));
+  const packageScripts = packageManifest?.scripts ?? {};
+  for (const [scriptName, expectedCommand] of Object.entries(
+    resolvedPlan.packageScripts,
+  )) {
+    if (!(scriptName in packageScripts)) {
       errors.push(`package.json mist script ${scriptName}.`);
+    } else if (packageScripts[scriptName] !== expectedCommand) {
+      errors.push(
+        `package.json script ${scriptName} wijkt af van het testlagenmanifest.`,
+      );
+    }
   }
 
   return errors;
