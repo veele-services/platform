@@ -91,18 +91,23 @@ test("W01 planboard and personnel consume the same canonical time projection", (
     backofficeAssignmentAction,
     /effectiveAssignmentIntervalsOverlap/u,
   );
+  const planningMatchStart = planningAction.indexOf(
+    "function buildPlanningMatch",
+  );
+  const getPlanningBoardDataStart = planningAction.indexOf(
+    "export async function getPlanningBoardData",
+  );
+  assert.notEqual(planningMatchStart, -1);
+  assert.ok(getPlanningBoardDataStart > planningMatchStart);
   const planningMatch = planningAction.slice(
-    planningAction.indexOf("function buildPlanningMatch"),
-    planningAction.indexOf("function assignmentStatusLabel"),
+    planningMatchStart,
+    getPlanningBoardDataStart,
   );
   assert.match(
     planningMatch,
     /effectiveAssignmentIntervalsOverlap\(assignment, other\)/u,
   );
-  assert.doesNotMatch(
-    planningMatch,
-    /overlaps\(\s*other\.scheduledStart/u,
-  );
+  assert.doesNotMatch(planningMatch, /overlaps\(\s*other\.scheduledStart/u);
   assert.match(planningBoard, /setInterval\(updateClock,\s*60_000\)/u);
   assert.match(planningBoard, /assignment\.isRunning/u);
   assert.match(planningDay, /setInterval\(updateClock,\s*60_000\)/u);
@@ -136,9 +141,17 @@ test("W01 lifecycle guards prevent generic edit bypass and preserve first comple
     personnelAction,
     /aggregateCompleted[\s\S]*db[\s\S]*\.update\(assignmentsTable\)[\s\S]*completionNotes/u,
   );
+  const completeAssignmentStart = personnelAction.indexOf(
+    "export async function completeAssignment",
+  );
+  const notCompleteAssignmentStart = personnelAction.indexOf(
+    "export async function notCompleteAssignment",
+  );
+  assert.notEqual(completeAssignmentStart, -1);
+  assert.ok(notCompleteAssignmentStart > completeAssignmentStart);
   const completeAssignmentBody = personnelAction.slice(
-    personnelAction.indexOf("export async function completeAssignment"),
-    personnelAction.indexOf("export async function notCompleteAssignment"),
+    completeAssignmentStart,
+    notCompleteAssignmentStart,
   );
   assert.doesNotMatch(
     completeAssignmentBody,

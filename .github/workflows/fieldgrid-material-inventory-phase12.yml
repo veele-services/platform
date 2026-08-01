@@ -48,7 +48,7 @@ jobs:
         run: pnpm run typecheck
 
       - name: Run build
-        run: pnpm run build
+        run: pnpm -r --if-present run build
 
       - name: Summarize selected gate
         run: |

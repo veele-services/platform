@@ -12,7 +12,10 @@ test("backoffice owns a real admin base path and middleware normalizes only that
   const paths = read("artifacts/backoffice/src/lib/backoffice-paths.ts");
   assert.match(config, /basePath: "\/admin"/u);
   assert.match(paths, /BACKOFFICE_BASE_PATH = "\/admin"/u);
-  assert.match(paths, /normalized\.startsWith\(`\$\{BACKOFFICE_BASE_PATH\}\?`\)/u);
+  assert.match(
+    paths,
+    /normalized\.startsWith\(`\$\{BACKOFFICE_BASE_PATH\}\?`\)/u,
+  );
   assert.match(paths, /backofficePath only accepts same-origin paths/u);
   assert.match(middleware, /stripBackofficeBasePath\(pathname\)/u);
   assert.match(middleware, /backofficePath\("\/login"\)/u);
@@ -20,10 +23,18 @@ test("backoffice owns a real admin base path and middleware normalizes only that
 });
 
 test("each application session and auxiliary cookie is restricted to its owning path", () => {
-  const backoffice = read("artifacts/backoffice/src/lib/supabase/session-cookies.ts");
-  const personnel = read("artifacts/personeel-pwa/src/lib/supabase/session-cookies.ts");
-  const customer = read("artifacts/klant-pwa/src/lib/supabase/session-cookies.ts");
-  const tenantSwitcher = read("artifacts/backoffice/src/app/actions/tenant-switcher.ts");
+  const backoffice = read(
+    "artifacts/backoffice/src/lib/supabase/session-cookies.ts",
+  );
+  const personnel = read(
+    "artifacts/personeel-pwa/src/lib/supabase/session-cookies.ts",
+  );
+  const customer = read(
+    "artifacts/klant-pwa/src/lib/supabase/session-cookies.ts",
+  );
+  const tenantSwitcher = read(
+    "artifacts/backoffice/src/app/actions/tenant-switcher.ts",
+  );
   const platform = read("artifacts/backoffice/src/app/actions/platform.ts");
   const auth = read("artifacts/backoffice/src/app/actions/auth.ts");
   const personnelAuth = read("artifacts/personeel-pwa/src/actions/auth.ts");
@@ -34,36 +45,79 @@ test("each application session and auxiliary cookie is restricted to its owning 
   assert.match(tenantSwitcher, /path: BACKOFFICE_BASE_PATH/u);
   assert.match(platform, /path: BACKOFFICE_BASE_PATH/gu);
   assert.match(auth, /path: BACKOFFICE_BASE_PATH/u);
-  assert.match(auth, /delete\(\{ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH \}\)/gu);
-  assert.match(personnelAuth, /delete\(\{ name: RECOVERY_COOKIE, path: "\/personeel" \}\)/gu);
-  assert.match(customerAuth, /delete\(\{ name: RECOVERY_COOKIE, path: "\/klant" \}\)/gu);
-  for (const source of [backoffice, personnel, customer, tenantSwitcher, platform, auth]) {
+  assert.match(
+    auth,
+    /delete\(\{ name: RECOVERY_COOKIE, path: BACKOFFICE_BASE_PATH \}\)/gu,
+  );
+  assert.match(
+    personnelAuth,
+    /delete\(\{ name: RECOVERY_COOKIE, path: "\/personeel" \}\)/gu,
+  );
+  assert.match(
+    customerAuth,
+    /delete\(\{ name: RECOVERY_COOKIE, path: "\/klant" \}\)/gu,
+  );
+  for (const source of [
+    backoffice,
+    personnel,
+    customer,
+    tenantSwitcher,
+    platform,
+    auth,
+  ]) {
     assert.doesNotMatch(source, /path:\s*["'`]\/["'`]/u);
   }
 });
 
 test("raw backoffice browser and e-mail URLs use the explicit public-path helper", () => {
-  const address = read("artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx");
-  const map = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
-  const search = read("artifacts/backoffice/src/components/knowledgebase/KnowledgebaseAutocompleteSearch.tsx");
+  const address = read(
+    "artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx",
+  );
+  const map = read(
+    "artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx",
+  );
+  const search = read(
+    "artifacts/backoffice/src/components/knowledgebase/KnowledgebaseAutocompleteSearch.tsx",
+  );
   const email = read("artifacts/backoffice/src/lib/email.ts");
   const customerEmail = read("artifacts/klant-pwa/src/lib/email.ts");
   const personnelEmail = read("artifacts/personeel-pwa/src/lib/email.ts");
-  const authConfirm = read("artifacts/backoffice/src/app/auth/confirm/route.ts");
+  const authConfirm = read(
+    "artifacts/backoffice/src/app/auth/confirm/route.ts",
+  );
   const rootLayout = read("artifacts/backoffice/src/app/layout.tsx");
-  const releaseForm = read("artifacts/backoffice/src/components/releases/ReleaseForm.tsx");
-  const mediaRenderer = read("artifacts/backoffice/src/components/knowledgebase/KnowledgebaseContentRenderer.tsx");
-  assert.match(address, /fetch\(`\$\{backofficePath\(endpointBase\)\}\/autocomplete`/u);
-  assert.match(map, /fetch\(backofficePath\("\/backoffice-api\/google-maps\/usage"\)/u);
+  const releaseForm = read(
+    "artifacts/backoffice/src/components/releases/ReleaseForm.tsx",
+  );
+  const mediaRenderer = read(
+    "artifacts/backoffice/src/components/knowledgebase/KnowledgebaseContentRenderer.tsx",
+  );
+  assert.match(
+    address,
+    /fetch\(`\$\{backofficePath\(endpointBase\)\}\/autocomplete`/u,
+  );
+  assert.match(
+    map,
+    /fetch\(backofficePath\("\/backoffice-api\/google-maps\/usage"\)/u,
+  );
   assert.match(search, /fetch\(`\$\{backofficePath\(endpoint\)\}\?q=/u);
   assert.match(email, /backofficeBaseUrl/u);
   assert.match(email, /https:\/\/admin\.fieldgrid\.nl\/admin/u);
   assert.match(email, /reportUrl: `\$\{backofficeUrl\(\)\}\/reports/u);
-  assert.match(email, /leaveUrl: `\$\{backofficeUrl\(\)\}\/personnel\/verlof`/u);
+  assert.match(
+    email,
+    /leaveUrl: `\$\{backofficeUrl\(\)\}\/personnel\/verlof`/u,
+  );
   assert.match(email, /quotesUrl: `\$\{backofficeUrl\(\)\}\/quotes`/u);
   assert.match(customerEmail, /quotesUrl: `\$\{backofficeUrl\(\)\}\/quotes`/u);
-  assert.match(personnelEmail, /reportUrl: `\$\{backofficeUrl\(\)\}\/reports`/u);
-  assert.match(personnelEmail, /leaveUrl: `\$\{backofficeUrl\(\)\}\/personnel\/verlof`/u);
+  assert.match(
+    personnelEmail,
+    /reportUrl: `\$\{backofficeUrl\(\)\}\/reports`/u,
+  );
+  assert.match(
+    personnelEmail,
+    /leaveUrl: `\$\{backofficeUrl\(\)\}\/personnel\/verlof`/u,
+  );
   assert.match(authConfirm, /backofficePath\("\/reset-wachtwoord"\)/u);
   assert.match(rootLayout, /icons: \{ icon: "\/admin\/favicon\.svg" \}/u);
   assert.match(releaseForm, /src=\{backofficePath\(`/u);
@@ -77,14 +131,31 @@ test("route precedence and browser evidence keep website root separate from auth
   const docs = read("docs/deployment/website-shared-host-routing.md");
   const runnerDocs = read("docs/deployment/self-hosted-runner.md");
   const websiteMiddleware = read("artifacts/website-runtime/src/middleware.ts");
-  const apiProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
-  assert.ok(routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.backoffice") < routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.personnel"));
-  assert.ok(routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.personnel") < routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.customer"));
-  assert.ok(routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.customer") < routing.indexOf("isPlatformApiPath(pathname)"));
+  const apiProxy = read(
+    "artifacts/api-server/src/routes/platform-backoffice.ts",
+  );
+  const backofficePath = routing.indexOf(
+    "FIELDGRID_SHARED_HOST_PATHS.backoffice",
+  );
+  const personnelPath = routing.indexOf(
+    "FIELDGRID_SHARED_HOST_PATHS.personnel",
+  );
+  const customerPath = routing.indexOf("FIELDGRID_SHARED_HOST_PATHS.customer");
+  const platformApiPath = routing.indexOf("isPlatformApiPath(pathname)");
+  assert.notEqual(backofficePath, -1);
+  assert.notEqual(personnelPath, -1);
+  assert.notEqual(customerPath, -1);
+  assert.notEqual(platformApiPath, -1);
+  assert.ok(backofficePath < personnelPath);
+  assert.ok(personnelPath < customerPath);
+  assert.ok(customerPath < platformApiPath);
   assert.match(routing, /filterWebsiteCookieHeader/u);
   assert.match(golden, /9321\/admin/u);
   assert.match(golden, /expect\(response\?\.status\(\)\)\.toBe\(404\)/u);
-  assert.match(golden, /rootCookieHeader.*not\.toContain\("fieldgrid_e2e_auth_user"\)/su);
+  assert.match(
+    golden,
+    /rootCookieHeader.*not\.toContain\("fieldgrid_e2e_auth_user"\)/su,
+  );
   assert.match(stack, /"\/admin\/login"/u);
   assert.match(stack, /path: "\/admin\/customers"/u);
   assert.match(

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -111,6 +117,16 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
   );
   assert.ok(
     plan.layers
+      .find((layer) => layer.id === "unit-domain")
+      ?.ciCommand.includes("fieldgrid:test:domain-typescript"),
+  );
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "db-integration-tenant-ab")
+      ?.ciCommand.includes("fieldgrid:test:db-regressions"),
+  );
+  assert.ok(
+    plan.layers
       .find((layer) => layer.id === "rls-security")
       ?.ciCommand.includes("fieldgrid:runtime-safety:rls"),
   );
@@ -121,8 +137,13 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
   );
   assert.ok(
     plan.layers
-      .find((layer) => layer.id === "phase-b-previous-release-database-compatibility")
-      ?.ciCommand.includes("fieldgrid:runtime-safety:previous-release-compatibility"),
+      .find(
+        (layer) =>
+          layer.id === "phase-b-previous-release-database-compatibility",
+      )
+      ?.ciCommand.includes(
+        "fieldgrid:runtime-safety:previous-release-compatibility",
+      ),
   );
   assert.ok(
     plan.layers
@@ -165,10 +186,13 @@ test("phase 4 staging promotion gate can validate workflow contracts from GitHub
       "utf8",
     );
 
-    const content = await readSourceContractText(".github/workflows/deploy.yml", {
-      repoRoot: releaseRoot,
-      githubWorkspace: workspaceRoot,
-    });
+    const content = await readSourceContractText(
+      ".github/workflows/deploy.yml",
+      {
+        repoRoot: releaseRoot,
+        githubWorkspace: workspaceRoot,
+      },
+    );
 
     assert.match(content, /Validate Fieldgrid release signals/u);
     assert.match(content, /pnpm fieldgrid:staging-promotion-gate:check/u);
@@ -192,6 +216,8 @@ test("phase 4 package scripts and workflows expose the release signals", () => {
       "fieldgrid:migration-order-check",
       "fieldgrid:test-layers",
       "fieldgrid:test:security",
+      "fieldgrid:test:domain-typescript",
+      "fieldgrid:test:db-regressions",
       "fieldgrid:test:ui-contracts",
       "fieldgrid:test:db-migration",
       "fieldgrid:test:live-e2e",
@@ -199,6 +225,10 @@ test("phase 4 package scripts and workflows expose the release signals", () => {
       "fieldgrid:staging-promotion-gate:strict",
     ],
     "package scripts",
+  );
+  assert.match(
+    packageJson,
+    /DATABASE_URL is required for fieldgrid:test:db-regressions/u,
   );
 
   assertContains(

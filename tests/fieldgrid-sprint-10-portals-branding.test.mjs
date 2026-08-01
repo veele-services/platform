@@ -24,7 +24,7 @@ test("sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gat
     branding,
     [
       "FIELDGRID_BRAND_DEFAULTS",
-      "platformName: \"Fieldgrid\"",
+      'platformName: "Fieldgrid"',
       "canTenantUseCustomBranding",
       "enterprise",
       "getTenantBranding",
@@ -35,11 +35,16 @@ test("sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gat
     "tenant branding helper",
   );
   assertIncludes(dbIndex, ["./tenant-branding"], "db package exports");
-  assert.ok(!branding.includes("Veele Services"), "Fieldgrid branding defaults should not use Veele Services");
+  assert.ok(
+    !branding.includes("Veele Services"),
+    "Fieldgrid branding defaults should not use Veele Services",
+  );
 });
 
 test("sprint 10 keeps organization branding defaults Fieldgrid-first", () => {
-  const organizationSettings = read("lib/db/src/schema/organization-settings.ts");
+  const organizationSettings = read(
+    "lib/db/src/schema/organization-settings.ts",
+  );
   const migration = read("lib/db/migrations/065_portal_branding_defaults.sql");
 
   assertIncludes(
@@ -52,12 +57,20 @@ test("sprint 10 keeps organization branding defaults Fieldgrid-first", () => {
     ],
     "organization branding defaults",
   );
-  assert.ok(!organizationSettings.includes("Veele Services"), "new organization settings defaults should not mention Veele Services");
+  assert.ok(
+    !organizationSettings.includes("Veele Services"),
+    "new organization settings defaults should not mention Veele Services",
+  );
 });
 
 test("sprint 10 gates customer and personnel portal shells by host-bound tenant context", () => {
   const customerLayout = read("artifacts/klant-pwa/src/app/(app)/layout.tsx");
-  const personnelLayout = read("artifacts/personeel-pwa/src/app/(app)/layout.tsx");
+  const customerFeatures = read(
+    "artifacts/klant-pwa/src/lib/portal-features.ts",
+  );
+  const personnelLayout = read(
+    "artifacts/personeel-pwa/src/app/(app)/layout.tsx",
+  );
 
   assertIncludes(
     customerLayout,
@@ -65,12 +78,20 @@ test("sprint 10 gates customer and personnel portal shells by host-bound tenant 
       "requireCurrentCustomerPortalTenantId",
       "getTenantBranding",
       "getTenantBrandingCssVariables",
-      "isTenantModuleEnabled",
+      "getCustomerPortalFeatureFlags(tenantId)",
       "DesktopSidebar branding={branding}",
       "MobileHeader",
       "Het klantportaal is niet beschikbaar voor deze organisatie.",
     ],
     "customer portal layout",
+  );
+  assertIncludes(
+    customerFeatures,
+    [
+      "requireCurrentCustomerPortalTenantId",
+      "isTenantModuleEnabled(resolvedTenantId, MODULE_KEYS[feature])",
+    ],
+    "customer portal feature helper",
   );
 
   assertIncludes(
@@ -89,31 +110,56 @@ test("sprint 10 gates customer and personnel portal shells by host-bound tenant 
 });
 
 test("sprint 10 applies branding props and module-aware navigation in both portal shells", () => {
-  const customerHeader = read("artifacts/klant-pwa/src/components/MobileHeader.tsx");
-  const customerSidebar = read("artifacts/klant-pwa/src/components/DesktopSidebar.tsx");
-  const personnelHeader = read("artifacts/personeel-pwa/src/components/MobileHeader.tsx");
-  const personnelSidebar = read("artifacts/personeel-pwa/src/components/DesktopSidebar.tsx");
+  const customerHeader = read(
+    "artifacts/klant-pwa/src/components/MobileHeader.tsx",
+  );
+  const customerSidebar = read(
+    "artifacts/klant-pwa/src/components/DesktopSidebar.tsx",
+  );
+  const personnelHeader = read(
+    "artifacts/personeel-pwa/src/components/MobileHeader.tsx",
+  );
+  const personnelSidebar = read(
+    "artifacts/personeel-pwa/src/components/DesktopSidebar.tsx",
+  );
 
   assertIncludes(
     `${customerHeader}\n${personnelHeader}`,
-    ["PortalBrandingProps", "logoUrl", "displayName", "platformName", "accentColor"],
+    [
+      "PortalBrandingProps",
+      "logoUrl",
+      "displayName",
+      "platformName",
+      "accentColor",
+    ],
     "portal mobile branding",
   );
   assertIncludes(
     customerSidebar,
-    ["featureFlags", "moduleKey: \"documents\"", "moduleKey: \"finance\"", "moduleKey: \"reporting\""],
+    [
+      "featureFlags",
+      'moduleKey: "documents"',
+      'moduleKey: "finance"',
+      'moduleKey: "reporting"',
+    ],
     "customer portal sidebar",
   );
   assertIncludes(
     personnelSidebar,
-    ["featureFlags", "moduleKey: \"documents\"", "FieldgridLogo branding={branding}"],
+    [
+      "featureFlags",
+      'moduleKey: "documents"',
+      "FieldgridLogo branding={branding}",
+    ],
     "personnel portal sidebar",
   );
 });
 
 test("sprint 10 keeps static PWA shells neutral and resolves branding per tenant", () => {
   const customerRootLayout = read("artifacts/klant-pwa/src/app/layout.tsx");
-  const personnelRootLayout = read("artifacts/personeel-pwa/src/app/layout.tsx");
+  const personnelRootLayout = read(
+    "artifacts/personeel-pwa/src/app/layout.tsx",
+  );
   const staticFiles = [
     "artifacts/klant-pwa/src/app/layout.tsx",
     "artifacts/personeel-pwa/src/app/layout.tsx",
@@ -123,20 +169,29 @@ test("sprint 10 keeps static PWA shells neutral and resolves branding per tenant
 
   assertIncludes(
     customerRootLayout,
-    ["getCustomerPwaBranding", "PwaSplashScreen", "title: \"Klantportaal\""],
+    ["getCustomerPwaBranding", "PwaSplashScreen", 'title: "Klantportaal"'],
     "customer root layout",
   );
   assertIncludes(
     personnelRootLayout,
-    ["getPersonnelPwaBranding", "PwaSplashScreen", "title: \"Personeelsapp\""],
+    ["getPersonnelPwaBranding", "PwaSplashScreen", 'title: "Personeelsapp"'],
     "personnel root layout",
   );
 
   for (const path of staticFiles) {
     const content = read(path);
-    assert.ok(!content.includes("Veele Services"), `${path} should not include Veele Services`);
-    assert.ok(!content.includes("Veele Klantportaal"), `${path} should not include Veele Klantportaal`);
-    assert.ok(!content.includes("Veele Personeel"), `${path} should not include Veele Personeel`);
+    assert.ok(
+      !content.includes("Veele Services"),
+      `${path} should not include Veele Services`,
+    );
+    assert.ok(
+      !content.includes("Veele Klantportaal"),
+      `${path} should not include Veele Klantportaal`,
+    );
+    assert.ok(
+      !content.includes("Veele Personeel"),
+      `${path} should not include Veele Personeel`,
+    );
   }
 });
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -52,8 +52,9 @@ test("traceability validation fails closed for missing and open strict items", (
   assert.ok(strictErrors.some((error) => error.includes("no test evidence")));
 });
 
-test("source scan catches released direct Radix imports and raw controls", () => {
+test("source scan catches released direct Radix imports and raw controls", (t) => {
   const root = mkdtempSync(join(tmpdir(), "fieldgrid-uiux-gate-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   const sourceDir = join(root, "artifacts/backoffice/src/features");
   mkdirSync(sourceDir, { recursive: true });
   writeFileSync(
@@ -77,8 +78,9 @@ test("source scan catches released direct Radix imports and raw controls", () =>
   );
 });
 
-test("source scan distinguishes canonical JSX components from raw HTML controls", () => {
+test("source scan distinguishes canonical JSX components from raw HTML controls", (t) => {
   const root = mkdtempSync(join(tmpdir(), "fieldgrid-uiux-gate-components-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   const sourceDir = join(root, "artifacts/backoffice/src/features");
   mkdirSync(sourceDir, { recursive: true });
   writeFileSync(

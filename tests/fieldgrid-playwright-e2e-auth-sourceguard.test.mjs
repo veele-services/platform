@@ -10,11 +10,22 @@ const start = () => read("e2e/fieldgrid/start-real-apps.mjs");
 const seam = () => read("lib/db/src/e2e-auth-adapter.ts");
 const workflow = () => read(".github/workflows/main-exact-head-validation.yml");
 const browserSpec = () => read("e2e/fieldgrid/tests/golden-path.spec.ts");
-const accessibilitySpec = () => read("e2e/fieldgrid/tests/accessibility.spec.ts");
-const staffingSpec = () => read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
-const assignmentDetailActions = () => read("artifacts/backoffice/src/components/assignments/AssignmentDetailActions.tsx");
-const completionSummary = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx");
-const workOrderStatusProgress = () => read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx");
+const accessibilitySpec = () =>
+  read("e2e/fieldgrid/tests/accessibility.spec.ts");
+const staffingSpec = () =>
+  read("e2e/fieldgrid/tests/staffing-lifecycle.spec.ts");
+const assignmentDetailActions = () =>
+  read(
+    "artifacts/backoffice/src/components/assignments/AssignmentDetailActions.tsx",
+  );
+const completionSummary = () =>
+  read(
+    "artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/CompletionSummary.tsx",
+  );
+const workOrderStatusProgress = () =>
+  read(
+    "artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx",
+  );
 const playwrightConfig = () => read("playwright.config.ts");
 const root = process.cwd();
 const ALLOWLISTED_E2E_USER_ID = "20000000-0000-4000-8000-000000000101";
@@ -223,7 +234,10 @@ test("staffing lifecycle evidence binds mutations to durable state before render
   const spec = staffingSpec();
   assert.equal((spec.match(/waitUntil: 'commit'/gu) ?? []).length, 1);
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 1);
-  assert.match(spec, /customer\.goto\(customerUrl\('\/klant\/opdrachten'\), evidenceNavigationOptions\)/u);
+  assert.match(
+    spec,
+    /customer\.goto\(customerUrl\('\/klant\/opdrachten'\), evidenceNavigationOptions\)/u,
+  );
   assert.match(spec, /timeout: 120_000/u);
   assert.match(spec, /test\.setTimeout\(600_000\)/u);
   assert.match(spec, /public\.assignment_participant_executions/u);
@@ -233,7 +247,8 @@ test("staffing lifecycle evidence binds mutations to durable state before render
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'in_progress'\)/u);
   assert.match(spec, /waitForParticipantStatus\(personnelId, 'completed'\)/u);
   assert.equal(
-    (spec.match(/getByRole\('alertdialog'\)\.getByRole\('button'/gu) ?? []).length,
+    (spec.match(/getByRole\('alertdialog'\)\.getByRole\('button'/gu) ?? [])
+      .length,
     2,
   );
   assert.match(spec, /toContainText\(\/Afgerond\|Werkelijk\//u);
@@ -243,8 +258,14 @@ test("staffing lifecycle evidence binds mutations to durable state before render
 test("completion mutation cannot be clicked before personnel hydration", () => {
   const component = completionSummary();
   const spec = staffingSpec();
-  assert.match(component, /const \[isHydrated, setIsHydrated\] = useState\(false\)/u);
-  assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
+  assert.match(
+    component,
+    /const \[isHydrated, setIsHydrated\] = useState\(false\)/u,
+  );
+  assert.match(
+    component,
+    /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u,
+  );
   assert.match(component, /disabled=\{!isHydrated \|\| isPending\}/u);
   assert.match(spec, /eventually\(completeButton\)\.toBeEnabled\(\)/u);
 });
@@ -253,29 +274,59 @@ test("backoffice unassignment waits for hydration and bounded dialog evidence", 
   const component = assignmentDetailActions();
   const staffing = staffingSpec();
   const accessibility = accessibilitySpec();
-  assert.match(component, /const \[isHydrated, setIsHydrated\] = useState\(false\)/u);
-  assert.match(component, /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u);
-  assert.match(component, /disabled=\{!isHydrated \|\| \(pending && removingPersonnel === p\.id\)\}/u);
-  assert.match(staffing, /eventually\(removeParticipantButton\)\.toBeEnabled\(\)/u);
+  assert.match(
+    component,
+    /const \[isHydrated, setIsHydrated\] = useState\(false\)/u,
+  );
+  assert.match(
+    component,
+    /useEffect\(\(\) => \{\s*setIsHydrated\(true\);\s*\}, \[\]\);/u,
+  );
+  assert.match(
+    component,
+    /disabled=\{!isHydrated \|\| \(pending && removingPersonnel === p\.id\)\}/u,
+  );
+  assert.match(
+    staffing,
+    /eventually\(removeParticipantButton\)\.toBeEnabled\(\)/u,
+  );
   assert.match(staffing, /eventually\(unassignmentDialog\)\.toBeVisible\(\)/u);
-  assert.match(accessibility, /expect\(removeParticipantButton\)\.toBeEnabled\(\{ timeout: 30_000 \}\)/u);
+  assert.match(
+    accessibility,
+    /expect\(removeParticipantButton\)\.toBeEnabled\(\{ timeout: 30_000 \}\)/u,
+  );
 });
 
 test("completion choice uses native-link fallback instead of client-only router clicks", () => {
   const component = workOrderStatusProgress();
   const spec = staffingSpec();
-  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u);
-  assert.match(component, /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u);
-  assert.match(spec, /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u);
+  assert.match(
+    component,
+    /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=completed`\}/u,
+  );
+  assert.match(
+    component,
+    /href=\{`\/opdrachten\/\$\{assignmentId\}\/afronden\?result=not_completed`\}/u,
+  );
+  assert.match(
+    spec,
+    /getByRole\('dialog'\)\.getByRole\('link', \{ name: 'Ja' \}\)/u,
+  );
   assert.match(spec, /getAttribute\('href'\)/u);
-  assert.match(spec, /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u);
+  assert.match(
+    spec,
+    /page\.goto\(new URL\(completionHref!, page\.url\(\)\)\.toString\(\), navigationOptions\)/u,
+  );
 });
 
 test("backoffice accessibility evidence has bounded time and ignores non-critical resource load", () => {
   const spec = accessibilitySpec();
   assert.match(spec, /test\.setTimeout\(60_000\)/u);
   assert.equal((spec.match(/waitUntil: 'domcontentloaded'/gu) ?? []).length, 2);
-  assert.match(spec, /backoffice desktop\/mobile serious\/critical axe violations/u);
+  assert.match(
+    spec,
+    /backoffice desktop\/mobile serious\/critical axe violations/u,
+  );
 });
 
 test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", () => {
@@ -652,8 +703,14 @@ test("liveness is unauthenticated and authenticated acceptance precedes every is
     stack,
     /error: redact\(error instanceof Error \? error\.message : String\(error\)\)/,
   );
-  assert.match(runner, /async function startStack\(\)[\s\S]*await runAuthenticatedPreflight\(\);/);
-  assert.match(runner, /async function runBrowserPhase\(phase\)[\s\S]*await startStack\(\);[\s\S]*await runPlaywright\(phase\)/);
+  assert.match(
+    runner,
+    /async function startStack\(\)[\s\S]*await runAuthenticatedPreflight\(\);/,
+  );
+  assert.match(
+    runner,
+    /async function runBrowserPhase\(phase\)[\s\S]*await startStack\(\);[\s\S]*await runPlaywright\(phase\)/,
+  );
 });
 
 test("E2E source files are conflict-marker free", () => {
@@ -692,14 +749,27 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /artifacts\/fieldgrid-playwright\/\*\*/);
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.json/);
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.log/);
+  const playwrightJobStart = source.indexOf("\n  fieldgrid-playwright:");
+  const requiredJobStart = source.indexOf("\n  required:", playwrightJobStart);
+  assert.notEqual(playwrightJobStart, -1);
+  assert.ok(requiredJobStart > playwrightJobStart);
+  const playwrightJob = source.slice(playwrightJobStart, requiredJobStart);
+  const pnpmSetupIndex = playwrightJob.indexOf("pnpm/action-setup@v4");
+  const nodeSetupIndex = playwrightJob.indexOf("actions/setup-node@v4");
+  assert.notEqual(pnpmSetupIndex, -1);
+  assert.notEqual(nodeSetupIndex, -1);
   assert.ok(
-    source.indexOf("pnpm/action-setup@v4") <
-      source.indexOf("actions/setup-node@v4"),
+    pnpmSetupIndex < nodeSetupIndex,
     "pnpm must be installed before setup-node cache: pnpm",
   );
+  const teardownIndex = playwrightJob.indexOf("Tear down disposable database");
+  const artifactUploadIndex = playwrightJob.indexOf(
+    "Upload Fieldgrid Playwright artifacts",
+  );
+  assert.notEqual(teardownIndex, -1);
+  assert.notEqual(artifactUploadIndex, -1);
   assert.ok(
-    source.indexOf("Tear down disposable database") <
-      source.indexOf("Upload Fieldgrid Playwright artifacts"),
+    teardownIndex < artifactUploadIndex,
     "artifact upload must run after teardown and log capture",
   );
 });
@@ -720,16 +790,25 @@ test("browser phases pin one planning date across an Amsterdam midnight rollover
   const runner = read("e2e/fieldgrid/run-playwright.mjs");
   const fixtures = read("e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs");
   const spec = browserSpec();
+  const config = playwrightConfig();
 
-  assert.match(runner, /const e2eDateKey = process\.env\.FIELDGRID_E2E_DATE_KEY \?\? amsterdamDateKey\(\)/u);
+  assert.match(
+    runner,
+    /const e2eDateKey = process\.env\.FIELDGRID_E2E_DATE_KEY \?\? amsterdamDateKey\(\)/u,
+  );
   assert.match(runner, /FIELDGRID_E2E_DATE_KEY: e2eDateKey/u);
   assert.match(runner, /seed-e2e-fixtures\.mjs'[\s\S]*env: runEnvironment/u);
   assert.match(fixtures, /scheduled_date = \$3/u);
-  assert.match(fixtures, /\[FIXTURE\.assignments\.a, FIXTURE\.tenants\.a, E2E_DATE_KEY\]/u);
+  assert.match(
+    fixtures,
+    /\[FIXTURE\.assignments\.a, FIXTURE\.tenants\.a, E2E_DATE_KEY\]/u,
+  );
   assert.match(
     spec,
     /\/personeel\/opdrachten\?date=\$\{encodeURIComponent\(e2eDateKey\)\}/u,
   );
+  assert.match(config, /locale: ["']nl-NL["']/u);
+  assert.match(config, /timezoneId: ["']Europe\/Amsterdam["']/u);
 });
 
 test("browser scenarios include payment integrity, review remediation, recovery and offline reconnect", () => {
@@ -770,7 +849,10 @@ test("browser scenarios include payment integrity, review remediation, recovery 
   assert.match(spec, /triggerWasRecordedDuringActivePass/);
   assert.match(spec, /maximumActiveClientAttempts/);
   assert.match(spec, /offline-reconnect-evidence\.json/);
-  assert.match(spec, /FG-P2D-AVAILABILITY personnel update and backoffice consistency/);
+  assert.match(
+    spec,
+    /FG-P2D-AVAILABILITY personnel update and backoffice consistency/,
+  );
   assert.match(read("e2e/fieldgrid/tests/accessibility.spec.ts"), /AxeBuilder/);
   assert.equal(
     existsSync("scripts/fieldgrid-runtime-entrypoints-check.mjs"),
@@ -783,9 +865,15 @@ test("browser scenarios include payment integrity, review remediation, recovery 
 });
 
 test("offline synchronization uses one observable generation coordinator and aligned service-worker messages", () => {
-  const provider = read("artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx");
-  const coordinator = read("artifacts/personeel-pwa/src/lib/offline/offline-sync-coordinator.ts");
-  const queue = read("artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts");
+  const provider = read(
+    "artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx",
+  );
+  const coordinator = read(
+    "artifacts/personeel-pwa/src/lib/offline/offline-sync-coordinator.ts",
+  );
+  const queue = read(
+    "artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts",
+  );
   const worker = read("artifacts/personeel-pwa/public/sw.js");
   const validator = read("e2e/fieldgrid/validate-runtime-evidence.mjs");
 
@@ -799,10 +887,14 @@ test("offline synchronization uses one observable generation coordinator and ali
     "service-worker",
     "enqueue",
     "retry-timer",
-  ]) assert.match(
-    provider,
-    new RegExp(`(?:requestSync|requestSyncRef\\.current)\\(["']${trigger}["']\\)`, "u"),
-  );
+  ])
+    assert.match(
+      provider,
+      new RegExp(
+        `(?:requestSync|requestSyncRef\\.current)\\(["']${trigger}["']\\)`,
+        "u",
+      ),
+    );
   assert.match(coordinator, /requestedGeneration/);
   assert.match(coordinator, /completedGeneration/);
   assert.match(coordinator, /pendingTriggers/);
@@ -833,12 +925,18 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
     pkg.scripts["fieldgrid:playwright"],
     "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
   );
-  assert.match(runner, /'pnpm', \['exec', 'playwright', 'test', \.\.\.phase\.files\]/);
+  assert.match(
+    runner,
+    /'pnpm', \['exec', 'playwright', 'test', \.\.\.phase\.files\]/,
+  );
   assert.doesNotMatch(runner, /fieldgrid:playwright/);
   assert.match(runner, /startupTimeoutMs = 180_000/);
   assert.match(runner, /orchestrator\.stderr\.log/);
   assert.match(runner, /name: 'staffing'[\s\S]*staffing-lifecycle\.spec\.ts/);
-  assert.match(runner, /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/);
+  assert.match(
+    runner,
+    /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/,
+  );
   assert.match(runner, /resetFixturesBetweenPhases/);
   assert.match(runner, /mergePhaseReports\(completedPhases\)/);
   assert.match(runner, /PLAYWRIGHT_JSON_OUTPUT_FILE/);

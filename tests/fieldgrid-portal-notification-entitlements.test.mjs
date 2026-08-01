@@ -21,8 +21,12 @@ test("personnel notification reads and mutations require the notifications modul
     actions,
     /isTenantModuleEnabled\(identity\.tenantId,\s*"notifications"\)/u,
   );
+  const getMyNotificationsStart = actions.indexOf(
+    "export async function getMyNotifications",
+  );
+  assert.notEqual(getMyNotificationsStart, -1);
   assert.doesNotMatch(
-    actions.slice(actions.indexOf("export async function getMyNotifications")),
+    actions.slice(getMyNotificationsStart),
     /getCurrentPersonnelIdentity\(\)/u,
   );
   assert.match(
