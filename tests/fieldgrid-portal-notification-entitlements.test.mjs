@@ -132,8 +132,45 @@ test("personnel notifications hide destinations for disabled target modules", ()
   );
   assert.match(
     actions,
-    /getMyNotificationSummary[\s\S]*?getNotificationEntitlements\(identity\.tenantId\)[\s\S]*?visibleUnread/u,
+    /getMyNotificationSummary[\s\S]*?getNotificationEntitlements\(identity\.tenantId\)[\s\S]*?scanVisibleNotificationPages/u,
   );
+});
+
+test("notification feeds paginate deterministically inside tenant and owner scope", () => {
+  const customer = read("artifacts/klant-pwa/src/actions/notifications.ts");
+  const personnel = read(
+    "artifacts/personeel-pwa/src/actions/notifications.ts",
+  );
+
+  for (const [source, table, ownerColumn] of [
+    [customer, "customerNotificationsTable", "customerId"],
+    [personnel, "personnelNotificationsTable", "personnelId"],
+  ]) {
+    assert.match(source, /scanVisibleNotificationPages/u);
+    assert.match(source, /countAll:\s*true/u);
+    assert.match(source, /unreadOnly:\s*true/u);
+    assert.match(
+      source,
+      new RegExp(
+        `eq\\(${table}\\.${ownerColumn},[\\s\\S]*?eq\\(${table}\\.tenantId,[\\s\\S]*?isNull\\(${table}\\.deletedAt\\)`,
+        "u",
+      ),
+    );
+    assert.match(
+      source,
+      new RegExp(
+        `orderBy\\([\\s\\S]*?desc\\(${table}\\.createdAt\\),[\\s\\S]*?desc\\(${table}\\.id\\)`,
+        "u",
+      ),
+    );
+    assert.match(
+      source,
+      new RegExp(
+        `lt\\(${table}\\.createdAt, cursor\\.createdAt\\)[\\s\\S]*?eq\\(${table}\\.createdAt, cursor\\.createdAt\\)[\\s\\S]*?lt\\(${table}\\.id, cursor\\.id\\)`,
+        "u",
+      ),
+    );
+  }
 });
 
 test("customer header uses canonical overlays, marks items read and keeps compact touch targets", () => {

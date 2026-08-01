@@ -4,12 +4,14 @@ import {
   customerNotificationsTable,
   db,
   isTenantModuleEnabled,
+  scanVisibleNotificationPages,
+  type NotificationPageCursor,
 } from "@workspace/db";
 import {
   customerPortalRoutes,
   sanitizeCustomerPortalHref,
 } from "@workspace/db/portal-routes";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyAssignments } from "./assignments";
@@ -76,6 +78,8 @@ const PRIORITY_SET = new Set<CustomerNotificationPriority>([
   "normal",
   "high",
 ]);
+const NOTIFICATION_PAGE_SIZE = 100;
+const NOTIFICATION_ITEM_LIMIT = 80;
 
 function normalizeCategory(category: string): CustomerNotificationCategory {
   return CATEGORY_SET.has(category as CustomerNotificationCategory)
@@ -181,34 +185,68 @@ function revalidateNotificationSurfaces() {
   revalidatePath("/meldingen");
 }
 
+async function loadCustomerNotificationPage({
+  customerId,
+  tenantId,
+  cursor,
+  unreadOnly,
+}: {
+  customerId: string;
+  tenantId: string;
+  cursor: NotificationPageCursor | null;
+  unreadOnly: boolean;
+}) {
+  return db
+    .select()
+    .from(customerNotificationsTable)
+    .where(
+      and(
+        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.tenantId, tenantId),
+        isNull(customerNotificationsTable.deletedAt),
+        unreadOnly ? isNull(customerNotificationsTable.readAt) : undefined,
+        cursor
+          ? or(
+              lt(customerNotificationsTable.createdAt, cursor.createdAt),
+              and(
+                eq(customerNotificationsTable.createdAt, cursor.createdAt),
+                lt(customerNotificationsTable.id, cursor.id),
+              ),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(
+      desc(customerNotificationsTable.createdAt),
+      desc(customerNotificationsTable.id),
+    )
+    .limit(NOTIFICATION_PAGE_SIZE);
+}
+
 export async function getMyCustomerNotifications(): Promise<
   CustomerNotification[]
 > {
   const identity = await getNotificationIdentity();
   if (!identity) return [];
 
-  const [persistedRows, entitlements] = await Promise.all([
-    db
-      .select()
-      .from(customerNotificationsTable)
-      .where(
-        and(
-          eq(customerNotificationsTable.customerId, identity.customerId),
-          eq(customerNotificationsTable.tenantId, identity.tenantId),
-          isNull(customerNotificationsTable.deletedAt),
-        ),
-      )
-      .orderBy(desc(customerNotificationsTable.createdAt))
-      .limit(80),
-    getNotificationEntitlements(identity.tenantId),
-  ]);
-
-  return persistedRows
-    .map(mapPersistedNotification)
-    .filter((notification) =>
+  const entitlements = await getNotificationEntitlements(identity.tenantId);
+  const result = await scanVisibleNotificationPages({
+    pageSize: NOTIFICATION_PAGE_SIZE,
+    itemLimit: NOTIFICATION_ITEM_LIMIT,
+    countAll: false,
+    loadPage: (cursor) =>
+      loadCustomerNotificationPage({
+        customerId: identity.customerId,
+        tenantId: identity.tenantId,
+        cursor,
+        unreadOnly: false,
+      }),
+    mapRow: mapPersistedNotification,
+    isVisible: (notification) =>
       isNotificationAccessible(notification, entitlements),
-    )
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  });
+
+  return result.items;
 }
 
 export async function getMyCustomerOpenActions(options: {
@@ -299,16 +337,30 @@ export async function getMyCustomerOpenActions(options: {
 }
 
 export async function getMyCustomerNotificationSummary(): Promise<CustomerNotificationSummary> {
-  const notifications = await getMyCustomerNotifications();
-  const actionable = notifications.filter(
-    (item) =>
-      item.kind === "communication" &&
-      item.category !== "system" &&
-      !item.readAt,
-  );
+  const identity = await getNotificationIdentity();
+  if (!identity) return { unreadCount: 0, recent: [] };
+
+  const entitlements = await getNotificationEntitlements(identity.tenantId);
+  const result = await scanVisibleNotificationPages({
+    pageSize: NOTIFICATION_PAGE_SIZE,
+    itemLimit: 3,
+    countAll: true,
+    loadPage: (cursor) =>
+      loadCustomerNotificationPage({
+        customerId: identity.customerId,
+        tenantId: identity.tenantId,
+        cursor,
+        unreadOnly: true,
+      }),
+    mapRow: mapPersistedNotification,
+    isVisible: (notification) =>
+      notification.category !== "system" &&
+      isNotificationAccessible(notification, entitlements),
+  });
+
   return {
-    unreadCount: actionable.length,
-    recent: actionable.slice(0, 3),
+    unreadCount: result.visibleCount,
+    recent: result.items,
   };
 }
 
