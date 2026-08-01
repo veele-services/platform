@@ -6,12 +6,19 @@ import {
   extractFailureNames,
   normalizeFailureName,
   shouldFetchOriginMain,
+  shouldInstallCandidate,
 } from "../scripts/fieldgrid-test-baseline-differential.mjs";
 
 test("candidate with the same baseline failures is differential pass", () => {
   const comparison = compareFailureSets(
-    ["tenant isolation rejects cross-tenant reads", "notification contract rejects missing role"],
-    ["notification contract rejects missing role", "tenant isolation rejects cross-tenant reads"],
+    [
+      "tenant isolation rejects cross-tenant reads",
+      "notification contract rejects missing role",
+    ],
+    [
+      "notification contract rejects missing role",
+      "tenant isolation rejects cross-tenant reads",
+    ],
   );
 
   assert.equal(comparison.pass, true);
@@ -21,7 +28,10 @@ test("candidate with the same baseline failures is differential pass", () => {
 });
 
 test("one candidate-only failure is differential fail", () => {
-  const comparison = compareFailureSets(["baseline failure"], ["baseline failure", "new regression"]);
+  const comparison = compareFailureSets(
+    ["baseline failure"],
+    ["baseline failure", "new regression"],
+  );
 
   assert.equal(comparison.pass, false);
   assert.deepEqual(comparison.candidateOnlyFailures, ["new regression"]);
@@ -29,7 +39,10 @@ test("one candidate-only failure is differential fail", () => {
 });
 
 test("candidate with more failures than main is fail", () => {
-  const comparison = compareFailureSets(["baseline failure"], ["baseline failure", "additional failure"]);
+  const comparison = compareFailureSets(
+    ["baseline failure"],
+    ["baseline failure", "additional failure"],
+  );
 
   assert.equal(comparison.pass, false);
   assert.equal(comparison.counts.candidateFailures, 2);
@@ -46,7 +59,10 @@ test("normalized failure extraction is stable", () => {
     "\u001b[31m✖ Windows path C:\\repo\\tests\\sample.test.mjs (1ms)\u001b[0m",
   ].join("\n");
 
-  assert.equal(normalizeFailureName("✖ sample failure (1.5ms)"), "sample failure");
+  assert.equal(
+    normalizeFailureName("✖ sample failure (1.5ms)"),
+    "sample failure",
+  );
   assert.deepEqual(extractFailureNames(log), [
     "notification contract rejects missing role",
     "tenant isolation rejects cross-tenant reads",
@@ -56,10 +72,42 @@ test("normalized failure extraction is stable", () => {
 
 test("checkout-provided main mode is explicit and fail-closed", () => {
   assert.equal(shouldFetchOriginMain({}), true);
-  assert.equal(shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "0" }), true);
-  assert.equal(shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1" }), false);
+  assert.equal(
+    shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "0" }),
+    true,
+  );
+  assert.equal(
+    shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1" }),
+    false,
+  );
   assert.throws(
-    () => shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "yes" }),
+    () =>
+      shouldFetchOriginMain({
+        FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "yes",
+      }),
+    /must be 0 or 1/u,
+  );
+});
+
+test("candidate preinstall mode is explicit and fail-closed", () => {
+  assert.equal(shouldInstallCandidate({}), true);
+  assert.equal(
+    shouldInstallCandidate({
+      FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED: "0",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldInstallCandidate({
+      FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED: "1",
+    }),
+    false,
+  );
+  assert.throws(
+    () =>
+      shouldInstallCandidate({
+        FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED: "yes",
+      }),
     /must be 0 or 1/u,
   );
 });

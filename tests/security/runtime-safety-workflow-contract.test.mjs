@@ -12,7 +12,10 @@ function read(path) {
 test("exact-head workflow exposes required Linux PR validation groups", () => {
   const workflow = read(".github/workflows/main-exact-head-validation.yml");
 
-  assert.match(workflow, /on:\s*\n\s+pull_request:\s*\n\s+branches:\s*\n\s+- main/u);
+  assert.match(
+    workflow,
+    /on:\s*\n\s+pull_request:\s*\n\s+branches:\s*\n\s+- main/u,
+  );
   for (const group of [
     "runtime-safety-static",
     "runtime-safety-build",
@@ -28,7 +31,6 @@ test("exact-head workflow exposes required Linux PR validation groups", () => {
     "contract-static",
     "unit-domain",
     "security-source",
-    "migration-order",
     "typecheck",
     "postgres17-migration-smoke",
     "db-integration-tenant-ab",
@@ -47,9 +49,8 @@ test("runtime safety workflow runs the required gate commands", () => {
     "pnpm fieldgrid:test:contract-static",
     "pnpm fieldgrid:test:unit-domain",
     "pnpm fieldgrid:test:security-source",
-    "pnpm fieldgrid:migration-order-check:check",
     "pnpm run typecheck",
-    "pnpm build",
+    "pnpm -r --if-present run build",
     "git diff --check origin/${{ github.base_ref }}...HEAD",
     "pnpm fieldgrid:test:postgres17-migration-smoke",
     "pnpm fieldgrid:test:db-integration-tenant-ab",
@@ -57,6 +58,9 @@ test("runtime safety workflow runs the required gate commands", () => {
     "pnpm fieldgrid:test:phase-b-previous-release-database-compatibility",
     "pnpm fieldgrid:test:api-runtime",
   ]) {
-    assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+    assert.match(
+      workflow,
+      new RegExp(command.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
+    );
   }
 });

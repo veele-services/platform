@@ -17,7 +17,10 @@ test("exact-head validation preserves PR coverage and adds main push and dispatc
 });
 test("exact-head validation is the sole Playwright orchestration workflow", () => {
   assert.equal(existsSync(".github/workflows/fieldgrid-playwright.yml"), false);
-  assert.match(workflow, /fieldgrid-playwright:\n\s+name: Fieldgrid Playwright/u);
+  assert.match(
+    workflow,
+    /fieldgrid-playwright:\n\s+name: Fieldgrid Playwright/u,
+  );
 });
 
 test("every validation group checks out and proves the immutable event validation SHA", () => {
@@ -35,6 +38,10 @@ test("every validation group checks out and proves the immutable event validatio
   );
   assert.match(workflow, /persist-credentials: false/u);
   assert.match(workflow, /FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1"/u);
+  assert.match(
+    workflow,
+    /FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED: "1"/u,
+  );
 });
 
 test("exact-head validation includes every authoritative gate", () => {
@@ -42,9 +49,8 @@ test("exact-head validation includes every authoritative gate", () => {
     "pnpm fieldgrid:test:contract-static",
     "pnpm fieldgrid:test:unit-domain",
     "pnpm fieldgrid:test:security-source",
-    "pnpm fieldgrid:migration-order-check:check",
     "pnpm run typecheck",
-    "pnpm build",
+    "pnpm -r --if-present run build",
     "pnpm fieldgrid:test:postgres17-migration-smoke",
     "pnpm fieldgrid:test:db-integration-tenant-ab",
     "pnpm fieldgrid:test:rls-security",

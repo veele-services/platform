@@ -9,7 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const ansiPattern = /\u001b\[[0-9;]*m/g;
 
 function uniqueSorted(values) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  return [...new Set(values.filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 }
 
 export function normalizeFailureName(value) {
@@ -52,14 +54,25 @@ export function extractFailureNames(logText) {
 }
 
 export function compareFailureSets(mainFailuresInput, candidateFailuresInput) {
-  const mainFailures = uniqueSorted(mainFailuresInput.map(normalizeFailureName));
-  const candidateFailures = uniqueSorted(candidateFailuresInput.map(normalizeFailureName));
+  const mainFailures = uniqueSorted(
+    mainFailuresInput.map(normalizeFailureName),
+  );
+  const candidateFailures = uniqueSorted(
+    candidateFailuresInput.map(normalizeFailureName),
+  );
   const mainSet = new Set(mainFailures);
   const candidateSet = new Set(candidateFailures);
-  const commonFailures = candidateFailures.filter((failure) => mainSet.has(failure));
-  const candidateOnlyFailures = candidateFailures.filter((failure) => !mainSet.has(failure));
-  const mainOnlyFailures = mainFailures.filter((failure) => !candidateSet.has(failure));
-  const candidateHasMoreFailures = candidateFailures.length > mainFailures.length;
+  const commonFailures = candidateFailures.filter((failure) =>
+    mainSet.has(failure),
+  );
+  const candidateOnlyFailures = candidateFailures.filter(
+    (failure) => !mainSet.has(failure),
+  );
+  const mainOnlyFailures = mainFailures.filter(
+    (failure) => !candidateSet.has(failure),
+  );
+  const candidateHasMoreFailures =
+    candidateFailures.length > mainFailures.length;
   const pass = candidateOnlyFailures.length === 0 && !candidateHasMoreFailures;
 
   return {
@@ -77,8 +90,12 @@ export function compareFailureSets(mainFailuresInput, candidateFailuresInput) {
       mainOnlyFailures: mainOnlyFailures.length,
     },
     reasons: [
-      ...(candidateOnlyFailures.length > 0 ? ["candidate-only failures present"] : []),
-      ...(candidateHasMoreFailures ? ["candidate has more failures than origin/main"] : []),
+      ...(candidateOnlyFailures.length > 0
+        ? ["candidate-only failures present"]
+        : []),
+      ...(candidateHasMoreFailures
+        ? ["candidate has more failures than origin/main"]
+        : []),
     ],
   };
 }
@@ -144,7 +161,9 @@ async function runLogged(command, args, options) {
 async function gitOutput(args, cwd) {
   const result = await spawnCapture("git", args, { cwd });
   if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed with ${result.status}\n${result.stderr || result.stdout}`);
+    throw new Error(
+      `git ${args.join(" ")} failed with ${result.status}\n${result.stderr || result.stdout}`,
+    );
   }
   return result.stdout.trim();
 }
@@ -158,7 +177,9 @@ function failuresFromTestResult(result) {
 }
 
 function markdownList(values) {
-  return values.length === 0 ? "- none" : values.map((value) => `- ${value}`).join("\n");
+  return values.length === 0
+    ? "- none"
+    : values.map((value) => `- ${value}`).join("\n");
 }
 
 export function shouldFetchOriginMain(environment = process.env) {
@@ -168,23 +189,45 @@ export function shouldFetchOriginMain(environment = process.env) {
   throw new Error("FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN must be 0 or 1.");
 }
 
+export function shouldInstallCandidate(environment = process.env) {
+  const mode = environment.FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED;
+  if (mode === undefined || mode === "" || mode === "0") return true;
+  if (mode === "1") return false;
+  throw new Error(
+    "FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED must be 0 or 1.",
+  );
+}
+
 async function main() {
   const repoRoot = resolve(process.cwd());
-  const defaultOutDir = join(repoRoot, "outputs", "fieldgrid-test-baseline-differential");
-  const outDir = resolve(process.env.FIELDGRID_BASELINE_DIFF_OUT_DIR ?? defaultOutDir);
+  const defaultOutDir = join(
+    repoRoot,
+    "outputs",
+    "fieldgrid-test-baseline-differential",
+  );
+  const outDir = resolve(
+    process.env.FIELDGRID_BASELINE_DIFF_OUT_DIR ?? defaultOutDir,
+  );
   await mkdir(outDir, { recursive: true });
 
   if (shouldFetchOriginMain()) {
     const fetchResult = await runLogged(
       "git",
-      ["fetch", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main"],
+      [
+        "fetch",
+        "--no-tags",
+        "origin",
+        "+refs/heads/main:refs/remotes/origin/main",
+      ],
       {
         cwd: repoRoot,
         logFile: join(outDir, "git-fetch-origin-main.log"),
       },
     );
     if (fetchResult.status !== 0) {
-      throw new Error("Unable to fetch origin/main for baseline differential gate.");
+      throw new Error(
+        "Unable to fetch origin/main for baseline differential gate.",
+      );
     }
   } else {
     const verifyResult = await runLogged(
@@ -202,7 +245,9 @@ async function main() {
 
   const originMainSha = await gitOutput(["rev-parse", "origin/main"], repoRoot);
   const candidateSha = await gitOutput(["rev-parse", "HEAD"], repoRoot);
-  const baselineParent = await mkdtemp(join(tmpdir(), "fieldgrid-origin-main-baseline-"));
+  const baselineParent = await mkdtemp(
+    join(tmpdir(), "fieldgrid-origin-main-baseline-"),
+  );
   const mainWorktree = join(baselineParent, "origin-main");
 
   let mainInstall;
@@ -215,12 +260,18 @@ async function main() {
   let mainPnpmVersion;
 
   try {
-    const addWorktree = await runLogged("git", ["worktree", "add", "--detach", mainWorktree, originMainSha], {
-      cwd: repoRoot,
-      logFile: join(outDir, "main-worktree-add.log"),
-    });
+    const addWorktree = await runLogged(
+      "git",
+      ["worktree", "add", "--detach", mainWorktree, originMainSha],
+      {
+        cwd: repoRoot,
+        logFile: join(outDir, "main-worktree-add.log"),
+      },
+    );
     if (addWorktree.status !== 0) {
-      throw new Error("Unable to create clean origin/main worktree for baseline differential gate.");
+      throw new Error(
+        "Unable to create clean origin/main worktree for baseline differential gate.",
+      );
     }
 
     candidateNodeVersion = await runLogged("node", ["--version"], {
@@ -244,13 +295,27 @@ async function main() {
       cwd: mainWorktree,
       logFile: join(outDir, "main-install.log"),
     });
-    candidateInstall = await runLogged("pnpm", ["install", "--frozen-lockfile"], {
-      cwd: repoRoot,
-      logFile: join(outDir, "candidate-install.log"),
-    });
+    if (shouldInstallCandidate()) {
+      candidateInstall = await runLogged(
+        "pnpm",
+        ["install", "--frozen-lockfile"],
+        {
+          cwd: repoRoot,
+          logFile: join(outDir, "candidate-install.log"),
+        },
+      );
+    } else {
+      candidateInstall = { status: 0 };
+      await writeFile(
+        join(outDir, "candidate-install.log"),
+        "Skipped: workflow supplied a frozen-installed candidate checkout.\n",
+      );
+    }
 
     if (mainInstall.status !== 0 || candidateInstall.status !== 0) {
-      throw new Error("Frozen install failed for baseline or candidate worktree.");
+      throw new Error(
+        "Frozen install failed for baseline or candidate worktree.",
+      );
     }
 
     mainTest = await runLogged("pnpm", ["test"], {
@@ -262,11 +327,16 @@ async function main() {
       logFile: join(outDir, "candidate-pnpm-test.log"),
     });
   } finally {
-    await spawnCapture("git", ["worktree", "remove", "--force", mainWorktree], { cwd: repoRoot });
+    await spawnCapture("git", ["worktree", "remove", "--force", mainWorktree], {
+      cwd: repoRoot,
+    });
     await rm(baselineParent, { recursive: true, force: true });
   }
 
-  const comparison = compareFailureSets(failuresFromTestResult(mainTest), failuresFromTestResult(candidateTest));
+  const comparison = compareFailureSets(
+    failuresFromTestResult(mainTest),
+    failuresFromTestResult(candidateTest),
+  );
   const summary = {
     status: comparison.pass ? "pass" : "fail",
     gate: "baseline differential",
@@ -285,7 +355,10 @@ async function main() {
     ...comparison,
   };
 
-  await writeFile(join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
+  await writeFile(
+    join(outDir, "summary.json"),
+    `${JSON.stringify(summary, null, 2)}\n`,
+  );
   await writeFile(
     join(outDir, "summary.md"),
     [

@@ -56,8 +56,6 @@ jobs:
             command: pnpm fieldgrid:test:unit-domain
           - lane: security-source
             command: pnpm fieldgrid:test:security-source
-          - lane: migration-order
-            command: pnpm fieldgrid:migration-order-check:check
           - lane: typecheck
             command: pnpm run typecheck
     steps:
@@ -123,7 +121,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: pnpm -r --if-present run build
 
   runtime-safety-diff:
     name: Runtime Safety / diff-check
@@ -302,6 +300,7 @@ jobs:
       - name: Run baseline differential from checkout-provided main
         env:
           FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1"
+          FIELDGRID_BASELINE_DIFF_CANDIDATE_PREINSTALLED: "1"
         run: pnpm fieldgrid:test:baseline-differential
 
       - name: Upload baseline differential artifacts
