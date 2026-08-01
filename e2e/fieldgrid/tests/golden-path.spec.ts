@@ -539,6 +539,11 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
   await expect(
     page.getByText(/Taakwijziging is offline opgeslagen/i),
   ).toBeVisible();
+  await expect(page).toHaveURL(
+    personnelUrl(
+      `/personeel/opdrachten/${tenantAAssignmentId}?tab=werkzaamheden`,
+    ),
+  );
 
   const queueKey = "veele-personeel-offline-work-order-actions-v1";
   const queuedActionCount = async () => {

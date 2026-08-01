@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,11 +9,13 @@ const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 
 export const FIELDGRID_MIGRATION_ORDER_CHECK_VERSION =
-  "fieldgrid-migration-order-check-v1";
-export const MIGRATION_ORDER_POLICY = "timestamp-after-101";
+  "fieldgrid-migration-order-check-v2";
+export const MIGRATION_ORDER_POLICY = "frozen-legacy-then-timestamp";
 export const MIGRATION_DIR = "lib/db/migrations";
 export const LEGACY_NUMERIC_CEILING = 101;
 export const LEGACY_TIMESTAMP_FLOOR = "20260618201212";
+export const FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256 =
+  "b8b3863d70515f69b68dbdc38c8e703bce6eddab77e4b32cb77aa8fabae8ea97";
 
 export const allowedLegacyDuplicateNumericPrefixes = {
   "055": [
@@ -183,6 +186,31 @@ function findNumericGaps(numericEntries) {
   return gaps;
 }
 
+async function legacyMigrationManifest(entries, migrationsDir) {
+  const filenames = entries
+    .filter(
+      (entry) =>
+        entry.kind === "numeric" ||
+        allowedLegacyTimestampMigrations.includes(entry.filename),
+    )
+    .map((entry) => entry.filename)
+    .sort();
+  const hashedFiles = await Promise.all(
+    filenames.map(async (filename) => {
+      const sql = (
+        await readFile(join(migrationsDir, filename), "utf8")
+      ).replace(/\r\n/gu, "\n");
+      return [filename, createHash("sha256").update(sql).digest("hex")];
+    }),
+  );
+  return {
+    filenames,
+    sha256: createHash("sha256")
+      .update(JSON.stringify(hashedFiles))
+      .digest("hex"),
+  };
+}
+
 export async function buildMigrationOrderReport(options = {}) {
   const migrationsDir = options.migrationsDir ?? join(repoRoot, MIGRATION_DIR);
   const { sqlFiles, ignored } = await readMigrationDirectory(migrationsDir);
@@ -191,6 +219,7 @@ export async function buildMigrationOrderReport(options = {}) {
   const timestampEntries = entries.filter(
     (entry) => entry.kind === "timestamp",
   );
+  const legacyManifest = await legacyMigrationManifest(entries, migrationsDir);
   const latestNumericPrefix = numericEntries.reduce(
     (latest, entry) => Math.max(latest, entry.prefixNumber),
     0,
@@ -219,6 +248,9 @@ export async function buildMigrationOrderReport(options = {}) {
       timestampFloor: LEGACY_TIMESTAMP_FLOOR,
       allowedDuplicateNumericPrefixes: allowedLegacyDuplicateNumericPrefixes,
       allowedTimestampMigrations: allowedLegacyTimestampMigrations,
+      frozenManifestSha256: FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256,
+      manifestFilenames: legacyManifest.filenames,
+      manifestSha256: legacyManifest.sha256,
     },
     latestNumericPrefix,
     latestTimestampPrefix,
@@ -244,6 +276,14 @@ export function validateMigrationOrderReport(report) {
 
   if (report.totals.sqlMigrations === 0)
     errors.push("Geen SQL-migraties gevonden.");
+
+  if (
+    report.legacy?.manifestSha256 !== FROZEN_LEGACY_MIGRATION_MANIFEST_SHA256
+  ) {
+    errors.push(
+      "De bevroren legacy-migratiemanifest wijkt af; voeg geen numerieke legacy-migraties toe en wijzig of hernoem bestaande legacy-migraties niet.",
+    );
+  }
 
   for (const entry of invalidEntries) {
     errors.push(`${entry.filename} gebruikt geen toegestaan migratiepatroon.`);
@@ -321,9 +361,9 @@ Usage:
   pnpm fieldgrid:migration-order-check --json
 
 Policy:
-  Legacy numeric migrations stop at 101. Because a timestamp migration already exists,
-  future migrations must use timestamp prefixes after ${LEGACY_TIMESTAMP_FLOOR} to avoid
-  fresh-database versus already-applied staging order drift.
+  The complete legacy filename and SQL-hash manifest is frozen. Because a timestamp
+  migration already exists, future migrations must use timestamp prefixes after
+  ${LEGACY_TIMESTAMP_FLOOR} to avoid fresh-database versus already-applied staging order drift.
 `;
 }
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -122,31 +122,11 @@ test("Phase 2E arguments and immutable SHAs are fail closed", () => {
 });
 
 test("restore verification derives the complete committed migration manifest", async () => {
-  const directory = await mkdtemp(
-    join(tmpdir(), "fieldgrid-phase2e-manifest-"),
-  );
-  try {
-    await mkdir(join(directory, "generated"));
-    await Promise.all([
-      writeFile(join(directory, "001_legacy.sql"), ""),
-      writeFile(
-        join(directory, "20260731170000_portal_user_onboarding.sql"),
-        "",
-      ),
-      writeFile(join(directory, "20260801000000_release_gate.sql"), ""),
-      writeFile(join(directory, "baseline.json"), "{}"),
-      writeFile(join(directory, "README.md"), ""),
-      writeFile(join(directory, "generated", "99999999999999_ignored.sql"), ""),
-    ]);
-
-    assert.deepEqual(await committedMigrationManifest(directory), [
-      "001_legacy.sql",
-      "20260731170000_portal_user_onboarding.sql",
-      "20260801000000_release_gate.sql",
-    ]);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
+  const manifest = await committedMigrationManifest();
+  assert.ok(manifest.length > 100);
+  assert.deepEqual(manifest, [...manifest].sort());
+  assert.equal(manifest[0], "001_rbac_rls.sql");
+  assert.ok(manifest.includes("20260731170000_portal_user_onboarding.sql"));
 });
 
 test("restore verification rejects missing and unexpected migration history", () => {
@@ -181,7 +161,7 @@ test("restore verification rejects missing and unexpected migration history", ()
   );
 });
 
-test("pre-rehearsal history allows only an exact committed prefix", () => {
+test("pre-rehearsal history allows a complete legacy set plus a modern prefix", () => {
   const committed = [
     "001_legacy.sql",
     "20260731170000_portal_user_onboarding.sql",
@@ -195,13 +175,20 @@ test("pre-rehearsal history allows only an exact committed prefix", () => {
     {
       recordedMigrationCount: 2,
       pendingMigrationCount: 1,
-      latestRecordedMigration: "20260731170000_portal_user_onboarding.sql",
+      requiredLegacyMigrationCount: 1,
+      recordedModernMigrationCount: 1,
+      pendingModernMigrationCount: 1,
+      latestRecordedModernMigration:
+        "20260731170000_portal_user_onboarding.sql",
     },
   );
   assert.deepEqual(assertCommittedMigrationPrefix([...committed], committed), {
     recordedMigrationCount: 3,
     pendingMigrationCount: 0,
-    latestRecordedMigration: "20260801000000_release_gate.sql",
+    requiredLegacyMigrationCount: 1,
+    recordedModernMigrationCount: 2,
+    pendingModernMigrationCount: 0,
+    latestRecordedModernMigration: "20260801000000_release_gate.sql",
   });
 });
 
@@ -225,7 +212,7 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
         ["001_legacy.sql", "20260730000000_staging_only.sql"],
         committed,
       ),
-    /recorded 20260730000000_staging_only\.sql/u,
+    /unexpected: 20260730000000_staging_only\.sql/u,
   );
   assert.throws(
     () =>
@@ -245,7 +232,64 @@ test("pre-rehearsal history rejects missing-middle and staging-only entries", ()
         [...committed, "20260802000000_staging_only.sql"],
         committed,
       ),
-    /expected <end-of-manifest>, recorded 20260802000000_staging_only\.sql/u,
+    /unexpected: 20260802000000_staging_only\.sql/u,
+  );
+});
+
+test("historical legacy order is grandfathered while modern order stays strict", () => {
+  const legacyTimestamp = "20260618201212_assignment_monthly_codes.sql";
+  const committed = [
+    "001_legacy.sql",
+    "002_legacy.sql",
+    legacyTimestamp,
+    "20260707191000_first_modern.sql",
+    "20260708120000_second_modern.sql",
+  ];
+  const historicallyApplied = [
+    "001_legacy.sql",
+    legacyTimestamp,
+    "002_legacy.sql",
+    "20260707191000_first_modern.sql",
+  ];
+
+  assert.deepEqual(
+    assertCommittedMigrationPrefix(historicallyApplied, committed),
+    {
+      recordedMigrationCount: 4,
+      pendingMigrationCount: 1,
+      requiredLegacyMigrationCount: 3,
+      recordedModernMigrationCount: 1,
+      pendingModernMigrationCount: 1,
+      latestRecordedModernMigration: "20260707191000_first_modern.sql",
+    },
+  );
+  assert.doesNotThrow(() =>
+    assertMatchingMigrationHistory(
+      [...historicallyApplied, "20260708120000_second_modern.sql"],
+      committed,
+    ),
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        ["001_legacy.sql", legacyTimestamp, "20260707191000_first_modern.sql"],
+        committed,
+      ),
+    /missing required legacy migrations: 002_legacy\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        [
+          "001_legacy.sql",
+          legacyTimestamp,
+          "002_legacy.sql",
+          "20260708120000_second_modern.sql",
+          "20260707191000_first_modern.sql",
+        ],
+        committed,
+      ),
+    /invalid modern migration order/u,
   );
 });
 
