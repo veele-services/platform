@@ -29,6 +29,7 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
 import { createClient } from "@/lib/supabase/server";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 
 // Customer-visible quote states: ["sent", "approved", "rejected", "expired"]
 const CUSTOMER_VISIBLE_QUOTE_STATUSES = [
@@ -591,6 +592,13 @@ export async function approveQuote(
   const identity = await getMyCustomerIdentity();
   if (!identity)
     return { success: false, message: "Geen klantprofiel gevonden." };
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return {
+      success: false,
+      message:
+        "Financiële functies zijn niet beschikbaar voor deze organisatie.",
+    };
+  }
 
   let acceptance;
   try {
@@ -793,6 +801,13 @@ export async function rejectQuote(
   const identity = await getMyCustomerIdentity();
   if (!identity)
     return { success: false, message: "Geen klantprofiel gevonden." };
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return {
+      success: false,
+      message:
+        "Financiële functies zijn niet beschikbaar voor deze organisatie.",
+    };
+  }
 
   const [assignment] = await db
     .select({

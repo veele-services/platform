@@ -7,18 +7,21 @@ import {
 } from "@/actions/knowledgebase";
 import { KnowledgebaseContentRenderer } from "@/components/KnowledgebaseContentRenderer";
 import { OfflineContentNotice } from "@/components/OfflineContentNotice";
+import { requireCurrentPortalModule } from "@/lib/auth/tenant";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
 export async function generateMetadata({ params }: Props) {
+  if (!(await requireCurrentPortalModule("knowledgebase"))) notFound();
   const { slug } = await params;
   const article = await getPersonnelKnowledgebaseArticle(slug);
   return { title: article?.title ?? "Help" };
 }
 
 export default async function PersonnelHelpArticlePage({ params }: Props) {
+  if (!(await requireCurrentPortalModule("knowledgebase"))) notFound();
   const { slug } = await params;
   const article = await getPersonnelKnowledgebaseArticle(slug);
   if (!article) notFound();
@@ -29,12 +32,12 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
 
       <article className="grid gap-4">
         <header className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-          <Link href="/help" className="inline-flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-accent)" }}>
+          <Link href="/help" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold" style={{ color: "var(--color-accent-accessible)" }}>
             <ArrowLeft className="h-4 w-4" />
             Terug naar help
           </Link>
-          <p className="mt-4 text-xs font-black uppercase tracking-[0.14em]" style={{ color: "var(--color-accent)" }}>{article.category?.name ?? "Handleiding"}</p>
-          <h1 className="mt-2 text-2xl font-black" style={{ color: "var(--color-primary)" }}>{article.title}</h1>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--color-accent-accessible)" }}>{article.category?.name ?? "Handleiding"}</p>
+          <h1 className="mt-2 text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>{article.title}</h1>
           {article.summary && <p className="mt-3 text-sm leading-6 text-slate-600">{article.summary}</p>}
         </header>
 
@@ -44,7 +47,7 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
 
         {article.media.length > 0 && (
           <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-            <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Media en bijlagen</h2>
+            <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>Media en bijlagen</h2>
             <div className="mt-3 grid gap-2">
               {article.media.map((item) => (
                 <a key={item.id} href={`/help/media/${item.id}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm">
@@ -58,13 +61,13 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
 
         {article.relatedArticles.length > 0 && (
           <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-            <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Gerelateerde artikelen</h2>
+            <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>Gerelateerde artikelen</h2>
             <div className="mt-3 grid gap-2">
               {article.relatedArticles.map((related) => (
                 <Link key={related.id} href={`/help/${related.slug}`} className="rounded-xl border border-slate-200 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-black" style={{ color: "var(--color-primary)" }}>{related.title}</h3>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">
+                    <h3 className="font-semibold" style={{ color: "var(--color-primary)" }}>{related.title}</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                       {related.relationType === "suggested" ? "Suggestie" : "Gekoppeld"}
                     </span>
                   </div>
@@ -76,7 +79,7 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
         )}
 
         <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-          <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Was dit artikel nuttig?</h2>
+          <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>Was dit artikel nuttig?</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">Uw feedback helpt om de handleidingen te verbeteren.</p>
           <form action={submitPersonnelKnowledgebaseFeedback} className="mt-4 grid gap-3">
             <input type="hidden" name="articleId" value={article.id} />
@@ -87,10 +90,10 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
               className="min-h-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
             />
             <div className="flex flex-wrap gap-2">
-              <button type="submit" name="isHelpful" value="true" className="rounded-xl px-4 py-2 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+              <button type="submit" name="isHelpful" value="true" className="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-accent-accessible)" }}>
                 Ja, duidelijk
               </button>
-              <button type="submit" name="isHelpful" value="false" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              <button type="submit" name="isHelpful" value="false" className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                 Nee, kan beter
               </button>
             </div>

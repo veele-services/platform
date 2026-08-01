@@ -12,7 +12,7 @@ export default function NotFound() {
       <Link
         href="/"
         className="mt-6 rounded-xl px-5 py-2.5 text-sm font-medium text-white"
-        style={{ backgroundColor: "var(--color-accent)" }}
+        style={{ backgroundColor: "var(--color-accent-accessible)" }}
       >
         Terug naar dashboard
       </Link>

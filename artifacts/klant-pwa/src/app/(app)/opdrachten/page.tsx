@@ -6,6 +6,7 @@ import { ClipboardList, Download, FileText, PlusCircle } from "lucide-react";
 import type { QuoteStatus } from "@workspace/db";
 import { getMyAssignments } from "@/actions/assignments";
 import { STATUS_COLOR, STATUS_LABEL } from "@/types/assignments";
+import { getCustomerPortalFeatureFlags } from "@/lib/portal-features";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import {
   PortalActionMenu,
@@ -74,17 +75,50 @@ function formatActualTime(value: string | null): string | null {
   }).format(date);
 }
 
+function formatActualDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Werkelijke datum onbekend";
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
 function AssignmentTiming({ assignment }: { assignment: CustomerAssignment }) {
-  const actualWindow = [
-    formatActualTime(assignment.actualStartedAt),
-    formatActualTime(assignment.actualCompletedAt),
-  ]
-    .filter(Boolean)
-    .join(" - ");
+  const actualStart = formatActualTime(assignment.actualStartedAt);
+  const actualEnd = formatActualTime(assignment.actualCompletedAt);
+  const actualWindow = actualStart
+    ? `${actualStart} - ${actualEnd ?? "nu"}`
+    : null;
   const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
     .filter(Boolean)
     .map((value) => value?.slice(0, 5))
     .join(" - ");
+
+  if (actualWindow && assignment.actualStartedAt) {
+    return (
+      <span
+        className="block min-w-[10rem] text-sm font-semibold"
+        style={{ color: "var(--color-primary)" }}
+      >
+        <span className="block">
+          {formatActualDate(assignment.actualStartedAt)}
+        </span>
+        <span className="block font-semibold">Werkelijk {actualWindow}</span>
+        <span
+          className="block text-xs"
+          style={{ color: "var(--color-muted-fg)" }}
+        >
+          Gepland{" "}
+          {assignment.scheduledDate
+            ? `${formatDate(assignment.scheduledDate)}${plannedWindow ? `, ${plannedWindow}` : ""}`
+            : "nog niet bekend"}
+        </span>
+      </span>
+    );
+  }
 
   if (!assignment.scheduledDate) {
     return (
@@ -98,19 +132,7 @@ function AssignmentTiming({ assignment }: { assignment: CustomerAssignment }) {
       style={{ color: "var(--color-primary)" }}
     >
       <span className="block">{formatDate(assignment.scheduledDate)}</span>
-      {actualWindow ? (
-        <>
-          <span className="block font-black">Werkelijk {actualWindow}</span>
-          <span
-            className="block text-xs"
-            style={{ color: "var(--color-muted-fg)" }}
-          >
-            Gepland {plannedWindow || "tijd onbekend"}
-          </span>
-        </>
-      ) : (
-        <span className="block">{plannedWindow || "Tijd nog niet bekend"}</span>
-      )}
+      <span className="block">{plannedWindow || "Tijd nog niet bekend"}</span>
     </span>
   );
 }
@@ -133,8 +155,13 @@ function normalizeFilter(value?: string): AssignmentFilter {
     : "all";
 }
 
-function assignmentFilterFor(assignment: CustomerAssignment): AssignmentFilter {
-  if (assignment.status === "awaiting_approval") return "action_required";
+function assignmentFilterFor(
+  assignment: CustomerAssignment,
+  financeEnabled: boolean,
+): AssignmentFilter {
+  if (financeEnabled && assignment.status === "awaiting_approval") {
+    return "action_required";
+  }
   if (ACTIVE_STATUSES.has(assignment.status)) return "active";
   if (OPEN_STATUSES.has(assignment.status)) return "open";
   return "history";
@@ -175,10 +202,12 @@ function filterAssignments(
   assignments: CustomerAssignment[],
   query: string,
   filter: AssignmentFilter,
+  financeEnabled: boolean,
 ) {
   return assignments.filter((assignment) => {
     const matchesFilter =
-      filter === "all" || assignmentFilterFor(assignment) === filter;
+      filter === "all" ||
+      assignmentFilterFor(assignment, financeEnabled) === filter;
     return matchesFilter && matchesAssignmentSearch(assignment, query);
   });
 }
@@ -199,14 +228,16 @@ function filterHref({
   return value ? `/opdrachten?${value}` : "/opdrachten";
 }
 
-function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
+function assignmentColumns(
+  financeEnabled: boolean,
+): Array<PortalDataColumn<CustomerAssignment>> {
   return [
     {
       key: "code",
       header: "Werkbon",
       render: (assignment) => (
         <span
-          className="font-mono text-xs font-black"
+          className="font-mono text-xs font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {assignment.code}
@@ -219,7 +250,7 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
       render: (assignment) => (
         <span className="block min-w-[18rem]">
           <span
-            className="block truncate text-sm font-black"
+            className="block truncate text-sm font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {assignment.title}
@@ -239,15 +270,26 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
       header: "Planning",
       render: (assignment) => <AssignmentTiming assignment={assignment} />,
     },
-    {
-      key: "quote",
-      header: "Offerte",
-      render: (assignment) => <QuoteCell assignment={assignment} />,
-    },
+    ...(financeEnabled
+      ? [
+          {
+            key: "quote",
+            header: "Offerte",
+            render: (assignment: CustomerAssignment) => (
+              <QuoteCell assignment={assignment} />
+            ),
+          } satisfies PortalDataColumn<CustomerAssignment>,
+        ]
+      : []),
     {
       key: "status",
       header: "Status",
-      render: (assignment) => <AssignmentStatusBadge assignment={assignment} />,
+      render: (assignment) => (
+        <AssignmentStatusBadge
+          assignment={assignment}
+          financeEnabled={financeEnabled}
+        />
+      ),
     },
     {
       key: "actions",
@@ -258,7 +300,7 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
           <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
             Details bekijken
           </PortalActionMenuLink>
-          {assignment.quoteId ? (
+          {financeEnabled && assignment.quoteId ? (
             <PortalActionMenuLink
               href={`/api/offerte/${assignment.quoteId}/pdf`}
               external
@@ -266,7 +308,7 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
               Offerte PDF downloaden
             </PortalActionMenuLink>
           ) : null}
-          {assignment.status === "awaiting_approval" ? (
+          {financeEnabled && assignment.status === "awaiting_approval" ? (
             <PortalActionMenuLink href="/offertes">
               Naar offertes
             </PortalActionMenuLink>
@@ -284,12 +326,26 @@ export default async function OpdrachtenPage({
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
-  const filter = normalizeFilter(params.filter);
-  const assignments = await getMyAssignments();
-  const visibleAssignments = filterAssignments(assignments, query, filter);
-  const actionRequired = assignments.filter(
-    (assignment) => assignment.status === "awaiting_approval",
+  const requestedFilter = normalizeFilter(params.filter);
+  const [assignments, featureFlags] = await Promise.all([
+    getMyAssignments(),
+    getCustomerPortalFeatureFlags(),
+  ]);
+  const filter =
+    !featureFlags.finance && requestedFilter === "action_required"
+      ? "all"
+      : requestedFilter;
+  const visibleAssignments = filterAssignments(
+    assignments,
+    query,
+    filter,
+    featureFlags.finance,
   );
+  const actionRequired = featureFlags.finance
+    ? assignments.filter(
+        (assignment) => assignment.status === "awaiting_approval",
+      )
+    : [];
 
   const activeFilters = [
     query
@@ -336,7 +392,11 @@ export default async function OpdrachtenPage({
             description="Filter op statusgroep, werkbonnummer, object of titel."
             activeCount={activeFilters.length}
           >
-            <AssignmentFilterForm query={query} filter={filter} />
+            <AssignmentFilterForm
+              query={query}
+              filter={filter}
+              financeEnabled={featureFlags.finance}
+            />
           </PortalFilterSheet>
         }
       >
@@ -355,14 +415,16 @@ export default async function OpdrachtenPage({
             defaultValue={filter}
           >
             <option value="all">Alle opdrachten</option>
-            <option value="action_required">Actie vereist</option>
+            {featureFlags.finance ? (
+              <option value="action_required">Actie vereist</option>
+            ) : null}
             <option value="active">In uitvoering</option>
             <option value="open">Lopende aanvragen</option>
             <option value="history">Historie</option>
           </PortalToolbarSelect>
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
@@ -370,9 +432,9 @@ export default async function OpdrachtenPage({
         </form>
       </PortalToolbar>
 
-      {actionRequired.length > 0 ? (
+      {featureFlags.finance && actionRequired.length > 0 ? (
         <section
-          className="rounded-2xl border bg-white p-4 shadow-sm"
+          className="min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm"
           style={{ borderColor: "#FDE68A" }}
         >
           <div className="mb-3 flex items-start gap-3">
@@ -381,7 +443,7 @@ export default async function OpdrachtenPage({
             </span>
             <div>
               <h2
-                className="text-base font-black"
+                className="text-base font-semibold"
                 style={{ color: "var(--color-primary)" }}
               >
                 Offertes met actie vereist
@@ -398,19 +460,19 @@ export default async function OpdrachtenPage({
             {actionRequired.map((assignment) => (
               <article
                 key={assignment.id}
-                className="rounded-2xl border p-4"
+                className="min-w-0 rounded-2xl border p-4"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p
-                      className="font-mono text-xs font-black"
+                      className="font-mono text-xs font-semibold"
                       style={{ color: "var(--color-muted-fg)" }}
                     >
                       {assignment.quoteNumber ?? assignment.code}
                     </p>
                     <h3
-                      className="mt-1 truncate text-sm font-black"
+                      className="mt-1 truncate text-sm font-semibold"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {assignment.title}
@@ -427,14 +489,17 @@ export default async function OpdrachtenPage({
                         : ""}
                     </p>
                   </div>
-                  <AssignmentStatusBadge assignment={assignment} />
+                  <AssignmentStatusBadge
+                    assignment={assignment}
+                    financeEnabled
+                  />
                 </div>
                 {assignment.quoteId ? (
                   <Link
                     href={`/api/offerte/${assignment.quoteId}/pdf`}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
+                    className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold shadow-sm"
                     style={{
                       borderColor: "var(--color-border)",
                       color: "var(--color-primary)",
@@ -456,7 +521,7 @@ export default async function OpdrachtenPage({
 
       <PortalDataList
         items={visibleAssignments}
-        columns={assignmentColumns()}
+        columns={assignmentColumns(featureFlags.finance)}
         getItemKey={(assignment) => assignment.id}
         tableLabel="Opdrachten"
         emptyState={{
@@ -477,7 +542,7 @@ export default async function OpdrachtenPage({
           action: (
             <Link
               href="/opdrachten/aanvragen"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
               style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <PlusCircle size={16} />
@@ -490,7 +555,7 @@ export default async function OpdrachtenPage({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <span
-                  className="rounded px-1.5 py-0.5 font-mono text-xs font-black"
+                  className="rounded px-1.5 py-0.5 font-mono text-xs font-semibold"
                   style={{
                     backgroundColor: "var(--color-muted)",
                     color: "var(--color-secondary)",
@@ -499,7 +564,7 @@ export default async function OpdrachtenPage({
                   {assignment.code}
                 </span>
                 <h3
-                  className="mt-2 truncate font-black"
+                  className="mt-2 truncate font-semibold"
                   style={{ color: "var(--color-primary)" }}
                 >
                   {assignment.title}
@@ -516,13 +581,19 @@ export default async function OpdrachtenPage({
                 <span className="mt-1 block text-xs">
                   <AssignmentTiming assignment={assignment} />
                 </span>
-                <div className="mt-2">
-                  <QuoteCell assignment={assignment} />
-                </div>
+                {featureFlags.finance ? (
+                  <div className="mt-2">
+                    <QuoteCell assignment={assignment} />
+                  </div>
+                ) : null}
               </div>
-              <AssignmentStatusBadge assignment={assignment} />
+              <AssignmentStatusBadge
+                assignment={assignment}
+                financeEnabled={featureFlags.finance}
+              />
             </div>
-            {assignment.status === "awaiting_approval" ? (
+            {featureFlags.finance &&
+            assignment.status === "awaiting_approval" ? (
               <OfferteActieButtons
                 assignmentId={assignment.id}
                 title={assignment.title}
@@ -534,7 +605,7 @@ export default async function OpdrachtenPage({
             >
               <Link
                 href={`/opdrachten/${assignment.id}`}
-                className="text-xs font-black"
+                className="inline-flex min-h-11 items-center text-xs font-semibold"
                 style={{ color: "var(--color-accent-accessible)" }}
               >
                 Details bekijken
@@ -543,7 +614,7 @@ export default async function OpdrachtenPage({
                 <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
                   Details bekijken
                 </PortalActionMenuLink>
-                {assignment.quoteId ? (
+                {featureFlags.finance && assignment.quoteId ? (
                   <PortalActionMenuLink
                     href={`/api/offerte/${assignment.quoteId}/pdf`}
                     external
@@ -551,7 +622,8 @@ export default async function OpdrachtenPage({
                     Offerte PDF downloaden
                   </PortalActionMenuLink>
                 ) : null}
-                {assignment.status === "awaiting_approval" ? (
+                {featureFlags.finance &&
+                assignment.status === "awaiting_approval" ? (
                   <PortalActionMenuLink href="/offertes">
                     Naar offertes
                   </PortalActionMenuLink>
@@ -568,16 +640,18 @@ export default async function OpdrachtenPage({
 function AssignmentFilterForm({
   query,
   filter,
+  financeEnabled,
 }: {
   query: string;
   filter: AssignmentFilter;
+  financeEnabled: boolean;
 }) {
   return (
     <form action="/opdrachten" className="space-y-4">
       <div>
         <label
           htmlFor="assignment-filter-query"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Zoeken
@@ -598,7 +672,7 @@ function AssignmentFilterForm({
       <div>
         <label
           htmlFor="assignment-filter-status"
-          className="text-xs font-black"
+          className="text-xs font-semibold"
           style={{ color: "var(--color-secondary)" }}
         >
           Statusgroep
@@ -607,14 +681,16 @@ function AssignmentFilterForm({
           id="assignment-filter-status"
           name="filter"
           defaultValue={filter}
-          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
           }}
         >
           <option value="all">Alle opdrachten</option>
-          <option value="action_required">Actie vereist</option>
+          {financeEnabled ? (
+            <option value="action_required">Actie vereist</option>
+          ) : null}
           <option value="active">In uitvoering</option>
           <option value="open">Lopende aanvragen</option>
           <option value="history">Historie</option>
@@ -623,7 +699,7 @@ function AssignmentFilterForm({
       <div className="grid grid-cols-2 gap-2 pt-2">
         <Link
           href="/opdrachten"
-          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border text-sm font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -633,7 +709,7 @@ function AssignmentFilterForm({
         </Link>
         <button
           type="submit"
-          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold text-white"
           style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
@@ -651,7 +727,7 @@ function QuoteCell({ assignment }: { assignment: CustomerAssignment }) {
   if (quoteBadge) {
     return (
       <span
-        className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-black"
+        className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold"
         style={{ backgroundColor: quoteBadge.bg, color: quoteBadge.color }}
       >
         {quoteBadge.label}
@@ -682,19 +758,25 @@ function QuoteCell({ assignment }: { assignment: CustomerAssignment }) {
 
 function AssignmentStatusBadge({
   assignment,
+  financeEnabled,
 }: {
   assignment: CustomerAssignment;
+  financeEnabled: boolean;
 }) {
   const style = STATUS_COLOR[assignment.status] ?? {
     bg: "#F1F5F9",
     color: "#64748B",
   };
+  const label =
+    !financeEnabled && assignment.status === "awaiting_approval"
+      ? "In behandeling"
+      : (STATUS_LABEL[assignment.status] ?? assignment.status);
   return (
     <span
-      className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black"
+      className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
       style={{ backgroundColor: style.bg, color: style.color }}
     >
-      {STATUS_LABEL[assignment.status] ?? assignment.status}
+      {label}
     </span>
   );
 }

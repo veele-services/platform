@@ -42,6 +42,8 @@ export type CustomerOnboardingWorkspace = {
   pushStatus: PortalPushStatus;
   organizationName: string;
   canManageOrganization: boolean;
+  organizationNeedsAdministrator: boolean;
+  organizationMissingFields: string[];
 };
 
 export type CustomerOnboardingActionResult =
@@ -368,6 +370,33 @@ export async function getCustomerOnboardingWorkspace(
 ): Promise<CustomerOnboardingWorkspace> {
   const identity = await requireCustomerIdentity();
   const session = await getOrCreateSession(identity);
+  const canonicalOrganization = customerOrganizationOnboardingSchema.safeParse(
+    (await buildInitialDraft(identity)).organization,
+  );
+  const organizationFieldLabels: Record<string, string> = {
+    officialName: "officiële bedrijfsnaam",
+    tradeName: "handelsnaam",
+    legalForm: "rechtsvorm",
+    chamberOfCommerceNumber: "KvK-nummer",
+    registrationCountry: "land van registratie",
+    businessPhone: "zakelijk telefoonnummer",
+    businessEmail: "zakelijk e-mailadres",
+    addressStreet: "bezoekadres",
+    postalCode: "postcode",
+    city: "plaats",
+    country: "land",
+  };
+  const organizationMissingFields = canonicalOrganization.success
+    ? []
+    : Array.from(
+        new Set(
+          canonicalOrganization.error.issues.map((issue) => {
+            const key = String(issue.path[0] ?? "");
+            return organizationFieldLabels[key] ?? key;
+          }),
+        ),
+      ).filter(Boolean);
+  const canManageOrganization = canManageCustomerOrganization(identity);
   return {
     currentStep: session.currentStep as CustomerOnboardingStep,
     completedSteps: session.completedSteps,
@@ -375,7 +404,10 @@ export async function getCustomerOnboardingWorkspace(
     completeness: session.profileCompletenessPercentage,
     pushStatus: session.pushStatus,
     organizationName: organizationName ?? identity.officialName,
-    canManageOrganization: canManageCustomerOrganization(identity),
+    canManageOrganization,
+    organizationNeedsAdministrator:
+      !canManageOrganization && !canonicalOrganization.success,
+    organizationMissingFields,
   };
 }
 
@@ -427,27 +459,25 @@ function parseStep(
         },
       };
     }
-    if (parsed.data.pushStatus !== "allowed") {
-      return {
-        success: true as const,
-        data: {
-          ...parsed.data,
-          preferences: parsed.data.preferences.map((preference) => {
-            const critical =
-              preference.category === "incidents" ||
-              preference.category === "announcements";
-            return {
-              ...preference,
-              critical,
-              pushEnabled: false,
-              emailEnabled: critical || preference.emailEnabled,
-              inAppEnabled: critical || preference.inAppEnabled,
-            };
-          }),
-        },
-      };
-    }
-    return parsed;
+    const pushUnavailable = parsed.data.pushStatus !== "allowed";
+    return {
+      success: true as const,
+      data: {
+        ...parsed.data,
+        preferences: parsed.data.preferences.map((preference) => {
+          const critical =
+            preference.category === "incidents" ||
+            preference.category === "announcements";
+          return {
+            ...preference,
+            critical,
+            pushEnabled: pushUnavailable ? false : preference.pushEnabled,
+            emailEnabled: critical || preference.emailEnabled,
+            inAppEnabled: critical || preference.inAppEnabled,
+          };
+        }),
+      },
+    };
   }
   return customerReviewOnboardingSchema.safeParse(payload);
 }

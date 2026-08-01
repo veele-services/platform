@@ -21,8 +21,8 @@ export function TicketActions({
   const [isPending, startTransition] = useTransition();
   const className =
     variant === "solid"
-      ? "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm disabled:opacity-60"
-      : "inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-2 text-xs font-black text-white shadow-lg disabled:opacity-60";
+      ? "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-60"
+      : "inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-2 text-xs font-semibold text-white shadow-lg disabled:opacity-60";
 
   function run() {
     startTransition(async () => {
@@ -41,7 +41,7 @@ export function TicketActions({
       disabled={isPending}
       onClick={run}
       className={className}
-      style={variant === "solid" ? { backgroundColor: "var(--color-accent)" } : undefined}
+      style={variant === "solid" ? { backgroundColor: "var(--color-accent-accessible)" } : undefined}
     >
       {isClosed ? (
         <RotateCcw size={16} strokeWidth={2.4} />

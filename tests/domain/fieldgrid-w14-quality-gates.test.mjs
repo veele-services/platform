@@ -55,6 +55,70 @@ test("W14 visual plan separates every required authorization persona", () => {
   ]);
 });
 
+test("W14 portal snapshots use real basePath-relative routes", () => {
+  const plan = buildVisualRegressionPlan({}, { target: "all" });
+  const customer = plan.groups.find((group) => group.id === "customer-portal");
+  const personnel = plan.groups.find(
+    (group) => group.id === "personnel-portal",
+  );
+
+  assert.deepEqual(customer?.routes, [
+    "/",
+    "/opdrachten",
+    "/objecten",
+    "/financieel",
+    "/documenten",
+    "/meldingen/tickets",
+    "/help",
+  ]);
+  assert.deepEqual(personnel?.routes, [
+    "/",
+    "/opdrachten",
+    "/openstaand",
+    "/uren",
+    "/berichten",
+    "/beschikbaarheid",
+    "/documenten",
+    "/help",
+  ]);
+  assert.ok(!customer?.routes.includes("/dashboard"));
+  assert.ok(!personnel?.routes.includes("/planning"));
+});
+
+test("W14 visual runtime fails auth, accessibility, touch and screenshot regressions", () => {
+  const source = read("scripts/fieldgrid-visual-regression-snapshots.mjs");
+
+  for (const contract of [
+    /response\.status\(\) >= 400/u,
+    /authRedirected/u,
+    /samePathname\(finalUrl, url\)/u,
+    /viewport\.width <= 430 && metrics\.undersizedControlCount > 0/u,
+    /rect\.width < 44 \|\| rect\.height < 44/u,
+    /verifyKeyboardFocus/u,
+    /page\.keyboard\.press\("Tab"\)/u,
+    /AxeBuilder/u,
+    /seriousOrCriticalViolations/u,
+    /baseline\.status === "changed"/u,
+    /baseline\.status === "rejected"/u,
+    /requireBaselines && baseline\.status === "missing"/u,
+    /captureIsValid/u,
+    /captureIsValid !== true/u,
+    /status: visualCaptureStatus\(\{/u,
+    /overflowingElementCount/u,
+    /maxOverflowPx/u,
+    /createHash\("sha256"\)/u,
+    /getComparator\("image\/png"\)/u,
+    /maxDiffPixelRatio/u,
+    /\.diff\.png/u,
+    /if \(runtimeReady && plan\.errors\.length === 0\)/u,
+    /runVisualRegressionSnapshots\(\{[\s\S]*strict: true/u,
+    /"not-run-authenticated-base-url-or-state-missing"/u,
+  ]) {
+    assert.match(source, contract);
+  }
+  assert.doesNotMatch(source, /pageClipsHorizontalOverflow/u);
+});
+
 test("released sources do not add forbidden interaction or brand literals", () => {
   const findings = scanReleasedSources();
   assert.deepEqual(

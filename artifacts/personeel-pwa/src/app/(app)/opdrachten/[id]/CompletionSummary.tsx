@@ -101,7 +101,7 @@ function SummaryAccordion({
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="block text-[14px] font-black leading-tight"
+            className="block text-[14px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             {title}
@@ -115,7 +115,7 @@ function SummaryAccordion({
         </span>
         {rightLabel ? (
           <span
-            className="shrink-0 text-right text-[13px] font-black leading-tight"
+            className="shrink-0 text-right text-[13px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             {rightLabel}
@@ -225,7 +225,7 @@ function ExtraWorkRows({ items }: { items: ExtraWorkItem[] }) {
             </p>
           </div>
           <span
-            className="text-[13px] font-black"
+            className="text-[13px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {formatMoney(calculateExtraWorkLineTotal(item))}
@@ -237,13 +237,13 @@ function ExtraWorkRows({ items }: { items: ExtraWorkItem[] }) {
         style={{ borderColor: "var(--color-border)" }}
       >
         <span
-          className="text-[13px] font-black"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Totaal meerwerk
         </span>
         <span
-          className="text-[13px] font-black"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {formatMoney(total)}
@@ -286,7 +286,7 @@ function MaterialRows({ items }: { items: MaterialUsageItem[] }) {
             </p>
           </div>
           <span
-            className="text-[13px] font-black"
+            className="text-[13px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {formatMoney(calculateMaterialLineTotal(item))}
@@ -298,13 +298,13 @@ function MaterialRows({ items }: { items: MaterialUsageItem[] }) {
         style={{ borderColor: "var(--color-border)" }}
       >
         <span
-          className="text-[13px] font-black"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Totaal materiaal
         </span>
         <span
-          className="text-[13px] font-black"
+          className="text-[13px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           {formatMoney(total)}
@@ -337,7 +337,7 @@ function ReportNoteRows({ notes }: { notes: ReportNote[] }) {
           >
             <span>{formatNoteDate(note.createdAt)}</span>
             <span
-              className="font-black"
+              className="font-semibold"
               style={{ color: "var(--color-primary)" }}
             >
               {note.authorName}:
@@ -443,7 +443,7 @@ function SignaturePad({
     >
       <div className="flex items-center justify-between gap-3">
         <h2
-          className="text-[14px] font-black"
+          className="text-[14px] font-semibold"
           style={{ color: "var(--color-primary)" }}
         >
           Handtekening klant {required ? "" : "(niet nodig)"}
@@ -451,7 +451,7 @@ function SignaturePad({
         {required && hasSignature ? (
           <button
             type="button"
-            className="text-[12px] font-black"
+            className="text-[12px] font-semibold"
             style={{ color: "var(--color-accent)" }}
             onClick={clear}
           >
@@ -514,7 +514,7 @@ function NotCompletedForm({
         </span>
         <div>
           <h2
-            className="text-[14px] font-black"
+            className="text-[14px] font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             Bon afmelden / niet afgerond
@@ -529,7 +529,7 @@ function NotCompletedForm({
       </div>
 
       <label
-        className="mt-4 block text-[12px] font-black uppercase tracking-wide"
+        className="mt-4 block text-[12px] font-semibold uppercase tracking-wide"
         style={{ color: "var(--color-secondary)" }}
       >
         Reden
@@ -552,7 +552,7 @@ function NotCompletedForm({
       </label>
 
       <label
-        className="mt-3 block text-[12px] font-black uppercase tracking-wide"
+        className="mt-3 block text-[12px] font-semibold uppercase tracking-wide"
         style={{ color: "var(--color-secondary)" }}
       >
         Opmerking
@@ -587,7 +587,7 @@ function CostOverview({
       style={{ boxShadow: "0 12px 28px rgba(8,29,58,0.06)" }}
     >
       <h2
-        className="text-[14px] font-black"
+        className="text-[14px] font-semibold"
         style={{ color: "var(--color-primary)" }}
       >
         Overzicht extra kosten
@@ -596,7 +596,7 @@ function CostOverview({
         <div className="flex items-center justify-between">
           <span style={{ color: "var(--color-secondary)" }}>Meerwerk</span>
           <span
-            className="font-black"
+            className="font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {formatMoney(extraTotal)}
@@ -605,14 +605,14 @@ function CostOverview({
         <div className="flex items-center justify-between">
           <span style={{ color: "var(--color-secondary)" }}>Materialen</span>
           <span
-            className="font-black"
+            className="font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
             {formatMoney(materialTotal)}
           </span>
         </div>
         <div
-          className="flex items-center justify-between border-t pt-3 text-[14px] font-black"
+          className="flex items-center justify-between border-t pt-3 text-[14px] font-semibold"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-primary)",
@@ -745,7 +745,7 @@ export function CompletionSummary({
       <div className="flex items-start justify-between gap-3 px-1">
         <div>
           <h1
-            className="text-[22px] font-black leading-tight"
+            className="text-[22px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             Werkbon {mode === "completed" ? "afronden" : "afmelden"}
@@ -833,7 +833,7 @@ export function CompletionSummary({
 
       <button
         type="button"
-        className="flex w-full items-center justify-center gap-2 rounded-[18px] px-5 py-4 text-[15px] font-black text-white shadow-lg transition-opacity disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-[18px] px-5 py-4 text-[15px] font-semibold text-white shadow-lg transition-opacity disabled:opacity-60"
         style={{
           backgroundColor:
             mode === "completed" ? "var(--color-accent)" : "#DC2626",

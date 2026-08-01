@@ -2,7 +2,10 @@ import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { getMyPersonnel } from "@/actions/personnel";
 import { personnelOnboardingRequiredForCurrentMembership } from "@/actions/onboarding";
-import { dismissPersonnelReleaseHighlight, getPersonnelReleaseHighlight } from "@/actions/releases";
+import {
+  dismissPersonnelReleaseHighlight,
+  getPersonnelReleaseHighlight,
+} from "@/actions/releases";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
@@ -19,20 +22,26 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 
-function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+function ReleaseHighlightBanner({
+  highlight,
+}: {
+  highlight: ReleaseHighlightSummary | null;
+}) {
   if (!highlight) return null;
 
   return (
-    <div className="mx-4 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm md:mx-5 lg:mx-8">
+    <div className="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950 md:mx-5 lg:mx-8">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-black">{highlight.title}</p>
-          <p className="mt-1 text-sm leading-6 text-amber-900">{highlight.message}</p>
+          <p className="text-sm font-semibold">{highlight.title}</p>
+          <p className="mt-1 text-sm leading-5 text-amber-900">
+            {highlight.message}
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Link
             href={`/releases/${highlight.releaseSlug}`}
-            className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-950"
+            className="inline-flex min-h-11 items-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-950"
           >
             Lees meer
           </Link>
@@ -40,7 +49,7 @@ function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSumm
             <input type="hidden" name="highlightId" value={highlight.id} />
             <button
               type="submit"
-              className="rounded-xl border border-amber-200 px-3 py-2 text-xs font-black text-amber-900"
+              className="min-h-11 rounded-lg border border-amber-200 px-3 py-2 text-xs font-medium text-amber-900"
             >
               Sluiten
             </button>
@@ -60,12 +69,13 @@ export default async function AppLayout({
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("De personeelsapp is niet beschikbaar voor deze organisatie."),
+        encodeURIComponent(
+          "De personeelsapp is niet beschikbaar voor deze organisatie.",
+        ),
     );
   }
   const [
     branding,
-    notificationSummary,
     ticketSummary,
     personnel,
     documentsEnabled,
@@ -74,7 +84,6 @@ export default async function AppLayout({
     releasesEnabled,
   ] = await Promise.all([
     getTenantBranding(tenantId),
-    getMyNotificationSummary(),
     getMyTicketSummary(),
     getMyPersonnel(),
     isTenantModuleEnabled(tenantId, "documents"),
@@ -99,8 +108,15 @@ export default async function AppLayout({
     knowledgebase: knowledgebaseEnabled,
     releases: releasesEnabled,
   };
-  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
-  const releaseHighlight = releasesEnabled ? await getPersonnelReleaseHighlight() : null;
+  const brandingStyle = getTenantBrandingCssVariables(
+    branding,
+  ) as CSSProperties;
+  const notificationSummary = notificationsEnabled
+    ? await getMyNotificationSummary()
+    : undefined;
+  const releaseHighlight = releasesEnabled
+    ? await getPersonnelReleaseHighlight()
+    : null;
 
   return (
     <PersonnelRealtimeOfflineProvider personnelId={personnel.id}>
@@ -116,11 +132,13 @@ export default async function AppLayout({
             notificationSummary={notificationSummary}
             ticketSummary={ticketSummary}
           />
-          <NativePushTokenSync enabled={personnel.notificationPushEnabled ?? false} />
+          <NativePushTokenSync
+            enabled={personnel.notificationPushEnabled ?? false}
+          />
           <ReleaseHighlightBanner highlight={releaseHighlight} />
 
           <main className="min-w-0 flex-1 overflow-x-hidden pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">
-            <div className="mx-auto w-full min-w-0 max-w-[1440px] px-0 md:px-5 md:py-6 lg:px-8">
+            <div className="mx-auto w-full min-w-0 max-w-[1200px] px-0 md:px-5 md:py-5 lg:px-6">
               {children}
             </div>
           </main>

@@ -5,6 +5,11 @@ import { ChevronRight, Inbox, MessageSquare, Send } from "lucide-react";
 import { getMyTickets } from "@/actions/messages";
 import { NewTicketForm } from "./NewTicketForm";
 import {
+  isTenantModuleEnabled,
+} from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
+import { InboxTabs } from "@/components/InboxTabs";
+import {
   departmentLabel,
   PriorityBadge,
   TicketStatusBadge,
@@ -44,10 +49,10 @@ function TicketSummaryStrip({
             borderColor: item.tone === "accent" ? "rgba(0,183,179,0.35)" : "var(--color-border)",
           }}
         >
-          <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
             {item.label}
           </p>
-          <p className="mt-1 text-[20px] font-black leading-none" style={{ color: "var(--color-primary)" }}>
+          <p className="mt-1 text-[20px] font-semibold leading-none" style={{ color: "var(--color-primary)" }}>
             {item.value}
           </p>
         </div>
@@ -80,7 +85,7 @@ function TicketInboxCard({ ticket }: { ticket: TicketListItem }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-start gap-2">
             <span className="min-w-0 flex-1">
-              <span className="line-clamp-1 text-sm font-black text-[var(--color-primary)]">
+              <span className="line-clamp-1 text-sm font-semibold text-[var(--color-primary)]">
                 {ticket.subject}
               </span>
               <span className="mt-1 block line-clamp-2 text-xs font-semibold text-slate-500">
@@ -88,7 +93,7 @@ function TicketInboxCard({ ticket }: { ticket: TicketListItem }) {
               </span>
             </span>
             {hasUnread ? (
-              <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-black text-white">
+              <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
                 {ticket.unreadCount}
               </span>
             ) : null}
@@ -96,7 +101,7 @@ function TicketInboxCard({ ticket }: { ticket: TicketListItem }) {
           <span className="mt-2 flex flex-wrap items-center gap-1.5">
             <TicketStatusBadge status={ticket.status} />
             <PriorityBadge priority={ticket.priority} />
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
               {departmentLabel(ticket.department)}
             </span>
             <span className="text-[11px] font-bold text-slate-400">
@@ -128,7 +133,7 @@ function TicketListSection({
   return (
     <section className="space-y-2">
       <div>
-        <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+        <h2 className="text-[15px] font-semibold" style={{ color: "var(--color-primary)" }}>
           {title} ({tickets.length})
         </h2>
         <p className="mt-0.5 text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -145,7 +150,13 @@ function TicketListSection({
 }
 
 export default async function BerichtenPage() {
-  const tickets = await getMyTickets();
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const [tickets, notificationsEnabled] = await Promise.all([
+    getMyTickets(),
+    tenantId
+      ? isTenantModuleEnabled(tenantId, "notifications")
+      : Promise.resolve(false),
+  ]);
   const unreadTickets = tickets.filter((ticket) => ticket.unreadCount > 0);
   const activeTickets = tickets.filter((ticket) => ticket.status !== "closed" && ticket.unreadCount === 0);
   const closedTickets = tickets.filter((ticket) => ticket.status === "closed");
@@ -155,15 +166,21 @@ export default async function BerichtenPage() {
   return (
     <div className="min-h-[calc(100vh-4.2rem)] bg-[#F4F7FB] md:bg-transparent">
       <section className="bg-[#061F44] px-4 pb-10 pt-4 md:rounded-3xl md:bg-transparent md:px-6 md:pb-6">
-        <h1 className="text-[29px] font-black leading-tight text-white md:text-3xl">
-          Berichten
+        <h1 className="text-2xl font-semibold leading-tight text-white md:text-[26px] md:text-[var(--color-primary)]">
+          Inbox
         </h1>
-        <p className="mt-1 text-base font-medium text-white/68">
-          Inbox voor tickets met planning, management en backoffice
+        <p className="mt-1 text-sm font-normal text-white/70 md:text-[var(--color-secondary)]">
+          Berichten en meldingen op één plek
         </p>
       </section>
 
       <section className="-mt-7 min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:mt-0 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
+        <div className="mx-auto mb-3 max-w-6xl">
+          <InboxTabs
+            active="messages"
+            notificationsEnabled={notificationsEnabled}
+          />
+        </div>
         <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)] md:items-start">
           <div className="space-y-4">
             <TicketSummaryStrip
@@ -178,7 +195,7 @@ export default async function BerichtenPage() {
                   <Inbox size={21} strokeWidth={2.4} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-black text-[var(--color-primary)]">
+                  <h2 className="text-lg font-semibold text-[var(--color-primary)]">
                     Mijn inbox
                   </h2>
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -208,7 +225,7 @@ export default async function BerichtenPage() {
               ) : (
                 <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] px-4 py-10 text-center">
                   <Inbox className="mx-auto text-slate-400" size={30} />
-                  <p className="mt-3 text-sm font-black text-[var(--color-primary)]">
+                  <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
                     Geen tickets
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -226,7 +243,7 @@ export default async function BerichtenPage() {
                   <Send size={19} strokeWidth={2.4} />
                 </span>
                 <div>
-                  <h2 className="text-[15px] font-black text-[var(--color-primary)]">
+                  <h2 className="text-[15px] font-semibold text-[var(--color-primary)]">
                     Nieuw bericht
                   </h2>
                   <p className="mt-1 text-[13px] font-semibold leading-5 text-slate-500">

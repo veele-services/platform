@@ -13,25 +13,46 @@ function assertContains(content, phrases, label) {
 }
 
 test("phase 16 adds executable customer/personnel releasegate", () => {
-  const script = read("scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs");
+  const script = read(
+    "scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs",
+  );
+  const hrefContract = read(
+    "scripts/lib/fieldgrid-navigation-href-contract.mjs",
+  );
   const pkg = read("package.json");
 
   assertContains(
-    script,
+    `${script}\n${hrefContract}`,
     [
       "customerTargets",
       "personnelTargets",
+      "mobile-320",
       "mobile-390",
+      "mobile-430",
       "tablet-768",
+      "tablet-landscape-1024",
+      "desktop-1280",
       "desktop-1440",
+      "desktop-1920",
+      "zoom-200-1024",
       "checkNavigationHrefs",
+      "findBrokenLocalNavigationHrefs",
+      '.replace(/\\$\\{[^}]+\\}/gu, ":param")',
       "checkRawDialogs",
       "checkSecurityCopy",
       "checkNotificationHrefs",
       "runScreenshots",
+      "runtimeEvidenceStatus",
       "horizontalOverflow",
       "hasServerError",
       "undersizedInteractiveElements",
+      "rect.width < 44 || rect.height < 44",
+      "FIELDGRID_CUSTOMER_PORTAL_STORAGE_STATE",
+      "FIELDGRID_PERSONNEL_PORTAL_STORAGE_STATE",
+      "isAuthenticationRedirect",
+      "samePathname",
+      "verifyKeyboardFocus",
+      "AxeBuilder",
       "CP16-P1-AUTHENTICATED-SCREENSHOTS",
     ],
     "phase 16 releasegate script",
@@ -49,7 +70,9 @@ test("phase 16 adds executable customer/personnel releasegate", () => {
 });
 
 test("phase 16 documents screenshot evidence inputs and route coverage", () => {
-  const docs = read("docs/fieldgrid-customer-personnel-phase-16-releasegate.md");
+  const docs = read(
+    "docs/fieldgrid-customer-personnel-phase-16-releasegate.md",
+  );
 
   assertContains(
     docs,
@@ -62,22 +85,36 @@ test("phase 16 documents screenshot evidence inputs and route coverage", () => {
       "FIELDGRID_CUSTOMER_ASSIGNMENT_PATH",
       "FIELDGRID_PERSONNEL_ASSIGNMENT_PATH",
       "390x844",
+      "320x568",
+      "430x932",
       "768x1024",
+      "1024x768",
+      "1280x800",
       "1440x1100",
+      "1920x1080",
+      "200%",
       "dashboard",
       "objectdetail",
       "opdrachtdetail",
       "profiel, beveiliging en instellingen",
+      "44x44",
+      "Axe",
+      "toetsenbordfocus",
     ],
     "phase 16 documentation",
   );
 });
 
 test("phase 16 releasegate enforces acceptance risks from the roadmap", () => {
-  const script = read("scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs");
+  const script = read(
+    "scripts/fieldgrid-customer-personnel-phase16-releasegate.mjs",
+  );
+  const hrefContract = read(
+    "scripts/lib/fieldgrid-navigation-href-contract.mjs",
+  );
 
   assertContains(
-    script,
+    `${script}\n${hrefContract}`,
     [
       "broken-local-href",
       "raw-browser-dialog",
@@ -86,6 +123,9 @@ test("phase 16 releasegate enforces acceptance risks from the roadmap", () => {
       "unknown-audience-href",
       "/meldingen/tickets",
       "/berichten",
+      "/help",
+      "/releases",
+      "/roadmap",
       "/platform",
     ],
     "phase 16 acceptance enforcement",

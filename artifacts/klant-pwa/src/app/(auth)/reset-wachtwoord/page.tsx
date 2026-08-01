@@ -68,7 +68,7 @@ export default function ResetWachtwoordPage() {
           <div className="mb-10 text-center">
             <div
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <span className="text-2xl font-bold text-white">V</span>
             </div>
@@ -197,7 +197,7 @@ export default function ResetWachtwoordPage() {
                   password !== confirmPassword
                 }
                 className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-                style={{ backgroundColor: "var(--color-accent)" }}
+                style={{ backgroundColor: "var(--color-accent-accessible)" }}
               >
                 {pending ? "Opslaan..." : "Wachtwoord opslaan"}
               </button>

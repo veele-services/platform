@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Mail,
   MapPin,
-  Route,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -17,23 +16,17 @@ import {
 import { AvatarUploadForm } from "./AvatarUploadForm";
 import { ProfileForm } from "./ProfileForm";
 import { formatPersonnelRoleLabel } from "@/lib/personnel-labels";
-
-function vehicleTypeLabel(value: string | null | undefined): string {
-  switch (value) {
-    case "BICYCLE":
-      return "Fiets";
-    case "WALK":
-      return "Lopen";
-    case "TRANSIT":
-      return "Openbaar vervoer";
-    case "DRIVE":
-    default:
-      return "Auto";
-  }
-}
+import { isTenantModuleEnabled } from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
 export default async function ProfielPage() {
-  const profile = await getMyPersonnel();
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const [profile, notificationsEnabled] = await Promise.all([
+    getMyPersonnel(),
+    tenantId
+      ? isTenantModuleEnabled(tenantId, "notifications")
+      : Promise.resolve(false),
+  ]);
 
   if (!profile) {
     return (
@@ -41,6 +34,7 @@ export default async function ProfielPage() {
         active="profile"
         title="Mijn profiel"
         subtitle="Beheer je gegevens en profielfoto."
+        notificationsEnabled={notificationsEnabled}
       >
         <PersonnelSettingsFeedback type="error">
           Geen profielgegevens gevonden.
@@ -56,7 +50,6 @@ export default async function ProfielPage() {
     { label: "Rol", value: roleLabel, Icon: ShieldCheck },
     { label: "Sector", value: profile.sectorName, Icon: BriefcaseBusiness },
     { label: "Regio", value: profile.region, Icon: MapPin },
-    { label: "Standaard vervoer", value: vehicleTypeLabel(profile.vehicleType), Icon: Route },
   ].filter((field) => field.value);
   const hasQualifications =
     profile.certificates.length > 0 ||
@@ -68,6 +61,7 @@ export default async function ProfielPage() {
       active="profile"
       title="Mijn profiel"
       subtitle="Beheer je gegevens en profielfoto."
+      notificationsEnabled={notificationsEnabled}
     >
       <div className="mx-auto w-full max-w-3xl min-w-0 space-y-4 overflow-hidden">
         <PersonnelSettingsCard>
@@ -82,7 +76,7 @@ export default async function ProfielPage() {
         <ProfileForm profile={profile} />
 
         <PersonnelSettingsCard>
-          <h2 className="text-lg font-black text-[var(--color-primary)]">Werkgegevens</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-primary)]">Werkgegevens</h2>
           <div className="mt-3 space-y-3">
             {workFields.map(({ label, value, Icon }) => (
               <div key={label} className="flex items-center gap-3">
@@ -106,7 +100,7 @@ export default async function ProfielPage() {
           <PersonnelSettingsCard>
             <div className="mb-3 flex items-center gap-2">
               <Award size={18} className="text-[#009E9A]" />
-              <h2 className="text-lg font-black text-[var(--color-primary)]">
+              <h2 className="text-lg font-semibold text-[var(--color-primary)]">
                 Kwalificaties
               </h2>
             </div>
@@ -152,7 +146,7 @@ function BadgeGroup({
         {items.map((item) => (
           <span
             key={item}
-            className={`rounded-full px-2.5 py-1 text-xs font-black ${className}`}
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}
           >
             {item}
           </span>

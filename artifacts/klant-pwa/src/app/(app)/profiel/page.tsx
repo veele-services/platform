@@ -44,7 +44,7 @@ export default async function ProfielPage() {
               <UserCircle size={25} />
             </span>
             <div>
-              <h2 className="text-xl font-black" style={{ color: "var(--color-primary)" }}>
+              <h2 className="text-xl font-semibold" style={{ color: "var(--color-primary)" }}>
                 {profile.name}
               </h2>
               <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -56,7 +56,7 @@ export default async function ProfielPage() {
           <dl className="mt-5 grid gap-3 md:grid-cols-2">
             {rows.map(({ label, value, Icon }) => (
               <div key={label} className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--color-border)" }}>
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
                   <Icon size={14} />
                   {label}
                 </div>

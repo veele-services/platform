@@ -309,7 +309,7 @@ function DynamicChecklistCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2
-            className="text-[19px] font-black leading-tight"
+            className="text-[19px] font-semibold leading-tight"
             style={{ color: "var(--color-primary)" }}
           >
             {initialChecklist.displayName}
@@ -357,7 +357,7 @@ function DynamicChecklistCard({
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((section) => (
             <div key={section.id}>
-              <h3 className="text-sm font-black uppercase tracking-wide text-slate-500">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 {section.title}
               </h3>
               {section.description && (

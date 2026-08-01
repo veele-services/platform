@@ -2,14 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
+import { DropdownMenuItem } from "@workspace/shared-ui";
 import { getDocumentDownloadUrl } from "@/actions/documents";
 
 interface Props {
   documentId: string;
-  filename:   string;
+  filename: string;
+  renderAsMenuItem?: boolean;
 }
 
-export function DocumentDownloadButton({ documentId, filename }: Props) {
+export function DocumentDownloadButton({
+  documentId,
+  filename,
+  renderAsMenuItem = false,
+}: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -32,6 +38,46 @@ export function DocumentDownloadButton({ documentId, filename }: Props) {
     });
   }
 
+  const content = (
+    <>
+      {pending ? (
+        <Loader2 size={12} className="animate-spin" />
+      ) : (
+        <Download size={12} />
+      )}
+      Downloaden
+    </>
+  );
+
+  const errorMessage = error ? (
+    <p
+      role="alert"
+      className="mt-1 px-2 text-xs"
+      style={{ color: "var(--color-destructive)" }}
+    >
+      {error}
+    </p>
+  ) : null;
+
+  if (renderAsMenuItem) {
+    return (
+      <>
+        <DropdownMenuItem
+          disabled={pending}
+          onSelect={(event) => {
+            event.preventDefault();
+            handleDownload();
+          }}
+          className="w-full text-sm font-medium"
+          style={{ color: "var(--color-primary)" }}
+        >
+          {content}
+        </DropdownMenuItem>
+        {errorMessage}
+      </>
+    );
+  }
+
   return (
     <div>
       <button
@@ -39,20 +85,14 @@ export function DocumentDownloadButton({ documentId, filename }: Props) {
         onClick={handleDownload}
         disabled={pending}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
+        style={{
+          backgroundColor: "rgba(0,183,179,0.1)",
+          color: "var(--color-accent-accessible)",
+        }}
       >
-        {pending ? (
-          <Loader2 size={12} className="animate-spin" />
-        ) : (
-          <Download size={12} />
-        )}
-        Downloaden
+        {content}
       </button>
-      {error && (
-        <p className="mt-1 text-xs" style={{ color: "var(--color-destructive)" }}>
-          {error}
-        </p>
-      )}
+      {errorMessage}
     </div>
   );
 }

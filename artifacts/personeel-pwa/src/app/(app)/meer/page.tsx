@@ -2,35 +2,37 @@ import Link from "next/link";
 import {
   CalendarCheck,
   ChevronRight,
-  Bell,
-  FileText,
   FolderOpen,
   HelpCircle,
   Lightbulb,
   LogOut,
-  MessageSquare,
   Megaphone,
   Newspaper,
   Plane,
   Settings,
 } from "lucide-react";
 import { NativeAwareSignOutButton } from "@/components/NativeAwareSignOutButton";
+import { isTenantModuleEnabled } from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
 export const dynamic = "force-dynamic";
 
 const MORE_LINKS = [
   { href: "/nieuws", label: "Nieuws", description: "Updates en interne berichten", Icon: Newspaper },
-  { href: "/berichten", label: "Berichten", description: "Tickets met afdelingen", Icon: MessageSquare },
-  { href: "/meldingen", label: "Meldingen", description: "Notificaties en acties", Icon: Bell },
   { href: "/instellingen", label: "Instellingen", description: "Profiel, beveiliging en meldingen", Icon: Settings },
   { href: "/beschikbaarheid", label: "Beschikbaarheid", description: "Beschikbare dagen beheren", Icon: CalendarCheck },
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
-  { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
-  { href: "/help", label: "Help", description: "Handleidingen en uitleg bij functies", Icon: HelpCircle },
-  { href: "/releases", label: "Releases", description: "Nieuwe functies en verbeteringen", Icon: Megaphone },
+  { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen, moduleKey: "documents" },
+  { href: "/help", label: "Help", description: "Handleidingen en uitleg bij functies", Icon: HelpCircle, moduleKey: "knowledgebase" },
+  { href: "/releases", label: "Wat is nieuw", description: "Nieuwe functies en verbeteringen", Icon: Megaphone, moduleKey: "releases" },
   { href: "/roadmap/new", label: "Featurewens", description: "Dien een productwens in bij de tenant", Icon: Lightbulb },
-  { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
-];
+] satisfies Array<{
+  href: string;
+  label: string;
+  description: string;
+  Icon: typeof Newspaper;
+  moduleKey?: "documents" | "knowledgebase" | "releases";
+}>;
 
 type Props = {
   searchParams?: Promise<{ featureRequest?: string }>;
@@ -38,11 +40,22 @@ type Props = {
 
 export default async function MeerPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const featureFlags = tenantId
+    ? {
+        documents: await isTenantModuleEnabled(tenantId, "documents"),
+        knowledgebase: await isTenantModuleEnabled(tenantId, "knowledgebase"),
+        releases: await isTenantModuleEnabled(tenantId, "releases"),
+      }
+    : { documents: false, knowledgebase: false, releases: false };
+  const visibleLinks = MORE_LINKS.filter(
+    (item) => !item.moduleKey || featureFlags[item.moduleKey],
+  );
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] px-5 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: "var(--color-primary)" }}>
+    <div className="min-h-screen bg-[var(--color-muted)] px-4 py-5 md:mx-auto md:min-h-0 md:max-w-3xl md:px-0 md:py-0">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--color-primary)" }}>
           Meer
         </h1>
         <p className="mt-2 text-sm" style={{ color: "var(--color-secondary)" }}>
@@ -56,22 +69,22 @@ export default async function MeerPage({ searchParams }: Props) {
         </div>
       )}
 
-      <div className="space-y-3">
-        {MORE_LINKS.map(({ href, label, description, Icon }) => (
+      <div className="space-y-2">
+        {visibleLinks.map(({ href, label, description, Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 rounded-[20px] border bg-white p-4 shadow-sm active:scale-[0.99]"
+            className="flex min-h-14 items-center gap-3 rounded-xl border bg-white px-3 py-2.5 shadow-sm active:scale-[0.99]"
             style={{ borderColor: "var(--color-border)" }}
           >
             <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
               style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
             >
               <Icon size={22} strokeWidth={2.3} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              <span className="block text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                 {label}
               </span>
               <span className="block truncate text-sm" style={{ color: "var(--color-secondary)" }}>
@@ -85,7 +98,7 @@ export default async function MeerPage({ searchParams }: Props) {
 
       <div className="mt-5">
         <NativeAwareSignOutButton
-          className="flex w-full items-center justify-center gap-2 rounded-[20px] border bg-white p-4 text-sm font-black shadow-sm"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2.5 text-sm font-medium shadow-sm"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <LogOut size={20} strokeWidth={2.3} />

@@ -14,27 +14,27 @@ export function PageShell({
 }) {
   return (
     <MobilePageShell title={title} subtitle={subtitle}>
-      <div className="mx-auto w-full max-w-[1500px] space-y-5 md:px-1 md:py-1 xl:space-y-6">
+      <div className="mx-auto w-full max-w-[1280px] space-y-4 md:px-1 md:py-1">
         <header
-          className="hidden items-center justify-between gap-5 rounded-[22px] border bg-white px-6 py-5 shadow-sm md:flex"
+          className="hidden items-center justify-between gap-4 border-b px-1 pb-4 md:flex"
           style={{ borderColor: "var(--color-border)" }}
         >
           <div>
             <p
-              className="mb-1 text-[11px] font-black uppercase tracking-[0.18em]"
-              style={{ color: "var(--color-accent)" }}
+              className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em]"
+              style={{ color: "var(--color-accent-accessible)" }}
             >
               Klantportaal
             </p>
             <h1
-              className="text-[28px] font-black leading-tight xl:text-[32px]"
+              className="text-[26px] font-semibold leading-tight xl:text-[30px]"
               style={{ color: "var(--color-primary)" }}
             >
               {title}
             </h1>
             {subtitle ? (
               <p
-                className="mt-1 max-w-3xl text-sm font-semibold leading-6"
+                className="mt-1 max-w-3xl text-sm leading-6"
                 style={{ color: "var(--color-secondary)" }}
               >
                 {subtitle}

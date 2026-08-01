@@ -35,7 +35,7 @@ export default async function NieuwsDetailPage({ params }: Props) {
         <div className="absolute inset-x-0 bottom-0 px-4 pb-5">
           <div className="mb-2 flex items-center gap-2">
             <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide"
+              className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
               style={{ backgroundColor: "rgba(0,183,179,0.12)", color: "var(--color-accent)" }}
             >
               {post.category}
@@ -44,7 +44,7 @@ export default async function NieuwsDetailPage({ params }: Props) {
               {post.date} - {post.readTime}
             </span>
           </div>
-          <h1 className="text-[28px] font-black leading-tight tracking-tight" style={{ color: "var(--color-primary)" }}>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight" style={{ color: "var(--color-primary)" }}>
             {post.title}
           </h1>
         </div>

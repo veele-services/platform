@@ -62,7 +62,7 @@ export default async function CustomerTicketDetailPage({
       actions={
         <Link
           href="/meldingen/tickets"
-          className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black"
+          className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <ArrowLeft size={15} />
@@ -74,7 +74,7 @@ export default async function CustomerTicketDetailPage({
       <div className="md:hidden">
         <Link
           href="/meldingen/tickets"
-          className="mb-3 inline-flex items-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black shadow-sm"
+          className="mb-3 inline-flex items-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         >
           <ArrowLeft size={16} />
@@ -94,10 +94,10 @@ export default async function CustomerTicketDetailPage({
                   <MessageSquare size={21} strokeWidth={2.4} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
                     Gesprek
                   </p>
-                  <h2 className="mt-1 text-lg font-black" style={{ color: "var(--color-primary)" }}>
+                  <h2 className="mt-1 text-lg font-semibold" style={{ color: "var(--color-primary)" }}>
                     {ticket.messages.length} bericht{ticket.messages.length === 1 ? "" : "en"}
                   </h2>
                   <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -145,7 +145,7 @@ export default async function CustomerTicketDetailPage({
                     >
                       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                          <p className="text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                             {message.authorName}
                           </p>
                           <p className="mt-0.5 text-xs font-bold" style={{ color: "var(--color-muted-fg)" }}>
@@ -174,7 +174,7 @@ export default async function CustomerTicketDetailPage({
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--color-primary)" }}>
                   Reageren
                 </h2>
                 <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
@@ -196,7 +196,7 @@ export default async function CustomerTicketDetailPage({
                 <ShieldCheck size={18} />
               </span>
               <div>
-                <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+                <h2 className="text-base font-semibold" style={{ color: "var(--color-primary)" }}>
                   Status en SLA
                 </h2>
                 <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -223,7 +223,7 @@ export default async function CustomerTicketDetailPage({
                 <Paperclip size={18} />
               </span>
               <div>
-                <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+                <h2 className="text-base font-semibold" style={{ color: "var(--color-primary)" }}>
                   Bijlagen
                 </h2>
                 <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -242,7 +242,7 @@ export default async function CustomerTicketDetailPage({
                 <Clock3 size={18} />
               </span>
               <div>
-                <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+                <h2 className="text-base font-semibold" style={{ color: "var(--color-primary)" }}>
                   Opvolging
                 </h2>
                 <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
@@ -260,10 +260,10 @@ export default async function CustomerTicketDetailPage({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
-      <dt className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
+      <dt className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-muted-fg)" }}>
         {label}
       </dt>
-      <dd className="text-right text-xs font-black" style={{ color: "var(--color-primary)" }}>
+      <dd className="text-right text-xs font-semibold" style={{ color: "var(--color-primary)" }}>
         {value}
       </dd>
     </div>

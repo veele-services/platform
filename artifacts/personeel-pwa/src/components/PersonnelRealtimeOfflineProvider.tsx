@@ -609,14 +609,14 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
                 if (target) router.push(target);
               }}
             >
-              <p className="line-clamp-1 text-[13px] font-black text-[var(--color-primary)]">
+              <p className="line-clamp-1 text-[13px] font-semibold text-[var(--color-primary)]">
                 {pushToast.title}
               </p>
               <p className="mt-1 line-clamp-2 text-[12px] font-bold leading-snug text-slate-500">
                 {pushToast.body}
               </p>
               {pushToast.priority === "high" ? (
-                <span className="mt-2 inline-flex rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700">
+                <span className="mt-2 inline-flex rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                   Urgent
                 </span>
               ) : null}
@@ -635,7 +635,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       {showStatus ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5.65rem+var(--safe-bottom))] z-[95] flex justify-center px-4 md:bottom-4">
           <div
-            className="flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border bg-white/95 px-3 py-2 text-[12px] font-black shadow-xl backdrop-blur"
+            className="flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border bg-white/95 px-3 py-2 text-[12px] font-semibold shadow-xl backdrop-blur"
             style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
           >
             {!online ? (
@@ -654,7 +654,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
                 <span>{failedCount > 0 ? `${failedCount} actie${failedCount === 1 ? "" : "s"} mislukt` : "Synchronisatie vraagt aandacht"}</span>
                 <button
                   type="button"
-                  className="pointer-events-auto rounded-full bg-[#FEE2E2] px-2 py-1 text-[11px] font-black text-[#DC2626]"
+                  className="pointer-events-auto rounded-full bg-[#FEE2E2] px-2 py-1 text-[11px] font-semibold text-[#DC2626]"
                   onClick={retryFailedQueue}
                 >
                   Opnieuw

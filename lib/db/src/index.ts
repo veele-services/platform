@@ -10,6 +10,7 @@ export * from "./content-visibility";
 export * from "./knowledgebase-content";
 export * from "./knowledgebase-tooltips";
 export * from "./release-content";
+export * from "./visible-notification-pagination";
 export * from "./tenant-branding";
 export * from "./planning-realtime";
 export * from "./email-templates";

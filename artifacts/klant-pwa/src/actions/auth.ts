@@ -354,6 +354,19 @@ export async function completeRequiredPasswordChange(
   ) {
     return { error: "Deze verplichte wachtwoordsessie is niet meer geldig." };
   }
+  const temporaryPasswordExpiresAt =
+    current.user.app_metadata?.["temporary_password_expires_at"];
+  const expiresAt =
+    typeof temporaryPasswordExpiresAt === "string"
+      ? Date.parse(temporaryPasswordExpiresAt)
+      : Number.NaN;
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Het tijdelijke wachtwoord is verlopen. Vraag uw organisatie om een nieuwe uitnodiging.",
+    };
+  }
   const appMetadata: Record<string, unknown> = { ...(current.user.app_metadata ?? {}) };
   appMetadata["force_password_change"] = false;
   appMetadata["password_changed_at"] = new Date().toISOString();

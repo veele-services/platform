@@ -14,17 +14,11 @@ import {
   LogOut,
   Settings,
   WalletCards,
+  Sparkles,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
 import { FieldgridLogo, type PortalBrandingProps } from "./MobileHeader";
-
-type CustomerPortalFeatureFlags = {
-  documents: boolean;
-  finance: boolean;
-  reporting: boolean;
-  knowledgebase: boolean;
-  releases: boolean;
-};
+import type { CustomerPortalFeatureFlags } from "@/lib/portal-features";
 
 type NavIcon = ComponentType<{
   className?: string;
@@ -38,7 +32,7 @@ const NAV_ITEMS = [
   { href: "/objecten", label: "Objecten", Icon: Building2 },
   {
     href: "/meldingen/tickets",
-    label: "Support",
+    label: "Contact & tickets",
     Icon: Headphones,
     match: ["/meldingen"],
   },
@@ -49,18 +43,11 @@ const NAV_ITEMS = [
     moduleKey: "reporting",
   },
   {
-    href: "/offertes",
-    label: "Offertes",
-    Icon: FileText,
-    moduleKey: "finance",
-    match: ["/offertes"],
-  },
-  {
-    href: "/facturen",
-    label: "Facturen",
+    href: "/financieel",
+    label: "Financieel",
     Icon: WalletCards,
     moduleKey: "finance",
-    match: ["/financieel", "/facturen", "/betalingen"],
+    match: ["/financieel", "/facturen", "/offertes", "/betalingen"],
   },
   {
     href: "/documenten",
@@ -70,9 +57,15 @@ const NAV_ITEMS = [
   },
   {
     href: "/help",
-    label: "Support",
+    label: "Hulpcentrum",
     Icon: HelpCircle,
     moduleKey: "knowledgebase",
+  },
+  {
+    href: "/releases",
+    label: "Wat is nieuw",
+    Icon: Sparkles,
+    moduleKey: "releases",
   },
 ] satisfies Array<{
   href: string;
@@ -95,6 +88,7 @@ export function DesktopSidebar({
     documents: true,
     finance: true,
     reporting: true,
+    notifications: true,
     knowledgebase: true,
     releases: true,
   },
@@ -109,18 +103,17 @@ export function DesktopSidebar({
 
   return (
     <aside
-      className="hidden h-screen w-[260px] shrink-0 flex-col md:flex"
+      className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col md:flex"
       style={{
-        background:
-          "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
+        backgroundColor: "var(--color-primary)",
         color: "white",
       }}
     >
-      <div className="px-6 pb-5 pt-7">
+      <div className="px-5 pb-4 pt-6">
         <FieldgridLogo branding={branding} />
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
         {visibleItems.map(({ href, label, Icon, match }) => {
           const activePaths = match ?? [href];
           const isActive = activePaths.some((path) =>
@@ -131,10 +124,10 @@ export function DesktopSidebar({
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition"
+              className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition"
               style={{
                 backgroundColor: isActive
-                  ? "rgba(0,183,179,0.18)"
+                  ? "color-mix(in srgb, var(--color-accent) 18%, transparent)"
                   : "transparent",
                 color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.72)",
               }}
@@ -146,25 +139,18 @@ export function DesktopSidebar({
         })}
       </nav>
 
-      <div className="space-y-1 border-t border-white/10 px-4 py-5">
-        <Link
-          href="/meldingen/tickets"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/70"
-        >
-          <Headphones size={18} />
-          Contact opnemen
-        </Link>
+      <div className="space-y-0.5 border-t border-white/10 px-3 py-4">
         <Link
           href="/instellingen"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/70"
+          className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/70"
         >
           <Settings size={18} />
-          Instellingen
+          Voorkeuren
         </Link>
         <form action={signOut}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold text-white/70"
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-white/70"
           >
             <LogOut size={18} />
             Uitloggen

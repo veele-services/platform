@@ -28,10 +28,14 @@ import {
   formatPdfEuroCents,
   sanitizePdfFilename,
 } from "@/lib/pdf-style";
+import { isCustomerPortalFeatureEnabled } from "@/lib/portal-features";
 
 export const runtime = "nodejs";
 
-function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+function displayInvoiceNumber(
+  value: string | null | undefined,
+  fallback = "Factuur",
+): string {
   return value?.trim() || fallback;
 }
 
@@ -41,6 +45,9 @@ export async function GET(
 ) {
   const identity = await getMyCustomerIdentity();
   if (!identity) return new NextResponse("Unauthorized", { status: 401 });
+  if (!(await isCustomerPortalFeatureEnabled("finance", identity.tenantId))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const { id } = await params;
   const [batch] = await db
@@ -62,14 +69,26 @@ export async function GET(
       createdAt: customerPaymentBatchesTable.createdAt,
     })
     .from(customerPaymentBatchesTable)
-    .innerJoin(customersTable, eq(customersTable.id, customerPaymentBatchesTable.customerId))
-    .leftJoin(objectsTable, eq(objectsTable.id, customerPaymentBatchesTable.objectId))
+    .innerJoin(
+      customersTable,
+      eq(customersTable.id, customerPaymentBatchesTable.customerId),
+    )
+    .leftJoin(
+      objectsTable,
+      eq(objectsTable.id, customerPaymentBatchesTable.objectId),
+    )
     .where(
       and(
         eq(customerPaymentBatchesTable.id, id),
         eq(customerPaymentBatchesTable.customerId, identity.customerId),
         eq(customersTable.tenantId, identity.tenantId),
-        inArray(customerPaymentBatchesTable.status, ["open", "paid", "canceled", "expired", "failed"]),
+        inArray(customerPaymentBatchesTable.status, [
+          "open",
+          "paid",
+          "canceled",
+          "expired",
+          "failed",
+        ]),
       ),
     )
     .limit(1);
@@ -87,8 +106,14 @@ export async function GET(
       itemAmountCents: customerPaymentBatchItemsTable.amountCents,
     })
     .from(customerPaymentBatchItemsTable)
-    .innerJoin(invoicesTable, eq(invoicesTable.id, customerPaymentBatchItemsTable.invoiceId))
-    .innerJoin(assignmentsTable, eq(assignmentsTable.id, invoicesTable.assignmentId))
+    .innerJoin(
+      invoicesTable,
+      eq(invoicesTable.id, customerPaymentBatchItemsTable.invoiceId),
+    )
+    .innerJoin(
+      assignmentsTable,
+      eq(assignmentsTable.id, invoicesTable.assignmentId),
+    )
     .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
     .leftJoin(objectsTable, eq(objectsTable.id, assignmentsTable.objectId))
     .where(
@@ -100,7 +125,10 @@ export async function GET(
         eq(assignmentsTable.tenantId, identity.tenantId),
       ),
     )
-    .orderBy(asc(assignmentsTable.scheduledDate), asc(invoicesTable.invoiceNumber));
+    .orderBy(
+      asc(assignmentsTable.scheduledDate),
+      asc(invoicesTable.invoiceNumber),
+    );
 
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
@@ -113,7 +141,9 @@ export async function GET(
     const W = R - L;
     let y = 148;
 
-    const cityLine = [batch.customerPostalCode, batch.customerCity].filter(Boolean).join(" ");
+    const cityLine = [batch.customerPostalCode, batch.customerCity]
+      .filter(Boolean)
+      .join(" ");
     drawPdfHeader(doc, {
       title: "VERZAMELFACTUUR",
       reference: batch.id.slice(0, 8).toUpperCase(),
@@ -129,7 +159,12 @@ export async function GET(
       meta: [
         ["Status", String(batch.status)],
         ["Aangemaakt", formatPdfDate(batch.createdAt)],
-        ["Periode", batch.periodStart || batch.periodEnd ? `${formatPdfDate(batch.periodStart)} t/m ${formatPdfDate(batch.periodEnd)}` : "-"],
+        [
+          "Periode",
+          batch.periodStart || batch.periodEnd
+            ? `${formatPdfDate(batch.periodStart)} t/m ${formatPdfDate(batch.periodEnd)}`
+            : "-",
+        ],
         ["Object", batch.objectName ?? "-"],
         ["Facturen", String(items.length)],
       ],
@@ -145,31 +180,70 @@ export async function GET(
 
     for (const item of items) {
       y = ensurePdfPage(doc, y, 48);
-      doc.roundedRect(L, y, W, 42, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
-      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(
-        displayInvoiceNumber(item.invoiceNumber, "Concept"),
-        L + 10,
-        y + 12,
-        { width: 84 },
-      );
-      doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(8).text(item.assignmentCode, L + 100, y + 8, { width: 80 });
-      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(item.assignmentTitle, L + 182, y + 8, { width: 96 });
-      doc.fillColor(PDF_BRAND.slate).text(formatPdfDate(item.scheduledDate), R - 145, y + 12, { width: 82 });
-      doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").text(formatPdfEuroCents(item.itemAmountCents), R - 62, y + 12, { width: 62, align: "right" });
+      doc
+        .roundedRect(L, y, W, 42, 8)
+        .fill("#FFFFFF")
+        .strokeColor(PDF_BRAND.border)
+        .stroke();
+      doc
+        .fillColor(PDF_BRAND.cyan)
+        .font("Helvetica-Bold")
+        .fontSize(8)
+        .text(
+          displayInvoiceNumber(item.invoiceNumber, "Concept"),
+          L + 10,
+          y + 12,
+          { width: 84 },
+        );
+      doc
+        .fillColor(PDF_BRAND.ink)
+        .font("Helvetica-Bold")
+        .fontSize(8)
+        .text(item.assignmentCode, L + 100, y + 8, { width: 80 });
+      doc
+        .fillColor(PDF_BRAND.ink)
+        .font("Helvetica")
+        .fontSize(8)
+        .text(item.assignmentTitle, L + 182, y + 8, { width: 96 });
+      doc
+        .fillColor(PDF_BRAND.slate)
+        .text(formatPdfDate(item.scheduledDate), R - 145, y + 12, {
+          width: 82,
+        });
+      doc
+        .fillColor(PDF_BRAND.ink)
+        .font("Helvetica-Bold")
+        .text(formatPdfEuroCents(item.itemAmountCents), R - 62, y + 12, {
+          width: 62,
+          align: "right",
+        });
       y += 50;
     }
 
     y += 10;
     y = ensurePdfPage(doc, y, 145);
     y = drawPdfTotalPanel(doc, y, [
-      { label: "Subtotaal excl. BTW", value: formatPdfEuroCents(batch.subtotalCents) },
+      {
+        label: "Subtotaal excl. BTW",
+        value: formatPdfEuroCents(batch.subtotalCents),
+      },
       { label: "BTW", value: formatPdfEuroCents(batch.vatCents) },
-      { label: "Korting", value: `- ${formatPdfEuroCents(batch.discountCents)}` },
+      {
+        label: "Korting",
+        value: `- ${formatPdfEuroCents(batch.discountCents)}`,
+      },
       { label: "Toeslag", value: formatPdfEuroCents(batch.surchargeCents) },
-      { label: "Totaal te betalen", value: formatPdfEuroCents(batch.amountCents), strong: true },
+      {
+        label: "Totaal te betalen",
+        value: formatPdfEuroCents(batch.amountCents),
+        strong: true,
+      },
     ]);
 
-    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd.`);
+    drawPdfFooter(
+      doc,
+      `${branding.displayName} - Verzamelfactuur gegenereerd.`,
+    );
     doc.end();
   });
 
@@ -177,10 +251,10 @@ export async function GET(
   const filename = `${sanitizePdfFilename(`verzamelfactuur-${batch.id.slice(0, 8)}`, "verzamelfactuur")}.pdf`;
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
-      "Content-Type":        "application/pdf",
+      "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "Content-Length":      String(pdfBuffer.byteLength),
-      "Cache-Control":       "private, no-store, max-age=0",
+      "Content-Length": String(pdfBuffer.byteLength),
+      "Cache-Control": "private, no-store, max-age=0",
       "X-Content-Type-Options": "nosniff",
     },
   });

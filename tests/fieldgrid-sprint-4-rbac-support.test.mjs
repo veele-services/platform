@@ -230,6 +230,8 @@ test("backoffice permission runtime remains tenant-role first unless explicit su
   const getEffectiveStart = permissions.indexOf(
     "/** Fetch runtime permissions after tenant module entitlements are applied. */",
   );
+  assert.notEqual(getUserPermissionsStart, -1);
+  assert.ok(getEffectiveStart > getUserPermissionsStart);
   const getUserPermissionsBlock = permissions.slice(
     getUserPermissionsStart,
     getEffectiveStart,

@@ -16,10 +16,10 @@ export default function RequiredPasswordChangePage() {
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-[var(--color-accent-accessible)]">
           <ShieldCheck size={28} />
         </span>
-        <p className="mt-6 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-accent-accessible)]">
+        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-accessible)]">
           Veilige eerste login
         </p>
-        <h1 className="mt-2 text-3xl font-black text-[var(--color-primary)]">
+        <h1 className="mt-2 text-3xl font-semibold text-[var(--color-primary)]">
           Kies een nieuw wachtwoord
         </h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
@@ -43,14 +43,14 @@ export default function RequiredPasswordChangePage() {
           ) : null}
           <button
             disabled={pending}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-5 py-3 font-black text-white disabled:opacity-60"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-5 py-3 font-semibold text-white disabled:opacity-60"
           >
             <KeyRound size={19} />
             {pending ? "Opslaan…" : "Wachtwoord wijzigen"}
           </button>
         </form>
         <form action={signOut} className="mt-3">
-          <button className="min-h-11 w-full rounded-2xl px-4 text-sm font-black text-slate-600">
+          <button className="min-h-11 w-full rounded-2xl px-4 text-sm font-semibold text-slate-600">
             Uitloggen
           </button>
         </form>
@@ -62,7 +62,7 @@ export default function RequiredPasswordChangePage() {
 function PasswordField({ name, label }: { name: string; label: string }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-[var(--color-primary)]">
+      <span className="mb-2 block text-sm font-semibold text-[var(--color-primary)]">
         {label}
       </span>
       <input

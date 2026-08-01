@@ -38,18 +38,24 @@ test("customer invoice PDF downloads are audited before response", () => {
   assert.match(body, /action:\s+"customer_download_invoice_pdf"/u);
   assert.match(body, /resource:\s+"invoices"/u);
   assert.match(body, /resourceId:\s+invoice\.id/u);
-  assert.match(body, /const invoiceNumber = displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)/u);
+  assert.match(
+    body,
+    /const invoiceNumber = displayInvoiceNumber\(\s*invoice\.invoiceNumber,\s*invoice\.id\.slice\(0, 8\),?\s*\)/u,
+  );
   assert.match(body, /invoiceNumber,/u);
   assert.match(body, /assignmentId:\s+invoice\.assignmentId/u);
   assert.match(body, /customerId:\s+identity\.customerId/u);
   assert.match(body, /tenantId:\s+identity\.tenantId/u);
 
+  const generatePdfIndex = body.search(
+    /generateCustomerInvoicePdf\(\s*\{/u,
+  );
   assert.ok(
-    body.indexOf("if (!invoice) return new NextResponse") < body.indexOf("generateCustomerInvoicePdf({"),
+    body.indexOf("if (!invoice) return new NextResponse") < generatePdfIndex,
     "PDF generation should only happen after the scoped invoice lookup succeeds",
   );
   assert.ok(
-    body.indexOf("generateCustomerInvoicePdf({") < body.indexOf("db.insert(auditLogTable).values"),
+    generatePdfIndex < body.indexOf("db.insert(auditLogTable).values"),
     "audit should only log successful PDF generation",
   );
   assert.ok(

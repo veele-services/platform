@@ -168,7 +168,7 @@ export function MfaSettings() {
           <ShieldAlert size={22} strokeWidth={2.4} />
         )}
         <div>
-          <p className="text-sm font-black">
+          <p className="text-sm font-semibold">
             {factor ? "Tweestapsverificatie actief" : "Tweestapsverificatie niet actief"}
           </p>
           <p className="text-xs font-semibold opacity-80">
@@ -181,7 +181,7 @@ export function MfaSettings() {
 
       {enrollment ? (
         <div className="rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] p-3">
-          <div className="mb-3 flex items-center gap-2 text-sm font-black text-[var(--color-primary)]">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--color-primary)]">
             <QrCode size={18} strokeWidth={2.4} className="text-[#009E9A]" />
             Authenticator koppelen
           </div>
@@ -202,7 +202,7 @@ export function MfaSettings() {
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={6}
-              className="mt-1 w-full bg-transparent text-xl font-black tracking-[0.35em] text-[var(--color-primary)] outline-none"
+              className="mt-1 w-full bg-transparent text-xl font-semibold tracking-[0.35em] text-[var(--color-primary)] outline-none"
               placeholder="000000"
             />
           </label>
@@ -210,7 +210,7 @@ export function MfaSettings() {
             type="button"
             onClick={handleVerify}
             disabled={loading}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
           >
             {loading ? <Loader2 size={19} className="animate-spin" /> : null}
             2FA bevestigen
@@ -234,7 +234,7 @@ export function MfaSettings() {
           type="button"
           onClick={handleDisable}
           disabled={loading}
-          className="w-full rounded-2xl border border-red-100 bg-white px-4 py-3.5 text-base font-black text-red-600 shadow-sm disabled:opacity-60"
+          className="w-full rounded-2xl border border-red-100 bg-white px-4 py-3.5 text-base font-semibold text-red-600 shadow-sm disabled:opacity-60"
         >
           2FA uitschakelen
         </button>
@@ -243,7 +243,7 @@ export function MfaSettings() {
           type="button"
           onClick={handleEnroll}
           disabled={loading || Boolean(enrollment)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] px-4 py-3.5 text-base font-semibold text-white shadow-lg disabled:opacity-60"
         >
           {loading ? (
             <Loader2 size={19} className="animate-spin" />
