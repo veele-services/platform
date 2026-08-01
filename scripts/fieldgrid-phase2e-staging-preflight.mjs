@@ -17,7 +17,9 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import {
+  allowedLegacyTimestampMigrations,
   buildMigrationOrderReport,
+  classifyMigrationFilename,
   validateMigrationOrderReport,
 } from "./fieldgrid-migration-order-check.mjs";
 
@@ -1160,47 +1162,110 @@ export async function committedMigrationManifest(
   return report.runnerOrder;
 }
 
-export function assertMatchingMigrationHistory(recorded, committed) {
-  if (
-    recorded.length === committed.length &&
-    recorded.every((name, index) => name === committed[index])
-  ) {
-    return;
+function partitionCommittedMigrationHistory(committed) {
+  const legacy = [];
+  const ordered = [];
+  for (const name of committed) {
+    const classification = classifyMigrationFilename(name);
+    if (
+      classification.kind === "numeric" ||
+      allowedLegacyTimestampMigrations.includes(name)
+    ) {
+      legacy.push(name);
+    } else {
+      ordered.push(name);
+    }
   }
+  return { legacy, ordered };
+}
 
+function duplicateMigrationNames(names) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const name of names) {
+    if (seen.has(name)) duplicates.add(name);
+    seen.add(name);
+  }
+  return [...duplicates];
+}
+
+function assertOrderedMigrationPrefix(recorded, committed, label) {
+  const { legacy, ordered } = partitionCommittedMigrationHistory(committed);
+  const legacyNames = new Set(legacy);
+  const recordedOrdered = recorded.filter((name) => !legacyNames.has(name));
+  const isPrefix =
+    recordedOrdered.length <= ordered.length &&
+    recordedOrdered.every((name, index) => name === ordered[index]);
+  if (isPrefix) return;
+
+  const mismatchIndex = recordedOrdered.findIndex(
+    (name, index) => name !== ordered[index],
+  );
+  const position =
+    mismatchIndex === -1 ? ordered.length + 1 : mismatchIndex + 1;
+  const expected = ordered[position - 1] ?? "<end-of-manifest>";
+  const actual = recordedOrdered[position - 1] ?? "<missing>";
+  throw new Error(
+    `${label} has an invalid modern migration order at position ${position}: expected ${expected}, recorded ${actual}.`,
+  );
+}
+
+export function assertMatchingMigrationHistory(recorded, committed) {
   const recordedNames = new Set(recorded);
   const committedNames = new Set(committed);
   const missing = committed.filter((name) => !recordedNames.has(name));
   const unexpected = recorded.filter((name) => !committedNames.has(name));
+  const duplicates = duplicateMigrationNames(recorded);
   const details = [
     missing.length > 0 ? `missing: ${missing.join(", ")}` : "",
     unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : "",
+    duplicates.length > 0 ? `duplicate: ${duplicates.join(", ")}` : "",
   ].filter(Boolean);
-  throw new Error(
-    `Restored SQL migration history diverges from the committed manifest${details.length > 0 ? ` (${details.join("; ")})` : ""}.`,
+  if (details.length > 0) {
+    throw new Error(
+      `Restored SQL migration history diverges from the committed manifest (${details.join("; ")}).`,
+    );
+  }
+  assertOrderedMigrationPrefix(
+    recorded,
+    committed,
+    "Restored SQL migration history",
   );
 }
 
 export function assertCommittedMigrationPrefix(recorded, committed) {
-  const isPrefix =
-    recorded.length <= committed.length &&
-    recorded.every((name, index) => name === committed[index]);
-  if (!isPrefix) {
-    const mismatchIndex = recorded.findIndex(
-      (name, index) => name !== committed[index],
-    );
-    const position =
-      mismatchIndex === -1 ? committed.length + 1 : mismatchIndex + 1;
-    const expected = committed[position - 1] ?? "<end-of-manifest>";
-    const actual = recorded[position - 1] ?? "<missing>";
+  const recordedNames = new Set(recorded);
+  const committedNames = new Set(committed);
+  const unexpected = recorded.filter((name) => !committedNames.has(name));
+  const duplicates = duplicateMigrationNames(recorded);
+  if (unexpected.length > 0 || duplicates.length > 0) {
     throw new Error(
-      `Restored pre-rehearsal SQL migration history is not a committed prefix at position ${position}: expected ${expected}, recorded ${actual}.`,
+      `Restored pre-rehearsal SQL migration history contains invalid entries${unexpected.length > 0 ? ` (unexpected: ${unexpected.join(", ")})` : ""}${duplicates.length > 0 ? ` (duplicate: ${duplicates.join(", ")})` : ""}.`,
     );
   }
+
+  const { legacy, ordered } = partitionCommittedMigrationHistory(committed);
+  const missingLegacy = legacy.filter((name) => !recordedNames.has(name));
+  if (missingLegacy.length > 0) {
+    throw new Error(
+      `Restored pre-rehearsal SQL migration history is missing required legacy migrations: ${missingLegacy.join(", ")}.`,
+    );
+  }
+  assertOrderedMigrationPrefix(
+    recorded,
+    committed,
+    "Restored pre-rehearsal SQL migration history",
+  );
+  const legacyNames = new Set(legacy);
+  const recordedModern = recorded.filter((name) => !legacyNames.has(name));
+
   return {
     recordedMigrationCount: recorded.length,
     pendingMigrationCount: committed.length - recorded.length,
-    latestRecordedMigration: recorded.at(-1) ?? null,
+    requiredLegacyMigrationCount: legacy.length,
+    recordedModernMigrationCount: recordedModern.length,
+    pendingModernMigrationCount: ordered.length - recordedModern.length,
+    latestRecordedModernMigration: recordedModern.at(-1) ?? null,
   };
 }
 
