@@ -1,12 +1,25 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
+const skippedTestEvidenceReporter = new URL(
+  "./fieldgrid-skipped-test-evidence-reporter.mjs",
+  import.meta.url,
+).href;
 
 const ansiPattern = /\u001b\[[0-9;]*m/g;
+const skippedTestEvidencePrefix = "FIELDGRID_SKIPPED_TEST_V1 ";
 
 function uniqueSorted(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) =>
@@ -100,6 +113,268 @@ export function compareFailureSets(mainFailuresInput, candidateFailuresInput) {
   };
 }
 
+export function extractTestRunSummary(logText) {
+  const counts = {};
+  const duplicateCounts = new Set();
+  for (const rawLine of String(logText).split(/\r?\n/u)) {
+    const line = rawLine.replace(ansiPattern, "").trim();
+    const match = line.match(
+      /^(?:ℹ|#)\s+(tests|pass|fail|cancelled|skipped|todo)\s+(\d+)$/u,
+    );
+    if (match) {
+      if (match[1] in counts) duplicateCounts.add(match[1]);
+      counts[match[1]] = Number(match[2]);
+    }
+  }
+
+  const requiredCounts = [
+    "tests",
+    "pass",
+    "fail",
+    "cancelled",
+    "skipped",
+    "todo",
+  ];
+  const hasRequiredCounts = requiredCounts.every((name) =>
+    Number.isSafeInteger(counts[name]),
+  );
+  const totalFromOutcomes = hasRequiredCounts
+    ? counts.pass +
+      counts.fail +
+      counts.cancelled +
+      counts.skipped +
+      (counts.todo ?? 0)
+    : null;
+  const valid =
+    hasRequiredCounts &&
+    duplicateCounts.size === 0 &&
+    totalFromOutcomes === counts.tests;
+  return {
+    valid,
+    tests: counts.tests ?? null,
+    pass: counts.pass ?? null,
+    fail: counts.fail ?? null,
+    cancelled: counts.cancelled ?? null,
+    skipped: counts.skipped ?? null,
+    todo: counts.todo ?? 0,
+    executedTests: valid ? counts.pass + counts.fail : null,
+  };
+}
+
+export function extractSkippedTestNames(logText) {
+  const skippedTests = [];
+  for (const rawLine of String(logText).split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (!line.startsWith(skippedTestEvidencePrefix)) {
+      throw new Error("Skipped-test evidence contains an invalid record.");
+    }
+    let record;
+    try {
+      record = JSON.parse(line.slice(skippedTestEvidencePrefix.length));
+    } catch {
+      throw new Error("Skipped-test evidence contains invalid JSON.");
+    }
+    if (
+      record === null ||
+      typeof record !== "object" ||
+      Array.isArray(record) ||
+      Object.keys(record).some(
+        (key) => !["file", "name", "occurrence", "suitePath"].includes(key),
+      ) ||
+      typeof record.file !== "string" ||
+      !record.file.trim() ||
+      typeof record.name !== "string" ||
+      !record.name.trim() ||
+      !Array.isArray(record.suitePath) ||
+      record.suitePath.some(
+        (suiteName) => typeof suiteName !== "string" || !suiteName.trim(),
+      ) ||
+      !Number.isInteger(record.occurrence) ||
+      record.occurrence < 1
+    ) {
+      throw new Error("Skipped-test evidence contains an invalid test name.");
+    }
+    const file = record.file.trim().replaceAll("\\", "/");
+    const name = record.name.trim();
+    const qualifiedName = [
+      ...record.suitePath.map((value) => value.trim()),
+      name,
+    ].join(" > ");
+    skippedTests.push(
+      `${file} :: ${qualifiedName} [occurrence ${record.occurrence}]`,
+    );
+  }
+  return uniqueSorted(skippedTests);
+}
+
+export function rootTestArgs(testFiles, skippedEvidencePath) {
+  return [
+    "--test",
+    "--test-reporter=spec",
+    "--test-reporter-destination=stdout",
+    `--test-reporter=${skippedTestEvidenceReporter}`,
+    `--test-reporter-destination=${skippedEvidencePath}`,
+    ...testFiles,
+  ];
+}
+
+export function allowedAdditionalSkips(environment = process.env) {
+  const raw =
+    environment.FIELDGRID_BASELINE_DIFF_ALLOWED_ADDITIONAL_SKIPS_JSON?.trim();
+  if (!raw) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      "FIELDGRID_BASELINE_DIFF_ALLOWED_ADDITIONAL_SKIPS_JSON must be a JSON array.",
+    );
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.some(
+      (name) =>
+        typeof name !== "string" ||
+        !name.trim() ||
+        name.trim().length > 256 ||
+        /[\u0000-\u001f\u007f-\u009f]/u.test(name.trim()),
+    )
+  ) {
+    throw new Error(
+      "FIELDGRID_BASELINE_DIFF_ALLOWED_ADDITIONAL_SKIPS_JSON must contain non-empty test names of at most 256 characters without control characters.",
+    );
+  }
+  const normalized = parsed.map((name) => name.trim());
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error(
+      "FIELDGRID_BASELINE_DIFF_ALLOWED_ADDITIONAL_SKIPS_JSON contains duplicate test names.",
+    );
+  }
+  return uniqueSorted(normalized);
+}
+
+function testNameDigest(names) {
+  return createHash("sha256")
+    .update(JSON.stringify(uniqueSorted(names)))
+    .digest("hex");
+}
+
+export function compareTestCoverage(
+  mainSummary,
+  candidateSummary,
+  mainTestFiles = [],
+  candidateTestFiles = [],
+  skipPolicy = {},
+) {
+  const candidateFiles = new Set(candidateTestFiles);
+  const missingTestFiles = uniqueSorted(
+    mainTestFiles.filter((path) => !candidateFiles.has(path)),
+  );
+  const hasSkipEvidence =
+    Array.isArray(skipPolicy.mainSkippedTests) &&
+    Array.isArray(skipPolicy.candidateSkippedTests);
+  const mainSkippedTests = uniqueSorted(skipPolicy.mainSkippedTests ?? []);
+  const candidateSkippedTests = uniqueSorted(
+    skipPolicy.candidateSkippedTests ?? [],
+  );
+  const allowedSkippedTests = uniqueSorted(
+    skipPolicy.allowedAdditionalSkips ?? [],
+  );
+  const mainSkippedSet = new Set(mainSkippedTests);
+  const additionalSkippedTests = candidateSkippedTests.filter(
+    (name) => !mainSkippedSet.has(name),
+  );
+  const candidateSkippedSet = new Set(candidateSkippedTests);
+  const allowedSkippedSet = new Set(allowedSkippedTests);
+  const unallowedAdditionalSkippedTests = additionalSkippedTests.filter(
+    (name) => !allowedSkippedSet.has(name),
+  );
+  const unusedAllowedSkippedTests = allowedSkippedTests.filter(
+    (name) => !candidateSkippedSet.has(name),
+  );
+  const reasons = [
+    ...(!mainSummary?.valid
+      ? ["origin/main test summary is missing or invalid"]
+      : []),
+    ...(!candidateSummary?.valid
+      ? ["candidate test summary is missing or invalid"]
+      : []),
+  ];
+
+  if (mainSummary?.valid && candidateSummary?.valid) {
+    if (candidateSummary.executedTests < mainSummary.executedTests) {
+      reasons.push("candidate executed fewer tests than origin/main");
+    }
+    if (candidateSummary.tests < mainSummary.tests) {
+      reasons.push("candidate reported fewer total tests than origin/main");
+    }
+    if (hasSkipEvidence && mainSkippedTests.length !== mainSummary.skipped) {
+      reasons.push(
+        "origin/main skipped-test evidence does not match its TAP summary",
+      );
+    }
+    if (
+      hasSkipEvidence &&
+      candidateSkippedTests.length !== candidateSummary.skipped
+    ) {
+      reasons.push(
+        "candidate skipped-test evidence does not match its TAP summary",
+      );
+    }
+    if (hasSkipEvidence && unallowedAdditionalSkippedTests.length > 0) {
+      reasons.push(
+        "candidate has additional skipped tests outside the explicit allowlist",
+      );
+    }
+    if (hasSkipEvidence && unusedAllowedSkippedTests.length > 0) {
+      reasons.push(
+        "additional skip allowlist contains names not skipped by the candidate",
+      );
+    }
+    if (
+      candidateSummary.skipped > mainSummary.skipped &&
+      (!hasSkipEvidence ||
+        unallowedAdditionalSkippedTests.length > 0 ||
+        unusedAllowedSkippedTests.length > 0)
+    ) {
+      reasons.push(
+        "candidate skipped more tests than origin/main without an allowlist",
+      );
+    }
+    if (candidateSummary.todo > mainSummary.todo) {
+      reasons.push(
+        "candidate reported more todo tests than origin/main without an allowlist",
+      );
+    }
+    if (candidateSummary.cancelled > mainSummary.cancelled) {
+      reasons.push("candidate cancelled more tests than origin/main");
+    }
+  }
+  if (missingTestFiles.length > 0) {
+    reasons.push("candidate root test files are not a superset of origin/main");
+  }
+
+  return {
+    pass: reasons.length === 0,
+    mainSummary,
+    candidateSummary,
+    mainTestFiles: uniqueSorted(mainTestFiles),
+    candidateTestFiles: uniqueSorted(candidateTestFiles),
+    missingTestFiles,
+    mainSkippedTests,
+    candidateSkippedTests,
+    allowedAdditionalSkipCount: allowedSkippedTests.length,
+    allowedAdditionalSkipSha256: testNameDigest(allowedSkippedTests),
+    additionalSkippedTests,
+    unallowedAdditionalSkippedTests,
+    unusedAllowedSkippedTestCount: unusedAllowedSkippedTests.length,
+    unusedAllowedSkippedTestSha256: testNameDigest(unusedAllowedSkippedTests),
+    reasons,
+  };
+}
+
 function spawnCapture(command, args, options) {
   return new Promise((resolvePromise) => {
     const startedAt = new Date().toISOString();
@@ -171,7 +446,7 @@ async function gitOutput(args, cwd) {
 function failuresFromTestResult(result) {
   const failures = extractFailureNames(result.output);
   if (result.status !== 0 && failures.length === 0) {
-    return ["pnpm test exited nonzero without parsed failing test names"];
+    return ["root test lane exited nonzero without parsed failing test names"];
   }
   return failures;
 }
@@ -180,6 +455,14 @@ function markdownList(values) {
   return values.length === 0
     ? "- none"
     : values.map((value) => `- ${value}`).join("\n");
+}
+
+async function listRootTestFiles(cwd) {
+  const entries = await readdir(join(cwd, "tests"), { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".test.mjs"))
+    .map((entry) => `tests/${entry.name}`)
+    .sort((a, b) => a.localeCompare(b));
 }
 
 export function shouldFetchOriginMain(environment = process.env) {
@@ -258,6 +541,13 @@ async function main() {
   let candidatePnpmVersion;
   let mainNodeVersion;
   let mainPnpmVersion;
+  let mainTestFiles;
+  let candidateTestFiles;
+  const mainSkippedEvidencePath = join(outDir, "main-skipped-tests.jsonl");
+  const candidateSkippedEvidencePath = join(
+    outDir,
+    "candidate-skipped-tests.jsonl",
+  );
 
   try {
     const addWorktree = await runLogged(
@@ -318,14 +608,26 @@ async function main() {
       );
     }
 
-    mainTest = await runLogged("pnpm", ["test"], {
-      cwd: mainWorktree,
-      logFile: join(outDir, "main-pnpm-test.log"),
-    });
-    candidateTest = await runLogged("pnpm", ["test"], {
-      cwd: repoRoot,
-      logFile: join(outDir, "candidate-pnpm-test.log"),
-    });
+    [mainTestFiles, candidateTestFiles] = await Promise.all([
+      listRootTestFiles(mainWorktree),
+      listRootTestFiles(repoRoot),
+    ]);
+    mainTest = await runLogged(
+      "node",
+      rootTestArgs(mainTestFiles, mainSkippedEvidencePath),
+      {
+        cwd: mainWorktree,
+        logFile: join(outDir, "main-root-tests.log"),
+      },
+    );
+    candidateTest = await runLogged(
+      "node",
+      rootTestArgs(candidateTestFiles, candidateSkippedEvidencePath),
+      {
+        cwd: repoRoot,
+        logFile: join(outDir, "candidate-root-tests.log"),
+      },
+    );
   } finally {
     await spawnCapture("git", ["worktree", "remove", "--force", mainWorktree], {
       cwd: repoRoot,
@@ -333,10 +635,31 @@ async function main() {
     await rm(baselineParent, { recursive: true, force: true });
   }
 
-  const comparison = compareFailureSets(
+  const [mainSkippedEvidence, candidateSkippedEvidence] = await Promise.all([
+    readFile(mainSkippedEvidencePath, "utf8"),
+    readFile(candidateSkippedEvidencePath, "utf8"),
+  ]);
+  const failureComparison = compareFailureSets(
     failuresFromTestResult(mainTest),
     failuresFromTestResult(candidateTest),
   );
+  const testCoverage = compareTestCoverage(
+    extractTestRunSummary(mainTest.output),
+    extractTestRunSummary(candidateTest.output),
+    mainTestFiles,
+    candidateTestFiles,
+    {
+      mainSkippedTests: extractSkippedTestNames(mainSkippedEvidence),
+      candidateSkippedTests: extractSkippedTestNames(candidateSkippedEvidence),
+      allowedAdditionalSkips: allowedAdditionalSkips(),
+    },
+  );
+  const comparison = {
+    ...failureComparison,
+    pass: failureComparison.pass && testCoverage.pass,
+    reasons: [...failureComparison.reasons, ...testCoverage.reasons],
+    testCoverage,
+  };
   const summary = {
     status: comparison.pass ? "pass" : "fail",
     gate: "baseline differential",
@@ -371,8 +694,8 @@ async function main() {
       `candidate Node: ${summary.nodeVersions.candidate}`,
       `main pnpm: ${summary.pnpmVersions.main}`,
       `candidate pnpm: ${summary.pnpmVersions.candidate}`,
-      `main pnpm test exit code: ${mainTest.status}`,
-      `candidate pnpm test exit code: ${candidateTest.status}`,
+      `main root test exit code: ${mainTest.status}`,
+      `candidate root test exit code: ${candidateTest.status}`,
       "",
       "## Counts",
       "",
@@ -381,6 +704,18 @@ async function main() {
       `- common failures: ${comparison.counts.commonFailures}`,
       `- candidate-only failures: ${comparison.counts.candidateOnlyFailures}`,
       `- main-only failures: ${comparison.counts.mainOnlyFailures}`,
+      `- main tests: ${testCoverage.mainSummary.tests ?? "invalid"}`,
+      `- candidate tests: ${testCoverage.candidateSummary.tests ?? "invalid"}`,
+      `- main executed tests: ${testCoverage.mainSummary.executedTests ?? "invalid"}`,
+      `- candidate executed tests: ${testCoverage.candidateSummary.executedTests ?? "invalid"}`,
+      `- main skipped tests: ${testCoverage.mainSummary.skipped ?? "invalid"}`,
+      `- candidate skipped tests: ${testCoverage.candidateSummary.skipped ?? "invalid"}`,
+      "",
+      "## Coverage Regressions",
+      markdownList(testCoverage.reasons),
+      "",
+      "## Missing Root Test Files",
+      markdownList(testCoverage.missingTestFiles),
       "",
       "## Main Failures",
       markdownList(comparison.mainFailures),

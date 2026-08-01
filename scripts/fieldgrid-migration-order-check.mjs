@@ -57,6 +57,35 @@ export const allowedLegacyTimestampMigrations = [
   "20260618201212_assignment_monthly_codes.sql",
 ];
 
+export const allowedHistoricalRecordedMigrations = Object.freeze({
+  "055_platform_users.sql": Object.freeze({
+    kind: "tombstone",
+    sqlSha256:
+      "77b8c80d6fe9470da8d82cfe6c6338c584b396878dd322404bb445a96d2de37a",
+    introducedCommit: "40e999b3c1d8f0e3188f28633cec81f672640eaa",
+    initialRevertCommit: "7d51ad5d725c84aee6c69e43c7e4b55b09c33fa4",
+    reintroducedCommit: "5ef7c4afcd9c17d91ac0bb8e16336dce4fbbb1a4",
+    retiredCommit: "d0600a43ddacff3c2456fc381236f214ebc85fc9",
+  }),
+  "102_cleanup_staging_demo_sector_descriptions.sql": Object.freeze({
+    kind: "renamed",
+    canonicalName:
+      "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+    sqlSha256:
+      "7639dda641d69e0c1393ee36f97814fcc03f08f5e103aed3ed54d834e82bcd4a",
+    introducedCommit: "a0bb22e2f0f8dd73eeaf13cfcc5916e32409ff5a",
+    retiredCommit: "c61d8fadba6f48182a06ada22b97e597ba7bd3d0",
+  }),
+  "103_enterprise_whitelabel_theme.sql": Object.freeze({
+    kind: "renamed",
+    canonicalName: "20260708121100_enterprise_whitelabel_theme.sql",
+    sqlSha256:
+      "23059e1c093e3c2278270c2c9e34ca517505bdb27bd489f8bda97253b5b6eb05",
+    introducedCommit: "75abfee1ec949d94c37de00d0ad435a784a066b5",
+    retiredCommit: "c61d8fadba6f48182a06ada22b97e597ba7bd3d0",
+  }),
+});
+
 const numericPattern = /^(\d{3})_[a-z0-9][a-z0-9_]*\.sql$/u;
 const timestampPattern = /^(\d{14})_[a-z0-9][a-z0-9_]*\.sql$/u;
 
@@ -211,6 +240,32 @@ async function legacyMigrationManifest(entries, migrationsDir) {
   };
 }
 
+async function historicalRecordedMigrationReport(entries, migrationsDir) {
+  const runnerNames = new Set(entries.map((entry) => entry.filename));
+  return Promise.all(
+    Object.entries(allowedHistoricalRecordedMigrations).map(
+      async ([recordedName, policy]) => {
+        const canonicalName = policy.canonicalName ?? null;
+        let canonicalSha256 = null;
+        if (canonicalName && runnerNames.has(canonicalName)) {
+          const sql = (
+            await readFile(join(migrationsDir, canonicalName), "utf8")
+          ).replace(/\r\n/gu, "\n");
+          canonicalSha256 = createHash("sha256").update(sql).digest("hex");
+        }
+        return {
+          recordedName,
+          ...policy,
+          recordedNamePresentInRunner: runnerNames.has(recordedName),
+          canonicalNamePresentInRunner:
+            canonicalName === null ? null : runnerNames.has(canonicalName),
+          canonicalSha256,
+        };
+      },
+    ),
+  );
+}
+
 export async function buildMigrationOrderReport(options = {}) {
   const migrationsDir = options.migrationsDir ?? join(repoRoot, MIGRATION_DIR);
   const { sqlFiles, ignored } = await readMigrationDirectory(migrationsDir);
@@ -220,6 +275,10 @@ export async function buildMigrationOrderReport(options = {}) {
     (entry) => entry.kind === "timestamp",
   );
   const legacyManifest = await legacyMigrationManifest(entries, migrationsDir);
+  const historicalRecordedMigrations = await historicalRecordedMigrationReport(
+    entries,
+    migrationsDir,
+  );
   const latestNumericPrefix = numericEntries.reduce(
     (latest, entry) => Math.max(latest, entry.prefixNumber),
     0,
@@ -252,6 +311,7 @@ export async function buildMigrationOrderReport(options = {}) {
       manifestFilenames: legacyManifest.filenames,
       manifestSha256: legacyManifest.sha256,
     },
+    historicalRecordedMigrations,
     latestNumericPrefix,
     latestTimestampPrefix,
     nextNumericPrefixWouldBe: String(latestNumericPrefix + 1).padStart(3, "0"),
@@ -283,6 +343,23 @@ export function validateMigrationOrderReport(report) {
     errors.push(
       "De bevroren legacy-migratiemanifest wijkt af; voeg geen numerieke legacy-migraties toe en wijzig of hernoem bestaande legacy-migraties niet.",
     );
+  }
+
+  for (const historical of report.historicalRecordedMigrations ?? []) {
+    if (historical.recordedNamePresentInRunner) {
+      errors.push(
+        `Historische migratienaam ${historical.recordedName} mag niet opnieuw aan de actieve runner worden toegevoegd.`,
+      );
+    }
+    if (
+      historical.kind === "renamed" &&
+      (!historical.canonicalNamePresentInRunner ||
+        historical.canonicalSha256 !== historical.sqlSha256)
+    ) {
+      errors.push(
+        `Historische migratie-alias ${historical.recordedName} wijkt af van de bevroren canonieke migratie ${historical.canonicalName}.`,
+      );
+    }
   }
 
   for (const entry of invalidEntries) {

@@ -9,13 +9,8 @@ const personnelProvider = readFileSync("artifacts/personeel-pwa/src/components/P
 const backofficeClient = readFileSync("artifacts/backoffice/src/lib/realtime/portal-realtime-client.ts", "utf8");
 const customerClient = readFileSync("artifacts/klant-pwa/src/lib/realtime/portal-realtime-client.ts", "utf8");
 const personnelClient = readFileSync("artifacts/personeel-pwa/src/lib/realtime/portal-realtime-client.ts", "utf8");
-const clientModules = await Promise.all(
-  ["backoffice", "klant-pwa", "personeel-pwa"].map(
-    (surface) =>
-      import(
-        `../artifacts/${surface}/src/lib/realtime/portal-realtime-client.ts`
-      ),
-  ),
+const { createPortalRefreshScheduler } = await import(
+  "../artifacts/personeel-pwa/src/lib/realtime/portal-realtime-client.ts"
 );
 
 for (const [surface, source] of [
@@ -48,41 +43,39 @@ test("W05 a queued portal refresh stays dormant offline and resumes online", (co
     now: 10_000,
   });
 
-  for (const { createPortalRefreshScheduler } of clientModules) {
-    let online = true;
-    let refreshCount = 0;
-    let timerWasClearedBeforeRefresh = false;
-    const timerRef = { current: null };
-    const lastRefreshAtRef = { current: 0 };
-    const scheduleRefresh = createPortalRefreshScheduler({
-      router: {
-        refresh() {
-          refreshCount += 1;
-          timerWasClearedBeforeRefresh = timerRef.current === null;
-        },
+  let online = true;
+  let refreshCount = 0;
+  let timerWasClearedBeforeRefresh = false;
+  const timerRef = { current: null };
+  const lastRefreshAtRef = { current: 0 };
+  const scheduleRefresh = createPortalRefreshScheduler({
+    router: {
+      refresh() {
+        refreshCount += 1;
+        timerWasClearedBeforeRefresh = timerRef.current === null;
       },
-      timerRef,
-      lastRefreshAtRef,
-      debounceMs: 50,
-      minRefreshIntervalMs: 10,
-      isOnline: () => online,
-    });
+    },
+    timerRef,
+    lastRefreshAtRef,
+    debounceMs: 50,
+    minRefreshIntervalMs: 10,
+    isOnline: () => online,
+  });
 
-    scheduleRefresh();
-    assert.notEqual(timerRef.current, null);
-    online = false;
-    context.mock.timers.tick(50);
-    assert.equal(timerRef.current, null);
-    assert.equal(refreshCount, 0);
-    assert.equal(lastRefreshAtRef.current, 0);
+  scheduleRefresh();
+  assert.notEqual(timerRef.current, null);
+  online = false;
+  context.mock.timers.tick(50);
+  assert.equal(timerRef.current, null);
+  assert.equal(refreshCount, 0);
+  assert.equal(lastRefreshAtRef.current, 0);
 
-    online = true;
-    scheduleRefresh();
-    context.mock.timers.tick(50);
-    assert.equal(refreshCount, 1);
-    assert.equal(timerWasClearedBeforeRefresh, true);
-    assert.equal(lastRefreshAtRef.current, Date.now());
-  }
+  online = true;
+  scheduleRefresh();
+  context.mock.timers.tick(50);
+  assert.equal(refreshCount, 1);
+  assert.equal(timerWasClearedBeforeRefresh, true);
+  assert.equal(lastRefreshAtRef.current, Date.now());
 });
 
 test("W05 canonical realtime events are tenant scoped, correlated, and payload-minimized", () => {

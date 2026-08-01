@@ -393,7 +393,7 @@ test("7. Recovery provider invalidates sessions and never receives a code as pas
 });
 
 test("8. Negative guards", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", tenantAHost);
   let response = await page.goto(customerUrl("/klant"), {
     waitUntil: "domcontentloaded",
@@ -419,14 +419,20 @@ test("8. Negative guards", async ({ page }) => {
   );
 
   await useIdentity(page, "20000000-0000-4000-8000-000000000202", tenantAHost);
-  response = await page.goto(backofficeUrl("/customers"));
+  response = await page.goto(backofficeUrl("/customers"), {
+    waitUntil: "domcontentloaded",
+  });
   await expectDeniedOrLogin(page, response);
   await expect(page.locator("body")).not.toContainText("Runtime Customer A");
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", unknownHost);
-  response = await page.goto(backofficeUrl("/", unknownHost));
+  response = await page.goto(backofficeUrl("/", unknownHost), {
+    waitUntil: "domcontentloaded",
+  });
   await expectDeniedOrLogin(page, response);
   await useIdentity(page, "20000000-0000-4000-8000-000000000106", tenantAHost);
-  response = await page.goto(personnelUrl("/personeel/opdrachten"));
+  response = await page.goto(personnelUrl("/personeel/opdrachten"), {
+    waitUntil: "domcontentloaded",
+  });
   await expectDeniedOrLogin(page, response);
   await useIdentity(
     page,

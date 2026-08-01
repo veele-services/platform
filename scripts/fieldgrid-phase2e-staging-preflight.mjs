@@ -17,6 +17,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import {
+  allowedHistoricalRecordedMigrations,
   allowedLegacyTimestampMigrations,
   buildMigrationOrderReport,
   classifyMigrationFilename,
@@ -1189,6 +1190,90 @@ function duplicateMigrationNames(names) {
   return [...duplicates];
 }
 
+export function assertRecordedHistoricalMigrationHashes(records) {
+  if (
+    !Array.isArray(records) ||
+    records.some(
+      (record) =>
+        typeof record?.name !== "string" ||
+        !/^[0-9a-f]{64}$/u.test(record?.hash ?? "") ||
+        typeof record?.appliedAt !== "string" ||
+        !Number.isFinite(Date.parse(record.appliedAt)) ||
+        typeof record?.baselined !== "boolean",
+    )
+  ) {
+    throw new Error("Restored SQL migration history is invalid.");
+  }
+
+  const verified = [];
+  for (const record of records) {
+    const policy = allowedHistoricalRecordedMigrations[record.name];
+    if (!policy) continue;
+    if (record.hash !== policy.sqlSha256) {
+      throw new Error(
+        `Historical SQL migration ${record.name} is recorded with an unexpected hash.`,
+      );
+    }
+    if (policy.kind === "renamed" && record.baselined) {
+      throw new Error(
+        `Historical SQL migration ${record.name} was baselined without execution and cannot prove canonical migration order.`,
+      );
+    }
+    verified.push({
+      name: record.name,
+      kind: policy.kind,
+      canonicalName: policy.canonicalName ?? null,
+      hashVerified: true,
+      appliedAt: record.appliedAt,
+      baselined: record.baselined,
+      introducedCommit: policy.introducedCommit,
+      retiredCommit: policy.retiredCommit,
+    });
+  }
+  return verified;
+}
+
+export function normalizeRecordedMigrationHistory(records) {
+  const historicalMigrationRecords =
+    assertRecordedHistoricalMigrationHashes(records);
+  const semanticNames = [];
+  const activeNames = [];
+  const canonicalEquivalents = new Set();
+  const renamedCanonicalNames = new Set(
+    Object.values(allowedHistoricalRecordedMigrations)
+      .map((policy) => policy.canonicalName)
+      .filter(Boolean),
+  );
+
+  for (const record of records) {
+    const historicalPolicy = allowedHistoricalRecordedMigrations[record.name];
+    if (historicalPolicy) {
+      if (historicalPolicy.kind === "tombstone") continue;
+      if (!canonicalEquivalents.has(historicalPolicy.canonicalName)) {
+        // The exact frozen hash proves that this canonical SQL already ran at
+        // the alias position. A later canonical row is required for the active
+        // manifest, but is a duplicate for application-order validation only.
+        semanticNames.push(historicalPolicy.canonicalName);
+        canonicalEquivalents.add(historicalPolicy.canonicalName);
+      }
+      continue;
+    }
+
+    activeNames.push(record.name);
+    if (renamedCanonicalNames.has(record.name)) {
+      if (canonicalEquivalents.has(record.name)) continue;
+      canonicalEquivalents.add(record.name);
+    }
+    semanticNames.push(record.name);
+  }
+
+  return {
+    activeNames,
+    semanticNames,
+    historicalMigrationRecords,
+  };
+}
+
 function assertOrderedMigrationPrefix(recorded, committed, label) {
   const { legacy, ordered } = partitionCommittedMigrationHistory(committed);
   const legacyNames = new Set(legacy);
@@ -1211,11 +1296,14 @@ function assertOrderedMigrationPrefix(recorded, committed, label) {
 }
 
 export function assertMatchingMigrationHistory(recorded, committed) {
-  const recordedNames = new Set(recorded);
+  const names = recorded.map((record) => record.name);
+  const duplicates = duplicateMigrationNames(names);
+  const { activeNames, semanticNames } =
+    normalizeRecordedMigrationHistory(recorded);
+  const recordedNames = new Set(activeNames);
   const committedNames = new Set(committed);
   const missing = committed.filter((name) => !recordedNames.has(name));
-  const unexpected = recorded.filter((name) => !committedNames.has(name));
-  const duplicates = duplicateMigrationNames(recorded);
+  const unexpected = activeNames.filter((name) => !committedNames.has(name));
   const details = [
     missing.length > 0 ? `missing: ${missing.join(", ")}` : "",
     unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : "",
@@ -1227,17 +1315,20 @@ export function assertMatchingMigrationHistory(recorded, committed) {
     );
   }
   assertOrderedMigrationPrefix(
-    recorded,
+    semanticNames,
     committed,
     "Restored SQL migration history",
   );
 }
 
 export function assertCommittedMigrationPrefix(recorded, committed) {
-  const recordedNames = new Set(recorded);
+  const names = recorded.map((record) => record.name);
+  const duplicates = duplicateMigrationNames(names);
+  const { activeNames, semanticNames, historicalMigrationRecords } =
+    normalizeRecordedMigrationHistory(recorded);
+  const recordedNames = new Set(activeNames);
   const committedNames = new Set(committed);
-  const unexpected = recorded.filter((name) => !committedNames.has(name));
-  const duplicates = duplicateMigrationNames(recorded);
+  const unexpected = activeNames.filter((name) => !committedNames.has(name));
   if (unexpected.length > 0 || duplicates.length > 0) {
     throw new Error(
       `Restored pre-rehearsal SQL migration history contains invalid entries${unexpected.length > 0 ? ` (unexpected: ${unexpected.join(", ")})` : ""}${duplicates.length > 0 ? ` (duplicate: ${duplicates.join(", ")})` : ""}.`,
@@ -1252,16 +1343,19 @@ export function assertCommittedMigrationPrefix(recorded, committed) {
     );
   }
   assertOrderedMigrationPrefix(
-    recorded,
+    semanticNames,
     committed,
     "Restored pre-rehearsal SQL migration history",
   );
   const legacyNames = new Set(legacy);
-  const recordedModern = recorded.filter((name) => !legacyNames.has(name));
+  const recordedModern = activeNames.filter((name) => !legacyNames.has(name));
 
   return {
     recordedMigrationCount: recorded.length,
-    pendingMigrationCount: committed.length - recorded.length,
+    recognizedHistoricalMigrationCount: historicalMigrationRecords.length,
+    activeRecordedMigrationCount: activeNames.length,
+    semanticRecordedMigrationCount: semanticNames.length,
+    pendingMigrationCount: committed.length - activeNames.length,
     requiredLegacyMigrationCount: legacy.length,
     recordedModernMigrationCount: recordedModern.length,
     pendingModernMigrationCount: ordered.length - recordedModern.length,
@@ -1280,19 +1374,14 @@ export function migrationHistoryEvidence(committed) {
 }
 
 async function readRecordedMigrationHistory(pgEnv) {
-  const recordedMigrations = JSON.parse(
+  const records = JSON.parse(
     await psql(
       pgEnv,
-      "select coalesce(jsonb_agg(name order by applied_at, name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
+      "select coalesce(jsonb_agg(jsonb_build_object('name', name, 'hash', hash, 'appliedAt', applied_at, 'baselined', baselined) order by applied_at, name), '[]'::jsonb)::text from drizzle.veele_sql_migrations;",
     ),
   );
-  if (
-    !Array.isArray(recordedMigrations) ||
-    recordedMigrations.some((name) => typeof name !== "string")
-  ) {
-    throw new Error("Restored SQL migration history is invalid.");
-  }
-  return recordedMigrations;
+  assertRecordedHistoricalMigrationHashes(records);
+  return records;
 }
 
 async function verifyMigratedRestore(pgEnv, committedMigrations) {
@@ -1390,6 +1479,8 @@ export async function runPreflight(options, env = process.env) {
     const restoredMigrationHistory = await readRecordedMigrationHistory(
       restoreTarget.pgEnv,
     );
+    const verifiedHistoricalMigrations =
+      assertRecordedHistoricalMigrationHashes(restoredMigrationHistory);
     const migrationPrefix = assertCommittedMigrationPrefix(
       restoredMigrationHistory,
       committedMigrations,
@@ -1464,6 +1555,7 @@ export async function runPreflight(options, env = process.env) {
           disposedAfterProof: true,
           criticalRowCounts: restoredCounts,
           migrationHistory: migrationPrefix,
+          historicalMigrationRecords: verifiedHistoricalMigrations,
         },
         paymentIntentDiagnostic: {
           version: paymentIntentDiagnostic.diagnostic.version,
