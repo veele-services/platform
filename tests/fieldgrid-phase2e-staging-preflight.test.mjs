@@ -17,6 +17,7 @@ import {
   REALTIME_PUBLICATION_METADATA_VERSION,
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
+  assertCommittedMigrationPrefix,
   assertMatchingMigrationHistory,
   assertMatchingCounts,
   assertMigratedDataIntegrity,
@@ -177,6 +178,62 @@ test("restore verification rejects missing and unexpected migration history", ()
         committed,
       ),
     /unexpected: 20260730000000_staging_only\.sql/u,
+  );
+});
+
+test("pre-rehearsal history allows only an exact committed prefix", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.deepEqual(
+    assertCommittedMigrationPrefix(
+      ["001_legacy.sql", "20260731170000_portal_user_onboarding.sql"],
+      committed,
+    ),
+    {
+      recordedMigrationCount: 2,
+      pendingMigrationCount: 1,
+      latestRecordedMigration: "20260731170000_portal_user_onboarding.sql",
+    },
+  );
+  assert.deepEqual(assertCommittedMigrationPrefix([...committed], committed), {
+    recordedMigrationCount: 3,
+    pendingMigrationCount: 0,
+    latestRecordedMigration: "20260801000000_release_gate.sql",
+  });
+});
+
+test("pre-rehearsal history rejects missing-middle and staging-only entries", () => {
+  const committed = [
+    "001_legacy.sql",
+    "20260731170000_portal_user_onboarding.sql",
+    "20260801000000_release_gate.sql",
+  ];
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        ["001_legacy.sql", "20260801000000_release_gate.sql"],
+        committed,
+      ),
+    /expected 20260731170000_portal_user_onboarding\.sql, recorded 20260801000000_release_gate\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        ["001_legacy.sql", "20260730000000_staging_only.sql"],
+        committed,
+      ),
+    /recorded 20260730000000_staging_only\.sql/u,
+  );
+  assert.throws(
+    () =>
+      assertCommittedMigrationPrefix(
+        [...committed, "20260802000000_staging_only.sql"],
+        committed,
+      ),
+    /expected <end-of-manifest>, recorded 20260802000000_staging_only\.sql/u,
   );
 });
 
@@ -539,11 +596,20 @@ test("manual workflow is staging-only and never promotes or uploads the database
   const migrationRehearsal = script.indexOf(
     "runMigrationRehearsal(\n      restoreTarget",
   );
+  const prefixValidation = script.lastIndexOf(
+    "const migrationPrefix = assertCommittedMigrationPrefix(",
+  );
+  const postRehearsalHistoryProof = script.lastIndexOf(
+    "const databaseProof = await verifyMigratedRestore(",
+  );
   assert.ok(sourcePublication >= 0);
   assert.ok(sourcePublication < backupCreation);
   assert.ok(backupCreation < migrationRehearsal);
   assert.ok(diagnosticWrite >= 0);
   assert.ok(diagnosticWrite < migrationRehearsal);
+  assert.ok(prefixValidation >= 0);
+  assert.ok(prefixValidation < migrationRehearsal);
+  assert.ok(postRehearsalHistoryProof > migrationRehearsal);
   assert.match(script, /providerIdentifiersRecorded: false/u);
   assert.match(script, /checkoutUrlsRecorded: false/u);
   assert.match(script, /promotionPerformed: false/u);
