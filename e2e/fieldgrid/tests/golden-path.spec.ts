@@ -174,21 +174,29 @@ test("4. Customer PWA", async ({ page }) => {
   );
 });
 
-test("FG-P2D-AVAILABILITY personnel update and backoffice consistency", async ({ page }) => {
+test("FG-P2D-AVAILABILITY personnel update and backoffice consistency", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000104");
   await page.goto(personnelUrl("/personeel/beschikbaarheid"));
   await expectRealApp(page);
-  const edit = page.getByRole("button", { name: /Beschikbaarheid (?:bewerken|invullen)|Vul beschikbaarheid in/ });
+  const edit = page.getByRole("button", {
+    name: /Beschikbaarheid (?:bewerken|invullen)|Vul beschikbaarheid in/,
+  });
   await edit.click();
   await page.getByLabel("Van").last().fill("08:00");
   await page.getByLabel("Tot").last().fill("17:00");
   await page.getByRole("button", { name: "Beschikbaarheid opslaan" }).click();
-  await expect(page.locator("main")).toContainText(/Beschikbaarheid opgeslagen|08:00 - 17:00/);
+  await expect(page.locator("main")).toContainText(
+    /Beschikbaarheid opgeslagen|08:00 - 17:00/,
+  );
 
   await useIdentity(page, "20000000-0000-4000-8000-000000000102");
   await page.goto(backofficeUrl("/planning"));
-  await expect(page.locator("main")).toContainText(/Runtime Personnel A|Personnel A, Runtime/);
+  await expect(page.locator("main")).toContainText(
+    /Runtime Personnel A|Personnel A, Runtime/,
+  );
   await expect(page.locator("main")).toContainText(/Beschikbaar|beschikbaar/);
 });
 
@@ -231,15 +239,19 @@ test("Customer collection journey sends the exact locked invoice balances", asyn
   test.setTimeout(60_000);
   await useIdentity(page, "20000000-0000-4000-8000-000000000105");
   await page.goto(customerUrl("/klant/facturen"));
-  await page.getByRole("button", { name: "Verzamelbetaling starten" }).click();
+  await page.getByRole("button", { name: "Samen betalen" }).click();
+  const collectionDialog = page.getByRole("dialog", {
+    name: "Facturen samen betalen",
+  });
+  await expect(collectionDialog).toBeVisible();
   for (const invoiceNumber of ["RTA-INV-001", "RTA-CANCEL-INV-001"]) {
-    await page
+    await collectionDialog
       .getByText(invoiceNumber, { exact: true })
       .locator("xpath=ancestor::label")
       .getByRole("checkbox")
       .uncheck();
   }
-  await page
+  await collectionDialog
     .getByRole("button", { name: "Geselecteerde facturen betalen" })
     .click();
   await expect(page).toHaveURL(
@@ -264,9 +276,12 @@ test("Customer accepts a sent quote through the canonical lifecycle", async ({
   await expect(page.locator("main")).toContainText("RTA-OFF-001");
   await page.getByRole("button", { name: "Goedkeuren" }).first().click();
   await page.getByRole("button", { name: "Ja, goedkeuren" }).first().click();
-  await expect(page.locator("main")).toContainText("€ 250,00 akkoord gegeven.", {
-    timeout: 15_000,
-  });
+  await expect(page.locator("main")).toContainText(
+    "€ 250,00 akkoord gegeven.",
+    {
+      timeout: 15_000,
+    },
+  );
   await expect(page.locator("main")).toContainText("Geen offertes gevonden");
 
   await page.goto(
@@ -393,11 +408,15 @@ test("8. Negative guards", async ({ page }) => {
     }
   };
   page.on("request", captureRootRequest);
-  response = await page.goto(`http://${tenantAHost}:9321/`, { waitUntil: "domcontentloaded" });
+  response = await page.goto(`http://${tenantAHost}:9321/`, {
+    waitUntil: "domcontentloaded",
+  });
   page.off("request", captureRootRequest);
   expect(response?.status()).toBe(404);
   expect(rootCookieHeader).not.toContain("fieldgrid_e2e_auth_user");
-  await expect(page.locator("body")).not.toContainText(/Planbord|Runtime Customer A/u);
+  await expect(page.locator("body")).not.toContainText(
+    /Planbord|Runtime Customer A/u,
+  );
 
   await useIdentity(page, "20000000-0000-4000-8000-000000000202", tenantAHost);
   response = await page.goto(backofficeUrl("/customers"));
@@ -487,9 +506,13 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
       observations.push((event as CustomEvent).detail);
     });
     window.addEventListener("veele:offline-work-order-queue", () => {
-      queueSnapshots.push(JSON.parse(
-        localStorage.getItem("veele-personeel-offline-work-order-actions-v1") ?? "[]",
-      ));
+      queueSnapshots.push(
+        JSON.parse(
+          localStorage.getItem(
+            "veele-personeel-offline-work-order-actions-v1",
+          ) ?? "[]",
+        ),
+      );
     });
   });
   await useIdentity(page, "20000000-0000-4000-8000-000000000104");
@@ -554,19 +577,25 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
   expect(queued[0].idempotencyKey).toEqual(expect.any(String));
   expect(queued[1].idempotencyKey).toEqual(expect.any(String));
   expect(queued[0].expectedParticipantVersion).toEqual(expect.any(Number));
-  expect(queued[1].expectedParticipantVersion).toBe(queued[0].expectedParticipantVersion);
+  expect(queued[1].expectedParticipantVersion).toBe(
+    queued[0].expectedParticipantVersion,
+  );
   expect(queued[1].dependsOnMutationId).toBe(queued[0].idempotencyKey);
   const initialVersion = Number(queued[0].expectedParticipantVersion);
-  const mutationIds = queued.map((action: { idempotencyKey: unknown }) => String(action.idempotencyKey));
+  const mutationIds = queued.map((action: { idempotencyKey: unknown }) =>
+    String(action.idempotencyKey),
+  );
   for (const mutationId of mutationIds) {
     expect(mutationId).toMatch(/^personnel-pwa:[A-Za-z0-9-]{16,128}$/u);
   }
-  const passCountBeforeReconnect = await page.evaluate(() => (
-    ((window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
-      .__fieldgridOfflineSyncObservations ?? []).filter((entry) => (
-      (entry as { type?: string }).type === "pass-started"
-    )).length
-  ));
+  const passCountBeforeReconnect = await page.evaluate(
+    () =>
+      (
+        (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+          .__fieldgridOfflineSyncObservations ?? []
+      ).filter((entry) => (entry as { type?: string }).type === "pass-started")
+        .length,
+  );
 
   let releaseFirstAttempt = () => undefined;
   const firstAttemptRelease = new Promise<void>((resolve) => {
@@ -623,9 +652,10 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
     idempotencyKey: mutationIds[0],
     status: "syncing",
   });
-  const firstStillDurable = heldQueue.some((action: { idempotencyKey?: string }) => (
-    action.idempotencyKey === mutationIds[0]
-  ));
+  const firstStillDurable = heldQueue.some(
+    (action: { idempotencyKey?: string }) =>
+      action.idempotencyKey === mutationIds[0],
+  );
   expect(firstStillDurable).toBe(true);
 
   await page.evaluate(() => {
@@ -633,10 +663,11 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
     window.dispatchEvent(new Event("focus"));
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  const observationsDuringAttempt = await page.evaluate(() => (
-    (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
-      .__fieldgridOfflineSyncObservations ?? []
-  ));
+  const observationsDuringAttempt = await page.evaluate(
+    () =>
+      (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+        .__fieldgridOfflineSyncObservations ?? [],
+  );
   const triggerWasRecordedDuringActivePass = observationsDuringAttempt.some(
     (entry) => {
       const observation = entry as {
@@ -644,8 +675,11 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
         requestedGeneration?: number;
         completedGeneration?: number;
       };
-      return observation.type === "requested"
-        && Number(observation.requestedGeneration) > Number(observation.completedGeneration);
+      return (
+        observation.type === "requested" &&
+        Number(observation.requestedGeneration) >
+          Number(observation.completedGeneration)
+      );
     },
   );
   expect(triggerWasRecordedDuringActivePass).toBe(true);
@@ -657,26 +691,36 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
   expect(clientAttemptCount).toBe(3);
   expect(maximumActiveClientAttempts).toBe(1);
   expect(requestBodies).toHaveLength(3);
-  expect(requestBodies.filter((body) => body.includes(mutationIds[0])).length).toBe(2);
-  expect(requestBodies.filter((body) => body.includes(mutationIds[1])).length).toBe(1);
+  expect(
+    requestBodies.filter((body) => body.includes(mutationIds[0])).length,
+  ).toBe(2);
+  expect(
+    requestBodies.filter((body) => body.includes(mutationIds[1])).length,
+  ).toBe(1);
 
-  const queueSnapshots = await page.evaluate(() => (
-    (window as Window & { __fieldgridOfflineQueueSnapshots?: unknown[] })
-      .__fieldgridOfflineQueueSnapshots ?? []
-  )) as Array<Array<{
-    attempts?: number;
-    idempotencyKey?: string;
-    lastErrorClassification?: string;
-    lastErrorDiagnosticId?: string;
-    lastErrorRetryable?: boolean;
-    lastErrorSqlState?: string;
-    status?: string;
-  }>>;
-  const transientQueueState = queueSnapshots.flat().find((action) => (
-    action.idempotencyKey === mutationIds[0]
-    && action.status === "retry_wait"
-    && action.lastErrorClassification === "transient"
-  ));
+  const queueSnapshots = (await page.evaluate(
+    () =>
+      (window as Window & { __fieldgridOfflineQueueSnapshots?: unknown[] })
+        .__fieldgridOfflineQueueSnapshots ?? [],
+  )) as Array<
+    Array<{
+      attempts?: number;
+      idempotencyKey?: string;
+      lastErrorClassification?: string;
+      lastErrorDiagnosticId?: string;
+      lastErrorRetryable?: boolean;
+      lastErrorSqlState?: string;
+      status?: string;
+    }>
+  >;
+  const transientQueueState = queueSnapshots
+    .flat()
+    .find(
+      (action) =>
+        action.idempotencyKey === mutationIds[0] &&
+        action.status === "retry_wait" &&
+        action.lastErrorClassification === "transient",
+    );
   expect(transientQueueState).toMatchObject({
     attempts: 1,
     idempotencyKey: mutationIds[0],
@@ -685,26 +729,32 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
     lastErrorSqlState: "40001",
     status: "retry_wait",
   });
-  expect(transientQueueState?.lastErrorDiagnosticId).toMatch(/^offline-[0-9a-f-]{36}$/iu);
+  expect(transientQueueState?.lastErrorDiagnosticId).toMatch(
+    /^offline-[0-9a-f-]{36}$/iu,
+  );
 
-  const observations = await page.evaluate(() => (
-    (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
-      .__fieldgridOfflineSyncObservations ?? []
-  ));
-  const startedPasses = observations.filter((entry) => (
-    (entry as { type?: string }).type === "pass-started"
-  )) as Array<{ generation: number; triggers: string[] }>;
+  const observations = await page.evaluate(
+    () =>
+      (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+        .__fieldgridOfflineSyncObservations ?? [],
+  );
+  const startedPasses = observations.filter(
+    (entry) => (entry as { type?: string }).type === "pass-started",
+  ) as Array<{ generation: number; triggers: string[] }>;
   const reconnectPasses = startedPasses.slice(passCountBeforeReconnect);
   expect(reconnectPasses.length).toBeGreaterThanOrEqual(2);
-  const coalescedReconnectPass = reconnectPasses.find((pass) => (
-    ["online", "focus", "visibility"].every((trigger) => (
-      pass.triggers.includes(trigger)
-    ))
-  ));
+  const coalescedReconnectPass = reconnectPasses.find((pass) =>
+    ["online", "focus", "visibility"].every((trigger) =>
+      pass.triggers.includes(trigger),
+    ),
+  );
   expect(coalescedReconnectPass).toBeTruthy();
 
   const databaseUrl = process.env.DATABASE_URL;
-  expect(databaseUrl, "DATABASE_URL is required for canonical offline evidence").toBeTruthy();
+  expect(
+    databaseUrl,
+    "DATABASE_URL is required for canonical offline evidence",
+  ).toBeTruthy();
   const sql = `
     select json_build_object(
       'canonicalReceiptCount', count(*) filter (where operation_id in ('${mutationIds[0]}', '${mutationIds[1]}')),
@@ -722,11 +772,20 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
     )::text
     from offline_operation_receipts;
   `;
-  const databaseProof = JSON.parse(execFileSync(
-    "psql",
-    [databaseUrl!, "--no-psqlrc", "--tuples-only", "--no-align", "--command", sql],
-    { encoding: "utf8" },
-  ).trim()) as {
+  const databaseProof = JSON.parse(
+    execFileSync(
+      "psql",
+      [
+        databaseUrl!,
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--command",
+        sql,
+      ],
+      { encoding: "utf8" },
+    ).trim(),
+  ) as {
     canonicalReceiptCount: number;
     completedCanonicalReceiptCount: number;
     canonicalVersions: number[];
@@ -766,26 +825,40 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
     maximumActiveClientAttempts,
     queueAfterReconnect: await queuedActionCount(),
     mutationIdSha256: createHash("sha256").update(mutationIds[0]).digest("hex"),
-    sequentialMutationIdSha256: mutationIds.map((mutationId) => createHash("sha256").update(mutationId).digest("hex")),
+    sequentialMutationIdSha256: mutationIds.map((mutationId) =>
+      createHash("sha256").update(mutationId).digest("hex"),
+    ),
     entityStream: String(queued[0].entityStreamKey),
     initialVersion,
     canonicalVersions: databaseProof.canonicalVersions,
-    dependencyAdvanced: databaseProof.canonicalVersions[0] === initialVersion + 1,
+    dependencyAdvanced:
+      databaseProof.canonicalVersions[0] === initialVersion + 1,
     transientFailure: {
       sqlState: transientQueueState?.lastErrorSqlState,
       classification: transientQueueState?.lastErrorClassification,
       retryable: transientQueueState?.lastErrorRetryable,
       retryAttempt: transientQueueState?.attempts,
-      mutationIdSha256: createHash("sha256").update(String(transientQueueState?.idempotencyKey)).digest("hex"),
-      diagnosticIdSha256: createHash("sha256").update(String(transientQueueState?.lastErrorDiagnosticId)).digest("hex"),
+      mutationIdSha256: createHash("sha256")
+        .update(String(transientQueueState?.idempotencyKey))
+        .digest("hex"),
+      diagnosticIdSha256: createHash("sha256")
+        .update(String(transientQueueState?.lastErrorDiagnosticId))
+        .digest("hex"),
     },
     canonicalReceiptCount: databaseProof.canonicalReceiptCount,
-    completedCanonicalReceiptCount: databaseProof.completedCanonicalReceiptCount,
+    completedCanonicalReceiptCount:
+      databaseProof.completedCanonicalReceiptCount,
     serverMutationCount: databaseProof.canonicalReceiptCount,
     taskCompletionRowCount: databaseProof.taskCompletionRowCount,
     reloadConverged: true,
-    duplicateExecutionCount: Math.max(databaseProof.taskCompletionRowCount - 1, 0),
-    duplicateReceiptCount: Math.max(databaseProof.canonicalReceiptCount - mutationIds.length, 0),
+    duplicateExecutionCount: Math.max(
+      databaseProof.taskCompletionRowCount - 1,
+      0,
+    ),
+    duplicateReceiptCount: Math.max(
+      databaseProof.canonicalReceiptCount - mutationIds.length,
+      0,
+    ),
   };
   const artifactDir = join(process.cwd(), "artifacts", "fieldgrid-playwright");
   await mkdir(artifactDir, { recursive: true });
