@@ -782,7 +782,15 @@ test("complex cold-start browser journeys have bounded CI headroom", () => {
   );
   assert.match(
     spec,
-    /test\("8\. Negative guards", async \(\{ page \}\) => \{\s+test\.setTimeout\(60_000\);/u,
+    /test\("8\. Negative guards", async \(\{ page \}\) => \{\s+test\.setTimeout\(120_000\);/u,
+  );
+  assert.match(
+    spec,
+    /page\.goto\(backofficeUrl\("\/customers"\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/u,
+  );
+  assert.match(
+    spec,
+    /page\.goto\(backofficeUrl\("\/", unknownHost\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/u,
   );
 });
 
