@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { backofficePath } from "@/lib/backoffice-paths";
+import { sanitizeKnowledgebaseHtml } from "@workspace/shared-ui/knowledgebase-html";
 
 type KnowledgebaseContentRendererProps = {
   html?: string | null;
@@ -7,21 +8,9 @@ type KnowledgebaseContentRendererProps = {
   className?: string;
 };
 
-const DEFAULT_EMPTY_HTML = "<p>Geen inhoud beschikbaar.</p>";
-
 function normalizeMediaBasePath(mediaBasePath?: string): string | null {
   if (!mediaBasePath) return null;
   return backofficePath(mediaBasePath).replace(/\/+$/, "");
-}
-
-function rewriteKnowledgebaseMediaUrls(html: string, mediaBasePath?: string): string {
-  const basePath = normalizeMediaBasePath(mediaBasePath);
-  if (!basePath) return html;
-
-  return html.replace(
-    /\b(src|href)=["']\/(?:platform\/knowledgebase|platform\/releases|help|releases)\/media\/([a-f0-9-]+)["']/gi,
-    (_match, attribute: string, mediaId: string) => `${attribute}="${basePath}/${mediaId}"`,
-  );
 }
 
 export function KnowledgebaseContentRenderer({
@@ -29,7 +18,10 @@ export function KnowledgebaseContentRenderer({
   mediaBasePath,
   className,
 }: KnowledgebaseContentRendererProps) {
-  const safeHtml = rewriteKnowledgebaseMediaUrls(html?.trim() || DEFAULT_EMPTY_HTML, mediaBasePath);
+  const safeHtml = sanitizeKnowledgebaseHtml(html, {
+    emptyFallback: true,
+    mediaBasePath: normalizeMediaBasePath(mediaBasePath) ?? undefined,
+  });
 
   return (
     <div
