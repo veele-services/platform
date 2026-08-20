@@ -14,6 +14,8 @@ test("every manifest-listed workflow has an executable evidence marker", () => {
 test("the manifest does not claim report writes from read-only evidence", () => {
   const reportVisibility = FIELDGRID_CRITICAL_WORKFLOWS.find(({ id }) => id === "report-visibility");
   assert.deepEqual(reportVisibility?.mutations, ["report.read-approved"]);
+  assert.deepEqual(reportVisibility?.surfaces, ["customer-pwa"]);
+  assert.deepEqual(reportVisibility?.actors, ["customer"]);
 });
 
 test("the mutating workflow runs as an isolated Playwright phase", () => {
@@ -21,6 +23,9 @@ test("the mutating workflow runs as an isolated Playwright phase", () => {
   assert.match(runner, /name: 'workflow-bot'/u);
   assert.match(runner, /workflow-bot\.spec\.ts/u);
   assert.match(runner, /FIELDGRID_WORKFLOW_RUN_ID/u);
+  assert.match(runner, /GITHUB_RUN_ID/u);
+  assert.match(runner, /GITHUB_RUN_ATTEMPT/u);
+  assert.match(runner, /randomUUID\(\)/u);
   const workflow = readFileSync("e2e/fieldgrid/tests/workflow-bot.spec.ts", "utf8");
   assert.doesNotMatch(workflow, /Date\.now\(\)/u);
   assert.match(workflow, /response\?\.status\(\)\)\.toBe\(200\)/u);

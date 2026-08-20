@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { createWriteStream, existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -51,10 +52,14 @@ const exactHead = process.env.FIELDGRID_EXACT_HEAD
 if (!/^[0-9a-f]{40}$/u.test(exactHead)) {
   throw new Error('FIELDGRID_EXACT_HEAD/GITHUB_SHA must be a full Git commit SHA.');
 }
+const invocationId = process.env.GITHUB_RUN_ID
+  ? `${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT ?? '1'}`
+  : randomUUID().slice(0, 8);
 const runEnvironment = Object.freeze({
   ...process.env,
   FIELDGRID_E2E_DATE_KEY: e2eDateKey,
-  FIELDGRID_WORKFLOW_RUN_ID: process.env.FIELDGRID_WORKFLOW_RUN_ID ?? `${exactHead.slice(0, 12)}-${e2eDateKey}`,
+  FIELDGRID_WORKFLOW_RUN_ID: process.env.FIELDGRID_WORKFLOW_RUN_ID
+    ?? `${exactHead.slice(0, 12)}-${e2eDateKey}-${invocationId}`,
 });
 
 function phaseResultPath(name) {

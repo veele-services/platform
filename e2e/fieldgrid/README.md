@@ -18,6 +18,6 @@ pnpm fieldgrid:playwright
 klant → object → personeelslid → opdracht/werkbon → mobiel → tenant-B-denial
 ```
 
-Each run uses synthetic `example.test` addresses and a unique `FIELDGRID_WORKFLOW_RUN_ID`. CI runs only against disposable PostgreSQL 17 and real PostgREST; it never connects the feature task to staging. JSON, JUnit, HTML, traces and screenshots are written below `artifacts/fieldgrid-playwright/` and finalized into exact-SHA evidence.
+Each run uses synthetic `example.test` addresses and a unique `FIELDGRID_WORKFLOW_RUN_ID`. CI derives the default from exact SHA, Amsterdam date, GitHub run ID and attempt; local invocations receive a random suffix unless an explicit ID is supplied. CI runs only against disposable PostgreSQL 17 and real PostgREST; it never connects the feature task to staging. JSON, JUnit, HTML, traces and screenshots are written below `artifacts/fieldgrid-playwright/` and finalized into exact-SHA evidence.
 
 The authoritative exact-head workflow runs on pull requests, main pushes, manual dispatch and nightly at `02:17 UTC`. A failure blocks the aggregate gate and remains visible in GitHub Actions with its evidence artifact. The bot does not claim that an unknown future defect is impossible: its enforceable boundary is the versioned critical-workflow and mutation inventory. New critical workflows must be added to that inventory with executable evidence.

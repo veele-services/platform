@@ -18,7 +18,7 @@ pnpm fieldgrid:dependency-security:check
 pnpm fieldgrid:dependency-security:audit
 ```
 
-De audit schrijft reproduceerbaar bewijs naar `artifacts/dependency-security/`. Het geëvalueerde rapport bevat het Git-SHA, de scopes en blocking-status. Het raw auditrapport bevat alleen package- en advisorymetadata; geen credentials of applicatiedata.
+De audit schrijft reproduceerbaar bewijs naar `artifacts/dependency-security/`. Het geëvalueerde rapport bevat het Git-SHA, de scopes en blocking-status. De raw audit- en signaturebestanden bevatten alleen package-, advisory- en registry-signaturemetadata; geen credentials of applicatiedata. Ook wanneer pnpm exitcode 1 gebruikt om ontbrekende of ongeldige signatures te melden, wordt dat geldige JSON-bewijs eerst opgeslagen en faalt daarna de policy.
 
 ## CI
 

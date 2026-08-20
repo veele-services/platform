@@ -60,4 +60,7 @@ test("native pnpm audit ignores are forbidden and repository contract is explici
   const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(typeof packageJson.scripts["fieldgrid:dependency-security:audit"], "string");
   assert.equal(typeof packageJson.scripts["fieldgrid:dependency-security:check"], "string");
+  const implementation = readFileSync("scripts/fieldgrid-dependency-security.mjs", "utf8");
+  assert.match(implementation, /audit", "signatures", "--json"\], \[0, 1\]/u);
+  assert.match(implementation, /pnpm-signatures\.raw\.json/u);
 });

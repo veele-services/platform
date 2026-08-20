@@ -33,8 +33,8 @@ export const FIELDGRID_CRITICAL_WORKFLOWS = Object.freeze([
   },
   {
     id: "report-visibility",
-    surfaces: ["customer-pwa", "personnel-pwa"],
-    actors: ["customer", "personnel"],
+    surfaces: ["customer-pwa"],
+    actors: ["customer"],
     mutations: ["report.read-approved"],
     evidenceFile: "e2e/fieldgrid/tests/golden-path.spec.ts",
     evidenceMarker: "Runtime approved report A",

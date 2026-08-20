@@ -125,8 +125,11 @@ function runAudit() {
   const auditResult = executePnpm(["audit", "--json"], [0, 1]);
   const rawAudit = parseJson(auditResult.stdout, "pnpm audit");
   const evaluated = evaluateAudit(rawAudit);
-  const signatureResult = executePnpm(["audit", "signatures", "--json"], [0]);
-  const signatures = evaluateSignatures(parseJson(signatureResult.stdout, "pnpm audit signatures"));
+  // pnpm deliberately exits 1 when it has valid JSON describing invalid or
+  // missing signatures. Preserve that diagnostic evidence and let policy fail.
+  const signatureResult = executePnpm(["audit", "signatures", "--json"], [0, 1]);
+  const rawSignatures = parseJson(signatureResult.stdout, "pnpm audit signatures");
+  const signatures = evaluateSignatures(rawSignatures);
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -135,6 +138,7 @@ function runAudit() {
     signatures,
   };
   writeFileSync(join(artifactDir, "pnpm-audit.raw.json"), `${JSON.stringify(rawAudit, null, 2)}\n`);
+  writeFileSync(join(artifactDir, "pnpm-signatures.raw.json"), `${JSON.stringify(rawSignatures, null, 2)}\n`);
   writeFileSync(join(artifactDir, "dependency-security-report.json"), `${JSON.stringify(report, null, 2)}\n`);
 
   console.log(`Dependency scan: ${evaluated.findings.length} finding(s), ${evaluated.blockingFindings.length} blocking.`);
