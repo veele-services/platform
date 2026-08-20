@@ -792,6 +792,10 @@ test("complex cold-start browser journeys have bounded CI headroom", () => {
     spec,
     /page\.goto\(backofficeUrl\("\/", unknownHost\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/u,
   );
+  assert.match(
+    spec,
+    /page\.goto\(customerUrl\("\/klant\/facturen"\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/u,
+  );
 });
 
 test("browser phases pin one planning date across an Amsterdam midnight rollover", () => {
