@@ -14,6 +14,7 @@
     "./events": "./src/events.ts",
     "./address-geocoding": "./src/address-geocoding.ts",
     "./google-places": "./src/google-places.ts",
+    "./google-maps-rate-limit": "./src/google-maps-rate-limit.ts",
     "./portal-routes": "./src/portal-routes.ts",
     "./invoice-numbering": "./src/invoice-numbering.ts",
     "./invoice-finalization": "./src/invoice-finalization.ts",

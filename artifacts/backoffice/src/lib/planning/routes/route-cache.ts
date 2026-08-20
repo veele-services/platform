@@ -356,7 +356,7 @@ export async function getRouteWithCache(
   }
 
   if (isGoogleRoutesProvider) {
-    const rateLimit = checkGoogleMapsRateLimit({
+    const rateLimit = await checkGoogleMapsRateLimit({
       tenantId: request.tenantId,
       userId: request.userId ?? null,
       action: "route_request",
@@ -374,10 +374,12 @@ export async function getRouteWithCache(
         success: false,
         provider: provider.name,
         providerMode,
-        error: "Routeberekening is tijdelijk begrensd. Probeer het zo opnieuw.",
+        error: rateLimit.reason === "service_unavailable"
+          ? "Routeberekening is tijdelijk niet beschikbaar."
+          : "Routeberekening is tijdelijk begrensd. Probeer het zo opnieuw.",
         retryable: true,
         warnings: [],
-        providerMeta: { rateLimitResetAt: rateLimit.resetAt },
+        providerMeta: { rateLimitResetAt: rateLimit.resetAt, rateLimitReason: rateLimit.reason },
         cacheStatus: "rate_limited",
       };
     }

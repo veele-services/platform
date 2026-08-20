@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const rateLimit = checkGoogleMapsRateLimit({
+    const rateLimit = await checkGoogleMapsRateLimit({
       tenantId,
       userId,
       action: "usage_event",
@@ -113,8 +113,8 @@ export async function POST(request: Request) {
         metadata: { action: "usage_event" },
       });
       return NextResponse.json(
-        { error: createSafeGoogleMapsError("rate_limited", true) },
-        { status: 429 },
+        { error: createSafeGoogleMapsError(rateLimit.reason === "service_unavailable" ? "configuration_error" : "rate_limited", true) },
+        { status: rateLimit.reason === "service_unavailable" ? 503 : 429 },
       );
     }
 
