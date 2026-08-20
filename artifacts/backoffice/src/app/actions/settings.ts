@@ -1346,10 +1346,21 @@ export async function sendManualNotification(
     }
   }
 
-  await db
-    .update(notificationDispatchesTable)
-    .set({ emailSuccessCount, emailFailedCount })
-    .where(eq(notificationDispatchesTable.id, dispatch.id));
+  const [durableEmailCounts] = await db
+    .select({
+      success: notificationDispatchesTable.emailSuccessCount,
+      failed: notificationDispatchesTable.emailFailedCount,
+    })
+    .from(notificationDispatchesTable)
+    .where(
+      and(
+        eq(notificationDispatchesTable.id, dispatch.id),
+        eq(notificationDispatchesTable.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+  emailSuccessCount = durableEmailCounts?.success ?? 0;
+  emailFailedCount = durableEmailCounts?.failed ?? 0;
 
   await db.insert(auditLogTable).values({
     userId: user.id,

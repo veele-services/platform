@@ -63,7 +63,13 @@ type WorkerConfig = {
   sendDelayMs: number;
 };
 
-type QueueOutcomeStatus = "sent" | "failed" | "retry" | "skipped" | "partial";
+type QueueOutcomeStatus =
+  | "sent"
+  | "failed"
+  | "retry"
+  | "skipped"
+  | "partial"
+  | "outcome_pending";
 
 export type QueueOutcome = {
   status: QueueOutcomeStatus;
@@ -280,6 +286,21 @@ function skippedOutcome(reason: string): QueueOutcome {
     error: reason,
     retryAt: null,
     response: { reason },
+    deactivatedSubscriptions: 0,
+    deactivatedNativeTokens: 0,
+    providerMessageId: null,
+  };
+}
+
+function uncertainOutcome(
+  error: string,
+  response: Record<string, unknown> = {},
+): QueueOutcome {
+  return {
+    status: "outcome_pending",
+    error,
+    retryAt: null,
+    response: { ...response, reason: "provider_outcome_unknown" },
     deactivatedSubscriptions: 0,
     deactivatedNativeTokens: 0,
     providerMessageId: null,
@@ -585,6 +606,33 @@ async function completeQueueItem(
     if (result.rowCount !== 1) {
       throw new Error("notification_queue_finalization_not_owned");
     }
+
+    if (item.dispatch_id && item.channel === "email") {
+      const dispatchLock = await client.query(
+        `SELECT id FROM notification_dispatches
+         WHERE id = $1 AND tenant_id = $2
+         FOR UPDATE`,
+        [item.dispatch_id, item.tenant_id],
+      );
+      if (dispatchLock.rowCount === 1) {
+        await client.query(
+          `UPDATE notification_dispatches dispatch
+           SET email_success_count = counters.success_count,
+               email_failed_count = counters.failed_count
+           FROM (
+             SELECT
+               count(*) FILTER (WHERE status = 'sent')::integer AS success_count,
+               count(*) FILTER (
+                 WHERE status IN ('failed', 'skipped', 'partial')
+               )::integer AS failed_count
+             FROM notification_delivery_queue
+             WHERE dispatch_id = $1 AND tenant_id = $2 AND channel = 'email'
+           ) counters
+           WHERE dispatch.id = $1 AND dispatch.tenant_id = $2`,
+          [item.dispatch_id, item.tenant_id],
+        );
+      }
+    }
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -869,6 +917,13 @@ async function deliverEmailItem(
       deactivatedNativeTokens: 0,
       providerMessageId: result.providerMessageId ?? null,
     };
+  }
+
+  if (result.deliveryEffect === "unknown") {
+    return uncertainOutcome(
+      result.error ?? "Uitkomst van e-mailbezorging is onbekend.",
+      { provider: result.providerType ?? "platform_email" },
+    );
   }
 
   return failureOutcome(
@@ -1230,6 +1285,7 @@ export async function processNotificationQueue(
 
     for (const item of items) {
       let outcome: QueueOutcome;
+      let deliveryStarted = false;
 
       try {
         const lifecycle = await checkDeliveryLifecycle(item);
@@ -1237,6 +1293,7 @@ export async function processNotificationQueue(
           outcome = skippedOutcome(lifecycle.reason);
         } else {
           await markDeliveryStarted(item, workerId);
+          deliveryStarted = true;
           outcome = options.deliveryOverride
             ? await options.deliveryOverride({
                 id: item.id,
@@ -1248,9 +1305,11 @@ export async function processNotificationQueue(
             : await deliverQueueItem(item, config, options);
         }
       } catch (error) {
-        outcome = failureOutcome(item, config, true, errorMessage(error), {
-          unexpectedError: true,
-        });
+        outcome = deliveryStarted
+          ? uncertainOutcome(errorMessage(error), { unexpectedError: true })
+          : failureOutcome(item, config, true, errorMessage(error), {
+              unexpectedError: true,
+            });
       }
 
       await completeQueueItem(item, workerId, outcome);
@@ -1271,6 +1330,8 @@ export async function processNotificationQueue(
       } else if (outcome.status === "partial") {
         result.partial += 1;
         channelResult.partial += 1;
+      } else if (outcome.status === "outcome_pending") {
+        result.outcomePending += 1;
       } else {
         result.failed += 1;
         channelResult.failed += 1;

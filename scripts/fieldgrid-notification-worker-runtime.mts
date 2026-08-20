@@ -25,6 +25,7 @@ const tenantA = FIXTURE.tenants.a;
 const tenantB = FIXTURE.tenants.b;
 const prefix = "runtime-notification-hardening";
 const createdQueueIds: string[] = [];
+const createdDispatchIds: string[] = [];
 const logger = { info() {}, warn() {}, error() {} };
 
 type Channel = "email" | "push";
@@ -41,6 +42,30 @@ function delivered(status: "sent" | "partial" = "sent") {
   } as const;
 }
 
+function providerFailure(status: "retry" | "failed") {
+  return {
+    status,
+    error: `runtime-${status}`,
+    retryAt: status === "retry" ? new Date(0) : null,
+    response: { runtime: true, providerEffect: "not_attempted" },
+    deactivatedSubscriptions: 0,
+    deactivatedNativeTokens: 0,
+    providerMessageId: null,
+  } as const;
+}
+
+async function createDispatch() {
+  const id = randomUUID();
+  createdDispatchIds.push(id);
+  await client.query(
+    `insert into public.notification_dispatches (
+       id, tenant_id, title, body, audience, channels, target_criteria
+     ) values ($1,$2,$3,'Runtime body','personnel','["email"]'::jsonb,'{}'::jsonb)`,
+    [id, tenantA, `${prefix}:dispatch:${id}`],
+  );
+  return id;
+}
+
 async function enqueue(input: {
   tenantId?: string;
   channel?: Channel;
@@ -49,17 +74,19 @@ async function enqueue(input: {
   customerId?: string | null;
   eventKey?: string | null;
   maxAttempts?: number;
+  dispatchId?: string | null;
 }) {
   const id = randomUUID();
   createdQueueIds.push(id);
   const result = await client.query(
     `insert into public.notification_delivery_queue (
        id, tenant_id, event_key, channel, recipient_type, personnel_id, customer_id,
-       recipient_email, subject, title, body, html, payload, status, max_attempts
+       recipient_email, subject, title, body, html, payload, status, max_attempts,
+       dispatch_id
      ) values ($1,$2,$3,$4,$5::varchar,$6,$7,
        case when $5::varchar='management' then 'admin@tenant-a.runtime.fieldgrid.test' else 'runtime@example.test' end,
        'Runtime notification',
-       $8,'Runtime body','<p>Runtime body</p>',$9::jsonb,'pending',$10)
+       $8,'Runtime body','<p>Runtime body</p>',$9::jsonb,'pending',$10,$11)
      returning id, delivery_key`,
     [
       id,
@@ -76,6 +103,7 @@ async function enqueue(input: {
           : {},
       ),
       input.maxAttempts ?? 5,
+      input.dispatchId ?? null,
     ],
   );
   return result.rows[0] as { id: string; delivery_key: string };
@@ -386,12 +414,25 @@ try {
     [uncertain.id],
   );
 
+  const ambiguous = await enqueue({});
+  const ambiguousResult = await runEmail({
+    workerId: "runtime-ambiguous-provider",
+    deliveryOverride: async () => {
+      throw new Error("provider response lost after delivery started");
+    },
+  });
+  assert.equal(ambiguousResult.outcomePending, 1);
+  assert.equal((await queueState(ambiguous.id)).status, "outcome_pending");
+  assert.equal((await attempts(ambiguous.id))[0].status, "outcome_pending");
+  await client.query(
+    `delete from public.notification_delivery_queue where id=$1`,
+    [ambiguous.id],
+  );
+
   const transient = await enqueue({});
   await runEmail({
-    workerId: "runtime-transient-provider",
-    deliveryOverride: async () => {
-      throw new Error("transient provider failure");
-    },
+    workerId: "runtime-known-safe-transient-provider",
+    deliveryOverride: async () => providerFailure("retry"),
   });
   assert.equal((await queueState(transient.id)).status, "retry");
   assert.equal((await attempts(transient.id))[0].status, "retry");
@@ -403,9 +444,7 @@ try {
   const maxAttempts = await enqueue({ maxAttempts: 1 });
   await runEmail({
     workerId: "runtime-max-attempts",
-    deliveryOverride: async () => {
-      throw new Error("permanent after max attempts");
-    },
+    deliveryOverride: async () => providerFailure("failed"),
   });
   const maxState = await queueState(maxAttempts.id);
   assert.equal(maxState.status, "failed");
@@ -417,7 +456,7 @@ try {
     workerId: "runtime-idempotency-first",
     deliveryOverride: async (item: { deliveryKey: string }) => {
       deliveryKeys.push(item.deliveryKey);
-      throw new Error("retry once");
+      return providerFailure("retry");
     },
   });
   await runEmail({
@@ -429,6 +468,42 @@ try {
   });
   assert.equal(deliveryKeys.length, 2);
   assert.equal(deliveryKeys[0], deliveryKeys[1]);
+
+  const dispatchId = await createDispatch();
+  const delayedDispatch = await enqueue({ dispatchId });
+  await runEmail({
+    workerId: "runtime-dispatch-first-attempt",
+    queueIds: [delayedDispatch.id],
+    deliveryOverride: async () => providerFailure("retry"),
+  });
+  let dispatchCounters = await client.query(
+    `select email_success_count, email_failed_count
+     from public.notification_dispatches where id=$1`,
+    [dispatchId],
+  );
+  assert.deepEqual(dispatchCounters.rows[0], {
+    email_success_count: 0,
+    email_failed_count: 0,
+  });
+  await runEmail({
+    workerId: "runtime-dispatch-eventual-success",
+    queueIds: [delayedDispatch.id],
+  });
+  const failedDispatch = await enqueue({ dispatchId, maxAttempts: 1 });
+  await runEmail({
+    workerId: "runtime-dispatch-eventual-failure",
+    queueIds: [failedDispatch.id],
+    deliveryOverride: async () => providerFailure("failed"),
+  });
+  dispatchCounters = await client.query(
+    `select email_success_count, email_failed_count
+     from public.notification_dispatches where id=$1`,
+    [dispatchId],
+  );
+  assert.deepEqual(dispatchCounters.rows[0], {
+    email_success_count: 1,
+    email_failed_count: 1,
+  });
 
   const duplicate = await enqueue({});
   let duplicateDeliveries = 0;
@@ -1035,6 +1110,12 @@ try {
     .query(
       `delete from public.notification_delivery_queue where id=any($1::uuid[])`,
       [createdQueueIds],
+    )
+    .catch(() => {});
+  await client
+    .query(
+      `delete from public.notification_dispatches where id=any($1::uuid[])`,
+      [createdDispatchIds],
     )
     .catch(() => {});
   await client.end();

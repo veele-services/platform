@@ -45,7 +45,13 @@ export async function sendEmailWithResult(opts: {
   tenantId?: string | null;
   purpose?: string | null;
   idempotencyKey?: string;
-}): Promise<{ success: boolean; error?: string; providerMessageId?: string | null; providerType?: string }> {
+}): Promise<{
+  success: boolean;
+  error?: string;
+  providerMessageId?: string | null;
+  providerType?: string;
+  deliveryEffect: "not_attempted" | "accepted" | "unknown";
+}> {
   const result = await sendTransactionalEmail({
     to: opts.to,
     subject: opts.subject,
@@ -59,12 +65,13 @@ export async function sendEmailWithResult(opts: {
   if (!result.success) {
     const msg = result.error ?? "E-mailprovider niet geconfigureerd";
     logger.warn({ subject: opts.subject }, msg);
-    return { success: false, error: msg };
+    return { success: false, error: msg, deliveryEffect: result.deliveryEffect };
   }
   return {
     success: true,
     providerMessageId: result.providerMessageId ?? null,
     providerType: result.providerType,
+    deliveryEffect: result.deliveryEffect,
   };
 }
 

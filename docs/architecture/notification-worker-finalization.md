@@ -22,11 +22,16 @@ effect. A stale pre-provider claim may be reclaimed. A stale post-provider claim
 exact queue IDs with a bounded review reason. `outcome_pending` additionally requires an explicit
 confirmation that no provider delivery occurred. Mixed transient push results retain only the
 failed internal target IDs for a targeted retry; already successful endpoints are not called again.
+An SMTP, SendGrid or other provider error after delivery has started is classified in the same
+fail-closed way unless the transport proves that no provider effect occurred. Provider message
+headers and Message-IDs are correlation evidence, not assumed provider idempotency.
 
 Customer e-mail and push preferences are rechecked immediately before delivery, with push failing
 closed when no preference row exists. Management delivery binds both the active tenant membership
 and the exact auth-user e-mail. Authenticated management access is tenant-bound read-only; all
 queue and attempt writes are reserved for trusted server roles. Manual e-mail notifications enter
-the pending queue before any provider call.
+the pending queue before any provider call. After every terminal e-mail queue transition, the
+worker recalculates the dispatch success and failure counters from the tenant-bound durable queue;
+later retries and batches therefore cannot leave dispatch history permanently stale.
 
 The disposable PostgreSQL proof is `pnpm fieldgrid:test:notification-worker-runtime`.

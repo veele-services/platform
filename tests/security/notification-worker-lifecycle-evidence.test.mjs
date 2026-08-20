@@ -26,6 +26,7 @@ const workerRoute = readFileSync(
   "artifacts/api-server/src/routes/notification-worker.ts",
   "utf8",
 );
+const emailService = readFileSync("lib/db/src/email-service.ts", "utf8");
 
 test("worker rechecks tenant, module, event and recipient lifecycle after claim", () => {
   for (const signal of [
@@ -72,6 +73,35 @@ test("uncertain provider effects never become an automatic blind redelivery", ()
     /WHERE status IN \('failed', 'outcome_pending', 'partial'\)/u,
   );
   assert.match(worker, /delivery_key/u);
+  assert.match(worker, /result\.deliveryEffect === "unknown"/u);
+  assert.match(worker, /deliveryStarted\s*\? uncertainOutcome/u);
+  assert.match(emailService, /deliveryEffect: "unknown"/u);
+  assert.match(emailService, /deliveryEffect: "not_attempted"/u);
+});
+
+test("dispatch counters follow eventual durable e-mail outcomes", () => {
+  assert.match(worker, /UPDATE notification_dispatches dispatch/u);
+  assert.match(
+    worker,
+    /SELECT id FROM notification_dispatches[\s\S]*FOR UPDATE/u,
+  );
+  assert.match(worker, /count\(\*\) FILTER \(WHERE status = 'sent'\)/u);
+  assert.match(
+    worker,
+    /status IN \('failed', 'skipped', 'partial'\)/u,
+  );
+  assert.match(worker, /dispatch\.tenant_id = \$2/u);
+  assert.match(runtime, /runtime-dispatch-eventual-success/u);
+  assert.match(runtime, /runtime-dispatch-eventual-failure/u);
+  const manualFunction = settings.slice(
+    settings.indexOf("export async function sendManualNotification"),
+    settings.indexOf("export async function uploadOrgLogo"),
+  );
+  assert.doesNotMatch(
+    manualFunction,
+    /\.update\(notificationDispatchesTable\)/u,
+  );
+  assert.match(manualFunction, /durableEmailCounts/u);
 });
 
 test("push outcomes retain safe endpoint-level evidence", () => {

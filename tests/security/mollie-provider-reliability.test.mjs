@@ -46,6 +46,14 @@ test("Mollie transport exposes explicit retry and failure classifications", () =
   assert.match(provider, /response\.status >= 500/u);
   assert.match(
     provider,
+    /"Mollie returned malformed JSON\."[\s\S]*"malformed_response",\s*true/u,
+  );
+  assert.match(
+    provider,
+    /"Mollie returned an invalid payment envelope\."[\s\S]*"envelope_mismatch",\s*true/u,
+  );
+  assert.match(
+    provider,
     /class AmbiguousProviderResultError extends MollieProviderError/u,
   );
 });

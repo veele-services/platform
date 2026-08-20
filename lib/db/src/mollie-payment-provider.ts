@@ -80,7 +80,7 @@ async function readBoundedResponseBody(response: Response): Promise<string> {
     throw new MollieProviderError(
       "Mollie returned an oversized response.",
       "malformed_response",
-      false,
+      true,
       response.status,
     );
   }
@@ -99,7 +99,7 @@ async function readBoundedResponseBody(response: Response): Promise<string> {
       throw new MollieProviderError(
         "Mollie returned an oversized response.",
         "malformed_response",
-        false,
+        true,
         response.status,
       );
     }
@@ -163,7 +163,7 @@ async function requestMollie(input: {
       throw new MollieProviderError(
         "Mollie returned malformed JSON.",
         "malformed_response",
-        false,
+        true,
         response.status,
       );
     }
@@ -288,7 +288,7 @@ function parseProviderSnapshot(
         ? error.message
         : "Mollie returned an invalid payment envelope.",
       "envelope_mismatch",
-      false,
+      true,
     );
   }
 }

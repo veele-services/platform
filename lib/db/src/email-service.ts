@@ -49,6 +49,8 @@ export type TransactionalEmailResult = {
   providerType: RuntimeEmailProviderType;
   providerId?: string | null;
   providerMessageId?: string | null;
+  /** Whether a provider could have accepted the message before an error surfaced. */
+  deliveryEffect: "not_attempted" | "accepted" | "unknown";
 };
 
 export type TemplatedEmailInput = Omit<TransactionalEmailInput, "subject" | "html" | "text" | "templateKey"> & {
@@ -529,6 +531,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 
@@ -558,6 +561,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: "test_outbox",
       providerId: "fieldgrid-test-outbox",
       providerMessageId,
+      deliveryEffect: "accepted",
     };
   }
 
@@ -572,17 +576,37 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 
   if (!provider) {
     const error = "Geen actieve e-mailprovider geconfigureerd.";
     await logDelivery(normalizedInput, null, "skipped", error);
-    return { success: false, error, providerType: "none", providerId: null };
+    return {
+      success: false,
+      error,
+      providerType: "none",
+      providerId: null,
+      deliveryEffect: "not_attempted",
+    };
   }
 
   try {
     assertProviderReady(provider);
+  } catch (error) {
+    const message = sanitizeError(error);
+    await logDelivery(normalizedInput, provider, "failed", message);
+    return {
+      success: false,
+      error: message,
+      providerType: provider.providerType,
+      providerId: provider.id,
+      deliveryEffect: "not_attempted",
+    };
+  }
+
+  try {
     const providerMessageId =
       provider.providerType === "sendgrid_api"
         ? await sendWithSendGrid(provider, normalizedInput)
@@ -596,6 +620,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: provider.providerType,
       providerId: provider.id,
       providerMessageId,
+      deliveryEffect: "accepted",
     };
   } catch (error) {
     const message = sanitizeError(error);
@@ -605,6 +630,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: provider.providerType,
       providerId: provider.id,
+      deliveryEffect: "unknown",
     };
   }
 }
@@ -654,6 +680,7 @@ export async function sendTemplatedEmail(input: TemplatedEmailInput): Promise<Tr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 }
@@ -915,6 +942,7 @@ export async function sendPlatformEmailTest(input: { to: string; triggeredBy?: s
       success: false,
       error: "Vul een geldig test e-mailadres in.",
       providerType: "none",
+      deliveryEffect: "not_attempted",
     };
   }
 
