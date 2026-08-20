@@ -935,7 +935,7 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
   assert.doesNotMatch(config, /webServer/);
   assert.equal(
     pkg.scripts["fieldgrid:playwright"],
-    "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
+    "pnpm fieldgrid:workflow-bot:check && node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
   );
   assert.match(
     runner,
@@ -948,6 +948,10 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
   assert.match(
     runner,
     /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/,
+  );
+  assert.match(
+    runner,
+    /name: 'workflow-bot'[\s\S]*workflow-bot\.spec\.ts/,
   );
   assert.match(runner, /resetFixturesBetweenPhases/);
   assert.match(runner, /mergePhaseReports\(completedPhases\)/);

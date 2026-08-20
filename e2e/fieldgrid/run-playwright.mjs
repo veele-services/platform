@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createWriteStream, existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -25,6 +26,10 @@ const phases = [
       'e2e/fieldgrid/tests/golden-path.spec.ts',
     ],
   },
+  {
+    name: 'workflow-bot',
+    files: ['e2e/fieldgrid/tests/workflow-bot.spec.ts'],
+  },
 ];
 
 function amsterdamDateKey(now = new Date()) {
@@ -40,9 +45,16 @@ const e2eDateKey = process.env.FIELDGRID_E2E_DATE_KEY ?? amsterdamDateKey();
 if (!dateKeyPattern.test(e2eDateKey)) {
   throw new Error('FIELDGRID_E2E_DATE_KEY must use YYYY-MM-DD.');
 }
+const exactHead = process.env.FIELDGRID_EXACT_HEAD
+  ?? process.env.GITHUB_SHA
+  ?? execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+if (!/^[0-9a-f]{40}$/u.test(exactHead)) {
+  throw new Error('FIELDGRID_EXACT_HEAD/GITHUB_SHA must be a full Git commit SHA.');
+}
 const runEnvironment = Object.freeze({
   ...process.env,
   FIELDGRID_E2E_DATE_KEY: e2eDateKey,
+  FIELDGRID_WORKFLOW_RUN_ID: process.env.FIELDGRID_WORKFLOW_RUN_ID ?? `${exactHead.slice(0, 12)}-${e2eDateKey}`,
 });
 
 function phaseResultPath(name) {

@@ -3,6 +3,7 @@ import { relative } from "node:path";
 export const FIELDGRID_PLAYWRIGHT_JOURNEY_ANNOTATION = "fieldgrid.journey-id";
 export const FIELDGRID_PLAYWRIGHT_JOURNEY_IDS = Object.freeze([
   "phase2.offline.mutation-chain",
+  "workflow.customer-object-personnel-work-order",
 ]);
 
 const knownJourneyIds = new Set(FIELDGRID_PLAYWRIGHT_JOURNEY_IDS);

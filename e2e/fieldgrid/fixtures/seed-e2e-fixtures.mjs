@@ -54,6 +54,8 @@ const CANONICAL_ADMIN_ROLE = "Admin";
 const CANONICAL_ADMIN_PERMISSIONS = [
   ["customers", "read"],
   ["customers", "write"],
+  ["objects", "read"],
+  ["objects", "write"],
   ["assignments", "read"],
   ["assignments", "write"],
   ["planning", "read"],
@@ -169,6 +171,8 @@ async function seedCanonicalAdminRoles(client) {
         where (resource, action) in (
           ('customers', 'read'),
           ('customers', 'write'),
+          ('objects', 'read'),
+          ('objects', 'write'),
           ('assignments', 'read'),
           ('assignments', 'write'),
           ('planning', 'read'),
