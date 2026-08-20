@@ -120,3 +120,30 @@ test("SendGrid transport uses Bearer authentication and requires HTTP 202", asyn
     /HTTP 403.*verified Sender Identity/u,
   );
 });
+
+test("SendGrid carries the stable notification delivery key on provider retries", () => {
+  const deliveryKey = "notification:10000000-0000-4000-8000-000000000001";
+  const payload = buildSendGridMailPayload(
+    {
+      apiKey: "SG.secret",
+      apiRegion: "eu",
+      fromEmail: "noreply@fieldgrid.nl",
+    },
+    {
+      to: ["ontvanger@example.nl"],
+      subject: "Herhaalbaar",
+      html: "<p>Herhaalbaar</p>",
+      deliveryKey,
+    },
+  );
+
+  assert.deepEqual(payload["headers"], {
+    "X-Fieldgrid-Delivery-Key": deliveryKey,
+  });
+  assert.deepEqual(payload["personalizations"], [
+    {
+      to: [{ email: "ontvanger@example.nl" }],
+      custom_args: { fieldgrid_delivery_key: deliveryKey },
+    },
+  ]);
+});

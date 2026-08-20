@@ -39,6 +39,8 @@ export type TransactionalEmailInput = {
   triggeredBy?: string | null;
   triggeredByType?: "platform_admin" | "tenant_user" | "customer_user" | "personnel_user" | "system";
   metadata?: Record<string, unknown>;
+  /** Stable provider key for safe retries. Never include recipient data or secrets. */
+  idempotencyKey?: string;
 };
 
 export type TransactionalEmailResult = {
@@ -444,7 +446,7 @@ async function sendWithResend(provider: ResolvedProvider, input: TransactionalEm
     text: input.text,
     replyTo: provider.replyToEmail ?? undefined,
     attachments: input.attachments,
-  });
+  }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined);
 
   if (error) throw new Error(String((error as { message?: string }).message ?? error));
   return data?.id ?? null;
@@ -465,6 +467,7 @@ async function sendWithSendGrid(provider: ResolvedProvider, input: Transactional
       html: input.html,
       text: input.text,
       attachments: input.attachments,
+      deliveryKey: input.idempotencyKey,
     },
   );
 }
@@ -487,6 +490,7 @@ async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmai
     html: input.html,
     text: input.text,
     attachments: input.attachments,
+    deliveryKey: input.idempotencyKey,
   });
 }
 
@@ -531,7 +535,9 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
   const testOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
   const testTransportAllowed = process.env.NODE_ENV === "test" || process.env["FIELDGRID_E2E_AUTH_ENABLED"] === "true";
   if (testOutboxPath && testTransportAllowed) {
-    const providerMessageId = `test-${crypto.randomUUID()}`;
+    const providerMessageId = input.idempotencyKey
+      ? `test-${crypto.createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 32)}`
+      : `test-${crypto.randomUUID()}`;
     const captured = {
       id: providerMessageId,
       capturedAt: new Date().toISOString(),

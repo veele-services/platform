@@ -38,6 +38,8 @@ type QueueRow = {
   attempts: number;
   max_attempts: number;
   rate_limit_key: string | null;
+  delivery_key: string;
+  attempt_id: string;
 };
 
 type PushSubscription = typeof pushSubscriptionsTable.$inferSelect;
@@ -60,16 +62,27 @@ type WorkerConfig = {
   sendDelayMs: number;
 };
 
-type QueueOutcomeStatus = "sent" | "failed" | "retry";
+type QueueOutcomeStatus = "sent" | "failed" | "retry" | "skipped" | "partial";
 
-type QueueOutcome = {
+export type QueueOutcome = {
   status: QueueOutcomeStatus;
   error: string | null;
   retryAt: Date | null;
   response: Record<string, unknown>;
   deactivatedSubscriptions: number;
   deactivatedNativeTokens: number;
+  providerMessageId: string | null;
 };
+
+export type NotificationDeliveryOverride = (
+  item: Readonly<{
+    id: string;
+    tenantId: string;
+    channel: NotificationWorkerChannel;
+    attemptNo: number;
+    deliveryKey: string;
+  }>,
+) => Promise<QueueOutcome>;
 
 export type NotificationWorkerResult = {
   ok: true;
@@ -79,6 +92,9 @@ export type NotificationWorkerResult = {
   sent: number;
   failed: number;
   retried: number;
+  skipped: number;
+  partial: number;
+  outcomePending: number;
   rateLimited: boolean;
   deactivatedSubscriptions: number;
   deactivatedNativeTokens: number;
@@ -87,6 +103,8 @@ export type NotificationWorkerResult = {
     sent: number;
     failed: number;
     retried: number;
+    skipped: number;
+    partial: number;
     rateLimited: boolean;
   }>;
 };
@@ -95,6 +113,10 @@ export type NotificationWorkerOptions = Partial<WorkerConfig> & {
   channels?: NotificationWorkerChannel[];
   logger?: WorkerLogger;
   workerId?: string;
+  deliveryOverride?: NotificationDeliveryOverride;
+  afterClaim?: (items: ReadonlyArray<{ id: string; tenantId: string }>) => Promise<void>;
+  webPushSender?: typeof sendWebPush;
+  fcmPushSender?: typeof sendFcmPush;
 };
 
 const DEFAULT_CONFIG: WorkerConfig = {
@@ -180,6 +202,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function safeProviderError(error: string): string {
+  return error
+    .replace(/https?:\/\/\S+/giu, "[provider-url]")
+    .replace(/bearer\s+\S+/giu, "Bearer [redacted]")
+    .slice(0, 500);
+}
+
 function calculateRetryAt(item: QueueRow, config: WorkerConfig): Date | null {
   if (item.attempts >= item.max_attempts) return null;
 
@@ -206,6 +235,19 @@ function failureOutcome(
     response,
     deactivatedSubscriptions: 0,
     deactivatedNativeTokens: 0,
+    providerMessageId: null,
+  };
+}
+
+function skippedOutcome(reason: string): QueueOutcome {
+  return {
+    status: "skipped",
+    error: reason,
+    retryAt: null,
+    response: { reason },
+    deactivatedSubscriptions: 0,
+    deactivatedNativeTokens: 0,
+    providerMessageId: null,
   };
 }
 
@@ -216,9 +258,14 @@ async function claimQueueItems(
   config: WorkerConfig,
 ): Promise<QueueRow[]> {
   if (limit <= 0) return [];
-
-  const result = await pool.query<QueueRow>(
-    `
+  type ClaimedQueueRow = Omit<QueueRow, "attempt_id"> & {
+    current_attempt_id: string | null;
+  };
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query<ClaimedQueueRow>(
+      `
       WITH candidates AS (
         SELECT id
         FROM notification_delivery_queue
@@ -230,6 +277,7 @@ async function claimQueueItems(
             OR
             (
               status = 'processing'
+              AND delivery_started_at IS NULL
               AND locked_at < now() - ($3::integer * interval '1 second')
             )
           )
@@ -247,6 +295,8 @@ async function claimQueueItems(
           locked_by = $5,
           last_attempt_at = now(),
           attempts = q.attempts + 1,
+          delivery_started_at = NULL,
+          terminal_attempt_id = NULL,
           max_attempts = COALESCE(NULLIF(q.max_attempts, 0), $4),
           updated_at = now()
       FROM candidates c
@@ -268,19 +318,135 @@ async function claimQueueItems(
         q.payload,
         q.attempts,
         q.max_attempts,
-        q.rate_limit_key
+        q.rate_limit_key,
+        q.delivery_key,
+        q.current_attempt_id
     `,
-    [channel, limit, config.lockSeconds, config.maxAttempts, workerId],
-  );
+      [channel, limit, config.lockSeconds, config.maxAttempts, workerId],
+    );
 
-  return result.rows;
+    const claimed = result.rows;
+    if (claimed.length === 0) {
+      await client.query("COMMIT");
+      return [];
+    }
+
+    const staleAttemptIds = claimed
+      .map((item) => item.current_attempt_id)
+      .filter((id): id is string => Boolean(id));
+    if (staleAttemptIds.length > 0) {
+      await client.query(
+        `UPDATE notification_delivery_attempts attempt
+        SET status = 'abandoned',
+            error = 'stale_claim_recovered_before_delivery',
+            response = jsonb_build_object('reason', 'stale_claim_recovered_before_delivery'),
+            finished_at = now()
+         WHERE attempt.id = ANY($1::uuid[]) AND attempt.status = 'processing'`,
+        [staleAttemptIds],
+      );
+    }
+
+    const attemptInput = claimed.map((item) => ({
+      queueId: item.id,
+      tenantId: item.tenant_id,
+      channel: item.channel,
+      attemptNo: item.attempts,
+      deliveryKey: item.delivery_key,
+    }));
+    const inserted = await client.query<{ id: string; queue_id: string }>(
+      `
+        INSERT INTO notification_delivery_attempts (
+          queue_id, tenant_id, channel, attempt_no, worker_id, status,
+          response, delivery_key, started_at, finished_at
+        )
+        SELECT input.queue_id, input.tenant_id, input.channel, input.attempt_no,
+               $2, 'processing', '{}'::jsonb, input.delivery_key, now(), now()
+        FROM jsonb_to_recordset($1::jsonb) AS input(
+          queue_id uuid, tenant_id uuid, channel varchar, attempt_no integer, delivery_key text
+        )
+        RETURNING id, queue_id`,
+      [JSON.stringify(attemptInput.map((item) => ({
+        queue_id: item.queueId,
+        tenant_id: item.tenantId,
+        channel: item.channel,
+        attempt_no: item.attemptNo,
+        delivery_key: item.deliveryKey,
+      }))), workerId],
+    );
+    const attemptByQueue = new Map(inserted.rows.map((row) => [row.queue_id, row.id]));
+    await client.query(
+      `UPDATE notification_delivery_queue queue
+       SET current_attempt_id = input.attempt_id
+       FROM jsonb_to_recordset($1::jsonb) AS input(queue_id uuid, attempt_id uuid)
+       WHERE queue.id = input.queue_id`,
+      [JSON.stringify(inserted.rows.map((row) => ({ queue_id: row.queue_id, attempt_id: row.id })))],
+    );
+    await client.query("COMMIT");
+    return claimed.map((item) => ({
+      ...item,
+      attempt_id: attemptByQueue.get(item.id)!,
+    }));
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function reconcileUncertainDeliveries(config: WorkerConfig): Promise<number> {
+  const result = await pool.query(
+    `
+      WITH stale AS (
+        SELECT queue.id, queue.current_attempt_id
+        FROM notification_delivery_queue queue
+        WHERE queue.status = 'processing'
+          AND queue.delivery_started_at IS NOT NULL
+          AND queue.locked_at < now() - ($1::integer * interval '1 second')
+        FOR UPDATE SKIP LOCKED
+      ), attempt_evidence AS (
+        UPDATE notification_delivery_attempts attempt
+        SET status = 'outcome_pending',
+            error = 'provider_outcome_unknown',
+            response = jsonb_build_object('reason', 'provider_outcome_unknown'),
+            finished_at = now()
+        FROM stale
+        WHERE attempt.id = stale.current_attempt_id
+        RETURNING attempt.id
+      )
+      UPDATE notification_delivery_queue queue
+      SET status = 'outcome_pending',
+          locked_at = NULL,
+          locked_by = NULL,
+          processing_started_at = NULL,
+          last_error = 'provider_outcome_unknown',
+          error_details = jsonb_build_object('reason', 'provider_outcome_unknown'),
+          updated_at = now()
+      FROM stale
+      WHERE queue.id = stale.id
+      RETURNING queue.id
+    `,
+    [config.lockSeconds],
+  );
+  return result.rowCount ?? 0;
+}
+
+async function markDeliveryStarted(item: QueueRow, workerId: string): Promise<void> {
+  const result = await pool.query(
+    `UPDATE notification_delivery_queue
+     SET delivery_started_at = now(), updated_at = now()
+     WHERE id = $1 AND locked_by = $2 AND current_attempt_id = $3 AND status = 'processing'`,
+    [item.id, workerId, item.attempt_id],
+  );
+  if (result.rowCount !== 1) {
+    throw new Error("notification_delivery_lock_lost_before_provider");
+  }
 }
 
 async function completeQueueItem(
   item: QueueRow,
   workerId: string,
   outcome: QueueOutcome,
-  log: WorkerLogger,
 ): Promise<void> {
   const errorDetails =
     outcome.error === null
@@ -291,25 +457,57 @@ async function completeQueueItem(
           channel: item.channel,
         };
 
-  const result = await pool.query(
-    `
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const attempt = await client.query(
+      `UPDATE notification_delivery_attempts
+       SET status = $4::varchar,
+           error = $5,
+           response = $6::jsonb,
+           provider_message_id = $7,
+           finished_at = now()
+       WHERE id = $1 AND queue_id = $2 AND worker_id = $3 AND status = 'processing'`,
+      [
+        item.attempt_id,
+        item.id,
+        workerId,
+        outcome.status,
+        outcome.error,
+        JSON.stringify(outcome.response),
+        outcome.providerMessageId,
+      ],
+    );
+    if (attempt.rowCount !== 1) {
+      throw new Error("notification_attempt_evidence_not_owned");
+    }
+
+    const result = await client.query(
+      `
       UPDATE notification_delivery_queue
-      SET status = $3::varchar,
+      SET status = $4::varchar,
           locked_at = NULL,
           locked_by = NULL,
           processing_started_at = NULL,
-          last_error = $4,
-          error_details = $5::jsonb,
-          response = $6::jsonb,
-          next_attempt_at = COALESCE($7::timestamptz, next_attempt_at),
-          sent_at = CASE WHEN $3::text = 'sent' THEN now() ELSE sent_at END,
+          delivery_started_at = NULL,
+          last_error = $5,
+          error_details = $6::jsonb,
+          response = $7::jsonb,
+          next_attempt_at = COALESCE($8::timestamptz, next_attempt_at),
+          sent_at = CASE WHEN $4::text IN ('sent', 'partial') THEN now() ELSE sent_at END,
+          terminal_attempt_id = CASE
+            WHEN $4::text IN ('sent', 'failed', 'skipped', 'partial') THEN $3::uuid
+            ELSE NULL
+          END,
           updated_at = now()
       WHERE id = $1
         AND locked_by = $2
+        AND current_attempt_id = $3
     `,
     [
       item.id,
       workerId,
+      item.attempt_id,
       outcome.status,
       outcome.error,
       JSON.stringify(errorDetails),
@@ -318,54 +516,86 @@ async function completeQueueItem(
     ],
   );
 
-  if (result.rowCount === 0) {
-    log.warn(
-      { queueId: item.id, workerId, status: outcome.status },
-      "notification-worker: queue item lock was not owned by this worker",
-    );
+    if (result.rowCount !== 1) {
+      throw new Error("notification_queue_finalization_not_owned");
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-async function recordAttempt(
-  item: QueueRow,
-  workerId: string,
-  outcome: QueueOutcome,
-  log: WorkerLogger,
-): Promise<void> {
-  try {
-    await pool.query(
-      `
-        INSERT INTO notification_delivery_attempts (
-          queue_id,
-          tenant_id,
-          channel,
-          attempt_no,
-          worker_id,
-          status,
-          error,
-          response,
-          started_at,
-          finished_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, now(), now())
-      `,
-      [
-        item.id,
-        item.tenant_id,
-        item.channel,
-        item.attempts,
-        workerId,
-        outcome.status,
-        outcome.error,
-        JSON.stringify(outcome.response),
-      ],
-    );
-  } catch (error) {
-    log.error(
-      { err: error, queueId: item.id },
-      "notification-worker: poginglog kon niet worden geschreven",
-    );
-  }
+type LifecycleDecision = { allowed: true } | { allowed: false; reason: string };
+
+async function checkDeliveryLifecycle(item: QueueRow): Promise<LifecycleDecision> {
+  const managementRecipientUserId =
+    item.recipient_type === "management" &&
+    typeof item.payload?.["recipientUserId"] === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      item.payload["recipientUserId"],
+    )
+      ? item.payload["recipientUserId"]
+      : null;
+  const result = await pool.query<{ denial_reason: string | null }>(
+    `SELECT CASE
+       WHEN tenant.id IS NULL THEN 'tenant_missing'
+       WHEN tenant.is_active IS NOT TRUE OR tenant.status NOT IN ('trial', 'active') THEN 'tenant_inactive'
+       WHEN NOT EXISTS (
+         SELECT 1 FROM tenant_modules entitlement
+         JOIN modules module ON module.id = entitlement.module_id
+         WHERE entitlement.tenant_id = $1
+           AND entitlement.is_enabled = true
+           AND module.key = 'notifications'
+       ) THEN 'module_disabled'
+       WHEN $2::text IS NOT NULL AND NOT EXISTS (
+         SELECT 1 FROM notification_event_settings setting
+         WHERE setting.event_key = $2
+           AND CASE WHEN $3::text = 'email' THEN setting.email_enabled ELSE setting.push_enabled END
+       ) THEN 'notification_disabled'
+       WHEN $4::text = 'personnel' AND NOT EXISTS (
+         SELECT 1 FROM personnel person
+         WHERE person.id = $5 AND person.tenant_id = $1 AND person.is_active = true
+       ) THEN 'recipient_inactive'
+       WHEN $4::text = 'personnel' AND NOT EXISTS (
+         SELECT 1 FROM personnel person
+         WHERE person.id = $5 AND person.tenant_id = $1 AND person.is_active = true
+           AND CASE
+             WHEN $3::text = 'email' THEN person.notification_email_enabled
+             ELSE person.notification_push_enabled
+           END
+       ) THEN 'notification_disabled'
+       WHEN $4::text = 'customer' AND NOT EXISTS (
+         SELECT 1 FROM customers customer
+         WHERE customer.id = $6 AND customer.tenant_id = $1
+           AND customer.is_active = true AND customer.status = 'active'
+       ) THEN 'recipient_inactive'
+       WHEN $4::text = 'management' AND $7::uuid IS NULL THEN 'recipient_invalid'
+       WHEN $4::text = 'management' AND NOT EXISTS (
+         SELECT 1 FROM tenant_users tenant_user
+         WHERE tenant_user.tenant_id = $1
+           AND tenant_user.user_id = $7
+           AND tenant_user.status = 'active'
+       ) THEN 'recipient_inactive'
+       WHEN $4::text NOT IN ('management', 'personnel', 'customer') THEN 'recipient_invalid'
+       ELSE NULL
+     END AS denial_reason
+     FROM (VALUES (1)) marker(value)
+     LEFT JOIN tenants tenant ON tenant.id = $1`,
+    [
+      item.tenant_id,
+      item.event_key,
+      item.channel,
+      item.recipient_type,
+      item.personnel_id,
+      item.customer_id,
+      managementRecipientUserId,
+    ],
+  );
+  const reason = result.rows[0]?.denial_reason ?? null;
+  return reason ? { allowed: false, reason } : { allowed: true };
 }
 
 function withBasePath(path: string, basePath: string): string {
@@ -417,7 +647,7 @@ function buildPayload(item: QueueRow): WebPushPayload {
     href,
     priority,
     urgency,
-    tag: item.dispatch_id ?? item.id,
+    tag: item.delivery_key,
     queueId: item.id,
   };
 }
@@ -512,6 +742,7 @@ async function deliverEmailItem(
     html: item.html,
     tenantId: item.tenant_id,
     purpose: "notification_worker",
+    idempotencyKey: item.delivery_key,
   });
 
   if (result.success) {
@@ -519,9 +750,10 @@ async function deliverEmailItem(
       status: "sent",
       error: null,
       retryAt: null,
-      response: { provider: "platform_email" },
+      response: { provider: result.providerType ?? "platform_email" },
       deactivatedSubscriptions: 0,
       deactivatedNativeTokens: 0,
+      providerMessageId: result.providerMessageId ?? null,
     };
   }
 
@@ -537,6 +769,7 @@ async function deliverEmailItem(
 async function deliverPushItem(
   item: QueueRow,
   config: WorkerConfig,
+  providers: Pick<NotificationWorkerOptions, "webPushSender" | "fcmPushSender">,
 ): Promise<QueueOutcome> {
   const [subscriptions, nativeTokens] = await Promise.all([
     getActiveSubscriptions(item),
@@ -560,10 +793,11 @@ async function deliverPushItem(
   let deactivatedSubscriptions = 0;
   let deactivatedNativeTokens = 0;
   const errors: string[] = [];
+  const targetOutcomes: Array<Record<string, unknown>> = [];
   const urgency = normalizeUrgency(payload.urgency ?? payload.priority);
 
   for (const subscription of subscriptions) {
-    const result = await sendWebPush(
+    const result = await (providers.webPushSender ?? sendWebPush)(
       {
         endpoint: subscription.endpoint,
         p256dh: subscription.p256dh,
@@ -576,8 +810,14 @@ async function deliverPushItem(
 
     if (result.success) {
       successCount += 1;
+      targetOutcomes.push({
+        targetType: "web_push",
+        targetId: subscription.id,
+        outcome: "sent",
+        httpStatus: result.status,
+      });
     } else {
-      errors.push(`subscription ${subscription.id}: ${result.error}`);
+      errors.push(`subscription ${subscription.id}: ${safeProviderError(result.error)}`);
 
       if (result.permanent) {
         permanentErrors += 1;
@@ -586,14 +826,27 @@ async function deliverPushItem(
           .update(pushSubscriptionsTable)
           .set({ isActive: false, updatedAt: new Date() })
           .where(eq(pushSubscriptionsTable.id, subscription.id));
+        targetOutcomes.push({
+          targetType: "web_push",
+          targetId: subscription.id,
+          outcome: "permanent_failure",
+          httpStatus: result.status,
+          deactivated: true,
+        });
       } else {
         transientErrors += 1;
+        targetOutcomes.push({
+          targetType: "web_push",
+          targetId: subscription.id,
+          outcome: "transient_failure",
+          httpStatus: result.status,
+        });
       }
     }
   }
 
   for (const device of nativeTokens) {
-    const result = await sendFcmPush(
+    const result = await (providers.fcmPushSender ?? sendFcmPush)(
       device.token,
       payload,
       urgency,
@@ -602,13 +855,26 @@ async function deliverPushItem(
 
     if (result.success) {
       successCount += 1;
+      targetOutcomes.push({
+        targetType: "fcm",
+        targetId: device.id,
+        outcome: "sent",
+        httpStatus: result.status,
+        providerMessageId: result.messageId,
+      });
       continue;
     }
 
-    errors.push(`native token ${device.id}: ${result.error}`);
+    errors.push(`native token ${device.id}: ${safeProviderError(result.error)}`);
 
     if (result.configurationMissing) {
       configurationErrors += 1;
+      targetOutcomes.push({
+        targetType: "fcm",
+        targetId: device.id,
+        outcome: "configuration_failure",
+        httpStatus: result.status,
+      });
       continue;
     }
 
@@ -618,9 +884,22 @@ async function deliverPushItem(
       await db
         .update(nativePushDeviceTokensTable)
         .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(nativePushDeviceTokensTable.id, device.id));
+          .where(eq(nativePushDeviceTokensTable.id, device.id));
+      targetOutcomes.push({
+        targetType: "fcm",
+        targetId: device.id,
+        outcome: "permanent_failure",
+        httpStatus: result.status,
+        deactivated: true,
+      });
     } else {
       transientErrors += 1;
+      targetOutcomes.push({
+        targetType: "fcm",
+        targetId: device.id,
+        outcome: "transient_failure",
+        httpStatus: result.status,
+      });
     }
   }
 
@@ -633,16 +912,18 @@ async function deliverPushItem(
     configurationErrors,
     deactivatedSubscriptions,
     deactivatedNativeTokens,
+    targetOutcomes,
   };
 
   if (successCount > 0) {
     return {
-      status: "sent",
+      status: errors.length > 0 ? "partial" : "sent",
       error: errors.length > 0 ? errors.slice(0, 3).join("; ") : null,
       retryAt: null,
       response,
       deactivatedSubscriptions,
       deactivatedNativeTokens,
+      providerMessageId: null,
     };
   }
 
@@ -662,13 +943,14 @@ async function deliverPushItem(
 async function deliverQueueItem(
   item: QueueRow,
   config: WorkerConfig,
+  options: NotificationWorkerOptions,
 ): Promise<QueueOutcome> {
   if (item.channel === "email") {
     return deliverEmailItem(item, config);
   }
 
   if (item.channel === "push") {
-    return deliverPushItem(item, config);
+    return deliverPushItem(item, config, options);
   }
 
   return failureOutcome(
@@ -696,12 +978,15 @@ export async function processNotificationQueue(
     sent: 0,
     failed: 0,
     retried: 0,
+    skipped: 0,
+    partial: 0,
+    outcomePending: 0,
     rateLimited: false,
     deactivatedSubscriptions: 0,
     deactivatedNativeTokens: 0,
     byChannel: {
-      email: { claimed: 0, sent: 0, failed: 0, retried: 0, rateLimited: false },
-      push: { claimed: 0, sent: 0, failed: 0, retried: 0, rateLimited: false },
+      email: { claimed: 0, sent: 0, failed: 0, retried: 0, skipped: 0, partial: 0, rateLimited: false },
+      push: { claimed: 0, sent: 0, failed: 0, retried: 0, skipped: 0, partial: 0, rateLimited: false },
     },
   };
 
@@ -710,6 +995,14 @@ export async function processNotificationQueue(
     { workerId, channels, limit: config.limit },
     "notification-worker: run gestart",
   );
+
+  result.outcomePending = await reconcileUncertainDeliveries(config);
+  if (result.outcomePending > 0) {
+    log.warn(
+      { workerId, count: result.outcomePending },
+      "notification-worker: onzekere provideruitkomsten wachten op reconciliatie",
+    );
+  }
 
   for (const channel of channels) {
     const channelRateLimit =
@@ -728,11 +1021,31 @@ export async function processNotificationQueue(
     channelResult.claimed += items.length;
     result.claimed += items.length;
 
+    if (items.length > 0 && options.afterClaim) {
+      await options.afterClaim(
+        items.map((item) => ({ id: item.id, tenantId: item.tenant_id })),
+      );
+    }
+
     for (const item of items) {
       let outcome: QueueOutcome;
 
       try {
-        outcome = await deliverQueueItem(item, config);
+        const lifecycle = await checkDeliveryLifecycle(item);
+        if (!lifecycle.allowed) {
+          outcome = skippedOutcome(lifecycle.reason);
+        } else {
+          await markDeliveryStarted(item, workerId);
+          outcome = options.deliveryOverride
+            ? await options.deliveryOverride({
+                id: item.id,
+                tenantId: item.tenant_id,
+                channel: item.channel,
+                attemptNo: item.attempts,
+                deliveryKey: item.delivery_key,
+              })
+            : await deliverQueueItem(item, config, options);
+        }
       } catch (error) {
         outcome = failureOutcome(
           item,
@@ -743,8 +1056,7 @@ export async function processNotificationQueue(
         );
       }
 
-      await completeQueueItem(item, workerId, outcome, log);
-      await recordAttempt(item, workerId, outcome, log);
+      await completeQueueItem(item, workerId, outcome);
 
       result.processed += 1;
       result.deactivatedSubscriptions += outcome.deactivatedSubscriptions;
@@ -756,6 +1068,12 @@ export async function processNotificationQueue(
       } else if (outcome.status === "retry") {
         result.retried += 1;
         channelResult.retried += 1;
+      } else if (outcome.status === "skipped") {
+        result.skipped += 1;
+        channelResult.skipped += 1;
+      } else if (outcome.status === "partial") {
+        result.partial += 1;
+        channelResult.partial += 1;
       } else {
         result.failed += 1;
         channelResult.failed += 1;
@@ -797,7 +1115,7 @@ export async function retryFailedNotifications(options: {
       WITH candidates AS (
         SELECT id
         FROM notification_delivery_queue
-        WHERE status = 'failed'
+        WHERE status IN ('failed', 'outcome_pending', 'partial')
           AND channel IN ('email', 'push')
           AND ($1::text IS NULL OR channel = $1)
           AND attempts < max_attempts
@@ -811,6 +1129,8 @@ export async function retryFailedNotifications(options: {
           locked_at = NULL,
           locked_by = NULL,
           processing_started_at = NULL,
+          delivery_started_at = NULL,
+          terminal_attempt_id = NULL,
           last_error = NULL,
           updated_at = now()
       FROM candidates c

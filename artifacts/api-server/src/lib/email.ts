@@ -20,6 +20,7 @@ export async function sendEmail(opts: {
   text?: string;
   tenantId?: string | null;
   purpose?: string | null;
+  idempotencyKey?: string;
 }): Promise<void> {
   const result = await sendTransactionalEmail({
     to: opts.to,
@@ -29,6 +30,7 @@ export async function sendEmail(opts: {
     tenantId: opts.tenantId ?? null,
     templateKey: opts.purpose ?? "api_server",
     triggeredByType: "system",
+    idempotencyKey: opts.idempotencyKey,
   });
   if (!result.success) {
     logger.error({ error: result.error, subject: opts.subject }, "E-mail verzenden mislukt");
@@ -42,7 +44,8 @@ export async function sendEmailWithResult(opts: {
   text?: string;
   tenantId?: string | null;
   purpose?: string | null;
-}): Promise<{ success: boolean; error?: string }> {
+  idempotencyKey?: string;
+}): Promise<{ success: boolean; error?: string; providerMessageId?: string | null; providerType?: string }> {
   const result = await sendTransactionalEmail({
     to: opts.to,
     subject: opts.subject,
@@ -51,13 +54,18 @@ export async function sendEmailWithResult(opts: {
     tenantId: opts.tenantId ?? null,
     templateKey: opts.purpose ?? "api_server",
     triggeredByType: "system",
+    idempotencyKey: opts.idempotencyKey,
   });
   if (!result.success) {
     const msg = result.error ?? "E-mailprovider niet geconfigureerd";
     logger.warn({ subject: opts.subject }, msg);
     return { success: false, error: msg };
   }
-  return { success: true };
+  return {
+    success: true,
+    providerMessageId: result.providerMessageId ?? null,
+    providerType: result.providerType,
+  };
 }
 
 function renderPreview(templateKey: EmailTemplateKey, variables: EmailTemplateVariables): RenderedEmail {

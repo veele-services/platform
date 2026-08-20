@@ -194,6 +194,7 @@ async function createAccessToken(config: FcmConfig): Promise<string> {
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   const body = (await response.json().catch(() => ({}))) as {
@@ -314,10 +315,13 @@ export async function sendFcmPush(
             data: buildData(payload),
             android: {
               priority,
+              collapseKey:
+                typeof payload.tag === "string" ? payload.tag.slice(0, 64) : undefined,
               notification: androidNotification,
             },
           },
         }),
+        signal: AbortSignal.timeout(15_000),
       },
     );
 
