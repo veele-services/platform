@@ -19,6 +19,7 @@ export type SendGridMailInput = {
   html: string;
   text?: string;
   attachments?: SendGridMailAttachment[];
+  deliveryKey?: string;
 };
 
 const SENDGRID_ENDPOINTS: Record<SendGridApiRegion, string> = {
@@ -42,6 +43,9 @@ export function buildSendGridMailPayload(
     personalizations: [
       {
         to: input.to.map((email) => ({ email })),
+        ...(input.deliveryKey
+          ? { custom_args: { fieldgrid_delivery_key: input.deliveryKey } }
+          : {}),
       },
     ],
     from: {
@@ -50,6 +54,9 @@ export function buildSendGridMailPayload(
     },
     ...(config.replyTo ? { reply_to: { email: config.replyTo } } : {}),
     subject: input.subject,
+    ...(input.deliveryKey
+      ? { headers: { "X-Fieldgrid-Delivery-Key": input.deliveryKey } }
+      : {}),
     content: [
       ...(input.text ? [{ type: "text/plain", value: input.text }] : []),
       { type: "text/html", value: input.html },

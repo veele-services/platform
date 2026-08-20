@@ -61,6 +61,7 @@ export const organizationSettingsTable = pgTable("organization_settings", {
     .default("starttls"),
   smtpUsername: varchar("smtp_username", { length: 255 }),
   smtpPassword: text("smtp_password"),
+  smtpPasswordEncrypted: text("smtp_password_encrypted"),
   smtpFromName: varchar("smtp_from_name", { length: 200 }),
   smtpFromEmail: varchar("smtp_from_email", { length: 255 }),
   smtpReplyTo: varchar("smtp_reply_to", { length: 255 }),
@@ -125,7 +126,14 @@ export const organizationSettingsTable = pgTable("organization_settings", {
 export const updateOrganizationSettingsSchema = createInsertSchema(
   organizationSettingsTable,
 )
-  .omit({ id: true, tenantId: true, updatedAt: true, updatedBy: true })
+  .omit({
+    id: true,
+    tenantId: true,
+    smtpPassword: true,
+    smtpPasswordEncrypted: true,
+    updatedAt: true,
+    updatedBy: true,
+  })
   .extend({
     naam: z.string().max(200).optional().default(""),
     kvkNummer: z.string().max(20).nullable().optional(),
@@ -155,7 +163,6 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
     smtpPort: z.number().int().min(1).max(65535).nullable().optional(),
     smtpEncryption: z.enum(["none", "starttls", "tls"]).optional(),
     smtpUsername: z.string().max(255).nullable().optional(),
-    smtpPassword: z.string().nullable().optional(),
     smtpFromName: z.string().max(200).nullable().optional(),
     smtpFromEmail: z.string().max(255).nullable().optional(),
     smtpReplyTo: z.string().max(255).nullable().optional(),

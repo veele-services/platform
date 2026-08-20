@@ -873,9 +873,9 @@ async function runApiChecks() {
   const unknownReference = await webhookRequest("tr_runtime_unknown_payment");
   assertStatus(
     checks,
-    "server-action-api-webhook-unknown-provider-id-retryable",
+    "server-action-api-webhook-unknown-provider-id-permanent",
     unknownReference.status,
-    502,
+    200,
   );
 
   providerOverrides.set(DIRECT_WEBHOOK_FIXTURE.mollieId, { httpStatus: 503 });
@@ -907,9 +907,9 @@ async function runApiChecks() {
   const wrongProviderId = await webhookRequest(DIRECT_WEBHOOK_FIXTURE.mollieId);
   assertStatus(
     checks,
-    "server-action-api-webhook-wrong-provider-id-retryable",
+    "server-action-api-webhook-wrong-provider-id-permanent",
     wrongProviderId.status,
-    502,
+    200,
   );
   providerOverrides.delete(DIRECT_WEBHOOK_FIXTURE.mollieId);
 

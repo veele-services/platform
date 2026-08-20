@@ -3,6 +3,7 @@
 import { db } from "@workspace/db";
 import {
   availabilityDayEntriesTable,
+  deleteDateAvailabilityException,
   organizationSettingsTable,
   saveDateAvailabilityExceptions,
   saveWeeklyAvailability,
@@ -121,7 +122,9 @@ async function getAvailabilityAdvanceDays(tenantId?: string): Promise<number> {
         organizationSettingsTable.availabilityAdvanceDays,
     })
     .from(organizationSettingsTable)
-    .where(tenantId ? eq(organizationSettingsTable.tenantId, tenantId) : undefined)
+    .where(
+      tenantId ? eq(organizationSettingsTable.tenantId, tenantId) : undefined,
+    )
     .limit(1);
 
   return settings?.availabilityAdvanceDays ?? 60;
@@ -265,7 +268,14 @@ export async function saveAvailabilityDay(input: {
   repeatType: AvailabilityRepeat;
   isEmergencyAvailable: boolean;
   expectedUpdatedAt?: string | null;
-}): Promise<{ success: boolean; error?: string; code?: "conflict"; savedDates?: number }> {
+}): Promise<{
+  success: boolean;
+  error?: string;
+  code?: "conflict";
+  savedDates?: number;
+  updatedAt?: string;
+  updatedAtByDate?: Record<string, string>;
+}> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -315,35 +325,57 @@ export async function saveAvailabilityDay(input: {
       expectedUpdatedAt: input.expectedUpdatedAt ?? null,
     },
   });
-  if (!result.ok) return { success: false, code: result.code === "conflict" ? "conflict" : undefined, error: result.message };
+  if (!result.ok)
+    return {
+      success: false,
+      code: result.code === "conflict" ? "conflict" : undefined,
+      error: result.message,
+    };
 
   revalidatePath("/beschikbaarheid");
-  return { success: true, savedDates: result.savedDates.length };
+  return {
+    success: true,
+    savedDates: result.savedDates.length,
+    updatedAt: result.version,
+    updatedAtByDate: result.versions,
+  };
 }
 
-export async function deleteAvailabilityDay(
-  date: string,
-): Promise<{ success: boolean; error?: string }> {
+export async function deleteAvailabilityDay(input: {
+  date: string;
+  expectedUpdatedAt: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  code?: "conflict";
+  replayed?: boolean;
+}> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
-  if (!DATE_RE.test(date)) return { success: false, error: "Ongeldige datum" };
+  if (!DATE_RE.test(input.date))
+    return { success: false, error: "Ongeldige datum" };
 
   const personnel = await getPersonnelId(supabase, user.id);
   if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  await db
-    .delete(availabilityDayEntriesTable)
-    .where(
-      and(
-        eq(availabilityDayEntriesTable.personnelId, personnel.id),
-        eq(availabilityDayEntriesTable.date, date),
-      ),
-    );
+  const result = await deleteDateAvailabilityException({
+    tenantId: personnel.tenantId,
+    userId: user.id,
+    date: input.date,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+  });
+  if (!result.ok) {
+    return {
+      success: false,
+      code: result.code === "conflict" ? "conflict" : undefined,
+      error: result.message,
+    };
+  }
 
   revalidatePath("/beschikbaarheid");
-  return { success: true };
+  return { success: true, replayed: result.replayed };
 }

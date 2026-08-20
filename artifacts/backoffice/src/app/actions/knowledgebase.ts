@@ -34,6 +34,7 @@ import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
+import { sanitizeKnowledgebaseHtml } from "@workspace/shared-ui/knowledgebase-html";
 
 export type ActionResult<T = undefined> =
   | { success: true; data: T }
@@ -234,55 +235,6 @@ function slugify(value: string, fallback = "artikel"): string {
   return slug || `${fallback}-${Date.now()}`;
 }
 
-function escapeHtmlAttribute(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function sanitizeContentUrl(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const compact = trimmed.replace(/[\u0000-\u001F\s]+/g, "").toLowerCase();
-  if (compact.startsWith("javascript:") || compact.startsWith("data:") || compact.startsWith("vbscript:")) {
-    return null;
-  }
-
-  if (trimmed.startsWith("/") || trimmed.startsWith("#")) {
-    return trimmed;
-  }
-
-  try {
-    const url = new URL(trimmed);
-    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
-      return url.toString();
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function sanitizeHtmlFragment(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
-    .replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[\s\S]*?>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/\sstyle\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/\s(href|src)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, (_match, attribute: string, rawValue: string) => {
-      const value = rawValue.replace(/^["']|["']$/g, "");
-      const sanitized = sanitizeContentUrl(value);
-      return sanitized ? ` ${attribute.toLowerCase()}="${escapeHtmlAttribute(sanitized)}"` : "";
-    })
-    .trim();
-}
-
 function stripHtml(html: string): string {
   return html
     .replace(/<\/(p|h1|h2|h3|h4|li|blockquote|tr|td|th|figcaption|div)>/gi, "\n")
@@ -322,7 +274,7 @@ function parseCsv(value: FormDataEntryValue | null): string[] {
 
 function normalizeInput(input: SaveKnowledgebaseArticleInput) {
   const title = input.title.trim();
-  const contentHtml = sanitizeHtmlFragment(input.contentHtml);
+  const contentHtml = sanitizeKnowledgebaseHtml(input.contentHtml);
   if (!title) throw new Error("Titel is verplicht.");
   if (!contentHtml) throw new Error("Artikelinhoud is verplicht.");
 

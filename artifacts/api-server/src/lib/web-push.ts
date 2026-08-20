@@ -1,4 +1,4 @@
-import { createCipheriv, createECDH, createHmac, randomBytes } from "node:crypto";
+import { createCipheriv, createECDH, createHash, createHmac, randomBytes } from "node:crypto";
 import { importJWK, SignJWT, type JWK } from "jose";
 
 export type BrowserPushSubscription = {
@@ -182,6 +182,9 @@ export async function sendWebPush(
   try {
     const body = encryptPayload(subscription, payload);
     const authorization = await createVapidAuthorization(subscription.endpoint);
+    const topic = typeof payload.tag === "string"
+      ? createHash("sha256").update(payload.tag).digest("base64url").slice(0, 32)
+      : null;
     const response = await fetch(subscription.endpoint, {
       method: "POST",
       headers: {
@@ -190,8 +193,10 @@ export async function sendWebPush(
         "Content-Type": "application/octet-stream",
         TTL: String(ttlSeconds),
         Urgency: urgency,
+        ...(topic ? { Topic: topic } : {}),
       },
       body,
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (response.ok) {

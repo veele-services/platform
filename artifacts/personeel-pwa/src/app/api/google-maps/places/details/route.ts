@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     if (!tenantId) return NextResponse.json({ error: "Geen tenantcontext" }, { status: 401 });
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Ongeldige aanvraag" }, { status: 400 });
-    const rateLimit = checkPersonnelGoogleMapsRateLimit({
+    const rateLimit = await checkPersonnelGoogleMapsRateLimit({
+      tenantId,
       userId: personnel.id,
       action: "place_details",
     });
@@ -66,7 +67,10 @@ export async function POST(request: Request) {
         estimatedSku: "places_details_new_essentials",
         metadata: { action: "place_details" },
       });
-      return NextResponse.json({ error: "Te veel adresverzoeken" }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimit.reason === "service_unavailable" ? "Adresservice tijdelijk niet beschikbaar" : "Te veel adresverzoeken" },
+        { status: rateLimit.reason === "service_unavailable" ? 503 : 429 },
+      );
     }
     const apiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY;
     if (!apiKey) return NextResponse.json({ error: "Adresdetails konden niet worden opgehaald" }, { status: 503 });
