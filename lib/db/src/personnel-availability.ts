@@ -82,6 +82,10 @@ function sameInstant(a?: string | null, b?: Date | string | null): boolean {
   return new Date(a).getTime() === new Date(b).getTime();
 }
 
+function isValidInstant(value: string): boolean {
+  return Number.isFinite(new Date(value).getTime());
+}
+
 export async function resolveActivePersonnelForUser(input: { tenantId: string; userId: string }) {
   const [person] = await db.select({ id: personnelTable.id, tenantId: personnelTable.tenantId, isActive: personnelTable.isActive })
     .from(personnelTable)
@@ -115,7 +119,7 @@ export async function saveWeeklyAvailability(input: { tenantId: string; userId: 
   });
 }
 
-export async function saveDateAvailabilityExceptions(input: { tenantId: string; userId: string; exception: DateExceptionInput; maxDate: string }): Promise<AvailabilityServiceResult<{ savedDates: string[] }>> {
+export async function saveDateAvailabilityExceptions(input: { tenantId: string; userId: string; exception: DateExceptionInput; maxDate: string }): Promise<AvailabilityServiceResult<{ savedDates: string[]; version: string }>> {
   if (!input.tenantId) return { ok: false, code: "invalid", message: "Tenantcontext ontbreekt" };
   if (!parseDateKey(input.exception.date) || !parseDateKey(input.maxDate)) return { ok: false, code: "invalid", message: "Ongeldige datum" };
   if (!["none", "daily", "weekly", "monthly"].includes(input.exception.repeatType)) return { ok: false, code: "invalid", message: "Ongeldige herhaling" };
@@ -135,6 +139,95 @@ export async function saveDateAvailabilityExceptions(input: { tenantId: string; 
     const repeatGroupId = input.exception.repeatType === "none" ? null : randomUUID();
     for (const date of dates) await tx.insert(availabilityDayEntriesTable).values({ personnelId: person.id, date, startTime: input.exception.startTime, endTime: input.exception.endTime, isEmergencyAvailable: input.exception.isEmergencyAvailable, repeatType: input.exception.repeatType, repeatGroupId, updatedAt: now }).onConflictDoUpdate({ target: [availabilityDayEntriesTable.personnelId, availabilityDayEntriesTable.date], set: { startTime: sql`excluded.start_time`, endTime: sql`excluded.end_time`, isEmergencyAvailable: sql`excluded.is_emergency_available`, repeatType: sql`excluded.repeat_type`, repeatGroupId: sql`excluded.repeat_group_id`, updatedAt: now } });
     await tx.insert(auditLogTable).values({ tenantId: input.tenantId, userId: input.userId, action: "availability.exception.save", resource: "availability_day_entries", resourceId: person.id, metadata: { dates } });
-    return { ok: true as const, savedDates: dates };
+    return { ok: true as const, savedDates: dates, version: now.toISOString() };
+  });
+}
+
+export async function deleteDateAvailabilityException(input: {
+  tenantId: string;
+  userId: string;
+  date: string;
+  expectedUpdatedAt: string;
+}): Promise<AvailabilityServiceResult<{ deleted: boolean; replayed: boolean }>> {
+  if (!input.tenantId) {
+    return { ok: false, code: "invalid", message: "Tenantcontext ontbreekt" };
+  }
+  if (!parseDateKey(input.date)) {
+    return { ok: false, code: "invalid", message: "Ongeldige datum" };
+  }
+  if (!input.expectedUpdatedAt || !isValidInstant(input.expectedUpdatedAt)) {
+    return {
+      ok: false,
+      code: "invalid",
+      message: "De versie van deze beschikbaarheid ontbreekt. Vernieuw en probeer opnieuw.",
+    };
+  }
+
+  return db.transaction(async (tx) => {
+    const [person] = await tx
+      .select({ id: personnelTable.id })
+      .from(personnelTable)
+      .where(
+        and(
+          eq(personnelTable.tenantId, input.tenantId),
+          eq(personnelTable.userId, input.userId),
+          eq(personnelTable.isActive, true),
+        ),
+      )
+      .for("update")
+      .limit(1);
+
+    if (!person) {
+      return {
+        ok: false as const,
+        code: "not_found" as const,
+        message: "Actief personeelsprofiel niet gevonden",
+      };
+    }
+
+    const [entry] = await tx
+      .select({
+        id: availabilityDayEntriesTable.id,
+        updatedAt: availabilityDayEntriesTable.updatedAt,
+      })
+      .from(availabilityDayEntriesTable)
+      .where(
+        and(
+          eq(availabilityDayEntriesTable.personnelId, person.id),
+          eq(availabilityDayEntriesTable.date, input.date),
+        ),
+      )
+      .for("update")
+      .limit(1);
+
+    if (!entry) {
+      return { ok: true as const, deleted: false, replayed: true };
+    }
+    if (!sameInstant(input.expectedUpdatedAt, entry.updatedAt)) {
+      return {
+        ok: false as const,
+        code: "conflict" as const,
+        message: "Beschikbaarheid is gewijzigd. Vernieuw en probeer opnieuw.",
+      };
+    }
+
+    await tx
+      .delete(availabilityDayEntriesTable)
+      .where(
+        and(
+          eq(availabilityDayEntriesTable.id, entry.id),
+          eq(availabilityDayEntriesTable.personnelId, person.id),
+        ),
+      );
+    await tx.insert(auditLogTable).values({
+      tenantId: input.tenantId,
+      userId: input.userId,
+      action: "availability.exception.delete",
+      resource: "availability_day_entries",
+      resourceId: entry.id,
+      metadata: { date: input.date, expectedUpdatedAt: input.expectedUpdatedAt },
+    });
+
+    return { ok: true as const, deleted: true, replayed: false };
   });
 }

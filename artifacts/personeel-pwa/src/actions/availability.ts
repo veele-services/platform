@@ -3,6 +3,7 @@
 import { db } from "@workspace/db";
 import {
   availabilityDayEntriesTable,
+  deleteDateAvailabilityException,
   organizationSettingsTable,
   saveDateAvailabilityExceptions,
   saveWeeklyAvailability,
@@ -265,7 +266,7 @@ export async function saveAvailabilityDay(input: {
   repeatType: AvailabilityRepeat;
   isEmergencyAvailable: boolean;
   expectedUpdatedAt?: string | null;
-}): Promise<{ success: boolean; error?: string; code?: "conflict"; savedDates?: number }> {
+}): Promise<{ success: boolean; error?: string; code?: "conflict"; savedDates?: number; updatedAt?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -318,32 +319,38 @@ export async function saveAvailabilityDay(input: {
   if (!result.ok) return { success: false, code: result.code === "conflict" ? "conflict" : undefined, error: result.message };
 
   revalidatePath("/beschikbaarheid");
-  return { success: true, savedDates: result.savedDates.length };
+  return { success: true, savedDates: result.savedDates.length, updatedAt: result.version };
 }
 
-export async function deleteAvailabilityDay(
-  date: string,
-): Promise<{ success: boolean; error?: string }> {
+export async function deleteAvailabilityDay(input: {
+  date: string;
+  expectedUpdatedAt: string;
+}): Promise<{ success: boolean; error?: string; code?: "conflict"; replayed?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
-  if (!DATE_RE.test(date)) return { success: false, error: "Ongeldige datum" };
+  if (!DATE_RE.test(input.date)) return { success: false, error: "Ongeldige datum" };
 
   const personnel = await getPersonnelId(supabase, user.id);
   if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  await db
-    .delete(availabilityDayEntriesTable)
-    .where(
-      and(
-        eq(availabilityDayEntriesTable.personnelId, personnel.id),
-        eq(availabilityDayEntriesTable.date, date),
-      ),
-    );
+  const result = await deleteDateAvailabilityException({
+    tenantId: personnel.tenantId,
+    userId: user.id,
+    date: input.date,
+    expectedUpdatedAt: input.expectedUpdatedAt,
+  });
+  if (!result.ok) {
+    return {
+      success: false,
+      code: result.code === "conflict" ? "conflict" : undefined,
+      error: result.message,
+    };
+  }
 
   revalidatePath("/beschikbaarheid");
-  return { success: true };
+  return { success: true, replayed: result.replayed };
 }

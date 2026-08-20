@@ -221,6 +221,10 @@ export function BeschikbaarheidForm({
   const editorIsDirty = Boolean(editorInitial) && JSON.stringify(editorInitial) !== JSON.stringify(editor);
 
   useEffect(() => {
+    setEntries(data.entries);
+  }, [data.entries]);
+
+  useEffect(() => {
     if (!editorOpen || !editorIsDirty) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -251,7 +255,7 @@ export function BeschikbaarheidForm({
     setEditorOpen(true);
   }
 
-  function applyLocalEntries(savedDates: string[], values: EditorState) {
+  function applyLocalEntries(savedDates: string[], values: EditorState, updatedAt: string) {
     setEntries((current) => {
       const next = new Map(current.map((entry) => [entry.date, entry]));
       for (const date of savedDates) {
@@ -264,7 +268,7 @@ export function BeschikbaarheidForm({
           isEmergencyAvailable: values.isEmergencyAvailable,
           repeatType: values.repeatType,
           repeatGroupId: existing?.repeatGroupId ?? null,
-          updatedAt: existing?.updatedAt ?? null,
+          updatedAt,
         });
       }
       return [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -311,7 +315,7 @@ export function BeschikbaarheidForm({
         values.repeatType,
         data.maxDate,
       );
-      applyLocalEntries(savedDates, values);
+      applyLocalEntries(savedDates, values, result.updatedAt!);
       setFeedback(
         savedDates.length > 1
           ? `${savedDates.length} dagen bijgewerkt`
@@ -326,9 +330,19 @@ export function BeschikbaarheidForm({
   function handleDelete() {
     setFeedback(null);
     setError(null);
+    if (!selectedEntry?.updatedAt) {
+      setConflict(true);
+      setError("De versie van deze beschikbaarheid ontbreekt. Vernieuw en probeer opnieuw.");
+      return;
+    }
+    const expectedUpdatedAt = selectedEntry.updatedAt;
     startTransition(async () => {
-      const result = await deleteAvailabilityDay(selectedDate);
+      const result = await deleteAvailabilityDay({
+        date: selectedDate,
+        expectedUpdatedAt,
+      });
       if (!result.success) {
+        if (result.code === "conflict") setConflict(true);
         setError(result.error ?? "Verwijderen mislukt");
         return;
       }
