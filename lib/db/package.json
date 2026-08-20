@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./email-service": "./src/email-service.ts",
+    "./email-provider-resolution": "./src/email-provider-resolution.ts",
     "./email-sendgrid": "./src/email-sendgrid.ts",
     "./email-templates": "./src/email-templates.ts",
     "./events": "./src/events.ts",

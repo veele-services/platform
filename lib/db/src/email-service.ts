@@ -3,13 +3,15 @@ import { appendFile } from "node:fs/promises";
 import { Resend } from "resend";
 import { desc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { emailDeliveryLogTable, organizationSettingsTable, platformEmailProvidersTable, type PlatformEmailProvider } from "./schema";
+import { emailDeliveryLogTable, organizationSettingsTable, platformEmailProvidersTable, tenantsTable, type PlatformEmailProvider } from "./schema";
 import { sendSmtpMail, type SmtpEncryption, type SmtpMailConfig } from "./email-smtp";
 import { consumeRenderedEmailMetadata, renderEmailTemplate, type EmailTemplateKey, type EmailTemplateVariables } from "./email-templates";
 import { normalizeSendGridApiRegion, sendSendGridMail, type SendGridApiRegion } from "./email-sendgrid";
+import { selectEmailProviderForMessage, type FieldgridEmailProviderScope } from "./email-provider-resolution";
+import { isTenantRuntimeActive } from "./tenant-context";
 
 export type PlatformEmailProviderType = "sendgrid_api" | "resend_api" | "smtp";
-export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "test_outbox" | "none";
+export type RuntimeEmailProviderType = PlatformEmailProviderType | "env_resend" | "test_outbox" | "none";
 export type PlatformEmailProviderStatus = "draft" | "configured" | "disabled" | "error";
 export type PlatformEmailTestStatus = "success" | "failed";
 export type TenantEmailTransport = "platform" | "smtp" | "api";
@@ -70,6 +72,7 @@ type EmailProviderConfig = ResendProviderConfig & SendGridProviderConfig & SmtpP
 
 type ResolvedProvider = {
   id: string | null;
+  scope: FieldgridEmailProviderScope;
   providerType: RuntimeEmailProviderType;
   fromEmail: string;
   fromName: string | null;
@@ -271,43 +274,6 @@ function normalizeRecipients(to: string | string[]): string[] {
     .filter(Boolean);
 }
 
-async function getLegacySmtpProvider(): Promise<ResolvedProvider | null> {
-  const smtpRows = await db
-    .select({
-      smtpEnabled: organizationSettingsTable.smtpEnabled,
-      smtpHost: organizationSettingsTable.smtpHost,
-      smtpPort: organizationSettingsTable.smtpPort,
-      smtpEncryption: organizationSettingsTable.smtpEncryption,
-      smtpUsername: organizationSettingsTable.smtpUsername,
-      smtpPassword: organizationSettingsTable.smtpPassword,
-      smtpFromName: organizationSettingsTable.smtpFromName,
-      smtpFromEmail: organizationSettingsTable.smtpFromEmail,
-      smtpReplyTo: organizationSettingsTable.smtpReplyTo,
-    })
-    .from(organizationSettingsTable)
-    .where(eq(organizationSettingsTable.smtpEnabled, true))
-    .orderBy(desc(organizationSettingsTable.updatedAt))
-    .limit(25);
-
-  const settings = smtpRows.find((row) => row.smtpHost && row.smtpPort && row.smtpFromEmail);
-  if (!settings) return null;
-
-  return {
-    id: null,
-    providerType: "legacy_smtp",
-    fromEmail: settings.smtpFromEmail!,
-    fromName: settings.smtpFromName ?? DEFAULT_FROM_NAME,
-    replyToEmail: settings.smtpReplyTo ?? null,
-    config: {
-      host: settings.smtpHost,
-      port: settings.smtpPort,
-      encryption: normalizeEncryption(settings.smtpEncryption),
-      username: settings.smtpUsername,
-      password: settings.smtpPassword,
-    },
-  };
-}
-
 async function getEnvResendProvider(): Promise<ResolvedProvider | null> {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) return null;
@@ -315,6 +281,7 @@ async function getEnvResendProvider(): Promise<ResolvedProvider | null> {
   const match = from.match(/^(.*?)\s*<([^>]+)>$/u);
   return {
     id: null,
+    scope: { kind: "fieldgrid_environment" },
     providerType: "env_resend",
     fromEmail: match?.[2]?.trim() ?? from.trim(),
     fromName: match?.[1]?.trim() || DEFAULT_FROM_NAME,
@@ -328,7 +295,10 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
 
   const [settings] = await db
     .select({
+      tenantId: organizationSettingsTable.tenantId,
       naam: organizationSettingsTable.naam,
+      tenantIsActive: tenantsTable.isActive,
+      tenantStatus: tenantsTable.status,
       emailTransport: organizationSettingsTable.emailTransport,
       emailApiProvider: organizationSettingsTable.emailApiProvider,
       emailApiKeyEncrypted: organizationSettingsTable.emailApiKeyEncrypted,
@@ -344,10 +314,20 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
       smtpReplyTo: organizationSettingsTable.smtpReplyTo,
     })
     .from(organizationSettingsTable)
+    .innerJoin(tenantsTable, eq(tenantsTable.id, organizationSettingsTable.tenantId))
     .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
-  if (!settings) return null;
+  if (
+    !settings ||
+    settings.tenantId !== tenantId ||
+    !isTenantRuntimeActive({
+      isActive: settings.tenantIsActive,
+      status: settings.tenantStatus,
+    })
+  ) {
+    return null;
+  }
 
   const transport = normalizeTenantTransport(settings.emailTransport, settings.smtpEnabled);
   const fromName = settings.smtpFromName ?? settings.naam ?? DEFAULT_FROM_NAME;
@@ -355,6 +335,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
   if (transport === "smtp") {
     return {
       id: null,
+      scope: { kind: "tenant", tenantId: settings.tenantId },
       providerType: "smtp",
       fromEmail: settings.smtpFromEmail ?? "",
       fromName,
@@ -373,6 +354,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
     const config = safeDecryptPlatformEmailConfig(settings.emailApiKeyEncrypted).config;
     return {
       id: null,
+      scope: { kind: "tenant", tenantId: settings.tenantId },
       providerType: "resend_api",
       fromEmail: settings.smtpFromEmail ?? "",
       fromName,
@@ -397,20 +379,30 @@ async function resolveActiveProvider(tenantId?: string | null): Promise<Resolved
 
   if (provider) {
     const config = safeDecryptPlatformEmailConfig(provider.encryptedConfigJson).config;
-    return {
+    const platformProvider: ResolvedProvider = {
       id: provider.id,
+      scope: { kind: "platform" },
       providerType: provider.providerType as PlatformEmailProviderType,
       fromEmail: provider.fromEmail,
       fromName: provider.fromName,
       replyToEmail: provider.replyToEmail,
       config,
     };
+    return selectEmailProviderForMessage({
+      messageTenantId: tenantId,
+      platformProvider,
+    });
   }
 
   const tenantProvider = await getTenantProvider(tenantId);
-  if (tenantProvider) return tenantProvider;
+  if (tenantProvider) {
+    return selectEmailProviderForMessage({ messageTenantId: tenantId, tenantProvider });
+  }
 
-  return (await getLegacySmtpProvider()) ?? (await getEnvResendProvider());
+  return selectEmailProviderForMessage({
+    messageTenantId: tenantId,
+    environmentProvider: await getEnvResendProvider(),
+  });
 }
 
 function assertProviderReady(provider: ResolvedProvider): void {
@@ -432,7 +424,7 @@ function assertProviderReady(provider: ResolvedProvider): void {
     return;
   }
 
-  if (provider.providerType === "smtp" || provider.providerType === "legacy_smtp") {
+  if (provider.providerType === "smtp") {
     if (!provider.config.host) throw new Error("SMTP-host ontbreekt.");
     if (!provider.config.port) throw new Error("SMTP-poort ontbreekt.");
     return;

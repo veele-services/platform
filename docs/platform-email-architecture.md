@@ -98,16 +98,20 @@ De volgende surfaces gebruiken de centrale service:
 - personeels-PWA wachtwoord-reset, verlof en rapportage-notificaties;
 - api-server payment reminders, verlopen offertes en notification worker.
 
-Legacy `organization_settings` SMTP blijft alleen als tijdelijke fallback in de centrale service bestaan voor nul-downtime. Nieuwe platforminstellingen schrijven naar `platform_email_providers`.
+Tenanttransporten worden uitsluitend opgehaald via de exacte `tenant_id` van het
+bericht. De service controleert daarbij opnieuw dat de tenant actief is en de
+runtime-status `trial` of `active` heeft. Er bestaat geen globale scan of
+fallback over SMTP-instellingen van andere tenants.
 
 ## Afzenderbeleid
 
 De actieve platformprovider heeft voorrang en geldt voor alle centrale
-mailflows. Standaardmail komt vanuit Fieldgrid. Oude tenanttransportinstellingen
-worden alleen nog als nul-downtimefallback gebruikt wanneer geen platformprovider
-actief is. Een tenant krijgt niet automatisch een eigen SendGrid-key of eigen
-afzenderdomein. Custom enterprise-afzenders zijn bewust een latere uitbreiding
-met afzonderlijke domeinverificatie, autorisatie en beheer.
+mailflows. Daarna komt uitsluitend een provider die aan de exacte tenant van het
+bericht is gebonden. Als laatste mag de expliciete Fieldgrid-omgevingsprovider
+worden gebruikt. Zonder een geldige kandidaat faalt verzending gesloten. Een
+tenant krijgt niet automatisch een eigen SendGrid-key of eigen afzenderdomein.
+Custom enterprise-afzenders zijn bewust een latere uitbreiding met afzonderlijke
+domeinverificatie, autorisatie en beheer.
 
 ## Nieuwe provider toevoegen
 

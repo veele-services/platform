@@ -14,6 +14,7 @@ export * from "./visible-notification-pagination";
 export * from "./tenant-branding";
 export * from "./planning-realtime";
 export * from "./email-templates";
+export * from "./email-provider-resolution";
 export * from "./tenant-provisioning";
 export * from "./custom-domains";
 export * from "./address-geocoding";

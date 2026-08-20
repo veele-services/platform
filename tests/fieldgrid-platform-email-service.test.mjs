@@ -39,9 +39,16 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(service, /provider = await resolveActiveProvider\(normalizedInput\.tenantId\);/u);
   assert.match(
     service,
-    /if \(provider\) \{[\s\S]*?const tenantProvider = await getTenantProvider\(tenantId\);/u,
+    /scope: \{ kind: "platform" \}[\s\S]*?selectEmailProviderForMessage\(\{/u,
   );
   assert.match(service, /sendTemplatedEmail/u);
+  assert.doesNotMatch(service, /getLegacySmtpProvider|legacy_smtp/u);
+  assert.doesNotMatch(
+    service,
+    /where\(eq\(organizationSettingsTable\.smtpEnabled,\s*true\)\)/u,
+  );
+  assert.match(service, /selectEmailProviderForMessage/u);
+  assert.match(service, /isTenantRuntimeActive/u);
   assert.match(service, /return \{ success: false, message: sanitizeError\(error\) \}/u);
   assert.match(service, /emailDeliveryLogTable/u);
   assert.match(smtp, /STARTTLS/u);
