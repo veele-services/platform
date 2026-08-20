@@ -19,3 +19,5 @@ hash is stored. It is explicitly not the security boundary; on dedupe-store fail
 event is suppressed while the independently successful rate-limit decision remains authoritative.
 
 The disposable PostgreSQL proof is `pnpm fieldgrid:test:google-maps-rate-limit-runtime`.
+That proof launches two independent Node processes, each with its own database pool, against the
+same bucket to verify that a second application replica does not receive a free allowance.

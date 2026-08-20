@@ -7,7 +7,10 @@ const migration = readFileSync(
   "lib/db/migrations/20260820113004_google_maps_distributed_rate_limits.sql",
   "utf8",
 );
-const runtime = readFileSync("scripts/fieldgrid-google-maps-rate-limit-runtime.mts", "utf8");
+const runtime = readFileSync(
+  "scripts/fieldgrid-google-maps-rate-limit-runtime.mts",
+  "utf8",
+);
 const wrappers = [
   "artifacts/backoffice/src/lib/google-maps/rate-limit.ts",
   "artifacts/klant-pwa/src/lib/google-maps/rate-limit.ts",
@@ -16,7 +19,10 @@ const wrappers = [
 
 test("all Google Maps surfaces use one durable atomic limiter", () => {
   assert.match(service, /INSERT INTO public\.google_maps_rate_limit_buckets/u);
-  assert.match(service, /ON CONFLICT \(tenant_id, actor_key, action, window_started_at\)/u);
+  assert.match(
+    service,
+    /ON CONFLICT \(tenant_id, actor_key, action, window_started_at\)/u,
+  );
   assert.match(service, /request_count \+ 1/u);
   assert.match(service, /FOR UPDATE SKIP LOCKED/u);
   for (const wrapper of wrappers) {
@@ -40,7 +46,10 @@ test("autocomplete analytics dedupe is durable and stores only a session hash", 
 });
 
 test("the server-only schema is tenant-keyed, indexed and inaccessible to browser roles", () => {
-  assert.match(migration, /UNIQUE \(tenant_id, actor_key, action, window_started_at\)/u);
+  assert.match(
+    migration,
+    /UNIQUE \(tenant_id, actor_key, action, window_started_at\)/u,
+  );
   assert.match(migration, /google_maps_rate_limit_expiry_idx/u);
   assert.match(migration, /REVOKE ALL[\s\S]*FROM PUBLIC, anon, authenticated/u);
 });
@@ -54,6 +63,8 @@ test("runtime proof covers boundaries, concurrency, replicas, cleanup and DB fai
     "userBFirst",
     "actionFirst",
     "Promise.all",
+    "fieldgrid-google-maps-rate-limit-replica.mts",
+    "execFileAsync",
     "concurrentRow",
     "expiredActor",
     "service_unavailable",

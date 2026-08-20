@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   FIXTURE,
   assertDisposableDatabaseForReset,
@@ -8,7 +10,11 @@ import {
 } from "./fieldgrid-runtime-safety-lib.mjs";
 
 const parsedDatabase = new URL(databaseUrl());
-assert.ok(["127.0.0.1", "localhost", "::1", "postgres"].includes(parsedDatabase.hostname));
+assert.ok(
+  ["127.0.0.1", "localhost", "::1", "postgres"].includes(
+    parsedDatabase.hostname,
+  ),
+);
 
 const {
   consumeGoogleMapsRateLimit,
@@ -23,6 +29,7 @@ const tenantB = FIXTURE.tenants.b;
 const windowOne = new Date("2099-01-01T10:00:10.000Z");
 const windowTwo = new Date("2099-01-01T10:01:10.000Z");
 const actorPrefix = "runtime-maps-rate-limit";
+const execFileAsync = promisify(execFile);
 
 async function consume(input: {
   tenantId?: string;
@@ -42,8 +49,14 @@ async function consume(input: {
 }
 
 try {
-  await client.query(`delete from public.google_maps_rate_limit_buckets where actor_key like $1`, [`${actorPrefix}%`]);
-  await client.query(`delete from public.google_maps_autocomplete_sessions where actor_key like $1`, [`${actorPrefix}%`]);
+  await client.query(
+    `delete from public.google_maps_rate_limit_buckets where actor_key like $1`,
+    [`${actorPrefix}%`],
+  );
+  await client.query(
+    `delete from public.google_maps_autocomplete_sessions where actor_key like $1`,
+    [`${actorPrefix}%`],
+  );
 
   const first = await consume({});
   const second = await consume({});
@@ -60,16 +73,24 @@ try {
   assert.equal(newWindow.allowed, true);
   assert.equal(newWindow.remaining, 2);
 
-  const tenantBFirst = await consume({ tenantId: tenantB, actorKey: `${actorPrefix}-actor-a` });
+  const tenantBFirst = await consume({
+    tenantId: tenantB,
+    actorKey: `${actorPrefix}-actor-a`,
+  });
   const userBFirst = await consume({ actorKey: `${actorPrefix}-actor-b` });
-  const actionFirst = await consume({ actorKey: `${actorPrefix}-actor-a`, action: "place_details" });
+  const actionFirst = await consume({
+    actorKey: `${actorPrefix}-actor-a`,
+    action: "place_details",
+  });
   assert.equal(tenantBFirst.remaining, 2);
   assert.equal(userBFirst.remaining, 2);
   assert.equal(actionFirst.remaining, 2);
 
   const concurrentActor = `${actorPrefix}-concurrent`;
   const concurrent = await Promise.all(
-    Array.from({ length: 50 }, () => consume({ actorKey: concurrentActor, limit: 20 })),
+    Array.from({ length: 50 }, () =>
+      consume({ actorKey: concurrentActor, limit: 20 }),
+    ),
   );
   assert.equal(concurrent.filter((result) => result.allowed).length, 20);
   assert.equal(concurrent.filter((result) => !result.allowed).length, 30);
@@ -80,6 +101,30 @@ try {
   );
   assert.equal(concurrentRow.rows[0].request_count, 21);
 
+  const replicaActor = `${actorPrefix}-replica`;
+  const replicaScript = new URL(
+    "./fieldgrid-google-maps-rate-limit-replica.mts",
+    import.meta.url,
+  );
+  const replicaResults = await Promise.all(
+    Array.from({ length: 2 }, async () => {
+      const { stdout } = await execFileAsync(
+        process.execPath,
+        ["--import", "tsx", replicaScript.pathname],
+        {
+          env: {
+            ...process.env,
+            FIELDGRID_MAPS_REPLICA_TENANT_ID: tenantA,
+            FIELDGRID_MAPS_REPLICA_ACTOR_KEY: replicaActor,
+            FIELDGRID_MAPS_REPLICA_NOW: windowOne.toISOString(),
+          },
+        },
+      );
+      return JSON.parse(stdout.trim()) as { allowed: boolean };
+    }),
+  );
+  assert.equal(replicaResults.filter((result) => result.allowed).length, 1);
+
   const expiredActor = `${actorPrefix}-expired`;
   await client.query(
     `insert into public.google_maps_rate_limit_buckets
@@ -89,7 +134,12 @@ try {
   );
   await consume({ actorKey: `${actorPrefix}-cleanup` });
   assert.equal(
-    (await client.query(`select count(*)::int as count from public.google_maps_rate_limit_buckets where actor_key=$1`, [expiredActor])).rows[0].count,
+    (
+      await client.query(
+        `select count(*)::int as count from public.google_maps_rate_limit_buckets where actor_key=$1`,
+        [expiredActor],
+      )
+    ).rows[0].count,
     0,
   );
 
@@ -100,8 +150,14 @@ try {
     sessionToken,
     now: windowOne,
   };
-  assert.equal(await shouldRecordGoogleMapsAutocompleteSession(sessionInput), true);
-  assert.equal(await shouldRecordGoogleMapsAutocompleteSession(sessionInput), false);
+  assert.equal(
+    await shouldRecordGoogleMapsAutocompleteSession(sessionInput),
+    true,
+  );
+  assert.equal(
+    await shouldRecordGoogleMapsAutocompleteSession(sessionInput),
+    false,
+  );
   const sessionRow = await client.query(
     `select session_hash from public.google_maps_autocomplete_sessions where actor_key=$1`,
     [sessionInput.actorKey],
@@ -124,22 +180,41 @@ try {
   `);
   const unavailable = await consume({ actorKey: `${actorPrefix}-db-failure` });
   assert.deepEqual(
-    { allowed: unavailable.allowed, remaining: unavailable.remaining, reason: unavailable.reason },
+    {
+      allowed: unavailable.allowed,
+      remaining: unavailable.remaining,
+      reason: unavailable.reason,
+    },
     { allowed: false, remaining: 0, reason: "service_unavailable" },
   );
-  await client.query(`drop trigger fieldgrid_runtime_reject_maps_rate_limit on public.google_maps_rate_limit_buckets`);
-  await client.query(`drop function public.fieldgrid_runtime_reject_maps_rate_limit()`);
+  await client.query(
+    `drop trigger fieldgrid_runtime_reject_maps_rate_limit on public.google_maps_rate_limit_buckets`,
+  );
+  await client.query(
+    `drop function public.fieldgrid_runtime_reject_maps_rate_limit()`,
+  );
 
   const rlsClient = await connect();
   try {
     await rlsClient.query("begin");
     await rlsClient.query("set local role authenticated");
     await rlsClient.query("set local row_security = on");
-    const claims = JSON.stringify({ sub: FIXTURE.users.tenantAAdmin, role: "authenticated", tenant_id: tenantA });
-    await rlsClient.query("select set_config('request.jwt.claim.sub', $1, true)", [FIXTURE.users.tenantAAdmin]);
-    await rlsClient.query("select set_config('request.jwt.claims', $1, true)", [claims]);
+    const claims = JSON.stringify({
+      sub: FIXTURE.users.tenantAAdmin,
+      role: "authenticated",
+      tenant_id: tenantA,
+    });
+    await rlsClient.query(
+      "select set_config('request.jwt.claim.sub', $1, true)",
+      [FIXTURE.users.tenantAAdmin],
+    );
+    await rlsClient.query("select set_config('request.jwt.claims', $1, true)", [
+      claims,
+    ]);
     await assert.rejects(
-      rlsClient.query(`select * from public.google_maps_rate_limit_buckets limit 1`),
+      rlsClient.query(
+        `select * from public.google_maps_rate_limit_buckets limit 1`,
+      ),
       (error: unknown) => (error as { code?: string }).code === "42501",
     );
     await rlsClient.query("rollback");
@@ -149,10 +224,28 @@ try {
 
   console.log("FG-GOOGLE-MAPS-RATE-LIMIT runtime proof passed");
 } finally {
-  await client.query(`drop trigger if exists fieldgrid_runtime_reject_maps_rate_limit on public.google_maps_rate_limit_buckets`).catch(() => {});
-  await client.query(`drop function if exists public.fieldgrid_runtime_reject_maps_rate_limit()`).catch(() => {});
-  await client.query(`delete from public.google_maps_rate_limit_buckets where actor_key like $1`, [`${actorPrefix}%`]).catch(() => {});
-  await client.query(`delete from public.google_maps_autocomplete_sessions where actor_key like $1`, [`${actorPrefix}%`]).catch(() => {});
+  await client
+    .query(
+      `drop trigger if exists fieldgrid_runtime_reject_maps_rate_limit on public.google_maps_rate_limit_buckets`,
+    )
+    .catch(() => {});
+  await client
+    .query(
+      `drop function if exists public.fieldgrid_runtime_reject_maps_rate_limit()`,
+    )
+    .catch(() => {});
+  await client
+    .query(
+      `delete from public.google_maps_rate_limit_buckets where actor_key like $1`,
+      [`${actorPrefix}%`],
+    )
+    .catch(() => {});
+  await client
+    .query(
+      `delete from public.google_maps_autocomplete_sessions where actor_key like $1`,
+      [`${actorPrefix}%`],
+    )
+    .catch(() => {});
   await client.end();
   await pool.end();
 }
