@@ -6,6 +6,10 @@ const provider = readFileSync(
   new URL("../../lib/db/src/mollie-payment-provider.ts", import.meta.url),
   "utf8",
 );
+const webhook = readFileSync(
+  new URL("../../artifacts/api-server/src/routes/webhooks.ts", import.meta.url),
+  "utf8",
+);
 
 test("all Mollie calls share one timeout that covers bounded body consumption", () => {
   assert.equal((provider.match(/await fetch\(/gu) ?? []).length, 1);
@@ -53,4 +57,14 @@ test("payment ID and financial envelope checks remain fail closed", () => {
   assert.match(provider, /Provider metadata mismatch/u);
   assert.match(provider, /Provider mode mismatch/u);
   assert.match(provider, /Provider profile mismatch/u);
+});
+
+test("the webhook retries transient failures and acknowledges permanent provider failures", () => {
+  assert.match(webhook, /error instanceof MollieProviderError/u);
+  assert.match(webhook, /providerFailure && !providerFailure\.retryable/u);
+  assert.match(
+    webhook,
+    /status\(200\)\.send\("ignored permanent provider response"\)/u,
+  );
+  assert.match(webhook, /status\(502\)/u);
 });
