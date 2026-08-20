@@ -211,16 +211,14 @@ export async function saveWeeklyAvailability(input: {
             updatedAt: now,
           },
         });
-    await tx
-      .insert(auditLogTable)
-      .values({
-        tenantId: input.tenantId,
-        userId: input.userId,
-        action: "availability.weekly.save",
-        resource: "availability_windows",
-        resourceId: person.id,
-        metadata: { days: input.windows.length },
-      });
+    await tx.insert(auditLogTable).values({
+      tenantId: input.tenantId,
+      userId: input.userId,
+      action: "availability.weekly.save",
+      resource: "availability_windows",
+      resourceId: person.id,
+      metadata: { days: input.windows.length },
+    });
     return { ok: true as const, version: now.toISOString() };
   });
 }
@@ -231,7 +229,11 @@ export async function saveDateAvailabilityExceptions(input: {
   exception: DateExceptionInput;
   maxDate: string;
 }): Promise<
-  AvailabilityServiceResult<{ savedDates: string[]; version: string }>
+  AvailabilityServiceResult<{
+    savedDates: string[];
+    versions: Record<string, string>;
+    version: string;
+  }>
 > {
   if (!input.tenantId)
     return { ok: false, code: "invalid", message: "Tenantcontext ontbreekt" };
@@ -309,7 +311,7 @@ export async function saveDateAvailabilityExceptions(input: {
     const now = new Date();
     const repeatGroupId =
       input.exception.repeatType === "none" ? null : randomUUID();
-    let storedVersion: Date | null = null;
+    const storedVersions: Record<string, string> = {};
     for (const date of dates) {
       const [stored] = await tx
         .insert(availabilityDayEntriesTable)
@@ -341,25 +343,26 @@ export async function saveDateAvailabilityExceptions(input: {
           date: availabilityDayEntriesTable.date,
           updatedAt: availabilityDayEntriesTable.updatedAt,
         });
-      if (stored?.date === input.exception.date)
-        storedVersion = stored.updatedAt;
+      if (!stored?.updatedAt)
+        throw new Error("Opgeslagen beschikbaarheidsversie ontbreekt.");
+      storedVersions[stored.date] = stored.updatedAt.toISOString();
     }
-    if (!storedVersion)
+    const selectedVersion = storedVersions[input.exception.date];
+    if (!selectedVersion)
       throw new Error("Opgeslagen beschikbaarheidsversie ontbreekt.");
-    await tx
-      .insert(auditLogTable)
-      .values({
-        tenantId: input.tenantId,
-        userId: input.userId,
-        action: "availability.exception.save",
-        resource: "availability_day_entries",
-        resourceId: person.id,
-        metadata: { dates },
-      });
+    await tx.insert(auditLogTable).values({
+      tenantId: input.tenantId,
+      userId: input.userId,
+      action: "availability.exception.save",
+      resource: "availability_day_entries",
+      resourceId: person.id,
+      metadata: { dates },
+    });
     return {
       ok: true as const,
       savedDates: dates,
-      version: storedVersion.toISOString(),
+      versions: storedVersions,
+      version: selectedVersion,
     };
   });
 }

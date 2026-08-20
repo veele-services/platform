@@ -218,7 +218,9 @@ export function BeschikbaarheidForm({
   const canGoNext = monthKey(viewMonth) < monthKey(data.maxDate);
   const selectedIsEditable =
     selectedDate >= data.today && selectedDate <= data.maxDate;
-  const editorIsDirty = Boolean(editorInitial) && JSON.stringify(editorInitial) !== JSON.stringify(editor);
+  const editorIsDirty =
+    Boolean(editorInitial) &&
+    JSON.stringify(editorInitial) !== JSON.stringify(editor);
 
   useEffect(() => {
     setEntries(data.entries);
@@ -255,7 +257,11 @@ export function BeschikbaarheidForm({
     setEditorOpen(true);
   }
 
-  function applyLocalEntries(savedDates: string[], values: EditorState, updatedAt: string) {
+  function applyLocalEntries(
+    savedDates: string[],
+    values: EditorState,
+    updatedAtByDate: Record<string, string>,
+  ) {
     setEntries((current) => {
       const next = new Map(current.map((entry) => [entry.date, entry]));
       for (const date of savedDates) {
@@ -268,7 +274,7 @@ export function BeschikbaarheidForm({
           isEmergencyAvailable: values.isEmergencyAvailable,
           repeatType: values.repeatType,
           repeatGroupId: existing?.repeatGroupId ?? null,
-          updatedAt,
+          updatedAt: updatedAtByDate[date] ?? null,
         });
       }
       return [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -315,7 +321,18 @@ export function BeschikbaarheidForm({
         values.repeatType,
         data.maxDate,
       );
-      applyLocalEntries(savedDates, values, result.updatedAt!);
+      if (
+        !result.updatedAtByDate ||
+        savedDates.some((date) => !result.updatedAtByDate?.[date])
+      ) {
+        setConflict(true);
+        setError(
+          "De opgeslagen versies ontbreken. De gegevens worden opnieuw geladen.",
+        );
+        router.refresh();
+        return;
+      }
+      applyLocalEntries(savedDates, values, result.updatedAtByDate);
       setFeedback(
         savedDates.length > 1
           ? `${savedDates.length} dagen bijgewerkt`
@@ -332,7 +349,9 @@ export function BeschikbaarheidForm({
     setError(null);
     if (!selectedEntry?.updatedAt) {
       setConflict(true);
-      setError("De versie van deze beschikbaarheid ontbreekt. Vernieuw en probeer opnieuw.");
+      setError(
+        "De versie van deze beschikbaarheid ontbreekt. Vernieuw en probeer opnieuw.",
+      );
       return;
     }
     const expectedUpdatedAt = selectedEntry.updatedAt;
@@ -552,7 +571,7 @@ export function BeschikbaarheidForm({
             className="mt-3 rounded-2xl px-3 py-2.5 text-sm font-bold"
             style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
           >
-{error}
+            {error}
             {conflict ? (
               <button
                 type="button"
@@ -791,7 +810,9 @@ function EditorBody({
       </button>
 
       {isDirty ? (
-        <p className="mt-4 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">Niet-opgeslagen wijzigingen</p>
+        <p className="mt-4 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
+          Niet-opgeslagen wijzigingen
+        </p>
       ) : null}
       {error ? (
         <div className="mt-4 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">

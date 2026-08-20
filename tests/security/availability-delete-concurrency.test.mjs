@@ -37,6 +37,9 @@ test("the personnel action and UI require a canonical row version and recover fr
     service,
     /returning\(\{[\s\S]*updatedAt: availabilityDayEntriesTable\.updatedAt/u,
   );
+  assert.match(service, /storedVersions\[stored\.date\]/u);
+  assert.match(action, /updatedAtByDate: result\.versions/u);
+  assert.match(form, /updatedAtByDate\[date\]/u);
 });
 
 test("the permanent runtime proof covers authorization, concurrency, audit atomicity and replay", () => {
@@ -49,6 +52,8 @@ test("the permanent runtime proof covers authorization, concurrency, audit atomi
     "availability.exception.delete",
     "saveDelete",
     "storedVersion",
+    "mixedExisting",
+    "savedMixed.versions",
   ]) {
     assert.match(runtime, new RegExp(evidence.replaceAll(".", "\\."), "u"));
   }

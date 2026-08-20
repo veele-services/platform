@@ -35,6 +35,8 @@ const dates = {
   atomic: "2098-01-05",
   concurrent: "2098-01-06",
   saveDelete: "2098-01-07",
+  mixedExisting: "2098-01-08",
+  mixedNew: "2098-01-09",
 };
 
 async function putEntry(personnelId: string, date: string, updatedAt: string) {
@@ -256,6 +258,47 @@ try {
     deleted: true,
     replayed: false,
   });
+
+  await putEntry(activePersonnel, dates.mixedExisting, v1);
+  const savedMixed = await saveDateAvailabilityExceptions({
+    tenantId: tenantA,
+    userId: activeUser,
+    exception: {
+      date: dates.mixedExisting,
+      startTime: "11:00",
+      endTime: "15:00",
+      repeatType: "daily",
+      isEmergencyAvailable: true,
+      expectedUpdatedAt: v1,
+    },
+    maxDate: dates.mixedNew,
+  });
+  assert.equal(savedMixed.ok, true);
+  if (!savedMixed.ok) throw new Error(savedMixed.message);
+  assert.deepEqual(Object.keys(savedMixed.versions).sort(), [
+    dates.mixedExisting,
+    dates.mixedNew,
+  ]);
+  const mixedStored = await client.query(
+    `select date, updated_at from public.availability_day_entries
+     where personnel_id=$1 and date=any($2::text[]) order by date`,
+    [activePersonnel, [dates.mixedExisting, dates.mixedNew]],
+  );
+  for (const row of mixedStored.rows) {
+    assert.equal(
+      new Date(savedMixed.versions[row.date]).getTime(),
+      new Date(row.updated_at).getTime(),
+    );
+    assert.deepEqual(
+      await deleteDateAvailabilityException({
+        tenantId: tenantA,
+        userId: activeUser,
+        date: row.date,
+        expectedUpdatedAt: savedMixed.versions[row.date],
+      }),
+      { ok: true, deleted: true, replayed: false },
+    );
+  }
 
   console.log("FG-AVAILABILITY-DELETE runtime proof passed");
 } finally {

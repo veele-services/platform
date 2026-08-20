@@ -115,6 +115,7 @@ export type NotificationWorkerResult = {
 
 export type NotificationWorkerOptions = Partial<WorkerConfig> & {
   channels?: NotificationWorkerChannel[];
+  queueIds?: string[];
   logger?: WorkerLogger;
   workerId?: string;
   deliveryOverride?: NotificationDeliveryOverride;
@@ -135,6 +136,22 @@ const DEFAULT_CONFIG: WorkerConfig = {
   maxRetrySeconds: 3600,
   sendDelayMs: 0,
 };
+
+const QUEUE_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function normalizeQueueIds(queueIds?: string[]): string[] | undefined {
+  if (queueIds === undefined) return undefined;
+  const normalized = [...new Set(queueIds)];
+  if (
+    normalized.length === 0 ||
+    normalized.length > 500 ||
+    normalized.some((id) => !QUEUE_ID_RE.test(id))
+  ) {
+    throw new Error("notification_worker_requires_valid_queue_ids");
+  }
+  return normalized;
+}
 
 function envInt(name: string, fallback: number, max: number): number {
   const parsed = Number.parseInt(process.env[name] ?? "", 10);
@@ -274,6 +291,7 @@ async function claimQueueItems(
   limit: number,
   workerId: string,
   config: WorkerConfig,
+  queueIds?: string[],
 ): Promise<QueueRow[]> {
   if (limit <= 0) return [];
   type ClaimedQueueRow = Omit<QueueRow, "attempt_id"> & {
@@ -289,6 +307,7 @@ async function claimQueueItems(
         FROM notification_delivery_queue
         WHERE channel = $1
           AND channel IN ('email', 'push')
+          AND ($6::uuid[] IS NULL OR id = ANY($6::uuid[]))
           AND attempts < COALESCE(NULLIF(max_attempts, 0), $4)
           AND (
             (status IN ('pending', 'retry') AND next_attempt_at <= now())
@@ -341,7 +360,14 @@ async function claimQueueItems(
         q.delivery_key,
         q.current_attempt_id
     `,
-      [channel, limit, config.lockSeconds, config.maxAttempts, workerId],
+      [
+        channel,
+        limit,
+        config.lockSeconds,
+        config.maxAttempts,
+        workerId,
+        queueIds ?? null,
+      ],
     );
 
     const claimed = result.rows;
@@ -429,6 +455,7 @@ async function claimQueueItems(
 
 async function reconcileUncertainDeliveries(
   config: WorkerConfig,
+  queueIds?: string[],
 ): Promise<number> {
   const result = await pool.query(
     `
@@ -436,6 +463,7 @@ async function reconcileUncertainDeliveries(
         SELECT queue.id, queue.current_attempt_id
         FROM notification_delivery_queue queue
         WHERE queue.status = 'processing'
+          AND ($2::uuid[] IS NULL OR queue.id = ANY($2::uuid[]))
           AND queue.delivery_started_at IS NOT NULL
           AND queue.locked_at < now() - ($1::integer * interval '1 second')
         FOR UPDATE SKIP LOCKED
@@ -461,7 +489,7 @@ async function reconcileUncertainDeliveries(
       WHERE queue.id = stale.id
       RETURNING queue.id
     `,
-    [config.lockSeconds],
+    [config.lockSeconds, queueIds ?? null],
   );
   return result.rowCount ?? 0;
 }
@@ -857,12 +885,34 @@ async function deliverPushItem(
   config: WorkerConfig,
   providers: Pick<NotificationWorkerOptions, "webPushSender" | "fcmPushSender">,
 ): Promise<QueueOutcome> {
+  const priorTargetOutcomes = Array.isArray(item.response?.["targetOutcomes"])
+    ? item.response["targetOutcomes"].map(toRecord)
+    : [];
+  const priorSuccessfulDelivery = priorTargetOutcomes.some(
+    (outcome) => outcome["outcome"] === "sent",
+  );
   const [subscriptions, nativeTokens] = await Promise.all([
     getActiveSubscriptions(item),
     getActiveNativeTokens(item),
   ]);
 
   if (subscriptions.length === 0 && nativeTokens.length === 0) {
+    if (priorSuccessfulDelivery) {
+      return {
+        status: "partial",
+        error: "Niet alle eerder mislukte pushdoelen zijn nog actief.",
+        retryAt: null,
+        response: {
+          ...item.response,
+          targetOutcomes: priorTargetOutcomes,
+          unavailableRetryTargets: item.response?.["retryTargets"] ?? [],
+          retryTargets: [],
+        },
+        deactivatedSubscriptions: 0,
+        deactivatedNativeTokens: 0,
+        providerMessageId: null,
+      };
+    }
     return failureOutcome(
       item,
       config,
@@ -879,9 +929,6 @@ async function deliverPushItem(
   let deactivatedSubscriptions = 0;
   let deactivatedNativeTokens = 0;
   const errors: string[] = [];
-  const priorTargetOutcomes = Array.isArray(item.response?.["targetOutcomes"])
-    ? item.response["targetOutcomes"].map(toRecord)
-    : [];
   const targetOutcomes: Array<Record<string, unknown>> = [];
   const urgency = normalizeUrgency(payload.urgency ?? payload.priority);
 
@@ -1008,6 +1055,7 @@ async function deliverPushItem(
         ]
       : [],
   );
+  const retryAt = transientErrors > 0 ? calculateRetryAt(item, config) : null;
   const response = {
     webSubscriptionCount: subscriptions.length,
     nativeTokenCount: nativeTokens.length,
@@ -1018,10 +1066,9 @@ async function deliverPushItem(
     deactivatedSubscriptions,
     deactivatedNativeTokens,
     targetOutcomes: [...priorTargetOutcomes, ...targetOutcomes],
-    retryTargets,
+    retryTargets: retryAt ? retryTargets : [],
   };
 
-  const retryAt = transientErrors > 0 ? calculateRetryAt(item, config) : null;
   if (retryAt) {
     return {
       status: "retry",
@@ -1036,7 +1083,7 @@ async function deliverPushItem(
     };
   }
 
-  if (successCount > 0) {
+  if (successCount > 0 || priorSuccessfulDelivery) {
     const priorPermanentFailure = priorTargetOutcomes.some((outcome) =>
       ["permanent_failure", "configuration_failure"].includes(
         String(outcome["outcome"] ?? ""),
@@ -1093,6 +1140,7 @@ export async function processNotificationQueue(
   const config = buildConfig(options);
   const log = options.logger ?? defaultLogger;
   const workerId = options.workerId ?? createWorkerId();
+  const queueIds = normalizeQueueIds(options.queueIds);
   const channels: NotificationWorkerChannel[] = options.channels?.length
     ? options.channels
     : ["email", "push"];
@@ -1134,11 +1182,16 @@ export async function processNotificationQueue(
 
   let remaining = Math.max(1, config.limit);
   log.info(
-    { workerId, channels, limit: config.limit },
+    {
+      workerId,
+      channels,
+      limit: config.limit,
+      targetedCount: queueIds?.length ?? 0,
+    },
     "notification-worker: run gestart",
   );
 
-  result.outcomePending = await reconcileUncertainDeliveries(config);
+  result.outcomePending = await reconcileUncertainDeliveries(config, queueIds);
   if (result.outcomePending > 0) {
     log.warn(
       { workerId, count: result.outcomePending },
@@ -1164,6 +1217,7 @@ export async function processNotificationQueue(
       channelLimit,
       workerId,
       config,
+      queueIds,
     );
     channelResult.claimed += items.length;
     result.claimed += items.length;

@@ -726,7 +726,7 @@ type QueuedDeliveryTriggerResult = {
 
 async function triggerQueuedDelivery(
   channel: "email" | "push",
-  limit: number,
+  queueIds: string[],
 ): Promise<QueuedDeliveryTriggerResult> {
   const adminSecret = process.env["ADMIN_API_SECRET"];
   const apiBaseUrl =
@@ -752,10 +752,18 @@ async function triggerQueuedDelivery(
 
   try {
     const response = await fetch(
-      `${apiBaseUrl}/api/admin/notification-worker?channels=${channel}&limit=${Math.min(Math.max(limit, 100), 250)}`,
+      `${apiBaseUrl}/api/admin/notification-worker`,
       {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminSecret}` },
+        headers: {
+          Authorization: `Bearer ${adminSecret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channels: channel,
+          limit: Math.min(Math.max(queueIds.length, 1), 250),
+          queueIds: queueIds.slice(0, 250),
+        }),
         cache: "no-store",
         signal: controller.signal,
       },
@@ -1008,6 +1016,7 @@ export async function sendManualNotification(
     customerCount: number;
     emailSuccessCount: number;
     emailFailedCount: number;
+    emailQueuedCount: number;
     pushQueuedCount: number;
     pushDelivery: QueuedDeliveryTriggerResult | null;
   }>
@@ -1139,6 +1148,7 @@ export async function sendManualNotification(
   const pushEnabled = channels.includes("push");
   const emailEnabled = channels.includes("email");
   let pushQueuedCount = 0;
+  let pushQueueIds: string[] = [];
 
   await db.transaction(async (tx) => {
     if (inAppEnabled && personnelRecipients.length > 0) {
@@ -1237,19 +1247,24 @@ export async function sendManualNotification(
       ];
 
       if (queueRows.length > 0) {
-        await tx.insert(notificationDeliveryQueueTable).values(queueRows);
-        pushQueuedCount = queueRows.length;
+        const queued = await tx
+          .insert(notificationDeliveryQueueTable)
+          .values(queueRows)
+          .returning({ id: notificationDeliveryQueueTable.id });
+        pushQueueIds = queued.map((row) => row.id);
+        pushQueuedCount = pushQueueIds.length;
       }
     }
   });
 
   const pushDelivery =
     pushEnabled && pushQueuedCount > 0
-      ? await triggerQueuedDelivery("push", pushQueuedCount)
+      ? await triggerQueuedDelivery("push", pushQueueIds)
       : null;
 
   let emailSuccessCount = 0;
   let emailFailedCount = 0;
+  let emailQueuedCount = 0;
 
   if (emailEnabled) {
     const { buildStyledNotificationEmail } = await import("@/lib/email");
@@ -1319,11 +1334,13 @@ export async function sendManualNotification(
     }
 
     if (emailRows.length > 0) {
-      await db.insert(notificationDeliveryQueueTable).values(emailRows);
-      const emailDelivery = await triggerQueuedDelivery(
-        "email",
-        emailRows.length,
-      );
+      const queued = await db
+        .insert(notificationDeliveryQueueTable)
+        .values(emailRows)
+        .returning({ id: notificationDeliveryQueueTable.id });
+      const queueIds = queued.map((row) => row.id);
+      emailQueuedCount = queueIds.length;
+      const emailDelivery = await triggerQueuedDelivery("email", queueIds);
       emailSuccessCount = emailDelivery.sent;
       emailFailedCount = emailDelivery.failed;
     }
@@ -1347,6 +1364,7 @@ export async function sendManualNotification(
       customerCount: customerRecipients.length,
       emailSuccessCount,
       emailFailedCount,
+      emailQueuedCount,
     },
   });
 
@@ -1358,6 +1376,7 @@ export async function sendManualNotification(
       customerCount: customerRecipients.length,
       emailSuccessCount,
       emailFailedCount,
+      emailQueuedCount,
       pushQueuedCount,
       pushDelivery,
     },

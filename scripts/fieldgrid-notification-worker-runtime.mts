@@ -144,6 +144,22 @@ try {
     [`${prefix}:%`],
   );
 
+  const olderBacklog = await enqueue({});
+  const targetedDispatch = await enqueue({});
+  const targetedDispatchResult = await runEmail({
+    workerId: "runtime-exact-queue-target",
+    queueIds: [targetedDispatch.id],
+    limit: 1,
+  });
+  assert.equal(targetedDispatchResult.claimed, 1);
+  assert.equal(targetedDispatchResult.sent, 1);
+  assert.equal((await queueState(targetedDispatch.id)).status, "sent");
+  assert.equal((await queueState(olderBacklog.id)).status, "pending");
+  await client.query(
+    `delete from public.notification_delivery_queue where id=$1`,
+    [olderBacklog.id],
+  );
+
   const suspended = await enqueue({});
   let suspendedDeliveries = 0;
   const suspendedResult = await runEmail({
@@ -669,6 +685,135 @@ try {
     `delete from public.push_subscriptions where id in ($1,$2)`,
     [targetedGood, targetedTransient],
   );
+
+  const exhaustedQueue = await enqueue({
+    channel: "push",
+    recipientType: "personnel",
+    personnelId: FIXTURE.personnel.a,
+    maxAttempts: 2,
+  });
+  const exhaustedGood = randomUUID();
+  const exhaustedTransient = randomUUID();
+  await client.query(
+    `insert into public.push_subscriptions
+       (id, tenant_id, owner_type, personnel_id, endpoint, p256dh, auth, is_active)
+     values ($1,$3,'personnel',$4,$5,'runtime','runtime',true),
+            ($2,$3,'personnel',$4,$6,'runtime','runtime',true)`,
+    [
+      exhaustedGood,
+      exhaustedTransient,
+      tenantA,
+      FIXTURE.personnel.a,
+      `https://push.runtime/${exhaustedGood}`,
+      `https://push.runtime/${exhaustedTransient}`,
+    ],
+  );
+  const exhaustedCalls: string[] = [];
+  const exhaustedSender = async (subscription: { endpoint: string }) => {
+    exhaustedCalls.push(subscription.endpoint);
+    return subscription.endpoint.endsWith(exhaustedTransient)
+      ? {
+          success: false as const,
+          status: 503,
+          error: "temporary",
+          permanent: false,
+        }
+      : { success: true as const, status: 201 };
+  };
+  await processNotificationQueue({
+    channels: ["push"],
+    queueIds: [exhaustedQueue.id],
+    limit: 1,
+    pushRatePerRun: 1,
+    baseRetrySeconds: 0,
+    maxRetrySeconds: 1,
+    sendDelayMs: 0,
+    logger,
+    webPushSender: exhaustedSender,
+  });
+  const exhaustedResult = await processNotificationQueue({
+    channels: ["push"],
+    queueIds: [exhaustedQueue.id],
+    limit: 1,
+    pushRatePerRun: 1,
+    baseRetrySeconds: 0,
+    maxRetrySeconds: 1,
+    sendDelayMs: 0,
+    logger,
+    webPushSender: exhaustedSender,
+  });
+  assert.equal(exhaustedResult.partial, 1);
+  assert.equal((await queueState(exhaustedQueue.id)).status, "partial");
+  assert.equal(
+    exhaustedCalls.filter((endpoint) => endpoint.endsWith(exhaustedGood))
+      .length,
+    1,
+  );
+  assert.deepEqual(
+    (await attempts(exhaustedQueue.id)).map((row) => row.status),
+    ["retry", "partial"],
+  );
+  await client.query(
+    `delete from public.push_subscriptions where id in ($1,$2)`,
+    [exhaustedGood, exhaustedTransient],
+  );
+
+  const vanishedQueue = await enqueue({
+    channel: "push",
+    recipientType: "personnel",
+    personnelId: FIXTURE.personnel.a,
+  });
+  const vanishedGood = randomUUID();
+  const vanishedTransient = randomUUID();
+  await client.query(
+    `insert into public.push_subscriptions
+       (id, tenant_id, owner_type, personnel_id, endpoint, p256dh, auth, is_active)
+     values ($1,$3,'personnel',$4,$5,'runtime','runtime',true),
+            ($2,$3,'personnel',$4,$6,'runtime','runtime',true)`,
+    [
+      vanishedGood,
+      vanishedTransient,
+      tenantA,
+      FIXTURE.personnel.a,
+      `https://push.runtime/${vanishedGood}`,
+      `https://push.runtime/${vanishedTransient}`,
+    ],
+  );
+  await processNotificationQueue({
+    channels: ["push"],
+    queueIds: [vanishedQueue.id],
+    limit: 1,
+    pushRatePerRun: 1,
+    baseRetrySeconds: 0,
+    maxRetrySeconds: 1,
+    sendDelayMs: 0,
+    logger,
+    webPushSender: async (subscription) =>
+      subscription.endpoint.endsWith(vanishedTransient)
+        ? { success: false, status: 503, error: "temporary", permanent: false }
+        : { success: true, status: 201 },
+  });
+  await client.query(`delete from public.push_subscriptions where id=$1`, [
+    vanishedTransient,
+  ]);
+  const vanishedResult = await processNotificationQueue({
+    channels: ["push"],
+    queueIds: [vanishedQueue.id],
+    limit: 1,
+    pushRatePerRun: 1,
+    baseRetrySeconds: 0,
+    maxRetrySeconds: 1,
+    sendDelayMs: 0,
+    logger,
+  });
+  assert.equal(vanishedResult.partial, 1);
+  const vanishedState = await queueState(vanishedQueue.id);
+  assert.equal(vanishedState.status, "partial");
+  assert.equal(vanishedState.response.targetOutcomes.length, 2);
+  assert.equal(vanishedState.response.unavailableRetryTargets.length, 1);
+  await client.query(`delete from public.push_subscriptions where id=$1`, [
+    vanishedGood,
+  ]);
 
   await client.query(
     `update public.push_subscriptions set is_active=true where id=$1`,

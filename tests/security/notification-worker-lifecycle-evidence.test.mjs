@@ -22,6 +22,10 @@ const settings = readFileSync(
   "artifacts/backoffice/src/app/actions/settings.ts",
   "utf8",
 );
+const workerRoute = readFileSync(
+  "artifacts/api-server/src/routes/notification-worker.ts",
+  "utf8",
+);
 
 test("worker rechecks tenant, module, event and recipient lifecycle after claim", () => {
   for (const signal of [
@@ -76,6 +80,8 @@ test("push outcomes retain safe endpoint-level evidence", () => {
   assert.match(worker, /outcome: "transient_failure"/u);
   assert.match(worker, /retryTargets/u);
   assert.match(worker, /const retryAt =/u);
+  assert.match(worker, /priorSuccessfulDelivery/u);
+  assert.match(worker, /unavailableRetryTargets/u);
   assert.doesNotMatch(
     worker,
     /targetOutcomes\.push\(\{[\s\S]{0,180}endpoint:/u,
@@ -95,6 +101,9 @@ test("forward migration and runtime proof enforce tenant ACL and failure recover
     "runtime-attempt-log-failure",
     "runtime-finalization-failure",
     "runtime-worker-a",
+    "runtime-exact-queue-target",
+    "exhaustedResult.partial",
+    "vanishedResult.partial",
     "webResult.partial",
     "fcmResult.partial",
     "set local role authenticated",
@@ -110,5 +119,16 @@ test("manual e-mail notifications enter the durable worker before provider deliv
   );
   assert.match(manualFunction, /status: "pending"/u);
   assert.match(manualFunction, /triggerQueuedDelivery\(\s*"email"/u);
+  assert.match(
+    manualFunction,
+    /returning\(\{ id: notificationDeliveryQueueTable\.id \}\)/u,
+  );
+  assert.match(
+    manualFunction,
+    /triggerQueuedDelivery\(\s*"email",\s*queueIds/u,
+  );
+  assert.match(settings, /body: JSON\.stringify\(\{[\s\S]*queueIds/u);
+  assert.match(worker, /\$6::uuid\[\] IS NULL OR id = ANY\(\$6::uuid\[\]\)/u);
+  assert.match(workerRoute, /queueIds,/u);
   assert.doesNotMatch(manualFunction, /sendEmailWithResult/u);
 });
