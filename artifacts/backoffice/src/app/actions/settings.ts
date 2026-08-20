@@ -714,7 +714,7 @@ function bodyTextToHtml(body: string): string {
     .join("");
 }
 
-type PushDeliveryTriggerResult = {
+type QueuedDeliveryTriggerResult = {
   attempted: boolean;
   ok: boolean;
   processed: number;
@@ -724,9 +724,10 @@ type PushDeliveryTriggerResult = {
   error?: string;
 };
 
-async function triggerQueuedPushDelivery(
+async function triggerQueuedDelivery(
+  channel: "email" | "push",
   limit: number,
-): Promise<PushDeliveryTriggerResult> {
+): Promise<QueuedDeliveryTriggerResult> {
   const adminSecret = process.env["ADMIN_API_SECRET"];
   const apiBaseUrl =
     process.env["API_INTERNAL_URL"] ??
@@ -751,7 +752,7 @@ async function triggerQueuedPushDelivery(
 
   try {
     const response = await fetch(
-      `${apiBaseUrl}/api/admin/push-notifications?limit=${Math.min(Math.max(limit, 100), 250)}`,
+      `${apiBaseUrl}/api/admin/notification-worker?channels=${channel}&limit=${Math.min(Math.max(limit, 100), 250)}`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${adminSecret}` },
@@ -769,7 +770,7 @@ async function triggerQueuedPushDelivery(
         sent: 0,
         skipped: 0,
         failed: 0,
-        error: text || `Push API gaf HTTP ${response.status}.`,
+        error: text || `Notificatie-API gaf HTTP ${response.status}.`,
       };
     }
 
@@ -796,7 +797,7 @@ async function triggerQueuedPushDelivery(
       error:
         error instanceof Error
           ? error.message
-          : "Push delivery kon niet direct worden gestart.",
+          : "Notificatiebezorging kon niet direct worden gestart.",
     };
   } finally {
     clearTimeout(timeout);
@@ -1008,7 +1009,7 @@ export async function sendManualNotification(
     emailSuccessCount: number;
     emailFailedCount: number;
     pushQueuedCount: number;
-    pushDelivery: PushDeliveryTriggerResult | null;
+    pushDelivery: QueuedDeliveryTriggerResult | null;
   }>
 > {
   await requirePermission("settings", "write");
@@ -1244,15 +1245,14 @@ export async function sendManualNotification(
 
   const pushDelivery =
     pushEnabled && pushQueuedCount > 0
-      ? await triggerQueuedPushDelivery(pushQueuedCount)
+      ? await triggerQueuedDelivery("push", pushQueuedCount)
       : null;
 
   let emailSuccessCount = 0;
   let emailFailedCount = 0;
 
   if (emailEnabled) {
-    const { buildStyledNotificationEmail, sendEmailWithResult } =
-      await import("@/lib/email");
+    const { buildStyledNotificationEmail } = await import("@/lib/email");
     const emailRows: Array<typeof notificationDeliveryQueueTable.$inferInsert> =
       [];
 
@@ -1302,16 +1302,6 @@ export async function sendManualNotification(
         ctaHref: href,
         ctaLabel: href ? "Open portaal" : null,
       });
-      const result = await sendEmailWithResult({
-        to: recipient.email,
-        subject: message.subject,
-        html: message.html,
-        text: message.text,
-        tenantId,
-      });
-      if (result.success) emailSuccessCount += 1;
-      else emailFailedCount += 1;
-
       emailRows.push({
         tenantId,
         dispatchId: dispatch.id,
@@ -1324,17 +1314,18 @@ export async function sendManualNotification(
         title: renderedTitle,
         body: renderedBody,
         html: message.html,
-        status: result.success ? "sent" : "failed",
-        attempts: 1,
-        lastError: result.success
-          ? null
-          : (result.error ?? "E-mail verzenden mislukt."),
-        sentAt: result.success ? new Date() : null,
+        status: "pending",
       });
     }
 
     if (emailRows.length > 0) {
       await db.insert(notificationDeliveryQueueTable).values(emailRows);
+      const emailDelivery = await triggerQueuedDelivery(
+        "email",
+        emailRows.length,
+      );
+      emailSuccessCount = emailDelivery.sent;
+      emailFailedCount = emailDelivery.failed;
     }
   }
 

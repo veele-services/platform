@@ -19,7 +19,14 @@ material in the attempt response.
 `delivery_started_at` separates a safe stale pre-provider claim from an uncertain provider side
 effect. A stale pre-provider claim may be reclaimed. A stale post-provider claim becomes
 `outcome_pending` and is never automatically redelivered. An administrator can explicitly requeue
-`outcome_pending`, `failed` or `partial` rows after reconciliation.
+exact queue IDs with a bounded review reason. `outcome_pending` additionally requires an explicit
+confirmation that no provider delivery occurred. Mixed transient push results retain only the
+failed internal target IDs for a targeted retry; already successful endpoints are not called again.
 
-Authenticated queue and attempt access is protected by `is_management_for_tenant(tenant_id)`.
+Customer e-mail and push preferences are rechecked immediately before delivery, with push failing
+closed when no preference row exists. Management delivery binds both the active tenant membership
+and the exact auth-user e-mail. Authenticated management access is tenant-bound read-only; all
+queue and attempt writes are reserved for trusted server roles. Manual e-mail notifications enter
+the pending queue before any provider call.
+
 The disposable PostgreSQL proof is `pnpm fieldgrid:test:notification-worker-runtime`.
