@@ -1,6 +1,6 @@
 # Finding 8 — dependency- en CVE-scanning
 
-Fieldgrid controleert dependencies op iedere pull request naar `main` en op de exacte branch-head validatie. De gate is fail-closed: een onleesbaar registryantwoord, ongeldige package-signature of ontbrekend bewijs faalt de run.
+Fieldgrid controleert de volledige gelockte dependencygraph op iedere pull request naar `main` en op de exacte branch-head validatie. De gate is fail-closed: een onleesbaar registryantwoord, ongeldige package-signature of ontbrekend bewijs faalt de run.
 
 ## Beleid
 
@@ -22,6 +22,6 @@ De audit schrijft reproduceerbaar bewijs naar `artifacts/dependency-security/`. 
 
 ## CI
 
-`main-exact-head-validation.yml` voert de policy en registry-signaturecontrole uit op `FIELDGRID_VALIDATION_SHA` en uploadt het bewijs ook bij een mislukking. `dependency-review.yml` blokkeert daarnaast pull requests die nieuwe dependencies met severity `moderate` of hoger introduceren.
+`main-exact-head-validation.yml` voert de policy en registry-signaturecontrole uit op `FIELDGRID_VALIDATION_SHA` en uploadt het bewijs ook bij een mislukking. Deze repository heeft GitHub Advanced Security/dependency review niet beschikbaar; daarom is de repository-onafhankelijke pnpm-gate autoritatief en wordt geen niet-ondersteunde GitHub-action fail-open gemaakt.
 
 Een Finding 8-run mag pas groen zijn als zowel het policyrapport als de registry-signaturecontrole slaagt.
