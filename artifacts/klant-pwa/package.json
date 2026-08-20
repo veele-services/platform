@@ -17,7 +17,7 @@
     "clsx": "catalog:",
     "drizzle-orm": "catalog:",
     "lucide-react": "catalog:",
-    "next": "^15.5.0",
+    "next": "15.5.21",
     "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "react": "catalog:",

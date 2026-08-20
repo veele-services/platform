@@ -156,7 +156,9 @@ test("3. Personnel PWA", async ({ page }) => {
 
 test("4. Customer PWA", async ({ page }) => {
   await useIdentity(page, "20000000-0000-4000-8000-000000000105");
-  await page.goto(customerUrl("/klant/opdrachten"));
+  await page.goto(customerUrl("/klant/opdrachten"), {
+    waitUntil: "domcontentloaded",
+  });
   await expectRealApp(page);
   await expect(page.locator("main")).toContainText(
     /Runtime Assignment A|RTA-A001/,
@@ -164,11 +166,15 @@ test("4. Customer PWA", async ({ page }) => {
   await expect(page.locator("main")).not.toContainText(
     /Runtime Assignment B|RTB-A001|internal-only/i,
   );
-  await page.goto(customerUrl("/klant/rapporten"));
+  await page.goto(customerUrl("/klant/rapporten"), {
+    waitUntil: "domcontentloaded",
+  });
   await expect(page.locator("main")).toContainText(
     /Runtime approved report A|Rapport|Goedgekeurd/,
   );
-  await page.goto(customerUrl("/klant/facturen"));
+  await page.goto(customerUrl("/klant/facturen"), {
+    waitUntil: "domcontentloaded",
+  });
   await expect(page.locator("main")).toContainText(
     /RTA-INV-001|Factuur|Invoice/,
   );

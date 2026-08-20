@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -147,6 +149,43 @@ jobs:
       - name: Check exact branch-head diff
         if: github.event_name != 'pull_request'
         run: git diff --check HEAD^ HEAD
+
+  dependency-security:
+    name: Finding 8 / dependency and CVE security
+    needs: exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fieldgrid:dependency-security:check
+      - run: pnpm fieldgrid:dependency-security:audit
+
+      - name: Upload Finding 8 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-head-dependency-security
+          path: artifacts/dependency-security/**
+          if-no-files-found: error
 
   runtime-safety-database:
     name: Runtime Safety / ${{ matrix.lane }}
@@ -485,6 +524,7 @@ jobs:
       - runtime-safety-static
       - runtime-safety-build
       - runtime-safety-diff
+      - dependency-security
       - runtime-safety-database
       - runtime-entrypoint
       - deploy-health

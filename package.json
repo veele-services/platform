@@ -181,7 +181,10 @@
     "fieldgrid:runtime-entrypoints:write": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --write",
     "fieldgrid:runtime-entrypoints:check": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --check",
     "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs && node --test tests/tooling/current-main-baseline-report.test.mjs",
-    "fieldgrid:playwright": "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
+    "fieldgrid:dependency-security:check": "node scripts/fieldgrid-dependency-security.mjs --check && node --test tests/security/fieldgrid-dependency-security.test.mjs",
+    "fieldgrid:dependency-security:audit": "node scripts/fieldgrid-dependency-security.mjs --run",
+    "fieldgrid:workflow-bot:check": "node scripts/fieldgrid-workflow-bot-coverage.mjs && node --test tests/security/fieldgrid-workflow-bot-coverage.test.mjs",
+    "fieldgrid:playwright": "pnpm fieldgrid:workflow-bot:check && node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
     "fieldgrid:playwright:install": "playwright install --with-deps chromium",
     "fieldgrid:playwright:fixtures": "node e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs",
     "fieldgrid:playwright:evidence": "node e2e/fieldgrid/finalize-runtime-evidence.mjs && node e2e/fieldgrid/validate-runtime-evidence.mjs",
@@ -192,9 +195,9 @@
   "private": true,
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
-    "playwright": "1.51.1",
+    "playwright": "1.55.1",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3",
-    "@playwright/test": "1.51.1"
+    "@playwright/test": "1.55.1"
   }
 }
