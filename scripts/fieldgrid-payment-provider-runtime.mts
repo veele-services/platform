@@ -193,7 +193,7 @@ try {
     (error) =>
       error instanceof MollieProviderError &&
       error.kind === "malformed_response" &&
-      !error.retryable,
+      error.retryable,
   );
   await assert.rejects(
     fetchMolliePayment("tr_runtime_wrong_id"),
