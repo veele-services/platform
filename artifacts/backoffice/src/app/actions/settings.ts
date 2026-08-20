@@ -52,6 +52,7 @@ import {
   type TenantEmailApiProvider,
   type TenantEmailTransport,
 } from "@workspace/db/email-service";
+import { encryptTenantSmtpPassword } from "@workspace/db/email-secret-crypto";
 import type { ActionResult } from "./customers";
 import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
@@ -312,7 +313,7 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     smtpEncryption:
       (r.smtpEncryption as "none" | "starttls" | "tls") ?? "starttls",
     smtpUsername: r.smtpUsername,
-    smtpPasswordConfigured: Boolean(r.smtpPassword),
+    smtpPasswordConfigured: Boolean(r.smtpPasswordEncrypted),
     smtpFromName: r.smtpFromName,
     smtpFromEmail: r.smtpFromEmail,
     smtpReplyTo: r.smtpReplyTo,
@@ -571,8 +572,23 @@ export async function updateMailSettings(
 
   if (data.clearPassword) {
     updateData.smtpPassword = null;
+    updateData.smtpPasswordEncrypted = null;
   } else if (data.smtpPassword?.trim()) {
-    updateData.smtpPassword = data.smtpPassword.trim();
+    try {
+      updateData.smtpPasswordEncrypted = encryptTenantSmtpPassword(
+        tenantId,
+        data.smtpPassword.trim(),
+      );
+      updateData.smtpPassword = null;
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "SMTP-wachtwoord versleutelen mislukt.",
+      };
+    }
   }
 
   await db

@@ -89,6 +89,13 @@ Voor SendGrid geldt aanvullend:
 De API key wordt nooit teruggestuurd naar de browser, gelogd of in auditmetadata
 opgenomen. Foutmeldingen verwijderen SendGrid-keys en Bearer-tokens.
 
+Tenant SMTP-wachtwoorden gebruiken dezelfde gecentraliseerde AES-256-GCM
+cryptoboundary als moderne providersecrets, met de tenant-ID als authenticated
+additional data. Runtimecode leest uitsluitend `smtp_password_encrypted`; de
+oude plaintextkolom bestaat alleen voor de gecontroleerde backfill en wordt door
+een databasetrigger tegen nieuwe plaintextwrites beschermd. Zie
+`docs/deployment/smtp-credential-backfill.md`.
+
 ## Gemigreerde mailflows
 
 De volgende surfaces gebruiken de centrale service:

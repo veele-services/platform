@@ -8,6 +8,7 @@ function read(path) {
 
 test("platform email service centralizes providers, encrypted config and delivery logging", () => {
   const service = read("lib/db/src/email-service.ts");
+  const secretCrypto = read("lib/db/src/email-secret-crypto.ts");
   const smtp = read("lib/db/src/email-smtp.ts");
   const schema = read("lib/db/src/schema/platform-email.ts");
   const migration = read("lib/db/migrations/093_platform_email_providers.sql");
@@ -28,7 +29,8 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(sendGrid, /attachment\.content\.toString\("base64"\)/u);
   assert.match(service, /SG\\\.\[A-Za-z0-9\._-\]/u);
   assert.match(service, /sendSmtpMail/u);
-  assert.match(service, /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY/u);
+  assert.match(secretCrypto, /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY/u);
+  assert.match(secretCrypto, /aes-256-gcm/u);
   assert.match(service, /encryptPlatformEmailConfig/u);
   assert.match(service, /decryptPlatformEmailConfig/u);
   assert.match(service, /safeDecryptPlatformEmailConfig/u);

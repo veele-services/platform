@@ -8,6 +8,11 @@ import { sendSmtpMail, type SmtpEncryption, type SmtpMailConfig } from "./email-
 import { consumeRenderedEmailMetadata, renderEmailTemplate, type EmailTemplateKey, type EmailTemplateVariables } from "./email-templates";
 import { normalizeSendGridApiRegion, sendSendGridMail, type SendGridApiRegion } from "./email-sendgrid";
 import { selectEmailProviderForMessage, type FieldgridEmailProviderScope } from "./email-provider-resolution";
+import {
+  decryptEmailSecretJson,
+  decryptTenantSmtpPassword,
+  encryptEmailSecretJson,
+} from "./email-secret-crypto";
 import { isTenantRuntimeActive } from "./tenant-context";
 
 export type PlatformEmailProviderType = "sendgrid_api" | "resend_api" | "smtp";
@@ -130,8 +135,6 @@ export type SavePlatformEmailProviderInput = {
 const DEFAULT_FROM_EMAIL = "noreply@fieldgrid.nl";
 const DEFAULT_FROM_NAME = "Fieldgrid";
 const DEFAULT_SENDING_DOMAIN = "fieldgrid.nl";
-const ENCRYPTION_KEY_ENV = "FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY";
-const LEGACY_ENCRYPTION_KEY_ENV = "PLATFORM_EMAIL_CONFIG_ENCRYPTION_KEY";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -187,38 +190,8 @@ function sanitizeError(error: unknown): string {
     .slice(0, 1800);
 }
 
-function getEncryptionKey(): Buffer {
-  const secret = process.env[ENCRYPTION_KEY_ENV] ?? process.env[LEGACY_ENCRYPTION_KEY_ENV];
-  if (!secret) {
-    throw new Error(`${ENCRYPTION_KEY_ENV} must be set before storing platform e-mail secrets.`);
-  }
-
-  if (secret.startsWith("base64:")) {
-    const decoded = Buffer.from(secret.slice("base64:".length), "base64");
-    if (decoded.length === 32) return decoded;
-  }
-
-  if (secret.startsWith("hex:")) {
-    const decoded = Buffer.from(secret.slice("hex:".length), "hex");
-    if (decoded.length === 32) return decoded;
-  }
-
-  return crypto.createHash("sha256").update(secret, "utf8").digest();
-}
-
 export function encryptPlatformEmailConfig(config: EmailProviderConfig): string {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
-  const plaintext = Buffer.from(JSON.stringify(config), "utf8");
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return JSON.stringify({
-    v: 1,
-    alg: "aes-256-gcm",
-    iv: iv.toString("base64"),
-    tag: tag.toString("base64"),
-    data: encrypted.toString("base64"),
-  });
+  return encryptEmailSecretJson(config);
 }
 
 export function decryptPlatformEmailConfig(value: string | null | undefined): EmailProviderConfig {
@@ -229,14 +202,7 @@ export function decryptPlatformEmailConfig(value: string | null | undefined): Em
     return isRecord(parsed) ? (parsed as EmailProviderConfig) : {};
   }
 
-  const iv = Buffer.from(String(parsed.iv ?? ""), "base64");
-  const tag = Buffer.from(String(parsed.tag ?? ""), "base64");
-  const data = Buffer.from(String(parsed.data ?? ""), "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", getEncryptionKey(), iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
-  const config = JSON.parse(decrypted) as unknown;
-  return isRecord(config) ? (config as EmailProviderConfig) : {};
+  return decryptEmailSecretJson(value) as EmailProviderConfig;
 }
 
 function safeDecryptPlatformEmailConfig(value: string | null | undefined): {
@@ -308,7 +274,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
       smtpPort: organizationSettingsTable.smtpPort,
       smtpEncryption: organizationSettingsTable.smtpEncryption,
       smtpUsername: organizationSettingsTable.smtpUsername,
-      smtpPassword: organizationSettingsTable.smtpPassword,
+      smtpPasswordEncrypted: organizationSettingsTable.smtpPasswordEncrypted,
       smtpFromName: organizationSettingsTable.smtpFromName,
       smtpFromEmail: organizationSettingsTable.smtpFromEmail,
       smtpReplyTo: organizationSettingsTable.smtpReplyTo,
@@ -345,7 +311,10 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
         port: settings.smtpPort,
         encryption: normalizeEncryption(settings.smtpEncryption),
         username: settings.smtpUsername,
-        password: settings.smtpPassword,
+        password: decryptTenantSmtpPassword(
+          settings.tenantId,
+          settings.smtpPasswordEncrypted,
+        ),
       },
     };
   }
