@@ -16,6 +16,7 @@
     --z-sticky: 50;
     --z-overlay: 80;
     --z-modal: 90;
+    --z-floating: 95;
     --z-toast: 100;
   }
 
