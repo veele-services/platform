@@ -41,6 +41,9 @@ content parser differentials. Fieldgrid therefore uses the pinned
 smallest existing-library solution that works in the server write path and in
 the client-side TipTap preview; building a custom parser or pulling in a DOM plus
 server DOM emulation would add more code and a larger trust surface.
+Its broad PostCSS dependency range is narrowed through a workspace override to
+8.5.26 so the sanitizer path does not retain known source-map disclosure or
+Nanoid unbounded-loop advisories.
 
 Any future tag, attribute, URL scheme or iframe provider requires an explicit
 security review and executable payload tests before it enters the allowlist.
