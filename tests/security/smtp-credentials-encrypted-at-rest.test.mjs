@@ -70,6 +70,10 @@ test("staging deployment backfills before activation and production remains read
   assert.doesNotMatch(backfill, /FIELDGRID_DEPLOY_ENV/u);
   assert.match(
     deploy,
+    /TARGET_ENVIRONMENT:\s*\$\{\{\s*github\.ref_name == 'production' && 'production' \|\| 'staging'\s*\}\}/u,
+  );
+  assert.match(
+    deploy,
     /Run database migrations[\s\S]*Backfill staging SMTP credentials[\s\S]*Verify no plaintext SMTP credentials remain[\s\S]*Activate release/u,
   );
   assert.match(
