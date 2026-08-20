@@ -3,12 +3,18 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const service = readFileSync("lib/db/src/personnel-availability.ts", "utf8");
-const action = readFileSync("artifacts/personeel-pwa/src/actions/availability.ts", "utf8");
+const action = readFileSync(
+  "artifacts/personeel-pwa/src/actions/availability.ts",
+  "utf8",
+);
 const form = readFileSync(
   "artifacts/personeel-pwa/src/app/(app)/beschikbaarheid/BeschikbaarheidForm.tsx",
   "utf8",
 );
-const runtime = readFileSync("scripts/fieldgrid-availability-delete-runtime.mts", "utf8");
+const runtime = readFileSync(
+  "scripts/fieldgrid-availability-delete-runtime.mts",
+  "utf8",
+);
 
 test("availability deletion is owned by the canonical tenant-bound transaction service", () => {
   assert.match(service, /deleteDateAvailabilityException/u);
@@ -27,6 +33,10 @@ test("the personnel action and UI require a canonical row version and recover fr
   assert.match(form, /deleteAvailabilityDay\(\{[\s\S]*expectedUpdatedAt/u);
   assert.match(form, /if \(result\.code === "conflict"\) setConflict\(true\)/u);
   assert.match(form, /Vernieuw en probeer opnieuw/u);
+  assert.match(
+    service,
+    /returning\(\{[\s\S]*updatedAt: availabilityDayEntriesTable\.updatedAt/u,
+  );
 });
 
 test("the permanent runtime proof covers authorization, concurrency, audit atomicity and replay", () => {
@@ -37,6 +47,8 @@ test("the permanent runtime proof covers authorization, concurrency, audit atomi
     "replayed: true",
     "Promise.all",
     "availability.exception.delete",
+    "saveDelete",
+    "storedVersion",
   ]) {
     assert.match(runtime, new RegExp(evidence.replaceAll(".", "\\."), "u"));
   }

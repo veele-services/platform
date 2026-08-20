@@ -9,6 +9,10 @@ revision while holding the row lock. A newer revision returns a recoverable `con
 the row unchanged. A replay after the same row was already deleted returns deterministic success
 with `replayed: true`.
 
+Save returns the database `RETURNING updated_at` value after the PostgreSQL trigger has run, not a
+locally guessed timestamp. An immediate save-to-delete sequence therefore uses the exact stored
+revision even before the UI refresh completes.
+
 The actual delete and its `availability.exception.delete` audit record commit in one transaction.
 If audit insertion fails, the delete rolls back. Cache revalidation happens only after that
 transaction has returned successfully. Tenant mismatches and inactive personnel fail closed.

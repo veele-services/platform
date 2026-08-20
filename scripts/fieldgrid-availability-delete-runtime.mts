@@ -8,9 +8,14 @@ import {
 } from "./fieldgrid-runtime-safety-lib.mjs";
 
 const parsedDatabase = new URL(databaseUrl());
-assert.ok(["127.0.0.1", "localhost", "::1", "postgres"].includes(parsedDatabase.hostname));
+assert.ok(
+  ["127.0.0.1", "localhost", "::1", "postgres"].includes(
+    parsedDatabase.hostname,
+  ),
+);
 
-const { deleteDateAvailabilityException } = await import("../lib/db/src/personnel-availability.ts");
+const { deleteDateAvailabilityException, saveDateAvailabilityExceptions } =
+  await import("../lib/db/src/personnel-availability.ts");
 const { pool } = await import("../lib/db/src/connection.ts");
 
 const client = await connect();
@@ -29,6 +34,7 @@ const dates = {
   inactive: "2098-01-04",
   atomic: "2098-01-05",
   concurrent: "2098-01-06",
+  saveDelete: "2098-01-07",
 };
 
 async function putEntry(personnelId: string, date: string, updatedAt: string) {
@@ -100,12 +106,14 @@ try {
      where action = 'availability.exception.delete' and metadata->>'date' = $1`,
     [dates.normal],
   );
-  assert.deepEqual(audit.rows, [{
-    tenant_id: tenantA,
-    user_id: activeUser,
-    resource: "availability_day_entries",
-    date: dates.normal,
-  }]);
+  assert.deepEqual(audit.rows, [
+    {
+      tenant_id: tenantA,
+      user_id: activeUser,
+      resource: "availability_day_entries",
+      date: dates.normal,
+    },
+  ]);
 
   const replay = await deleteDateAvailabilityException({
     tenantId: tenantA,
@@ -174,8 +182,13 @@ try {
       expectedUpdatedAt: v1,
     }),
     (error: unknown) => {
-      const candidate = error as { cause?: { code?: string; message?: string } };
-      return candidate.cause?.code === "P0001" && candidate.cause.message === "runtime audit rejection";
+      const candidate = error as {
+        cause?: { code?: string; message?: string };
+      };
+      return (
+        candidate.cause?.code === "P0001" &&
+        candidate.cause.message === "runtime audit rejection"
+      );
     },
   );
   assert.equal(await rowExists(activePersonnel, dates.atomic), true);
@@ -186,17 +199,72 @@ try {
 
   await putEntry(activePersonnel, dates.concurrent, v1);
   const concurrent = await Promise.all([
-    deleteDateAvailabilityException({ tenantId: tenantA, userId: activeUser, date: dates.concurrent, expectedUpdatedAt: v1 }),
-    deleteDateAvailabilityException({ tenantId: tenantA, userId: activeUser, date: dates.concurrent, expectedUpdatedAt: v1 }),
+    deleteDateAvailabilityException({
+      tenantId: tenantA,
+      userId: activeUser,
+      date: dates.concurrent,
+      expectedUpdatedAt: v1,
+    }),
+    deleteDateAvailabilityException({
+      tenantId: tenantA,
+      userId: activeUser,
+      date: dates.concurrent,
+      expectedUpdatedAt: v1,
+    }),
   ]);
-  assert.equal(concurrent.filter((result) => result.ok && result.deleted).length, 1);
-  assert.equal(concurrent.filter((result) => result.ok && result.replayed).length, 1);
+  assert.equal(
+    concurrent.filter((result) => result.ok && result.deleted).length,
+    1,
+  );
+  assert.equal(
+    concurrent.filter((result) => result.ok && result.replayed).length,
+    1,
+  );
   assert.equal(await rowExists(activePersonnel, dates.concurrent), false);
+
+  const saved = await saveDateAvailabilityExceptions({
+    tenantId: tenantA,
+    userId: activeUser,
+    exception: {
+      date: dates.saveDelete,
+      startTime: "10:00",
+      endTime: "16:00",
+      repeatType: "none",
+      isEmergencyAvailable: false,
+    },
+    maxDate: dates.saveDelete,
+  });
+  assert.equal(saved.ok, true);
+  if (!saved.ok) throw new Error(saved.message);
+  const storedVersion = await client.query(
+    `select updated_at from public.availability_day_entries
+     where personnel_id=$1 and date=$2`,
+    [activePersonnel, dates.saveDelete],
+  );
+  assert.equal(
+    new Date(saved.version).getTime(),
+    new Date(storedVersion.rows[0].updated_at).getTime(),
+  );
+  const savedDelete = await deleteDateAvailabilityException({
+    tenantId: tenantA,
+    userId: activeUser,
+    date: dates.saveDelete,
+    expectedUpdatedAt: saved.version,
+  });
+  assert.deepEqual(savedDelete, {
+    ok: true,
+    deleted: true,
+    replayed: false,
+  });
 
   console.log("FG-AVAILABILITY-DELETE runtime proof passed");
 } finally {
-  await client.query(`drop trigger if exists fieldgrid_runtime_reject_availability_delete_audit on public.audit_log`);
-  await client.query(`drop function if exists public.fieldgrid_runtime_reject_availability_delete_audit()`);
+  await client.query(
+    `drop trigger if exists fieldgrid_runtime_reject_availability_delete_audit on public.audit_log`,
+  );
+  await client.query(
+    `drop function if exists public.fieldgrid_runtime_reject_availability_delete_audit()`,
+  );
   await client.end();
   await pool.end();
 }
