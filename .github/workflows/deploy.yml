@@ -313,6 +313,21 @@ jobs:
           set -euo pipefail
           pnpm run db:migrate
 
+      - name: Backfill staging SMTP credentials
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_SMTP_BACKFILL_CONFIRM: smtp-encrypted-at-rest-v1
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:smtp-credential-backfill --apply
+
+      - name: Verify no plaintext SMTP credentials remain
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:smtp-credential-backfill
+
       - name: Activate release
         if: env.TARGET == 'production'
         run: |

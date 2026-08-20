@@ -34,9 +34,17 @@ the encrypted envelope and clears plaintext in one statement. A second run is
 idempotent. Activation is blocked until both `legacy_plaintext_count` and
 `conflicting_encrypted_count` are zero.
 
-The remediation tool refuses production targets. This sprint runs it only on a
-disposable PostgreSQL 17 test database and, after main approval, on staging via
-the repository release procedure.
+Apply mode reuses Fieldgrid's central database-environment isolation guard. It
+requires `APP_ENV=staging`, `TARGET_ENVIRONMENT=staging`, an exact matching
+Supabase project identity, and the staging git ref when a ref is present. The
+staging deploy runs apply after migrations and before activation, followed by a
+second read-only check.
+
+Check mode is read-only and also runs during a future production deployment.
+It blocks activation while legacy plaintext remains, without changing
+production data. This sprint runs apply only on a disposable PostgreSQL 17 test
+database and, after main approval, on staging via the repository release
+procedure.
 
 ## Rollback
 

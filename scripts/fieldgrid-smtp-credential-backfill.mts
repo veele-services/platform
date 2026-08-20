@@ -5,8 +5,11 @@ import {
   assertEmailEncryptionKeyConfigured,
   encryptTenantSmtpPassword,
 } from "../lib/db/src/email-secret-crypto.ts";
+import { assertDatabaseEnvironmentIsolation } from "../lib/db/src/database-environment.ts";
 
-const dbRequire = createRequire(new URL("../lib/db/package.json", import.meta.url));
+const dbRequire = createRequire(
+  new URL("../lib/db/package.json", import.meta.url),
+);
 const { Pool } = dbRequire("pg") as typeof import("pg");
 const APPLY_CONFIRMATION = "smtp-encrypted-at-rest-v1";
 
@@ -95,7 +98,9 @@ export async function applySmtpCredentialBackfill(
         continue;
       }
       if (row.smtp_password_encrypted) {
-        throw new Error("Conflicting SMTP credential state encountered during backfill.");
+        throw new Error(
+          "Conflicting SMTP credential state encountered during backfill.",
+        );
       }
 
       const encrypted = encryptTenantSmtpPassword(tenantId, row.smtp_password);
@@ -110,7 +115,9 @@ export async function applySmtpCredentialBackfill(
         [tenantId, encrypted],
       );
       if (updated.rowCount !== 1) {
-        throw new Error("SMTP credential row changed concurrently during backfill.");
+        throw new Error(
+          "SMTP credential row changed concurrently during backfill.",
+        );
       }
       await client.query("commit");
       migrated += 1;
@@ -126,27 +133,37 @@ export async function applySmtpCredentialBackfill(
     remaining.legacyPlaintextCount !== 0 ||
     remaining.conflictingEncryptedCount !== 0
   ) {
-    throw new Error("SMTP credential backfill finished with plaintext rows remaining.");
+    throw new Error(
+      "SMTP credential backfill finished with plaintext rows remaining.",
+    );
   }
   return { migrated, remaining };
 }
 
-function assertSafeTarget(databaseUrl: string): void {
-  const parsed = new URL(databaseUrl);
-  const environment = String(process.env.FIELDGRID_DEPLOY_ENV ?? "").toLowerCase();
-  if (
-    environment === "production" ||
-    /(?:^|[.-])prod(?:uction)?(?:[.-]|$)/iu.test(parsed.hostname)
-  ) {
-    throw new Error("Production SMTP credential backfill is disabled by this remediation tool.");
+export function assertSmtpCredentialBackfillTarget(
+  mode: "check" | "apply",
+  environment:
+    | NodeJS.ProcessEnv
+    | Record<string, string | undefined> = process.env,
+): void {
+  const isolation = assertDatabaseEnvironmentIsolation(environment);
+  if (mode === "apply" && isolation.environment !== "staging") {
+    throw new Error(
+      "SMTP credential backfill apply is restricted to the isolated staging environment.",
+    );
+  }
+  const gitRef = environment.GITHUB_REF_NAME?.trim();
+  if (mode === "apply" && gitRef && gitRef !== "staging") {
+    throw new Error("SMTP credential backfill apply requires the staging ref.");
   }
 }
 
 async function main(): Promise<void> {
   const mode = process.argv.includes("--apply") ? "apply" : "check";
   const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error("DATABASE_URL is required for SMTP credential backfill.");
-  assertSafeTarget(databaseUrl);
+  if (!databaseUrl)
+    throw new Error("DATABASE_URL is required for SMTP credential backfill.");
+  assertSmtpCredentialBackfillTarget(mode);
   if (
     mode === "apply" &&
     process.env.FIELDGRID_SMTP_BACKFILL_CONFIRM !== APPLY_CONFIRMATION
@@ -179,8 +196,13 @@ async function main(): Promise<void> {
         conflicting_encrypted_count: counts.conflictingEncryptedCount,
       }),
     );
-    if (counts.legacyPlaintextCount > 0 || counts.conflictingEncryptedCount > 0) {
-      throw new Error("Plaintext tenant SMTP credentials still require backfill.");
+    if (
+      counts.legacyPlaintextCount > 0 ||
+      counts.conflictingEncryptedCount > 0
+    ) {
+      throw new Error(
+        "Plaintext tenant SMTP credentials still require backfill.",
+      );
     }
   } finally {
     client.release();
@@ -188,10 +210,15 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main().catch((error: unknown) => {
     console.error(
-      error instanceof Error ? error.message : "SMTP credential backfill failed.",
+      error instanceof Error
+        ? error.message
+        : "SMTP credential backfill failed.",
     );
     process.exitCode = 1;
   });
