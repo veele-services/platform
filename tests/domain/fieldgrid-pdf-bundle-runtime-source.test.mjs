@@ -19,6 +19,9 @@ test("Next server builds externalize PDFKit in every PDF application", () => {
 
 test("CI and release builds execute the compiled PDF bundle runtime gate", () => {
   const packageJson = JSON.parse(read("package.json"));
+  const exactHeadWorkflow = read(
+    ".github/workflows/main-exact-head-validation.yml",
+  );
   assert.match(
     packageJson.scripts.build,
     /fieldgrid:pdf-bundle-runtime:check/u,
@@ -27,9 +30,10 @@ test("CI and release builds execute the compiled PDF bundle runtime gate", () =>
     packageJson.scripts["fieldgrid:pdf-bundle-runtime:check"],
     "node scripts/fieldgrid-pdf-bundle-runtime-check.mjs",
   );
+  assert.match(exactHeadWorkflow, /pnpm fieldgrid:pdf-bundle-runtime:check/u);
   assert.match(
-    read(".github/workflows/main-exact-head-validation.yml"),
-    /pnpm fieldgrid:pdf-bundle-runtime:check/u,
+    exactHeadWorkflow,
+    /pull_request:[\s\S]*- main\n\s+- codex\/fieldgrid-uiux-master/u,
   );
 });
 

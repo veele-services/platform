@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/fieldgrid-uiux-master
   push:
     branches:
       - main
