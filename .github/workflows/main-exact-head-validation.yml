@@ -124,6 +124,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r --if-present run build
+      - run: pnpm fieldgrid:pdf-bundle-runtime:check
 
   runtime-safety-diff:
     name: Runtime Safety / diff-check

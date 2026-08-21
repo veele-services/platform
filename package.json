@@ -9,7 +9,7 @@
   },
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_execpath\" in *pnpm*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build && pnpm fieldgrid:pdf-bundle-runtime:check",
     "test": "node --test tests/*.test.mjs",
     "fieldgrid:deploy-health-gate:test": "bash -n scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && shellcheck scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && node --test tests/fieldgrid-deploy-health-gate.test.mjs",
     "fieldgrid:test:baseline-differential": "node scripts/fieldgrid-test-baseline-differential.mjs",
@@ -172,6 +172,7 @@
     "fieldgrid:invoice-sprint10-release-gate": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
     "fieldgrid:invoice-sprint10-release-gate:check": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs --check && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
     "fieldgrid:invoice-sprint10-release-gate:strict": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs --strict-evidence && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
+    "fieldgrid:pdf-bundle-runtime:check": "node scripts/fieldgrid-pdf-bundle-runtime-check.mjs",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
