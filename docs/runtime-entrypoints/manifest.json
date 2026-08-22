@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:e1023fc3e0ac73eb1cacfde8d6a11b9438e4152349a776d264719392db4780d2",
+  "inventoryHash": "sha256:4c78b2ff9f1cd5cf2c9d552047d7216e0b38be3402ba7da2fcf5d58ad213eaf0",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -65,7 +65,7 @@
   },
   "kindHashes": {
     "server-action": "sha256:e2a27a15cb2e004754ad5f6626754b4c84b407fb622d98a1409eb1d146b61cf8",
-    "route-handler": "sha256:e8bd34dddc186bacbe0775943c6a240559955c90553392f1c536688d708bad25",
+    "route-handler": "sha256:aac44e504795bbf2b4c8a98af2b85f5de7a9993047aa5820b2114cb5d38a5e66",
     "middleware": "sha256:d1c24050b9bcb8ff6454a27a6b93d05d673ff731469609d11e3d0c8f746477fb",
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:ec92eb3e630e8977bb3585735ea6d5abdb24f39a24e6a245ee611e37fe10729c",
