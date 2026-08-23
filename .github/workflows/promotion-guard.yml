@@ -30,6 +30,8 @@ jobs:
 
       - name: Validate source branch
         shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
 
@@ -53,6 +55,16 @@ jobs:
               if [[ "$head_branch" == "main" ]]; then
                 exit 0
               fi
+              if [[ "$head_branch" == codex/promote-* ]]; then
+                git fetch origin main --depth=1
+                if git diff --quiet origin/main "$PR_HEAD_SHA"; then
+                  echo "Verified resolved promotion branch has the exact main tree."
+                  exit 0
+                fi
+                echo "::error title=Promotion branch differs from main::A resolved codex/promote-* staging PR must have the exact same tree as main."
+                git diff --stat origin/main "$PR_HEAD_SHA"
+                exit 1
+              fi
               ;;
             production)
               if [[ "$head_branch" == "staging" || "$head_branch" == hotfix/* ]]; then
@@ -64,6 +76,7 @@ jobs:
           echo "::error title=Invalid promotion path::Pull requests into '$base_branch' must follow the documented release flow."
           echo "Allowed paths:"
           echo "  main -> staging"
+          echo "  codex/promote-* -> staging (exact main tree only)"
           echo "  staging -> production"
           echo "  hotfix/* -> production"
           echo
