@@ -68,3 +68,23 @@ test("dossier mutations recheck subject access and note classification", async (
   assert.match(action, /notes_restricted/u);
   assert.match(action, /inArray\(dossierNotesTable\.classification, visibleNoteClassifications\)/u);
 });
+
+test("customer deletion preserves related data when a dossier blocks hard delete", async () => {
+  const action = await read("artifacts/backoffice/src/app/actions/customers.ts");
+  const deleteCustomer = action.slice(
+    action.indexOf("export async function deleteCustomer"),
+    action.indexOf("export async function inviteCustomerPortal"),
+  );
+
+  assert.match(deleteCustomer, /eq\(dossierProfilesTable\.tenantId, tenantId\)/u);
+  assert.match(deleteCustomer, /eq\(dossierProfilesTable\.customerId, id\)/u);
+  assert.ok(
+    deleteCustomer.indexOf("if (dossier)") <
+      deleteCustomer.indexOf(".delete(customerContactsTable)"),
+  );
+  assert.match(deleteCustomer, /await db\.transaction\(async \(tx\) => \{/u);
+  assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customerContactsTable\)/u);
+  assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customerNotesTable\)/u);
+  assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customersTable\)/u);
+  assert.match(deleteCustomer, /tx\.insert\(auditLogTable\)/u);
+});

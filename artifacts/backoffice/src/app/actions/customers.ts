@@ -17,6 +17,7 @@ import {
   insertCustomerSchema,
   updateCustomerSchema,
   personnelTable,
+  dossierProfilesTable,
   PORTAL_ONBOARDING_VERSION,
   tenantsTable,
 } from "@workspace/db";
@@ -1020,24 +1021,44 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
-  await db
-    .delete(customerContactsTable)
-    .where(eq(customerContactsTable.customerId, id));
-  await db
-    .delete(customerNotesTable)
-    .where(eq(customerNotesTable.customerId, id));
-  await db
-    .delete(customersTable)
+  const [dossier] = await db
+    .select({ id: dossierProfilesTable.id })
+    .from(dossierProfilesTable)
     .where(
-      and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
-    );
+      and(
+        eq(dossierProfilesTable.tenantId, tenantId),
+        eq(dossierProfilesTable.customerId, id),
+      ),
+    )
+    .limit(1);
+  if (dossier) {
+    return {
+      success: false,
+      message:
+        "Deze klant heeft een Dossier 360 en kan daarom niet definitief worden verwijderd. Zet de klant op inactief; definitieve verwijdering verloopt later via het bewaarbeleid.",
+    };
+  }
 
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: "delete",
-    resource: "customers",
-    resourceId: id,
-    metadata: { name: customer.name },
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(customerContactsTable)
+      .where(eq(customerContactsTable.customerId, id));
+    await tx
+      .delete(customerNotesTable)
+      .where(eq(customerNotesTable.customerId, id));
+    await tx
+      .delete(customersTable)
+      .where(
+        and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
+      );
+
+    await tx.insert(auditLogTable).values({
+      userId: user.id,
+      action: "delete",
+      resource: "customers",
+      resourceId: id,
+      metadata: { name: customer.name },
+    });
   });
 
   revalidatePath("/customers");
