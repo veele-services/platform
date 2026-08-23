@@ -1,4 +1,4 @@
-import { getPlatformEmailProviderSettings } from "@workspace/db/email-service";
+import { getPlatformEmailProviderSettings } from "../lib/db/src/email-service.ts";
 
 async function main(): Promise<void> {
   const providers = await getPlatformEmailProviderSettings();

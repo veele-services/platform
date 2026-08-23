@@ -20,6 +20,11 @@ test("staging deployment verifies transactional email readiness before activatio
   assert.match(script, /provider\.isActive/u);
   assert.match(script, /provider\.configured/u);
   assert.match(script, /provider\.lastTestStatus === "success"/u);
+  assert.match(
+    script,
+    /from "\.\.\/lib\/db\/src\/email-service\.ts"/u,
+  );
+  assert.doesNotMatch(script, /from "@workspace\/db/u);
   assert.doesNotMatch(script, /process\.env\.RESEND_API_KEY/u);
   assert.match(script, /process\.exitCode = 1/u);
 });
