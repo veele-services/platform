@@ -20,6 +20,7 @@ test("backoffice shell follows the compact premium navigation contract", async (
   assert.match(globals, /\.sidebar-link\.active::before/u);
   assert.match(globals, /tenant-sidebar-surface/u);
   assert.match(header, /h-\[70px\]/u);
+  assert.match(header, /timeZone: "Europe\/Amsterdam"/u);
   assert.match(header, /operationele context/u);
   assert.doesNotMatch(header, /<h1/u);
   assert.match(routes, /title: "Medewerkers"/u);
@@ -54,7 +55,8 @@ test("planning uses one calm cockpit header, a visible desktop queue and a displ
   assert.match(source, /<h1[^>]*>[\s\S]*Planning[\s\S]*<\/h1>/u);
   assert.match(source, /xl:grid-cols-\[300px_minmax\(0,1fr\)\]/u);
   assert.match(source, /title="Weergave"/u);
-  assert.match(source, /Zoek medewerker, klant, object of werkbon/u);
+  assert.match(source, /Zoek klant, object of werkbon/u);
+  assert.doesNotMatch(source, /Zoek medewerker/u);
   assert.doesNotMatch(source, /aria-label="Zoeken"/u);
 });
 
