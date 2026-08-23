@@ -312,11 +312,6 @@ export default async function ObjectDetailPage({ params }: Props) {
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <DetailItem label="Toegang" value={object.accessInfo} />
-          <DetailItem label="Sleutels" value={object.keyInfo} />
-          <DetailItem label="Alarm" value={object.alarmInfo} />
-        </div>
       </Section>
 
       <Section

@@ -85,9 +85,6 @@ export type ObjectDetail = {
   contactPhone: string | null;
   contactEmail: string | null;
   serviceType: string | null;
-  accessInfo: string | null;
-  keyInfo: string | null;
-  alarmInfo: string | null;
   fixedInstructions: string | null;
   specialNotes: string | null;
   requiredRoles: string[];
@@ -110,9 +107,6 @@ export type ObjectFormInput = {
   contactPhone?: string;
   contactEmail?: string;
   serviceType?: string;
-  accessInfo?: string;
-  keyInfo?: string;
-  alarmInfo?: string;
   fixedInstructions?: string;
   specialNotes?: string;
   requiredRoles?: string[];
@@ -567,9 +561,6 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
       contactPhone:         objectsTable.contactPhone,
       contactEmail:         objectsTable.contactEmail,
       serviceType:          objectsTable.serviceType,
-      accessInfo:           objectsTable.accessInfo,
-      keyInfo:              objectsTable.keyInfo,
-      alarmInfo:            objectsTable.alarmInfo,
       fixedInstructions:    objectsTable.fixedInstructions,
       specialNotes:         objectsTable.specialNotes,
       requiredRoles:        objectsTable.requiredRoles,
@@ -1227,9 +1218,6 @@ function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string;
     contactPhone:         data.contactPhone?.trim()      || null,
     contactEmail:         data.contactEmail?.trim()      || null,
     serviceType:          data.serviceType?.trim()       || null,
-    accessInfo:           data.accessInfo?.trim()        || null,
-    keyInfo:              data.keyInfo?.trim()           || null,
-    alarmInfo:            data.alarmInfo?.trim()         || null,
     fixedInstructions:    data.fixedInstructions?.trim() || null,
     specialNotes:         data.specialNotes?.trim()      || null,
     requiredRoles:        data.requiredRoles         ?? [],
