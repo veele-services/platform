@@ -51,6 +51,8 @@ export type TransactionalEmailResult = {
   providerMessageId?: string | null;
   /** Whether a provider could have accepted the message before an error surfaced. */
   deliveryEffect: "not_attempted" | "accepted" | "unknown";
+  /** Internal optimistic-concurrency token used by the provider test flow. */
+  providerConfigurationFingerprint?: string;
 };
 
 export type SensitiveOtpTransport = (message: {
@@ -94,6 +96,7 @@ type ResolvedProvider = {
   fromName: string | null;
   replyToEmail: string | null;
   config: EmailProviderConfig;
+  configurationFingerprint?: string;
 };
 
 export type PlatformEmailProviderAdminView = {
@@ -229,6 +232,24 @@ function safeDecryptPlatformEmailConfig(value: string | null | undefined): {
       error: "E-mailsecret kon niet worden ontcijferd. Vul de API key of het wachtwoord opnieuw in en sla opnieuw op.",
     };
   }
+}
+
+function platformProviderConfigurationFingerprint(
+  provider: PlatformEmailProvider,
+): string {
+  return crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        providerType: provider.providerType,
+        isActive: provider.isActive,
+        encryptedConfigJson: provider.encryptedConfigJson,
+        fromEmail: provider.fromEmail,
+        fromName: provider.fromName,
+        replyToEmail: provider.replyToEmail,
+      }),
+    )
+    .digest("hex");
 }
 
 export function maskEmailSecret(value: string | null | undefined, prefixLength = 3): string | null {
@@ -367,6 +388,8 @@ async function resolveActiveProvider(tenantId?: string | null): Promise<Resolved
       fromName: provider.fromName,
       replyToEmail: provider.replyToEmail,
       config,
+      configurationFingerprint:
+        platformProviderConfigurationFingerprint(provider),
     };
     return selectEmailProviderForMessage({
       messageTenantId: tenantId,
@@ -610,6 +633,8 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: provider.providerType,
       providerId: provider.id,
       deliveryEffect: "not_attempted",
+      providerConfigurationFingerprint:
+        provider.configurationFingerprint,
     };
   }
 
@@ -628,6 +653,8 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerId: provider.id,
       providerMessageId,
       deliveryEffect: "accepted",
+      providerConfigurationFingerprint:
+        provider.configurationFingerprint,
     };
   } catch (error) {
     const message = sanitizeError(error);
@@ -638,6 +665,8 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: provider.providerType,
       providerId: provider.id,
       deliveryEffect: "unknown",
+      providerConfigurationFingerprint:
+        provider.configurationFingerprint,
     };
   }
 }
@@ -1067,17 +1096,35 @@ export async function sendPlatformEmailTest(input: { to: string; triggeredBy?: s
     triggeredByType: input.triggeredBy ? "platform_admin" : "system",
   });
 
-  if (result.providerId) {
-    await db
-      .update(platformEmailProvidersTable)
-      .set({
-        lastTestedAt: new Date(),
-        lastTestStatus: result.success ? "success" : "failed",
-        lastTestError: result.success ? null : (result.error ?? "Testmail mislukt."),
-        status: result.success ? "configured" : "error",
-        updatedAt: new Date(),
-      })
-      .where(eq(platformEmailProvidersTable.id, result.providerId));
+  if (result.providerId && result.providerConfigurationFingerprint) {
+    await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(platformEmailProvidersTable)
+        .where(eq(platformEmailProvidersTable.id, result.providerId!))
+        .limit(1)
+        .for("update");
+      if (
+        !current ||
+        platformProviderConfigurationFingerprint(current) !==
+          result.providerConfigurationFingerprint
+      ) {
+        return;
+      }
+
+      await tx
+        .update(platformEmailProvidersTable)
+        .set({
+          lastTestedAt: new Date(),
+          lastTestStatus: result.success ? "success" : "failed",
+          lastTestError: result.success
+            ? null
+            : (result.error ?? "Testmail mislukt."),
+          status: result.success ? "configured" : "error",
+          updatedAt: new Date(),
+        })
+        .where(eq(platformEmailProvidersTable.id, result.providerId!));
+    });
   }
 
   return result;

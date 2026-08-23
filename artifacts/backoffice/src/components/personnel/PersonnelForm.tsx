@@ -358,11 +358,14 @@ export function PersonnelForm({
           toast.success(
             "Personeelsrecord aangemaakt en activatiemail verstuurd",
           );
-        } else if (result.data.invite.sent) {
+        } else if (result.data.invite.sent === true) {
           toast.warning(result.data.invite.message, { duration: 8000 });
+        } else if (result.data.invite.sent === null) {
+          toast.warning(result.data.invite.message, { duration: 10000 });
         } else {
           toast.warning(
-            `Personeelsrecord aangemaakt, maar activatiemail niet verstuurd: ${result.data.invite.message ?? "onbekende fout"}`,
+            result.data.invite.message ??
+              "Het personeelsrecord is aangemaakt, maar de activatiemail kon niet worden verstuurd. Controleer de centrale e-mailinstellingen in platformbeheer.",
             { duration: 8000 },
           );
         }

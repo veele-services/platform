@@ -25,7 +25,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  PortalInviteDeliveryUncertainError,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { personnelTenantEntryUrl } from "@/lib/personnel-portal-entry";
 import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
@@ -299,7 +302,7 @@ export type PersonnelFormInput = {
 export type PersonnelCreateResult = {
   id: string;
   invite?: {
-    sent: boolean;
+    sent: boolean | null;
     message?: string;
   };
 };
@@ -885,10 +888,11 @@ export async function createPersonnel(
         });
         inviteResult = { sent: true };
       } catch (inviteError) {
-        const message =
-          inviteError instanceof Error
-            ? inviteError.message
-            : "Activatiemail versturen mislukt.";
+        const deliveryUncertain =
+          inviteError instanceof PortalInviteDeliveryUncertainError;
+        const message = deliveryUncertain
+          ? inviteError.message
+          : "Het personeelsrecord is aangemaakt, maar de activatiemail kon niet worden verstuurd. Controleer de centrale e-mailinstellingen in platformbeheer.";
         console.error("[personnel] Auto-invite delivery failed.");
         try {
           await db.insert(auditLogTable).values({
@@ -897,12 +901,19 @@ export async function createPersonnel(
             action: "auto_invite_personnel_failed",
             resource: "personnel",
             resourceId: createdId,
-            metadata: { failureCode: "activation_delivery_failed" },
+            metadata: {
+              failureCode: deliveryUncertain
+                ? "activation_delivery_unknown"
+                : "activation_delivery_failed",
+            },
           });
         } catch {
           console.error("[personnel] Auto-invite failure audit failed.");
         }
-        inviteResult = { sent: false, message };
+        inviteResult = {
+          sent: deliveryUncertain ? null : false,
+          message,
+        };
       }
 
       if (activationInvite) {
