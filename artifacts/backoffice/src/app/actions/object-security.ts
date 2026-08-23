@@ -84,6 +84,13 @@ export type ReadObjectSecurityActionResult = {
   message: string;
 };
 
+async function requireObjectSecurityPermission(
+  action: "read" | "write",
+): Promise<void> {
+  await requirePermission("objects", "read");
+  await requirePermission("object_security", action);
+}
+
 export async function createObjectSecurityRecordAction(raw: unknown): Promise<{
   ok: boolean;
   message: string;
@@ -97,7 +104,7 @@ export async function createObjectSecurityRecordAction(raw: unknown): Promise<{
         "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
     };
   }
-  await requirePermission("object_security", "write");
+  await requireObjectSecurityPermission("write");
   const parsed = createRecordSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -189,7 +196,7 @@ async function currentSecurityActor(): Promise<ObjectSecurityActor> {
 
 export async function getObjectSecurityAccessState(): Promise<ObjectSecurityAccessState> {
   assertObjectSecurityManagementAccessEnabled();
-  await requirePermission("object_security", "read");
+  await requireObjectSecurityPermission("read");
   const actor = await currentSecurityActor();
   return {
     maskedEmail: maskObjectSecurityEmail(actor.email),
@@ -209,7 +216,7 @@ export async function requestObjectSecurityOtpAction(
         "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
     };
   }
-  await requirePermission("object_security", "read");
+  await requireObjectSecurityPermission("read");
   const parsedObjectId = objectIdSchema.safeParse(rawObjectId);
   if (!parsedObjectId.success)
     return { ok: false, message: "Ongeldig object." };
@@ -274,7 +281,7 @@ export async function verifyObjectSecurityOtpAction(input: {
         "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
     };
   }
-  await requirePermission("object_security", "read");
+  await requireObjectSecurityPermission("read");
   const parsed = z
     .object({
       objectId: objectIdSchema,
@@ -327,7 +334,7 @@ export async function readObjectSecurityRecordsAction(input: {
         "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
     };
   }
-  await requirePermission("object_security", "read");
+  await requireObjectSecurityPermission("read");
   const parsed = z.object({ objectId: objectIdSchema }).safeParse(input);
   if (!parsed.success)
     return { ok: false, records: [], message: "De ontgrendeling is ongeldig." };
@@ -377,15 +384,8 @@ export async function lockObjectSecurityAction(input: {
   const cookieStore = await cookies();
   const handle = cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)?.value;
   await clearUnlockCookie();
-  try {
-    assertObjectSecurityManagementAccessEnabled();
-  } catch {
-    return;
-  }
-  await requirePermission("object_security", "read");
   const parsed = z.object({ objectId: objectIdSchema }).safeParse(input);
-  if (!parsed.success) return;
-  if (!handle) return;
+  if (!parsed.success || !handle) return;
   const actor = await currentSecurityActor();
   await revokeManagementObjectSecurityUnlock({
     tenantId: actor.tenantId,
