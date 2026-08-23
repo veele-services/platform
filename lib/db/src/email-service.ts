@@ -53,6 +53,13 @@ export type TransactionalEmailResult = {
   deliveryEffect: "not_attempted" | "accepted" | "unknown";
 };
 
+export type SensitiveOtpTransport = (message: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}) => Promise<void>;
+
 export type TemplatedEmailInput = Omit<TransactionalEmailInput, "subject" | "html" | "text" | "templateKey"> & {
   templateKey: EmailTemplateKey;
   variables: EmailTemplateVariables;
@@ -628,6 +635,109 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     return {
       success: false,
       error: message,
+      providerType: provider.providerType,
+      providerId: provider.id,
+      deliveryEffect: "unknown",
+    };
+  }
+}
+
+/**
+ * Dedicated, synchronous OTP delivery path.
+ *
+ * It deliberately bypasses the general delivery log, retry/outbox path,
+ * templates and idempotency metadata because those mechanisms may persist the
+ * message body. The six-digit value exists only in this call stack and the
+ * provider request. An uncertain provider outcome is returned as failure so
+ * the caller can invalidate the challenge.
+ */
+export async function sendSensitiveOtpEmail(
+  input: { to: string; code: string; tenantId: string },
+  options: { testTransport?: SensitiveOtpTransport } = {},
+): Promise<TransactionalEmailResult> {
+  if (!/^\d{6}$/u.test(input.code)) {
+    return {
+      success: false,
+      error: "Ongeldige beveiligingscode.",
+      providerType: "none",
+      providerId: null,
+      deliveryEffect: "not_attempted",
+    };
+  }
+  const subject = "Uw beveiligingscode voor Object 360";
+  const text = [
+    "U vroeg toegang aan tot afgeschermde objectinformatie.",
+    "",
+    `Uw eenmalige code is: ${input.code}`,
+    "",
+    "De code verloopt na 10 minuten. Deel deze code niet.",
+    "Was u dit niet? Negeer dit bericht en meld het bij uw beheerder.",
+  ].join("\n");
+  const html = `<p>U vroeg toegang aan tot afgeschermde objectinformatie.</p><p>Uw eenmalige code is: <strong style="font-size:24px;letter-spacing:4px">${input.code}</strong></p><p>De code verloopt na 10 minuten. Deel deze code niet.</p><p>Was u dit niet? Negeer dit bericht en meld het bij uw beheerder.</p>`;
+
+  if (options.testTransport) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Sensitive OTP test transport is disabled in production.");
+    }
+    try {
+      await options.testTransport({ to: input.to, subject, html, text });
+      return {
+        success: true,
+        providerType: "test_outbox",
+        providerId: "sensitive-otp-memory-transport",
+        deliveryEffect: "accepted",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: sanitizeError(error),
+        providerType: "test_outbox",
+        providerId: "sensitive-otp-memory-transport",
+        deliveryEffect: "unknown",
+      };
+    }
+  }
+
+  let provider: ResolvedProvider | null;
+  try {
+    provider = await resolveActiveProvider(input.tenantId);
+    if (!provider) throw new Error("Geen actieve e-mailprovider geconfigureerd.");
+    assertProviderReady(provider);
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error),
+      providerType: "none",
+      providerId: null,
+      deliveryEffect: "not_attempted",
+    };
+  }
+
+  const message: TransactionalEmailInput = {
+    to: input.to,
+    subject,
+    html,
+    text,
+    tenantId: input.tenantId,
+    purpose: "sensitive-object-security-otp",
+  };
+  try {
+    const providerMessageId = provider.providerType === "sendgrid_api"
+      ? await sendWithSendGrid(provider, message)
+      : provider.providerType === "resend_api" || provider.providerType === "env_resend"
+        ? await sendWithResend(provider, message)
+        : await sendWithSmtp(provider, message);
+    return {
+      success: true,
+      providerType: provider.providerType,
+      providerId: provider.id,
+      providerMessageId,
+      deliveryEffect: "accepted",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeError(error),
       providerType: provider.providerType,
       providerId: provider.id,
       deliveryEffect: "unknown",

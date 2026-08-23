@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import {
   Building2,
-  KeyRound,
   MapPin,
   Phone,
   Plus,
@@ -384,12 +383,6 @@ export default async function ObjectenPage({
                   {object.serviceType ? (
                     <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
                       {object.serviceType}
-                    </span>
-                  ) : null}
-                  {object.accessInfo || object.keyInfo || object.alarmInfo ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                      <KeyRound size={12} />
-                      Toegang ingesteld
                     </span>
                   ) : null}
                 </div>

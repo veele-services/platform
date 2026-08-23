@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Save, X, Loader2, Lock, Key, Bell, BookOpen, AlertCircle } from "lucide-react";
+import { Pencil, Save, X, Loader2, Lock, BookOpen, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -55,9 +55,6 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
 
   const [form, setForm] = useState({
     serviceType:         obj.serviceType         ?? "",
-    accessInfo:          obj.accessInfo          ?? "",
-    keyInfo:             obj.keyInfo             ?? "",
-    alarmInfo:           obj.alarmInfo           ?? "",
     fixedInstructions:   obj.fixedInstructions   ?? "",
     specialNotes:        obj.specialNotes        ?? "",
     requiredRoles,
@@ -67,9 +64,6 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
   function handleCancel() {
     setForm({
       serviceType:         obj.serviceType         ?? "",
-      accessInfo:          obj.accessInfo          ?? "",
-      keyInfo:             obj.keyInfo             ?? "",
-      alarmInfo:           obj.alarmInfo           ?? "",
       fixedInstructions:   obj.fixedInstructions   ?? "",
       specialNotes:        obj.specialNotes        ?? "",
       requiredRoles,
@@ -89,9 +83,6 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
         postalCode:           obj.postalCode  ?? undefined,
         description:          obj.description ?? undefined,
         serviceType:          form.serviceType          || undefined,
-        accessInfo:           form.accessInfo           || undefined,
-        keyInfo:              form.keyInfo              || undefined,
-        alarmInfo:            form.alarmInfo            || undefined,
         fixedInstructions:    form.fixedInstructions    || undefined,
         specialNotes:         form.specialNotes         || undefined,
         requiredRoles:        form.requiredRoles,
@@ -135,46 +126,11 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-6">
-          <SectionCard icon={Lock} title="Toegangsinformatie">
-            {editing ? (
-              <Textarea
-                value={form.accessInfo}
-                onChange={(e) => setForm((f) => ({ ...f, accessInfo: e.target.value }))}
-                placeholder="Bijv. sleutelkast code, toegangspas, portiek..."
-                rows={3}
-                className="resize-none"
-              />
-            ) : (
-              <EmptyField value={obj.accessInfo} placeholder="Geen toegangsinformatie ingevuld" />
-            )}
-          </SectionCard>
-
-          <SectionCard icon={Key} title="Sleutelinformatie">
-            {editing ? (
-              <Textarea
-                value={form.keyInfo}
-                onChange={(e) => setForm((f) => ({ ...f, keyInfo: e.target.value }))}
-                placeholder="Bijv. sleutelnummer, bewaarplaats, retourprocedure..."
-                rows={3}
-                className="resize-none"
-              />
-            ) : (
-              <EmptyField value={obj.keyInfo} placeholder="Geen sleutelinformatie ingevuld" />
-            )}
-          </SectionCard>
-
-          <SectionCard icon={Bell} title="Alarmgegevens">
-            {editing ? (
-              <Textarea
-                value={form.alarmInfo}
-                onChange={(e) => setForm((f) => ({ ...f, alarmInfo: e.target.value }))}
-                placeholder="Bijv. alarmcode, contactpersoon bij alarm, wachttijd..."
-                rows={3}
-                className="resize-none"
-              />
-            ) : (
-              <EmptyField value={obj.alarmInfo} placeholder="Geen alarmgegevens ingevuld" />
-            )}
+          <SectionCard icon={Lock} title="Toegang en veiligheid">
+            <p className="text-sm text-muted-foreground">
+              Beveiligingsgevoelige gegevens staan in het afgeschermde onderdeel
+              Toegang en veiligheid. Dit gewone objectdossier laadt die gegevens nooit.
+            </p>
           </SectionCard>
         </div>
 
