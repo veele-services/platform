@@ -73,6 +73,13 @@ function sanitizePublicationText(value: string) {
     .replace(/Schoonmaak: 06\s*-\s*24291576/gi, "Schoonmaakvraag: neem contact op via het formulier")
     .replace(/E-mail: info@veeleservices\.nl/gi, "Algemene vraag: neem contact op via het formulier")
     .replace(/mail info@veeleservices\.nl/gi, "gebruik het contactformulier")
+    .replace(/de voorgestelde integrale aanpak/gi, "de integrale aanpak")
+    .replace(/in het voorgestelde klantenportaal/gi, "in het klantenportaal")
+    .replace(/het voorgestelde klantenportaal/gi, "het klantenportaal")
+    .replace(/in het voorgestelde portaal/gi, "in het klantenportaal")
+    .replace(/het voorgestelde portaal/gi, "het klantenportaal")
+    .replace(/het nieuwe websiteconcept/gi, "onze werkwijze")
+    .replace(/voorgestelde belofte:\s*/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -108,6 +115,10 @@ function sanitizePage(sourcePage: SitePage): SitePage {
       "Afspraken afgestemd op uw locatie",
       "Inzicht in planning en opvolging",
     ];
+    page.faqs[3] = [
+      "Wat is het klantenportaal?",
+      "In het klantenportaal houdt u de planning, meldingen, controles en documenten van uw organisatie overzichtelijk bij. Welke onderdelen beschikbaar zijn, hangt af van uw opdracht en gebruikersrol.",
+    ];
   }
 
   if (sourcePage.slug === "/beveiliging") {
@@ -134,6 +145,10 @@ function sanitizePage(sourcePage: SitePage): SitePage {
       "Bespreek vertrouwelijk of persoonsbeveiliging passend, bevoegd en uitvoerbaar is voor uw situatie in Den Haag of de Randstad.";
     page.intro =
       "Persoonsbeveiliging vraagt vertrouwelijkheid, passende expertise en maatwerk. Iedere aanvraag begint daarom met een geschiktheids- en haalbaarheidscheck; inzet wordt niet vooraf gegarandeerd.";
+    page.faqs[2] = [
+      "Is internationale inzet mogelijk?",
+      "Internationale inzet wordt alleen beoordeeld na toetsing van wetgeving, partners, capaciteit en logistiek.",
+    ];
   }
 
   if (sourcePage.slug === "/beveiliging/chauffeursdiensten") {
@@ -146,7 +161,7 @@ function sanitizePage(sourcePage: SitePage): SitePage {
   if (sourcePage.slug === "/over-ons") {
     page.seo_title = "Over Veele Services | Dienstverlener uit Den Haag";
     page.intro =
-      "Veele Services werkt vanuit Den Haag aan schoonmaak, beveiliging en facilitaire ondersteuning, met persoonlijke regie als uitgangspunt. Bedrijfshistorie, registraties en ervaringsclaims worden vóór publicatie formeel gevalideerd.";
+      "Veele Services werkt vanuit Den Haag aan schoonmaak, beveiliging en facilitaire ondersteuning. Persoonlijke regie, korte lijnen en duidelijke afspraken vormen daarbij het uitgangspunt.";
     page.proof = [
       "Persoonlijke regie",
       "Ervaring in meerdere dienstdisciplines",
@@ -167,6 +182,115 @@ function sanitizePage(sourcePage: SitePage): SitePage {
     ];
   }
 
+  if (sourcePage.slug === "/cases") {
+    page.intro =
+      "Iedere locatie vraagt om een aanpak die past bij het gebruik, de mensen en de risico’s. Hieronder ziet u hoe we veelvoorkomende vraagstukken vertalen naar duidelijke werkafspraken en meetbare opvolging.";
+    page.proof = [
+      "Aanpak afgestemd op de locatie",
+      "Heldere scope en verantwoordelijkheden",
+      "Vaste evaluatie en opvolging",
+      "Zorgvuldig met klantinformatie",
+    ];
+    page.sections = [
+      {
+        heading: "Van vraagstuk naar werkbare aanpak",
+        body: "We brengen eerst de locatie, het gebruik en de gewenste kwaliteit in kaart. Daarna leggen we vast wie wat doet, hoe afwijkingen worden gemeld en wanneer we samen evalueren.",
+        bullets: [
+          "Situatie en locatiegebruik",
+          "Knelpunten, risico’s en prioriteiten",
+          "Scope, planning en verantwoordelijkheden",
+          "Kwaliteitscontrole en rapportage",
+          "Evaluatie en bijsturing",
+        ],
+      },
+      {
+        heading: "Kantoorlocaties",
+        body: "Voor kantoren combineren we waar gewenst schoonmaak, receptie en toegangscontrole in één locatieplan. De inzet volgt het werkritme, de bezetting en de afspraken voor bezoekers.",
+        bullets: [],
+      },
+      {
+        heading: "Retail en publiekslocaties",
+        body: "Bij winkels en publiekslocaties stemmen we voorbereiding, openingstijden en piekmomenten op elkaar af. Zo blijven gastvrijheid, veiligheid en een verzorgde omgeving onderdeel van dezelfde operatie.",
+        bullets: [],
+      },
+      {
+        heading: "VvE en vastgoed",
+        body: "Voor algemene ruimten en vastgoedlocaties werken we met vaste rondes, duidelijke meldroutes en terugkerende controles. Afwijkingen worden vastgelegd en bij de juiste contactpersoon ondergebracht.",
+        bullets: [],
+      },
+      {
+        heading: "Zorgvuldig omgaan met informatie",
+        body: "Locatiegegevens, beelden en resultaten delen we alleen binnen de afgesproken context. Vertrouwelijke informatie en herkenbare klantdetails worden niet zonder toestemming gepubliceerd.",
+        bullets: [],
+      },
+    ];
+    page.process = [
+      ["Vraagstuk verkennen", "We bespreken de locatie, gebruikers en gewenste verbetering."],
+      ["Aanpak bepalen", "We vertalen de intake naar scope, planning, rollen en controles."],
+      ["Evalueren", "Na de start bespreken we kwaliteit, meldingen en mogelijke verbeteringen."],
+    ];
+    page.faqs = [
+      [
+        "Hoe bepalen jullie welke aanpak past?",
+        "We beginnen met een intake en, waar nodig, een locatiescan. Op basis daarvan bepalen we scope, bezetting, planning en kwaliteitsafspraken.",
+      ],
+      [
+        "Kunnen meerdere diensten worden gecombineerd?",
+        "Ja. Schoonmaak, beveiliging en facilitaire ondersteuning kunnen onder één operationele regie worden samengebracht.",
+      ],
+      [
+        "Hoe wordt de kwaliteit gevolgd?",
+        "We spreken vooraf af welke controles, meldingen en evaluatiemomenten passen bij de opdracht.",
+      ],
+    ];
+  }
+
+  if (sourcePage.slug === "/kennis") {
+    page.sections = [
+      {
+        heading: "Praktische thema’s voor uw locatie",
+        body: "Lees meer over keuzes die vaak terugkomen bij schoonmaak, beveiliging en facilitaire ondersteuning. Van een uitvoerbare frequentie tot duidelijke meld- en toegangsafspraken.",
+        bullets: [
+          "Een schoonmaakplan afstemmen op gebruik en bezetting",
+          "Objectbeveiliging en mobiele surveillance vergelijken",
+          "Gastvrijheid en veiligheid bij evenementen combineren",
+          "VvE-schoonmaak en periodiek onderhoud beoordelen",
+          "Meldingen, incidenten en opvolging helder organiseren",
+          "Opleveringsschoonmaak zorgvuldig voorbereiden",
+        ],
+      },
+      {
+        heading: "Van algemene vraag naar concrete keuze",
+        body: "We leggen niet alleen uit wat een dienst inhoudt, maar ook welke afwegingen, uitzonderingen en praktische aandachtspunten voor uw locatie relevant kunnen zijn.",
+        bullets: [],
+      },
+      {
+        heading: "Zorgvuldig en actueel",
+        body: "Informatie over regelgeving, gezondheid en veiligheid blijft algemeen. Voor locatiespecifieke risico’s, verplichtingen en inzet is altijd een afzonderlijke beoordeling nodig.",
+        bullets: [],
+      },
+    ];
+    page.process = [
+      ["Vraag verhelderen", "Breng gebruik, risico’s en gewenste kwaliteit van de locatie in beeld."],
+      ["Mogelijkheden vergelijken", "Bekijk welke werkwijze en dienstvorm het beste aansluiten."],
+      ["Volgende stap bepalen", "Bespreek de situatie met Veele wanneer maatwerk of een locatiescan nodig is."],
+    ];
+    page.faqs = [
+      [
+        "Zijn de artikelen juridisch of veiligheidsadvies?",
+        "Nee. De informatie is algemeen. Voor locatiespecifieke risico’s en wettelijke verplichtingen is een deskundige beoordeling nodig.",
+      ],
+      [
+        "Kan ik een onderwerp of vraag aandragen?",
+        "Ja. Deel uw vraag via het contactformulier; we brengen u bij de juiste collega en gebruiken terugkerende vragen om onze uitleg te verbeteren.",
+      ],
+      [
+        "Hoe weet ik welke oplossing bij mijn locatie past?",
+        "Een intake of locatiescan maakt duidelijk welke scope, planning en verantwoordelijkheden uitvoerbaar zijn.",
+      ],
+    ];
+  }
+
   if (sourcePage.slug === "/contact") {
     page.faqs[0] = [
       "Wanneer krijg ik antwoord?",
@@ -174,29 +298,103 @@ function sanitizePage(sourcePage: SitePage): SitePage {
     ];
     page.faqs[1] = [
       "Kan ik WhatsApp gebruiken?",
-      "Gebruik vooralsnog het contactformulier. Een berichtenroute wordt pas aangeboden nadat privacy, beheer en responstijden zijn ingericht.",
+      "Gebruik het contactformulier. Uw vaste contactpersoon laat weten welke berichtenroute voor uw opdracht geldt.",
     ];
   }
 
+  if (sourcePage.slug === "/offerte") {
+    page.sections[3] = {
+      ...page.sections[3],
+      heading: "Zorgvuldig met uw gegevens",
+    };
+    page.process = [
+      ["Aanvraag verzenden", "Na verzending bevestigen we dat uw aanvraag is ontvangen."],
+      ["Persoonlijke intake", "De juiste collega bespreekt de locatie, scope en gewenste start."],
+      ["Locatiescan en voorstel", "Wanneer nodig plannen we een bezoek en volgt een afgebakend voorstel."],
+    ];
+    page.cta_heading = "Klaar voor een passend voorstel?";
+    page.cta_body =
+      "Vul het formulier in met de belangrijkste informatie over uw locatie en vraag. We nemen daarna persoonlijk contact met u op.";
+  }
+
   if (sourcePage.slug === "/portaal") {
-    page.h1 = "Een helder beeld van de voorgestelde portaalervaring.";
+    page.h1 = "Grip op uw locaties, zonder losse informatiestromen.";
     page.intro =
-      "Deze marketingdemo laat zien hoe planning, meldingen, goedkeuringen en rapportages later in een beveiligde omgeving kunnen samenkomen. De pagina bevat geen productie-authenticatie of klantdata.";
-    page.proof = page.proof.map((item) => `Voorgesteld: ${item.toLocaleLowerCase("nl-NL")}`);
+      "In het klantenportaal komen planning, meldingen, rapportages en documenten samen. Bestaande opdrachtgevers loggen in via hun persoonlijke, beveiligde klantomgeving.";
+    page.sections = [
+      {
+        heading: "Veilig inloggen",
+        body: "Gebruik uw persoonlijke uitnodiging of ga rechtstreeks naar de beveiligde klantomgeving. Deel uw account niet met anderen en gebruik voor iedere gebruiker een eigen toegang.",
+        bullets: [],
+      },
+      {
+        heading: "Veilig gebruik",
+        body: "Uw toegang is gekoppeld aan uw organisatie en rol. U ziet alleen de locaties en onderdelen waarvoor uw account is geautoriseerd.",
+        bullets: [],
+      },
+      {
+        heading: "Toegang aanvragen",
+        body: "Uw organisatiebeheerder of vaste Veele-contactpersoon kan nieuwe gebruikers laten uitnodigen. Toegang wordt pas geactiveerd nadat de organisatie en rol zijn gecontroleerd.",
+        bullets: [],
+      },
+      {
+        heading: "Hulp bij inloggen",
+        body: "Gebruik de hersteloptie op het inlogscherm of neem contact op met uw vaste contactpersoon. Operationele spoed blijft altijd via de afgesproken noodroute lopen.",
+        bullets: [],
+      },
+    ];
+    page.primary_cta = "Log in op het klantenportaal";
+    page.secondary_cta = "Vraag inloghulp";
+    page.cta_heading = "Direct naar uw klantomgeving?";
+    page.cta_body =
+      "Log veilig in om uw locaties en beschikbare onderdelen te bekijken. Voor nieuwe toegang helpt uw vaste contactpersoon u verder.";
     page.faqs = [
       [
-        "Is dit al het productieportaal?",
-        "Nee. Dit is een marketingdemo zonder echte accounts, authenticatie of klantdata.",
+        "Hoe log ik in?",
+        "Gebruik de persoonlijke uitnodiging die u van uw organisatiebeheerder of Veele-contactpersoon heeft ontvangen.",
       ],
       [
-        "Welke functies kunnen later beschikbaar zijn?",
-        "Planning, meldingen, rapportages en documenttoegang zijn voorgestelde modules. Beschikbaarheid wordt pas na technische en securityvalidatie bevestigd.",
+        "Wat doe ik bij inlogproblemen?",
+        "Gebruik de hersteloptie op het inlogscherm. Lukt dat niet, neem dan contact op met uw vaste contactpersoon.",
       ],
       [
-        "Hoe worden accounts straks beveiligd?",
-        "Authenticatie, rollen, multifactorauthenticatie en gegevensscheiding moeten vóór productie afzonderlijk worden ontworpen en getest.",
+        "Welke gegevens kan ik bekijken?",
+        "Uw organisatie en gebruikersrol bepalen welke locaties en onderdelen voor u beschikbaar zijn.",
       ],
     ];
+  }
+
+  if (sourcePage.slug === "/oplossingen/zorg-onderwijs") {
+    page.meta =
+      "Schoonmaak, beveiliging en facilitaire ondersteuning voor algemene en ondersteunende ruimten in zorg en onderwijs in Den Haag en de Randstad.";
+    page.intro =
+      "Zorg- en onderwijsomgevingen vragen herkenbare medewerkers, zorgvuldig gedrag en heldere procedures. We beoordelen per locatie welke ondersteuning verantwoord en uitvoerbaar is en leggen screening, instructies en verantwoordelijkheden vooraf vast.";
+    page.faqs[0] = [
+      "Welke ondersteuning kunnen jullie in zorg en onderwijs bieden?",
+      "We beoordelen per locatie welke werkzaamheden in algemene en ondersteunende ruimten passen bij onze expertise, screening en beschikbare capaciteit.",
+    ];
+  }
+
+  if (sourcePage.group === "Lokale SEO") {
+    const location = sourcePage.name.replace("Dienstverlening ", "");
+    const localContext: Record<string, string> = {
+      "/den-haag": "Zakelijke districten, binnenstedelijke locaties en publieksgebouwen hebben ieder een eigen ritme. We stemmen toegang, werkzaamheden en contactlijnen af op het gebruik van uw Haagse locatie.",
+      "/scheveningen": "Seizoensdrukte, horeca, hotels en evenementen vragen om een planning die kan meebewegen. We leggen bezetting, overdracht en bereikbaarheid vooraf helder vast.",
+      "/rijswijk": "Kantoren, bedrijfsverzamelgebouwen en vastgoedlocaties vragen om voorspelbare dienstverlening zonder de dagelijkse operatie te verstoren. We stemmen rondes en aanspreekpunten af op uw gebouw.",
+      "/voorburg-leidschendam": "Vastgoed, winkels en kantoorlocaties hebben verschillende gebruikers en piekmomenten. We combineren een verzorgde omgeving met duidelijke toegangs- en meldafspraken.",
+      "/wassenaar": "Representatieve locaties vragen om discrete medewerkers, zorgvuldige communicatie en een vaste werkwijze. De inzet wordt afgestemd op privacy, toegang en het gebruik van het gebouw.",
+      "/delft": "Kennislocaties, kantoren en evenementen vragen om heldere routes voor medewerkers en bezoekers. We stemmen dienstverlening af op roosters, publieksstromen en gebruiksmomenten.",
+      "/zoetermeer": "Bedrijfslocaties, retail en publieke omgevingen hebben uiteenlopende openingstijden en bezoekersstromen. We maken één uitvoerbaar plan voor bezetting, overdracht en opvolging.",
+    };
+    page.sections[1] = {
+      ...page.sections[1],
+      body: localContext[sourcePage.slug] ?? page.sections[1].body,
+    };
+    page.sections[3] = {
+      ...page.sections[3],
+      heading: "Afstemming op uw locatie",
+      body: `Tijdens de intake bespreken we de toegang, gebruiksmomenten, risico’s en gewenste kwaliteit van uw locatie in ${location}. Op basis daarvan maken we een concrete, uitvoerbare scope.`,
+    };
   }
 
   return page;
