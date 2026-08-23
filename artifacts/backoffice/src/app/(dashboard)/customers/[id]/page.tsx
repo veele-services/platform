@@ -34,6 +34,9 @@ import { listInvoicesForCustomer } from "@/app/actions/invoices";
 import { listPaymentsForCustomer } from "@/app/actions/payments";
 import { listDocuments } from "@/app/actions/documents";
 import { listReportsForCustomer } from "@/app/actions/reports";
+import { getDossierSummary, getDossierWorkspace } from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
+import { DossierWorkspacePanel } from "@/components/dossiers/DossierWorkspacePanel";
 import {
   TenantDetailHeader,
   TenantDetailLayout,
@@ -90,6 +93,15 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
+async function safeDossierOptional<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await loader();
+  } catch {
+    console.error("customer detail optional dossier data failed");
+    return fallback;
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const canRead = await hasPermission("customers", "read");
@@ -122,6 +134,11 @@ export default async function CustomerDetailPage({
     canReadReports,
     canReadTickets,
     customerPortalEnabled,
+    canManageDossiers,
+    canWriteDossierNotes,
+    canWriteConfidentialDossierNotes,
+    canWriteRestrictedDossierNotes,
+    canReadDossierTimeline,
   ] = await Promise.all([
     hasPermission("customers", "write"),
     hasPermission("objects", "read"),
@@ -132,6 +149,11 @@ export default async function CustomerDetailPage({
     hasPermission("reports", "read"),
     hasPermission("tickets", "read"),
     isCurrentTenantModuleEnabled("customer_portal"),
+    hasPermission("dossiers", "manage"),
+    hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
+    hasPermission("dossiers", "timeline"),
   ]);
   const canManagePortalUsers = canWrite && customerPortalEnabled;
   const visibleTabs = VALID_TABS.filter((tab) => {
@@ -168,6 +190,8 @@ export default async function CustomerDetailPage({
     history,
     portalUsers,
     tickets,
+    dossier,
+    dossierWorkspace,
   ] = await Promise.all([
     getCustomer(id),
     canWrite ? listSectors() : Promise.resolve([]),
@@ -207,6 +231,16 @@ export default async function CustomerDetailPage({
     canReadTickets && showOverview
       ? listCustomerTicketsForCustomer(id, 10)
       : Promise.resolve([]),
+    safeDossierOptional(
+      () => getDossierSummary({ subjectType: "customer", subjectId: id }),
+      null,
+    ),
+    canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline
+      ? safeDossierOptional(
+          () => getDossierWorkspace({ subjectType: "customer", subjectId: id }),
+          null,
+        )
+      : Promise.resolve(null),
   ]);
 
   if (!customer) notFound();
@@ -292,6 +326,18 @@ export default async function CustomerDetailPage({
         }
       />
 
+      <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Dossierstatus is tijdelijk niet beschikbaar; het klantprofiel blijft bruikbaar.
+        </div>
+      )}
+      {(canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline) && !dossierWorkspace && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          De Dossier 360-werkruimte kon niet worden geladen; overige klantonderdelen blijven beschikbaar.
+        </div>
+      )}
+
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({
           label: TAB_LABELS[tab],
@@ -320,31 +366,39 @@ export default async function CustomerDetailPage({
         }
       >
         {activeTab === "overzicht" && (
-          <CustomerOverviewTab
-            customer={safeCustomer}
-            canWrite={canWrite}
-            kpis={kpis}
-            contacts={contacts}
-            portalUsers={portalUsers}
-            objects={objects}
-            assignments={canReadAssignments ? assignmentHistory : []}
-            invoices={canReadInvoices ? invoices : []}
-            payments={canReadInvoices ? payments : []}
-            reports={canReadReports ? reports : []}
-            documents={canReadDocuments ? documents : []}
-            tickets={canReadTickets ? tickets : []}
-            notes={canWrite ? customerNotes : []}
-            history={canWrite ? history : []}
-            visibility={{
-              objects: canReadObjects,
-              assignments: canReadAssignments,
-              invoices: canReadInvoices,
-              reports: canReadReports,
-              documents: canReadDocuments,
-              tickets: canReadTickets,
-              portalUsers: canManagePortalUsers,
-            }}
-          />
+          <>
+            <CustomerOverviewTab
+              customer={safeCustomer}
+              canWrite={canWrite}
+              kpis={kpis}
+              contacts={contacts}
+              portalUsers={portalUsers}
+              objects={objects}
+              assignments={canReadAssignments ? assignmentHistory : []}
+              invoices={canReadInvoices ? invoices : []}
+              payments={canReadInvoices ? payments : []}
+              reports={canReadReports ? reports : []}
+              documents={canReadDocuments ? documents : []}
+              tickets={canReadTickets ? tickets : []}
+              notes={canWrite ? customerNotes : []}
+              history={canWrite ? history : []}
+              visibility={{
+                objects: canReadObjects,
+                assignments: canReadAssignments,
+                invoices: canReadInvoices,
+                reports: canReadReports,
+                documents: canReadDocuments,
+                tickets: canReadTickets,
+                portalUsers: canManagePortalUsers,
+              }}
+            />
+            {dossierWorkspace && (
+              <DossierWorkspacePanel
+                dossier={dossierWorkspace}
+                subject={{ subjectType: "customer", subjectId: id }}
+              />
+            )}
+          </>
         )}
 
         {activeTab === "contacten" && (

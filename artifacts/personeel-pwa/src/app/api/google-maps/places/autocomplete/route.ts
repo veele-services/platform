@@ -5,29 +5,13 @@ import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { checkPersonnelGoogleMapsRateLimit } from "@/lib/google-maps/rate-limit";
 import { db, googleMapsUsageEventsTable, sanitizeGoogleMapsMetricMetadata } from "@workspace/db";
 import { fetchGooglePlacesAutocomplete, GooglePlacesClientError } from "@workspace/db/google-places";
+import { shouldRecordGoogleMapsAutocompleteSession } from "@workspace/db/google-maps-rate-limit";
 
 const schema = z.object({
   input: z.string().max(160),
   sessionToken: z.string().min(8).max(36),
   limit: z.number().int().min(1).max(10).optional(),
 });
-
-const seenAutocompleteSessions = new Map<string, number>();
-
-function shouldRecordAutocompleteSession(input: {
-  tenantId: string;
-  personnelId: string | null;
-  sessionToken: string;
-}): boolean {
-  const now = Date.now();
-  for (const [key, expiresAt] of seenAutocompleteSessions) {
-    if (expiresAt <= now) seenAutocompleteSessions.delete(key);
-  }
-  const key = `${input.tenantId}:${input.personnelId ?? "anonymous"}:${input.sessionToken}`;
-  if (seenAutocompleteSessions.has(key)) return false;
-  seenAutocompleteSessions.set(key, now + 30 * 60 * 1000);
-  return true;
-}
 
 async function recordUsage(input: {
   tenantId: string;
@@ -70,7 +54,8 @@ export async function POST(request: Request) {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Ongeldige aanvraag" }, { status: 400 });
     if (parsed.data.input.trim().length < 3) return NextResponse.json({ suggestions: [] });
-    const rateLimit = checkPersonnelGoogleMapsRateLimit({
+    const rateLimit = await checkPersonnelGoogleMapsRateLimit({
+      tenantId,
       userId: personnel.id,
       action: "places_autocomplete",
     });
@@ -85,14 +70,17 @@ export async function POST(request: Request) {
         estimatedSku: "places_autocomplete_new",
         metadata: { action: "places_autocomplete" },
       });
-      return NextResponse.json({ error: "Te veel adresverzoeken" }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimit.reason === "service_unavailable" ? "Adresservice tijdelijk niet beschikbaar" : "Te veel adresverzoeken" },
+        { status: rateLimit.reason === "service_unavailable" ? 503 : 429 },
+      );
     }
     if (process.env.GOOGLE_PLACES_AUTOCOMPLETE_ENABLED === "false") return NextResponse.json({ suggestions: [] });
     const apiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY;
     if (!apiKey) return NextResponse.json({ suggestions: [] }, { status: 503 });
-    if (shouldRecordAutocompleteSession({
+    if (await shouldRecordGoogleMapsAutocompleteSession({
       tenantId,
-      personnelId,
+      actorKey: personnelId,
       sessionToken: parsed.data.sessionToken,
     })) {
       await recordUsage({

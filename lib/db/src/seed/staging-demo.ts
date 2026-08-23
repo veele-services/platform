@@ -491,7 +491,6 @@ async function createObject(
     postalCode: string;
     description: string;
     serviceType: string;
-    accessInfo: string;
     fixedInstructions: string;
     requiredRoles: string[];
     requiredCertificates: string[];
@@ -502,10 +501,10 @@ async function createObject(
     `insert into objects (
        customer_id, sector_id, name, address, city, postal_code,
        description, is_active, contact_name, contact_function, contact_phone,
-       contact_email, service_type, access_info, key_info, alarm_info,
+       contact_email, service_type,
        fixed_instructions, special_notes, required_roles, required_certificates, created_by
      )
-     values ($1, $2, $3, $4, 'Den Haag', $5, $6, true, $7, $8, '070 210 20 20', $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18)
+     values ($1, $2, $3, $4, 'Den Haag', $5, $6, true, $7, $8, '070 210 20 20', $9, $10, $11, $12, $13::jsonb, $14::jsonb, $15)
      returning id`,
     [
       input.customerId,
@@ -518,9 +517,6 @@ async function createObject(
       "Locatiecontact",
       `object-${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}@${DEMO_EMAIL_DOMAIN}`,
       input.serviceType,
-      input.accessInfo,
-      "Sleutelkluis bij hoofdingang, code beschikbaar bij planning.",
-      "Alarm via meldkamer; uitschakelen met tijdelijke code van locatiecontact.",
       input.fixedInstructions,
       `${SEED_MARKER}: Let op scenario-specifieke testdata.`,
       JSON.stringify(input.requiredRoles),
@@ -1258,7 +1254,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2512 GA",
       description: "Atrium, gangen, wachtruimtes en sanitaire zones.",
       serviceType: "Dagelijkse schoonmaak",
-      accessInfo: "Aanmelden bij receptie; bezoekersbadge verplicht.",
       fixedInstructions: "Gebruik geurvrije middelen en registreer per zone.",
       requiredRoles: ["Employee"],
       requiredCertificates: ["VOG", "BHV"],
@@ -1271,7 +1266,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2582 BE",
       description: "Entree, liftportalen, parkeergarage en glaspartijen.",
       serviceType: "VvE onderhoud",
-      accessInfo: "Sleutel ophalen bij beheerder tussen 07:00 en 09:00.",
       fixedInstructions: "Geen lawaai tussen 12:00 en 14:00.",
       requiredRoles: ["Employee"],
       requiredCertificates: ["VCA", "Hoogwerker"],
@@ -1284,7 +1278,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2586 JK",
       description: "Terras, glaswand en logistieke keukenroute.",
       serviceType: "Horeca schoonmaak",
-      accessInfo: "Alleen bereikbaar via strandopgang; parkeren bij boulevard.",
       fixedInstructions: "Werk afronden voor lunchservice.",
       requiredRoles: ["Employee"],
       requiredCertificates: ["VOG"],
@@ -1297,7 +1290,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2516 BA",
       description: "Laadkades, expeditievloer en kantoorunit.",
       serviceType: "Logistiek facility",
-      accessInfo: "PBM verplicht; melden bij dock office.",
       fixedInstructions: "Laadkade 3 vrijhouden.",
       requiredRoles: ["Teamlead", "Employee"],
       requiredCertificates: ["VCA"],
@@ -1310,7 +1302,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2511 DC",
       description: "Leslokalen, gymzaal, pleinzijde en technische ruimte.",
       serviceType: "Schoolonderhoud",
-      accessInfo: "Buiten schooltijden via conciërge-ingang.",
       fixedInstructions: "Kindveilige middelen gebruiken; VOG verplicht.",
       requiredRoles: ["Employee"],
       requiredCertificates: ["VOG"],
@@ -1323,7 +1314,6 @@ async function seedDemoData(client: PoolClient) {
       postalCode: "2514 GK",
       description: "Lobby, trappenhuis, ontbijtruimte en entreeglas.",
       serviceType: "Hotel facility",
-      accessInfo: "Aanmelden bij front office.",
       fixedInstructions: "Gastenstromen vermijden tussen 08:00 en 10:00.",
       requiredRoles: ["Employee"],
       requiredCertificates: ["VOG"],

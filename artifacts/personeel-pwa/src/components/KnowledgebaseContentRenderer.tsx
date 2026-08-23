@@ -1,32 +1,17 @@
+import { sanitizeKnowledgebaseHtml } from "@workspace/shared-ui/knowledgebase-html";
+
 type KnowledgebaseContentRendererProps = {
   html?: string | null;
   mediaBasePath?: string;
   className?: string;
 };
 
-const DEFAULT_EMPTY_HTML = "<p>Geen inhoud beschikbaar.</p>";
-
-function normalizeMediaBasePath(mediaBasePath?: string): string | null {
-  if (!mediaBasePath) return null;
-  return mediaBasePath.replace(/\/+$/, "");
-}
-
-function rewriteKnowledgebaseMediaUrls(html: string, mediaBasePath?: string): string {
-  const basePath = normalizeMediaBasePath(mediaBasePath);
-  if (!basePath) return html;
-
-  return html.replace(
-    /\b(src|href)=["']\/(?:platform\/knowledgebase|platform\/releases|help|releases)\/media\/([a-f0-9-]+)["']/gi,
-    (_match, attribute: string, mediaId: string) => `${attribute}="${basePath}/${mediaId}"`,
-  );
-}
-
 export function KnowledgebaseContentRenderer({
   html,
   mediaBasePath,
   className = "",
 }: KnowledgebaseContentRendererProps) {
-  const safeHtml = rewriteKnowledgebaseMediaUrls(html?.trim() || DEFAULT_EMPTY_HTML, mediaBasePath);
+  const safeHtml = sanitizeKnowledgebaseHtml(html, { emptyFallback: true, mediaBasePath });
   const classes = [
     "max-w-none text-sm leading-7 text-slate-700",
     "[&_a]:font-semibold [&_a]:text-cyan-700 [&_a]:underline",

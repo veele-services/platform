@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import net from "node:net";
 import tls from "node:tls";
 
@@ -21,6 +21,7 @@ export type SmtpMailOptions = {
   html: string;
   text?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
+  deliveryKey?: string;
 };
 
 type SmtpResponse = {
@@ -221,13 +222,17 @@ function buildMessage(config: SmtpMailConfig, options: SmtpMailOptions, recipien
   const mixedBoundary = `fieldgrid-mixed-${randomUUID()}`;
   const alternativeBoundary = `fieldgrid-alt-${randomUUID()}`;
   const text = options.text?.trim() || htmlToText(options.html);
+  const stableMessageId = options.deliveryKey
+    ? createHash("sha256").update(options.deliveryKey).digest("hex")
+    : randomUUID();
   const headers = [
     `From: ${formatAddress(config.fromEmail, config.fromName)}`,
     `To: ${recipients.map((recipient) => `<${recipient}>`).join(", ")}`,
     config.replyTo ? `Reply-To: <${config.replyTo}>` : null,
     `Subject: ${encodeHeader(options.subject)}`,
     `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <${randomUUID()}@${messageIdDomain(config.fromEmail)}>`,
+    `Message-ID: <${stableMessageId}@${messageIdDomain(config.fromEmail)}>`,
+    options.deliveryKey ? `X-Fieldgrid-Delivery-Key: ${options.deliveryKey}` : null,
     "Auto-Submitted: auto-generated",
     "X-Auto-Response-Suppress: All",
     "MIME-Version: 1.0",

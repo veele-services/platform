@@ -91,6 +91,7 @@ export async function getMyDocuments(): Promise<CustomerDocument[]> {
           and(
             eq(documentsTable.entityType, "customer"),
             eq(documentsTable.entityId, identity.customerId),
+            eq(documentsTable.tenantId, identity.tenantId),
             eq(customersTable.tenantId, identity.tenantId),
           ),
         )
@@ -117,6 +118,7 @@ export async function getMyDocuments(): Promise<CustomerDocument[]> {
         .where(
           and(
             eq(documentsTable.entityType, "object"),
+            eq(documentsTable.tenantId, identity.tenantId),
             eq(objectsTable.customerId, identity.customerId),
             eq(objectsTable.tenantId, identity.tenantId),
           ),
@@ -148,6 +150,7 @@ export async function getMyDocuments(): Promise<CustomerDocument[]> {
         .where(
           and(
             eq(documentsTable.entityType, "assignment"),
+            eq(documentsTable.tenantId, identity.tenantId),
             eq(assignmentsTable.customerId, identity.customerId),
             eq(assignmentsTable.tenantId, identity.tenantId),
           ),

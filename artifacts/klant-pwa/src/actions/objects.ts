@@ -40,9 +40,6 @@ export type CustomerObject = {
   contactPhone:        string | null;
   contactEmail:        string | null;
   serviceType:         string | null;
-  accessInfo:          string | null;
-  keyInfo:             string | null;
-  alarmInfo:           string | null;
   fixedInstructions:   string | null;
   specialNotes:        string | null;
 };
@@ -96,9 +93,6 @@ const objectFormSchema = z.object({
   contactFunction:   optionalText(100),
   contactPhone:      requiredText("Telefoonnummer", 50),
   contactEmail:      optionalEmail,
-  accessInfo:        optionalText(2500),
-  keyInfo:           optionalText(2500),
-  alarmInfo:         optionalText(2500),
   fixedInstructions: optionalText(3500),
   specialNotes:      optionalText(3500),
   description:       optionalText(3500),
@@ -193,9 +187,6 @@ function parseObjectForm(formData: FormData) {
     contactFunction:   formValue(formData, "contactFunction"),
     contactPhone:      formValue(formData, "contactPhone"),
     contactEmail:      formValue(formData, "contactEmail"),
-    accessInfo:        formValue(formData, "accessInfo"),
-    keyInfo:           formValue(formData, "keyInfo"),
-    alarmInfo:         formValue(formData, "alarmInfo"),
     fixedInstructions: formValue(formData, "fixedInstructions"),
     specialNotes:      formValue(formData, "specialNotes"),
     description:       formValue(formData, "description"),
@@ -266,9 +257,6 @@ function buildObjectPayload(
     contactPhone:      data.contactPhone,
     contactEmail:      data.contactEmail,
     serviceType:       data.serviceType,
-    accessInfo:        data.accessInfo,
-    keyInfo:           data.keyInfo,
-    alarmInfo:         data.alarmInfo,
     fixedInstructions: data.fixedInstructions,
     specialNotes:      data.specialNotes,
     ...googlePlaceLocationPatch(googlePlace, data),
@@ -330,9 +318,6 @@ export async function getMyObjects(): Promise<CustomerObject[]> {
       contactPhone:      objectsTable.contactPhone,
       contactEmail:      objectsTable.contactEmail,
       serviceType:       objectsTable.serviceType,
-      accessInfo:        objectsTable.accessInfo,
-      keyInfo:           objectsTable.keyInfo,
-      alarmInfo:         objectsTable.alarmInfo,
       fixedInstructions: objectsTable.fixedInstructions,
       specialNotes:      objectsTable.specialNotes,
     })
@@ -369,9 +354,6 @@ export async function getMyObject(objectId: string): Promise<CustomerObjectDetai
       contactPhone:      objectsTable.contactPhone,
       contactEmail:      objectsTable.contactEmail,
       serviceType:       objectsTable.serviceType,
-      accessInfo:        objectsTable.accessInfo,
-      keyInfo:           objectsTable.keyInfo,
-      alarmInfo:         objectsTable.alarmInfo,
       fixedInstructions: objectsTable.fixedInstructions,
       specialNotes:      objectsTable.specialNotes,
     })
@@ -448,6 +430,7 @@ export async function createCustomerObject(
     await upsertPrimaryContact(created.id, parsed.data);
 
     await db.insert(auditLogTable).values({
+      tenantId:   context.tenantId,
       userId:     context.userId,
       action:     "customer_create_object",
       resource:   "objects",
@@ -527,6 +510,7 @@ export async function updateCustomerObject(
     await upsertPrimaryContact(objectId, parsed.data);
 
     await db.insert(auditLogTable).values({
+      tenantId:   context.tenantId,
       userId:     context.userId,
       action:     "customer_update_object",
       resource:   "objects",

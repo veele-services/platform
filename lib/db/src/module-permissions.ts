@@ -15,6 +15,7 @@ export const FIELDGRID_PERMISSION_MODULES = {
   objects: "objects",
   object_contacts: "objects",
   object_personnel: "objects",
+  object_security: "objects",
 
   personnel: "personnel",
   personnel_portal: "personnel_portal",

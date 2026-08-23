@@ -9,6 +9,7 @@ test("exact-head validation preserves PR coverage and adds main push and dispatc
   assert.match(workflow, /pull_request:\n\s+branches:\n\s+- main/u);
   assert.match(workflow, /push:\n\s+branches:\n\s+- main/u);
   assert.match(workflow, /workflow_dispatch:/u);
+  assert.match(workflow, /schedule:\n\s+- cron: "17 2 \* \* \*"/u);
   assert.match(workflow, /permissions:\n\s+contents: read/u);
   assert.match(
     workflow,
@@ -29,7 +30,7 @@ test("every validation group checks out and proves the immutable event validatio
     workflow.match(/ref: \$\{\{ env\.FIELDGRID_VALIDATION_SHA \}\}/gu) ?? [];
   const headProofs = workflow.match(/git rev-parse HEAD/gu) ?? [];
 
-  assert.equal(checkoutGroups.length, 8);
+  assert.equal(checkoutGroups.length, 9);
   assert.equal(explicitRefs.length, checkoutGroups.length);
   assert.equal(headProofs.length, checkoutGroups.length);
   assert.match(
@@ -61,6 +62,8 @@ test("exact-head validation includes every authoritative gate", () => {
     "pnpm fieldgrid:runtime-entrypoints:check",
     "pnpm fieldgrid:deploy-health-gate:test",
     "pnpm fieldgrid:test:baseline-differential",
+    "pnpm fieldgrid:dependency-security:check",
+    "pnpm fieldgrid:dependency-security:audit",
     "pnpm fieldgrid:playwright",
   ]) {
     assert.ok(

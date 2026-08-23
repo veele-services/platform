@@ -181,7 +181,7 @@ test("canonical overlays use semantic layers and reduced-motion fallbacks", () =
     "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
   ]) {
     const source = read(relativePath);
-    assert.match(source, /--z-(?:dropdown|overlay|modal)/, relativePath);
+    assert.match(source, /--z-(?:dropdown|overlay|modal|floating)/, relativePath);
     assert.match(source, /motion-reduce:/, relativePath);
   }
 });

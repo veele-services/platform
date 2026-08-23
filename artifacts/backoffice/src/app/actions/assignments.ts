@@ -174,9 +174,6 @@ export type AssignmentDetail = {
   objectContactName: string | null;
   objectContactPhone: string | null;
   objectContactEmail: string | null;
-  objectAccessInfo: string | null;
-  objectKeyInfo: string | null;
-  objectAlarmInfo: string | null;
   objectFixedInstructions: string | null;
   objectSpecialNotes: string | null;
   createdAt: string;
@@ -461,9 +458,6 @@ export async function getAssignment(
       objectContactName: objectsTable.contactName,
       objectContactPhone: objectsTable.contactPhone,
       objectContactEmail: objectsTable.contactEmail,
-      objectAccessInfo: objectsTable.accessInfo,
-      objectKeyInfo: objectsTable.keyInfo,
-      objectAlarmInfo: objectsTable.alarmInfo,
       objectFixedInstructions: objectsTable.fixedInstructions,
       objectSpecialNotes: objectsTable.specialNotes,
       createdAt: assignmentsTable.createdAt,
@@ -550,9 +544,6 @@ export async function getAssignment(
     objectContactName: row.objectContactName ?? null,
     objectContactPhone: row.objectContactPhone ?? null,
     objectContactEmail: row.objectContactEmail ?? null,
-    objectAccessInfo: row.objectAccessInfo ?? null,
-    objectKeyInfo: row.objectKeyInfo ?? null,
-    objectAlarmInfo: row.objectAlarmInfo ?? null,
     objectFixedInstructions: row.objectFixedInstructions ?? null,
     objectSpecialNotes: row.objectSpecialNotes ?? null,
     scheduledDate: row.scheduledDate ?? null,
