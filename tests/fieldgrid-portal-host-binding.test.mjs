@@ -90,6 +90,28 @@ test("every runtime surface validates environment ownership before platform-host
   }
 });
 
+test("backoffice denies every unresolved non-local host before tenant fallback", () => {
+  const helper = read("artifacts/backoffice/src/lib/auth/tenant.ts");
+  const resolver = helper.indexOf(
+    "const tenant = await resolveTenantByHost(normalizedHost)",
+  );
+  const localException = helper.indexOf(
+    "const isLocalDevelopmentHost",
+    resolver,
+  );
+  const blockedReturn = helper.indexOf(
+    'return { kind: "blocked" };',
+    localException,
+  );
+
+  assert.ok(resolver >= 0, "backoffice should resolve the request host");
+  assert.ok(
+    localException > resolver && blockedReturn > localException,
+    "an unresolved non-local host must be blocked before membership fallback",
+  );
+  assert.match(helper, /\["localhost", "127\.0\.0\.1", "::1"\]/u);
+});
+
 test("platform support and login reject cross-environment fixed hosts", () => {
   const platform = read("artifacts/backoffice/src/lib/auth/platform.ts");
   const login = read("artifacts/backoffice/src/app/(auth)/login/page.tsx");
@@ -114,16 +136,13 @@ test("platform support and login reject cross-environment fixed hosts", () => {
   );
   const loginClassification = login.indexOf("isPlatformHost(host)");
   assert.ok(
-    loginEnvironmentGuard >= 0 &&
-      loginClassification > loginEnvironmentGuard,
+    loginEnvironmentGuard >= 0 && loginClassification > loginEnvironmentGuard,
   );
 });
 
 test("customer portal identity is scoped to the host tenant", () => {
   const customer = read("artifacts/klant-pwa/src/actions/customer.ts");
-  const customerLayout = read(
-    "artifacts/klant-pwa/src/app/(app)/layout.tsx",
-  );
+  const customerLayout = read("artifacts/klant-pwa/src/app/(app)/layout.tsx");
 
   assert.match(customer, /requireCurrentCustomerPortalTenantId/u);
   assert.match(

@@ -35,11 +35,23 @@ export function TenantDetailSectionNav({
 }: TenantDetailSectionNavProps) {
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const activeItem = items.find((item) => item.active) ?? items[0];
+  const configuredActiveHref = items.find((item) => item.active)?.href;
+  const [activeHref, setActiveHref] = React.useState(
+    configuredActiveHref ?? items[0]?.href ?? "",
+  );
+  const activeItem =
+    items.find((item) => item.href === activeHref) ??
+    items.find((item) => item.active) ??
+    items[0];
+
+  React.useEffect(() => {
+    if (configuredActiveHref) setActiveHref(configuredActiveHref);
+  }, [configuredActiveHref]);
 
   if (!activeItem) return null;
 
   function navigate(href: string) {
+    setActiveHref(href);
     if (href !== activeItem.href) router.push(href);
   }
 
@@ -99,10 +111,11 @@ export function TenantDetailSectionNav({
               <span key={item.href} role="listitem">
                 <Link
                   href={item.href}
-                  aria-current={item.active ? "page" : undefined}
+                  aria-current={item.href === activeHref ? "page" : undefined}
+                  onClick={() => setActiveHref(item.href)}
                   className={cn(
                     "inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    item.active &&
+                    item.href === activeHref &&
                       "bg-accent text-accent-foreground shadow-none",
                   )}
                 >

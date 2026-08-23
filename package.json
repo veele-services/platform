@@ -140,6 +140,7 @@
     "fieldgrid:dashboard-ui-audit": "node scripts/fieldgrid-dashboard-ui-audit.mjs",
     "fieldgrid:dashboard-ui-audit:check": "node scripts/fieldgrid-dashboard-ui-audit.mjs --check",
     "fieldgrid:dashboard-ui-audit:strict": "node scripts/fieldgrid-dashboard-ui-audit.mjs --strict-evidence",
+    "fieldgrid:backoffice-redesign:screenshots": "node scripts/fieldgrid-backoffice-redesign-screenshots.mjs",
     "fieldgrid:uiux-traceability:write": "node scripts/fieldgrid-uiux-traceability.mjs --write",
     "fieldgrid:uiux-master-gate": "node scripts/fieldgrid-uiux-master-gate.mjs",
     "fieldgrid:uiux-master-gate:check": "node scripts/fieldgrid-uiux-master-gate.mjs --check",

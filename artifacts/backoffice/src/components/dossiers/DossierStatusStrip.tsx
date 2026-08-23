@@ -1,4 +1,11 @@
-import { Archive, CalendarClock, CheckCircle2, CircleAlert, ClipboardList, UserRound } from "lucide-react";
+import {
+  Archive,
+  CalendarClock,
+  CheckCircle2,
+  CircleAlert,
+  ClipboardList,
+  UserRound,
+} from "lucide-react";
 
 import type { DossierSummary } from "@/app/actions/dossier360";
 import { cn } from "@/lib/utils";
@@ -20,7 +27,11 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
-export function DossierStatusStrip({ dossier }: { dossier: DossierSummary | null }) {
+export function DossierStatusStrip({
+  dossier,
+}: {
+  dossier: DossierSummary | null;
+}) {
   if (!dossier) return null;
 
   const attention = dossier.status === "attention" || dossier.openTaskCount > 0;
@@ -29,23 +40,32 @@ export function DossierStatusStrip({ dossier }: { dossier: DossierSummary | null
   return (
     <section
       aria-label="Dossierstatus"
-      className="mb-5 min-w-0 rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
+      className="mb-4 min-w-0 rounded-lg border border-border bg-muted/35 px-4 py-3"
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
         <div className="min-w-32">
           <p className="text-xs text-muted-foreground">Dossier</p>
-          <p className="break-words font-mono font-semibold text-foreground [overflow-wrap:anywhere]">{dossier.dossierNumber}</p>
+          <p className="break-words font-mono font-semibold text-foreground [overflow-wrap:anywhere]">
+            {dossier.dossierNumber}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <StatusIcon
             aria-hidden="true"
-            className={cn("h-4 w-4", attention ? "text-warning-foreground" : "text-success-foreground")}
+            className={cn(
+              "h-4 w-4",
+              attention ? "text-warning-foreground" : "text-success-foreground",
+            )}
           />
           <span>{STATUS_LABEL[dossier.status]}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <UserRound aria-hidden="true" className="h-4 w-4" />
-          <span>{dossier.managerAssigned ? "Verantwoordelijke toegewezen" : "Geen verantwoordelijke"}</span>
+          <span>
+            {dossier.managerAssigned
+              ? "Verantwoordelijke toegewezen"
+              : "Geen verantwoordelijke"}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <CalendarClock aria-hidden="true" className="h-4 w-4" />
@@ -53,12 +73,15 @@ export function DossierStatusStrip({ dossier }: { dossier: DossierSummary | null
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <ClipboardList aria-hidden="true" className="h-4 w-4" />
-          <span>{dossier.openTaskCount} open {dossier.openTaskCount === 1 ? "taak" : "taken"}</span>
+          <span>
+            {dossier.openTaskCount} open{" "}
+            {dossier.openTaskCount === 1 ? "taak" : "taken"}
+          </span>
         </div>
         {dossier.legalHold && (
           <div className="flex items-center gap-2 font-medium text-destructive">
             <Archive aria-hidden="true" className="h-4 w-4" />
-            <span>Legal hold actief</span>
+            <span>Bewaarblokkade actief</span>
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ import {
 } from "@/app/actions/personnel";
 import { listPersonnelRegionAware } from "@/app/actions/region-runtime";
 
-export const metadata: Metadata = { title: "Personeel" };
+export const metadata: Metadata = { title: "Medewerkers" };
 
 interface Props {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -32,31 +32,47 @@ export default async function PersonnelPage({ searchParams }: Props) {
 
   if (!canRead) return <ForbiddenPage resource="personnel" action="read" />;
 
-  const sp            = await searchParams;
-  const search        = str(sp.search);
-  const roleId        = str(sp.roleId);
-  const sectorId      = str(sp.sectorId);
-  const region        = str(sp.region);
-  const status        = str(sp.status, "all");
+  const sp = await searchParams;
+  const search = str(sp.search);
+  const roleId = str(sp.roleId);
+  const sectorId = str(sp.sectorId);
+  const region = str(sp.region);
+  const status = str(sp.status, "all");
   const personnelType = str(sp.personnelType);
-  const page          = Math.max(1, parseInt(str(sp.page, "1")) || 1);
-  const sort          = str(sp.sort, "lastName");
-  const dir           = str(sp.dir, "asc");
+  const page = Math.max(1, parseInt(str(sp.page, "1")) || 1);
+  const sort = str(sp.sort, "lastName");
+  const dir = str(sp.dir, "asc");
 
-  const [{ rows, total }, roles, sectors, stats, flexpoolRows, capacityRows] = await Promise.all([
-    listPersonnelRegionAware({ search, roleId, sectorId, region, status, personnelType, page, sort, dir }),
-    listRoles(),
-    listSectors(),
-    getPersonnelStats(),
-    getFlexpoolToday(),
-    getCapacityByRole(),
-  ]);
+  const [{ rows, total }, roles, sectors, stats, flexpoolRows, capacityRows] =
+    await Promise.all([
+      listPersonnelRegionAware({
+        search,
+        roleId,
+        sectorId,
+        region,
+        status,
+        personnelType,
+        page,
+        sort,
+        dir,
+      }),
+      listRoles(),
+      listSectors(),
+      getPersonnelStats(),
+      getFlexpoolToday(),
+      getCapacityByRole(),
+    ]);
 
   return (
     <div className="mx-auto w-full max-w-[1800px] p-6">
       <div className="mb-2 flex items-center gap-2">
-        <h1 className="font-heading text-2xl font-semibold text-slate-950">Personeel</h1>
-        <ResolvedFeatureHelp featureKey="tenant.personnel" moduleKey="personnel" />
+        <h1 className="font-heading text-2xl font-semibold text-slate-950">
+          Medewerkers
+        </h1>
+        <ResolvedFeatureHelp
+          featureKey="tenant.personnel"
+          moduleKey="personnel"
+        />
       </div>
       <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
         {total} medewerker{total !== 1 ? "s" : ""}

@@ -84,19 +84,13 @@ export function DashboardPersonaFocus({
     management,
   };
   const order: Array<Exclude<DashboardPersona, "all">> =
-    persona === "planner"
-      ? ["planner", "administration", "management"]
-      : persona === "administration"
-        ? ["administration", "planner", "management"]
-        : persona === "management"
-          ? ["management", "administration", "planner"]
-          : ["planner", "administration", "management"];
+    persona === "all" ? ["planner", "administration", "management"] : [persona];
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-border bg-card p-3 shadow-card">
+      <div className="rounded-lg border border-border bg-card p-3">
         <p className="mb-2 text-xs font-medium text-muted-foreground">
-          Richt het overzicht op uw werk
+          Werkgebied
         </p>
         <ToggleGroup
           type="single"
@@ -128,11 +122,7 @@ export function DashboardPersonaFocus({
       {order.map((key, index) => (
         <div
           key={key}
-          className={
-            index === 0 && persona !== "all"
-              ? "ring-2 ring-primary/20 rounded-xl"
-              : ""
-          }
+          className={index === 0 && persona !== "all" ? "rounded-lg" : ""}
         >
           {panels[key]}
         </div>
