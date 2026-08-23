@@ -65,16 +65,15 @@ export function DossierWorkspacePanel({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const defaultClassification = dossier.capabilities.notes
+    ? "internal"
+    : dossier.capabilities.notesConfidential
+      ? "confidential"
+      : "restricted";
   const [noteOpen, setNoteOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [note, setNote] = useState("");
-  const [classification, setClassification] = useState(
-    dossier.capabilities.notes
-      ? "internal"
-      : dossier.capabilities.notesConfidential
-        ? "confidential"
-        : "restricted",
-  );
+  const [classification, setClassification] = useState(defaultClassification);
   const [correction, setCorrection] = useState<{ id: string; reason: string; classification: string } | null>(null);
   const [taskTitle, setTaskTitle] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -285,7 +284,11 @@ export function DossierWorkspacePanel({
 
       <Dialog open={noteOpen} onOpenChange={(open) => {
         setNoteOpen(open);
-        if (!open) setCorrection(null);
+        if (!open) {
+          setNote("");
+          setCorrection(null);
+          setClassification(defaultClassification);
+        }
       }}>
         <DialogContent>
           <DialogHeader>

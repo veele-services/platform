@@ -374,6 +374,8 @@ export async function readObjectSecurityRecordsAction(input: {
 export async function lockObjectSecurityAction(input: {
   objectId: string;
 }): Promise<void> {
+  const cookieStore = await cookies();
+  const handle = cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)?.value;
   await clearUnlockCookie();
   try {
     assertObjectSecurityManagementAccessEnabled();
@@ -383,8 +385,6 @@ export async function lockObjectSecurityAction(input: {
   await requirePermission("object_security", "read");
   const parsed = z.object({ objectId: objectIdSchema }).safeParse(input);
   if (!parsed.success) return;
-  const cookieStore = await cookies();
-  const handle = cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)?.value;
   if (!handle) return;
   const actor = await currentSecurityActor();
   await revokeManagementObjectSecurityUnlock({
