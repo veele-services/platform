@@ -17,6 +17,11 @@ test("dashboard keeps permitted panels visible while persisting persona order", 
   assert.match(dashboard, /defaultPersona=\{defaultPersona\}/u);
   assert.match(experience, /fieldgrid:dashboard-persona/u);
   assert.match(experience, /<ToggleGroup/u);
+  assert.match(
+    experience,
+    /className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"/u,
+  );
+  assert.match(experience, /className="relative w-full whitespace-nowrap"/u);
   assert.match(experience, /planner: planning/u);
   assert.match(experience, /administration/u);
   assert.match(experience, /management/u);
