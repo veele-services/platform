@@ -8,6 +8,8 @@ import { listInventoryForObject } from "@/app/actions/inventory";
 import { listMaterialStockForObject } from "@/app/actions/materials";
 import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
 import { getObjectSecurityAccessState } from "@/app/actions/object-security";
+import { getDossierSummary } from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
 import {
   getObject,
   getObjectPerformance,
@@ -163,6 +165,7 @@ export default async function ObjectDetailPage({
     rawMaterialStock,
     rawInventoryItems,
     securityAccessState,
+    dossier,
   ] = await Promise.all([
     activeTab === "contacten"
       ? safeOptional("contacts", id, () => listObjectContacts(id), [])
@@ -220,6 +223,12 @@ export default async function ObjectDetailPage({
           { maskedEmail: "uw geverifieerde zakelijke adres", otpTtlMinutes: 10 },
         )
       : Promise.resolve(null),
+    safeOptional(
+      "dossier",
+      id,
+      () => getDossierSummary({ subjectType: "object", subjectId: id }),
+      null,
+    ),
   ]);
 
   const contacts = asArray(rawContacts);
@@ -294,6 +303,8 @@ export default async function ObjectDetailPage({
           </div>
         }
       />
+
+      <DossierStatusStrip dossier={dossier} />
 
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({

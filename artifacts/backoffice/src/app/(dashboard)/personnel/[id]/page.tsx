@@ -25,6 +25,8 @@ import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
 import { listInventoryForPersonnel } from "@/app/actions/inventory";
 import { listMaterialStockForPersonnel } from "@/app/actions/materials";
+import { getDossierSummary } from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
 import {
   listPersonnelQualifications,
   type QualificationLinkRow,
@@ -112,6 +114,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     qualificationLinks,
     materialStock,
     inventoryItems,
+    dossier,
   ] = await Promise.all([
     getPersonnel(id),
     canWrite ? listRoles() : Promise.resolve([]),
@@ -127,6 +130,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     listPersonnelQualifications(id),
     canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
+    getDossierSummary({ subjectType: "personnel", subjectId: id }),
   ]);
 
   if (!person) notFound();
@@ -186,6 +190,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           { label: "Aangemaakt", value: new Date(person.createdAt).toLocaleDateString("nl-NL") },
         ]}
       />
+
+      <DossierStatusStrip dossier={dossier} />
 
       <TenantDetailSectionNav
         items={[

@@ -34,6 +34,8 @@ import { listInvoicesForCustomer } from "@/app/actions/invoices";
 import { listPaymentsForCustomer } from "@/app/actions/payments";
 import { listDocuments } from "@/app/actions/documents";
 import { listReportsForCustomer } from "@/app/actions/reports";
+import { getDossierSummary } from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
 import {
   TenantDetailHeader,
   TenantDetailLayout,
@@ -168,6 +170,7 @@ export default async function CustomerDetailPage({
     history,
     portalUsers,
     tickets,
+    dossier,
   ] = await Promise.all([
     getCustomer(id),
     canWrite ? listSectors() : Promise.resolve([]),
@@ -207,6 +210,7 @@ export default async function CustomerDetailPage({
     canReadTickets && showOverview
       ? listCustomerTicketsForCustomer(id, 10)
       : Promise.resolve([]),
+    getDossierSummary({ subjectType: "customer", subjectId: id }),
   ]);
 
   if (!customer) notFound();
@@ -291,6 +295,8 @@ export default async function CustomerDetailPage({
           ) : undefined
         }
       />
+
+      <DossierStatusStrip dossier={dossier} />
 
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({
