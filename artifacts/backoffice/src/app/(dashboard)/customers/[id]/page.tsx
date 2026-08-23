@@ -332,6 +332,11 @@ export default async function CustomerDetailPage({
           Dossierstatus is tijdelijk niet beschikbaar; het klantprofiel blijft bruikbaar.
         </div>
       )}
+      {(canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline) && !dossierWorkspace && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          De Dossier 360-werkruimte kon niet worden geladen; overige klantonderdelen blijven beschikbaar.
+        </div>
+      )}
 
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({

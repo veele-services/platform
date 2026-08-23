@@ -285,7 +285,39 @@ export async function addDossierNoteAction(raw: unknown): Promise<DossierMutatio
   await requirePermission("dossiers", classificationPermission);
   try {
     const context = await requireDossierMutationContext(parsed.data);
+    if (parsed.data.correctionOfId) {
+      const [sourceNote] = await db.select({ classification: dossierNotesTable.classification })
+        .from(dossierNotesTable)
+        .where(and(
+          eq(dossierNotesTable.tenantId, context.tenantId),
+          eq(dossierNotesTable.dossierProfileId, context.profileId),
+          eq(dossierNotesTable.id, parsed.data.correctionOfId),
+        ))
+        .limit(1);
+      if (!sourceNote) return { ok: false, message: "De oorspronkelijke notitie is niet beschikbaar." };
+      const sourcePermission = sourceNote.classification === "restricted"
+        ? "notes_restricted"
+        : sourceNote.classification === "confidential"
+          ? "notes_confidential"
+          : "notes";
+      await requirePermission("dossiers", sourcePermission);
+    }
     await db.transaction(async (tx) => {
+      if (parsed.data.correctionOfId) {
+        const [original] = await tx.select({ classification: dossierNotesTable.classification })
+          .from(dossierNotesTable)
+          .where(and(
+            eq(dossierNotesTable.tenantId, context.tenantId),
+            eq(dossierNotesTable.dossierProfileId, context.profileId),
+            eq(dossierNotesTable.id, parsed.data.correctionOfId),
+          ))
+          .limit(1);
+        if (!original) throw new Error("correction source unavailable");
+        const rank: Record<string, number> = { internal: 1, confidential: 2, restricted: 3 };
+        if ((rank[parsed.data.classification] ?? 0) < (rank[original.classification] ?? 0)) {
+          throw new Error("correction classification downgrade");
+        }
+      }
       await tx.insert(dossierNotesTable).values({
         tenantId: context.tenantId,
         dossierProfileId: context.profileId,

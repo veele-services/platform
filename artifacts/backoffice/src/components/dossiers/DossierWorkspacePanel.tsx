@@ -43,6 +43,7 @@ const TASK_STATUS_LABEL: Record<string, string> = {
   completed: "Afgerond",
   cancelled: "Geannuleerd",
 };
+const CLASSIFICATION_RANK: Record<string, number> = { internal: 1, confidential: 2, restricted: 3 };
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("nl-NL", {
@@ -74,11 +75,12 @@ export function DossierWorkspacePanel({
         ? "confidential"
         : "restricted",
   );
-  const [correction, setCorrection] = useState<{ id: string; reason: string } | null>(null);
+  const [correction, setCorrection] = useState<{ id: string; reason: string; classification: string } | null>(null);
   const [taskTitle, setTaskTitle] = useState("");
   const [priority, setPriority] = useState("normal");
   const [dueAt, setDueAt] = useState("");
   const base = { ...subject, dossierProfileId: dossier.summary.id };
+  const correctedNoteIds = new Set(dossier.notes.flatMap((item) => item.correctionOfId ? [item.correctionOfId] : []));
 
   function finish(result: { ok: boolean; message: string }, close?: () => void) {
     if (!result.ok) {
@@ -92,34 +94,42 @@ export function DossierWorkspacePanel({
 
   function saveNote() {
     startTransition(async () => {
-      const result = await addDossierNoteAction({
-        ...base,
-        content: note,
-        classification,
-        correctionOfId: correction?.id ?? null,
-        correctionReason: correction?.reason ?? null,
-      });
-      finish(result, () => {
-        setNoteOpen(false);
-        setNote("");
-        setCorrection(null);
-      });
+      try {
+        const result = await addDossierNoteAction({
+          ...base,
+          content: note,
+          classification,
+          correctionOfId: correction?.id ?? null,
+          correctionReason: correction?.reason ?? null,
+        });
+        finish(result, () => {
+          setNoteOpen(false);
+          setNote("");
+          setCorrection(null);
+        });
+      } catch {
+        toast.error("De notitie kon niet worden opgeslagen. Controleer uw sessie en verbinding.");
+      }
     });
   }
 
   function saveTask() {
     startTransition(async () => {
-      const result = await createDossierTaskAction({
-        ...base,
-        title: taskTitle,
-        priority,
-        dueAt: dueAt ? new Date(dueAt).toISOString() : null,
-      });
-      finish(result, () => {
-        setTaskOpen(false);
-        setTaskTitle("");
-        setDueAt("");
-      });
+      try {
+        const result = await createDossierTaskAction({
+          ...base,
+          title: taskTitle,
+          priority,
+          dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+        });
+        finish(result, () => {
+          setTaskOpen(false);
+          setTaskTitle("");
+          setDueAt("");
+        });
+      } catch {
+        toast.error("De taak kon niet worden opgeslagen. Controleer uw sessie en verbinding.");
+      }
     });
   }
 
@@ -138,10 +148,14 @@ export function DossierWorkspacePanel({
           {dossier.capabilities.manage && (
             <>
               <Button variant="outline" size="sm" disabled={isPending} onClick={() => startTransition(async () => {
-                finish(await markDossierReviewedAction({
-                  ...base,
-                  recordVersion: dossier.summary.recordVersion,
-                }));
+                try {
+                  finish(await markDossierReviewedAction({
+                    ...base,
+                    recordVersion: dossier.summary.recordVersion,
+                  }));
+                } catch {
+                  toast.error("De beoordeling kon niet worden vastgelegd. Controleer uw sessie en verbinding.");
+                }
               })}>
                 {isPending ? <Loader2 className="animate-spin" /> : <Check />}
                 Beoordeling vastleggen
@@ -182,11 +196,17 @@ export function DossierWorkspacePanel({
                           variant="ghost"
                           size="sm"
                           disabled={isPending}
-                          onClick={() => startTransition(async () => finish(await completeDossierTaskAction({
-                            ...base,
-                            taskId: task.id,
-                            recordVersion: task.recordVersion,
-                          })))}
+                          onClick={() => startTransition(async () => {
+                            try {
+                              finish(await completeDossierTaskAction({
+                                ...base,
+                                taskId: task.id,
+                                recordVersion: task.recordVersion,
+                              }));
+                            } catch {
+                              toast.error("De taak kon niet worden afgerond. Controleer uw sessie en verbinding.");
+                            }
+                          })}
                         >
                           Afronden
                         </Button>
@@ -213,16 +233,23 @@ export function DossierWorkspacePanel({
                 {dossier.notes.map((item) => (
                   <li key={item.id} className="min-w-0 rounded-md border border-border p-3 text-sm">
                     {item.correctionOfId && (
-                      <p className="mb-2 text-xs font-semibold text-warning-foreground">
-                        Correctie op eerdere notitie
-                        {item.correctionReason ? ` · ${item.correctionReason}` : ""}
+                      <p className="mb-2 break-words text-xs font-semibold text-warning-foreground [overflow-wrap:anywhere]">
+                        Correctie op notitie {(() => {
+                          const original = dossier.notes.find((noteItem) => noteItem.id === item.correctionOfId);
+                          return original ? `van ${formatDate(original.createdAt)}` : `#${item.correctionOfId.slice(0, 8)}`;
+                        })()}
+                        {item.correctionReason ? ` · reden: ${item.correctionReason}` : ""}
                       </p>
+                    )}
+                    {correctedNoteIds.has(item.id) && (
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">Oorspronkelijke notitie · later gecorrigeerd</p>
                     )}
                     <p className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]">{item.content}</p>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                       <span>{formatDate(item.createdAt)} · {item.classification}</span>
                       <Button variant="ghost" size="sm" onClick={() => {
-                        setCorrection({ id: item.id, reason: "" });
+                        setCorrection({ id: item.id, reason: "", classification: item.classification });
+                        setClassification(item.classification);
                         setNoteOpen(true);
                       }}>Corrigeren</Button>
                     </div>
@@ -277,8 +304,8 @@ export function DossierWorkspacePanel({
               <Select value={classification} onValueChange={setClassification}>
                 <SelectTrigger id="dossier-classification"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {dossier.capabilities.notes && <SelectItem value="internal">Intern</SelectItem>}
-                  {dossier.capabilities.notesConfidential && <SelectItem value="confidential">Vertrouwelijk</SelectItem>}
+                  {dossier.capabilities.notes && (!correction || CLASSIFICATION_RANK.internal >= CLASSIFICATION_RANK[correction.classification]) && <SelectItem value="internal">Intern</SelectItem>}
+                  {dossier.capabilities.notesConfidential && (!correction || CLASSIFICATION_RANK.confidential >= CLASSIFICATION_RANK[correction.classification]) && <SelectItem value="confidential">Vertrouwelijk</SelectItem>}
                   {dossier.capabilities.notesRestricted && <SelectItem value="restricted">Strikt beperkt</SelectItem>}
                 </SelectContent>
               </Select>

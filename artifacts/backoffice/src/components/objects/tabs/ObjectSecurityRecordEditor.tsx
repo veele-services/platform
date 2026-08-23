@@ -49,27 +49,31 @@ export function ObjectSecurityRecordEditor({ objectId }: { objectId: string }) {
 
   function save() {
     startTransition(async () => {
-      const result = await createObjectSecurityRecordAction({
-        objectId,
-        category,
-        title,
-        value,
-        changeReason: reason,
-        validFrom: validFrom ? new Date(validFrom).toISOString() : undefined,
-        validUntil: validUntil ? new Date(validUntil).toISOString() : null,
-      });
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
+      try {
+        const result = await createObjectSecurityRecordAction({
+          objectId,
+          category,
+          title,
+          value,
+          changeReason: reason,
+          validFrom: validFrom ? new Date(validFrom).toISOString() : undefined,
+          validUntil: validUntil ? new Date(validUntil).toISOString() : null,
+        });
+        if (!result.ok) {
+          toast.error(result.message);
+          return;
+        }
+        toast.success(result.message);
+        window.dispatchEvent(new Event("fieldgrid:object-security-changed"));
+        setOpen(false);
+        setTitle("");
+        setValue("");
+        setReason("");
+        setValidFrom("");
+        setValidUntil("");
+      } catch {
+        toast.error("Opslaan is niet gelukt. Controleer uw sessie en verbinding.");
       }
-      toast.success(result.message);
-      window.dispatchEvent(new Event("fieldgrid:object-security-changed"));
-      setOpen(false);
-      setTitle("");
-      setValue("");
-      setReason("");
-      setValidFrom("");
-      setValidUntil("");
     });
   }
 
