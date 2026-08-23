@@ -13,9 +13,30 @@ export type PublicationPage = {
 export type PublicationDiagnosticPresentation = {
   title: string;
   explanation: string;
-  actionLabel: string;
-  href: string;
+  actionLabel: string | null;
+  href: string | null;
 };
+
+export type PublicationDiagnosticAccess = {
+  settings: boolean;
+  navigation: boolean;
+  forms: boolean;
+};
+
+export function canOpenPublicationDiagnostic(
+  href: string,
+  access: PublicationDiagnosticAccess,
+): boolean {
+  if (href.startsWith("/website/settings")) return access.settings;
+  if (
+    href.startsWith("/website/navigation") ||
+    href.startsWith("/website/redirects")
+  ) {
+    return access.navigation;
+  }
+  if (href.startsWith("/website/forms")) return access.forms;
+  return true;
+}
 
 function segmentAfter(path: string, segment: string): string | null {
   const parts = path.split(".");
@@ -143,9 +164,9 @@ export function presentPublicationDiagnostic(
       return {
         title: "Kies het primaire websitedomein",
         explanation:
-          "De website heeft een actief primair domein nodig voordat u kunt publiceren.",
-        actionLabel: "Naar instellingen",
-        href: "/website/settings",
+          "De website heeft een actief primair domein nodig. Alleen een platformbeheerder kan dit domein koppelen; vraag die beheerder om hulp.",
+        actionLabel: null,
+        href: null,
       };
     case "default_homepage":
       return {
@@ -206,33 +227,30 @@ export function presentPublicationDiagnostic(
     case "section_media_resolution_pending":
     case "page_media_resolution_pending":
       return {
-        title: `Controleer de afbeeldingen op ‘${context.pageTitle}’`,
+        title: `De afbeeldingen op ‘${context.pageTitle}’ zijn nog niet beschikbaar`,
         explanation:
-          "Een of meer afbeeldingen worden nog als tijdelijke aanduiding getoond. Open het onderdeel om de afbeeldingen te controleren.",
-        actionLabel: context.actionLabel,
-        href: context.href,
+          "Deze afbeeldingen kunnen nog niet in de publieke website worden verwerkt en worden als tijdelijke aanduiding getoond.",
+        actionLabel: null,
+        href: null,
       };
     case "site_media_resolution_pending":
       return {
-        title: "Controleer het logo en de deelafbeelding",
+        title: "Het logo of de deelafbeelding is nog niet beschikbaar",
         explanation:
-          "Een of meer website-afbeeldingen worden nog als tijdelijke aanduiding getoond. Open de instellingen om ze te controleren.",
-        actionLabel: "Naar instellingen",
-        href: "/website/settings",
+          "Deze afbeeldingen kunnen nog niet in de publieke website worden verwerkt en worden als tijdelijke aanduiding getoond.",
+        actionLabel: null,
+        href: null,
       };
     case "blog_media_resolution_pending": {
-      const postId = segmentAfter(diagnostic.path, "posts");
       const postTitle = subjectBefore(diagnostic.message, " bevat social media");
       return {
         title: postTitle
-          ? `Controleer de afbeelding van ‘${postTitle}’`
-          : "Controleer de afbeelding van het blogbericht",
+          ? `De afbeelding van ‘${postTitle}’ is nog niet beschikbaar`
+          : "De afbeelding van het blogbericht is nog niet beschikbaar",
         explanation:
-          "De afbeelding wordt nog als tijdelijke aanduiding getoond. Open het bericht om de afbeelding te controleren.",
-        actionLabel: "Naar het blogbericht",
-        href: postId
-          ? `/website/blog/${encodeURIComponent(postId)}`
-          : "/website/blog",
+          "Deze afbeelding kan nog niet in de publieke website worden verwerkt en wordt als tijdelijke aanduiding getoond.",
+        actionLabel: null,
+        href: null,
       };
     }
     case "blog_index_missing":
@@ -245,11 +263,11 @@ export function presentPublicationDiagnostic(
       };
     case "missing_published_form":
       return {
-        title: `Koppel een gepubliceerd formulier op ‘${context.pageTitle}’`,
+        title: `Publiceer het formulier voor ‘${context.pageTitle}’`,
         explanation:
-          "Kies in de contactsectie een gepubliceerd formulier in dezelfde taal en sla de sectie op.",
-        actionLabel: "Naar de contactsectie",
-        href: context.href,
+          "De contactsectie verwijst niet naar een gepubliceerd formulier in dezelfde taal. Controleer en publiceer het formulier.",
+        actionLabel: "Naar formulieren",
+        href: "/website/forms",
       };
     default:
       return fallbackPresentation(diagnostic, pages);

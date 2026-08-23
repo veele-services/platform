@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { presentPublicationDiagnostic } from "../../artifacts/backoffice/src/components/website/website-publication-diagnostics";
+import {
+  canOpenPublicationDiagnostic,
+  presentPublicationDiagnostic,
+} from "../../artifacts/backoffice/src/components/website/website-publication-diagnostics";
 
 const pages = [{ id: "page-123", title: "Home" }];
 
@@ -52,7 +55,6 @@ test("review diagnostics explain the required action without exposing IDs", () =
 
 test("diagnostics link to the editor that can resolve the problem", () => {
   const cases = [
-    ["primary_domain_missing", "site.canonicalHostname", "/website/settings"],
     ["navigation_cycle", "navigation.item-1.parentId", "/website/navigation"],
     ["redirect_page_collision", "redirects.redirect-1.sourcePath", "/website/redirects"],
     ["draft_form_excluded", "forms.form-1.status", "/website/forms"],
@@ -65,7 +67,7 @@ test("diagnostics link to the editor that can resolve the problem", () => {
       pages,
     );
     assert.equal(result.href, expectedHref, code);
-    assert.ok(result.actionLabel.startsWith("Naar"), code);
+    assert.ok(result.actionLabel?.startsWith("Naar"), code);
   }
 });
 
@@ -99,4 +101,61 @@ test("draft warnings keep human names while hiding diagnostic paths", () => {
   assert.equal(result.title, "‘Zo onderhoudt u uw dak’ staat nog als concept");
   assert.equal(result.href, "/website/blog/post-789");
   assert.doesNotMatch(`${result.title} ${result.explanation}`, /post-789/u);
+});
+
+test("actions respect independently configured website permissions", () => {
+  const restricted = { settings: false, navigation: false, forms: false };
+  assert.equal(
+    canOpenPublicationDiagnostic("/website/navigation", restricted),
+    false,
+  );
+  assert.equal(
+    canOpenPublicationDiagnostic("/website/redirects", restricted),
+    false,
+  );
+  assert.equal(
+    canOpenPublicationDiagnostic("/website/forms", restricted),
+    false,
+  );
+  assert.equal(
+    canOpenPublicationDiagnostic("/website/pages/page-123", restricted),
+    true,
+  );
+});
+
+test("non-actionable blockers and capability warnings do not offer dead links", () => {
+  const domain = presentPublicationDiagnostic(
+    {
+      severity: "error",
+      code: "primary_domain_missing",
+      path: "site.canonicalHostname",
+    },
+    pages,
+  );
+  assert.equal(domain.href, null);
+  assert.match(domain.explanation, /platformbeheerder/u);
+
+  const media = presentPublicationDiagnostic(
+    {
+      severity: "warning",
+      code: "section_media_resolution_pending",
+      path: "pages.page-123.sections.section-456",
+    },
+    pages,
+  );
+  assert.equal(media.href, null);
+  assert.match(media.explanation, /nog niet/u);
+});
+
+test("missing form bindings route to the form workflow", () => {
+  const result = presentPublicationDiagnostic(
+    {
+      severity: "error",
+      code: "missing_published_form",
+      path: "pages.page-123.sections.section-456.content.formId",
+    },
+    pages,
+  );
+  assert.equal(result.href, "/website/forms");
+  assert.equal(result.actionLabel, "Naar formulieren");
 });
