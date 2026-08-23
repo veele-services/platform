@@ -31,6 +31,7 @@ CREATE TABLE public.permissions (
 \i /tmp/object-security-migration.sql
 \i /tmp/object-security-version-transition-fix.sql
 \i /tmp/object-security-transition-and-legacy-clear.sql
+\i /tmp/object-security-audit-and-clear-invariants.sql
 
 INSERT INTO public.tenants(id) VALUES ('11111111-1111-4111-8111-111111111111');
 INSERT INTO public.objects(id, tenant_id) VALUES (

@@ -39,16 +39,15 @@ async function applyBackfill(client: import("pg").PoolClient): Promise<number> {
     ORDER BY tenant_id, id
   `);
   let migrated = 0;
-  for (const candidate of candidates.rows) {
-    await client.query("BEGIN");
-    try {
+  await client.query("BEGIN");
+  try {
+    for (const candidate of candidates.rows) {
       const locked = await client.query<LegacyRow>(`
         SELECT id, tenant_id, created_by, access_info, key_info, alarm_info
         FROM public.objects WHERE tenant_id = $1 AND id = $2 FOR UPDATE
       `, [candidate.tenant_id, candidate.id]);
       const object = locked.rows[0];
       if (!object || (!object.access_info && !object.key_info && !object.alarm_info)) {
-        await client.query("COMMIT");
         continue;
       }
       const entries = [
@@ -95,12 +94,12 @@ async function applyBackfill(client: import("pg").PoolClient): Promise<number> {
           AND (access_info IS NOT NULL OR key_info IS NOT NULL OR alarm_info IS NOT NULL)
       `, [object.tenant_id, object.id]);
       if (cleared.rowCount !== 1) throw new Error("Legacy object changed concurrently.");
-      await client.query("COMMIT");
       migrated += 1;
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
     }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
   }
   return migrated;
 }

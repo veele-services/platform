@@ -106,3 +106,14 @@ test("forward lifecycle fix blocks reactivation and only permits clearing legacy
   assert.match(migration, /NEW\.access_info IS NOT NULL/u);
   assert.match(migration, /may only be cleared after encrypted backfill/u);
 });
+
+test("final forward guard makes evidence immutable and verifies encrypted backfill", async () => {
+  const migration = await read(
+    "lib/db/migrations/20260823143000_object_security_audit_and_clear_invariants.sql",
+  );
+  assert.match(migration, /NEW\.status = OLD\.status/u);
+  assert.match(migration, /review evidence are immutable/u);
+  assert.match(migration, /category = 'access_instructions' AND r\.status = 'active'/u);
+  assert.match(migration, /category = 'key_management' AND r\.status = 'active'/u);
+  assert.match(migration, /category = 'alarm_procedure' AND r\.status = 'active'/u);
+});
