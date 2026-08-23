@@ -67,7 +67,8 @@ test("backoffice tenant selection is host-first before switcher cookie", () => {
       "await userHasActiveTenant(user.id, hostResolution.tenantId)",
       "if (hostResolution.kind === \"blocked\")",
       "return null;",
-      "selectedTenantId && tenantOptions.some",
+      "selectedTenantId &&",
+      "tenantOptions.some((tenant) => tenant.id === selectedTenantId)",
     ],
     backofficeTenantAuth,
   );

@@ -25,10 +25,7 @@ export function TenantToolbar({
 }: TenantToolbarProps) {
   return (
     <div
-      className={cn(
-        "rounded-lg border border-border bg-card p-3 shadow-card",
-        className,
-      )}
+      className={cn("rounded-lg border border-border bg-card p-3", className)}
       {...props}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

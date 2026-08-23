@@ -52,6 +52,7 @@ const E2E = {
 
 const CANONICAL_ADMIN_ROLE = "Admin";
 const CANONICAL_ADMIN_PERMISSIONS = [
+  ["dashboard", "read"],
   ["customers", "read"],
   ["customers", "write"],
   ["objects", "read"],
@@ -64,6 +65,11 @@ const CANONICAL_ADMIN_PERMISSIONS = [
   ["personnel", "write"],
   ["invoices", "read"],
   ["invoices", "write"],
+  ["dossiers", "manage"],
+  ["dossiers", "notes"],
+  ["dossiers", "notes_confidential"],
+  ["dossiers", "notes_restricted"],
+  ["dossiers", "timeline"],
 ];
 
 function amsterdamDateKey(now = new Date()) {
@@ -75,8 +81,7 @@ function amsterdamDateKey(now = new Date()) {
   }).format(now);
 }
 
-const E2E_DATE_KEY =
-  process.env.FIELDGRID_E2E_DATE_KEY ?? amsterdamDateKey();
+const E2E_DATE_KEY = process.env.FIELDGRID_E2E_DATE_KEY ?? amsterdamDateKey();
 if (!/^\d{4}-\d{2}-\d{2}$/u.test(E2E_DATE_KEY)) {
   throw new Error("FIELDGRID_E2E_DATE_KEY must use YYYY-MM-DD.");
 }
@@ -169,6 +174,7 @@ async function seedCanonicalAdminRoles(client) {
         select $1::uuid, id
         from permissions
         where (resource, action) in (
+          ('dashboard', 'read'),
           ('customers', 'read'),
           ('customers', 'write'),
           ('objects', 'read'),
@@ -180,7 +186,12 @@ async function seedCanonicalAdminRoles(client) {
           ('personnel', 'read'),
           ('personnel', 'write'),
           ('invoices', 'read'),
-          ('invoices', 'write')
+          ('invoices', 'write'),
+          ('dossiers', 'manage'),
+          ('dossiers', 'notes'),
+          ('dossiers', 'notes_confidential'),
+          ('dossiers', 'notes_restricted'),
+          ('dossiers', 'timeline')
         )
       `,
       [roleId],

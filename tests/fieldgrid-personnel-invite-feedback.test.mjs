@@ -10,6 +10,14 @@ const personnelForm = readFileSync(
   "artifacts/backoffice/src/components/personnel/PersonnelForm.tsx",
   "utf8",
 );
+const personnelDetailActions = readFileSync(
+  "artifacts/backoffice/src/components/personnel/PersonnelDetailActions.tsx",
+  "utf8",
+);
+const personnelPortalAccess = readFileSync(
+  "artifacts/backoffice/src/components/personnel/PersonnelPortalAccessCard.tsx",
+  "utf8",
+);
 const portalInvites = readFileSync(
   "artifacts/backoffice/src/lib/auth/portal-invites.ts",
   "utf8",
@@ -43,17 +51,32 @@ test("personnel form distinguishes sent, failed and uncertain activation deliver
   assert.match(personnelForm, /result\.data\?\.invite/u);
   assert.match(personnelForm, /result\.data\.invite\.sent/u);
   assert.match(personnelForm, /result\.data\.invite\.message/u);
+  assert.match(personnelForm, /result\.data\.invite\.sent === null/u);
   assert.match(
     personnelForm,
-    /result\.data\.invite\.sent === null/u,
+    /mogelijk verzonden|centrale e-mailinstellingen/u,
   );
-  assert.match(personnelForm, /mogelijk verzonden|centrale e-mailinstellingen/u);
   assert.match(personnelForm, /toast\.warning/u);
   assert.match(backofficeEmail, /deliveryEffect: result\.deliveryEffect/u);
   assert.match(portalInvites, /PortalInviteDeliveryUncertainError/u);
   assert.match(portalInvites, /sent\.deliveryEffect === "unknown"/u);
+  assert.match(portalInvites, /sent\.success \|\| deliveryUncertain/u);
+});
+
+test("personnel portal access keeps recovery revocation and explicit activation feedback", () => {
+  assert.match(personnelPortalAccess, /revokePasswordReset/u);
+  assert.match(personnelPortalAccess, /setRecoveryExpiry/u);
+  assert.match(personnelPortalAccess, /Herstelcode intrekken/u);
+  assert.match(personnelPortalAccess, /<AlertDialog open=\{revokeOpen\}/u);
+  assert.match(personnelPortalAccess, /useEffect\(\(\) => \{/u);
+  assert.match(personnelPortalAccess, /setStatus\(initialStatus\)/u);
+  assert.match(personnelDetailActions, /router\.refresh\(\)/u);
   assert.match(
-    portalInvites,
-    /sent\.success \|\| deliveryUncertain/u,
+    personnelDetailActions,
+    /Account geactiveerd, maar de activatiemail kon niet worden verstuurd/u,
+  );
+  assert.match(
+    personnelDetailActions,
+    /Activeren is niet gelukt\. Controleer de verbinding/u,
   );
 });

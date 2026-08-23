@@ -77,7 +77,7 @@ export function TenantDetailResponsiveActions({
   return (
     <div
       className={cn(
-        "sticky bottom-3 z-[var(--z-sticky)] flex justify-end pb-[max(0rem,env(safe-area-inset-bottom))] xl:hidden",
+        "fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-[var(--z-sticky)] flex justify-end xl:hidden",
         className,
       )}
     >

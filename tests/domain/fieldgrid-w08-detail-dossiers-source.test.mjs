@@ -26,7 +26,10 @@ test("detail navigation is sticky, route-aware and keyboard/mobile canonical", (
   assert.match(navigation, /sticky top-16/u);
   assert.match(navigation, /onValueChange=\{navigate\}/u);
   assert.match(navigation, /router\.push\(href\)/u);
-  assert.match(navigation, /aria-current=\{item\.active \? "page"/u);
+  assert.match(
+    navigation,
+    /aria-current=\{item\.href === activeHref \? "page" : undefined\}/u,
+  );
   assert.match(navigation, /prefers-reduced-motion: reduce/u);
   assert.doesNotMatch(navigation, /TabsTrigger/u);
   assert.doesNotMatch(navigation, /@radix-ui\/react-/u);
