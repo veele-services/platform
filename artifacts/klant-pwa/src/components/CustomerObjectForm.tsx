@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Building2,
   Check,
-  KeyRound,
   Loader2,
   MapPin,
   ShieldCheck,
@@ -485,39 +484,6 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
             defaultValue={object?.contactEmail}
             error={errors?.contactEmail}
             autoComplete="email"
-          />
-        </div>
-      </Section>
-
-      <Section
-        icon={<KeyRound size={20} />}
-        title="Toegang en sleutelinformatie"
-        description="Praktische toegangsinformatie voor werkzaamheden op locatie."
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <TextArea
-            label="Toegangsinformatie"
-            name="accessInfo"
-            maxLength={2500}
-            placeholder="Ingang, receptie, meldprocedure, openingstijden."
-            defaultValue={object?.accessInfo}
-            error={errors?.accessInfo}
-          />
-          <TextArea
-            label="Sleutelinformatie"
-            name="keyInfo"
-            maxLength={2500}
-            placeholder="Sleutelkluis, sleutelhouder, pas of toegangscode."
-            defaultValue={object?.keyInfo}
-            error={errors?.keyInfo}
-          />
-          <TextArea
-            label="Alarm / beveiliging"
-            name="alarmInfo"
-            maxLength={2500}
-            placeholder="Alarmprocedure, zones, contact bij alarm."
-            defaultValue={object?.alarmInfo}
-            error={errors?.alarmInfo}
           />
         </div>
       </Section>
