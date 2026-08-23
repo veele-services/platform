@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0.0",
+  "createdAt": "2026-08-23T22:24:50.884Z",
+  "baseUrl": "http://tenant-a.runtime.fieldgrid.test:9321/admin",
+  "evidence": [
+    {
+      "id": "dashboard-desktop-1440",
+      "path": "",
+      "heading": "Dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/dashboard-desktop-1440.png",
+      "pageHorizontalOverflow": false
+    },
+    {
+      "id": "dashboard-mobile-390",
+      "path": "",
+      "heading": "Dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/dashboard-mobile-390.png",
+      "pageHorizontalOverflow": false
+    },
+    {
+      "id": "dashboard-mobile-navigation-390",
+      "path": "",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/dashboard-mobile-navigation-390.png",
+      "pageHorizontalOverflow": false,
+      "drawerWidth": 278
+    },
+    {
+      "id": "planning-desktop-1440",
+      "path": "/planning",
+      "heading": "Planning",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin/planning",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/planning-desktop-1440.png",
+      "pageHorizontalOverflow": false
+    },
+    {
+      "id": "personnel-360-desktop-1440",
+      "path": "/personnel/60000000-0000-4000-8000-000000000001",
+      "heading": "Runtime Personnel A",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin/personnel/60000000-0000-4000-8000-000000000001",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/personnel-360-desktop-1440.png",
+      "pageHorizontalOverflow": false
+    },
+    {
+      "id": "personnel-360-mobile-390",
+      "path": "/personnel/60000000-0000-4000-8000-000000000001",
+      "heading": "Runtime Personnel A",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://tenant-a.runtime.fieldgrid.test:9321/admin/personnel/60000000-0000-4000-8000-000000000001",
+      "screenshot": "/home/codex/repos/fieldgrid-backoffice-redesign/outputs/backoffice-redesign-acceptance/personnel-360-mobile-390.png",
+      "pageHorizontalOverflow": false
+    }
+  ]
+}

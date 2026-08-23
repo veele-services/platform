@@ -264,7 +264,11 @@ export default async function DashboardLayout({
               />
               {supportMode && <SupportModeBanner supportMode={supportMode} />}
               <ReleaseHighlightBanner highlight={releaseHighlight} />
-              <main id="hoofdinhoud" tabIndex={-1} className="flex-1 overflow-y-auto">
+              <main
+                id="hoofdinhoud"
+                tabIndex={-1}
+                className="tenant-workspace flex-1 overflow-y-auto bg-background"
+              >
                 <Suspense fallback={null}>
                   <RecentContextTracker />
                 </Suspense>

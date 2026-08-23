@@ -9,7 +9,10 @@ test("drop scheduling carries source personnel to move appointments atomically",
   assert.match(source, /sourcePersonnelId\?: string \| null/u);
   assert.match(source, /handleScheduledDragStart/u);
   assert.match(source, /sourcePersonnelId,/u);
-  assert.match(source, /scheduleOnBoard\(assignmentId, person\.id, slot\.start, slot\.end, current\.sourcePersonnelId\)/u);
+  assert.match(
+    source,
+    /scheduleOnBoard\(\s*assignmentId,\s*person\.id,\s*slot\.start,\s*slot\.end,\s*current\.sourcePersonnelId,\s*"pointer",\s*\)/u,
+  );
   assert.match(planningAction, /sourcePersonnelId,\n\s*date,\n\s*start,\n\s*end,/u);
 });
 
