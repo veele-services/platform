@@ -16,6 +16,7 @@ export * from "./planning-realtime";
 export * from "./email-templates";
 export * from "./email-provider-resolution";
 export * from "./email-secret-crypto";
+export * from "./object-security-crypto";
 export * from "./tenant-provisioning";
 export * from "./custom-domains";
 export * from "./address-geocoding";

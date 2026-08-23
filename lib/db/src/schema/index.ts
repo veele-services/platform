@@ -25,6 +25,7 @@ export * from "./customer-tickets";
 export * from "./customer-contacts";
 export * from "./customer-notes";
 export * from "./objects";
+export * from "./object-security";
 export * from "./object-contacts";
 export * from "./object-personnel";
 export * from "./personnel";
