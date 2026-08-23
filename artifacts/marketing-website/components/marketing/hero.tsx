@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ServiceVisual } from "./service-visual";
 import { MotionReveal } from "./motion-reveal";
+import { PortalLoginLink } from "./portal-login-link";
 
 function kindFor(slug: string): "schoonmaak" | "beveiliging" | "facilitair" | "algemeen" {
   if (slug.startsWith("/schoonmaak")) return "schoonmaak";
@@ -14,7 +15,7 @@ function kindFor(slug: string): "schoonmaak" | "beveiliging" | "facilitair" | "a
 }
 
 function primaryHref(page: SitePage) {
-  if (page.slug === "/portaal") return "/contact";
+  if (page.slug === "/portaal") return "/klant/login";
   if (page.slug === "/werken-bij") return "#contactformulier";
   if (page.slug === "/contact") return "#contactformulier";
   if (page.slug === "/offerte") return "#contactformulier";
@@ -47,13 +48,17 @@ export function Hero({ page }: { page: SitePage }) {
               {contextLabel}
             </span>
           </div>
-          <h1 className={`mt-6 max-w-[15ch] text-balance font-extrabold leading-[.97] tracking-[-.06em] ${home ? "text-[clamp(3rem,7vw,5.65rem)]" : "text-[clamp(2.7rem,6vw,4.85rem)]"}`}>
+          <h1 className={`mt-6 max-w-[16ch] text-balance font-semibold leading-[1.04] tracking-[-.04em] [hyphens:auto] [overflow-wrap:break-word] [word-break:normal] ${home ? "text-[clamp(2.7rem,6.25vw,5rem)]" : "text-[clamp(2.25rem,5.35vw,4.25rem)]"}`}>
             {page.h1}
           </h1>
           <p className="mt-6 max-w-[40rem] border-l border-[var(--aqua)]/50 pl-5 text-base leading-7 text-white/68 sm:text-lg sm:leading-8">{page.intro}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button asChild size="lg">
-              <Link href={primaryHref(page)}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></Link>
+              {page.slug === "/portaal" ? (
+                <PortalLoginLink>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></PortalLoginLink>
+              ) : (
+                <Link href={primaryHref(page)}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></Link>
+              )}
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href={page.slug === "/contact" ? "/portaal" : "/contact"}>{page.secondary_cta}</Link>
