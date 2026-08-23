@@ -17,6 +17,7 @@ import {
   Loader2,
   MapPin,
   Search,
+  Settings2,
   Sparkles,
   Users,
   X,
@@ -1120,8 +1121,6 @@ export function PlanningBoardView({
   const availablePersonnelCount = data.personnel.filter(
     (person) => person.availabilityStatus === "beschikbaar",
   ).length;
-  const allMatches = Object.values(data.matchesByAssignmentId).flat();
-  const dailyMatchStats = matchStats(allMatches);
   const activeMatchStats = activeAssignment
     ? matchStats(data.matchesByAssignmentId[activeAssignment.id])
     : null;
@@ -1137,37 +1136,6 @@ export function PlanningBoardView({
   const topMatchScore = activeTopMatches[0]?.matchScore ?? null;
   const slotMinutes = data.planningSettings.slotMinutes;
   const workdayStart = data.planningSettings.workdayStart;
-  const planningPulseCards = [
-    {
-      label: "Open plaatsen",
-      value: openSlotCount,
-      hint: `${data.openAssignments.length} werkbon${data.openAssignments.length === 1 ? "" : "nen"} · tijdvak ${workdayStart}/${slotMinutes} min · plannen per 5 min`,
-      tone: "#0EA5E9",
-    },
-    {
-      label: "Ingepland",
-      value: data.scheduledAssignments.length,
-      hint: `${availablePersonnelCount}/${data.personnel.length} medewerkers beschikbaar`,
-      tone: "var(--color-primary)",
-    },
-    {
-      label: "Topmatches",
-      value: activeAssignment
-        ? (activeMatchStats?.match ?? 0)
-        : dailyMatchStats.match,
-      hint: activeAssignment
-        ? "voor geselecteerde werkbon"
-        : "over open werkbonnen",
-      tone: "#22C55E",
-    },
-    {
-      label: "Conflicten",
-      value: conflictCount,
-      hint: conflictCount > 0 ? "actie nodig" : "geen blokkades",
-      tone: conflictCount > 0 ? "#F97316" : "#64748B",
-    },
-  ];
-
   useEffect(() => {
     try {
       const parsed = JSON.parse(
@@ -1811,61 +1779,38 @@ export function PlanningBoardView({
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           {plannerAnnouncement}
         </p>
-        <section
-          className="overflow-hidden rounded-xl border bg-white shadow-sm"
-          style={{ borderColor: "#DDE7F0" }}
-        >
-          <div
-            className="relative border-b px-4 py-4"
-            style={{
-              borderColor: "#E2E8F0",
-              background:
-                "linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 58%, #EFFFFD 100%)",
-            }}
-          >
+        <section className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3.5">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-3">
-                <div
-                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-sm"
-                  style={
-                    isToday
-                      ? { background: "var(--color-primary)", color: "#fff" }
-                      : { background: "var(--color-foreground)", color: "#fff" }
-                  }
-                >
-                  <CalendarDays className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2
-                      className="font-heading text-xl font-semibold capitalize tracking-tight"
-                      style={{ color: "var(--color-foreground)" }}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-heading text-xl font-semibold text-foreground">
+                    Planning
+                  </h1>
+                  {activeCapacityTone && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                      style={{
+                        background: activeCapacityTone.bg,
+                        borderColor: activeCapacityTone.border,
+                        color: activeCapacityTone.text,
+                      }}
                     >
-                      {formatBoardDate(data.date)}
-                    </h2>
-                    {activeCapacityTone && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
-                        style={{
-                          background: activeCapacityTone.bg,
-                          borderColor: activeCapacityTone.border,
-                          color: activeCapacityTone.text,
-                        }}
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {activeCapacityTone.label}
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className="mt-1 max-w-2xl text-sm"
-                    style={{ color: "#64748B" }}
-                  >
-                    Selecteer een werkbon en plan met de knop, het toetsenbord
-                    of slepen. Gebruik pijltjestoetsen voor 5 minuten en Shift
-                    voor 15 minuten.
-                  </p>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {activeCapacityTone.label}
+                    </span>
+                  )}
                 </div>
+                <p className="mt-1 text-sm capitalize text-muted-foreground">
+                  {formatBoardDate(data.date)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {data.scheduledAssignments.length} ingepland · {openSlotCount}{" "}
+                  open plaatsen · {conflictCount}{" "}
+                  {conflictCount === 1 ? "conflict" : "conflicten"} ·{" "}
+                  {availablePersonnelCount}/{data.personnel.length} medewerkers
+                  beschikbaar
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -1896,8 +1841,8 @@ export function PlanningBoardView({
                   Volgende
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/planning?day=${data.date}`}>Dag</Link>
+                <Button variant="default" size="sm" aria-current="page">
+                  Dag
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/planning?month=${data.date.slice(0, 7)}`}>
@@ -1914,47 +1859,12 @@ export function PlanningBoardView({
                 )}
               </div>
             </div>
-
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {planningPulseCards.map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-lg border bg-white/85 px-3 py-2.5 shadow-sm"
-                  style={{ borderColor: "#E2E8F0" }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-wide"
-                      style={{ color: "#64748B" }}
-                    >
-                      {card.label}
-                    </p>
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: card.tone }}
-                    />
-                  </div>
-                  <p
-                    className="mt-1 text-2xl font-semibold leading-none"
-                    style={{ color: "var(--color-foreground)" }}
-                  >
-                    {card.value}
-                  </p>
-                  <p
-                    className="mt-1 truncate text-xs"
-                    style={{ color: "#64748B" }}
-                  >
-                    {card.hint}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
             <form
               onSubmit={submitSearch}
-              className="flex w-full min-w-0 flex-1 items-center gap-2 sm:min-w-[280px]"
+              className="flex w-full min-w-0 flex-1 items-center sm:min-w-[280px]"
             >
               <label className="relative min-w-0 flex-1">
                 <span className="sr-only">Werkbonnen zoeken</span>
@@ -1967,18 +1877,9 @@ export function PlanningBoardView({
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   className="h-10 rounded-lg pl-9"
-                  placeholder="Zoek werkbon, klant, object of regio"
+                  placeholder="Zoek klant, object of werkbon"
                 />
               </label>
-              <Button
-                type="submit"
-                size="sm"
-                variant="outline"
-                aria-label="Zoeken"
-                className="h-10"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
             </form>
 
             {activeAssignment && (
@@ -2100,8 +2001,8 @@ export function PlanningBoardView({
           </div>
         </section>
 
-        <div className="grid min-w-0 gap-4">
-          <section className="hidden" style={{ borderColor: "#DDE7F0" }}>
+        <div className="grid min-w-0 gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <section className="hidden min-w-0 overflow-hidden rounded-lg border border-border bg-card xl:block">
             <div
               className="flex items-center justify-between gap-3 border-b px-4 py-3"
               style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}
@@ -2382,7 +2283,7 @@ export function PlanningBoardView({
             )}
           </section>
 
-          <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <section className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
             <div
               className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
               style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}
@@ -2622,96 +2523,138 @@ export function PlanningBoardView({
                     )}
                   </SheetContent>
                 </Sheet>
-                <ToggleGroup
-                  type="single"
-                  value={timelineScope}
-                  onValueChange={(value) => {
-                    if (value !== "workday" && value !== "full") return;
-                    setTimelineScope(value);
-                    rememberPlanningPreference("scope", value);
-                  }}
-                  aria-label="Tijdsvenster planbord"
-                  variant="outline"
-                  size="sm"
+                <TenantFilterDrawer
+                  title="Weergave"
+                  description="Pas tijdsvenster, zoom, rijdichtheid en sortering van het planbord aan."
+                  footer={null}
+                  trigger={
+                    <Button type="button" variant="outline" size="sm">
+                      <Settings2 className="h-4 w-4" />
+                      Weergave
+                    </Button>
+                  }
                 >
-                  <ToggleGroupItem value="workday">Werkdag</ToggleGroupItem>
-                  <ToggleGroupItem value="full">Volledige dag</ToggleGroupItem>
-                </ToggleGroup>
-                <ToggleGroup
-                  type="single"
-                  value={zoomLevel}
-                  onValueChange={(value) => {
-                    if (!ZOOM_LEVELS.some((level) => level.id === value))
-                      return;
-                    setZoomLevel(value as (typeof ZOOM_LEVELS)[number]["id"]);
-                    rememberPlanningPreference("zoom", value);
-                  }}
-                  aria-label="Zoomniveau planbord"
-                  variant="outline"
-                  size="sm"
-                >
-                  {ZOOM_LEVELS.map((level) => (
-                    <ToggleGroupItem key={level.id} value={level.id}>
-                      {level.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-                <ToggleGroup
-                  type="single"
-                  value={rowDensity}
-                  onValueChange={(value) => {
-                    if (!DENSITY_LEVELS.some((level) => level.id === value))
-                      return;
-                    setRowDensity(
-                      value as (typeof DENSITY_LEVELS)[number]["id"],
-                    );
-                    rememberPlanningPreference("density", value);
-                  }}
-                  aria-label="Rijdichtheid planbord"
-                  variant="outline"
-                  size="sm"
-                >
-                  {DENSITY_LEVELS.map((level) => (
-                    <ToggleGroupItem key={level.id} value={level.id}>
-                      {level.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-                <Select
-                  value={personnelSort}
-                  onValueChange={(value) => {
-                    if (
-                      !PERSONNEL_SORT_OPTIONS.some(
-                        (option) => option.value === value,
-                      )
-                    )
-                      return;
-                    setPersonnelSort(
-                      value as (typeof PERSONNEL_SORT_OPTIONS)[number]["value"],
-                    );
-                    rememberPlanningPreference("sort", value);
-                  }}
-                >
-                  <SelectTrigger
-                    className="min-h-9 w-[168px]"
-                    aria-label="Sorteer medewerkers"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERSONNEL_SORT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs text-muted-foreground">
-                  Gesorteerd op{" "}
-                  {PERSONNEL_SORT_OPTIONS.find(
-                    (option) => option.value === personnelSort,
-                  )?.label.toLowerCase()}
-                </span>
+                  <div className="grid gap-5">
+                    <div className="grid gap-2">
+                      <p className="text-xs font-semibold text-foreground">
+                        Tijdsvenster
+                      </p>
+                      <ToggleGroup
+                        type="single"
+                        value={timelineScope}
+                        onValueChange={(value) => {
+                          if (value !== "workday" && value !== "full") return;
+                          setTimelineScope(value);
+                          rememberPlanningPreference("scope", value);
+                        }}
+                        aria-label="Tijdsvenster planbord"
+                        variant="outline"
+                        size="sm"
+                      >
+                        <ToggleGroupItem value="workday">
+                          Werkdag
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="full">
+                          Volledige dag
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                    </div>
+                    <div className="grid gap-2">
+                      <p className="text-xs font-semibold text-foreground">
+                        Zoom
+                      </p>
+                      <ToggleGroup
+                        type="single"
+                        value={zoomLevel}
+                        onValueChange={(value) => {
+                          if (!ZOOM_LEVELS.some((level) => level.id === value))
+                            return;
+                          setZoomLevel(
+                            value as (typeof ZOOM_LEVELS)[number]["id"],
+                          );
+                          rememberPlanningPreference("zoom", value);
+                        }}
+                        aria-label="Zoomniveau planbord"
+                        variant="outline"
+                        size="sm"
+                      >
+                        {ZOOM_LEVELS.map((level) => (
+                          <ToggleGroupItem key={level.id} value={level.id}>
+                            {level.label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </div>
+                    <div className="grid gap-2">
+                      <p className="text-xs font-semibold text-foreground">
+                        Rijdichtheid
+                      </p>
+                      <ToggleGroup
+                        type="single"
+                        value={rowDensity}
+                        onValueChange={(value) => {
+                          if (
+                            !DENSITY_LEVELS.some((level) => level.id === value)
+                          )
+                            return;
+                          setRowDensity(
+                            value as (typeof DENSITY_LEVELS)[number]["id"],
+                          );
+                          rememberPlanningPreference("density", value);
+                        }}
+                        aria-label="Rijdichtheid planbord"
+                        variant="outline"
+                        size="sm"
+                      >
+                        {DENSITY_LEVELS.map((level) => (
+                          <ToggleGroupItem key={level.id} value={level.id}>
+                            {level.label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </div>
+                    <div className="grid gap-2">
+                      <p className="text-xs font-semibold text-foreground">
+                        Sorteer medewerkers
+                      </p>
+                      <Select
+                        value={personnelSort}
+                        onValueChange={(value) => {
+                          if (
+                            !PERSONNEL_SORT_OPTIONS.some(
+                              (option) => option.value === value,
+                            )
+                          )
+                            return;
+                          setPersonnelSort(
+                            value as (typeof PERSONNEL_SORT_OPTIONS)[number]["value"],
+                          );
+                          rememberPlanningPreference("sort", value);
+                        }}
+                      >
+                        <SelectTrigger
+                          className="min-h-9 w-[168px]"
+                          aria-label="Sorteer medewerkers"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PERSONNEL_SORT_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-xs text-muted-foreground">
+                        Gesorteerd op{" "}
+                        {PERSONNEL_SORT_OPTIONS.find(
+                          (option) => option.value === personnelSort,
+                        )?.label.toLowerCase()}
+                      </span>
+                    </div>
+                  </div>
+                </TenantFilterDrawer>
                 <Button
                   type="button"
                   variant="outline"

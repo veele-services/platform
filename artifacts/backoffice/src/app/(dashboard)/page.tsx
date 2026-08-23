@@ -64,11 +64,11 @@ type FocusMetric = {
 };
 
 const focusToneClass: Record<NonNullable<FocusMetric["tone"]>, string> = {
-  neutral: "border-slate-100 bg-slate-50 text-slate-700",
-  success: "border-emerald-100 bg-emerald-50 text-emerald-800",
-  warning: "border-amber-100 bg-amber-50 text-amber-800",
-  danger: "border-red-100 bg-red-50 text-red-800",
-  info: "border-sky-100 bg-sky-50 text-sky-800",
+  neutral: "border-border text-foreground",
+  success: "border-emerald-500 text-foreground",
+  warning: "border-amber-500 text-foreground",
+  danger: "border-red-500 text-foreground",
+  info: "border-sky-500 text-foreground",
 };
 
 const summaryToneClass: Record<NonNullable<FocusMetric["tone"]>, string> = {
@@ -94,7 +94,7 @@ const availabilityConfig: Record<string, { label: string; className: string }> =
       className: "bg-amber-50 text-amber-700",
     },
     ziek: {
-      label: "Ziek",
+      label: "Niet inzetbaar",
       className: "bg-violet-50 text-violet-700",
     },
     niet_ingesteld: {
@@ -125,6 +125,20 @@ function timeSince(iso: string): string {
   return `${days}d geleden`;
 }
 
+function todayInAmsterdam(): { key: string; date: Date } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  const key = `${value.year}-${value.month}-${value.day}`;
+  return { key, date: new Date(`${key}T12:00:00Z`) };
+}
+
 export default async function DashboardPage() {
   const canRead = await hasPermission("dashboard", "read");
   if (!canRead) return <ForbiddenPage resource="dashboard" action="read" />;
@@ -145,9 +159,7 @@ export default async function DashboardPage() {
     hasPermission("invoices", "read"),
   ]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const { key: todayStr, date: today } = todayInAmsterdam();
 
   const emptyCounts: DashboardCounts = {
     requested: 0,
@@ -277,9 +289,9 @@ export default async function DashboardPage() {
     },
   ];
   const defaultPersona: DashboardPersona =
-    canReadPlanning && !canReadInvoices
+    canReadPlanning
       ? "planner"
-      : canReadInvoices && !canReadPlanning
+      : canReadInvoices
         ? "administration"
         : canReadSettings
           ? "management"
@@ -289,8 +301,7 @@ export default async function DashboardPage() {
     <TenantPageShell size="wide" className="gap-5">
       <TenantPageHeader
         title="Dashboard"
-        eyebrow="Tenant command center"
-        description={`Rustig operationeel overzicht voor ${todayDisplay}. Begin bij de inbox en stuur daarna op planning, finance en tickets.`}
+        description={`Vandaag, ${todayDisplay} · prioriteiten en actuele werkcontext`}
         badges={
           <ResolvedFeatureHelp
             featureKey="tenant.dashboard"
@@ -304,7 +315,7 @@ export default async function DashboardPage() {
 
       <section
         id="actie-inbox"
-        className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+        className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]"
       >
         {actionItems ? (
           <ActionItemsPanel items={actionItems} />
@@ -345,15 +356,11 @@ export default async function DashboardPage() {
         />
       </section>
 
-      <section className="space-y-4 pt-2">
+      <section className="space-y-4 border-t border-border pt-5">
         <div className="flex flex-col gap-1">
           <h2 className="font-heading text-lg font-semibold text-foreground">
-            Secundair overzicht
+            Recente signalen
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Context en recente signalen staan lager op de pagina zodat de eerste
-            viewport rustig blijft.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -464,7 +471,7 @@ function LatestReleasePanel({
 
 function DashboardSummaryStrip({ cards }: { cards: SummaryCard[] }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-2 xl:grid-cols-5">
       {cards.map((card) => {
         const content = (
           <>
@@ -487,7 +494,7 @@ function DashboardSummaryStrip({ cards }: { cards: SummaryCard[] }) {
             <Link
               key={card.label}
               href={card.href}
-              className="rounded-lg border border-border bg-card p-4 shadow-card transition-shadow hover:shadow-md"
+              className="border-b border-border p-3.5 transition-colors hover:bg-muted/70 focus-visible:z-10 sm:border-r xl:border-b-0"
             >
               {content}
             </Link>
@@ -497,7 +504,7 @@ function DashboardSummaryStrip({ cards }: { cards: SummaryCard[] }) {
         return (
           <div
             key={card.label}
-            className="rounded-lg border border-border bg-card p-4 shadow-card"
+            className="border-b border-border p-3.5 sm:border-r xl:border-b-0"
           >
             {content}
           </div>
@@ -582,7 +589,7 @@ function PlanningFocusPanel({
     focusMetrics.push({
       label: "Beschikbaar",
       value: String(metrics.availablePersonnelToday),
-      helper: `${metrics.leaveOrSickImpactToday} verlof/ziekte-impact`,
+      helper: `${metrics.leaveOrSickImpactToday} afwezig of niet inzetbaar`,
       href: "/personnel",
       tone: metrics.leaveOrSickImpactToday > 0 ? "warning" : "success",
     });
@@ -606,7 +613,7 @@ function PlanningFocusPanel({
     >
       <FocusMetricGrid metrics={focusMetrics} />
       {metrics && metrics.capacityBySector.length > 0 && (
-        <div className="mt-3 space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Capaciteit per sector
           </p>
@@ -789,7 +796,7 @@ function FocusMetricGrid({ metrics }: { metrics: FocusMetric[] }) {
             <Link
               key={`${metric.label}-${metric.href}`}
               href={metric.href}
-              className={`rounded-lg border p-3 ${tone}`}
+              className={`border-l-2 px-3 py-2.5 transition-colors hover:bg-muted/60 ${tone}`}
             >
               {content}
             </Link>
@@ -797,7 +804,7 @@ function FocusMetricGrid({ metrics }: { metrics: FocusMetric[] }) {
         }
 
         return (
-          <div key={metric.label} className={`rounded-lg border p-3 ${tone}`}>
+          <div key={metric.label} className={`border-l-2 px-3 py-2.5 ${tone}`}>
             {content}
           </div>
         );
@@ -856,10 +863,10 @@ function ActionItemsPanel({ items }: { items: DashboardActionItems }) {
   return (
     <DashboardPanel
       title="Vandaag aandacht nodig"
-      subtitle="De belangrijkste acties staan bovenaan; de rest van het dashboard is context."
+      subtitle="Gesorteerd op urgentie en eigenaar."
     >
       {actionLinks.length === 0 ? (
-        <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-5 text-center text-emerald-800">
+        <div className="rounded-lg border border-border bg-muted/50 px-4 py-5 text-center text-foreground">
           <p className="font-medium">Alles bijgewerkt</p>
           <p className="mt-1 text-sm opacity-75">
             Geen openstaande actiepunten.
@@ -871,7 +878,7 @@ function ActionItemsPanel({ items }: { items: DashboardActionItems }) {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`flex items-start justify-between gap-3 rounded-lg border p-3 transition-shadow hover:shadow-sm ${
+                className={`flex items-start justify-between gap-3 border-l-2 px-3 py-3 transition-colors hover:bg-muted/60 ${
                   focusToneClass[item.tone]
                 }`}
               >

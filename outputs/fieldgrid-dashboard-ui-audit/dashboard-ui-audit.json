@@ -1,0 +1,259 @@
+{
+  "version": "fieldgrid-dashboard-ui-audit-v1",
+  "createdAt": "2026-08-23T22:28:07.752Z",
+  "mode": "check",
+  "strictEvidence": false,
+  "viewports": [
+    {
+      "id": "mobile-320",
+      "width": 320,
+      "height": 568
+    },
+    {
+      "id": "mobile-390",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "mobile-430",
+      "width": 430,
+      "height": 932
+    },
+    {
+      "id": "tablet-768",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "tablet-landscape-1024",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "desktop-1280",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "desktop-1440",
+      "width": 1440,
+      "height": 1100
+    },
+    {
+      "id": "desktop-1920",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "zoom-200-1024",
+      "width": 1024,
+      "height": 768,
+      "cssZoom": 2
+    }
+  ],
+  "roles": [
+    {
+      "id": "platform-admin",
+      "label": "Platform admin",
+      "baseUrl": "",
+      "hasAuth": false,
+      "targets": [
+        {
+          "id": "dashboard",
+          "path": "/admin/platform",
+          "label": "Platform dashboard"
+        },
+        {
+          "id": "tenants",
+          "path": "/admin/platform/tenants",
+          "label": "Tenants"
+        },
+        {
+          "id": "knowledgebase",
+          "path": "/admin/platform/knowledgebase",
+          "label": "Knowledgebase"
+        },
+        {
+          "id": "roadmap",
+          "path": "/admin/platform/roadmap",
+          "label": "Roadmap"
+        },
+        {
+          "id": "releases",
+          "path": "/admin/platform/releases",
+          "label": "Releases"
+        },
+        {
+          "id": "settings",
+          "path": "/admin/platform/settings",
+          "label": "Instellingen"
+        }
+      ]
+    },
+    {
+      "id": "tenant-admin",
+      "label": "Tenant admin",
+      "baseUrl": "",
+      "hasAuth": false,
+      "targets": [
+        {
+          "id": "dashboard",
+          "path": "/",
+          "label": "Tenant dashboard"
+        },
+        {
+          "id": "planning",
+          "path": "/admin/planning",
+          "label": "Planning"
+        },
+        {
+          "id": "assignments",
+          "path": "/admin/assignments",
+          "label": "Opdrachten"
+        },
+        {
+          "id": "customers",
+          "path": "/admin/customers",
+          "label": "Klanten"
+        },
+        {
+          "id": "objects",
+          "path": "/admin/objects",
+          "label": "Objecten"
+        },
+        {
+          "id": "personnel",
+          "path": "/admin/personnel",
+          "label": "Personeel"
+        },
+        {
+          "id": "tickets",
+          "path": "/admin/tickets",
+          "label": "Tickets"
+        },
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Help"
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "label": "Customer portal",
+      "baseUrl": "",
+      "hasAuth": false,
+      "targets": [
+        {
+          "id": "dashboard",
+          "path": "/",
+          "label": "Klantportaal dashboard"
+        },
+        {
+          "id": "assignments",
+          "path": "/opdrachten",
+          "label": "Opdrachten"
+        },
+        {
+          "id": "objects",
+          "path": "/objecten",
+          "label": "Objecten"
+        },
+        {
+          "id": "invoices",
+          "path": "/facturen",
+          "label": "Facturen"
+        },
+        {
+          "id": "tickets",
+          "path": "/meldingen/tickets",
+          "label": "Tickets"
+        },
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Help"
+        },
+        {
+          "id": "releases",
+          "path": "/releases",
+          "label": "Releases"
+        }
+      ]
+    },
+    {
+      "id": "personnel",
+      "label": "Personnel portal",
+      "baseUrl": "",
+      "hasAuth": false,
+      "targets": [
+        {
+          "id": "dashboard",
+          "path": "/",
+          "label": "Personeelsapp dashboard"
+        },
+        {
+          "id": "openstaand",
+          "path": "/openstaand",
+          "label": "Openstaand"
+        },
+        {
+          "id": "assignments",
+          "path": "/opdrachten",
+          "label": "Opdrachten"
+        },
+        {
+          "id": "messages",
+          "path": "/berichten",
+          "label": "Berichten"
+        },
+        {
+          "id": "availability",
+          "path": "/beschikbaarheid",
+          "label": "Beschikbaarheid"
+        },
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Help"
+        },
+        {
+          "id": "releases",
+          "path": "/releases",
+          "label": "Releases"
+        }
+      ]
+    }
+  ],
+  "staticChecks": [
+    {
+      "id": "package-script",
+      "label": "Dashboard UI audit script is exposed",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "tenant-sidebar-collapse",
+      "label": "Tenant sidebar collapse is persistent and accessible",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "dashboard-surfaces",
+      "label": "Platform, tenant, customer and personnel dashboard surfaces exist",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    }
+  ],
+  "liveResults": [],
+  "liveError": null,
+  "summary": {
+    "status": "manual",
+    "staticChecks": 3,
+    "liveResults": 0,
+    "failures": 0
+  }
+}

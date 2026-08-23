@@ -36,7 +36,7 @@ export function TenantPageHeader({
   return (
     <header
       className={cn(
-        "rounded-lg border border-border bg-card px-3 py-3 shadow-card sm:px-4 sm:py-4",
+        "border-b border-border bg-transparent px-0 pb-3 pt-0.5 sm:pb-4",
         className,
       )}
       {...props}
@@ -74,7 +74,7 @@ export function TenantPageHeader({
         </nav>
       )}
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 space-y-1.5">
           {eyebrow && (
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -82,7 +82,7 @@ export function TenantPageHeader({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 max-w-full break-words text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+            <h1 className="min-w-0 max-w-full break-words text-xl font-semibold leading-tight text-foreground sm:text-[22px]">
               {title}
             </h1>
             {badges}
