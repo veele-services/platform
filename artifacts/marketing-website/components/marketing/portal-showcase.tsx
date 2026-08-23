@@ -1,7 +1,7 @@
 import { CalendarDays, ClipboardCheck, FileText, LockKeyhole, MessageSquareText } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MotionReveal } from "./motion-reveal";
+import { PortalLoginLink } from "./portal-login-link";
 
 const items = [
   { icon: MessageSquareText, label: "Meldingen", value: "Status volgen" },
@@ -22,7 +22,7 @@ export function PortalShowcase() {
             <LockKeyhole aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-brand-aqua-deep" />
             <p><strong className="text-brand-ink">Persoonlijke toegang.</strong> U ziet alleen de organisaties, locaties en onderdelen waarvoor uw account is geautoriseerd.</p>
           </div>
-          <Button asChild variant="dark" className="mt-6"><Link href="/klant/login">Log in op het klantenportaal</Link></Button>
+          <Button asChild variant="dark" className="mt-6"><PortalLoginLink>Log in op het klantenportaal</PortalLoginLink></Button>
         </MotionReveal>
         <MotionReveal delay={0.1}>
           <div className="relative rounded-[2rem] border border-slate-200 bg-[var(--navy-950)] p-3 shadow-[var(--shadow-lg)] sm:p-5">

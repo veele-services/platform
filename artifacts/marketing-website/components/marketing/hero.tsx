@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ServiceVisual } from "./service-visual";
 import { MotionReveal } from "./motion-reveal";
+import { PortalLoginLink } from "./portal-login-link";
 
 function kindFor(slug: string): "schoonmaak" | "beveiliging" | "facilitair" | "algemeen" {
   if (slug.startsWith("/schoonmaak")) return "schoonmaak";
@@ -53,7 +54,11 @@ export function Hero({ page }: { page: SitePage }) {
           <p className="mt-6 max-w-[40rem] border-l border-[var(--aqua)]/50 pl-5 text-base leading-7 text-white/68 sm:text-lg sm:leading-8">{page.intro}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button asChild size="lg">
-              <Link href={primaryHref(page)}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></Link>
+              {page.slug === "/portaal" ? (
+                <PortalLoginLink>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></PortalLoginLink>
+              ) : (
+                <Link href={primaryHref(page)}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover/button:translate-x-0.5" /></Link>
+              )}
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href={page.slug === "/contact" ? "/portaal" : "/contact"}>{page.secondary_cta}</Link>

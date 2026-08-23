@@ -27,6 +27,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { MotionReveal } from "./motion-reveal";
 import { LeadForm } from "./lead-form";
 import { PortalShowcase } from "./portal-showcase";
+import { PortalLoginLink } from "./portal-login-link";
 
 const sectionIcons = [Sparkles, ShieldCheck, UsersRound, Building2, Layers3, Compass];
 
@@ -288,7 +289,13 @@ function FinalCta({ page }: { page: SitePage }) {
           <div className="relative grid items-center gap-8 md:grid-cols-[1fr_auto] md:gap-12">
             <div><p className="eyebrow !text-brand-aqua">Klaar voor de volgende stap?</p><h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-[-.025em] sm:text-4xl">{page.cta_heading}</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-white/68 sm:text-base">{page.cta_body}</p></div>
             <div className="flex flex-col items-start gap-3 md:items-end">
-              <Button asChild size="lg"><Link href={ctaHref}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
+              <Button asChild size="lg">
+                {page.slug === "/portaal" ? (
+                  <PortalLoginLink>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></PortalLoginLink>
+                ) : (
+                  <Link href={ctaHref}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></Link>
+                )}
+              </Button>
               <span className="text-[10px] font-semibold text-white/65">Persoonlijke opvolging van uw aanvraag</span>
             </div>
           </div>
