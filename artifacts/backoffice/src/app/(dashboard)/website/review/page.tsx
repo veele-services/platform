@@ -14,13 +14,23 @@ import { hasPermission } from "@/lib/auth/permissions";
 export const metadata: Metadata = { title: "Website publicatiereview" };
 
 export default async function WebsitePublicationReviewPage() {
-  const [canReadPages, canReadBlog, canPublishPages, canPublishBlog] =
-    await Promise.all([
-      hasPermission("website_pages", "read"),
-      hasPermission("website_blog", "read"),
-      hasPermission("website_pages", "publish"),
-      hasPermission("website_blog", "publish"),
-    ]);
+  const [
+    canReadPages,
+    canReadBlog,
+    canReadSettings,
+    canReadNavigation,
+    canReadForms,
+    canPublishPages,
+    canPublishBlog,
+  ] = await Promise.all([
+    hasPermission("website_pages", "read"),
+    hasPermission("website_blog", "read"),
+    hasPermission("website_settings", "read"),
+    hasPermission("website_navigation", "read"),
+    hasPermission("website_forms", "read"),
+    hasPermission("website_pages", "publish"),
+    hasPermission("website_blog", "publish"),
+  ]);
   if (!canReadPages) {
     return <ForbiddenPage resource="website_pages" action="read" />;
   }
@@ -56,6 +66,11 @@ export default async function WebsitePublicationReviewPage() {
       <WebsitePublicationReviewPanel
         initialReview={review}
         canPublish={canPublishPages && canPublishBlog}
+        diagnosticAccess={{
+          settings: canReadSettings,
+          navigation: canReadNavigation,
+          forms: canReadForms,
+        }}
       />
     </TenantPageShell>
   );
