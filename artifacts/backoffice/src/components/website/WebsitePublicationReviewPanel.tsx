@@ -1,6 +1,8 @@
 "use client";
 
 import type { WebsitePublicationReview } from "@workspace/db";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -11,6 +13,7 @@ import {
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
 import { TenantConfirmDialog } from "@/components/tenant-ui";
+import { presentPublicationDiagnostic } from "./website-publication-diagnostics";
 
 type PublicationCandidate = NonNullable<
   WebsitePublicationReview["readyPublication"]
@@ -213,46 +216,68 @@ export function WebsitePublicationReviewPanel({
       <section className="veele-card space-y-4">
         <div>
           <h2 className="text-base font-semibold text-slate-950">
-            Draftdiagnostiek
+            Wat moet er nog gebeuren?
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Blokkerende fouten komen uit dezelfde compiler als de immutable
-            publicatie. Waarschuwingen maken uitgesloten concepten zichtbaar.
+            Los de blokkerende punten op voordat u publiceert. Controlepunten
+            vragen alleen om uw aandacht.
           </p>
         </div>
         {initialReview.diagnostics.length === 0 ? (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            Geen blokkerende fouten of waarschuwingen.
+            Alles is klaar om te publiceren.
           </p>
         ) : (
           <ul className="space-y-2">
-            {initialReview.diagnostics.map((diagnostic, index) => (
-              <li
-                key={`${diagnostic.code}-${diagnostic.path}-${index}`}
-                className={
-                  diagnostic.severity === "error"
-                    ? "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
-                    : "rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
-                }
-              >
-                <strong>
-                  {diagnostic.severity === "error"
-                    ? "Blokkerend"
-                    : "Waarschuwing"}
-                  :{" "}
-                </strong>
-                {diagnostic.message}
-                <code className="mt-1 block break-all text-xs opacity-70">
-                  {diagnostic.path}
-                </code>
-              </li>
-            ))}
+            {initialReview.diagnostics.map((diagnostic, index) => {
+              const presentation = presentPublicationDiagnostic(
+                diagnostic,
+                initialReview.pages,
+              );
+              return (
+                <li
+                  key={`${diagnostic.code}-${diagnostic.path}-${index}`}
+                  className={
+                    diagnostic.severity === "error"
+                      ? "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-950"
+                      : "rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+                  }
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-semibold">
+                        {diagnostic.severity === "error"
+                          ? "Eerst oplossen"
+                          : "Controleer dit"}
+                        : {presentation.title}
+                      </p>
+                      <p className="mt-1 leading-5 opacity-85">
+                        {presentation.explanation}
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full shrink-0 sm:w-auto"
+                    >
+                      <Link href={presentation.href}>
+                        {presentation.actionLabel}
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
 
       {draftPages.length > 0 && (
-        <section className="veele-card space-y-4">
+        <section
+          id="conceptpaginas"
+          className="veele-card scroll-mt-24 space-y-4"
+        >
           <div>
             <h2 className="text-base font-semibold text-slate-950">
               Conceptpagina&apos;s

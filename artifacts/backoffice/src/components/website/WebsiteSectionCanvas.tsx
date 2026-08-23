@@ -560,7 +560,10 @@ function WebsiteSectionCard({
   );
 
   return (
-    <article className="group rounded-2xl border border-slate-200 bg-white shadow-sm transition focus-within:border-cyan-200 focus-within:shadow-md">
+    <article
+      id={`sectie-${section.id}`}
+      className="group scroll-mt-24 rounded-2xl border border-slate-200 bg-white shadow-sm transition focus-within:border-cyan-200 focus-within:shadow-md"
+    >
       <header className="flex items-center gap-1 px-2 py-2 sm:px-3">
         <button
           type="button"
