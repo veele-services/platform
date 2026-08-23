@@ -12,6 +12,7 @@ import {
   revokeManagementObjectSecurityUnlock,
   verifyManagementObjectSecurityChallenge,
   type UnlockedObjectSecurityRecord,
+  assertObjectSecurityManagementAccessEnabled,
 } from "@workspace/db";
 import { sendSensitiveOtpEmail } from "@workspace/db/email-service";
 import { cookies, headers } from "next/headers";
@@ -25,19 +26,28 @@ const objectIdSchema = z.string().uuid();
 const challengeIdSchema = z.string().uuid();
 const otpSchema = z.string().regex(/^\d{6}$/u);
 const OBJECT_SECURITY_UNLOCK_COOKIE = "fg_object_security_unlock";
-const createRecordSchema = z.object({
-  objectId: objectIdSchema,
-  category: z.enum(OBJECT_SECURITY_CATEGORIES),
-  title: z.string().trim().min(3).max(160),
-  value: z.string().trim().min(1).max(10_000),
-  changeReason: z.string().trim().min(3).max(500),
-  validFrom: z.string().datetime({ offset: true }).optional(),
-  validUntil: z.string().datetime({ offset: true }).nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.validUntil && value.validFrom && new Date(value.validUntil) <= new Date(value.validFrom)) {
-    context.addIssue({ code: "custom", message: "De einddatum moet na de begindatum liggen." });
-  }
-});
+const createRecordSchema = z
+  .object({
+    objectId: objectIdSchema,
+    category: z.enum(OBJECT_SECURITY_CATEGORIES),
+    title: z.string().trim().min(3).max(160),
+    value: z.string().trim().min(1).max(10_000),
+    changeReason: z.string().trim().min(3).max(500),
+    validFrom: z.string().datetime({ offset: true }).optional(),
+    validUntil: z.string().datetime({ offset: true }).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.validUntil &&
+      value.validFrom &&
+      new Date(value.validUntil) <= new Date(value.validFrom)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "De einddatum moet na de begindatum liggen.",
+      });
+    }
+  });
 
 type ObjectSecurityActor = {
   tenantId: string;
@@ -78,10 +88,22 @@ export async function createObjectSecurityRecordAction(raw: unknown): Promise<{
   ok: boolean;
   message: string;
 }> {
+  try {
+    assertObjectSecurityManagementAccessEnabled();
+  } catch {
+    return {
+      ok: false,
+      message:
+        "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
+    };
+  }
   await requirePermission("object_security", "write");
   const parsed = createRecordSchema.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false, message: "Controleer type, titel, inhoud, reden en geldigheid." };
+    return {
+      ok: false,
+      message: "Controleer type, titel, inhoud, reden en geldigheid.",
+    };
   }
   try {
     const actor = await currentSecurityActor();
@@ -93,14 +115,24 @@ export async function createObjectSecurityRecordAction(raw: unknown): Promise<{
       title: parsed.data.title,
       payload: { waarde: parsed.data.value },
       changeReason: parsed.data.changeReason,
-      validFrom: parsed.data.validFrom ? new Date(parsed.data.validFrom) : undefined,
-      validUntil: parsed.data.validUntil ? new Date(parsed.data.validUntil) : null,
+      validFrom: parsed.data.validFrom
+        ? new Date(parsed.data.validFrom)
+        : undefined,
+      validUntil: parsed.data.validUntil
+        ? new Date(parsed.data.validUntil)
+        : null,
       requestId: actor.requestId,
     });
     await clearUnlockCookie();
-    return { ok: true, message: `Versie ${created.version} is actief. Bestaande ontgrendelingen zijn ingetrokken.` };
+    return {
+      ok: true,
+      message: `Versie ${created.version} is actief. Bestaande ontgrendelingen zijn ingetrokken.`,
+    };
   } catch {
-    return { ok: false, message: "De beveiligingsinformatie kon niet veilig worden opgeslagen." };
+    return {
+      ok: false,
+      message: "De beveiligingsinformatie kon niet veilig worden opgeslagen.",
+    };
   }
 }
 
@@ -146,24 +178,41 @@ async function currentSecurityActor(): Promise<ObjectSecurityActor> {
     tenantId,
     userId: user.id,
     email: user.email.trim().toLowerCase(),
-    businessEmailRevision: objectSecurityBusinessEmailRevision(user.email, user.email_confirmed_at),
+    businessEmailRevision: objectSecurityBusinessEmailRevision(
+      user.email,
+      user.email_confirmed_at,
+    ),
     authSessionId: objectSecurityAuthSessionId(session.access_token),
     requestId: requestHeaders.get("x-request-id"),
   };
 }
 
 export async function getObjectSecurityAccessState(): Promise<ObjectSecurityAccessState> {
+  assertObjectSecurityManagementAccessEnabled();
   await requirePermission("object_security", "read");
   const actor = await currentSecurityActor();
-  return { maskedEmail: maskObjectSecurityEmail(actor.email), otpTtlMinutes: 10 };
+  return {
+    maskedEmail: maskObjectSecurityEmail(actor.email),
+    otpTtlMinutes: 10,
+  };
 }
 
 export async function requestObjectSecurityOtpAction(
   rawObjectId: string,
 ): Promise<RequestObjectSecurityOtpResult> {
+  try {
+    assertObjectSecurityManagementAccessEnabled();
+  } catch {
+    return {
+      ok: false,
+      message:
+        "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
+    };
+  }
   await requirePermission("object_security", "read");
   const parsedObjectId = objectIdSchema.safeParse(rawObjectId);
-  if (!parsedObjectId.success) return { ok: false, message: "Ongeldig object." };
+  if (!parsedObjectId.success)
+    return { ok: false, message: "Ongeldig object." };
   const actor = await currentSecurityActor();
   const challenge = await issueManagementObjectSecurityChallenge({
     tenantId: actor.tenantId,
@@ -173,11 +222,12 @@ export async function requestObjectSecurityOtpAction(
     requestId: actor.requestId,
   });
   if (challenge.status !== "issued") {
-    const message = challenge.status === "cooldown"
-      ? "Wacht even voordat u een nieuwe code aanvraagt."
-      : challenge.status === "rate-limited"
-        ? "Te veel aanvragen. Probeer het later opnieuw."
-        : "Toegang tot dit object is niet toegestaan.";
+    const message =
+      challenge.status === "cooldown"
+        ? "Wacht even voordat u een nieuwe code aanvraagt."
+        : challenge.status === "rate-limited"
+          ? "Te veel aanvragen. Probeer het later opnieuw."
+          : "Toegang tot dit object is niet toegestaan.";
     return { ok: false, message };
   }
 
@@ -197,7 +247,8 @@ export async function requestObjectSecurityOtpAction(
   if (!delivery.success) {
     return {
       ok: false,
-      message: "De code kon niet veilig worden afgeleverd. De aanvraag is ongeldig gemaakt.",
+      message:
+        "De code kon niet veilig worden afgeleverd. De aanvraag is ongeldig gemaakt.",
     };
   }
   return {
@@ -214,13 +265,25 @@ export async function verifyObjectSecurityOtpAction(input: {
   challengeId: string;
   code: string;
 }): Promise<VerifyObjectSecurityOtpResult> {
+  try {
+    assertObjectSecurityManagementAccessEnabled();
+  } catch {
+    return {
+      ok: false,
+      message:
+        "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
+    };
+  }
   await requirePermission("object_security", "read");
-  const parsed = z.object({
-    objectId: objectIdSchema,
-    challengeId: challengeIdSchema,
-    code: otpSchema,
-  }).safeParse(input);
-  if (!parsed.success) return { ok: false, message: "Vul de zes cijfers van de code in." };
+  const parsed = z
+    .object({
+      objectId: objectIdSchema,
+      challengeId: challengeIdSchema,
+      code: otpSchema,
+    })
+    .safeParse(input);
+  if (!parsed.success)
+    return { ok: false, message: "Vul de zes cijfers van de code in." };
   const actor = await currentSecurityActor();
   const result = await verifyManagementObjectSecurityChallenge({
     tenantId: actor.tenantId,
@@ -233,13 +296,14 @@ export async function verifyObjectSecurityOtpAction(input: {
     requestId: actor.requestId,
   });
   if (result.state !== "valid") {
-    const message = result.state === "expired"
-      ? "De code is verlopen. Vraag een nieuwe code aan."
-      : result.state === "too-many-attempts"
-        ? "Te veel onjuiste pogingen. Vraag een nieuwe code aan."
-        : result.state === "used"
-          ? "Deze code is al gebruikt."
-          : "De code is niet geldig.";
+    const message =
+      result.state === "expired"
+        ? "De code is verlopen. Vraag een nieuwe code aan."
+        : result.state === "too-many-attempts"
+          ? "Te veel onjuiste pogingen. Vraag een nieuwe code aan."
+          : result.state === "used"
+            ? "Deze code is al gebruikt."
+            : "De code is niet geldig.";
     return { ok: false, message };
   }
   await setUnlockCookie(result.handle);
@@ -253,12 +317,28 @@ export async function verifyObjectSecurityOtpAction(input: {
 export async function readObjectSecurityRecordsAction(input: {
   objectId: string;
 }): Promise<ReadObjectSecurityActionResult> {
+  try {
+    assertObjectSecurityManagementAccessEnabled();
+  } catch {
+    return {
+      ok: false,
+      records: [],
+      message:
+        "Toegang en veiligheid is in deze omgeving nog niet geactiveerd.",
+    };
+  }
   await requirePermission("object_security", "read");
   const parsed = z.object({ objectId: objectIdSchema }).safeParse(input);
-  if (!parsed.success) return { ok: false, records: [], message: "De ontgrendeling is ongeldig." };
+  if (!parsed.success)
+    return { ok: false, records: [], message: "De ontgrendeling is ongeldig." };
   const cookieStore = await cookies();
   const handle = cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)?.value;
-  if (!handle) return { ok: false, records: [], message: "Ontgrendel dit onderdeel opnieuw." };
+  if (!handle)
+    return {
+      ok: false,
+      records: [],
+      message: "Ontgrendel dit onderdeel opnieuw.",
+    };
   const actor = await currentSecurityActor();
   const result = await readManagementObjectSecurityRecords({
     tenantId: actor.tenantId,
@@ -274,30 +354,37 @@ export async function readObjectSecurityRecordsAction(input: {
     return {
       ok: false,
       records: [],
-      message: result.state === "expired"
-        ? "De ontgrendeling is verlopen."
-        : "De beveiligingscontext is gewijzigd. Ontgrendel opnieuw.",
+      message:
+        result.state === "expired"
+          ? "De ontgrendeling is verlopen."
+          : "De beveiligingscontext is gewijzigd. Ontgrendel opnieuw.",
     };
   }
   return {
     ok: true,
     records: result.records,
     expiresAt: result.expiresAt.toISOString(),
-    message: result.records.length === 0
-      ? "Er zijn geen actieve beveiligingsinstructies."
-      : "Afgeschermde informatie geladen.",
+    message:
+      result.records.length === 0
+        ? "Er zijn geen actieve beveiligingsinstructies."
+        : "Afgeschermde informatie geladen.",
   };
 }
 
 export async function lockObjectSecurityAction(input: {
   objectId: string;
 }): Promise<void> {
+  await clearUnlockCookie();
+  try {
+    assertObjectSecurityManagementAccessEnabled();
+  } catch {
+    return;
+  }
   await requirePermission("object_security", "read");
   const parsed = z.object({ objectId: objectIdSchema }).safeParse(input);
   if (!parsed.success) return;
   const cookieStore = await cookies();
   const handle = cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)?.value;
-  await clearUnlockCookie();
   if (!handle) return;
   const actor = await currentSecurityActor();
   await revokeManagementObjectSecurityUnlock({

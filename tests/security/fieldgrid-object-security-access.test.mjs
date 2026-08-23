@@ -127,3 +127,14 @@ test("legacy plaintext has an encrypted staging-only backfill and safe seed", as
   assert.match(backfill, /SET access_info = NULL, key_info = NULL, alarm_info = NULL/u);
   assert.doesNotMatch(seed, /contact_email, service_type, access_info, key_info, alarm_info/u);
 });
+
+test("unfinished security paths and legacy conversion ship disabled", async () => {
+  const capabilities = await read("lib/db/src/object-security-capabilities.ts");
+  const workflow = await read(".github/workflows/deploy.yml");
+  assert.match(capabilities, /personnel: "placeholder_fail_closed"/u);
+  assert.match(capabilities, /customer: "placeholder_fail_closed"/u);
+  assert.match(capabilities, /breakGlass: "placeholder_fail_closed"/u);
+  assert.match(workflow, /FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED \|\| 'false'/u);
+  assert.match(workflow, /FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED \|\| 'false'/u);
+  assert.match(workflow, /LEGACY_BACKFILL_ENABLED == 'true'/u);
+});
