@@ -13,7 +13,11 @@ import {
 } from "@/app/actions/website";
 import { Button } from "@/components/ui/button";
 import { TenantConfirmDialog } from "@/components/tenant-ui";
-import { presentPublicationDiagnostic } from "./website-publication-diagnostics";
+import {
+  canOpenPublicationDiagnostic,
+  presentPublicationDiagnostic,
+  type PublicationDiagnosticAccess,
+} from "./website-publication-diagnostics";
 
 type PublicationCandidate = NonNullable<
   WebsitePublicationReview["readyPublication"]
@@ -22,9 +26,11 @@ type PublicationCandidate = NonNullable<
 export function WebsitePublicationReviewPanel({
   initialReview,
   canPublish,
+  diagnosticAccess,
 }: {
   initialReview: WebsitePublicationReview;
   canPublish: boolean;
+  diagnosticAccess: PublicationDiagnosticAccess;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -234,6 +240,12 @@ export function WebsitePublicationReviewPanel({
                 diagnostic,
                 initialReview.pages,
               );
+              const canOpenAction =
+                presentation.href !== null &&
+                canOpenPublicationDiagnostic(
+                  presentation.href,
+                  diagnosticAccess,
+                );
               return (
                 <li
                   key={`${diagnostic.code}-${diagnostic.path}-${index}`}
@@ -255,16 +267,26 @@ export function WebsitePublicationReviewPanel({
                         {presentation.explanation}
                       </p>
                     </div>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full shrink-0 sm:w-auto"
-                    >
-                      <Link href={presentation.href}>
-                        {presentation.actionLabel}
-                        <ArrowRight aria-hidden="true" />
-                      </Link>
-                    </Button>
+                    {canOpenAction &&
+                      presentation.href &&
+                      presentation.actionLabel && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="w-full shrink-0 sm:w-auto"
+                        >
+                          <Link href={presentation.href}>
+                            {presentation.actionLabel}
+                            <ArrowRight aria-hidden="true" />
+                          </Link>
+                        </Button>
+                      )}
+                    {presentation.href && !canOpenAction && (
+                      <p className="text-xs font-medium sm:max-w-48">
+                        Vraag een beheerder met toegang tot dit onderdeel om
+                        hulp.
+                      </p>
+                    )}
                   </div>
                 </li>
               );
