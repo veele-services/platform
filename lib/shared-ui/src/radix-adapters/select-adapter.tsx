@@ -208,7 +208,7 @@ export function SelectAdapter({
             <PopoverPrimitive.Content
               align="start"
               sideOffset={4}
-              className="z-[var(--z-dropdown)] max-h-80 w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md motion-reduce:animate-none"
+              className="z-[var(--z-floating)] max-h-80 w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md motion-reduce:animate-none"
             >
               <div
                 role="group"
@@ -302,7 +302,7 @@ export function SelectAdapter({
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
           position="popper"
-          className="z-[var(--z-dropdown)] max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md motion-reduce:animate-none"
+          className="z-[var(--z-floating)] max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md motion-reduce:animate-none"
         >
           <SelectPrimitive.Viewport>
             {options.map((option) => (

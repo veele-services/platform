@@ -13,7 +13,7 @@
     "@workspace/db": "workspace:*",
     "@workspace/shared-ui": "workspace:*",
     "@workspace/website-core": "workspace:*",
-    "next": "^15.5.0",
+    "next": "15.5.21",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

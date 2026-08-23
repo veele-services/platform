@@ -25,6 +25,8 @@ const MODULES = [
 const PERMISSIONS = [
   ["customers", "read"],
   ["customers", "write"],
+  ["objects", "read"],
+  ["objects", "write"],
   ["assignments", "read"],
   ["assignments", "write"],
   ["personnel", "read"],
@@ -240,6 +242,7 @@ async function insertTenantRoles(client, tenantId, roleName, userIds) {
       from permissions
       where (resource, action) in (
         ('customers', 'read'), ('customers', 'write'),
+        ('objects', 'read'), ('objects', 'write'),
         ('assignments', 'read'), ('assignments', 'write'),
         ('personnel', 'read'), ('personnel', 'write'),
         ('invoices', 'read'), ('invoices', 'write')

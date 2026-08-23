@@ -37,6 +37,7 @@ import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { cn } from "@/lib/utils";
 import { backofficePath } from "@/lib/backoffice-paths";
 import type { KnowledgebaseArticleMediaSummary } from "@workspace/db";
+import { sanitizeKnowledgebaseEmbedUrl } from "@workspace/shared-ui/knowledgebase-html";
 
 type TipTapKnowledgebaseEditorProps = {
   initialHtml?: string | null;
@@ -496,8 +497,8 @@ export function TipTapKnowledgebaseEditor({
     (values: Readonly<Record<string, string>>) => {
       if (!editor) return;
       const url = values.url ?? "";
-      const sanitizedUrl = sanitizeEditorUrl(url, false);
-      if (!sanitizedUrl || !sanitizedUrl.startsWith("https://")) return;
+      const sanitizedUrl = sanitizeKnowledgebaseEmbedUrl(url);
+      if (!sanitizedUrl) return;
       const title = values.title?.trim() || "Knowledgebase video";
       const caption = values.caption?.trim() || "";
       editor
@@ -794,7 +795,7 @@ export function TipTapKnowledgebaseEditor({
         ]}
         confirmLabel="Video invoegen"
         validate={(values) => {
-          const url = sanitizeEditorUrl(values.url, false);
+          const url = sanitizeKnowledgebaseEmbedUrl(values.url);
           return url?.startsWith("https://")
             ? null
             : "Gebruik een veilige HTTPS video embed URL.";

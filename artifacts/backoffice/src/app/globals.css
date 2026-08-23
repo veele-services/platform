@@ -106,6 +106,7 @@
   --z-sticky: 50;
   --z-overlay: 90;
   --z-modal: 70;
+  --z-floating: 95;
   --z-toast: 100;
   --motion-fast: 120ms;
   --motion-default: 180ms;

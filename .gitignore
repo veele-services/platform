@@ -68,6 +68,7 @@ Thumbs.db
 /artifacts/fieldgrid-playwright/
 /artifacts/fieldgrid-phase2-runtime/
 /artifacts/runtime-safety-harness/
+/artifacts/dependency-security/
 /test-results/
 
 # Android signing material must never enter source control

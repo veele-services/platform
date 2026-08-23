@@ -71,11 +71,15 @@ export const fieldgridTestLayers = [
     purpose:
       "Tenant A/B fixtures, database-invarianten en staffing/security-regressies bewijzen parent-scope en privileged write guards.",
     ciCommand:
-      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:db && pnpm fieldgrid:test:db-regressions && pnpm fieldgrid:test:credential-recovery-runtime && pnpm fieldgrid:test:website-runtime && pnpm fieldgrid:test:website-publication-runtime && pnpm fieldgrid:test:website-forms-runtime",
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:db && pnpm fieldgrid:test:db-regressions && pnpm fieldgrid:test:credential-recovery-runtime && pnpm fieldgrid:test:smtp-credential-backfill-runtime && pnpm fieldgrid:test:availability-delete-runtime && pnpm fieldgrid:test:notification-worker-runtime && pnpm fieldgrid:test:google-maps-rate-limit-runtime && pnpm fieldgrid:test:website-runtime && pnpm fieldgrid:test:website-publication-runtime && pnpm fieldgrid:test:website-forms-runtime",
     requiredTestFiles: [
       "tests/security/assignment-personnel-tenant-guard-source.test.mjs",
       "tests/fieldgrid-phase2a-durable-staffing.test.mjs",
       "tests/fieldgrid-phase2c-security-reconciliation.test.mjs",
+      "scripts/fieldgrid-smtp-credential-backfill-runtime.mts",
+      "scripts/fieldgrid-availability-delete-runtime.mts",
+      "scripts/fieldgrid-notification-worker-runtime.mts",
+      "scripts/fieldgrid-google-maps-rate-limit-runtime.mts",
     ],
     requiredSignals: ["FG-DB-INVARIANT", "FG-TENANT-A-B", "FG-DB-REGRESSION"],
   },

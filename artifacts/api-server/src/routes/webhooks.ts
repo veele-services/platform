@@ -4,6 +4,7 @@ import {
   bindProviderPayment,
   fetchMolliePayment,
   maskPaymentProviderId,
+  MollieProviderError,
   pool,
 } from "@workspace/db";
 import type { Request, Response } from "express";
@@ -78,13 +79,23 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     // contradictory provider envelope cannot make it safe, so acknowledge it.
     res.status(200).send("ok");
   } catch (error) {
+    const providerFailure = error instanceof MollieProviderError ? error : null;
     req.log.error(
       {
         paymentReference,
-        error: error instanceof Error ? error.message : String(error),
+        failureKind: providerFailure?.kind ?? "payment_integrity_failure",
+        providerStatus: providerFailure?.status ?? null,
+        retryable: providerFailure?.retryable ?? true,
       },
       "Verified payment observation could not be processed",
     );
+    if (providerFailure && !providerFailure.retryable) {
+      // A permanent provider response cannot converge through webhook retries.
+      // Financial state remains unchanged; operational reconciliation retains
+      // the masked payment reference in the structured log above.
+      res.status(200).send("ignored permanent provider response");
+      return;
+    }
     res
       .status(502)
       .send(

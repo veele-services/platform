@@ -3,13 +3,20 @@ import { appendFile } from "node:fs/promises";
 import { Resend } from "resend";
 import { desc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { emailDeliveryLogTable, organizationSettingsTable, platformEmailProvidersTable, type PlatformEmailProvider } from "./schema";
+import { emailDeliveryLogTable, organizationSettingsTable, platformEmailProvidersTable, tenantsTable, type PlatformEmailProvider } from "./schema";
 import { sendSmtpMail, type SmtpEncryption, type SmtpMailConfig } from "./email-smtp";
 import { consumeRenderedEmailMetadata, renderEmailTemplate, type EmailTemplateKey, type EmailTemplateVariables } from "./email-templates";
 import { normalizeSendGridApiRegion, sendSendGridMail, type SendGridApiRegion } from "./email-sendgrid";
+import { selectEmailProviderForMessage, type FieldgridEmailProviderScope } from "./email-provider-resolution";
+import {
+  decryptEmailSecretJson,
+  decryptTenantSmtpPassword,
+  encryptEmailSecretJson,
+} from "./email-secret-crypto";
+import { isTenantRuntimeActive } from "./tenant-context";
 
 export type PlatformEmailProviderType = "sendgrid_api" | "resend_api" | "smtp";
-export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "test_outbox" | "none";
+export type RuntimeEmailProviderType = PlatformEmailProviderType | "env_resend" | "test_outbox" | "none";
 export type PlatformEmailProviderStatus = "draft" | "configured" | "disabled" | "error";
 export type PlatformEmailTestStatus = "success" | "failed";
 export type TenantEmailTransport = "platform" | "smtp" | "api";
@@ -32,6 +39,8 @@ export type TransactionalEmailInput = {
   triggeredBy?: string | null;
   triggeredByType?: "platform_admin" | "tenant_user" | "customer_user" | "personnel_user" | "system";
   metadata?: Record<string, unknown>;
+  /** Stable provider key for safe retries. Never include recipient data or secrets. */
+  idempotencyKey?: string;
 };
 
 export type TransactionalEmailResult = {
@@ -40,6 +49,8 @@ export type TransactionalEmailResult = {
   providerType: RuntimeEmailProviderType;
   providerId?: string | null;
   providerMessageId?: string | null;
+  /** Whether a provider could have accepted the message before an error surfaced. */
+  deliveryEffect: "not_attempted" | "accepted" | "unknown";
 };
 
 export type TemplatedEmailInput = Omit<TransactionalEmailInput, "subject" | "html" | "text" | "templateKey"> & {
@@ -70,6 +81,7 @@ type EmailProviderConfig = ResendProviderConfig & SendGridProviderConfig & SmtpP
 
 type ResolvedProvider = {
   id: string | null;
+  scope: FieldgridEmailProviderScope;
   providerType: RuntimeEmailProviderType;
   fromEmail: string;
   fromName: string | null;
@@ -127,8 +139,6 @@ export type SavePlatformEmailProviderInput = {
 const DEFAULT_FROM_EMAIL = "noreply@fieldgrid.nl";
 const DEFAULT_FROM_NAME = "Fieldgrid";
 const DEFAULT_SENDING_DOMAIN = "fieldgrid.nl";
-const ENCRYPTION_KEY_ENV = "FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY";
-const LEGACY_ENCRYPTION_KEY_ENV = "PLATFORM_EMAIL_CONFIG_ENCRYPTION_KEY";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -184,38 +194,8 @@ function sanitizeError(error: unknown): string {
     .slice(0, 1800);
 }
 
-function getEncryptionKey(): Buffer {
-  const secret = process.env[ENCRYPTION_KEY_ENV] ?? process.env[LEGACY_ENCRYPTION_KEY_ENV];
-  if (!secret) {
-    throw new Error(`${ENCRYPTION_KEY_ENV} must be set before storing platform e-mail secrets.`);
-  }
-
-  if (secret.startsWith("base64:")) {
-    const decoded = Buffer.from(secret.slice("base64:".length), "base64");
-    if (decoded.length === 32) return decoded;
-  }
-
-  if (secret.startsWith("hex:")) {
-    const decoded = Buffer.from(secret.slice("hex:".length), "hex");
-    if (decoded.length === 32) return decoded;
-  }
-
-  return crypto.createHash("sha256").update(secret, "utf8").digest();
-}
-
 export function encryptPlatformEmailConfig(config: EmailProviderConfig): string {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
-  const plaintext = Buffer.from(JSON.stringify(config), "utf8");
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return JSON.stringify({
-    v: 1,
-    alg: "aes-256-gcm",
-    iv: iv.toString("base64"),
-    tag: tag.toString("base64"),
-    data: encrypted.toString("base64"),
-  });
+  return encryptEmailSecretJson(config);
 }
 
 export function decryptPlatformEmailConfig(value: string | null | undefined): EmailProviderConfig {
@@ -226,14 +206,7 @@ export function decryptPlatformEmailConfig(value: string | null | undefined): Em
     return isRecord(parsed) ? (parsed as EmailProviderConfig) : {};
   }
 
-  const iv = Buffer.from(String(parsed.iv ?? ""), "base64");
-  const tag = Buffer.from(String(parsed.tag ?? ""), "base64");
-  const data = Buffer.from(String(parsed.data ?? ""), "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", getEncryptionKey(), iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
-  const config = JSON.parse(decrypted) as unknown;
-  return isRecord(config) ? (config as EmailProviderConfig) : {};
+  return decryptEmailSecretJson(value) as EmailProviderConfig;
 }
 
 function safeDecryptPlatformEmailConfig(value: string | null | undefined): {
@@ -271,43 +244,6 @@ function normalizeRecipients(to: string | string[]): string[] {
     .filter(Boolean);
 }
 
-async function getLegacySmtpProvider(): Promise<ResolvedProvider | null> {
-  const smtpRows = await db
-    .select({
-      smtpEnabled: organizationSettingsTable.smtpEnabled,
-      smtpHost: organizationSettingsTable.smtpHost,
-      smtpPort: organizationSettingsTable.smtpPort,
-      smtpEncryption: organizationSettingsTable.smtpEncryption,
-      smtpUsername: organizationSettingsTable.smtpUsername,
-      smtpPassword: organizationSettingsTable.smtpPassword,
-      smtpFromName: organizationSettingsTable.smtpFromName,
-      smtpFromEmail: organizationSettingsTable.smtpFromEmail,
-      smtpReplyTo: organizationSettingsTable.smtpReplyTo,
-    })
-    .from(organizationSettingsTable)
-    .where(eq(organizationSettingsTable.smtpEnabled, true))
-    .orderBy(desc(organizationSettingsTable.updatedAt))
-    .limit(25);
-
-  const settings = smtpRows.find((row) => row.smtpHost && row.smtpPort && row.smtpFromEmail);
-  if (!settings) return null;
-
-  return {
-    id: null,
-    providerType: "legacy_smtp",
-    fromEmail: settings.smtpFromEmail!,
-    fromName: settings.smtpFromName ?? DEFAULT_FROM_NAME,
-    replyToEmail: settings.smtpReplyTo ?? null,
-    config: {
-      host: settings.smtpHost,
-      port: settings.smtpPort,
-      encryption: normalizeEncryption(settings.smtpEncryption),
-      username: settings.smtpUsername,
-      password: settings.smtpPassword,
-    },
-  };
-}
-
 async function getEnvResendProvider(): Promise<ResolvedProvider | null> {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) return null;
@@ -315,6 +251,7 @@ async function getEnvResendProvider(): Promise<ResolvedProvider | null> {
   const match = from.match(/^(.*?)\s*<([^>]+)>$/u);
   return {
     id: null,
+    scope: { kind: "fieldgrid_environment" },
     providerType: "env_resend",
     fromEmail: match?.[2]?.trim() ?? from.trim(),
     fromName: match?.[1]?.trim() || DEFAULT_FROM_NAME,
@@ -328,7 +265,10 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
 
   const [settings] = await db
     .select({
+      tenantId: organizationSettingsTable.tenantId,
       naam: organizationSettingsTable.naam,
+      tenantIsActive: tenantsTable.isActive,
+      tenantStatus: tenantsTable.status,
       emailTransport: organizationSettingsTable.emailTransport,
       emailApiProvider: organizationSettingsTable.emailApiProvider,
       emailApiKeyEncrypted: organizationSettingsTable.emailApiKeyEncrypted,
@@ -338,16 +278,26 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
       smtpPort: organizationSettingsTable.smtpPort,
       smtpEncryption: organizationSettingsTable.smtpEncryption,
       smtpUsername: organizationSettingsTable.smtpUsername,
-      smtpPassword: organizationSettingsTable.smtpPassword,
+      smtpPasswordEncrypted: organizationSettingsTable.smtpPasswordEncrypted,
       smtpFromName: organizationSettingsTable.smtpFromName,
       smtpFromEmail: organizationSettingsTable.smtpFromEmail,
       smtpReplyTo: organizationSettingsTable.smtpReplyTo,
     })
     .from(organizationSettingsTable)
+    .innerJoin(tenantsTable, eq(tenantsTable.id, organizationSettingsTable.tenantId))
     .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
-  if (!settings) return null;
+  if (
+    !settings ||
+    settings.tenantId !== tenantId ||
+    !isTenantRuntimeActive({
+      isActive: settings.tenantIsActive,
+      status: settings.tenantStatus,
+    })
+  ) {
+    return null;
+  }
 
   const transport = normalizeTenantTransport(settings.emailTransport, settings.smtpEnabled);
   const fromName = settings.smtpFromName ?? settings.naam ?? DEFAULT_FROM_NAME;
@@ -355,6 +305,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
   if (transport === "smtp") {
     return {
       id: null,
+      scope: { kind: "tenant", tenantId: settings.tenantId },
       providerType: "smtp",
       fromEmail: settings.smtpFromEmail ?? "",
       fromName,
@@ -364,7 +315,10 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
         port: settings.smtpPort,
         encryption: normalizeEncryption(settings.smtpEncryption),
         username: settings.smtpUsername,
-        password: settings.smtpPassword,
+        password: decryptTenantSmtpPassword(
+          settings.tenantId,
+          settings.smtpPasswordEncrypted,
+        ),
       },
     };
   }
@@ -373,6 +327,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
     const config = safeDecryptPlatformEmailConfig(settings.emailApiKeyEncrypted).config;
     return {
       id: null,
+      scope: { kind: "tenant", tenantId: settings.tenantId },
       providerType: "resend_api",
       fromEmail: settings.smtpFromEmail ?? "",
       fromName,
@@ -397,20 +352,30 @@ async function resolveActiveProvider(tenantId?: string | null): Promise<Resolved
 
   if (provider) {
     const config = safeDecryptPlatformEmailConfig(provider.encryptedConfigJson).config;
-    return {
+    const platformProvider: ResolvedProvider = {
       id: provider.id,
+      scope: { kind: "platform" },
       providerType: provider.providerType as PlatformEmailProviderType,
       fromEmail: provider.fromEmail,
       fromName: provider.fromName,
       replyToEmail: provider.replyToEmail,
       config,
     };
+    return selectEmailProviderForMessage({
+      messageTenantId: tenantId,
+      platformProvider,
+    });
   }
 
   const tenantProvider = await getTenantProvider(tenantId);
-  if (tenantProvider) return tenantProvider;
+  if (tenantProvider) {
+    return selectEmailProviderForMessage({ messageTenantId: tenantId, tenantProvider });
+  }
 
-  return (await getLegacySmtpProvider()) ?? (await getEnvResendProvider());
+  return selectEmailProviderForMessage({
+    messageTenantId: tenantId,
+    environmentProvider: await getEnvResendProvider(),
+  });
 }
 
 function assertProviderReady(provider: ResolvedProvider): void {
@@ -432,7 +397,7 @@ function assertProviderReady(provider: ResolvedProvider): void {
     return;
   }
 
-  if (provider.providerType === "smtp" || provider.providerType === "legacy_smtp") {
+  if (provider.providerType === "smtp") {
     if (!provider.config.host) throw new Error("SMTP-host ontbreekt.");
     if (!provider.config.port) throw new Error("SMTP-poort ontbreekt.");
     return;
@@ -483,7 +448,7 @@ async function sendWithResend(provider: ResolvedProvider, input: TransactionalEm
     text: input.text,
     replyTo: provider.replyToEmail ?? undefined,
     attachments: input.attachments,
-  });
+  }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined);
 
   if (error) throw new Error(String((error as { message?: string }).message ?? error));
   return data?.id ?? null;
@@ -504,6 +469,7 @@ async function sendWithSendGrid(provider: ResolvedProvider, input: Transactional
       html: input.html,
       text: input.text,
       attachments: input.attachments,
+      deliveryKey: input.idempotencyKey,
     },
   );
 }
@@ -526,6 +492,7 @@ async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmai
     html: input.html,
     text: input.text,
     attachments: input.attachments,
+    deliveryKey: input.idempotencyKey,
   });
 }
 
@@ -564,13 +531,16 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 
   const testOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
   const testTransportAllowed = process.env.NODE_ENV === "test" || process.env["FIELDGRID_E2E_AUTH_ENABLED"] === "true";
   if (testOutboxPath && testTransportAllowed) {
-    const providerMessageId = `test-${crypto.randomUUID()}`;
+    const providerMessageId = input.idempotencyKey
+      ? `test-${crypto.createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 32)}`
+      : `test-${crypto.randomUUID()}`;
     const captured = {
       id: providerMessageId,
       capturedAt: new Date().toISOString(),
@@ -591,6 +561,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: "test_outbox",
       providerId: "fieldgrid-test-outbox",
       providerMessageId,
+      deliveryEffect: "accepted",
     };
   }
 
@@ -605,17 +576,37 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 
   if (!provider) {
     const error = "Geen actieve e-mailprovider geconfigureerd.";
     await logDelivery(normalizedInput, null, "skipped", error);
-    return { success: false, error, providerType: "none", providerId: null };
+    return {
+      success: false,
+      error,
+      providerType: "none",
+      providerId: null,
+      deliveryEffect: "not_attempted",
+    };
   }
 
   try {
     assertProviderReady(provider);
+  } catch (error) {
+    const message = sanitizeError(error);
+    await logDelivery(normalizedInput, provider, "failed", message);
+    return {
+      success: false,
+      error: message,
+      providerType: provider.providerType,
+      providerId: provider.id,
+      deliveryEffect: "not_attempted",
+    };
+  }
+
+  try {
     const providerMessageId =
       provider.providerType === "sendgrid_api"
         ? await sendWithSendGrid(provider, normalizedInput)
@@ -629,6 +620,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       providerType: provider.providerType,
       providerId: provider.id,
       providerMessageId,
+      deliveryEffect: "accepted",
     };
   } catch (error) {
     const message = sanitizeError(error);
@@ -638,6 +630,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       error: message,
       providerType: provider.providerType,
       providerId: provider.id,
+      deliveryEffect: "unknown",
     };
   }
 }
@@ -687,6 +680,7 @@ export async function sendTemplatedEmail(input: TemplatedEmailInput): Promise<Tr
       error: message,
       providerType: "none",
       providerId: null,
+      deliveryEffect: "not_attempted",
     };
   }
 }
@@ -948,6 +942,7 @@ export async function sendPlatformEmailTest(input: { to: string; triggeredBy?: s
       success: false,
       error: "Vul een geldig test e-mailadres in.",
       providerType: "none",
+      deliveryEffect: "not_attempted",
     };
   }
 

@@ -66,8 +66,14 @@ export const mvpSprint2SourceContracts = [
     phrases: [
       "sendTemplatedEmail",
       "emailDeliveryLogTable",
-      "FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY",
       "resolveActiveProvider(normalizedInput.tenantId)",
+    ],
+  },
+  {
+    path: "lib/db/src/email-secret-crypto.ts",
+    phrases: [
+      "FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY",
+      "decryptTenantSmtpPassword",
     ],
   },
   {

@@ -316,7 +316,10 @@ function MetricCard({
         >
           {title}
         </p>
-        <p className="mt-1 text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
+        <p
+          className="mt-1 text-2xl font-bold"
+          style={{ color: "var(--color-foreground)" }}
+        >
           {value}
         </p>
         <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
@@ -552,7 +555,7 @@ function ManualNotificationPanel({
               : "";
         setNotice({
           type: "success",
-          text: `Verstuurd naar ${result.data?.personnelCount ?? 0} medewerker(s) en ${result.data?.customerCount ?? 0} klant(en). E-mail: ${result.data?.emailSuccessCount ?? 0} succesvol, ${result.data?.emailFailedCount ?? 0} mislukt.${pushText}`,
+          text: `Aangeboden aan ${result.data?.personnelCount ?? 0} medewerker(s) en ${result.data?.customerCount ?? 0} klant(en). E-mail: ${result.data?.emailQueuedCount ?? 0} in de wachtrij, ${result.data?.emailSuccessCount ?? 0} direct verzonden, ${result.data?.emailFailedCount ?? 0} definitief mislukt.${pushText}`,
         });
       } else {
         setNotice({ type: "error", text: result.message });
@@ -567,7 +570,10 @@ function ManualNotificationPanel({
           <Send className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: "var(--color-foreground)" }}
+          >
             Handmatige melding sturen
           </h2>
           <p
@@ -629,7 +635,9 @@ function ManualNotificationPanel({
             onClick={() => setChannels((current) => toggle(current, key))}
             className="rounded-xl border p-3 text-left disabled:opacity-60"
             style={{
-              borderColor: channels.includes(key) ? "var(--color-primary)" : "#E2E8F0",
+              borderColor: channels.includes(key)
+                ? "var(--color-primary)"
+                : "#E2E8F0",
               background: channels.includes(key) ? "#F0FDFA" : "#fff",
             }}
           >
@@ -794,7 +802,10 @@ function EmailStylePanel({
           <Palette className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: "var(--color-foreground)" }}
+          >
             E-mail huisstijl
           </h2>
           <p
@@ -856,7 +867,10 @@ function EmailStylePanel({
 function ShortcodesPanel() {
   return (
     <section className="veele-card">
-      <h2 className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+      <h2
+        className="text-sm font-semibold"
+        style={{ color: "var(--color-foreground)" }}
+      >
         Shortcodes
       </h2>
       <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
@@ -906,7 +920,10 @@ function ToggleCard({
         background: checked ? "#F0FDFA" : "#fff",
       }}
     >
-      <span className="text-sm font-semibold" style={{ color: "var(--color-foreground)" }}>
+      <span
+        className="text-sm font-semibold"
+        style={{ color: "var(--color-foreground)" }}
+      >
         {label}
       </span>
       <span

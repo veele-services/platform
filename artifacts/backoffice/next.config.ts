@@ -26,6 +26,10 @@ const nextConfig: NextConfig = {
   basePath: "/admin",
   poweredByHeader: false,
   compress: true,
+  // PDFKit resolves its built-in AFM fonts relative to its package directory.
+  // Keep it external so Next does not relocate the runtime into .next/chunks
+  // without the accompanying data files.
+  serverExternalPackages: ["pdfkit"],
   async headers() {
     return [
       {

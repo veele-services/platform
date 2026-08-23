@@ -12,29 +12,13 @@ import {
   recordGoogleMapsUsageEvent,
 } from "@/lib/google-maps";
 import { createSafeGoogleMapsError } from "@/lib/google-maps/errors";
+import { shouldRecordGoogleMapsAutocompleteSession } from "@workspace/db/google-maps-rate-limit";
 
 const autocompleteSchema = z.object({
   input: z.string().max(160),
   sessionToken: z.string().min(8).max(36),
   limit: z.number().int().min(1).max(10).optional(),
 });
-
-const seenAutocompleteSessions = new Map<string, number>();
-
-function shouldRecordAutocompleteSession(input: {
-  tenantId: string;
-  userId: string | null;
-  sessionToken: string;
-}): boolean {
-  const now = Date.now();
-  for (const [key, expiresAt] of seenAutocompleteSessions) {
-    if (expiresAt <= now) seenAutocompleteSessions.delete(key);
-  }
-  const key = `${input.tenantId}:${input.userId ?? "anonymous"}:${input.sessionToken}`;
-  if (seenAutocompleteSessions.has(key)) return false;
-  seenAutocompleteSessions.set(key, now + 30 * 60 * 1000);
-  return true;
-}
 
 const ADDRESS_SEARCH_PERMISSIONS = [
   { resource: "personnel", action: "read" },
@@ -90,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ suggestions: [] });
     }
 
-    const rateLimit = checkGoogleMapsRateLimit({
+    const rateLimit = await checkGoogleMapsRateLimit({
       tenantId,
       userId,
       action: "places_autocomplete",
@@ -109,8 +93,8 @@ export async function POST(request: Request) {
         metadata: { action: "places_autocomplete" },
       });
       return NextResponse.json(
-        { error: createSafeGoogleMapsError("rate_limited", true) },
-        { status: 429 },
+        { error: createSafeGoogleMapsError(rateLimit.reason === "service_unavailable" ? "configuration_error" : "rate_limited", true) },
+        { status: rateLimit.reason === "service_unavailable" ? 503 : 429 },
       );
     }
 
@@ -128,9 +112,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (shouldRecordAutocompleteSession({
+    if (await shouldRecordGoogleMapsAutocompleteSession({
       tenantId,
-      userId,
+      actorKey: userId,
       sessionToken: parsed.data.sessionToken,
     })) {
       await recordGoogleMapsUsageEvent({
