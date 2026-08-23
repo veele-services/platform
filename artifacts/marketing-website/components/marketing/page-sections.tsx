@@ -27,6 +27,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { MotionReveal } from "./motion-reveal";
 import { LeadForm } from "./lead-form";
 import { PortalShowcase } from "./portal-showcase";
+import { PortalLoginLink } from "./portal-login-link";
 
 const sectionIcons = [Sparkles, ShieldCheck, UsersRound, Building2, Layers3, Compass];
 
@@ -159,7 +160,7 @@ function ContentSection({ section, index, template }: { section: PageSection; in
         <MotionReveal className="min-w-0"><TemplateVisual index={index} template={template} /></MotionReveal>
         <MotionReveal className="min-w-0" delay={0.08}>
           <p className="eyebrow">{index === 0 ? "Onze aanpak" : `Onderdeel ${String(index + 1).padStart(2, "0")}`}</p>
-          <h2 className="section-title [overflow-wrap:anywhere]">{section.heading}</h2>
+          <h2 className="section-title">{section.heading}</h2>
           {section.body && <p className="section-copy">{stripMarkup(section.body)}</p>}
           {hasBullets && <SectionBullets bullets={section.bullets} />}
         </MotionReveal>
@@ -277,6 +278,8 @@ function FaqSection({ page }: { page: SitePage }) {
 }
 
 function FinalCta({ page }: { page: SitePage }) {
+  const ctaHref = page.slug === "/portaal" ? "/klant/login" : page.slug === "/offerte" ? "/contact" : "/offerte";
+
   return (
     <section className="bg-white py-7 sm:py-11">
       <div className="container-shell">
@@ -284,9 +287,15 @@ function FinalCta({ page }: { page: SitePage }) {
           <div className="absolute -right-20 -top-24 size-72 rounded-full border-[52px] border-white/[.045]" />
           <div className="absolute bottom-0 left-[55%] top-0 hidden w-px bg-gradient-to-b from-transparent via-white/10 to-transparent md:block" />
           <div className="relative grid items-center gap-8 md:grid-cols-[1fr_auto] md:gap-12">
-            <div><p className="eyebrow !text-brand-aqua">Klaar voor de volgende stap?</p><h2 className="mt-4 max-w-3xl text-balance text-3xl font-extrabold tracking-[-.04em] sm:text-4xl">{page.cta_heading}</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-white/68 sm:text-base">{page.cta_body}</p></div>
+            <div><p className="eyebrow !text-brand-aqua">Klaar voor de volgende stap?</p><h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-[-.025em] sm:text-4xl">{page.cta_heading}</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-white/68 sm:text-base">{page.cta_body}</p></div>
             <div className="flex flex-col items-start gap-3 md:items-end">
-              <Button asChild size="lg"><Link href={page.slug === "/offerte" ? "/contact" : "/offerte"}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
+              <Button asChild size="lg">
+                {page.slug === "/portaal" ? (
+                  <PortalLoginLink>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></PortalLoginLink>
+                ) : (
+                  <Link href={ctaHref}>{page.primary_cta}<ArrowRight aria-hidden="true" className="size-4" /></Link>
+                )}
+              </Button>
               <span className="text-[10px] font-semibold text-white/65">Persoonlijke opvolging van uw aanvraag</span>
             </div>
           </div>

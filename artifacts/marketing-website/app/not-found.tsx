@@ -17,7 +17,7 @@ export default function NotFound() {
     <section className="flex min-h-[80vh] items-center bg-[var(--navy-950)] pt-20 text-white">
       <div className="container-shell py-24">
         <p className="eyebrow text-brand-aqua">Fout 404</p>
-        <h1 className="mt-4 max-w-3xl text-5xl font-extrabold tracking-tight sm:text-6xl">
+        <h1 className="mt-4 max-w-3xl text-5xl font-semibold leading-[1.08] tracking-[-.035em] sm:text-6xl">
           {notFoundContent.h1}
         </h1>
         <p className="mt-5 max-w-xl text-lg leading-8 text-white/65">{notFoundContent.body}</p>

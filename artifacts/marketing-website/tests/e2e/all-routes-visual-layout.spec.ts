@@ -47,6 +47,25 @@ const routes = [
   ["zoetermeer", "/zoetermeer"],
 ] as const;
 
+const forbiddenPublicationCopy = [
+  "marketingdemo",
+  "conceptomgeving",
+  "portaalconcept",
+  "voorgestelde klantenportaal",
+  "voorgestelde portaal",
+  "check-instatus",
+  "te accorderen extra uren",
+  "veiligheidsmicrocopy",
+  "lokale bewijslast vóór livegang",
+  "voorbeeldtitel",
+  "publicatievoorwaarde",
+  "privacytekst bij verzenden",
+  "formulierknop",
+  "redactionele regel",
+  "startonderwerpen voor de eerste zes maanden",
+  "vaste artikelstructuur",
+] as const;
+
 type TapTargetFailure = {
   element: string;
   height: number;
@@ -73,6 +92,29 @@ test.describe("all marketing routes visual and layout QA", () => {
       await expect(visibleHeading, `${route} h1 should be visible`).toBeVisible();
       await expect(page.locator("body"), `${route} body should be visible`).toBeVisible();
       await page.evaluate(async () => document.fonts.ready);
+
+      const bodyText = (await page.locator("body").innerText()).toLocaleLowerCase("nl-NL");
+      for (const forbiddenCopy of forbiddenPublicationCopy) {
+        expect(bodyText, `${route} should not expose internal publication copy: ${forbiddenCopy}`).not.toContain(forbiddenCopy);
+      }
+
+      if (route === "/portaal") {
+        const portalLoginLinks = page.getByRole("link", { name: "Log in op het klantenportaal" });
+        expect(await portalLoginLinks.count()).toBeGreaterThanOrEqual(2);
+        const portalLoginHrefs = await portalLoginLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+        expect(portalLoginHrefs.every((href) => href === "/klant/login")).toBe(true);
+        expect(await portalLoginLinks.evaluateAll((links) => links.every((link) => link.getAttribute("data-document-navigation") === "true"))).toBe(true);
+      }
+
+      const heavyHeadings = await page.locator("h1:visible, h2:visible").evaluateAll((headings) =>
+        headings
+          .map((heading) => ({
+            text: heading.textContent?.trim().replace(/\s+/g, " ").slice(0, 100) ?? "",
+            weight: Number.parseInt(window.getComputedStyle(heading).fontWeight, 10),
+          }))
+          .filter(({ weight }) => Number.isFinite(weight) && weight > 600),
+      );
+      expect(heavyHeadings, `${route} should keep public h1/h2 typography at weight 600 or lighter`).toEqual([]);
 
       const layout = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,
@@ -126,6 +168,20 @@ test.describe("all marketing routes visual and layout QA", () => {
         caret: "hide",
       });
       expect(pageErrors, `${route} should remain free of uncaught page errors`).toEqual([]);
+
+      if (route === "/portaal") {
+        await page.evaluate(() => {
+          (window as Window & { __marketingDocumentMarker?: string }).__marketingDocumentMarker = "marketing-app";
+        });
+        await Promise.all([
+          page.waitForURL((url) => url.pathname === "/klant/login"),
+          page.getByRole("link", { name: "Log in op het klantenportaal" }).first().click(),
+        ]);
+        expect(
+          await page.evaluate(() => (window as Window & { __marketingDocumentMarker?: string }).__marketingDocumentMarker),
+          "portal login should load the customer zone as a new document",
+        ).toBeUndefined();
+      }
     });
   }
 });
