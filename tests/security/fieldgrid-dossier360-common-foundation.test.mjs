@@ -82,9 +82,21 @@ test("customer deletion preserves related data when a dossier blocks hard delete
     deleteCustomer.indexOf("if (dossier)") <
       deleteCustomer.indexOf(".delete(customerContactsTable)"),
   );
+  const dossierBlock = deleteCustomer.slice(
+    deleteCustomer.indexOf("if (dossier)"),
+    deleteCustomer.indexOf("await db.transaction"),
+  );
+  assert.match(dossierBlock, /insert\(auditLogTable\)/u);
+  assert.match(dossierBlock, /tenantId,/u);
+  assert.match(dossierBlock, /action: "delete_blocked"/u);
+  assert.match(dossierBlock, /reason: "dossier360_retention_lifecycle"/u);
   assert.match(deleteCustomer, /await db\.transaction\(async \(tx\) => \{/u);
   assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customerContactsTable\)/u);
   assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customerNotesTable\)/u);
   assert.match(deleteCustomer, /tx[\s\S]*\.delete\(customersTable\)/u);
-  assert.match(deleteCustomer, /tx\.insert\(auditLogTable\)/u);
+  assert.match(
+    deleteCustomer,
+    /tx\.insert\(auditLogTable\)\.values\(\{[\s\S]*tenantId,[\s\S]*action: "delete"/u,
+  );
+  assert.doesNotMatch(deleteCustomer, /metadata: \{ name: customer\.name \}/u);
 });

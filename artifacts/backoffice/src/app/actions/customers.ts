@@ -1012,7 +1012,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   }
 
   const [customer] = await db
-    .select({ name: customersTable.name })
+    .select({ id: customersTable.id })
     .from(customersTable)
     .where(
       and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)),
@@ -1032,6 +1032,14 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
     )
     .limit(1);
   if (dossier) {
+    await db.insert(auditLogTable).values({
+      tenantId,
+      userId: user.id,
+      action: "delete_blocked",
+      resource: "customers",
+      resourceId: id,
+      metadata: { reason: "dossier360_retention_lifecycle" },
+    });
     return {
       success: false,
       message:
@@ -1053,11 +1061,12 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
       );
 
     await tx.insert(auditLogTable).values({
+      tenantId,
       userId: user.id,
       action: "delete",
       resource: "customers",
       resourceId: id,
-      metadata: { name: customer.name },
+      metadata: { lifecycle: "hard_delete" },
     });
   });
 
