@@ -6,6 +6,25 @@
 
 CREATE UNIQUE INDEX IF NOT EXISTS objects_tenant_id_id_unique
   ON public.objects (tenant_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS personnel_tenant_id_id_unique
+  ON public.personnel (tenant_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS customers_tenant_id_id_unique
+  ON public.customers (tenant_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS assignments_tenant_id_id_unique
+  ON public.assignments (tenant_id, id);
+
+CREATE TABLE IF NOT EXISTS public.object_security_object_revisions (
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE RESTRICT,
+  object_id uuid NOT NULL,
+  generation bigint NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, object_id),
+  CONSTRAINT object_security_object_revisions_object_tenant_fk
+    FOREIGN KEY (tenant_id, object_id)
+    REFERENCES public.objects (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_object_revisions_generation_check CHECK (generation >= 0)
+);
 
 CREATE TABLE IF NOT EXISTS public.object_security_records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.object_security_records (
   valid_until timestamptz,
   source varchar(32) NOT NULL DEFAULT 'management',
   change_reason text NOT NULL,
-  supersedes_record_id uuid REFERENCES public.object_security_records(id) ON DELETE RESTRICT,
+  supersedes_record_id uuid,
   created_by uuid NOT NULL,
   reviewed_by uuid,
   reviewed_at timestamptz,
@@ -66,14 +85,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS object_security_records_active_unique
 CREATE INDEX IF NOT EXISTS object_security_records_lookup_idx
   ON public.object_security_records (tenant_id, object_id, status, valid_from, valid_until);
 
+CREATE UNIQUE INDEX IF NOT EXISTS object_security_records_tenant_object_id_unique
+  ON public.object_security_records (tenant_id, object_id, id);
+
+ALTER TABLE public.object_security_records
+  ADD CONSTRAINT object_security_records_supersedes_tenant_fk
+  FOREIGN KEY (tenant_id, object_id, supersedes_record_id)
+  REFERENCES public.object_security_records (tenant_id, object_id, id)
+  ON DELETE RESTRICT;
+
 CREATE TABLE IF NOT EXISTS public.object_security_challenges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE RESTRICT,
   user_id uuid NOT NULL,
-  personnel_id uuid REFERENCES public.personnel(id) ON DELETE RESTRICT,
-  customer_id uuid REFERENCES public.customers(id) ON DELETE RESTRICT,
+  personnel_id uuid,
+  customer_id uuid,
   object_id uuid NOT NULL,
-  assignment_id uuid REFERENCES public.assignments(id) ON DELETE RESTRICT,
+  assignment_id uuid,
   access_path varchar(24) NOT NULL,
   code_hmac text,
   business_email_revision text NOT NULL,
@@ -91,6 +119,18 @@ CREATE TABLE IF NOT EXISTS public.object_security_challenges (
   CONSTRAINT object_security_challenges_object_tenant_fk
     FOREIGN KEY (tenant_id, object_id)
     REFERENCES public.objects (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_challenges_personnel_tenant_fk
+    FOREIGN KEY (tenant_id, personnel_id)
+    REFERENCES public.personnel (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_challenges_customer_tenant_fk
+    FOREIGN KEY (tenant_id, customer_id)
+    REFERENCES public.customers (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_challenges_assignment_tenant_fk
+    FOREIGN KEY (tenant_id, assignment_id)
+    REFERENCES public.assignments (tenant_id, id)
     ON DELETE RESTRICT,
   CONSTRAINT object_security_challenges_access_path_check CHECK (
     access_path IN ('management', 'personnel', 'customer', 'break_glass')
@@ -124,16 +164,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS object_security_challenges_one_open_context
   )
   WHERE status IN ('pending_delivery', 'delivered');
 
+CREATE UNIQUE INDEX IF NOT EXISTS object_security_challenges_tenant_id_unique
+  ON public.object_security_challenges (tenant_id, id);
+
 CREATE TABLE IF NOT EXISTS public.object_security_unlock_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE RESTRICT,
-  challenge_id uuid NOT NULL UNIQUE REFERENCES public.object_security_challenges(id) ON DELETE RESTRICT,
+  challenge_id uuid NOT NULL UNIQUE,
   handle_hash text NOT NULL UNIQUE,
   user_id uuid NOT NULL,
-  personnel_id uuid REFERENCES public.personnel(id) ON DELETE RESTRICT,
-  customer_id uuid REFERENCES public.customers(id) ON DELETE RESTRICT,
+  personnel_id uuid,
+  customer_id uuid,
   object_id uuid NOT NULL,
-  assignment_id uuid REFERENCES public.assignments(id) ON DELETE RESTRICT,
+  assignment_id uuid,
   access_path varchar(24) NOT NULL,
   auth_session_id text NOT NULL,
   business_email_revision text NOT NULL,
@@ -151,6 +194,22 @@ CREATE TABLE IF NOT EXISTS public.object_security_unlock_sessions (
     FOREIGN KEY (tenant_id, object_id)
     REFERENCES public.objects (tenant_id, id)
     ON DELETE RESTRICT,
+  CONSTRAINT object_security_unlock_sessions_challenge_tenant_fk
+    FOREIGN KEY (tenant_id, challenge_id)
+    REFERENCES public.object_security_challenges (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_unlock_sessions_personnel_tenant_fk
+    FOREIGN KEY (tenant_id, personnel_id)
+    REFERENCES public.personnel (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_unlock_sessions_customer_tenant_fk
+    FOREIGN KEY (tenant_id, customer_id)
+    REFERENCES public.customers (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_unlock_sessions_assignment_tenant_fk
+    FOREIGN KEY (tenant_id, assignment_id)
+    REFERENCES public.assignments (tenant_id, id)
+    ON DELETE RESTRICT,
   CONSTRAINT object_security_unlock_sessions_access_path_check CHECK (
     access_path IN ('management', 'personnel', 'customer', 'break_glass')
   ),
@@ -158,7 +217,7 @@ CREATE TABLE IF NOT EXISTS public.object_security_unlock_sessions (
     idle_expires_at <= absolute_expires_at AND absolute_expires_at > created_at
   ),
   CONSTRAINT object_security_unlock_sessions_revision_check CHECK (
-    policy_revision > 0 AND record_generation > 0
+    policy_revision > 0 AND record_generation >= 0
   )
 );
 
@@ -167,15 +226,18 @@ CREATE INDEX IF NOT EXISTS object_security_unlock_sessions_context_idx
     tenant_id, user_id, object_id, assignment_id, revoked_at, absolute_expires_at
   );
 
+CREATE UNIQUE INDEX IF NOT EXISTS object_security_unlock_sessions_tenant_id_unique
+  ON public.object_security_unlock_sessions (tenant_id, id);
+
 CREATE TABLE IF NOT EXISTS public.object_security_access_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE RESTRICT,
   actor_user_id uuid,
   object_id uuid NOT NULL,
-  assignment_id uuid REFERENCES public.assignments(id) ON DELETE RESTRICT,
-  security_record_id uuid REFERENCES public.object_security_records(id) ON DELETE RESTRICT,
-  challenge_id uuid REFERENCES public.object_security_challenges(id) ON DELETE RESTRICT,
-  unlock_session_id uuid REFERENCES public.object_security_unlock_sessions(id) ON DELETE RESTRICT,
+  assignment_id uuid,
+  security_record_id uuid,
+  challenge_id uuid,
+  unlock_session_id uuid,
   access_path varchar(24) NOT NULL,
   event_type varchar(64) NOT NULL,
   result varchar(24) NOT NULL,
@@ -188,6 +250,22 @@ CREATE TABLE IF NOT EXISTS public.object_security_access_audit (
   CONSTRAINT object_security_access_audit_object_tenant_fk
     FOREIGN KEY (tenant_id, object_id)
     REFERENCES public.objects (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_access_audit_assignment_tenant_fk
+    FOREIGN KEY (tenant_id, assignment_id)
+    REFERENCES public.assignments (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_access_audit_record_tenant_fk
+    FOREIGN KEY (tenant_id, object_id, security_record_id)
+    REFERENCES public.object_security_records (tenant_id, object_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_access_audit_challenge_tenant_fk
+    FOREIGN KEY (tenant_id, challenge_id)
+    REFERENCES public.object_security_challenges (tenant_id, id)
+    ON DELETE RESTRICT,
+  CONSTRAINT object_security_access_audit_unlock_tenant_fk
+    FOREIGN KEY (tenant_id, unlock_session_id)
+    REFERENCES public.object_security_unlock_sessions (tenant_id, id)
     ON DELETE RESTRICT,
   CONSTRAINT object_security_access_audit_path_check CHECK (
     access_path IN ('management', 'personnel', 'customer', 'break_glass', 'system')
@@ -202,6 +280,56 @@ CREATE INDEX IF NOT EXISTS object_security_access_audit_tenant_time_idx
 
 CREATE INDEX IF NOT EXISTS object_security_access_audit_object_time_idx
   ON public.object_security_access_audit (tenant_id, object_id, occurred_at DESC);
+
+CREATE OR REPLACE FUNCTION public.fieldgrid_object_security_record_revision_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  current_generation bigint;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'object security records are immutable; revoke with a new generation';
+  END IF;
+  IF TG_OP = 'UPDATE' AND (NEW.tenant_id, NEW.object_id) IS DISTINCT FROM (OLD.tenant_id, OLD.object_id) THEN
+    RAISE EXCEPTION 'object security record context is immutable';
+  END IF;
+
+  INSERT INTO public.object_security_object_revisions (tenant_id, object_id, generation)
+  VALUES (NEW.tenant_id, NEW.object_id, 0)
+  ON CONFLICT (tenant_id, object_id) DO NOTHING;
+
+  SELECT revision.generation
+    INTO current_generation
+  FROM public.object_security_object_revisions revision
+  WHERE revision.tenant_id = NEW.tenant_id
+    AND revision.object_id = NEW.object_id
+  FOR UPDATE;
+
+  IF NEW.generation <= current_generation THEN
+    RAISE EXCEPTION 'object security generation must increase monotonically';
+  END IF;
+
+  UPDATE public.object_security_object_revisions
+  SET generation = NEW.generation, updated_at = now()
+  WHERE tenant_id = NEW.tenant_id AND object_id = NEW.object_id;
+
+  UPDATE public.object_security_unlock_sessions
+  SET revoked_at = COALESCE(revoked_at, now()),
+      revocation_reason = COALESCE(revocation_reason, 'record_generation_changed')
+  WHERE tenant_id = NEW.tenant_id
+    AND object_id = NEW.object_id
+    AND revoked_at IS NULL;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_object_security_record_revision_guard ON public.object_security_records;
+CREATE TRIGGER trg_object_security_record_revision_guard
+BEFORE INSERT OR UPDATE OR DELETE ON public.object_security_records
+FOR EACH ROW EXECUTE FUNCTION public.fieldgrid_object_security_record_revision_guard();
 
 CREATE OR REPLACE FUNCTION public.fieldgrid_reject_legacy_object_secret_write()
 RETURNS trigger
@@ -244,15 +372,18 @@ CREATE TRIGGER trg_object_security_audit_append_only
 BEFORE UPDATE OR DELETE ON public.object_security_access_audit
 FOR EACH ROW EXECUTE FUNCTION public.fieldgrid_object_security_audit_append_only();
 
+ALTER TABLE public.object_security_object_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.object_security_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.object_security_challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.object_security_unlock_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.object_security_access_audit ENABLE ROW LEVEL SECURITY;
 
+REVOKE ALL ON TABLE public.object_security_object_revisions FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON TABLE public.object_security_records FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON TABLE public.object_security_challenges FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON TABLE public.object_security_unlock_sessions FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON TABLE public.object_security_access_audit FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.fieldgrid_object_security_record_revision_guard() FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.fieldgrid_reject_legacy_object_secret_write() FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.fieldgrid_object_security_audit_append_only() FROM PUBLIC, anon, authenticated, service_role;
 
@@ -264,6 +395,11 @@ VALUES
   ('object_security', 'break_glass', 'Noodtoegang tot objectbeveiliging aanvragen')
 ON CONFLICT (resource, action) DO UPDATE
 SET description = EXCLUDED.description;
+
+-- Deliberately grant none of these capabilities here. Role names (including
+-- Management/Eigenaar), tenant-admin status, support mode and service-role are
+-- never implicit authorization for plaintext. A tenant must publish an
+-- explicit object_security permission assignment through rights management.
 
 COMMENT ON TABLE public.object_security_records IS
   'Encrypted, versioned Object 360 security data. Decryption is server-only and separately authorized.';

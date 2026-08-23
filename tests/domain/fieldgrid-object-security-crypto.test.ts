@@ -8,6 +8,8 @@ import {
   generateObjectSecurityUnlockHandle,
   hashObjectSecurityUnlockHandle,
   maskObjectSecurityEmail,
+  objectSecurityAuthSessionId,
+  objectSecurityBusinessEmailRevision,
   verifyObjectSecurityOtpHmac,
   type ObjectSecurityEncryptionContext,
 } from "../../lib/db/src/object-security-crypto";
@@ -79,4 +81,17 @@ test("opaque unlock handles are random, hash-only and e-mail is masked", () => {
   assert.match(hashObjectSecurityUnlockHandle(first), /^[0-9a-f]{64}$/u);
   assert.equal(maskObjectSecurityEmail("dienst@bedrijf.nl"), "d*****@bedrijf.nl");
   assert.equal(maskObjectSecurityEmail("invalid"), "Verborgen e-mailadres");
+  assert.match(objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl"), /^[0-9a-f]{64}$/u);
+  assert.equal(
+    objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl"),
+    objectSecurityBusinessEmailRevision("dienst@bedrijf.nl"),
+  );
+  const encodedClaims = Buffer.from(JSON.stringify({
+    session_id: "55555555-5555-4555-8555-555555555555",
+  })).toString("base64url");
+  assert.equal(
+    objectSecurityAuthSessionId(`header.${encodedClaims}.signature`),
+    "55555555-5555-4555-8555-555555555555",
+  );
+  assert.throws(() => objectSecurityAuthSessionId("not-a-jwt"), /token is invalid/u);
 });

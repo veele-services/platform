@@ -7,6 +7,7 @@ import { listSectors } from "@/app/actions/customers";
 import { listInventoryForObject } from "@/app/actions/inventory";
 import { listMaterialStockForObject } from "@/app/actions/materials";
 import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
+import { getObjectSecurityAccessState } from "@/app/actions/object-security";
 import {
   getObject,
   getObjectPerformance,
@@ -30,6 +31,7 @@ import { ObjectDetailsTab } from "@/components/objects/tabs/ObjectDetailsTab";
 import { ObjectOverviewTab } from "@/components/objects/tabs/ObjectOverviewTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
+import { ObjectSecurityTab } from "@/components/objects/tabs/ObjectSecurityTab";
 import {
   TenantDetailHeader,
   TenantDetailLayout,
@@ -39,6 +41,9 @@ import {
 } from "@/components/tenant-ui";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission } from "@/lib/auth/permissions";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function safeOptional<T>(
   label: string,
@@ -115,17 +120,19 @@ export default async function ObjectDetailPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] =
+  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory, canReadSecurity] =
     await Promise.all([
       hasPermission("objects", "write"),
       hasPermission("assignments", "read"),
       hasPermission("materials", "view"),
       hasPermission("inventory", "view"),
+      hasPermission("object_security", "read"),
     ]);
   const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
     if (tab === "diensten") return canReadAssignments;
     if (tab === "materiaal") return canReadMaterials;
     if (tab === "inventaris") return canReadInventory;
+    if (tab === "veiligheid") return canReadSecurity;
     return true;
   });
   const rawTab = sp.tab ?? "overzicht";
@@ -155,6 +162,7 @@ export default async function ObjectDetailPage({
     rawHistory,
     rawMaterialStock,
     rawInventoryItems,
+    securityAccessState,
   ] = await Promise.all([
     activeTab === "contacten"
       ? safeOptional("contacts", id, () => listObjectContacts(id), [])
@@ -204,6 +212,14 @@ export default async function ObjectDetailPage({
           [],
         )
       : Promise.resolve([]),
+    canReadSecurity && activeTab === "veiligheid"
+      ? safeOptional(
+          "security-access-state",
+          id,
+          () => getObjectSecurityAccessState(),
+          { maskedEmail: "uw geverifieerde zakelijke adres", otpTtlMinutes: 10 },
+        )
+      : Promise.resolve(null),
   ]);
 
   const contacts = asArray(rawContacts);
@@ -355,6 +371,14 @@ export default async function ObjectDetailPage({
 
         {activeTab === "diensten" && canReadAssignments && (
           <ObjectServicesTab objectId={id} assignments={assignments} />
+        )}
+
+        {activeTab === "veiligheid" && canReadSecurity && securityAccessState && (
+          <ObjectSecurityTab
+            objectId={id}
+            maskedEmail={securityAccessState.maskedEmail}
+            otpTtlMinutes={securityAccessState.otpTtlMinutes}
+          />
         )}
       </TenantDetailLayout>
     </TenantPageShell>

@@ -12,6 +12,7 @@ test("object security migration is additive, tenant-bound and server-only", asyn
 
   for (const table of [
     "object_security_records",
+    "object_security_object_revisions",
     "object_security_challenges",
     "object_security_unlock_sessions",
     "object_security_access_audit",
@@ -28,6 +29,10 @@ test("object security migration is additive, tenant-bound and server-only", asyn
   }
 
   assert.match(migration, /FOREIGN KEY \(tenant_id, object_id\)[\s\S]*REFERENCES public\.objects \(tenant_id, id\)/u);
+  assert.match(migration, /FOREIGN KEY \(tenant_id, personnel_id\)[\s\S]*REFERENCES public\.personnel \(tenant_id, id\)/u);
+  assert.match(migration, /FOREIGN KEY \(tenant_id, customer_id\)[\s\S]*REFERENCES public\.customers \(tenant_id, id\)/u);
+  assert.match(migration, /FOREIGN KEY \(tenant_id, assignment_id\)[\s\S]*REFERENCES public\.assignments \(tenant_id, id\)/u);
+  assert.match(migration, /FOREIGN KEY \(tenant_id, challenge_id\)[\s\S]*REFERENCES public\.object_security_challenges \(tenant_id, id\)/u);
   assert.doesNotMatch(migration, /DROP\s+(TABLE|COLUMN)|DELETE\s+FROM\s+public\.objects/iu);
 });
 
@@ -49,6 +54,19 @@ test("object security records are versioned and audit is append-only", async () 
   assert.match(migration, /object_security_records_active_unique[\s\S]*WHERE status = 'active'/u);
   assert.match(migration, /fieldgrid_object_security_audit_append_only/u);
   assert.match(migration, /BEFORE UPDATE OR DELETE ON public\.object_security_access_audit/u);
+  assert.match(migration, /object security generation must increase monotonically/u);
+  assert.match(migration, /record_generation_changed/u);
+  assert.match(migration, /BEFORE INSERT OR UPDATE OR DELETE ON public\.object_security_records/u);
+});
+
+test("no role, administrator or template receives implicit secret access", async () => {
+  const migration = await read(
+    "lib/db/migrations/20260823104212_object_security_foundation.sql",
+  );
+  const afterPermissionSeed = migration.slice(migration.indexOf("INSERT INTO public.permissions"));
+  assert.match(afterPermissionSeed, /Deliberately grant none/u);
+  assert.doesNotMatch(afterPermissionSeed, /INSERT INTO public\.(?:role_permissions|tenant_role_permissions)/u);
+  assert.doesNotMatch(afterPermissionSeed, /tenant_role\.name|template_role_id/u);
 });
 
 test("OTP and unlock persistence contain hashes rather than plaintext tokens", async () => {

@@ -5,6 +5,7 @@ export const OBJECT_TAB_KEYS = [
   "inventaris",
   "details",
   "contacten",
+  "veiligheid",
 ] as const;
 
 export type ObjectTabKey = (typeof OBJECT_TAB_KEYS)[number];
@@ -16,4 +17,5 @@ export const OBJECT_TAB_LABELS: Record<ObjectTabKey, string> = {
   inventaris: "Inventaris",
   details:    "Details",
   contacten:  "Contacten",
+  veiligheid: "Toegang en veiligheid",
 };

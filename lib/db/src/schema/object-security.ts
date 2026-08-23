@@ -1,5 +1,6 @@
 import {
   bigint,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -46,6 +47,29 @@ export const OBJECT_SECURITY_ACCESS_PATHS = [
 export type ObjectSecurityAccessPath =
   (typeof OBJECT_SECURITY_ACCESS_PATHS)[number];
 
+export const objectSecurityObjectRevisionsTable = pgTable(
+  "object_security_object_revisions",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "restrict" }),
+    objectId: uuid("object_id").notNull(),
+    generation: bigint("generation", { mode: "number" }).notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.objectId],
+      foreignColumns: [objectsTable.tenantId, objectsTable.id],
+      name: "object_security_object_revisions_object_tenant_fk",
+    }).onDelete("restrict"),
+    uniqueIndex("object_security_object_revisions_tenant_object_unique").on(
+      table.tenantId,
+      table.objectId,
+    ),
+  ],
+);
+
 export const objectSecurityRecordsTable = pgTable(
   "object_security_records",
   {
@@ -53,9 +77,7 @@ export const objectSecurityRecordsTable = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "restrict" }),
-    objectId: uuid("object_id")
-      .notNull()
-      .references(() => objectsTable.id, { onDelete: "restrict" }),
+    objectId: uuid("object_id").notNull(),
     category: varchar("category", { length: 48 })
       .notNull()
       .$type<ObjectSecurityCategory>(),
@@ -79,6 +101,11 @@ export const objectSecurityRecordsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.objectId],
+      foreignColumns: [objectsTable.tenantId, objectsTable.id],
+      name: "object_security_records_object_tenant_fk",
+    }).onDelete("restrict"),
     uniqueIndex("object_security_records_version_unique").on(
       table.tenantId,
       table.objectId,
@@ -103,18 +130,10 @@ export const objectSecurityChallengesTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "restrict" }),
     userId: uuid("user_id").notNull(),
-    personnelId: uuid("personnel_id").references(() => personnelTable.id, {
-      onDelete: "restrict",
-    }),
-    customerId: uuid("customer_id").references(() => customersTable.id, {
-      onDelete: "restrict",
-    }),
-    objectId: uuid("object_id")
-      .notNull()
-      .references(() => objectsTable.id, { onDelete: "restrict" }),
-    assignmentId: uuid("assignment_id").references(() => assignmentsTable.id, {
-      onDelete: "restrict",
-    }),
+    personnelId: uuid("personnel_id"),
+    customerId: uuid("customer_id"),
+    objectId: uuid("object_id").notNull(),
+    assignmentId: uuid("assignment_id"),
     accessPath: varchar("access_path", { length: 24 })
       .notNull()
       .$type<ObjectSecurityAccessPath>(),
@@ -133,6 +152,26 @@ export const objectSecurityChallengesTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.objectId],
+      foreignColumns: [objectsTable.tenantId, objectsTable.id],
+      name: "object_security_challenges_object_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.personnelId],
+      foreignColumns: [personnelTable.tenantId, personnelTable.id],
+      name: "object_security_challenges_personnel_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.customerId],
+      foreignColumns: [customersTable.tenantId, customersTable.id],
+      name: "object_security_challenges_customer_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.assignmentId],
+      foreignColumns: [assignmentsTable.tenantId, assignmentsTable.id],
+      name: "object_security_challenges_assignment_tenant_fk",
+    }).onDelete("restrict"),
     index("object_security_challenges_rate_limit_idx").on(
       table.tenantId,
       table.userId,
@@ -156,24 +195,13 @@ export const objectSecurityUnlockSessionsTable = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "restrict" }),
-    challengeId: uuid("challenge_id")
-      .notNull()
-      .unique()
-      .references(() => objectSecurityChallengesTable.id, { onDelete: "restrict" }),
+    challengeId: uuid("challenge_id").notNull().unique(),
     handleHash: text("handle_hash").notNull().unique(),
     userId: uuid("user_id").notNull(),
-    personnelId: uuid("personnel_id").references(() => personnelTable.id, {
-      onDelete: "restrict",
-    }),
-    customerId: uuid("customer_id").references(() => customersTable.id, {
-      onDelete: "restrict",
-    }),
-    objectId: uuid("object_id")
-      .notNull()
-      .references(() => objectsTable.id, { onDelete: "restrict" }),
-    assignmentId: uuid("assignment_id").references(() => assignmentsTable.id, {
-      onDelete: "restrict",
-    }),
+    personnelId: uuid("personnel_id"),
+    customerId: uuid("customer_id"),
+    objectId: uuid("object_id").notNull(),
+    assignmentId: uuid("assignment_id"),
     accessPath: varchar("access_path", { length: 24 })
       .notNull()
       .$type<ObjectSecurityAccessPath>(),
@@ -191,6 +219,31 @@ export const objectSecurityUnlockSessionsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.challengeId],
+      foreignColumns: [objectSecurityChallengesTable.tenantId, objectSecurityChallengesTable.id],
+      name: "object_security_unlock_sessions_challenge_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.objectId],
+      foreignColumns: [objectsTable.tenantId, objectsTable.id],
+      name: "object_security_unlock_sessions_object_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.personnelId],
+      foreignColumns: [personnelTable.tenantId, personnelTable.id],
+      name: "object_security_unlock_sessions_personnel_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.customerId],
+      foreignColumns: [customersTable.tenantId, customersTable.id],
+      name: "object_security_unlock_sessions_customer_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.assignmentId],
+      foreignColumns: [assignmentsTable.tenantId, assignmentsTable.id],
+      name: "object_security_unlock_sessions_assignment_tenant_fk",
+    }).onDelete("restrict"),
     index("object_security_unlock_sessions_context_idx").on(
       table.tenantId,
       table.userId,
@@ -210,24 +263,11 @@ export const objectSecurityAccessAuditTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "restrict" }),
     actorUserId: uuid("actor_user_id"),
-    objectId: uuid("object_id")
-      .notNull()
-      .references(() => objectsTable.id, { onDelete: "restrict" }),
-    assignmentId: uuid("assignment_id").references(() => assignmentsTable.id, {
-      onDelete: "restrict",
-    }),
-    securityRecordId: uuid("security_record_id").references(
-      () => objectSecurityRecordsTable.id,
-      { onDelete: "restrict" },
-    ),
-    challengeId: uuid("challenge_id").references(
-      () => objectSecurityChallengesTable.id,
-      { onDelete: "restrict" },
-    ),
-    unlockSessionId: uuid("unlock_session_id").references(
-      () => objectSecurityUnlockSessionsTable.id,
-      { onDelete: "restrict" },
-    ),
+    objectId: uuid("object_id").notNull(),
+    assignmentId: uuid("assignment_id"),
+    securityRecordId: uuid("security_record_id"),
+    challengeId: uuid("challenge_id"),
+    unlockSessionId: uuid("unlock_session_id"),
     accessPath: varchar("access_path", { length: 24 }).notNull(),
     eventType: varchar("event_type", { length: 64 }).notNull(),
     result: varchar("result", { length: 24 }).notNull(),
@@ -239,6 +279,35 @@ export const objectSecurityAccessAuditTable = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.objectId],
+      foreignColumns: [objectsTable.tenantId, objectsTable.id],
+      name: "object_security_access_audit_object_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.assignmentId],
+      foreignColumns: [assignmentsTable.tenantId, assignmentsTable.id],
+      name: "object_security_access_audit_assignment_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.objectId, table.securityRecordId],
+      foreignColumns: [
+        objectSecurityRecordsTable.tenantId,
+        objectSecurityRecordsTable.objectId,
+        objectSecurityRecordsTable.id,
+      ],
+      name: "object_security_access_audit_record_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.challengeId],
+      foreignColumns: [objectSecurityChallengesTable.tenantId, objectSecurityChallengesTable.id],
+      name: "object_security_access_audit_challenge_tenant_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tenantId, table.unlockSessionId],
+      foreignColumns: [objectSecurityUnlockSessionsTable.tenantId, objectSecurityUnlockSessionsTable.id],
+      name: "object_security_access_audit_unlock_tenant_fk",
+    }).onDelete("restrict"),
     index("object_security_access_audit_tenant_time_idx").on(
       table.tenantId,
       table.occurredAt,
@@ -252,6 +321,8 @@ export const objectSecurityAccessAuditTable = pgTable(
 );
 
 export type ObjectSecurityRecord = typeof objectSecurityRecordsTable.$inferSelect;
+export type ObjectSecurityObjectRevision =
+  typeof objectSecurityObjectRevisionsTable.$inferSelect;
 export type ObjectSecurityChallenge = typeof objectSecurityChallengesTable.$inferSelect;
 export type ObjectSecurityUnlockSession =
   typeof objectSecurityUnlockSessionsTable.$inferSelect;

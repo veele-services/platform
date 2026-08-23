@@ -272,6 +272,40 @@ export function hashObjectSecurityUnlockHandle(handle: string): string {
     .digest("hex");
 }
 
+function contextRevision(domain: string, value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) throw new Error(`${domain} context is required.`);
+  return crypto
+    .createHash("sha256")
+    .update(`fieldgrid:object-security:${domain}:v1:${normalized}`, "utf8")
+    .digest("hex");
+}
+
+/**
+ * Non-reversible binding for the server-sourced verified business address.
+ * The address itself never needs to be copied into challenge/session rows.
+ */
+export function objectSecurityBusinessEmailRevision(email: string): string {
+  return contextRevision("business-email", email);
+}
+
+/** Extract the server-verified Supabase session id without persisting a JWT. */
+export function objectSecurityAuthSessionId(accessToken: string): string {
+  const parts = accessToken.split(".");
+  if (parts.length !== 3 || !parts[1]) throw new Error("Auth session token is invalid.");
+  let claims: unknown;
+  try {
+    claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+  } catch {
+    throw new Error("Auth session token claims are invalid.");
+  }
+  const sessionId = claims && typeof claims === "object"
+    ? (claims as Record<string, unknown>).session_id
+    : null;
+  if (typeof sessionId !== "string") throw new Error("Auth session id is unavailable.");
+  return normalizedUuid(sessionId, "Auth session id");
+}
+
 export function maskObjectSecurityEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
   const at = normalized.indexOf("@");
