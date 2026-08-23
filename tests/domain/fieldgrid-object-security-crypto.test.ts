@@ -81,10 +81,14 @@ test("opaque unlock handles are random, hash-only and e-mail is masked", () => {
   assert.match(hashObjectSecurityUnlockHandle(first), /^[0-9a-f]{64}$/u);
   assert.equal(maskObjectSecurityEmail("dienst@bedrijf.nl"), "d*****@bedrijf.nl");
   assert.equal(maskObjectSecurityEmail("invalid"), "Verborgen e-mailadres");
-  assert.match(objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl"), /^[0-9a-f]{64}$/u);
+  assert.match(objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl", "2026-08-23T10:00:00Z"), /^[0-9a-f]{64}$/u);
   assert.equal(
-    objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl"),
-    objectSecurityBusinessEmailRevision("dienst@bedrijf.nl"),
+    objectSecurityBusinessEmailRevision("DIENST@bedrijf.nl", "2026-08-23T10:00:00Z"),
+    objectSecurityBusinessEmailRevision("dienst@bedrijf.nl", "2026-08-23T10:00:00Z"),
+  );
+  assert.notEqual(
+    objectSecurityBusinessEmailRevision("dienst@bedrijf.nl", "2026-08-23T10:00:00Z"),
+    objectSecurityBusinessEmailRevision("dienst@bedrijf.nl", "2026-08-23T10:05:00Z"),
   );
   const encodedClaims = Buffer.from(JSON.stringify({
     session_id: "55555555-5555-4555-8555-555555555555",

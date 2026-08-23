@@ -60,3 +60,11 @@ test("dossier reads are permission checked and tenant scoped", async () => {
   assert.match(action, /eq\(dossierTasksTable\.tenantId, tenantId\)/u);
   assert.doesNotMatch(action, /select\(\)\.from\(dossierProfilesTable\)/u);
 });
+
+test("dossier mutations recheck subject access and note classification", async () => {
+  const action = await read("artifacts/backoffice/src/app/actions/dossier360.ts");
+  assert.match(action, /requirePermission\(subjectPermission\[input\.subjectType\], "read"\)/u);
+  assert.match(action, /notes_confidential/u);
+  assert.match(action, /notes_restricted/u);
+  assert.match(action, /inArray\(dossierNotesTable\.classification, visibleNoteClassifications\)/u);
+});

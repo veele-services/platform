@@ -157,3 +157,23 @@ BEGIN
   IF rls_count <> 4 THEN RAISE EXCEPTION 'RLS missing from common dossier tables'; END IF;
 END;
 $$;
+
+DO $$
+DECLARE profile_id uuid;
+DECLARE affected integer;
+DECLARE current_version integer;
+BEGIN
+  SELECT id INTO profile_id FROM public.dossier_profiles
+  WHERE object_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  UPDATE public.dossier_profiles SET status = 'attention'
+  WHERE id = profile_id AND record_version = 1;
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  IF affected <> 1 THEN RAISE EXCEPTION 'first optimistic update failed'; END IF;
+  SELECT record_version INTO current_version FROM public.dossier_profiles WHERE id = profile_id;
+  IF current_version <> 2 THEN RAISE EXCEPTION 'record version was not bumped'; END IF;
+  UPDATE public.dossier_profiles SET status = 'active'
+  WHERE id = profile_id AND record_version = 1;
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  IF affected <> 0 THEN RAISE EXCEPTION 'stale optimistic update was not blocked'; END IF;
+END;
+$$;

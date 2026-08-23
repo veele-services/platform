@@ -37,6 +37,12 @@ const PRIORITY_LABEL: Record<string, string> = {
   high: "Hoog",
   urgent: "Urgent",
 };
+const TASK_STATUS_LABEL: Record<string, string> = {
+  open: "Open",
+  in_progress: "Bezig",
+  completed: "Afgerond",
+  cancelled: "Geannuleerd",
+};
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("nl-NL", {
@@ -61,7 +67,13 @@ export function DossierWorkspacePanel({
   const [noteOpen, setNoteOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [note, setNote] = useState("");
-  const [classification, setClassification] = useState("internal");
+  const [classification, setClassification] = useState(
+    dossier.capabilities.notes
+      ? "internal"
+      : dossier.capabilities.notesConfidential
+        ? "confidential"
+        : "restricted",
+  );
   const [correction, setCorrection] = useState<{ id: string; reason: string } | null>(null);
   const [taskTitle, setTaskTitle] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -139,7 +151,7 @@ export function DossierWorkspacePanel({
               </Button>
             </>
           )}
-          {dossier.capabilities.notes && (
+          {(dossier.capabilities.notes || dossier.capabilities.notesConfidential || dossier.capabilities.notesRestricted) && (
             <Button size="sm" disabled={isPending} onClick={() => setNoteOpen(true)}>
               <Plus /> Notitie
             </Button>
@@ -147,27 +159,25 @@ export function DossierWorkspacePanel({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-3">
         {dossier.capabilities.manage && (
-          <article className="rounded-lg border border-border bg-card p-4">
+          <article className="min-w-0 rounded-lg border border-border bg-card p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><ListTodo className="h-4 w-4" /> Taken</h3>
             {dossier.tasks.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">Geen dossiertaken.</p>
             ) : (
               <ul className="mt-3 space-y-3">
                 {dossier.tasks.map((task) => (
-                  <li key={task.id} className="rounded-md border border-border p-3 text-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-foreground">{task.title}</p>
+                  <li key={task.id} className="min-w-0 rounded-md border border-border p-3 text-sm">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-medium text-foreground [overflow-wrap:anywhere]">{task.title}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {PRIORITY_LABEL[task.priority] ?? task.priority}
                           {task.dueAt ? ` · uiterlijk ${formatDate(task.dueAt)}` : ""}
                         </p>
                       </div>
-                      {task.status === "completed" ? (
-                        <span className="text-xs font-medium text-success-foreground">Afgerond</span>
-                      ) : (
+                      {task.status === "open" || task.status === "in_progress" ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -180,6 +190,10 @@ export function DossierWorkspacePanel({
                         >
                           Afronden
                         </Button>
+                      ) : (
+                        <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                          {TASK_STATUS_LABEL[task.status] ?? task.status}
+                        </span>
                       )}
                     </div>
                   </li>
@@ -189,16 +203,22 @@ export function DossierWorkspacePanel({
           </article>
         )}
 
-        {dossier.capabilities.notes && (
-          <article className="rounded-lg border border-border bg-card p-4">
+        {(dossier.capabilities.notes || dossier.capabilities.notesConfidential || dossier.capabilities.notesRestricted) && (
+          <article className="min-w-0 rounded-lg border border-border bg-card p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><MessageSquareText className="h-4 w-4" /> Notities</h3>
             {dossier.notes.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">Nog geen dossiernotities.</p>
             ) : (
               <ul className="mt-3 space-y-3">
                 {dossier.notes.map((item) => (
-                  <li key={item.id} className="rounded-md border border-border p-3 text-sm">
-                    <p className="whitespace-pre-wrap text-foreground">{item.content}</p>
+                  <li key={item.id} className="min-w-0 rounded-md border border-border p-3 text-sm">
+                    {item.correctionOfId && (
+                      <p className="mb-2 text-xs font-semibold text-warning-foreground">
+                        Correctie op eerdere notitie
+                        {item.correctionReason ? ` · ${item.correctionReason}` : ""}
+                      </p>
+                    )}
+                    <p className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]">{item.content}</p>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                       <span>{formatDate(item.createdAt)} · {item.classification}</span>
                       <Button variant="ghost" size="sm" onClick={() => {
@@ -214,17 +234,17 @@ export function DossierWorkspacePanel({
         )}
 
         {dossier.capabilities.timeline && (
-          <article className="rounded-lg border border-border bg-card p-4">
+          <article className="min-w-0 rounded-lg border border-border bg-card p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><FileClock className="h-4 w-4" /> Tijdlijn</h3>
             {dossier.events.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">Nog geen zichtbare gebeurtenissen.</p>
             ) : (
               <ol className="mt-3 space-y-3">
                 {dossier.events.map((event) => (
-                  <li key={event.id} className="relative border-l border-border pl-4 text-sm">
+                  <li key={event.id} className="relative min-w-0 border-l border-border pl-4 text-sm">
                     <Clock3 className="absolute -left-2 top-0 h-4 w-4 bg-card text-muted-foreground" />
-                    <p className="font-medium text-foreground">{event.title}</p>
-                    {event.summary && <p className="mt-1 text-muted-foreground">{event.summary}</p>}
+                    <p className="break-words font-medium text-foreground [overflow-wrap:anywhere]">{event.title}</p>
+                    {event.summary && <p className="mt-1 break-words text-muted-foreground [overflow-wrap:anywhere]">{event.summary}</p>}
                     <time className="mt-1 block text-xs text-muted-foreground" dateTime={event.occurredAt}>
                       {formatDate(event.occurredAt)}
                     </time>
@@ -257,9 +277,9 @@ export function DossierWorkspacePanel({
               <Select value={classification} onValueChange={setClassification}>
                 <SelectTrigger id="dossier-classification"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="internal">Intern</SelectItem>
-                  <SelectItem value="confidential">Vertrouwelijk</SelectItem>
-                  <SelectItem value="restricted">Strikt beperkt</SelectItem>
+                  {dossier.capabilities.notes && <SelectItem value="internal">Intern</SelectItem>}
+                  {dossier.capabilities.notesConfidential && <SelectItem value="confidential">Vertrouwelijk</SelectItem>}
+                  {dossier.capabilities.notesRestricted && <SelectItem value="restricted">Strikt beperkt</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

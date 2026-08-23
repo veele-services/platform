@@ -43,7 +43,13 @@ export type DossierSummary = {
 
 export type DossierWorkspace = {
   summary: DossierSummary;
-  capabilities: { manage: boolean; notes: boolean; timeline: boolean };
+  capabilities: {
+    manage: boolean;
+    notes: boolean;
+    notesConfidential: boolean;
+    notesRestricted: boolean;
+    timeline: boolean;
+  };
   notes: Array<{
     id: string;
     content: string;
@@ -174,6 +180,7 @@ function dossierSubjectPredicate(subjectType: DossierSubjectType, subjectId: str
 }
 
 async function requireDossierMutationContext(input: z.infer<typeof mutationSubjectSchema>) {
+  await requirePermission(subjectPermission[input.subjectType], "read");
   const tenantId = await requireCurrentTenantId();
   const user = await getCurrentBackofficeUser();
   if (!user) throw new Error("Uw sessie is verlopen. Meld u opnieuw aan.");
@@ -197,16 +204,23 @@ export async function getDossierWorkspace(input: {
 }): Promise<DossierWorkspace | null> {
   const summary = await getDossierSummary(input);
   if (!summary) return null;
-  const [manage, notesAllowed, timeline] = await Promise.all([
+  const [manage, notesAllowed, notesConfidential, notesRestricted, timeline] = await Promise.all([
     hasPermission("dossiers", "manage"),
     hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
     hasPermission("dossiers", "timeline"),
   ]);
-  if (!manage && !notesAllowed && !timeline) return null;
+  if (!manage && !notesAllowed && !notesConfidential && !notesRestricted && !timeline) return null;
   const tenantId = await requireCurrentTenantId();
+  const visibleNoteClassifications = [
+    ...(notesAllowed ? ["internal"] : []),
+    ...(notesConfidential ? ["confidential"] : []),
+    ...(notesRestricted ? ["restricted"] : []),
+  ];
 
   const [notes, tasks, events] = await Promise.all([
-    notesAllowed
+    visibleNoteClassifications.length > 0
       ? db.select({
           id: dossierNotesTable.id,
           content: dossierNotesTable.content,
@@ -217,6 +231,7 @@ export async function getDossierWorkspace(input: {
         }).from(dossierNotesTable).where(and(
           eq(dossierNotesTable.tenantId, tenantId),
           eq(dossierNotesTable.dossierProfileId, summary.id),
+          inArray(dossierNotesTable.classification, visibleNoteClassifications),
         )).orderBy(desc(dossierNotesTable.createdAt)).limit(20)
       : Promise.resolve([]),
     manage
@@ -249,7 +264,7 @@ export async function getDossierWorkspace(input: {
 
   return {
     summary,
-    capabilities: { manage, notes: notesAllowed, timeline },
+    capabilities: { manage, notes: notesAllowed, notesConfidential, notesRestricted, timeline },
     notes: notes.map((note) => ({ ...note, createdAt: note.createdAt.toISOString() })),
     tasks: tasks.map((task) => ({
       ...task,
@@ -260,9 +275,14 @@ export async function getDossierWorkspace(input: {
 }
 
 export async function addDossierNoteAction(raw: unknown): Promise<DossierMutationResult> {
-  await requirePermission("dossiers", "notes");
   const parsed = noteInputSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: "Controleer de notitie en eventuele correctiereden." };
+  const classificationPermission = parsed.data.classification === "restricted"
+    ? "notes_restricted"
+    : parsed.data.classification === "confidential"
+      ? "notes_confidential"
+      : "notes";
+  await requirePermission("dossiers", classificationPermission);
   try {
     const context = await requireDossierMutationContext(parsed.data);
     await db.transaction(async (tx) => {

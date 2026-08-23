@@ -714,7 +714,8 @@ export async function readManagementObjectSecurityRecords(input: {
     );
     await tx.execute(sql`
       UPDATE public.object_security_unlock_sessions
-      SET last_used_at = ${now}, idle_expires_at = ${nextIdleExpiry}
+      SET last_used_at = ${now}, idle_expires_at = ${nextIdleExpiry},
+          revoked_at = ${now}, revocation_reason = 'read_completed'
       WHERE id = ${session.id}::uuid AND revoked_at IS NULL
     `);
     if (records.length === 0) {

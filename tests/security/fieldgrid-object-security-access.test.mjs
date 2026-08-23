@@ -104,3 +104,26 @@ test("management writes create encrypted immutable versions and revoke prior con
   assert.match(action, /payload: \{ waarde: parsed\.data\.value \}/u);
   assert.doesNotMatch(action, /revalidatePath|unstable_cache/u);
 });
+
+test("object security is module-gated and deployment fails closed without crypto material", async () => {
+  const modules = await read("lib/db/src/module-permissions.ts");
+  const workflow = await read(".github/workflows/deploy.yml");
+  assert.match(modules, /object_security: "objects"/u);
+  for (const name of [
+    "FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS",
+    "FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION",
+    "FIELDGRID_OBJECT_SECURITY_OTP_PEPPER",
+  ]) {
+    assert.match(workflow, new RegExp(`${name}: \\$\\{\\{ secrets\\.${name} \\}\\}`, "u"));
+    assert.match(workflow, new RegExp(`printf '${name}=%s`, "u"));
+  }
+});
+
+test("legacy plaintext has an encrypted staging-only backfill and safe seed", async () => {
+  const backfill = await read("scripts/fieldgrid-object-security-legacy-backfill.mts");
+  const seed = await read("lib/db/src/seed/staging-demo.ts");
+  assert.match(backfill, /encryptObjectSecurityPayload/u);
+  assert.match(backfill, /isolation\.environment !== "staging"/u);
+  assert.match(backfill, /SET access_info = NULL, key_info = NULL, alarm_info = NULL/u);
+  assert.doesNotMatch(seed, /contact_email, service_type, access_info, key_info, alarm_info/u);
+});

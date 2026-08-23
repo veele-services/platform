@@ -90,18 +90,36 @@ export function ObjectSecurityTab({
     };
   }, [isUnlocked, objectId]);
 
+  useEffect(() => {
+    const lockForRecordChange = () => {
+      setIsUnlocked(false);
+      setExpiresAt(null);
+      setRecords([]);
+      setChallengeId(null);
+      setCode("");
+      setError(null);
+      setMessage("De informatie is gewijzigd en daarom direct opnieuw vergrendeld.");
+    };
+    window.addEventListener("fieldgrid:object-security-changed", lockForRecordChange);
+    return () => window.removeEventListener("fieldgrid:object-security-changed", lockForRecordChange);
+  }, []);
+
   function requestCode() {
     setError(null);
     setMessage(null);
     startTransition(async () => {
-      const result = await requestObjectSecurityOtpAction(objectId);
-      if (!result.ok || !result.challengeId) {
-        setError(result.message);
-        return;
+      try {
+        const result = await requestObjectSecurityOtpAction(objectId);
+        if (!result.ok || !result.challengeId) {
+          setError(result.message);
+          return;
+        }
+        setChallengeId(result.challengeId);
+        setCode("");
+        setMessage(`${result.message} Naar ${result.maskedEmail ?? maskedEmail}.`);
+      } catch {
+        setError("De aanvullende verificatie is niet beschikbaar. Controleer uw sessie en geverifieerde zakelijke e-mailadres.");
       }
-      setChallengeId(result.challengeId);
-      setCode("");
-      setMessage(`${result.message} Naar ${result.maskedEmail ?? maskedEmail}.`);
     });
   }
 
@@ -110,21 +128,27 @@ export function ObjectSecurityTab({
     setError(null);
     setMessage(null);
     startTransition(async () => {
-      const verified = await verifyObjectSecurityOtpAction({ objectId, challengeId, code });
-      if (!verified.ok) {
-        setError(verified.message);
-        return;
+      try {
+        const verified = await verifyObjectSecurityOtpAction({ objectId, challengeId, code });
+        if (!verified.ok) {
+          setError(verified.message);
+          return;
+        }
+        const loaded = await readObjectSecurityRecordsAction({ objectId });
+        if (!loaded.ok) {
+          setError(loaded.message);
+          return;
+        }
+        setIsUnlocked(true);
+        setExpiresAt(loaded.expiresAt ?? verified.expiresAt ?? null);
+        setRecords(loaded.records);
+        setCode("");
+        setMessage(loaded.message);
+      } catch {
+        setIsUnlocked(false);
+        setRecords([]);
+        setError("Ontgrendelen is niet gelukt. Controleer uw verbinding en probeer opnieuw.");
       }
-      const loaded = await readObjectSecurityRecordsAction({ objectId });
-      if (!loaded.ok) {
-        setError(loaded.message);
-        return;
-      }
-      setIsUnlocked(true);
-      setExpiresAt(loaded.expiresAt ?? verified.expiresAt ?? null);
-      setRecords(loaded.records);
-      setCode("");
-      setMessage(loaded.message);
     });
   }
 

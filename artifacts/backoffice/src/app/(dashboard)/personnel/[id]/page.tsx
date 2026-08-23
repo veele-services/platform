@@ -49,6 +49,15 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+async function safeDossierOptional<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await loader();
+  } catch {
+    console.error("personnel detail optional dossier data failed");
+    return fallback;
+  }
+}
+
 function vehicleTypeLabel(value: string | null | undefined): string {
   switch (value) {
     case "BICYCLE":
@@ -92,6 +101,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
     personnelPortalEnabled,
     canManageDossiers,
     canWriteDossierNotes,
+    canWriteConfidentialDossierNotes,
+    canWriteRestrictedDossierNotes,
     canReadDossierTimeline,
   ] = await Promise.all([
     hasPermission("personnel", "write"),
@@ -104,6 +115,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
     isCurrentTenantModuleEnabled("personnel_portal"),
     hasPermission("dossiers", "manage"),
     hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
     hasPermission("dossiers", "timeline"),
   ]);
   const canManagePortal = canWrite && personnelPortalEnabled;
@@ -138,9 +151,15 @@ export default async function PersonnelDetailPage({ params }: Props) {
     listPersonnelQualifications(id),
     canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
-    getDossierSummary({ subjectType: "personnel", subjectId: id }),
-    canManageDossiers || canWriteDossierNotes || canReadDossierTimeline
-      ? getDossierWorkspace({ subjectType: "personnel", subjectId: id })
+    safeDossierOptional(
+      () => getDossierSummary({ subjectType: "personnel", subjectId: id }),
+      null,
+    ),
+    canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline
+      ? safeDossierOptional(
+          () => getDossierWorkspace({ subjectType: "personnel", subjectId: id }),
+          null,
+        )
       : Promise.resolve(null),
   ]);
 
@@ -203,6 +222,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
       />
 
       <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Dossierstatus is tijdelijk niet beschikbaar; het personeelsprofiel blijft bruikbaar.
+        </div>
+      )}
 
       <TenantDetailSectionNav
         items={[

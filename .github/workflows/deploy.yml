@@ -72,6 +72,9 @@ jobs:
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
       FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
+      FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS: ${{ secrets.FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS }}
+      FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION: ${{ secrets.FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION }}
+      FIELDGRID_OBJECT_SECURITY_OTP_PEPPER: ${{ secrets.FIELDGRID_OBJECT_SECURITY_OTP_PEPPER }}
       WEBSITE_FORM_HASH_SECRET: ${{ secrets.WEBSITE_FORM_HASH_SECRET }}
       RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
       # GitHub stores the browser key as a secret; Next receives it under the
@@ -154,6 +157,25 @@ jobs:
 
           if [ -z "${BACKOFFICE_PORT:-}" ]; then
             echo "::error::PORT or BACKOFFICE_PORT must be configured for the backoffice service."
+            exit 1
+          fi
+
+          for required_secret in FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION FIELDGRID_OBJECT_SECURITY_OTP_PEPPER; do
+            if [ -z "${!required_secret:-}" ]; then
+              echo "::error::${required_secret} is required for encrypted Object 360 records and OTP verification."
+              exit 1
+            fi
+          done
+          if ! [[ "$FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION must be a positive integer."
+            exit 1
+          fi
+          node -e 'const keys=JSON.parse(process.env.FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS); const active=process.env.FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION; if (!keys || typeof keys!=="object" || Array.isArray(keys) || typeof keys[active]!=="string") process.exit(1)' || {
+            echo "::error::FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS must be JSON and contain the active key version."
+            exit 1
+          }
+          if [ "${#FIELDGRID_OBJECT_SECURITY_OTP_PEPPER}" -lt 32 ]; then
+            echo "::error::FIELDGRID_OBJECT_SECURITY_OTP_PEPPER must contain at least 32 bytes."
             exit 1
           fi
 
@@ -250,6 +272,9 @@ jobs:
             printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
             printf 'FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY=%s\n' "$FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY"
             printf 'FIELDGRID_CREDENTIAL_RECOVERY_SECRET=%s\n' "$FIELDGRID_CREDENTIAL_RECOVERY_SECRET"
+            printf 'FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS=%s\n' "$FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS"
+            printf 'FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION=%s\n' "$FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION"
+            printf 'FIELDGRID_OBJECT_SECURITY_OTP_PEPPER=%s\n' "$FIELDGRID_OBJECT_SECURITY_OTP_PEPPER"
             printf 'WEBSITE_FORM_HASH_SECRET=%s\n' "$WEBSITE_FORM_HASH_SECRET"
             printf 'RESEND_FROM_EMAIL=%s\n' "$RESEND_FROM_EMAIL"
             printf 'NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY=%s\n' "$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY"
@@ -322,6 +347,22 @@ jobs:
         run: |
           set -euo pipefail
           pnpm fieldgrid:smtp-credential-backfill --apply
+
+      - name: Encrypt and clear legacy object secrets
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM: object-security-encrypted-v1
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:object-security-legacy-backfill --apply
+
+      - name: Verify no plaintext object secrets remain
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:object-security-legacy-backfill
 
       - name: Verify no plaintext SMTP credentials remain
         working-directory: ${{ env.RELEASE }}

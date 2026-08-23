@@ -63,6 +63,7 @@ export function ObjectSecurityRecordEditor({ objectId }: { objectId: string }) {
         return;
       }
       toast.success(result.message);
+      window.dispatchEvent(new Event("fieldgrid:object-security-changed"));
       setOpen(false);
       setTitle("");
       setValue("");

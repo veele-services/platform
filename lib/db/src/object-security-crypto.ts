@@ -285,8 +285,8 @@ function contextRevision(domain: string, value: string): string {
  * Non-reversible binding for the server-sourced verified business address.
  * The address itself never needs to be copied into challenge/session rows.
  */
-export function objectSecurityBusinessEmailRevision(email: string): string {
-  return contextRevision("business-email", email);
+export function objectSecurityBusinessEmailRevision(email: string, verifiedAt: string): string {
+  return contextRevision("business-email", `${email}:${verifiedAt}`);
 }
 
 /** Extract the server-verified Supabase session id without persisting a JWT. */

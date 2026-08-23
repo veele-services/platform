@@ -96,3 +96,13 @@ test("status transitions preserve ciphertext context and still revoke unlocks", 
   assert.match(migration, /revocation_reason = COALESCE\(revocation_reason, 'record_generation_changed'\)/u);
   assert.doesNotMatch(migration, /UPDATE public\.object_security_records[\s\S]*encrypted_payload/u);
 });
+
+test("forward lifecycle fix blocks reactivation and only permits clearing legacy plaintext", async () => {
+  const migration = await read(
+    "lib/db/migrations/20260823140000_object_security_transition_and_legacy_clear.sql",
+  );
+  assert.match(migration, /OLD\.status = 'active' AND NEW\.status IN \('superseded', 'revoked'\)/u);
+  assert.match(migration, /status cannot regress or reactivate historical content/u);
+  assert.match(migration, /NEW\.access_info IS NOT NULL/u);
+  assert.match(migration, /may only be cleared after encrypted backfill/u);
+});

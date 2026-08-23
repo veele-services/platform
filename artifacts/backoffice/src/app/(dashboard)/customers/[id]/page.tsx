@@ -93,6 +93,15 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
+async function safeDossierOptional<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await loader();
+  } catch {
+    console.error("customer detail optional dossier data failed");
+    return fallback;
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const canRead = await hasPermission("customers", "read");
@@ -127,6 +136,8 @@ export default async function CustomerDetailPage({
     customerPortalEnabled,
     canManageDossiers,
     canWriteDossierNotes,
+    canWriteConfidentialDossierNotes,
+    canWriteRestrictedDossierNotes,
     canReadDossierTimeline,
   ] = await Promise.all([
     hasPermission("customers", "write"),
@@ -140,6 +151,8 @@ export default async function CustomerDetailPage({
     isCurrentTenantModuleEnabled("customer_portal"),
     hasPermission("dossiers", "manage"),
     hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
     hasPermission("dossiers", "timeline"),
   ]);
   const canManagePortalUsers = canWrite && customerPortalEnabled;
@@ -218,9 +231,15 @@ export default async function CustomerDetailPage({
     canReadTickets && showOverview
       ? listCustomerTicketsForCustomer(id, 10)
       : Promise.resolve([]),
-    getDossierSummary({ subjectType: "customer", subjectId: id }),
-    canManageDossiers || canWriteDossierNotes || canReadDossierTimeline
-      ? getDossierWorkspace({ subjectType: "customer", subjectId: id })
+    safeDossierOptional(
+      () => getDossierSummary({ subjectType: "customer", subjectId: id }),
+      null,
+    ),
+    canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline
+      ? safeDossierOptional(
+          () => getDossierWorkspace({ subjectType: "customer", subjectId: id }),
+          null,
+        )
       : Promise.resolve(null),
   ]);
 
@@ -308,6 +327,11 @@ export default async function CustomerDetailPage({
       />
 
       <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Dossierstatus is tijdelijk niet beschikbaar; het klantprofiel blijft bruikbaar.
+        </div>
+      )}
 
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({

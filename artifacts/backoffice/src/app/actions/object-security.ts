@@ -146,7 +146,7 @@ async function currentSecurityActor(): Promise<ObjectSecurityActor> {
     tenantId,
     userId: user.id,
     email: user.email.trim().toLowerCase(),
-    businessEmailRevision: objectSecurityBusinessEmailRevision(user.email),
+    businessEmailRevision: objectSecurityBusinessEmailRevision(user.email, user.email_confirmed_at),
     authSessionId: objectSecurityAuthSessionId(session.access_token),
     requestId: requestHeaders.get("x-request-id"),
   };

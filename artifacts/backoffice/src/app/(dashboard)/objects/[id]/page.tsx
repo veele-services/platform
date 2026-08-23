@@ -124,7 +124,7 @@ export default async function ObjectDetailPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory, canReadSecurity, canWriteSecurity, canManageDossiers, canWriteDossierNotes, canReadDossierTimeline] =
+  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory, canReadSecurity, canWriteSecurity, canManageDossiers, canWriteDossierNotes, canWriteConfidentialDossierNotes, canWriteRestrictedDossierNotes, canReadDossierTimeline] =
     await Promise.all([
       hasPermission("objects", "write"),
       hasPermission("assignments", "read"),
@@ -134,6 +134,8 @@ export default async function ObjectDetailPage({
       hasPermission("object_security", "write"),
       hasPermission("dossiers", "manage"),
       hasPermission("dossiers", "notes"),
+      hasPermission("dossiers", "notes_confidential"),
+      hasPermission("dossiers", "notes_restricted"),
       hasPermission("dossiers", "timeline"),
     ]);
   const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
@@ -227,7 +229,7 @@ export default async function ObjectDetailPage({
           "security-access-state",
           id,
           () => getObjectSecurityAccessState(),
-          { maskedEmail: "uw geverifieerde zakelijke adres", otpTtlMinutes: 10 },
+          null,
         )
       : Promise.resolve(null),
     safeOptional(
@@ -236,7 +238,7 @@ export default async function ObjectDetailPage({
       () => getDossierSummary({ subjectType: "object", subjectId: id }),
       null,
     ),
-    canManageDossiers || canWriteDossierNotes || canReadDossierTimeline
+    canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline
       ? safeOptional(
           "dossier-workspace",
           id,
@@ -320,6 +322,11 @@ export default async function ObjectDetailPage({
       />
 
       <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Dossierstatus is tijdelijk niet beschikbaar; het objectprofiel blijft bruikbaar.
+        </div>
+      )}
 
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({
@@ -414,6 +421,11 @@ export default async function ObjectDetailPage({
                 maskedEmail={securityAccessState.maskedEmail}
                 otpTtlMinutes={securityAccessState.otpTtlMinutes}
               />
+            )}
+            {canReadSecurity && !securityAccessState && (
+              <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-foreground">
+                Aanvullende verificatie is niet beschikbaar. Controleer uw sessie en geverifieerde zakelijke e-mailadres.
+              </div>
             )}
           </div>
         )}

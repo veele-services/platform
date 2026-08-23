@@ -29,12 +29,12 @@ export function DossierStatusStrip({ dossier }: { dossier: DossierSummary | null
   return (
     <section
       aria-label="Dossierstatus"
-      className="mb-5 rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
+      className="mb-5 min-w-0 rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
         <div className="min-w-32">
           <p className="text-xs text-muted-foreground">Dossier</p>
-          <p className="font-mono font-semibold text-foreground">{dossier.dossierNumber}</p>
+          <p className="break-words font-mono font-semibold text-foreground [overflow-wrap:anywhere]">{dossier.dossierNumber}</p>
         </div>
         <div className="flex items-center gap-2">
           <StatusIcon

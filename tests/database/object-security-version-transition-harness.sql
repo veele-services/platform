@@ -30,6 +30,7 @@ CREATE TABLE public.permissions (
 
 \i /tmp/object-security-migration.sql
 \i /tmp/object-security-version-transition-fix.sql
+\i /tmp/object-security-transition-and-legacy-clear.sql
 
 INSERT INTO public.tenants(id) VALUES ('11111111-1111-4111-8111-111111111111');
 INSERT INTO public.objects(id, tenant_id) VALUES (
@@ -80,6 +81,19 @@ BEGIN
   WHERE tenant_id = '11111111-1111-4111-8111-111111111111'
     AND object_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   IF current_revision <> 3 THEN RAISE EXCEPTION 'unexpected revision %', current_revision; END IF;
+END;
+$$;
+
+DO $$
+DECLARE blocked boolean := false;
+BEGIN
+  BEGIN
+    UPDATE public.object_security_records
+    SET status = 'active'
+    WHERE id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  EXCEPTION WHEN others THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'historical record reactivation was not blocked'; END IF;
 END;
 $$;
 
