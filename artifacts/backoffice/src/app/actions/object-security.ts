@@ -6,6 +6,8 @@ import {
   objectSecurityAuthSessionId,
   objectSecurityBusinessEmailRevision,
   issueManagementObjectSecurityChallenge,
+  createManagementObjectSecurityRecord,
+  OBJECT_SECURITY_CATEGORIES,
   readManagementObjectSecurityRecords,
   revokeManagementObjectSecurityUnlock,
   verifyManagementObjectSecurityChallenge,
@@ -23,6 +25,19 @@ const objectIdSchema = z.string().uuid();
 const challengeIdSchema = z.string().uuid();
 const otpSchema = z.string().regex(/^\d{6}$/u);
 const OBJECT_SECURITY_UNLOCK_COOKIE = "fg_object_security_unlock";
+const createRecordSchema = z.object({
+  objectId: objectIdSchema,
+  category: z.enum(OBJECT_SECURITY_CATEGORIES),
+  title: z.string().trim().min(3).max(160),
+  value: z.string().trim().min(1).max(10_000),
+  changeReason: z.string().trim().min(3).max(500),
+  validFrom: z.string().datetime({ offset: true }).optional(),
+  validUntil: z.string().datetime({ offset: true }).nullable().optional(),
+}).superRefine((value, context) => {
+  if (value.validUntil && value.validFrom && new Date(value.validUntil) <= new Date(value.validFrom)) {
+    context.addIssue({ code: "custom", message: "De einddatum moet na de begindatum liggen." });
+  }
+});
 
 type ObjectSecurityActor = {
   tenantId: string;
@@ -58,6 +73,36 @@ export type ReadObjectSecurityActionResult = {
   expiresAt?: string;
   message: string;
 };
+
+export async function createObjectSecurityRecordAction(raw: unknown): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  await requirePermission("object_security", "write");
+  const parsed = createRecordSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, message: "Controleer type, titel, inhoud, reden en geldigheid." };
+  }
+  try {
+    const actor = await currentSecurityActor();
+    const created = await createManagementObjectSecurityRecord({
+      tenantId: actor.tenantId,
+      userId: actor.userId,
+      objectId: parsed.data.objectId,
+      category: parsed.data.category,
+      title: parsed.data.title,
+      payload: { waarde: parsed.data.value },
+      changeReason: parsed.data.changeReason,
+      validFrom: parsed.data.validFrom ? new Date(parsed.data.validFrom) : undefined,
+      validUntil: parsed.data.validUntil ? new Date(parsed.data.validUntil) : null,
+      requestId: actor.requestId,
+    });
+    await clearUnlockCookie();
+    return { ok: true, message: `Versie ${created.version} is actief. Bestaande ontgrendelingen zijn ingetrokken.` };
+  } catch {
+    return { ok: false, message: "De beveiligingsinformatie kon niet veilig worden opgeslagen." };
+  }
+}
 
 async function setUnlockCookie(handle: string): Promise<void> {
   const cookieStore = await cookies();

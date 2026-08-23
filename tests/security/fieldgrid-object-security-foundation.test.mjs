@@ -84,3 +84,15 @@ test("OTP and unlock persistence contain hashes rather than plaintext tokens", a
   assert.match(crypto, /randomBytes\(32\)\.toString\("base64url"\)/u);
   assert.doesNotMatch(crypto, /console\.(?:log|error|warn)/u);
 });
+
+test("status transitions preserve ciphertext context and still revoke unlocks", async () => {
+  const migration = await read(
+    "lib/db/migrations/20260823133000_object_security_version_transition_fix.sql",
+  );
+
+  assert.match(migration, /NEW\.encrypted_payload[\s\S]*OLD\.encrypted_payload/u);
+  assert.match(migration, /NEW\.generation[\s\S]*OLD\.generation/u);
+  assert.match(migration, /current_generation := current_generation \+ 1/u);
+  assert.match(migration, /revocation_reason = COALESCE\(revocation_reason, 'record_generation_changed'\)/u);
+  assert.doesNotMatch(migration, /UPDATE public\.object_security_records[\s\S]*encrypted_payload/u);
+});

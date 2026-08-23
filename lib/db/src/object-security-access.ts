@@ -5,6 +5,7 @@ import { db } from "./connection";
 import {
   computeObjectSecurityOtpHmac,
   decryptObjectSecurityPayload,
+  encryptObjectSecurityPayload,
   generateObjectSecurityOtp,
   generateObjectSecurityUnlockHandle,
   hashObjectSecurityUnlockHandle,
@@ -112,6 +113,106 @@ async function hasActiveAuthSession(
 export type IssueObjectSecurityChallengeResult =
   | { status: "issued"; challengeId: string; code: string; expiresAt: Date }
   | { status: "cooldown" | "rate-limited" | "ineligible"; challengeId: null; code: null; expiresAt: null };
+
+export async function createManagementObjectSecurityRecord(input: {
+  tenantId: string;
+  userId: string;
+  objectId: string;
+  category: ObjectSecurityCategory;
+  title: string;
+  payload: Readonly<Record<string, unknown>>;
+  changeReason: string;
+  validFrom?: Date;
+  validUntil?: Date | null;
+  requestId?: string | null;
+  now?: Date;
+}): Promise<{ recordId: string; version: number }> {
+  const now = input.now ?? new Date();
+  return db.transaction(async (tx) => {
+    if (!(await lockManagementContext(tx, input))) {
+      throw new Error("Object security context is unavailable.");
+    }
+    const [previous] = rowsFrom<{ id: string; version: number }>(
+      await tx.execute(sql`
+        SELECT id, version
+        FROM public.object_security_records
+        WHERE tenant_id = ${input.tenantId}::uuid
+          AND object_id = ${input.objectId}::uuid
+          AND category = ${input.category}
+          AND status = 'active'
+        LIMIT 1
+        FOR UPDATE
+      `),
+    );
+    const [latest] = rowsFrom<{ version: number }>(
+      await tx.execute(sql`
+        SELECT version
+        FROM public.object_security_records
+        WHERE tenant_id = ${input.tenantId}::uuid
+          AND object_id = ${input.objectId}::uuid
+          AND category = ${input.category}
+        ORDER BY version DESC
+        LIMIT 1
+        FOR UPDATE
+      `),
+    );
+    if (previous) {
+      await tx.execute(sql`
+        UPDATE public.object_security_records
+        SET status = 'superseded', revoked_by = ${input.userId}::uuid,
+            revoked_at = ${now}
+        WHERE id = ${previous.id}::uuid
+          AND tenant_id = ${input.tenantId}::uuid
+          AND status = 'active'
+      `);
+    }
+
+    const [revision] = rowsFrom<{ generation: number }>(
+      await tx.execute(sql`
+        SELECT generation
+        FROM public.object_security_object_revisions
+        WHERE tenant_id = ${input.tenantId}::uuid
+          AND object_id = ${input.objectId}::uuid
+        FOR UPDATE
+      `),
+    );
+    const generation = Number(revision?.generation ?? 0) + 1;
+    const version = Number(latest?.version ?? 0) + 1;
+    const recordId = randomUUID();
+    const encrypted = encryptObjectSecurityPayload(input.payload, {
+      tenantId: input.tenantId,
+      objectId: input.objectId,
+      recordId,
+      category: input.category,
+      version,
+      generation,
+    });
+    await tx.execute(sql`
+      INSERT INTO public.object_security_records (
+        id, tenant_id, object_id, category, title, encrypted_payload,
+        encryption_key_version, version, generation, status, valid_from,
+        valid_until, source, change_reason, supersedes_record_id, created_by,
+        reviewed_by, reviewed_at, created_at, updated_at
+      ) VALUES (
+        ${recordId}::uuid, ${input.tenantId}::uuid, ${input.objectId}::uuid,
+        ${input.category}, ${input.title}, ${encrypted.encryptedPayload},
+        ${encrypted.keyVersion}, ${version}, ${generation}, 'active',
+        ${input.validFrom ?? now}, ${input.validUntil ?? null}, 'management',
+        ${input.changeReason}, ${previous?.id ?? null}::uuid, ${input.userId}::uuid,
+        ${input.userId}::uuid, ${now}, ${now}, ${now}
+      )
+    `);
+    await writeAccessAudit(tx, {
+      ...input,
+      securityRecordId: recordId,
+      eventType: "record_version_created",
+      result: "completed",
+      category: input.category,
+      reasonCode: previous ? "version_replaced" : "record_created",
+    });
+    return { recordId, version };
+  });
+}
 
 /**
  * Creates a management OTP challenge. The plaintext code is returned exactly

@@ -8,8 +8,9 @@ import { listInventoryForObject } from "@/app/actions/inventory";
 import { listMaterialStockForObject } from "@/app/actions/materials";
 import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
 import { getObjectSecurityAccessState } from "@/app/actions/object-security";
-import { getDossierSummary } from "@/app/actions/dossier360";
+import { getDossierSummary, getDossierWorkspace } from "@/app/actions/dossier360";
 import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
+import { DossierWorkspacePanel } from "@/components/dossiers/DossierWorkspacePanel";
 import {
   getObject,
   getObjectPerformance,
@@ -34,6 +35,7 @@ import { ObjectOverviewTab } from "@/components/objects/tabs/ObjectOverviewTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
 import { ObjectSecurityTab } from "@/components/objects/tabs/ObjectSecurityTab";
+import { ObjectSecurityRecordEditor } from "@/components/objects/tabs/ObjectSecurityRecordEditor";
 import {
   TenantDetailHeader,
   TenantDetailLayout,
@@ -122,19 +124,23 @@ export default async function ObjectDetailPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory, canReadSecurity] =
+  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory, canReadSecurity, canWriteSecurity, canManageDossiers, canWriteDossierNotes, canReadDossierTimeline] =
     await Promise.all([
       hasPermission("objects", "write"),
       hasPermission("assignments", "read"),
       hasPermission("materials", "view"),
       hasPermission("inventory", "view"),
       hasPermission("object_security", "read"),
+      hasPermission("object_security", "write"),
+      hasPermission("dossiers", "manage"),
+      hasPermission("dossiers", "notes"),
+      hasPermission("dossiers", "timeline"),
     ]);
   const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
     if (tab === "diensten") return canReadAssignments;
     if (tab === "materiaal") return canReadMaterials;
     if (tab === "inventaris") return canReadInventory;
-    if (tab === "veiligheid") return canReadSecurity;
+    if (tab === "veiligheid") return canReadSecurity || canWriteSecurity;
     return true;
   });
   const rawTab = sp.tab ?? "overzicht";
@@ -166,6 +172,7 @@ export default async function ObjectDetailPage({
     rawInventoryItems,
     securityAccessState,
     dossier,
+    dossierWorkspace,
   ] = await Promise.all([
     activeTab === "contacten"
       ? safeOptional("contacts", id, () => listObjectContacts(id), [])
@@ -229,6 +236,14 @@ export default async function ObjectDetailPage({
       () => getDossierSummary({ subjectType: "object", subjectId: id }),
       null,
     ),
+    canManageDossiers || canWriteDossierNotes || canReadDossierTimeline
+      ? safeOptional(
+          "dossier-workspace",
+          id,
+          () => getDossierWorkspace({ subjectType: "object", subjectId: id }),
+          null,
+        )
+      : Promise.resolve(null),
   ]);
 
   const contacts = asArray(rawContacts);
@@ -338,6 +353,12 @@ export default async function ObjectDetailPage({
               performance={performance}
               history={history}
             />
+            {dossierWorkspace && (
+              <DossierWorkspacePanel
+                dossier={dossierWorkspace}
+                subject={{ subjectType: "object", subjectId: id }}
+              />
+            )}
             {(personnel.length > 0 || canWrite) && (
               <div className="mt-6">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -384,12 +405,17 @@ export default async function ObjectDetailPage({
           <ObjectServicesTab objectId={id} assignments={assignments} />
         )}
 
-        {activeTab === "veiligheid" && canReadSecurity && securityAccessState && (
-          <ObjectSecurityTab
-            objectId={id}
-            maskedEmail={securityAccessState.maskedEmail}
-            otpTtlMinutes={securityAccessState.otpTtlMinutes}
-          />
+        {activeTab === "veiligheid" && (canReadSecurity || canWriteSecurity) && (
+          <div className="space-y-4">
+            {canWriteSecurity && <ObjectSecurityRecordEditor objectId={id} />}
+            {canReadSecurity && securityAccessState && (
+              <ObjectSecurityTab
+                objectId={id}
+                maskedEmail={securityAccessState.maskedEmail}
+                otpTtlMinutes={securityAccessState.otpTtlMinutes}
+              />
+            )}
+          </div>
         )}
       </TenantDetailLayout>
     </TenantPageShell>

@@ -89,3 +89,18 @@ test("legacy plaintext object secrets have no ordinary application read path", a
   assert.match(assignmentPage, /tab=veiligheid/u);
   assert.match(assignmentPage, /prefetch=\{false\}/u);
 });
+
+test("management writes create encrypted immutable versions and revoke prior context", async () => {
+  const service = await read("lib/db/src/object-security-access.ts");
+  const action = await read("artifacts/backoffice/src/app/actions/object-security.ts");
+
+  assert.match(service, /createManagementObjectSecurityRecord/u);
+  assert.match(service, /encryptObjectSecurityPayload\(input\.payload/u);
+  assert.match(service, /SET status = 'superseded'/u);
+  assert.match(service, /ORDER BY version DESC/u);
+  assert.match(service, /record_version_created/u);
+  assert.doesNotMatch(service, /console\.(?:log|warn|error)\([^\n]*input\.payload/u);
+  assert.match(action, /requirePermission\("object_security", "write"\)/u);
+  assert.match(action, /payload: \{ waarde: parsed\.data\.value \}/u);
+  assert.doesNotMatch(action, /revalidatePath|unstable_cache/u);
+});
