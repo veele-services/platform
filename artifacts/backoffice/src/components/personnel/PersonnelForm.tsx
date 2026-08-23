@@ -353,8 +353,19 @@ export function PersonnelForm({
         }
       }
 
-      if (mode === "create" && autoInvite) {
-        toast.success("Personeelsrecord aangemaakt en activatiemail verstuurd");
+      if (mode === "create" && result.data?.invite) {
+        if (result.data.invite.sent && !result.data.invite.message) {
+          toast.success(
+            "Personeelsrecord aangemaakt en activatiemail verstuurd",
+          );
+        } else if (result.data.invite.sent) {
+          toast.warning(result.data.invite.message, { duration: 8000 });
+        } else {
+          toast.warning(
+            `Personeelsrecord aangemaakt, maar activatiemail niet verstuurd: ${result.data.invite.message ?? "onbekende fout"}`,
+            { duration: 8000 },
+          );
+        }
       } else {
         toast.success(
           mode === "create"

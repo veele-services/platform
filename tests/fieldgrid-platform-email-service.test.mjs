@@ -37,6 +37,9 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(service, /E-mailsecret kon niet worden ontcijferd/u);
   assert.match(service, /status:\s*configError \? "error"/u);
   assert.match(service, /safeDecryptPlatformEmailConfig\(existing\.encryptedConfigJson\)\.config/u);
+  assert.match(service, /lastTestedAt: null/u);
+  assert.match(service, /lastTestStatus: null/u);
+  assert.match(service, /lastTestError: null/u);
   assert.match(service, /normalizeTemplateInput/u);
   assert.match(service, /provider = await resolveActiveProvider\(normalizedInput\.tenantId\);/u);
   assert.match(

@@ -110,12 +110,14 @@ export function DashboardPersonaFocus({
           aria-label="Dashboardfocus"
           variant="outline"
           size="sm"
+          className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"
         >
           {(Object.keys(personaLabels) as DashboardPersona[]).map((value) => (
             <ToggleGroupItem
               key={value}
               value={value}
               aria-label={`Toon ${personaLabels[value].toLowerCase()} als eerste`}
+              className="relative w-full whitespace-nowrap"
             >
               {personaLabels[value]}
             </ToggleGroupItem>

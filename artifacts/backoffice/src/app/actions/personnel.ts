@@ -296,6 +296,14 @@ export type PersonnelFormInput = {
   };
 };
 
+export type PersonnelCreateResult = {
+  id: string;
+  invite?: {
+    sent: boolean;
+    message?: string;
+  };
+};
+
 export type PersonnelStats = {
   active:             number;
   flexCount:          number;
@@ -779,7 +787,7 @@ export async function getLinkedObjects(personnelId: string): Promise<LinkedObjec
 
 export async function createPersonnel(
   data: PersonnelFormInput,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<PersonnelCreateResult>> {
   await requirePermission("personnel", "write");
   const tenantId = await requireCurrentTenantId();
 
@@ -861,48 +869,87 @@ export async function createPersonnel(
       },
     });
 
-    // Auto-invite: send the portal invite immediately after creating the record
+    let inviteResult: PersonnelCreateResult["invite"];
+    // Keep the personnel record when delivery fails, but report that failure
+    // instead of claiming that an activation email was sent.
     if (data.autoInvite) {
+      let activationInvite: Awaited<
+        ReturnType<typeof sendPersonnelActivationInvite>
+      > | null = null;
       try {
-        const invite = await sendPersonnelActivationInvite({
+        activationInvite = await sendPersonnelActivationInvite({
           firstName: payload.firstName,
           lastName:  payload.lastName,
           email:     payload.email,
           tenantId,
         });
-        await db
-          .update(personnelTable)
-          .set({
-            userId: invite.userId,
-            inviteSentAt: new Date(),
-            portalOnboardingStatus: "not_started",
-            portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
-            updatedAt: new Date(),
-          })
-          .where(eq(personnelTable.id, createdId));
-
-        await db.insert(auditLogTable).values({
-          tenantId,
-          userId:     user.id,
-          action:     "auto_invite_personnel",
-          resource:   "personnel",
-          resourceId: createdId,
-          metadata:   {
-            name: `${payload.firstName} ${payload.lastName}`,
-            email: payload.email,
-            activationChallenge: true,
-            authUserCreated: invite.created,
-          },
-        });
+        inviteResult = { sent: true };
       } catch (inviteError) {
-        console.error("[personnel] Auto-invite failed:", inviteError);
+        const message =
+          inviteError instanceof Error
+            ? inviteError.message
+            : "Activatiemail versturen mislukt.";
+        console.error("[personnel] Auto-invite delivery failed.");
+        try {
+          await db.insert(auditLogTable).values({
+            tenantId,
+            userId: user.id,
+            action: "auto_invite_personnel_failed",
+            resource: "personnel",
+            resourceId: createdId,
+            metadata: { failureCode: "activation_delivery_failed" },
+          });
+        } catch {
+          console.error("[personnel] Auto-invite failure audit failed.");
+        }
+        inviteResult = { sent: false, message };
       }
-      // If the invite fails, the record is still created — failure is not surfaced
-      // so the caller can navigate to the detail page and invite manually.
+
+      if (activationInvite) {
+        try {
+          await db
+            .update(personnelTable)
+            .set({
+              userId: activationInvite.userId,
+              inviteSentAt: new Date(),
+              portalOnboardingStatus: "not_started",
+              portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+              updatedAt: new Date(),
+            })
+            .where(eq(personnelTable.id, createdId));
+        } catch {
+          console.error("[personnel] Auto-invite portal status update failed.");
+          inviteResult = {
+            sent: true,
+            message:
+              "De activatiemail is verstuurd, maar de portaalstatus kon niet worden bijgewerkt. Verstuur niet opnieuw en neem contact op met platformbeheer.",
+          };
+        }
+
+        try {
+          await db.insert(auditLogTable).values({
+            tenantId,
+            userId:     user.id,
+            action:     "auto_invite_personnel",
+            resource:   "personnel",
+            resourceId: createdId,
+            metadata:   {
+              activationChallenge: true,
+              authUserCreated: activationInvite.created,
+              portalStatusUpdated: !inviteResult?.message,
+            },
+          });
+        } catch {
+          console.error("[personnel] Auto-invite success audit failed.");
+        }
+      }
     }
 
     revalidatePath("/personnel");
-    return { success: true, data: { id: createdId } };
+    return {
+      success: true,
+      data: { id: createdId, invite: inviteResult },
+    };
   } catch (err) {
     if (isUniqueViolation(err)) {
       return {

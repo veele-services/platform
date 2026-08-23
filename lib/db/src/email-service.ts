@@ -1023,6 +1023,9 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
     fromName: input.fromName.trim() || DEFAULT_FROM_NAME,
     replyToEmail: input.replyToEmail?.trim() || null,
     status,
+    lastTestedAt: null,
+    lastTestStatus: null,
+    lastTestError: null,
     updatedAt: new Date(),
     updatedBy: input.updatedBy ?? null,
   };
