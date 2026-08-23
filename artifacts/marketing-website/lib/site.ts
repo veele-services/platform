@@ -74,10 +74,26 @@ function sanitizePublicationText(value: string) {
     .replace(/E-mail: info@veeleservices\.nl/gi, "Algemene vraag: neem contact op via het formulier")
     .replace(/mail info@veeleservices\.nl/gi, "gebruik het contactformulier")
     .replace(/de voorgestelde integrale aanpak/gi, "de integrale aanpak")
-    .replace(/in het voorgestelde klantenportaal/gi, "in het klantenportaal")
-    .replace(/het voorgestelde klantenportaal/gi, "het klantenportaal")
-    .replace(/in het voorgestelde portaal/gi, "in het klantenportaal")
-    .replace(/het voorgestelde portaal/gi, "het klantenportaal")
+    .replace(
+      /In het voorgestelde klantenportaal ziet u de actuele planning, openstaande meldingen, uitgevoerde controles, documenten en rapportages\. Extra werk kan digitaal worden aangevraagd en goedgekeurd, zodat afspraken en kosten voor beide partijen helder blijven\./gi,
+      "In het klantenportaal vindt u de onderdelen die voor uw organisatie zijn ingericht, zoals planning, meldingen en beschikbare documenten. Welke functies zichtbaar zijn, hangt af van uw account en de afspraken voor uw locatie.",
+    )
+    .replace(
+      /Ja\. De inhoud, classificatie en distributie worden vooraf afgesproken\. In het voorgestelde portaal zijn incidenten en opvolgacties centraal inzichtelijk\./gi,
+      "De inhoud, classificatie en distributie van incidentrapportages spreken we vooraf af. Rapportages en opvolgafspraken worden beschikbaar gesteld via de kanalen die voor uw organisatie zijn ingericht.",
+    )
+    .replace(
+      /Dat is onderdeel van het voorgestelde portaal en kan per locatie worden ingericht\./gi,
+      "Digitale ronderegistratie is afhankelijk van de inrichting voor uw locatie. We leggen vooraf vast welke registratie en rapportage wordt gebruikt.",
+    )
+    .replace(
+      /Ja\. In het voorgestelde portaal kan de opdrachtgever uren en extra inzet digitaal controleren en accorderen\./gi,
+      "De verwerking en goedkeuring van uren spreken we vooraf af. Beschikbare ureninzage is afhankelijk van de inrichting voor uw organisatie.",
+    )
+    .replace(
+      /Het voorgestelde portaal toont planning, check-instatus en te accorderen extra uren\./gi,
+      "Welke planning- en ureninformatie beschikbaar is, hangt af van de inrichting voor uw organisatie.",
+    )
     .replace(/het nieuwe websiteconcept/gi, "onze werkwijze")
     .replace(/voorgestelde belofte:\s*/gi, "")
     .replace(/\s{2,}/g, " ")

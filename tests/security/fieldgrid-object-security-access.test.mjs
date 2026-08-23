@@ -10,7 +10,7 @@ test("management unlock is re-authorized and bound to mutable context", async ()
   const action = await read("artifacts/backoffice/src/app/actions/object-security.ts");
   const emailService = await read("lib/db/src/email-service.ts");
 
-  assert.match(action, /requirePermission\("object_security", "read"\)/u);
+  assert.match(action, /await requireObjectSecurityPermission\("read"\)/u);
   assert.match(action, /auth\.getUser\(\)/u);
   assert.match(action, /auth\.getSession\(\)/u);
   assert.match(service, /tenant_id = \$\{input\.tenantId\}::uuid/u);
@@ -99,10 +99,46 @@ test("management writes create encrypted immutable versions and revoke prior con
   assert.match(service, /SET status = 'superseded'/u);
   assert.match(service, /ORDER BY version DESC/u);
   assert.match(service, /record_version_created/u);
+  assert.match(service, /validFrom\.getTime\(\) > now\.getTime\(\)/u);
+  assert.match(service, /Future object-security versions are not supported/u);
   assert.doesNotMatch(service, /console\.(?:log|warn|error)\([^\n]*input\.payload/u);
-  assert.match(action, /requirePermission\("object_security", "write"\)/u);
+  assert.match(action, /await requireObjectSecurityPermission\("write"\)/u);
   assert.match(action, /payload: \{ waarde: parsed\.data\.value \}/u);
   assert.doesNotMatch(action, /revalidatePath|unstable_cache/u);
+});
+
+test("explicit lock revokes the captured unlock and disabled links stay hidden", async () => {
+  const action = await read("artifacts/backoffice/src/app/actions/object-security.ts");
+  const assignmentPage = await read(
+    "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+  );
+  const workspace = await read(
+    "artifacts/backoffice/src/components/dossiers/DossierWorkspacePanel.tsx",
+  );
+
+  const lockAction = action.slice(action.indexOf("export async function lockObjectSecurityAction"));
+  assert.ok(
+    lockAction.indexOf("cookieStore.get(OBJECT_SECURITY_UNLOCK_COOKIE)") <
+      lockAction.indexOf("await clearUnlockCookie()"),
+  );
+  assert.match(lockAction, /revokeManagementObjectSecurityUnlock/u);
+  assert.doesNotMatch(
+    lockAction,
+    /assertObjectSecurityManagementAccessEnabled|requireObjectSecurityPermission|requirePermission/u,
+  );
+  const permissionGuard = action.slice(
+    action.indexOf("async function requireObjectSecurityPermission"),
+    action.indexOf("export async function createObjectSecurityRecordAction"),
+  );
+  assert.match(permissionGuard, /requirePermission\("objects", "read"\)/u);
+  assert.match(permissionGuard, /requirePermission\("object_security", action\)/u);
+  assert.equal(
+    action.match(/await requireObjectSecurityPermission\("(?:read|write)"\);/gu)?.length,
+    5,
+  );
+  assert.match(assignmentPage, /hasPermission\("objects", "read"\)/u);
+  assert.match(assignmentPage, /isObjectSecurityManagementAccessEnabled\(\)/u);
+  assert.match(workspace, /if \(!open\) \{[\s\S]*setNote\(""\);[\s\S]*setCorrection\(null\);[\s\S]*setClassification\(defaultClassification\);/u);
 });
 
 test("object security is module-gated and deployment fails closed without crypto material", async () => {

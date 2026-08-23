@@ -128,6 +128,12 @@ export async function createManagementObjectSecurityRecord(input: {
   now?: Date;
 }): Promise<{ recordId: string; version: number }> {
   const now = input.now ?? new Date();
+  const validFrom = input.validFrom ?? now;
+  if (validFrom.getTime() > now.getTime()) {
+    throw new Error(
+      "Future object-security versions are not supported until scheduled transitions are atomic.",
+    );
+  }
   return db.transaction(async (tx) => {
     if (!(await lockManagementContext(tx, input))) {
       throw new Error("Object security context is unavailable.");
@@ -197,7 +203,7 @@ export async function createManagementObjectSecurityRecord(input: {
         ${recordId}::uuid, ${input.tenantId}::uuid, ${input.objectId}::uuid,
         ${input.category}, ${input.title}, ${encrypted.encryptedPayload},
         ${encrypted.keyVersion}, ${version}, ${generation}, 'active',
-        ${input.validFrom ?? now}, ${input.validUntil ?? null}, 'management',
+        ${validFrom}, ${input.validUntil ?? null}, 'management',
         ${input.changeReason}, ${previous?.id ?? null}::uuid, ${input.userId}::uuid,
         ${input.userId}::uuid, ${now}, ${now}, ${now}
       )

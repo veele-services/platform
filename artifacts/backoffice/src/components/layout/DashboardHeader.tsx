@@ -61,9 +61,14 @@ export function DashboardHeader({
           description: route.helpDescription,
         }
       : null;
+  const today = new Intl.DateTimeFormat("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date());
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
+    <header className="sticky top-0 z-30 flex h-[58px] shrink-0 items-center gap-2 border-b border-border bg-white/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:px-4 md:h-[70px]">
       <Button
         type="button"
         variant="ghost"
@@ -91,11 +96,11 @@ export function DashboardHeader({
         )}
       </Button>
 
-      <div className="min-w-0 flex-1 md:max-w-[16rem] md:flex-none">
+      <div className="min-w-0 flex-1 md:max-w-[14rem] md:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate font-heading text-sm font-semibold leading-tight text-foreground sm:text-base">
+          <p className="truncate font-heading text-sm font-semibold leading-tight text-foreground sm:text-base">
             {title}
-          </h1>
+          </p>
           {help ? (
             <FeatureHelp
               title={help.title}
@@ -106,6 +111,9 @@ export function DashboardHeader({
             />
           ) : null}
         </div>
+        <p className="mt-0.5 hidden truncate text-[11px] capitalize text-muted-foreground sm:block">
+          {today} · operationele context
+        </p>
       </div>
 
       <GlobalCommandPalette

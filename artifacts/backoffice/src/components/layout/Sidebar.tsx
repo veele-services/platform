@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -29,10 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
-import {
-  accessibleBrandTextColor,
-  ensureAccessibleBrandTextColor,
-} from "@workspace/db/brand-color-contrast";
+import { ensureAccessibleBrandTextColor } from "@workspace/db/brand-color-contrast";
 
 interface SidebarProps {
   branding?: {
@@ -113,7 +110,6 @@ export function Sidebar({
     sidebarBackgroundColor,
     configuredSidebarTextColor,
   );
-  const sidebarActiveTextColor = accessibleBrandTextColor(sidebarAccentColor);
   const displayName = whitelabel
     ? branding?.displayName?.trim() || "Organisatie"
     : "Fieldgrid";
@@ -185,8 +181,8 @@ export function Sidebar({
     <>
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center px-4",
-          collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
+          "flex h-[70px] shrink-0 items-center border-b border-white/10 px-4",
+          collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-4",
         )}
       >
         {whitelabel ? (
@@ -282,7 +278,7 @@ export function Sidebar({
                   <CollapsibleTrigger asChild>
                     <button
                       type="button"
-                      className="group flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50 transition hover:bg-white/5 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="group flex min-h-11 w-full items-center justify-between rounded-md px-3 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50 transition hover:bg-white/5 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       {group.label}
                       <ChevronDown className="size-3.5 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none" />
@@ -298,14 +294,36 @@ export function Sidebar({
         )}
       </nav>
 
-      <div className="h-3 shrink-0 border-t border-white/10" />
+      <div
+        className={cn(
+          "shrink-0 border-t border-white/10 px-3 py-3",
+          collapsed && "md:px-2",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-h-11 items-center gap-2 rounded-md px-2 text-white/65",
+            collapsed && "md:justify-center md:px-0",
+          )}
+        >
+          <ShieldCheck className="size-4 shrink-0 text-white/75" />
+          <span className={cn("min-w-0", collapsed && "md:hidden")}>
+            <span className="block text-[11px] font-semibold text-white/80">
+              Beveiligde omgeving
+            </span>
+            <span className="block truncate text-[10px] text-white/45">
+              Fieldgrid · actieve sessie
+            </span>
+          </span>
+        </div>
+      </div>
     </>
   );
   const sidebarStyle = {
     backgroundColor: sidebarBackgroundColor,
     "--sidebar-text": sidebarTextColor,
     "--sidebar-accent": sidebarAccentColor,
-    "--sidebar-active-text": sidebarActiveTextColor,
+    "--sidebar-bg": sidebarBackgroundColor,
   } as CSSProperties;
 
   return (
@@ -318,7 +336,7 @@ export function Sidebar({
       >
         <SheetContent
           side="left"
-          className="w-[240px] max-w-[calc(100vw-2rem)] select-none gap-0 overflow-hidden border-0 p-0 text-white sm:w-[240px]"
+          className="tenant-sidebar-surface w-[278px] max-w-[calc(100vw-1rem)] select-none gap-0 overflow-hidden border-0 p-0 text-white sm:w-[278px]"
           style={sidebarStyle}
         >
           <SheetTitle className="sr-only">Hoofdnavigatie</SheetTitle>
@@ -327,8 +345,8 @@ export function Sidebar({
       </Sheet>
       <aside
         className={cn(
-          "hidden h-full shrink-0 select-none flex-col md:flex",
-          collapsed ? "w-[64px]" : "w-[224px]",
+          "tenant-sidebar-surface hidden h-full shrink-0 select-none flex-col transition-[width] duration-150 motion-reduce:transition-none md:flex",
+          collapsed ? "w-[68px]" : "w-[232px]",
         )}
         style={sidebarStyle}
       >

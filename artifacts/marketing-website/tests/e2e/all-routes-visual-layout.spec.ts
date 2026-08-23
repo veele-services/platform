@@ -51,6 +51,10 @@ const forbiddenPublicationCopy = [
   "marketingdemo",
   "conceptomgeving",
   "portaalconcept",
+  "voorgestelde klantenportaal",
+  "voorgestelde portaal",
+  "check-instatus",
+  "te accorderen extra uren",
   "veiligheidsmicrocopy",
   "lokale bewijslast vóór livegang",
   "voorbeeldtitel",
@@ -99,6 +103,7 @@ test.describe("all marketing routes visual and layout QA", () => {
         expect(await portalLoginLinks.count()).toBeGreaterThanOrEqual(2);
         const portalLoginHrefs = await portalLoginLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
         expect(portalLoginHrefs.every((href) => href === "/klant/login")).toBe(true);
+        expect(await portalLoginLinks.evaluateAll((links) => links.every((link) => link.getAttribute("data-document-navigation") === "true"))).toBe(true);
       }
 
       const heavyHeadings = await page.locator("h1:visible, h2:visible").evaluateAll((headings) =>
@@ -163,6 +168,20 @@ test.describe("all marketing routes visual and layout QA", () => {
         caret: "hide",
       });
       expect(pageErrors, `${route} should remain free of uncaught page errors`).toEqual([]);
+
+      if (route === "/portaal") {
+        await page.evaluate(() => {
+          (window as Window & { __marketingDocumentMarker?: string }).__marketingDocumentMarker = "marketing-app";
+        });
+        await Promise.all([
+          page.waitForURL((url) => url.pathname === "/klant/login"),
+          page.getByRole("link", { name: "Log in op het klantenportaal" }).first().click(),
+        ]);
+        expect(
+          await page.evaluate(() => (window as Window & { __marketingDocumentMarker?: string }).__marketingDocumentMarker),
+          "portal login should load the customer zone as a new document",
+        ).toBeUndefined();
+      }
     });
   }
 });

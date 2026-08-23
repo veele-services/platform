@@ -25,6 +25,15 @@ export type PortalInviteType =
   | "personnel"
   | "tenant-admin"
   | "platform-admin";
+
+export class PortalInviteDeliveryUncertainError extends Error {
+  constructor() {
+    super(
+      "De activatiemail is mogelijk verzonden, maar de verzendprovider gaf geen definitieve bevestiging. Verstuur niet opnieuw en neem contact op met platformbeheer.",
+    );
+    this.name = "PortalInviteDeliveryUncertainError";
+  }
+}
 function isEmailExistsError(
   error: { code?: string; message?: string } | null,
 ): boolean {
@@ -295,9 +304,14 @@ export async function provisionPortalUserForActivation(opts: {
     tenantId: opts.tenantId,
     purpose: `${surface}_account_activation`,
   });
-  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
-  if (!sent.success)
-    throw new Error(sent.error ?? "Activatiemail versturen mislukt.");
+  const deliveryUncertain =
+    !sent.success && sent.deliveryEffect === "unknown";
+  await markCredentialRecoveryDelivery(
+    challenge.challengeId,
+    sent.success || deliveryUncertain,
+  );
+  if (deliveryUncertain) throw new PortalInviteDeliveryUncertainError();
+  if (!sent.success) throw new Error("Activatiemail versturen mislukt.");
 
   return {
     user,

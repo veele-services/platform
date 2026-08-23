@@ -70,6 +70,7 @@ import {
   TenantDetailSectionNav,
   TenantPageShell,
 } from "@/components/tenant-ui";
+import { isObjectSecurityManagementAccessEnabled } from "@workspace/db";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -1028,6 +1029,7 @@ export default async function AssignmentDetailPage({
     canReadPlanning,
     canWritePlanning,
     canReadSecurity,
+    canReadObjects,
   ] = await Promise.all([
     safeOptional("assignment", id, () => getAssignment(id), null),
     hasPermission("assignments", "write"),
@@ -1042,6 +1044,7 @@ export default async function AssignmentDetailPage({
     hasPermission("planning", "read"),
     hasPermission("planning", "write"),
     hasPermission("object_security", "read"),
+    hasPermission("objects", "read"),
   ]);
 
   if (!assignment) notFound();
@@ -1384,7 +1387,11 @@ export default async function AssignmentDetailPage({
           <WorkOrderOverviewSection
             assignment={assignment}
             canWrite={canWrite}
-            canReadSecurity={canReadSecurity}
+            canReadSecurity={
+              canReadSecurity &&
+              canReadObjects &&
+              isObjectSecurityManagementAccessEnabled()
+            }
           />
           <AssignmentTaskManager
             assignmentId={assignment.id}

@@ -369,12 +369,18 @@ jobs:
         run: |
           set -euo pipefail
           pnpm fieldgrid:object-security-legacy-backfill
-
       - name: Verify no plaintext SMTP credentials remain
         working-directory: ${{ env.RELEASE }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:smtp-credential-backfill
+
+      - name: Verify staging e-mail provider readiness
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:email-provider-readiness
 
       - name: Activate release
         if: env.TARGET == 'production'

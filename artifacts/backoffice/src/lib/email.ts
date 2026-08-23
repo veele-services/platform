@@ -75,7 +75,11 @@ export async function sendEmailWithResult(opts: {
   attachments?: Array<{ filename: string; content: Buffer }>;
   tenantId?: string | null;
   purpose?: string | null;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{
+  success: boolean;
+  error?: string;
+  deliveryEffect: "not_attempted" | "accepted" | "unknown";
+}> {
   const result = await sendTransactionalEmail({
     to: opts.to,
     subject: opts.subject,
@@ -88,8 +92,12 @@ export async function sendEmailWithResult(opts: {
   });
 
   return result.success
-    ? { success: true }
-    : { success: false, error: result.error };
+    ? { success: true, deliveryEffect: result.deliveryEffect }
+    : {
+        success: false,
+        error: result.error,
+        deliveryEffect: result.deliveryEffect,
+      };
 }
 
 export function klantPortalUrl(): string {
