@@ -25,6 +25,9 @@ import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
 import { listInventoryForPersonnel } from "@/app/actions/inventory";
 import { listMaterialStockForPersonnel } from "@/app/actions/materials";
+import { getDossierSummary, getDossierWorkspace } from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
+import { DossierWorkspacePanel } from "@/components/dossiers/DossierWorkspacePanel";
 import {
   listPersonnelQualifications,
   type QualificationLinkRow,
@@ -44,6 +47,15 @@ import {
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+async function safeDossierOptional<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await loader();
+  } catch {
+    console.error("personnel detail optional dossier data failed");
+    return fallback;
+  }
 }
 
 function vehicleTypeLabel(value: string | null | undefined): string {
@@ -87,6 +99,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
     canReadMaterials,
     canReadInventory,
     personnelPortalEnabled,
+    canManageDossiers,
+    canWriteDossierNotes,
+    canWriteConfidentialDossierNotes,
+    canWriteRestrictedDossierNotes,
+    canReadDossierTimeline,
   ] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
@@ -96,6 +113,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
     isCurrentTenantModuleEnabled("personnel_portal"),
+    hasPermission("dossiers", "manage"),
+    hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
+    hasPermission("dossiers", "timeline"),
   ]);
   const canManagePortal = canWrite && personnelPortalEnabled;
 
@@ -112,6 +134,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
     qualificationLinks,
     materialStock,
     inventoryItems,
+    dossier,
+    dossierWorkspace,
   ] = await Promise.all([
     getPersonnel(id),
     canWrite ? listRoles() : Promise.resolve([]),
@@ -127,6 +151,16 @@ export default async function PersonnelDetailPage({ params }: Props) {
     listPersonnelQualifications(id),
     canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
+    safeDossierOptional(
+      () => getDossierSummary({ subjectType: "personnel", subjectId: id }),
+      null,
+    ),
+    canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline
+      ? safeDossierOptional(
+          () => getDossierWorkspace({ subjectType: "personnel", subjectId: id }),
+          null,
+        )
+      : Promise.resolve(null),
   ]);
 
   if (!person) notFound();
@@ -187,6 +221,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
         ]}
       />
 
+      <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          Dossierstatus is tijdelijk niet beschikbaar; het personeelsprofiel blijft bruikbaar.
+        </div>
+      )}
+      {(canManageDossiers || canWriteDossierNotes || canWriteConfidentialDossierNotes || canWriteRestrictedDossierNotes || canReadDossierTimeline) && !dossierWorkspace && (
+        <div role="status" className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          De Dossier 360-werkruimte kon niet worden geladen; overige profielonderdelen blijven beschikbaar.
+        </div>
+      )}
+
       <TenantDetailSectionNav
         items={[
           { label: "Beschikbaarheid", href: "#availability", active: true },
@@ -203,6 +249,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           ...(canReadDocuments
             ? [{ label: "Documenten", href: "#documents", count: documents.length }]
             : []),
+          ...(dossierWorkspace ? [{ label: "Dossier 360", href: "#dossier-360" }] : []),
         ]}
       />
 
@@ -229,6 +276,12 @@ export default async function PersonnelDetailPage({ params }: Props) {
           ) : undefined
         }
       >
+      {dossierWorkspace && (
+        <DossierWorkspacePanel
+          dossier={dossierWorkspace}
+          subject={{ subjectType: "personnel", subjectId: id }}
+        />
+      )}
       {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
       <section id="availability" className="mb-6 scroll-mt-24">
         <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "var(--color-foreground)" }}>

@@ -80,6 +80,7 @@
     "fieldgrid:test:realtime-projection-migration": "node --test tests/fieldgrid-realtime-projection-migration.test.mjs",
     "fieldgrid:test:credential-recovery-runtime": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-credential-recovery-runtime.mts",
     "fieldgrid:smtp-credential-backfill": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-smtp-credential-backfill.mts",
+    "fieldgrid:object-security-legacy-backfill": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-object-security-legacy-backfill.mts",
     "fieldgrid:test:smtp-credential-backfill-runtime": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-smtp-credential-backfill-runtime.mts",
     "fieldgrid:test:availability-delete-runtime": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-availability-delete-runtime.mts",
     "fieldgrid:test:notification-worker-runtime": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-notification-worker-runtime.mts",

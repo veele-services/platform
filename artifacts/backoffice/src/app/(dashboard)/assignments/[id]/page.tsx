@@ -70,6 +70,7 @@ import {
   TenantDetailSectionNav,
   TenantPageShell,
 } from "@/components/tenant-ui";
+import { isObjectSecurityManagementAccessEnabled } from "@workspace/db";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -686,9 +687,11 @@ function CapacityMatchingSection({
 function WorkOrderOverviewSection({
   assignment,
   canWrite,
+  canReadSecurity,
 }: {
   assignment: AssignmentDetail;
   canWrite: boolean;
+  canReadSecurity: boolean;
 }) {
   const objectAddress = formatAddress([
     assignment.objectAddress,
@@ -812,33 +815,22 @@ function WorkOrderOverviewSection({
           </div>
         </DetailCard>
 
-        <DetailCard title="Toegang & aandachtspunten" icon={KeyRound}>
-          <div className="space-y-2 text-sm" style={{ color: "var(--color-foreground)" }}>
-            {assignment.objectAccessInfo && (
+        {canReadSecurity && assignment.objectId ? (
+          <DetailCard title="Toegang en veiligheid" icon={KeyRound}>
+            <div className="space-y-3 text-sm" style={{ color: "var(--color-foreground)" }}>
               <p>
-                <span className="font-medium">Toegang:</span>{" "}
-                {assignment.objectAccessInfo}
+                Beveiligingsinformatie wordt niet met de werkbon meegestuurd. Open het afgeschermde objectonderdeel en verifieer met een eenmalige code.
               </p>
-            )}
-            {assignment.objectKeyInfo && (
-              <p>
-                <span className="font-medium">Sleutel:</span>{" "}
-                {assignment.objectKeyInfo}
-              </p>
-            )}
-            {assignment.objectAlarmInfo && (
-              <p>
-                <span className="font-medium">Alarm:</span>{" "}
-                {assignment.objectAlarmInfo}
-              </p>
-            )}
-            {!assignment.objectAccessInfo &&
-              !assignment.objectKeyInfo &&
-              !assignment.objectAlarmInfo && (
-                <EmptyText>Geen toegangsinformatie vastgelegd.</EmptyText>
-              )}
-          </div>
-        </DetailCard>
+              <Link
+                href={`/objects/${assignment.objectId}?tab=veiligheid`}
+                prefetch={false}
+                className="inline-flex min-h-11 items-center rounded-md border border-border px-3 py-2 font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Veilig onderdeel openen
+              </Link>
+            </div>
+          </DetailCard>
+        ) : null}
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -1036,6 +1028,8 @@ export default async function AssignmentDetailPage({
     canWriteDocuments,
     canReadPlanning,
     canWritePlanning,
+    canReadSecurity,
+    canReadObjects,
   ] = await Promise.all([
     safeOptional("assignment", id, () => getAssignment(id), null),
     hasPermission("assignments", "write"),
@@ -1049,6 +1043,8 @@ export default async function AssignmentDetailPage({
     hasPermission("documents", "write"),
     hasPermission("planning", "read"),
     hasPermission("planning", "write"),
+    hasPermission("object_security", "read"),
+    hasPermission("objects", "read"),
   ]);
 
   if (!assignment) notFound();
@@ -1391,6 +1387,11 @@ export default async function AssignmentDetailPage({
           <WorkOrderOverviewSection
             assignment={assignment}
             canWrite={canWrite}
+            canReadSecurity={
+              canReadSecurity &&
+              canReadObjects &&
+              isObjectSecurityManagementAccessEnabled()
+            }
           />
           <AssignmentTaskManager
             assignmentId={assignment.id}

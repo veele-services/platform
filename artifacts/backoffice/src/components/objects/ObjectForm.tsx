@@ -60,9 +60,6 @@ const objectFormSchema = z.object({
   contactPhone: z.string(),
   contactEmail: z.string(),
   serviceType: z.string(),
-  accessInfo: z.string(),
-  keyInfo: z.string(),
-  alarmInfo: z.string(),
   fixedInstructions: z.string(),
   specialNotes: z.string(),
   requiredRoles: z.array(z.string()),
@@ -110,9 +107,6 @@ const DEFAULTS: FormValues = {
   contactPhone: "",
   contactEmail: "",
   serviceType: "",
-  accessInfo: "",
-  keyInfo: "",
-  alarmInfo: "",
   fixedInstructions: "",
   specialNotes: "",
   requiredRoles: [],
@@ -184,9 +178,6 @@ export function ObjectForm({
           setValue("contactPhone", o.contactPhone ?? "");
           setValue("contactEmail", o.contactEmail ?? "");
           setValue("serviceType", o.serviceType ?? "");
-          setValue("accessInfo", o.accessInfo ?? "");
-          setValue("keyInfo", o.keyInfo ?? "");
-          setValue("alarmInfo", o.alarmInfo ?? "");
           setValue("fixedInstructions", o.fixedInstructions ?? "");
           setValue("specialNotes", o.specialNotes ?? "");
           setValue("requiredRoles", o.requiredRoles ?? []);
@@ -249,9 +240,6 @@ export function ObjectForm({
         contactPhone: parsed.data.contactPhone || undefined,
         contactEmail: parsed.data.contactEmail || undefined,
         serviceType: parsed.data.serviceType || undefined,
-        accessInfo: parsed.data.accessInfo || undefined,
-        keyInfo: parsed.data.keyInfo || undefined,
-        alarmInfo: parsed.data.alarmInfo || undefined,
         fixedInstructions: parsed.data.fixedInstructions || undefined,
         specialNotes: parsed.data.specialNotes || undefined,
         googlePlace: googlePlaceStillMatches ? selectedGooglePlace : undefined,
@@ -535,45 +523,6 @@ export function ObjectForm({
             />
           </div>
         </FormGrid>
-      </FormSection>
-
-      {/* ── Access & security ─────────────────────────── */}
-      <FormSection
-        title="Toegang en beveiliging"
-        description="Alleen zichtbaar voor gebruikers met toegang tot dit object."
-      >
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="object-access-info">Toegangsinformatie</Label>
-            <Textarea
-              id="object-access-info"
-              {...register("accessInfo")}
-              placeholder="Sleutelkast code, toegangspas, portiek..."
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="object-key-info">Sleutelinformatie</Label>
-            <Textarea
-              id="object-key-info"
-              {...register("keyInfo")}
-              placeholder="Sleutelnummer, bewaarplaats, retourprocedure..."
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="object-alarm-info">Alarmgegevens</Label>
-            <Textarea
-              id="object-alarm-info"
-              {...register("alarmInfo")}
-              placeholder="Alarmcode, contactpersoon bij alarm..."
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-        </div>
       </FormSection>
 
       {/* ── Instructions ──────────────────────────────── */}

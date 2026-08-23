@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="nl" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable}`}>
         <DevNav current="backoffice" />
         {children}

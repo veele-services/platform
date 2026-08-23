@@ -7,6 +7,13 @@ import { listSectors } from "@/app/actions/customers";
 import { listInventoryForObject } from "@/app/actions/inventory";
 import { listMaterialStockForObject } from "@/app/actions/materials";
 import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
+import { getObjectSecurityAccessState } from "@/app/actions/object-security";
+import {
+  getDossierSummary,
+  getDossierWorkspace,
+} from "@/app/actions/dossier360";
+import { DossierStatusStrip } from "@/components/dossiers/DossierStatusStrip";
+import { DossierWorkspacePanel } from "@/components/dossiers/DossierWorkspacePanel";
 import {
   getObject,
   getObjectPerformance,
@@ -30,6 +37,8 @@ import { ObjectDetailsTab } from "@/components/objects/tabs/ObjectDetailsTab";
 import { ObjectOverviewTab } from "@/components/objects/tabs/ObjectOverviewTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
+import { ObjectSecurityTab } from "@/components/objects/tabs/ObjectSecurityTab";
+import { ObjectSecurityRecordEditor } from "@/components/objects/tabs/ObjectSecurityRecordEditor";
 import {
   TenantDetailHeader,
   TenantDetailLayout,
@@ -39,6 +48,10 @@ import {
 } from "@/components/tenant-ui";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isObjectSecurityManagementAccessEnabled } from "@workspace/db";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function safeOptional<T>(
   label: string,
@@ -115,17 +128,40 @@ export default async function ObjectDetailPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] =
-    await Promise.all([
-      hasPermission("objects", "write"),
-      hasPermission("assignments", "read"),
-      hasPermission("materials", "view"),
-      hasPermission("inventory", "view"),
-    ]);
+  const [
+    canWrite,
+    canReadAssignments,
+    canReadMaterials,
+    canReadInventory,
+    canReadSecurity,
+    canWriteSecurity,
+    canManageDossiers,
+    canWriteDossierNotes,
+    canWriteConfidentialDossierNotes,
+    canWriteRestrictedDossierNotes,
+    canReadDossierTimeline,
+  ] = await Promise.all([
+    hasPermission("objects", "write"),
+    hasPermission("assignments", "read"),
+    hasPermission("materials", "view"),
+    hasPermission("inventory", "view"),
+    hasPermission("object_security", "read"),
+    hasPermission("object_security", "write"),
+    hasPermission("dossiers", "manage"),
+    hasPermission("dossiers", "notes"),
+    hasPermission("dossiers", "notes_confidential"),
+    hasPermission("dossiers", "notes_restricted"),
+    hasPermission("dossiers", "timeline"),
+  ]);
+  const securityFeatureEnabled = isObjectSecurityManagementAccessEnabled();
+  const effectiveCanReadSecurity = canReadSecurity && securityFeatureEnabled;
+  const effectiveCanWriteSecurity = canWriteSecurity && securityFeatureEnabled;
   const visibleTabs = OBJECT_TAB_KEYS.filter((tab) => {
     if (tab === "diensten") return canReadAssignments;
     if (tab === "materiaal") return canReadMaterials;
     if (tab === "inventaris") return canReadInventory;
+    if (tab === "veiligheid")
+      return effectiveCanReadSecurity || effectiveCanWriteSecurity;
     return true;
   });
   const rawTab = sp.tab ?? "overzicht";
@@ -155,6 +191,9 @@ export default async function ObjectDetailPage({
     rawHistory,
     rawMaterialStock,
     rawInventoryItems,
+    securityAccessState,
+    dossier,
+    dossierWorkspace,
   ] = await Promise.all([
     activeTab === "contacten"
       ? safeOptional("contacts", id, () => listObjectContacts(id), [])
@@ -204,6 +243,32 @@ export default async function ObjectDetailPage({
           [],
         )
       : Promise.resolve([]),
+    effectiveCanReadSecurity && activeTab === "veiligheid"
+      ? safeOptional(
+          "security-access-state",
+          id,
+          () => getObjectSecurityAccessState(),
+          null,
+        )
+      : Promise.resolve(null),
+    safeOptional(
+      "dossier",
+      id,
+      () => getDossierSummary({ subjectType: "object", subjectId: id }),
+      null,
+    ),
+    canManageDossiers ||
+    canWriteDossierNotes ||
+    canWriteConfidentialDossierNotes ||
+    canWriteRestrictedDossierNotes ||
+    canReadDossierTimeline
+      ? safeOptional(
+          "dossier-workspace",
+          id,
+          () => getDossierWorkspace({ subjectType: "object", subjectId: id }),
+          null,
+        )
+      : Promise.resolve(null),
   ]);
 
   const contacts = asArray(rawContacts);
@@ -279,6 +344,31 @@ export default async function ObjectDetailPage({
         }
       />
 
+      <DossierStatusStrip dossier={dossier} />
+      {!dossier && (
+        <div
+          role="status"
+          className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
+        >
+          Dossierstatus is tijdelijk niet beschikbaar; het objectprofiel blijft
+          bruikbaar.
+        </div>
+      )}
+      {(canManageDossiers ||
+        canWriteDossierNotes ||
+        canWriteConfidentialDossierNotes ||
+        canWriteRestrictedDossierNotes ||
+        canReadDossierTimeline) &&
+        !dossierWorkspace && (
+          <div
+            role="status"
+            className="mb-5 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
+          >
+            De Dossier 360-werkruimte kon niet worden geladen; overige
+            objectonderdelen blijven beschikbaar.
+          </div>
+        )}
+
       <TenantDetailSectionNav
         items={visibleTabs.map((tab) => ({
           label: OBJECT_TAB_LABELS[tab],
@@ -311,6 +401,12 @@ export default async function ObjectDetailPage({
               performance={performance}
               history={history}
             />
+            {dossierWorkspace && (
+              <DossierWorkspacePanel
+                dossier={dossierWorkspace}
+                subject={{ subjectType: "object", subjectId: id }}
+              />
+            )}
             {(personnel.length > 0 || canWrite) && (
               <div className="mt-6">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -356,6 +452,31 @@ export default async function ObjectDetailPage({
         {activeTab === "diensten" && canReadAssignments && (
           <ObjectServicesTab objectId={id} assignments={assignments} />
         )}
+
+        {activeTab === "veiligheid" &&
+          (effectiveCanReadSecurity || effectiveCanWriteSecurity) && (
+            <div className="space-y-4">
+              {effectiveCanWriteSecurity && (
+                <ObjectSecurityRecordEditor objectId={id} />
+              )}
+              {effectiveCanReadSecurity && securityAccessState && (
+                <ObjectSecurityTab
+                  objectId={id}
+                  maskedEmail={securityAccessState.maskedEmail}
+                  otpTtlMinutes={securityAccessState.otpTtlMinutes}
+                />
+              )}
+              {effectiveCanReadSecurity && !securityAccessState && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-foreground"
+                >
+                  Aanvullende verificatie is niet beschikbaar. Controleer uw
+                  sessie en geverifieerde zakelijke e-mailadres.
+                </div>
+              )}
+            </div>
+          )}
       </TenantDetailLayout>
     </TenantPageShell>
   );

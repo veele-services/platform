@@ -232,6 +232,12 @@ export default async function DashboardLayout({
               backgroundColor: "var(--color-background)",
             }}
           >
+            <a
+              href="#hoofdinhoud"
+              className="sr-only fixed left-3 top-3 z-[100] rounded-md bg-background px-4 py-3 font-medium text-foreground shadow-lg focus:not-sr-only"
+            >
+              Naar hoofdinhoud
+            </a>
             <Sidebar
               branding={{
                 displayName: branding.displayName,
@@ -258,7 +264,7 @@ export default async function DashboardLayout({
               />
               {supportMode && <SupportModeBanner supportMode={supportMode} />}
               <ReleaseHighlightBanner highlight={releaseHighlight} />
-              <main className="flex-1 overflow-y-auto">
+              <main id="hoofdinhoud" tabIndex={-1} className="flex-1 overflow-y-auto">
                 <Suspense fallback={null}>
                   <RecentContextTracker />
                 </Suspense>
