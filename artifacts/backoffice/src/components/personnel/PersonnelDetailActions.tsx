@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Mail, CheckCircle2, Loader2, KeyRound, RefreshCw, UserCheck, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Pencil, Loader2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -23,19 +24,21 @@ import {
 import { toast } from "sonner";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
 import { invitePersonnel, setPersonnelStatus } from "@/app/actions/personnel";
-import { revokePasswordReset, sendPasswordReset } from "@/app/actions/auth";
-import type { PersonnelAuthStatus, RoleOption, SectorOption } from "@/app/actions/personnel";
+import type {
+  PersonnelAuthStatus,
+  RoleOption,
+  SectorOption,
+} from "@/app/actions/personnel";
 
 interface PersonnelDetailActionsProps {
-  personnelId:    string;
-  personnelName:  string;
+  personnelId: string;
+  personnelName: string;
   personnelEmail: string;
-  isActive:       boolean;
-  userId:         string | null;
-  inviteSentAt:   string | null;
-  authStatus:     PersonnelAuthStatus;
-  roles:          RoleOption[];
-  sectors:        SectorOption[];
+  isActive: boolean;
+  userId: string | null;
+  authStatus: PersonnelAuthStatus;
+  roles: RoleOption[];
+  sectors: SectorOption[];
   canManagePortal: boolean;
 }
 
@@ -43,91 +46,58 @@ export function PersonnelDetailActions({
   personnelId,
   personnelName,
   personnelEmail,
-  isActive:    initialIsActive,
+  isActive: initialIsActive,
   userId,
-  inviteSentAt,
   authStatus,
   roles,
   sectors,
   canManagePortal,
 }: PersonnelDetailActionsProps) {
-  const [editOpen,         setEditOpen]         = useState(false);
-  const [inviteOpen,       setInviteOpen]        = useState(false);
-  const [resetOpen,        setResetOpen]         = useState(false);
-  const [activateOpen,     setActivateOpen]      = useState(false);
-  const [localInviteSent,  setLocalInviteSent]   = useState(false);
-  const [isActive,         setIsActive]          = useState(initialIsActive);
-  const [errorMsg,         setErrorMsg]          = useState<string | null>(null);
-  const [activateError,    setActivateError]     = useState<string | null>(null);
-  const [recoveryExpiry,   setRecoveryExpiry]    = useState<string | null>(null);
-  const [isPending,        startTransition]      = useTransition();
+  const router = useRouter();
+  const [editOpen, setEditOpen] = useState(false);
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [isActive, setIsActive] = useState(initialIsActive);
+  const [activateError, setActivateError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // ── Derived invite state ────────────────────────────────────────────────────
   const hasPortalAccount = Boolean(userId) && authStatus === "active";
-  const isInvited        = authStatus === "invited" || (Boolean(inviteSentAt) && !hasPortalAccount);
-  const isNone           = !hasPortalAccount && !isInvited && !localInviteSent;
-
-  function handleInviteConfirm() {
-    setErrorMsg(null);
-    startTransition(async () => {
-      const result = await invitePersonnel(personnelId);
-      if (result.success) {
-        setLocalInviteSent(true);
-        setInviteOpen(false);
-        toast.success("Activatiemail verstuurd");
-      } else {
-        setErrorMsg(result.message ?? "Uitnodiging mislukt.");
-      }
-    });
-  }
-
-  function handleResetConfirm() {
-    startTransition(async () => {
-      const result = await sendPasswordReset(personnelId);
-      if (result.success) {
-        setRecoveryExpiry(result.data?.expiresAt ?? null);
-        setResetOpen(false);
-        toast.success("Herstelcode per e-mail verstuurd");
-      } else {
-        toast.error(result.message ?? "Wachtwoord-reset mislukt.");
-        setResetOpen(false);
-      }
-    });
-  }
-
-  function handleRevokeRecovery() {
-    startTransition(async () => {
-      const result = await revokePasswordReset(personnelId);
-      if (result.success) {
-        setRecoveryExpiry(null);
-        toast.success(
-          result.data?.revoked ? "Open herstelcode ingetrokken" : "Er stond geen open herstelcode meer",
-        );
-      } else {
-        toast.error(result.message ?? "Herstelcode intrekken mislukt.");
-      }
-    });
-  }
 
   function handleActivateConfirm() {
     setActivateError(null);
     startTransition(async () => {
-      const activateResult = await setPersonnelStatus(personnelId, true);
-      if (!activateResult.success) {
-        setActivateError(activateResult.message ?? "Activeren mislukt.");
-        return;
-      }
-      setIsActive(true);
-      setActivateOpen(false);
-      toast.success("Account geactiveerd");
-      // Resend invite whenever there is no active portal account yet
-      // (covers both "never invited" and "invite expired" states)
-      if (canManagePortal && !hasPortalAccount) {
-        const inviteResult = await invitePersonnel(personnelId);
-        if (inviteResult.success) {
-          setLocalInviteSent(true);
-          toast.success("Activatiemail verstuurd");
+      try {
+        const activateResult = await setPersonnelStatus(personnelId, true);
+        if (!activateResult.success) {
+          setActivateError(activateResult.message ?? "Activeren mislukt.");
+          return;
         }
+        setIsActive(true);
+        setActivateOpen(false);
+        toast.success("Account geactiveerd");
+        // Resend invite whenever there is no active portal account yet
+        // (covers both "never invited" and "invite expired" states)
+        if (canManagePortal && !hasPortalAccount) {
+          try {
+            const inviteResult = await invitePersonnel(personnelId);
+            if (inviteResult.success) {
+              toast.success("Activatiemail verstuurd");
+            } else {
+              toast.error(
+                `Account geactiveerd, maar de activatiemail is niet verstuurd. ${inviteResult.message ?? "Probeer de uitnodiging opnieuw via Portaal-toegang."}`,
+              );
+            }
+          } catch {
+            toast.error(
+              "Account geactiveerd, maar de activatiemail kon niet worden verstuurd. Probeer de uitnodiging opnieuw via Portaal-toegang.",
+            );
+          }
+        }
+        router.refresh();
+      } catch {
+        setActivateError(
+          "Activeren is niet gelukt. Controleer de verbinding en probeer opnieuw.",
+        );
       }
     });
   }
@@ -135,13 +105,15 @@ export function PersonnelDetailActions({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-
         {/* ── Inactive badge + activate button ────────────────────────── */}
         {!isActive && (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => { setActivateOpen(true); setActivateError(null); }}
+            onClick={() => {
+              setActivateOpen(true);
+              setActivateError(null);
+            }}
             disabled={isPending}
             className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
           >
@@ -153,86 +125,6 @@ export function PersonnelDetailActions({
             Activeer account
           </Button>
         )}
-
-        {/* ── Invite / account section ────────────────────────────────── */}
-        {canManagePortal && (hasPortalAccount ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--color-primary)" }}>
-              <CheckCircle2 className="h-4 w-4" />
-              Portaal actief
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setResetOpen(true)}
-              disabled={isPending}
-            >
-              <KeyRound className="mr-1.5 h-4 w-4" />
-              Wachtwoord reset
-            </Button>
-            {recoveryExpiry && (
-              <>
-                <span className="text-xs text-slate-500" role="status">
-                  Verzonden · geldig tot{" "}
-                  {new Date(recoveryExpiry).toLocaleTimeString("nl-NL", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleRevokeRecovery}
-                  disabled={isPending}
-                >
-                  <XCircle className="mr-1.5 h-4 w-4" />
-                  Intrekken
-                </Button>
-              </>
-            )}
-          </div>
-        ) : isInvited || localInviteSent ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm" style={{ color: "#92400E" }}>
-              <Mail className="h-4 w-4" />
-              <span>
-                Activatiemail verstuurd
-                {inviteSentAt && !localInviteSent && (
-                  <span className="ml-1 text-xs" style={{ color: "#94A3B8" }}>
-                    ({new Date(inviteSentAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })})
-                  </span>
-                )}
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setInviteOpen(true)}
-              disabled={isPending}
-              title="Uitnodiging opnieuw sturen"
-            >
-              {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setInviteOpen(true)}
-            disabled={isPending}
-          >
-            {isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : (
-              <Mail className="mr-1.5 h-4 w-4" />
-            )}
-            Uitnodiging sturen
-          </Button>
-        ))}
 
         {/* ── Edit button ────────────────────────────────────────────── */}
         <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
@@ -247,20 +139,30 @@ export function PersonnelDetailActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Account activeren?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{personnelName}</strong> wordt opnieuw ingesteld als actief.
+              <strong>{personnelName}</strong> wordt opnieuw ingesteld als
+              actief.
               {!hasPortalAccount && (
-                <> Er wordt ook een eenmalige activatiecode gestuurd naar <strong>{personnelEmail}</strong>.</>
+                <>
+                  {" "}
+                  Er wordt ook een eenmalige activatiecode gestuurd naar{" "}
+                  <strong>{personnelEmail}</strong>.
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {activateError && (
-            <p className="text-sm font-medium" style={{ color: "#E02D3C" }}>
+            <p role="alert" className="text-sm font-medium text-destructive">
               {activateError}
             </p>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setActivateError(null)}>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleActivateConfirm} disabled={isPending}>
+            <AlertDialogCancel onClick={() => setActivateError(null)}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleActivateConfirm}
+              disabled={isPending}
+            >
               {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Activeren
             </AlertDialogAction>
@@ -268,67 +170,12 @@ export function PersonnelDetailActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Invite confirmation dialog ─────────────────────────────── */}
-      <AlertDialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isNone ? "Uitnodiging sturen?" : "Uitnodiging opnieuw sturen?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {isNone
-                ? <>
-                    Er wordt een eenmalige activatiecode gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>. De medewerker kiest daarna zelf
-                    een wachtwoord op de beveiligde activatiepagina.
-                  </>
-                : <>
-                    Er wordt een nieuwe eenmalige activatiecode gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>. De vorige activatiecode
-                    vervalt.
-                  </>
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {errorMsg && (
-            <p className="text-sm font-medium" style={{ color: "#E02D3C" }}>
-              {errorMsg}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleInviteConfirm} disabled={isPending}>
-              {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Sturen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Password reset confirmation dialog ────────────────────── */}
-      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wachtwoord-reset sturen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Er wordt een wachtwoord-reset e-mail gestuurd naar{" "}
-              <strong>{personnelEmail}</strong>. De medewerker kan via de link in de e-mail
-              een nieuw wachtwoord instellen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetConfirm} disabled={isPending}>
-              {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Reset sturen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* ── Edit sheet ────────────────────────────────────────────── */}
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[540px]">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-[540px]"
+        >
           <SheetHeader>
             <SheetTitle>Personeel bewerken</SheetTitle>
             <SheetDescription>

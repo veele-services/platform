@@ -14,9 +14,9 @@ test("planboard ranks selected/interested personnel before other matches", () =>
 
 test("interest selection uses canonical locked staffing and capacity checks", () => {
   assert.match(staffing, /FOR UPDATE/u);
-  assert.match(staffing, /getCanonicalPlanningEligibility\(assignmentId\)/u);
+  assert.match(staffing, /getCanonicalPlanningEligibility\(tenantId, assignmentId\)/u);
   assert.match(staffing, /assignment_capacity_full/u);
-  assert.match(staffing, /ON CONFLICT \(assignment_id, personnel_id\)/u);
+  assert.match(staffing, /transition_assignment_staffing/u);
   assert.match(staffing, /status = 'confirmed'/u);
 });
 

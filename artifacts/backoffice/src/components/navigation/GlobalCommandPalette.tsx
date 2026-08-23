@@ -177,10 +177,10 @@ export function GlobalCommandPalette({
           "min-w-0 justify-start gap-2 text-muted-foreground md:w-[min(34vw,28rem)]",
           className,
         )}
-        aria-label="Navigeren en zoeken"
+        aria-label="Zoek of ga naar"
       >
         <Search className="size-4 shrink-0" />
-        <span className="hidden truncate sm:inline">Navigeren en zoeken</span>
+        <span className="hidden truncate sm:inline">Zoek of ga naar…</span>
         <span className="sm:hidden">Zoeken</span>
         <span className="ml-auto hidden items-center gap-0.5 lg:flex">
           <Kbd>Ctrl</Kbd>
