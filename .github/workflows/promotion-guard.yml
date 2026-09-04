@@ -50,9 +50,8 @@ jobs:
 
           case "$base_branch" in
             staging)
-              if [[ "$head_branch" == "main" ]]; then
-                exit 0
-              fi
+              echo "::error title=Staging pull requests are forbidden::Promote the exact approved main SHA with the guarded fast-forward command."
+              exit 1
               ;;
             production)
               if [[ "$head_branch" == "staging" || "$head_branch" == hotfix/* ]]; then
@@ -63,7 +62,6 @@ jobs:
 
           echo "::error title=Invalid promotion path::Pull requests into '$base_branch' must follow the documented release flow."
           echo "Allowed paths:"
-          echo "  main -> staging"
           echo "  staging -> production"
           echo "  hotfix/* -> production"
           echo
