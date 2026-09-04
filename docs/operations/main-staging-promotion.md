@@ -24,6 +24,17 @@ This document is the canonical branch and environment contract for the current F
 
 A pull request from `main` into `staging` must not be used for normal promotion because it creates an extra merge commit and causes branch-history drift.
 
+An equal tree is not a substitute for shared ancestry. Do not create a
+`codex/promote-*` branch with a copy or squash of `main`: that makes `staging`
+look identical while breaking the next fast-forward promotion. If historical
+squash promotions have already diverged the refs, repair them once through a
+dedicated reviewed pull request into `main` whose branch contains a real merge
+of the exact current `staging` commit. Preserve all normal protection and exact-
+head checks; allow merge commits and suspend required linear history only for
+that pinned reconciliation PR, then restore both repository settings
+immediately. Verify afterward that the former staging SHA is an ancestor of the
+new main SHA before using the normal exact-ref promotion command.
+
 ## Database rules
 
 - Only the GitHub `staging` environment owns a `DATABASE_URL`.

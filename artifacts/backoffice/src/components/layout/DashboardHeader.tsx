@@ -62,6 +62,7 @@ export function DashboardHeader({
         }
       : null;
   const today = new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
     weekday: "short",
     day: "numeric",
     month: "short",

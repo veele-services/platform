@@ -1877,7 +1877,7 @@ export function PlanningBoardView({
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   className="h-10 rounded-lg pl-9"
-                  placeholder="Zoek medewerker, klant, object of werkbon"
+                  placeholder="Zoek klant, object of werkbon"
                 />
               </label>
             </form>
