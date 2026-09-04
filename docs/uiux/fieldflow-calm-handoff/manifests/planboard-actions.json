@@ -1,0 +1,838 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm planboard action contract",
+  "contractVersion": "fieldflow-planboard-v1",
+  "authority": {
+    "route": "/planning",
+    "module": "planning",
+    "readPermission": "planning:read",
+    "mutationPermission": "planning:write",
+    "newAssignmentPermission": "assignments:write",
+    "tenantRule": "tenantId and actorUserId are resolved from the authenticated host/session/support context and are never trusted from the request body",
+    "serverRule": "Every command repeats tenant, module, permission, lifecycle, version and domain validation immediately before its transaction writes",
+    "authorizationConcurrency": {
+      "epoch": "A tenant-scoped monotone planning authorization epoch is read and locked FOR SHARE through fieldgrid_lock_planning_authorization_epoch() inside the one existing server transaction and stored on the receipt; every tenant membership, role/permission, planning-module, map-gate, tenant-state or support-grant create/revoke/change producer increments it before its row change in the same transaction.",
+      "lockedRows": "After the epoch lock, the mutation uses its existing server privileges to lock the canonical tenant and module/permission/map-gate rows plus either the tenant_users membership or support_access_grants and platform_users evidence before receipt lookup; revocation and authorization writers first take the conflicting epoch-row write lock.",
+      "finalCheck": "Immediately before the linearization write, re-evaluate the locked authorization context with database clock time. A changed epoch, revoked/expired support grant, inactive membership, disabled module or lost permission writes nothing.",
+      "supportEvidence": "A support mutation stores immutable grant id, platform-user id, reason, startsAt, expiresAt, authorization epoch and authorization-context hash in the receipt and audit event. Composite database foreign keys bind grant to tenant+platformUser and bind platformUser to actorUserId; all support fields are null for a tenant member."
+    },
+    "conditionalGates": {
+      "mapSuggestion": "inputMode=map-suggestion is accepted only after the same server transaction proves the tenant map feature flag, required Google Maps configuration, planning module, planning:read and planning:write; otherwise MAP_GATE_DENIED with zero writes"
+    }
+  },
+  "wireContract": {
+    "requestUnionDiscriminant": "action",
+    "common": {
+      "required": [
+        "contractVersion",
+        "action",
+        "mutationId",
+        "originClientId",
+        "requestedAt",
+        "inputMode",
+        "versions"
+      ],
+      "contractVersion": {
+        "const": "fieldflow-planboard-v1"
+      },
+      "mutationId": {
+        "type": "uuid",
+        "rule": "One client-generated UUID per logical command; keep it unchanged for warning confirmation and every transport retry"
+      },
+      "originClientId": {
+        "type": "uuid",
+        "rule": "Stable per browser tab or installed client and included in the emitted planning_refresh event"
+      },
+      "requestedAt": {
+        "type": "RFC3339 UTC timestamp",
+        "firstSubmissionWindow": "not older than 24 hours and not more than 60 seconds in the future; an existing exact receipt replay is resolved before this age check"
+      },
+      "inputMode": {
+        "enum": ["pointer", "keyboard", "touch", "menu", "map-suggestion"],
+        "rule": "It never relaxes authorization or domain validation; map-suggestion adds the conditional server map gate, while every other value is audit/response context only"
+      },
+      "versions": {
+        "type": "PlanningVersionVector",
+        "required": [
+          "planningRevision",
+          "assignments",
+          "staffing",
+          "interestResponses"
+        ],
+        "planningRevision": "base-10 bigint string",
+        "assignments": "sorted array of unique {assignmentId: uuid, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp}",
+        "staffing": "sorted array of unique {staffingId: uuid, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp}",
+        "interestResponses": "sorted array of unique {interestResponseId: uuid, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp}; empty unless the command is sourced from an interest response",
+        "rule": "The arrays must contain every existing assignment, staffing and interest-response record in the server-derived action closure; missing, duplicate, extra or stale entries are a VERSION_STALE conflict"
+      },
+      "warningConfirmation": {
+        "type": "null | PlanningWarningConfirmation",
+        "requiredWhenPresent": [
+          "decision",
+          "warningEvaluationHash",
+          "evaluationIssuedAt",
+          "acceptedReasonCodes"
+        ],
+        "decision": {
+          "const": "accept"
+        },
+        "warningEvaluationHash": "64 lowercase hexadecimal SHA-256 characters for the action being confirmed; it is never the source optimize-preview hash",
+        "evaluationIssuedAt": "the exact server timestamp returned by warning-required",
+        "acceptedReasonCodes": "sorted unique array exactly equal to the current warning reason-code set",
+        "requestHashExclusion": "warningConfirmation is excluded from requestHash so the same mutationId remains valid for the second warning-confirmation call"
+      },
+      "objectPolicy": "Common envelope, action payload and every nested object are closed; unknown keys are rejected and values are never permissively coerced."
+    },
+    "transportValidation": {
+      "boundary": "The PlanningActionResult union starts only after contractVersion, action, mutationId, originClientId, requestedAt, inputMode and versions form a valid common envelope.",
+      "failure": {
+        "httpStatus": 400,
+        "contentType": "application/problem+json",
+        "body": "{type: https://fieldgrid.app/problems/invalid-planboard-envelope, title: Invalid planboard command envelope, status: 400, code: INVALID_ACTION_ENVELOPE, fieldErrors: FieldErrors}"
+      },
+      "rule": "This pre-union failure writes no receipt/domain/audit/event/notification and never fabricates an action, mutationId or requestHash. Once common is valid, payload failures use result kind=invalid."
+    },
+    "dependencyClosure": {
+      "authority": "The server derives the closure from tenant-scoped current rows before comparing the client vector; request-supplied IDs can narrow an explicit scope but can never define or widen tenant ownership.",
+      "comparison": "versions must equal every existing assignment, staffing and interest-response row in the derived closure, sorted by UUID, with no missing, duplicate, extra or stale entry; any mismatch returns VERSION_STALE with zero writes",
+      "lockingOrder": "Lock authorization epoch and authorization rows first, then assignments, staffing, interest responses and every mutable planning dependency class in the declared producer order; within each class lock ascending UUID. Creation of a missing target staffing link is serialized by the locked assignment and canonical assignment/personnel uniqueness constraint.",
+      "dependencyConcurrency": {
+        "lockedClasses": [
+          "assignments",
+          "staffing",
+          "interest-responses",
+          "personnel-active-state",
+          "availability",
+          "sickness-and-leave",
+          "roles-and-sectors",
+          "certificates-diplomas-and-knowledge",
+          "regions",
+          "required-slots-and-capacity",
+          "route-cache-and-travel-policy"
+        ],
+        "producerRegistry": [
+          "assignment-lifecycle-or-schedule",
+          "staffing-transition",
+          "interest-response-transition",
+          "personnel-activation",
+          "availability-change",
+          "sickness-or-leave-change",
+          "role-sector-qualification-change",
+          "region-change",
+          "required-slots-or-capacity-change",
+          "route-cache-or-travel-policy-change",
+          "planning-policy-change"
+        ],
+        "producerRule": "Every listed producer compare-and-increments the same tenant planning revision and emits one tenant-scoped planning_refresh outbox event in its own domain transaction. Adding a dependency or writer requires adding it to both lists before release.",
+        "unlockedDependencyRule": "A dependency that cannot be row-locked must expose a monotone version included in the evaluation hash and must advance the tenant planning revision transactionally; otherwise the action fails closed as VERSION_STALE."
+      },
+      "byAction": {
+        "place": "The assignment, every existing active staffing row for it, an existing target assignment/personnel staffing row even when inactive, and for source.kind=interest exactly the tenant-owned interest response whose personnelId equals targetPersonnelId.",
+        "move": "The assignment and every active staffing row for a time move; add the source row and any existing target assignment/personnel row for personnel replacement.",
+        "unassign": "The assignment, selected staffing row and every active sibling staffing row needed to determine remaining capacity and status.",
+        "release": "The assignment and every active staffing row that the release ends.",
+        "optimize-preview": "Every in-scope assignment, every existing staffing row that can appear in the proposal, and every assignment/staffing row whose interval or capacity can conflict with it; planningRevision closes additions/removals in the evaluated scope.",
+        "optimize-commit": "Exactly the preview before/after record set plus the freshly re-derived conflict/capacity closure; it must still match the preview evaluation/proposal and current planningRevision.",
+        "undo": "Exactly every assignment, staffing and interest-response row in the target receipt after-version set; every current version must equal that after-version before restoration."
+      }
+    },
+    "actions": [
+      {
+        "action": "place",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-004",
+          "FFC-PB-005",
+          "FFC-PB-007",
+          "FFC-PB-009",
+          "FFC-PB-010",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-014",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-022",
+          "FFC-PB-023",
+          "FFC-PB-024",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": [
+          "R-003",
+          "R-022",
+          "R-023",
+          "R-025",
+          "R-027",
+          "R-029",
+          "R-031"
+        ],
+        "payload": {
+          "required": [
+            "assignmentId",
+            "source",
+            "targetPersonnelId",
+            "date",
+            "requestedStartMinutes",
+            "durationMinutes",
+            "pointerOffsetMinutes",
+            "warningConfirmation"
+          ],
+          "assignmentId": "uuid of a plannable or scheduled assignment currently represented in the queue or interest-selection snapshot",
+          "source": "closed {kind: queue} | {kind: interest, interestResponseId: uuid}; the interest response must be tenant-owned, current, interested or selected, and belong to assignmentId and targetPersonnelId",
+          "targetPersonnelId": "tenant-owned active personnel uuid",
+          "date": "YYYY-MM-DD in Europe/Amsterdam",
+          "requestedStartMinutes": "integer 0..1439; evaluation snaps to the 15-minute raster",
+          "durationMinutes": "canonical estimated duration clamped by the server to 30..480",
+          "pointerOffsetMinutes": "integer 0 for queue placement",
+          "warningConfirmation": "common warning confirmation or null"
+        },
+        "desktopInteraction": "Drag a queue card to a personnel lane, select it with Enter/Space and move by keyboard, or choose Select and schedule from an interest response; preview always names employee, date, snapped start/end and state before commit.",
+        "mobileInteraction": "Queue or interest card action Plan opens a bottom/fullscreen sheet with employee, date, exact quarter-hour, duration, evaluation and confirmation; drag is never required.",
+        "commitSemantics": "Atomically set the scheduled interval, create or reactivate exactly the selected assigned staffing link, transition plannable to scheduled when required and, for source.kind=interest, transition exactly that locked interest response to confirmed in the same receipt/audit/revision/outbox transaction; update capacity from canonical assigned staffing and never rebalance another assignment."
+      },
+      {
+        "action": "move",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-004",
+          "FFC-PB-005",
+          "FFC-PB-006",
+          "FFC-PB-007",
+          "FFC-PB-009",
+          "FFC-PB-010",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-014",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-023",
+          "FFC-PB-024",
+          "FFC-PB-028",
+          "FFC-PB-029",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": [
+          "R-003",
+          "R-022",
+          "R-023",
+          "R-025",
+          "R-027",
+          "R-029",
+          "R-030",
+          "R-031"
+        ],
+        "payload": {
+          "required": [
+            "assignmentId",
+            "moveMode",
+            "sourceStaffingId",
+            "sourcePersonnelId",
+            "targetPersonnelId",
+            "date",
+            "requestedStartMinutes",
+            "durationMinutes",
+            "pointerOffsetMinutes",
+            "warningConfirmation"
+          ],
+          "assignmentId": "uuid of the tenant-owned plannable or scheduled assignment being moved",
+          "moveMode": "time | replace-personnel | time-and-replace",
+          "sourceStaffingId": "uuid for personnel replacement; null for a team-wide time-only move",
+          "sourcePersonnelId": "uuid paired with sourceStaffingId; null for a team-wide time-only move",
+          "targetPersonnelId": "uuid for replacement/target lane; for time-only move this is the grabbed lane personnel",
+          "date": "YYYY-MM-DD in Europe/Amsterdam",
+          "requestedStartMinutes": "integer 0..1439 before snapping",
+          "durationMinutes": "the exact stored duration with a 15-minute minimum; legacy durations above 480 remain unchanged",
+          "pointerOffsetMinutes": "integer 0..durationMinutes-15 retained from the original grab point; keyboard/menu/map-suggestion use 0",
+          "warningConfirmation": "common warning confirmation or null"
+        },
+        "desktopInteraction": "Drag a movable block while retaining grab offset, use keyboard raster/hour/employee commands, or confirm a map time suggestion; locked states expose no mutation trigger.",
+        "mobileInteraction": "Block action Move or Replace employee opens a sheet with current values, exact quarter-hour controls, impact review and explicit commit/cancel.",
+        "conditionalAuthorization": "When inputMode=map-suggestion, require the authority.conditionalGates.mapSuggestion server gate in addition to planning:write; a forged call that fails any map condition returns forbidden/MAP_GATE_DENIED with zero writes.",
+        "commitSemantics": "Change only the requested interval and/or selected staffing link, preserve all unaffected team links and actual timestamps, and never invoke automatic rebalancing."
+      },
+      {
+        "action": "unassign",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-007",
+          "FFC-PB-008",
+          "FFC-PB-010",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-023",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": ["R-003", "R-024", "R-025", "R-028", "R-029"],
+        "payload": {
+          "required": [
+            "assignmentId",
+            "staffingId",
+            "personnelId",
+            "reasonCode",
+            "reasonNote",
+            "warningConfirmation"
+          ],
+          "assignmentId": "uuid of the tenant-owned scheduled assignment that owns the selected active staffing link",
+          "staffingId": "uuid of the active assigned staffing link to end",
+          "personnelId": "uuid that must exactly match staffingId.personnelId",
+          "reasonCode": "planning-change | unavailable | qualification | customer-request | staffing-correction | other",
+          "reasonNote": "trimmed 1..1000 characters when reasonCode is other; otherwise null or trimmed 1..1000 characters",
+          "warningConfirmation": "common warning confirmation or null"
+        },
+        "desktopInteraction": "Board-to-queue drop and row/block menu first open a choice dialog; Unassign one employee names that employee and remaining staffing before evaluation.",
+        "mobileInteraction": "Block action Remove from planning opens the same choice in a sheet and shows remaining staffing and unchanged team interval before commit.",
+        "commitSemantics": "End exactly one active staffing link, retain the assignment status and interval even when this leaves zero active staffing links, preserve every other staffing link and write the reason; a zero-staff scheduled assignment becomes an explicit planned/unfilled attention item and only release can clear its interval or transition it to plannable."
+      },
+      {
+        "action": "release",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-007",
+          "FFC-PB-008",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-023",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": ["R-003", "R-024", "R-025", "R-028", "R-029"],
+        "payload": {
+          "required": [
+            "assignmentId",
+            "reasonCode",
+            "reasonNote",
+            "warningConfirmation"
+          ],
+          "assignmentId": "uuid of the tenant-owned pre-start scheduled assignment to release",
+          "reasonCode": "planning-change | unavailable | customer-request | staffing-correction | other",
+          "reasonNote": "trimmed 1..1000 characters when reasonCode is other; otherwise null or trimmed 1..1000 characters",
+          "warningConfirmation": "common warning confirmation or null"
+        },
+        "desktopInteraction": "Board-to-queue choice Release assignment opens a destructive confirmation that lists every affected employee, current interval and scheduled-to-plannable transition.",
+        "mobileInteraction": "The same complete impact confirmation is a fullscreen sheet with a non-sticky scroll body and safe-area-aware sticky action footer.",
+        "commitSemantics": "Only a pre-start scheduled assignment can be released; atomically end every active staffing link, transition scheduled to plannable, clear scheduledDate/start/end, preserve every actual timestamp and save the complete undo snapshot."
+      },
+      {
+        "action": "optimize-preview",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-004",
+          "FFC-PB-010",
+          "FFC-PB-011",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-023",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": ["R-003", "R-023", "R-024", "R-025", "R-029"],
+        "payload": {
+          "required": ["scope", "objective", "constraints"],
+          "scope": "{date: YYYY-MM-DD Europe/Amsterdam, assignmentIds: sorted unique uuid[], personnelIds: sorted unique uuid[]}",
+          "objective": "resolve-conflicts | balance-capacity | reduce-travel",
+          "constraints": "{allowTimeChanges: boolean, allowPersonnelChanges: boolean, maxShiftMinutes: integer 15..480 divisible by 15}"
+        },
+        "desktopInteraction": "Automatic resolve in the command bar opens an impact drawer listing every before/after interval, staffing change, warning and unchanged item.",
+        "mobileInteraction": "Automatic resolve opens a fullscreen preview list grouped by assignment; no proposed change is committed from a swipe or drag.",
+        "commitSemantics": "Read and evaluate only; write one preview receipt containing previewEvaluationHash, proposalHash, complete server-only restore sets, separate permission-filtered display sets and a five-minute expiry, with no domain/audit/event/notification mutation."
+      },
+      {
+        "action": "optimize-commit",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-004",
+          "FFC-PB-010",
+          "FFC-PB-011",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-023",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": ["R-003", "R-023", "R-024", "R-025", "R-029"],
+        "payload": {
+          "required": [
+            "previewMutationId",
+            "previewEvaluationHash",
+            "proposalHash",
+            "warningConfirmation"
+          ],
+          "previewMutationId": "uuid of the same-tenant, same-actor optimize-preview receipt",
+          "previewEvaluationHash": "exact previewEvaluationHash from the referenced optimize-preview receipt; distinct from warningConfirmation.warningEvaluationHash for this optimize-commit action",
+          "proposalHash": "exact preview proposal hash",
+          "warningConfirmation": "common warning confirmation; required when the current proposal contains warnings"
+        },
+        "desktopInteraction": "Commit remains disabled until the entire impact drawer has loaded and warnings are explicitly checked; final confirmation repeats counts and irreversible external effects.",
+        "mobileInteraction": "A dedicated final sheet step repeats affected assignments/personnel, warnings and Undo availability before the single commit button.",
+        "commitSemantics": "Lock the preview receipt and all affected rows in sorted UUID order, reload and re-evaluate, require an unexpired identical evaluation/proposal, commit the complete set plus receipt/audit/outbox exactly once, or write nothing."
+      },
+      {
+        "action": "undo",
+        "permission": "planning:write",
+        "requirements": [
+          "FFC-PB-008",
+          "FFC-PB-011",
+          "FFC-PB-012",
+          "FFC-PB-013",
+          "FFC-PB-015",
+          "FFC-PB-016",
+          "FFC-PB-023",
+          "FFC-SEC-001",
+          "FFC-SEC-002"
+        ],
+        "risks": ["R-003", "R-024", "R-025", "R-028", "R-029"],
+        "payload": {
+          "required": ["targetMutationId"],
+          "targetMutationId": "uuid of a same-tenant, same-actor committed place, move, unassign, release or optimize-commit receipt"
+        },
+        "desktopInteraction": "Undo is available from the success toast and planning activity menu until its exact deadline; focus returns to the restored assignment or its queue card.",
+        "mobileInteraction": "A 44px Undo action remains reachable in the announced success bar and activity sheet without depending on hover or drag.",
+        "commitSemantics": "Within ten minutes, lock the target receipt and all affected rows, require every current assignment/staffing/interest-response version to equal the target after-version, restore only the domain values and existence encoded by the complete before set, allocate a fresh monotone lifecycleVersion and updatedAt for every restored extant row, record an exists=false tombstone for every removed row, emit one revision/event and create one uniquely linked undo receipt; old lifecycle metadata is evidence and is never written back. A mismatch writes nothing."
+      }
+    ],
+    "requestHash": {
+      "algorithm": "sha256",
+      "serialization": "RFC 8785 JSON Canonicalization Scheme over {contractVersion,action,mutationId,originClientId,requestedAt,inputMode,versions,payloadWithoutWarningConfirmation}",
+      "encoding": "UTF-8 input and 64 lowercase hexadecimal output",
+      "rule": "Tenant and actor are receipt-key dimensions resolved by the server; warningConfirmation is deliberately excluded and every other declared request field is included"
+    },
+    "warningEvaluation": {
+      "sequence": [
+        "Call one sends warningConfirmation=null; the server reloads and evaluates fresh state.",
+        "A blocked evaluation returns blocked and writes no receipt, domain row, audit, event, route cache or notification.",
+        "A warning evaluation returns warning-required with evaluationIssuedAt, validUntil, warningEvaluationHash and sorted unique reason codes; it writes nothing.",
+        "Call two reuses the exact mutationId and semantic request and sends decision=accept, the first evaluationIssuedAt/warningEvaluationHash and the exact accepted reason-code set.",
+        "The server reloads and evaluates again. It recomputes the hash with the supplied evaluationIssuedAt; changed state, proposal, policy or warning set returns conflict/EVALUATION_CHANGED, while expiry returns conflict/WARNING_CONFIRMATION_EXPIRED. Both write nothing and the client restarts call one before it can confirm.",
+        "Only an identical unexpired hash and exact reason-code equality permits the atomic commit."
+      ],
+      "validity": "five minutes from evaluationIssuedAt",
+      "hashAlgorithm": "sha256",
+      "hashSerialization": "RFC 8785 JSON Canonicalization Scheme over {contractVersion,tenantId,actorUserId,action,requestHash,policyVersion,evaluationIssuedAt,planningRevision,versions,normalizedIntent,snappedInterval,affectedRecordKeys,proposedChanges,warningReasonCodes}",
+      "logicalRecordKeys": "assignment:<assignmentId> for an assignment, staffing:<staffingId> for an existing staffing row, staffing-new:<assignmentId>:<personnelId> for a proposed row that does not yet exist, and interest-response:<interestResponseId> for an interest selection; proposedChanges references these keys and never a freshly random UUID",
+      "uuidReservation": "For a normal place/move warning, generate a new staffing UUID only after an identical warning confirmation passes and before the atomic write. optimize-preview may reserve it while writing its durable preview receipt, and optimize-commit must reuse that stored UUID.",
+      "proposalHash": "SHA-256 lowercase hex of RFC 8785 canonical JSON over {contractVersion,tenantId,actorUserId,previewMutationId,policyVersion,scope,objective,constraints,planningRevision,versions,proposedChanges}; proposedChanges uses logicalRecordKeys and is sorted by recordKey then operation",
+      "sorting": "All logical record keys, version arrays, proposed changes and warningReasonCodes are sorted lexicographically before canonicalization",
+      "rule": "The client cannot remove, add, rename or downgrade a reason; blockers are never confirmable"
+    },
+    "resultUnion": {
+      "discriminant": "kind",
+      "common": [
+        "contractVersion",
+        "action",
+        "mutationId",
+        "requestHash",
+        "serverTime",
+        "replayed"
+      ],
+      "commonTypes": {
+        "contractVersion": "fieldflow-planboard-v1",
+        "action": "the exact PlanningAction tag from the request",
+        "mutationId": "the exact request UUID",
+        "requestHash": "64 lowercase hexadecimal SHA-256 characters",
+        "serverTime": "RFC3339 UTC timestamp generated for this response; it is recomputed on replay so deadline UI never uses the original commit time",
+        "replayed": "boolean; true only when this envelope was reconstructed from an existing receipt"
+      },
+      "sharedTypes": {
+        "PlanningReason": "{code: closed blocked-or-warning reason-code enum, severity: blocked | warning, subjectType: assignment | staffing | interest-response | personnel | interval | route, subjectId: uuid | null, messageKey: non-empty localization key}",
+        "PlanningDisplayAssignmentValue": "closed {code: string, title: string, status: plannable | scheduled, scheduledDate: YYYY-MM-DD | null, scheduledStart: HH:mm | null, scheduledEnd: HH:mm | null, assignedPersonnelIds: sorted unique uuid[], requiredSlots: non-negative integer, filledSlots: non-negative integer}",
+        "PlanningDisplayStaffingValue": "closed {personnelId: uuid, active: boolean}",
+        "PlanningDisplayInterestResponseValue": "closed {personnelId: uuid, status: interested | selected | confirmed | reserve | cancelled}",
+        "PlanningDisplayCurrentRecord": "{recordType: assignment, id: uuid, assignmentId: same uuid, exists: true, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp, value: PlanningDisplayAssignmentValue} | {recordType: staffing, id: uuid, assignmentId: uuid, exists: true, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp, value: PlanningDisplayStaffingValue} | {recordType: interest-response, id: uuid, assignmentId: uuid, exists: true, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp, value: PlanningDisplayInterestResponseValue}; this fixed allowlist is available to every currently authorized planning:write actor and contains no customer/personnel dossier fields",
+        "PlanningDisplayRecordState": "PlanningDisplayCurrentRecord | {recordType: staffing, id: server-reserved uuid, assignmentId: uuid, exists: false, lifecycleVersion: null, updatedAt: null, value: null}; this client-safe union is used only in preview transport and saved_result",
+        "ReceiptCurrentRecord": "server-only {recordType: assignment | staffing | interest-response, id: uuid, assignmentId: uuid, exists: true, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp, value: complete mutation-and-restore JSON object}; lifecycleVersion and updatedAt are comparison evidence, never values to restore; this type is never serialized to a client response",
+        "ReceiptRecordState": "ReceiptCurrentRecord | {recordType: staffing, id: server-reserved uuid, assignmentId: uuid, exists: false, lifecycleVersion: null, updatedAt: null, value: null}; the absent form is mandatory in receipt before_records when place or optimization creates a staffing row",
+        "ReceiptVersionState": "{recordType: assignment | staffing | interest-response, id: uuid, exists: true, lifecycleVersion: base-10 bigint string, updatedAt: RFC3339 UTC timestamp} | {recordType: staffing, id: server-reserved uuid, exists: false, lifecycleVersion: null, updatedAt: null}",
+        "PlanningSafeSnapshot": "{planningRevision: base-10 bigint string, assignments: PlanningDisplayCurrentRecord[] sorted by id, staffing: PlanningDisplayCurrentRecord[] sorted by id, interestResponses: PlanningDisplayCurrentRecord[] sorted by id}",
+        "PlanningUndoReceipt": "{eligibleAtCommit: true, targetMutationId: uuid, expiresAt: RFC3339 UTC timestamp} | {eligibleAtCommit: false, targetMutationId: null, expiresAt: null, reason: NOT_UNDOABLE}; serverTime and a fresh undo call determine current availability, never this immutable receipt field",
+        "PlanningUndoState": "{state: available, targetMutationId: uuid, expiresAt: RFC3339 UTC timestamp} | {state: expired | already-undone | version-conflict, targetMutationId: uuid, expiresAt: RFC3339 UTC timestamp} | {state: not-undoable, targetMutationId: null, expiresAt: null}; computed fresh and never stored in saved_result. Precedence is not-undoable for action=undo, then already-undone when an undo child exists, then expired when serverTime >= expiresAt, then version-conflict when any current record differs from the immutable after-version, otherwise available",
+        "FieldErrors": "object keyed by RFC 6901 JSON Pointer with a non-empty sorted unique string[] of validation codes"
+      },
+      "objectPolicy": "Every result variant and nested result object is closed. The transport response is the immutable stored body plus serverTime, replayed and, for committed/preview only, the freshly computed undoState/previewState.",
+      "storageBoundary": "saved_result contains exactly contractVersion, action, mutationId, requestHash, kind, receiptId and the immutable fields of committed or preview. It never contains serverTime, replayed, undoState, previewState or server-only ReceiptRecordState values.",
+      "variants": [
+        {
+          "kind": "committed",
+          "actions": [
+            "place",
+            "move",
+            "unassign",
+            "release",
+            "optimize-commit",
+            "undo"
+          ],
+          "required": [
+            "receiptId",
+            "saved",
+            "versions",
+            "planningRevision",
+            "affectedAssignmentIds",
+            "affectedStaffingIds",
+            "affectedInterestResponseIds",
+            "undo",
+            "undoState"
+          ],
+          "fieldTypes": {
+            "receiptId": "uuid",
+            "saved": "PlanningSafeSnapshot",
+            "versions": "PlanningVersionVector after commit",
+            "planningRevision": "base-10 bigint string equal to versions.planningRevision",
+            "affectedAssignmentIds": "sorted unique non-empty uuid[]",
+            "affectedStaffingIds": "sorted unique uuid[]",
+            "affectedInterestResponseIds": "sorted unique uuid[]; exactly one for place with source.kind=interest and empty for every other command",
+            "undo": "PlanningUndoReceipt; immutable saved_result field with eligibleAtCommit=false for action=undo",
+            "undoState": "PlanningUndoState; fresh transport field derived from deadline, an existing undo child and current after-version equality"
+          }
+        },
+        {
+          "kind": "preview",
+          "actions": ["optimize-preview"],
+          "required": [
+            "receiptId",
+            "previewEvaluationHash",
+            "proposalHash",
+            "evaluationIssuedAt",
+            "validUntil",
+            "planningRevision",
+            "beforeRecords",
+            "afterRecords",
+            "reasons",
+            "previewState"
+          ],
+          "fieldTypes": {
+            "receiptId": "uuid",
+            "previewEvaluationHash": "64 lowercase hexadecimal SHA-256 characters for the optimize-preview action evaluation",
+            "proposalHash": "64 lowercase hexadecimal SHA-256 characters",
+            "evaluationIssuedAt": "RFC3339 UTC timestamp",
+            "validUntil": "evaluationIssuedAt plus exactly five minutes",
+            "planningRevision": "base-10 bigint string equal to the preview receipt planning_revision_before and planning_revision_after",
+            "beforeRecords": "PlanningDisplayRecordState[] sorted by recordType then id; permission-filtered projection separate from server-only receipt before_records",
+            "afterRecords": "PlanningDisplayRecordState[] sorted by recordType then id; permission-filtered projection separate from server-only receipt after_records",
+            "reasons": "PlanningReason[] containing warning severity only, sorted by code then subjectType then subjectId",
+            "previewState": "usable | expired | consumed; computed fresh and never stored in saved_result. consumed wins when an optimize-commit child exists, otherwise expired when serverTime >= validUntil, otherwise usable"
+          }
+        },
+        {
+          "kind": "warning-required",
+          "required": [
+            "warningEvaluationHash",
+            "evaluationIssuedAt",
+            "validUntil",
+            "reasons",
+            "safeSnapshot"
+          ],
+          "fieldTypes": {
+            "warningEvaluationHash": "64 lowercase hexadecimal SHA-256 characters for the action that requires confirmation",
+            "evaluationIssuedAt": "RFC3339 UTC timestamp",
+            "validUntil": "evaluationIssuedAt plus exactly five minutes",
+            "reasons": "non-empty PlanningReason[] containing warning severity only, sorted by code then subjectType then subjectId",
+            "safeSnapshot": "PlanningSafeSnapshot"
+          },
+          "receiptWritten": false
+        },
+        {
+          "kind": "blocked",
+          "required": ["reasons", "safeSnapshot"],
+          "fieldTypes": {
+            "reasons": "non-empty PlanningReason[] containing blocked severity only, sorted by code then subjectType then subjectId",
+            "safeSnapshot": "PlanningSafeSnapshot"
+          },
+          "receiptWritten": false
+        },
+        {
+          "kind": "conflict",
+          "required": ["code", "reasons", "currentVersions", "safeSnapshot"],
+          "codes": [
+            "VERSION_STALE",
+            "MUTATION_ID_REUSED",
+            "EVALUATION_CHANGED",
+            "WARNING_CONFIRMATION_EXPIRED",
+            "PREVIEW_EXPIRED",
+            "PREVIEW_ALREADY_COMMITTED",
+            "UNDO_WINDOW_EXPIRED",
+            "UNDO_VERSION_MISMATCH",
+            "ALREADY_UNDONE",
+            "REQUEST_EXPIRED",
+            "AUTHORIZATION_CHANGED"
+          ],
+          "fieldTypes": {
+            "code": "one value from codes",
+            "reasons": "PlanningReason[]; empty when the conflict has no domain reason",
+            "currentVersions": "PlanningVersionVector for the server-derived dependency closure",
+            "safeSnapshot": "PlanningSafeSnapshot"
+          },
+          "receiptWritten": false
+        },
+        {
+          "kind": "forbidden",
+          "required": ["code"],
+          "codes": [
+            "TENANT_DENIED",
+            "MODULE_DISABLED",
+            "PERMISSION_DENIED",
+            "MAP_GATE_DENIED"
+          ],
+          "fieldTypes": {
+            "code": "one value from codes"
+          },
+          "receiptWritten": false
+        },
+        {
+          "kind": "invalid",
+          "required": ["code", "fieldErrors"],
+          "codes": ["INVALID_PAYLOAD"],
+          "fieldTypes": {
+            "code": "one value from codes",
+            "fieldErrors": "FieldErrors"
+          },
+          "receiptWritten": false
+        },
+        {
+          "kind": "failed",
+          "required": ["code", "retryable"],
+          "codes": [
+            "TRANSIENT_DATABASE_FAILURE",
+            "TRANSIENT_PROVIDER_FAILURE",
+            "INTERNAL_FAILURE"
+          ],
+          "fieldTypes": {
+            "code": "one value from codes",
+            "retryable": "boolean; the client may retry only when true and must retain mutationId and the complete request"
+          },
+          "receiptWritten": false
+        }
+      ],
+      "replayRule": "An exact receipt replay returns the semantically identical immutable saved_result JSON body and identifiers. The response wrapper recomputes only serverTime, replayed and the non-persisted previewState/undoState transport fields, so expired, consumed, already-undone or version-conflicted actions are never presented as available. No audit/event/notification is emitted again."
+    }
+  },
+  "reasonCodes": {
+    "blocked": [
+      "STATUS_LOCKED",
+      "OUTSIDE_WORK_WINDOW",
+      "OVERLAP",
+      "SICKNESS_OR_LEAVE",
+      "DUPLICATE_STAFFING",
+      "REQUIRED_SLOTS_EXCEEDED",
+      "PERSONNEL_INACTIVE",
+      "ASSIGNMENT_INACTIVE",
+      "ACTUAL_WORK_STARTED",
+      "NO_ACTIVE_STAFFING",
+      "NO_FEASIBLE_OPTIMIZATION"
+    ],
+    "warning": [
+      "AVAILABILITY_MISMATCH",
+      "ROLE_MISMATCH",
+      "SECTOR_MISMATCH",
+      "CERTIFICATE_MISMATCH",
+      "DIPLOMA_MISMATCH",
+      "KNOWLEDGE_MISMATCH",
+      "REGION_MISMATCH",
+      "CAPACITY_NEAR_LIMIT",
+      "OUTSIDE_PREFERRED_WINDOW",
+      "TEAM_TIME_CHANGE",
+      "ROUTE_TRAVEL_TIGHT"
+    ],
+    "policyRule": "The shared server policy decides which domain mismatches are blocked or warning; the client consumes the returned typed severity and cannot remap it",
+    "presentationRule": "Every reason has localized visible text and an icon; color alone is insufficient"
+  },
+  "previewCommitSemantics": {
+    "clientPreview": "Indicative only, computed from the last immutable snapshot with the shared pure evaluator; it never proves permission or commit success.",
+    "serverEvaluation": "Authoritative and repeated from locked, tenant-scoped current rows immediately before commit.",
+    "writeBoundary": "All domain rows, immutable receipt, audit record, monotone planning revision and transactional outbox event commit in one database transaction; outbox dedupe uses the same tenantId+actorUserId+mutationId scope as the receipt key.",
+    "zeroWriteBoundary": "Blocked, forbidden, invalid, stale, changed-warning, expired-preview and undo-conflict outcomes create no receipt and no domain/audit/event/notification side effect.",
+    "ordering": "Affected assignment and staffing rows are locked in lexicographic UUID order to prevent lock-order deadlocks.",
+    "responseOrdering": "For committed and preview, the UI applies state only when top-level planningRevision is not lower than the current local revision and mutationId still owns the pending state. For warning-required, blocked and conflict it uses safeSnapshot.planningRevision under the same rule. Forbidden, invalid and failed contain no planning state and never replace local state. Equal revisions may replace only the same mutation's pending projection; every lower or no-longer-owned response is ignored."
+  },
+  "realtimeContract": {
+    "channel": "existing tenant-scoped management realtime channel",
+    "eventType": "planning_refresh",
+    "payload": {
+      "required": [
+        "tenantId",
+        "actorUserId",
+        "mutationId",
+        "revision",
+        "originClientId"
+      ],
+      "tenantId": "server-derived tenant uuid that must equal the authenticated subscription tenant",
+      "actorUserId": "server-derived auth user uuid used only as an event identity dimension",
+      "mutationId": "the committed command UUID",
+      "revision": "base-10 bigint string from the tenant revision counter after commit",
+      "originClientId": "the request UUID echoed for UI optimization only; it is untrusted for state correctness"
+    },
+    "eventIdentity": "Deduplicate by tenantId+revision. A bare mutationId is never a subscriber dedupe key because the durable receipt permits the same UUID for another actor.",
+    "ownEventRule": "An event may skip a redundant fetch only when tenantId, actorUserId, originClientId and mutationId match the locally committed command and local appliedRevision is already greater than or equal to event.revision. A higher revision is never discarded, even when client-supplied IDs match.",
+    "highWater": {
+      "state": "Maintain maxSeenRevision and appliedRevision per tenant; every accepted event raises maxSeenRevision with max(current,event.revision), including out-of-order and duplicate delivery.",
+      "coalescing": "At most one fetch is in flight, but coalescing always retains the maximum revision. After each fetch, repeat until snapshot.planningRevision >= maxSeenRevision.",
+      "defer": "During drag, wizard or pending mutation, keep raising maxSeenRevision, show Newer planning available, and do not replace interaction state. On cancel or settle, run one coalesced catch-up loop to the high-water mark.",
+      "reconnect": "On subscribe, reconnect, channel error or detected revision gap, read the authoritative tenant revision counter and run the same catch-up loop; expose degraded then stale state until appliedRevision reaches it."
+    },
+    "idleVisibilitySloMs": 2000,
+    "sloRule": "Outside an active interaction, a committed change is visible in a second planner within 2000 ms measured from the receipt linearization timestamp; outbox dispatch, channel delivery and catch-up retries share this hard budget.",
+    "producerRule": "Every domain producer listed in wireContract.dependencyClosure.dependencyConcurrency emits exactly one event in the same transaction as its revision increment; optimize-preview and all zero-write outcomes emit none.",
+    "tenantIsolation": "Reject before state handling when the payload tenant differs from the authenticated subscription tenant; never move a high-water mark, cache key or pending state across a tenant switch."
+  },
+  "interestSelectionContract": {
+    "action": "place",
+    "sourceDiscriminant": "payload.source.kind=interest",
+    "requiredSourceFields": ["interestResponseId"],
+    "versionEntry": "versions.interestResponses must contain exactly the selected current response and no unrelated response",
+    "lockOrder": [
+      "assignment",
+      "staffing",
+      "interest-response",
+      "capacity-dependencies"
+    ],
+    "preconditions": "The response is same-tenant, belongs to payload.assignmentId and payload.targetPersonnelId, has an allowed interested/selected state, and its lifecycleVersion/updatedAt match the request vector.",
+    "atomicTransition": "Set the response to confirmed, create/reactivate exactly one assigned staffing link, derive filled/required capacity with resolveRequiredSlots, schedule the assignment, increment one tenant revision and write one receipt, audit record and outbox event in one transaction.",
+    "idempotency": "Retry and restart use the enclosing tenant+actor+mutationId receipt; concurrent selection at capacity allows one winner and every loser returns VERSION_STALE or REQUIRED_SLOTS_EXCEEDED with zero writes.",
+    "undo": "The receipt includes the interest response in server-only before/after records and versions, so place undo restores its prior domain status with a fresh monotone lifecycle version together with assignment and staffing."
+  },
+  "receiptContract": {
+    "ddlAuthority": "04-PLANBORD.md section 11.1",
+    "schemaFile": "lib/db/src/schema/planning-mutations.ts",
+    "migrationFile": "lib/db/migrations/20260904120000_planning_mutation_receipts.sql",
+    "table": "public.planning_mutation_receipts",
+    "revisionCounter": {
+      "table": "public.planning_revision_counters",
+      "readFunction": "public.fieldgrid_get_planning_revision()",
+      "function": "public.fieldgrid_advance_planning_revision(uuid,bigint)",
+      "initial": "an absent tenant row means revision 0",
+      "commit": "every closed dependency producer and planning_refresh producer calls the compare-and-increment function inside its domain transaction; expected+1 is success and null is VERSION_STALE",
+      "preview": "read without increment",
+      "retentionRule": "the counter is not pruned with receipts, so tenant revision never resets"
+    },
+    "authorizationEpoch": {
+      "table": "public.planning_authorization_epochs",
+      "advanceFunction": "public.fieldgrid_advance_planning_authorization_epoch(uuid)",
+      "provisioning": "The migration backfills epoch 0 and an AFTER INSERT trigger on public.tenants creates epoch 0 in the tenant transaction; rollback leaves no orphan epoch.",
+      "mutationLock": "Call public.fieldgrid_lock_planning_authorization_epoch() after setting the transaction-local tenant/actor context; it SELECTs the scoped current_epoch FOR SHARE and holds that lock to transaction end",
+      "missingRow": "AUTHORIZATION_CHANGED with zero writes; tenant provisioning must create revision 0",
+      "producers": [
+        "tenant-membership",
+        "role-or-permission",
+        "planning-module",
+        "map-feature-or-provider-config",
+        "tenant-active-state",
+        "support-grant-create-revoke-or-scope-change"
+      ],
+      "producerRule": "Every producer sets transaction-local tenant context, advances the epoch before locking/writing its authorization row, and commits both changes in one transaction. A mutation stores the observed locked epoch and fails closed when its final canonical-source recheck differs."
+    },
+    "databaseBoundary": {
+      "connection": "Use the existing server-only DATABASE_URL/service transaction for canonical authorization, dependency row locks, domain writes, audit and outbox so every effect and receipt commits or rolls back in one PostgreSQL transaction; no second credential or connection participates.",
+      "entry": "After resolving tenant and actor from trusted server context, the transaction sets app.fieldgrid_tenant_id and app.fieldgrid_actor_user_id with set_config(...,true). Every mutation/read entrypoint derives its tenant/actor scope from those settings and rejects missing, malformed or mismatched context; producer-only epoch advance derives tenant scope from the tenant setting and maintenance-only prune has no tenant scope.",
+      "directPrivileges": "PUBLIC, anon, authenticated and service_role have no direct SELECT/INSERT/UPDATE/DELETE on planning_mutation_receipts, planning_revision_counters or planning_authorization_epochs; those tables have enabled RLS and no access policies. FORCE RLS is intentionally absent so the common migration owner of tables and definers can execute the only allowed path portably without a superuser/BYPASSRLS assumption. The service transaction continues to use its existing privileges for canonical auth/domain/dependency rows, audit and outbox only.",
+      "entrypoints": [
+        "public.fieldgrid_get_planning_revision()",
+        "public.fieldgrid_get_planning_receipt_by_mutation(uuid)",
+        "public.fieldgrid_get_planning_receipt_child(uuid,text)",
+        "public.fieldgrid_insert_planning_mutation_receipt(jsonb)",
+        "public.fieldgrid_lock_planning_authorization_epoch()",
+        "public.fieldgrid_advance_planning_revision(uuid,bigint)",
+        "public.fieldgrid_advance_planning_authorization_epoch(uuid)",
+        "public.fieldgrid_prune_planning_mutation_receipts(integer)"
+      ],
+      "privilegedFunctions": "These exact PUBLIC-revoked SECURITY DEFINER functions have search_path='' and fully qualified relations. Revision read, receipt lookup/child lookup/insert and authorization-epoch lock are tenant/actor-context-bound; revision advance rejects a tenant argument that differs from context; authorization producers alone call context-tenant-bound epoch advance and maintenance alone calls prune."
+    },
+    "key": ["tenant_id", "actor_user_id", "mutation_id"],
+    "fullPayloadRetention": "180 days from committed_at",
+    "undoWindow": "10 minutes from committed_at",
+    "previewWindow": "5 minutes from evaluated_at",
+    "requestAdmissionWindow": "24 hours old through 60 seconds in the future, after exact-replay lookup",
+    "receiptIdRule": "The server generates receiptId before INSERT and uses the same UUID in planning_mutation_receipts.id and saved_result.receiptId; the database column has no default.",
+    "outboxDedupeKey": "planning:<tenantId>:<actorUserId>:<mutationId>; never mutationId alone",
+    "access": "RLS is enabled with no access policies; FORCE RLS is intentionally absent because one fixed migration owner owns tables and definers. PUBLIC, anon, authenticated and service_role have no direct table DML. The existing server DATABASE_URL transaction sets trusted transaction-local tenant/actor context and uses only the enumerated PUBLIC-revoked SECURITY DEFINER entrypoints for receipt lookup/insert, authorization-epoch lock, revision/authorization-epoch advance and expired unreferenced pruning; all domain/auth locks and domain/audit/outbox writes remain in that same transaction.",
+    "authorizationContext": "The transaction locks a tenant authorization epoch and its membership or support-grant evidence before receipt lookup, rechecks it at the write linearization point and stores authorization_epoch plus an immutable authorization_context_hash. Support receipts additionally snapshot grant id, platform-user id, reason, startsAt and expiresAt; one composite foreign key binds grant to the same tenant/platform user and another binds that platform user to actor_user_id through platform_users.user_id.",
+    "immutability": "UPDATE is rejected by trigger for every role; undo is a new receipt and never mutates the original receipt",
+    "snapshotRule": "Server-only before_records/after_records use ReceiptRecordState and before/after version arrays use ReceiptVersionState; they retain complete mutation-and-restore data and never enter transport. Preview display_before_records/display_after_records and saved_result.beforeRecords/afterRecords use the separate permission-filtered PlanningDisplayRecordState. A row created by the target mutation has an exists=false tombstone with its server-reserved UUID in both applicable before sets, so undo can restore true absence without guessing. Undo restores domain values/existence only and assigns fresh monotone lifecycleVersion/updatedAt values; recorded historical lifecycle metadata is never written back.",
+    "undoVersionRule": {
+      "compare": "Every current record state must equal the target receipt after-version state, including existence.",
+      "restore": "Copy only restorable domain values/existence from before_records; never copy historical lifecycleVersion or updatedAt.",
+      "advance": "Every extant row written by undo receives lifecycleVersion=current+1 and one fresh database updatedAt; a row removed by undo is represented by an exists=false after-version tombstone.",
+      "receipt": "The undo receipt before versions equal the target current after versions and its after versions equal the freshly allocated post-undo versions/tombstones."
+    },
+    "retention": "A service-role-only pruning function deletes only rows whose retention_until has passed and that are not referenced by a retained preview-commit or undo receipt",
+    "transactionAlgorithm": [
+      "Resolve authenticated tenant and actor from trusted server context; open one transaction on the existing server-only DATABASE_URL connection, set tenant/actor context, lock the authorization epoch through fieldgrid_lock_planning_authorization_epoch(), lock the canonical tenant-membership or support-grant/platform-user evidence plus module/permission/map-gate rows with the existing server privileges, and revalidate before context-scoped receipt lookup.",
+      "Canonicalize the request and compute requestHash; acquire pg_advisory_xact_lock for tenant+actor+mutationId.",
+      "Select the receipt by tenant+actor+mutationId. Exact action/requestHash replay keeps saved_result unchanged and wraps it with current serverTime, replayed=true and freshly derived previewState/undoState; a mismatch returns MUTATION_ID_REUSED.",
+      "For a first submission, enforce requestedAt admission, lock every row in the closed dependency class order and compare the complete assignment/staffing/interest-response vector plus the tenant planning revision.",
+      "Evaluate. Zero-write outcomes roll back without receipt; optimize-preview stores only a preview receipt.",
+      "Immediately before the linearization write, recheck authorization epoch, membership/grant TTL with database time and any conditional map gate. A successful mutation then compare-and-increments the tenant revision and writes domain changes, fresh lifecycle versions, receipt, audit and outbox event in the same transaction; a changed authorization or null revision increment rolls everything back.",
+      "After commit, notifications consume the outbox event deduplicated by planning:<tenantId>:<actorUserId>:<mutationId>; retries never emit a second event and another tenant or actor cannot collide."
+    ]
+  },
+  "traceability": {
+    "globalRequirements": [
+      "FFC-SRC-003",
+      "FFC-ROUTE-001",
+      "FFC-ROUTE-007",
+      "FFC-PB-001",
+      "FFC-PB-002",
+      "FFC-PB-003",
+      "FFC-PB-004",
+      "FFC-PB-005",
+      "FFC-PB-006",
+      "FFC-PB-007",
+      "FFC-PB-008",
+      "FFC-PB-009",
+      "FFC-PB-010",
+      "FFC-PB-011",
+      "FFC-PB-012",
+      "FFC-PB-013",
+      "FFC-PB-014",
+      "FFC-PB-015",
+      "FFC-PB-016",
+      "FFC-PB-017",
+      "FFC-PB-018",
+      "FFC-PB-019",
+      "FFC-PB-020",
+      "FFC-PB-021",
+      "FFC-PB-022",
+      "FFC-PB-023",
+      "FFC-PB-024",
+      "FFC-PB-025",
+      "FFC-PB-026",
+      "FFC-PB-027",
+      "FFC-PB-028",
+      "FFC-PB-029",
+      "FFC-PB-030",
+      "FFC-RSP-001",
+      "FFC-RSP-002",
+      "FFC-RSP-008",
+      "FFC-RSP-009",
+      "FFC-RSP-010",
+      "FFC-A11Y-004",
+      "FFC-A11Y-007",
+      "FFC-SEC-001",
+      "FFC-SEC-002",
+      "FFC-SEC-003",
+      "FFC-SEC-008"
+    ],
+    "globalRisks": [
+      "R-003",
+      "R-022",
+      "R-023",
+      "R-024",
+      "R-025",
+      "R-026",
+      "R-027",
+      "R-028",
+      "R-029",
+      "R-030",
+      "R-031",
+      "R-032",
+      "R-033",
+      "R-037",
+      "R-049"
+    ]
+  }
+}

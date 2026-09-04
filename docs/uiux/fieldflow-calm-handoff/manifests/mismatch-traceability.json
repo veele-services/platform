@@ -1,0 +1,1772 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm known-mismatch traceability",
+  "source": "production-inventory.json actions where knownMismatch is a string",
+  "semantics": "Every known production UI/server availability mismatch has one exact remediation record. No record grants permission to remove, rename or hide the action; resolution preserves behavior while aligning server enforcement.",
+  "recordCount": 97,
+  "records": [
+    {
+      "actionId": "global.command-create-assignment",
+      "routeId": "global",
+      "observedMismatch": "De quicklink gebruikt de effectief modulegefilterde assignments:write-permissie, maar controleert niet assignments:read dat de doelroute vereist.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/components/layout/DashboardHeader.tsx",
+        "artifacts/backoffice/src/components/navigation/GlobalCommandPalette.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "global.open-settings",
+      "routeId": "global",
+      "observedMismatch": "DashboardHeader toont Instellingen zonder settings:read UI-gate; de doelroute vereist settings:read.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/components/layout/DashboardHeader.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.assign-personnel",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De detailpagina toont plannen alleen met assignments:write én planning:write; assignPersonnel autoriseert assignments:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/AssignmentDetailActions.tsx",
+        "artifacts/backoffice/src/components/assignments/SmartCandidateActions.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.direct-approve",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De UI vereist assignments:write én quotes:read; de Server Action autoriseert alleen assignments:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.document-delete",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De bijlagentab en het paneel vereisen documents:read en tonen mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/AssignmentDocumentsPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.interest-mark-candidate",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "SmartCandidateActions rendert binnen de sectie met assignments:write én planning:write; markInterestCandidate autoriseert planning:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/SmartCandidateActions.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.interest-remind",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "InterestRoundHistory ontvangt canWrite alleen bij assignments:write én planning:write; de Server Action autoriseert planning:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/InterestRoundHistory.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.interest-start",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De planningsectie rendert bij assignments:write én planning:write; sendAssignmentInterestPoll autoriseert planning:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/InterestPollButton.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.invoice-create",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De detailpagina laadt invoiceBundle alleen met invoices:read en toont het aanmaakformulier alleen met invoices:write; createInvoice vereist alleen invoices:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/invoices.ts",
+        "artifacts/backoffice/src/components/invoices/CreateInvoiceForm.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.quote-create",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De detailpagina laadt quoteBundle alleen met quotes:read en toont het aanmaakformulier alleen met quotes:write; createQuote vereist alleen quotes:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/quotes.ts",
+        "artifacts/backoffice/src/components/quotes/CreateQuoteForm.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.recalculate-capacity",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De detailpagina rendert de bediening alleen met assignments:write en planning:write; de Server Action autoriseert planning:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/InterestPollButton.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.remove-personnel",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De detailpagina toont ontkoppelen alleen met assignments:write én planning:write; removePersonnel autoriseert assignments:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/AssignmentDetailActions.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.report-submit",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "AssignmentDetailPage toont het formulier op reports:submit en controleert assignments:write of gekoppeld personeel niet vooraf; submitReport weigert de forged call wanneer de actor noch assignments:write heeft, noch als assigned personeelslid aan deze opdracht is gekoppeld.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/reports.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-assignments-id.upload-document",
+      "routeId": "tenant-assignments-id",
+      "observedMismatch": "De bijlagentab en het paneel vereisen documents:read en tonen mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/AssignmentDocumentsPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.document-delete",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "De documententab wordt alleen gerenderd met documents:read en toont mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/customers/tabs/CustomerDocumentsTabContent.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.document-upload",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "De documententab wordt alleen gerenderd met documents:read en toont mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/customers/tabs/CustomerDocumentsTabContent.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.dossier-note",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "addDossierNoteAction controleert naast de statusafhankelijke dossierpermissie ook dynamisch customers:read; bij een correctie kan bovendien de permissie van de bronclassificatie vereist zijn. De detailroute garandeert customers:read, maar de actieknopgate bevat alleen de dossierpermissies.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.dossier-reviewed",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "markDossierReviewedAction vereist naast dossiers:manage dynamisch customers:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.dossier-task-complete",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "completeDossierTaskAction vereist naast dossiers:manage dynamisch customers:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.dossier-task-create",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "createDossierTaskAction vereist naast dossiers:manage dynamisch customers:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.object-create",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "CustomerObjectsTab toont Nieuw object bij customers:write en objects:read zonder objects:write; de geopende submitflow vereist server-side objects:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/components/customers/CustomerDetailObjectCreate.tsx",
+        "artifacts/backoffice/src/components/customers/tabs/CustomerObjectsTab.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.object-create-submit",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "CustomerObjectsTab toont de create-submitflow bij customers:write en objects:read; createObject en syncObjectRegions vereisen objects:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/objects.ts",
+        "artifacts/backoffice/src/app/actions/regions.ts",
+        "artifacts/backoffice/src/components/customers/CustomerDetailObjectCreate.tsx",
+        "artifacts/backoffice/src/components/customers/tabs/CustomerObjectsTab.tsx",
+        "artifacts/backoffice/src/components/objects/ObjectForm.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-customers-id.portal-invite",
+      "routeId": "tenant-customers-id",
+      "observedMismatch": "De UI vereist customer_portal; de Server Action autoriseert op customers:write en basismodule customers.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/customers.ts",
+        "artifacts/backoffice/src/components/customers/CustomerDetailActions.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.complete-step",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "FirstRunPage rendert deze mutatiecontrol zonder settings:write UI-gate; de Server Action vereist settings:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx",
+        "artifacts/backoffice/src/app/actions/tenant-first-run.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.finish",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "FirstRunPage rendert deze mutatiecontrol zonder settings:write UI-gate; de Server Action vereist settings:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx",
+        "artifacts/backoffice/src/app/actions/tenant-first-run.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.open-assignments",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "De productie-link controleert assignments:read of de assignments-module niet; de doelroute vereist beide.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.open-customers",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "De productie-link controleert customers:read of de customers-module niet; de doelroute vereist beide.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.open-objects",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "De productie-link controleert objects:read of de objects-module niet; de doelroute vereist beide.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.open-platform",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "De productie-link controleert geen platformbeheerdercontext; een tenantgebruiker kan naar een niet-toegankelijke platformroute navigeren.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.open-users",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "De productie-link controleert users:read niet; de doelroute vereist users:read.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.save",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "FirstRunPage rendert deze mutatiecontrol zonder settings:write UI-gate; de Server Action vereist settings:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx",
+        "artifacts/backoffice/src/app/actions/tenant-first-run.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-first-run.skip",
+      "routeId": "tenant-first-run",
+      "observedMismatch": "FirstRunPage rendert deze mutatiecontrol zonder settings:write UI-gate; de Server Action vereist settings:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx",
+        "artifacts/backoffice/src/app/actions/tenant-first-run.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-help-beheer-feedback.back",
+      "routeId": "tenant-help-beheer-feedback",
+      "observedMismatch": "TenantKnowledgebaseFeedbackPage rendert zonder page gate; getTenantKnowledgebaseInsightsDashboard retourneert bij uitgeschakelde authoring of ontbrekende kb:manage slechts nulwaarden, terwijl de teruglink zichtbaar blijft.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/help/beheer/feedback/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-help-beheer.search",
+      "routeId": "tenant-help-beheer",
+      "observedMismatch": "TenantKnowledgebaseManagementPage rendert het zoekformulier ook wanneer tenantauthoring uitstaat of kb:manage/de knowledgebase-module ontbreekt; getTenantKnowledgebaseDashboard levert dan alleen een lege dataset en redenmelding.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/help/beheer/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-help.search",
+      "routeId": "tenant-help",
+      "observedMismatch": "TenantHelpPage rendert de zoekbediening zonder kb:view- of knowledgebase-modulecheck; getTenantKnowledgebaseHelpIndex en het suggestie-endpoint leveren zonder die context alleen lege resultaten.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": ["artifacts/backoffice/src/app/(dashboard)/help/page.tsx"],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-help.ticket",
+      "routeId": "tenant-help",
+      "observedMismatch": "De lege-staatlink wordt ook zonder kb:view of knowledgebase-module zichtbaar en controleert tickets:read niet; de doelroute /tickets vereist tickets:read en kan Forbidden tonen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": ["artifacts/backoffice/src/app/(dashboard)/help/page.tsx"],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-branding.upload-splash",
+      "routeId": "tenant-instellingen-branding",
+      "observedMismatch": "BrandThemeForm toont en activeert de splashupload op settings:write plus customBrandingAllowed zonder de databaseschema-capability te kennen; uploadTenantThemeAsset weigert server-side wanneer themeSplashColumnsAvailable(\"tenant_theme_settings\") false is.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/branding/page.tsx",
+        "artifacts/backoffice/src/app/actions/theme-settings.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-kwalificaties.link-personnel",
+      "routeId": "tenant-instellingen-kwalificaties",
+      "observedMismatch": "QualificationsView gebruikt alleen canWrite=settings:write voor deze control; de Server Action vereist personnel:write en de module personnel.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/kwalificaties/page.tsx",
+        "artifacts/backoffice/src/app/actions/qualifications.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-kwalificaties.link-task-code",
+      "routeId": "tenant-instellingen-kwalificaties",
+      "observedMismatch": "QualificationsView gebruikt alleen canWrite=settings:write voor deze control; de Server Action vereist task_codes:write en de module assignments.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/kwalificaties/page.tsx",
+        "artifacts/backoffice/src/app/actions/qualifications.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-kwalificaties.unlink-personnel",
+      "routeId": "tenant-instellingen-kwalificaties",
+      "observedMismatch": "QualificationsView gebruikt alleen canWrite=settings:write voor deze control; de Server Action vereist personnel:write en de module personnel.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/kwalificaties/page.tsx",
+        "artifacts/backoffice/src/app/actions/qualifications.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-kwalificaties.unlink-task-code",
+      "routeId": "tenant-instellingen-kwalificaties",
+      "observedMismatch": "QualificationsView gebruikt alleen canWrite=settings:write voor deze control; de Server Action vereist task_codes:write en de module assignments.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/kwalificaties/page.tsx",
+        "artifacts/backoffice/src/app/actions/qualifications.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-rollen.delete",
+      "routeId": "tenant-instellingen-rollen",
+      "observedMismatch": "Bestaande productie gebruikt roles:write voor UI en Server Action; Fieldflow Calm requirement R-003 moet de gewenste granulaire delete-authorisatie expliciet besluiten en afdwingen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/rollen/page.tsx",
+        "artifacts/backoffice/src/app/actions/settings.ts",
+        "artifacts/backoffice/src/components/settings/RollenView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-instellingen-rollen.reset-system",
+      "routeId": "tenant-instellingen-rollen",
+      "observedMismatch": "RollenView vereist roles:write én een canResetSystemRoles-capability die uit roles:delete komt; de Server Action vereist alleen roles:delete.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/instellingen/rollen/page.tsx",
+        "artifacts/backoffice/src/app/actions/settings.ts",
+        "artifacts/backoffice/src/components/settings/RollenView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory-id.archive",
+      "routeId": "tenant-inventory-id",
+      "observedMismatch": "De detail-UI toont archiveren aan update-only; de Server Action vereist archive of manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/inventory.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory-id.document",
+      "routeId": "tenant-inventory-id",
+      "observedMismatch": "De inventorydetailpagina vereist documents:read/write plus inventory:update of inventory:manage; de document-Server Action autoriseert alleen documents:write en valideert de gekoppelde inventorypermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory-id.document-control-delete",
+      "routeId": "tenant-inventory-id",
+      "observedMismatch": "De inventorydetailpagina vereist documents:read/write plus inventory:update of inventory:manage; de document-Server Action autoriseert alleen documents:write en valideert de gekoppelde inventorypermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory-issues-id.document-delete",
+      "routeId": "tenant-inventory-issues-id",
+      "observedMismatch": "Het issuebewijs-paneel vereist documents:read/write plus een issuebeheerpermission; de document-Server Action autoriseert alleen documents:write en valideert de gekoppelde issuepermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/issues/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory-issues-id.evidence",
+      "routeId": "tenant-inventory-issues-id",
+      "observedMismatch": "Het issuebewijs-paneel vereist documents:read/write plus een issuebeheerpermission; de document-Server Action autoriseert alleen documents:write en valideert de gekoppelde issuepermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/issues/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory.archive",
+      "routeId": "tenant-inventory",
+      "observedMismatch": "Eén canWrite-gate toont archiveren ook aan create/update-only; de Server Action vereist archive of manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/page.tsx",
+        "artifacts/backoffice/src/app/actions/inventory.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-inventory.create-submit",
+      "routeId": "tenant-inventory",
+      "observedMismatch": "Eén canWrite-gate toont het createformulier ook aan update-only; de Server Action vereist create of manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/inventory/page.tsx",
+        "artifacts/backoffice/src/app/actions/inventory.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-invoices-id.email",
+      "routeId": "tenant-invoices-id",
+      "observedMismatch": "emailInvoice vereist eerst invoices:write en roept daarna getInvoice aan, dat ook invoices:read vereist. InvoiceDetailPage garandeert read via de route, maar de actieknopgate noemt alleen write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/invoices/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/invoices.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-invoices-id.payment-link",
+      "routeId": "tenant-invoices-id",
+      "observedMismatch": "InvoiceActions toont de betaallinkactie voor een sent, onbetaalde factuur met invoices:write, ook wanneer Mollie niet actief is; createMolliePayment weigert dan server-side via requireMolliePaymentsEnabled.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/invoices/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/payments.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-invoices.payment-link",
+      "routeId": "tenant-invoices",
+      "observedMismatch": "InvoicesView toont de betaallinkactie voor iedere sent factuur met invoices:write, ook wanneer Mollie niet actief is; createMolliePayment weigert dan server-side via requireMolliePaymentsEnabled.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/invoices/page.tsx",
+        "artifacts/backoffice/src/app/actions/payments.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials-id.archive",
+      "routeId": "tenant-materials-id",
+      "observedMismatch": "De detail-UI toont archiveren onder update; de Server Action vereist archive of manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials-id.attach-document",
+      "routeId": "tenant-materials-id",
+      "observedMismatch": "De materiaalpagina vereist materials:update plus documents:read/write om de bediening te tonen; uploadDocument/deleteDocument autoriseert alleen documents:write en valideert de gekoppelde materiaal-updatepermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials-id.document-delete",
+      "routeId": "tenant-materials-id",
+      "observedMismatch": "De materiaalpagina vereist materials:update plus documents:read/write om de bediening te tonen; uploadDocument/deleteDocument autoriseert alleen documents:write en valideert de gekoppelde materiaal-updatepermission niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/DocumentAttachmentPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials-id.edit-submit",
+      "routeId": "tenant-materials-id",
+      "observedMismatch": "De detail-UI vereist materials:update; de Server Action accepteert ook materials:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials.adjust",
+      "routeId": "tenant-materials",
+      "observedMismatch": "Eén UI-sheet is zichtbaar met adjust_stock óf transfer_stock; een transfer-only gebruiker kan de correctieoptie zien maar niet uitvoeren.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials.archive",
+      "routeId": "tenant-materials",
+      "observedMismatch": "De lijst toont archiveren onder canWrite=materials:create; de Server Action vereist archive of manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials.create-submit",
+      "routeId": "tenant-materials",
+      "observedMismatch": "De createknop wordt alleen met materials:create gerenderd; de Server Action accepteert ook materials:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-materials.transfer",
+      "routeId": "tenant-materials",
+      "observedMismatch": "Eén UI-sheet is zichtbaar met adjust_stock óf transfer_stock; een adjust-only gebruiker kan overboeken zien maar niet uitvoeren.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-004"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/materials/page.tsx",
+        "artifacts/backoffice/src/app/actions/materials.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-news.save",
+      "routeId": "tenant-news",
+      "observedMismatch": "De Opslaan-knop rendert op news:write, maar saveNewsPost autoriseert statusafhankelijk: draft=write, scheduled/published=send en archived=delete. Een writer zonder news:send ziet Opslaan bij een reeds scheduled of published bericht, waarna de Server Action weigert.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/news/page.tsx",
+        "artifacts/backoffice/src/app/actions/news.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-objects-id.dossier-note",
+      "routeId": "tenant-objects-id",
+      "observedMismatch": "addDossierNoteAction controleert naast de statusafhankelijke dossierpermissie ook dynamisch objects:read; bij een correctie kan bovendien de permissie van de bronclassificatie vereist zijn. De detailroute garandeert objects:read, maar de actieknopgate bevat alleen de dossierpermissies.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-objects-id.dossier-reviewed",
+      "routeId": "tenant-objects-id",
+      "observedMismatch": "markDossierReviewedAction vereist naast dossiers:manage dynamisch objects:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-objects-id.dossier-task-complete",
+      "routeId": "tenant-objects-id",
+      "observedMismatch": "completeDossierTaskAction vereist naast dossiers:manage dynamisch objects:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-objects-id.dossier-task-create",
+      "routeId": "tenant-objects-id",
+      "observedMismatch": "createDossierTaskAction vereist naast dossiers:manage dynamisch objects:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-objects-id.security-lock",
+      "routeId": "tenant-objects-id",
+      "observedMismatch": "lockObjectSecurityAction valideert sessie, tenant, object en unlock-handle maar roept geen requireObjectSecurityPermission en geen featureflag-assert aan; dit is een bestaande serverautorisatielacune.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/object-security.ts",
+        "artifacts/backoffice/src/components/objects/tabs/ObjectSecurityTab.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.activate",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De samengestelde UI-actie activeert altijd met personnel:write en kan daarna conditioneel invitePersonnel uitvoeren; die tweede Server Action vereist bij een bestaande userId tevens personnel:read. De detailroute garandeert personnel:read, maar deze voorwaarde staat niet in de actieknopgate zelf.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/personnel.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.document-delete",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "Het documentenpaneel wordt alleen gerenderd met documents:read en toont mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/EntityDocumentsPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.document-upload",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "Het documentenpaneel wordt alleen gerenderd met documents:read en toont mutatiecontrols bij documents:write; de document-Server Action autoriseert alleen documents:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-048"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/documents.ts",
+        "artifacts/backoffice/src/components/documents/EntityDocumentsPanel.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.dossier-note",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "addDossierNoteAction controleert naast de statusafhankelijke dossierpermissie ook dynamisch personnel:read; bij een correctie kan bovendien de permissie van de bronclassificatie vereist zijn. De detailroute garandeert personnel:read, maar de actieknopgate bevat alleen de dossierpermissies.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.dossier-reviewed",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "markDossierReviewedAction vereist naast dossiers:manage dynamisch personnel:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.dossier-task-complete",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "completeDossierTaskAction vereist naast dossiers:manage dynamisch personnel:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.dossier-task-create",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "createDossierTaskAction vereist naast dossiers:manage dynamisch personnel:read; de detailroute garandeert dit, maar de actieknopgate zelf benoemt alleen dossiers:manage.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/dossier360.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.portal-block",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De UI vereist personnel_portal; de Server Action autoriseert via personnel:write en basismodule personnel.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/personnel.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.portal-email",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De UI vereist personnel_portal; de Server Action autoriseert via personnel:write en dus basismodule personnel.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/personnel.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.portal-invite",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De UI vereist personnel_portal; de Server Action controleert die module niet. invitePersonnel vereist personnel:write en vereist bij een bestaande userId conditioneel ook personnel:read via getPersonnelAuthStatus; de detailroute garandeert read, maar de actieknopgate benoemt dit niet.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/personnel.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.portal-reset",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De UI vereist personnel_portal; de Server Action autoriseert via personnel:write en basismodule personnel.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/auth.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-id.portal-reset-revoke",
+      "routeId": "tenant-personnel-id",
+      "observedMismatch": "De UI vereist personnel_portal; de Server Action gebruikt het personeelsbeheerpad.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/auth.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-verlof.approve",
+      "routeId": "tenant-personnel-verlof",
+      "observedMismatch": "VerlofInboxView toont de knop zonder personnel:write UI-gate; de Server Action vereist personnel:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/verlof/page.tsx",
+        "artifacts/backoffice/src/app/actions/availability.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-personnel-verlof.reject",
+      "routeId": "tenant-personnel-verlof",
+      "observedMismatch": "VerlofInboxView toont de knop zonder personnel:write UI-gate; de Server Action vereist personnel:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/personnel/verlof/page.tsx",
+        "artifacts/backoffice/src/app/actions/availability.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.apply-route-time",
+      "routeId": "tenant-planning",
+      "observedMismatch": "De bediening is UI-bereikbaar onder planning_day_map_enabled, maar applyRouteTimeSuggestion controleert de featureflag niet opnieuw. De action delegeert naar de legacy reshiftAssignment-engine: conflicten worden waarschuwingen in plaats van dezelfde planbordregel, een client-observed version ontbreekt, en status-, snap-, undo- en concurrencygedrag delen geen canonieke engine met scheduleAssignmentOnBoard.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/components/assignments/PlanningMapView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.calculate-route",
+      "routeId": "tenant-planning",
+      "observedMismatch": "De bediening is UI-bereikbaar onder planning_day_map_enabled; calculatePlanningMapRoute autoriseert planning:read maar controleert de featureflag niet opnieuw.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/planning.ts",
+        "artifacts/backoffice/src/components/assignments/PlanningMapView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.create-assignment-day",
+      "routeId": "tenant-planning",
+      "observedMismatch": "PlanningDayView opent deze flow met planning:write; de submit gebruikt createAssignment en syncAssignmentRequiredRegions, die assignments:write en de assignments-module vereisen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/components/assignments/PlanningDayView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.create-assignment-submit",
+      "routeId": "tenant-planning",
+      "observedMismatch": "PlanningDayView toont het formulier bij planning:write; createAssignment en syncAssignmentRequiredRegions vereisen assignments:write.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/app/actions/regions.ts",
+        "artifacts/backoffice/src/components/assignments/AssignmentForm.tsx",
+        "artifacts/backoffice/src/components/assignments/PlanningDayView.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.reshift",
+      "routeId": "tenant-planning",
+      "observedMismatch": "Deze legacy mutation accepteert conflicten en onbeschikbaarheid als waarschuwing, stuurt geen client-observed version mee en deelt geen canonieke snap-, conflict-, status-, optimistic- of undo-engine met scheduleAssignmentOnBoard.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/assignments.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.schedule",
+      "routeId": "tenant-planning",
+      "observedMismatch": "Bronafwijkingen blokkeren Fieldflow-pariteit: client en Server Action snappen hardcoded op 5 minuten terwijl de geladen tenantinstelling niet de drop bepaalt (R-022); expectedUpdatedAt wordt niet met de clientsnapshot vergeleken (R-025); na de primaire transactie kan verborgen rebalance andere opdrachten verschuiven of personeel ontkoppelen (R-023); requiredSlots gebruikt hier Math.max(requiredRoleIds.length, 1) in plaats van resolveRequiredSlots (R-031); de UI vergrendelt seen/en_route/in_progress maar de Server Action accepteert die statussen wel (R-027).",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/planning.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-planning.undo",
+      "routeId": "tenant-planning",
+      "observedMismatch": "Dit is geen algemene inverse: create, cascade, route- en notificatie-effecten worden niet teruggedraaid en expectedUpdatedAt/stale-validatie ontbreekt.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-024", "R-025"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+        "artifacts/backoffice/src/app/actions/planning.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-profile.settings",
+      "routeId": "tenant-profile",
+      "observedMismatch": "ProfilePage controleert settings:read niet; de doelroute /settings vereist settings:read en kan Forbidden tonen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-006"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/profile/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-reports-id.approve",
+      "routeId": "tenant-reports-id",
+      "observedMismatch": "approveReportAfterMaterialReview leest tenantgescopeerde materiaal- en inventarisstatus en kan een data-afhankelijke fout teruggeven voordat approveReport de reports:write-permissie en reporting-module afdwingt; alleen de uiteindelijke mutatie is via approveReport beschermd.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/reports/[id]/page.tsx",
+        "artifacts/backoffice/src/app/actions/report-material-approval.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-roadmap-itemId.comment",
+      "routeId": "tenant-roadmap-itemId",
+      "observedMismatch": "TenantRoadmapDetailPage is via getTenantRoadmapItem al afhankelijk van roadmap:view en de roadmap-module, maar rendert deze mutatie zonder roadmap:comment UI-gate; addTenantRoadmapComment vereist server-side zowel roadmap:comment als roadmap:view.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/roadmap/[itemId]/page.tsx",
+        "artifacts/backoffice/src/app/actions/roadmap.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-roadmap-itemId.vote",
+      "routeId": "tenant-roadmap-itemId",
+      "observedMismatch": "TenantRoadmapDetailPage is via getTenantRoadmapItem al afhankelijk van roadmap:view en de roadmap-module, maar rendert deze mutatie zonder roadmap:vote UI-gate; toggleTenantRoadmapVote vereist server-side zowel roadmap:vote als roadmap:view.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/roadmap/[itemId]/page.tsx",
+        "artifacts/backoffice/src/app/actions/roadmap.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-roadmap-new.submit",
+      "routeId": "tenant-roadmap-new",
+      "observedMismatch": "NewRoadmapRequestPage rendert het formulier zonder permission- of modulecheck; submitTenantRoadmapRequest vereist roadmap:submit_request en getTenantRoadmapContext vereist daarnaast roadmap:view plus de roadmap-module. Bij een ontbrekende context keert de Server Action stil terug.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/roadmap/new/page.tsx",
+        "artifacts/backoffice/src/app/actions/roadmap.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-roadmap.create",
+      "routeId": "tenant-roadmap",
+      "observedMismatch": "TenantRoadmapPage en /roadmap/new renderen hun shell respectievelijk formulier zonder permission- of modulecheck; alleen de uiteindelijke submit vereist server-side roadmap:submit_request, roadmap:view en de roadmap-module.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/roadmap/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-roadmap.vote",
+      "routeId": "tenant-roadmap",
+      "observedMismatch": "RoadmapCard ontstaat via de roadmap:view- en roadmap-modulegefilterde dataset, maar rendert het stemformulier zonder roadmap:vote UI-gate; toggleTenantRoadmapVote vereist server-side zowel roadmap:vote als roadmap:view en de roadmap-module.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/roadmap/page.tsx",
+        "artifacts/backoffice/src/app/actions/roadmap.ts"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-tickets-kind-id.assignment",
+      "routeId": "tenant-tickets-kind-id",
+      "observedMismatch": "De ticketpagina toont de werkbonlink onder tickets:read zonder assignments:read te controleren; de doelroute kan daarom Forbidden tonen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/tickets/[kind]/[id]/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    },
+    {
+      "actionId": "tenant-website.manage-pages",
+      "routeId": "tenant-website",
+      "observedMismatch": "De productie-link controleert website_pages:read niet; de doelroute vereist website_pages:read en kan na navigatie Forbidden tonen.",
+      "requirementIds": ["FFC-ROUTE-001", "FFC-SEC-001"],
+      "riskIds": ["R-003", "R-005"],
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/website/page.tsx"
+      ],
+      "requiredResolution": "Maak availability, gerenderde/actieve UI-gates en server-side autorisatie atomair gelijk; behoud de bestaande domeinuitkomst en leg elk bewust breder read-only pad afzonderlijk vast.",
+      "requiredEvidence": [
+        "source-gate-diff",
+        "allowed-role-browser",
+        "denied-role-browser",
+        "forged-direct-call-integration"
+      ]
+    }
+  ]
+}

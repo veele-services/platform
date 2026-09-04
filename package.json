@@ -141,6 +141,7 @@
     "fieldgrid:dashboard-ui-audit:check": "node scripts/fieldgrid-dashboard-ui-audit.mjs --check",
     "fieldgrid:dashboard-ui-audit:strict": "node scripts/fieldgrid-dashboard-ui-audit.mjs --strict-evidence",
     "fieldgrid:backoffice-redesign:screenshots": "node scripts/fieldgrid-backoffice-redesign-screenshots.mjs",
+    "fieldgrid:fieldflow-calm-handoff:check": "node docs/uiux/fieldflow-calm-handoff/reference/theme-derivation.mjs --check && node --test docs/uiux/fieldflow-calm-handoff/reference/theme-derivation.test.mjs && node scripts/fieldgrid-fieldflow-calm-handoff.mjs --check && node --test tests/fieldgrid-fieldflow-calm-handoff.test.mjs && node --test tests/fieldgrid-fieldflow-calm-contract-root.test.mjs",
     "fieldgrid:uiux-traceability:write": "node scripts/fieldgrid-uiux-traceability.mjs --write",
     "fieldgrid:uiux-master-gate": "node scripts/fieldgrid-uiux-master-gate.mjs",
     "fieldgrid:uiux-master-gate:check": "node scripts/fieldgrid-uiux-master-gate.mjs --check",

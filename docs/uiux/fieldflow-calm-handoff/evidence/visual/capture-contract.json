@@ -1,0 +1,1274 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm normalized visual capture contract",
+  "state": "CONTRACTED",
+  "stateModel": ["CONTRACTED", "BASELINE_READY"],
+  "source": {
+    "prototypeCommit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
+    "variant": "fieldflow",
+    "entryUrl": "/",
+    "component": "app/fieldgrid-design-lab.tsx",
+    "stylesheet": "app/globals.css"
+  },
+  "environment": {
+    "playwrightVersion": "1.55.1",
+    "browser": {
+      "name": "chromium",
+      "playwrightRevision": "1193",
+      "version": "140.0.7339.186"
+    },
+    "runtimeImageDigest": {
+      "value": null,
+      "format": "sha256:<64 lowercase hex characters>",
+      "requiredAtState": "BASELINE_READY"
+    },
+    "deviceScaleFactor": 1,
+    "colorScheme": "light",
+    "locale": "nl-NL",
+    "timezone": "Europe/Amsterdam",
+    "reducedMotion": "reduce",
+    "animations": "disabled",
+    "fonts": {
+      "readinessPromise": "document.fonts.ready",
+      "externalRuntimeRequestsAllowed": false,
+      "resolvedFiles": null,
+      "resolvedFileSchema": {
+        "family": "non-empty string",
+        "file": "repository-relative or runtime-image path",
+        "sha256": "64 lowercase hex characters"
+      },
+      "requiredAtState": "BASELINE_READY"
+    },
+    "clock": {
+      "iso8601": "2026-09-02T09:42:00+02:00",
+      "timezone": "Europe/Amsterdam"
+    },
+    "network": {
+      "unexpectedThirdPartyRequests": "blocked",
+      "mapTileMasking": "allowed-only-in-explicit-map-scenarios"
+    }
+  },
+  "normalization": {
+    "hideSelectors": [".lab-bar", ".concept-caption"],
+    "removeControlsByAccessibleName": ["Herstel demo"],
+    "applicationSelector": ".fg-app",
+    "applicationStyle": {
+      "height": "100vh",
+      "width": "100vw"
+    },
+    "canonicalThemeStylesheet": {
+      "file": "canonical-theme.css",
+      "sha256": "0888d74c18068753d8ecced2caf2af3b8e97b97d615bed1eb27f2af2e5f8c2d4",
+      "fixtureId": "default",
+      "expectedSemanticOutputSha256": "5ef0276d8b38db6a1d7e47404f8b37562ad06e410d54f345f0819c43a6493b84",
+      "expectedResolutionSha256": "9254176dabd3bdbcca404f3927cd69339713c40ed2e31de4e2476ee5f6dab729",
+      "appliedAfterPrototypeStyles": true,
+      "appliedBeforeReferenceStylesheet": true,
+      "selectorScope": "body[data-concept=\"fieldflow\"]",
+      "productionMayLoadStylesheet": false,
+      "computedVariableSentinels": {
+        "--ff-primary": "#07554e",
+        "--ff-text-muted": "#5d716e",
+        "--ff-sidebar-active-bg": "#d9f6e8",
+        "--primary": "#07554e",
+        "--foreground": "#123532",
+        "--muted": "#eef2f0",
+        "--line": "#dce7e3",
+        "--input": "#7a918c"
+      },
+      "rule": "This capture-only bridge applies the exact hashed default semantic output to both --ff-* and the immutable prototype variable names. Production implements the semantic output directly and never loads the bridge."
+    },
+    "referenceStylesheet": {
+      "file": "reference-normalization.css",
+      "sha256": "1c2b732877b821616826dcb5a2720a5a0e318cdcbfc30912c0d6db3e6a7feb9d",
+      "appliedAfterPrototypeStyles": true,
+      "appliedAfterCanonicalTheme": true,
+      "selectorScope": "body[data-concept=\"fieldflow\"]",
+      "approvedDeltaTypes": [
+        "wcag-color-pair-correction",
+        "minimum-interactive-target-44px",
+        "minimum-legible-component-type"
+      ],
+      "rule": "This is the only approved raw-prototype geometry/color delta. Its bytes and hash are immutable for one baseline generation; any change requires two independent reviews and full baseline regeneration."
+    },
+    "portalScopeVerification": {
+      "portalRoot": "body[data-concept=\"fieldflow\"]",
+      "requiredOpenComponents": ["Dialog", "Sheet"],
+      "computedVariables": [
+        "--ff-primary",
+        "--ff-sidebar-active-bg",
+        "--muted-text",
+        "--input"
+      ],
+      "minimumInteractiveTargetPx": 44,
+      "rule": "W00 records computed styles and target rectangles inside body-level Radix portals; inheriting only from .fg-app is a failing baseline."
+    },
+    "referencePolicy": {
+      "schemaVersion": 1,
+      "scenarioPartitionRule": "The two scenarioId arrays are disjoint, their union equals all 18 scenario ids exactly once and every scenario viewport equals the bound viewportId.",
+      "authorityOrder": {
+        "functionalDataPermissionsAndActions": "manifests/production-inventory.json and manifests/routes.json",
+        "responsiveStructureAndInteraction": "05-RESPONSIVE-EN-TOEGANKELIJKHEID.md and manifests/component-states.json",
+        "visualLanguage": "the pinned Fieldflow prototype plus manifests/fieldflow-tokens.json",
+        "rule": "A lower authority never overrides a higher authority. The prototype defines visual language, but never overrides the contracted mobile structure or production functionality."
+      },
+      "desktopCanonicalPixel": {
+        "mode": "desktop-canonical-pixel",
+        "viewportId": "desktop",
+        "scenarioCount": 9,
+        "scenarioIds": [
+          "dashboard-desktop-clean",
+          "planboard-desktop-clean",
+          "planboard-desktop-post-placement",
+          "customer-list-desktop-clean",
+          "customer-dossier-desktop-clean",
+          "form-desktop-clean",
+          "wizard-desktop-step-one",
+          "filter-sheet-desktop-open",
+          "settings-desktop-clean"
+        ],
+        "rawPrototypeRole": "capture source and human audit anchor",
+        "normalizedPrototypeOutputRole": "strict production pixel baseline",
+        "productionValidation": [
+          "pixel-diff",
+          "baseline-geometry-delta",
+          "computed-style",
+          "accessibility",
+          "interaction"
+        ]
+      },
+      "mobileResponsiveContract": {
+        "mode": "mobile-responsive-contract",
+        "viewportId": "mobile",
+        "scenarioCount": 9,
+        "scenarioIds": [
+          "dashboard-mobile-clean",
+          "planboard-mobile-agenda-clean",
+          "planboard-mobile-timeline-post-placement",
+          "customer-list-mobile-clean",
+          "customer-dossier-mobile-clean",
+          "form-mobile-clean",
+          "wizard-mobile-step-one",
+          "filter-sheet-mobile-open",
+          "settings-mobile-clean"
+        ],
+        "rawPrototypeRole": "composition and visual-language reference only",
+        "normalizedPrototypeOutputRole": "human review artifact only; never a production pixel baseline",
+        "productionPixelComparisonAgainstPrototypeAllowed": false,
+        "productionValidation": [
+          "responsive-contract",
+          "semantic-region-geometry",
+          "computed-style",
+          "axe",
+          "keyboard-interaction",
+          "touch-interaction",
+          "runtime-errors"
+        ],
+        "promotionToPixelBaseline": {
+          "allowed": true,
+          "preconditions": [
+            "a new mobile prototype source implements every declared responsive transform",
+            "the new source commit and archive hash are pinned",
+            "all nine mobile scenarios are recaptured",
+            "product-design and visual-a11y independently approve the new capture binding",
+            "the contract root is rotated through the protected review workflow"
+          ]
+        }
+      }
+    },
+    "pixelGate": {
+      "referenceMode": "desktop-canonical-pixel",
+      "eligibleViewportIds": ["desktop"],
+      "eligibleScenarioIds": [
+        "dashboard-desktop-clean",
+        "planboard-desktop-clean",
+        "planboard-desktop-post-placement",
+        "customer-list-desktop-clean",
+        "customer-dossier-desktop-clean",
+        "form-desktop-clean",
+        "wizard-desktop-step-one",
+        "filter-sheet-desktop-open",
+        "settings-desktop-clean"
+      ],
+      "reference": "normalized desktop outputs only",
+      "rawAnchorsEligible": false,
+      "implementationMayRepeatNormalization": false,
+      "screenshotComparison": {
+        "engine": "Playwright toHaveScreenshot",
+        "threshold": 0.1,
+        "maxDiffPixelRatio": 0.001,
+        "maxDiffPixelsByViewport": { "desktop": 1440 },
+        "antiAliasPolicy": "Pinned runtime image, Chromium revision, deviceScaleFactor and font hashes are mandatory; anti-alias or operating-system variance is not an unbounded exception."
+      },
+      "geometryComparison": {
+        "maximumAbsoluteDeltaPx": 1,
+        "requiredSelectorsByFormFactor": {
+          "desktop": [
+            ".fg-app",
+            ".primary-sidebar",
+            ".app-utility-bar",
+            ".workspace-scroll",
+            ".workspace-heading"
+          ]
+        },
+        "requiredSelectorsByPattern": {
+          "dashboard": [".metric-grid", ".surface-panel"],
+          "list": [".data-panel"],
+          "dossier": [".dossier-hero", ".dossier-tabs"],
+          "planboard": [
+            ".planning-workspace",
+            ".planboard-panel",
+            ".board-grid"
+          ],
+          "settings": [".settings-workspace", ".settings-index"],
+          "form": [".settings-form", ".form-section"],
+          "wizard": [".wizard-dialog", ".wizard-body"],
+          "sheet": [".prototype-sheet"]
+        }
+      },
+      "maskPolicy": {
+        "default": "none",
+        "allowedOnlyFor": ["explicit-map-tile-layer"],
+        "scenarioMaskAllowlist": []
+      },
+      "rule": "Only the nine desktop scenarios at 1440x1000 compare production directly with the normalized prototype baseline. The normalization stylesheet is injected only into the pinned prototype capture, never into production screenshots."
+    },
+    "responsiveContractGate": {
+      "referenceMode": "mobile-responsive-contract",
+      "eligibleViewportIds": ["mobile"],
+      "eligibleScenarioIds": [
+        "dashboard-mobile-clean",
+        "planboard-mobile-agenda-clean",
+        "planboard-mobile-timeline-post-placement",
+        "customer-list-mobile-clean",
+        "customer-dossier-mobile-clean",
+        "form-mobile-clean",
+        "wizard-mobile-step-one",
+        "filter-sheet-mobile-open",
+        "settings-mobile-clean"
+      ],
+      "prototypePixelComparisonAllowed": false,
+      "requiredProductionArtifacts": [
+        "screenshot-for-human-review",
+        "dom-snapshot",
+        "semantic-region-geometry",
+        "computed-styles",
+        "axe-report",
+        "keyboard-interaction-trace",
+        "touch-interaction-trace",
+        "runtime-error-log"
+      ],
+      "geometryAssertions": {
+        "documentHorizontalOverflowTolerancePx": 1,
+        "minimumInteractiveTargetPx": 44,
+        "minimumAdjacentInteractiveTargetGapPx": 8,
+        "minimumAdjacentContainerGapPx": 16,
+        "minimumTextToBorderPaddingPx": 12,
+        "requiredShellRegions": [
+          "[data-ff-region=application]",
+          "[data-ff-region=mobile-header]",
+          "[data-ff-region=workspace]",
+          "[data-ff-region=page-heading]"
+        ],
+        "rule": "Every required region has exactly one visible rectangle, stays inside the visual viewport and is measured against the responsive contract rather than against prototype coordinates."
+      },
+      "transformsByPattern": {
+        "dashboard": {
+          "requiredRegions": [
+            "[data-ff-pattern=dashboard]",
+            "[data-ff-region=metric-grid]",
+            "[data-ff-region=dashboard-content]"
+          ],
+          "assertions": [
+            "metric grid is one column from 320 through 560 and two columns from 561 through 860",
+            "content remains one page column without document overflow"
+          ]
+        },
+        "list": {
+          "requiredRegions": [
+            "[data-ff-pattern=list]",
+            "[data-ff-region=stacked-toolbar]",
+            "[data-ff-region=record-cards]",
+            "[data-ff-region=filter-sheet-trigger]"
+          ],
+          "assertions": [
+            "toolbar row one contains the full-width search field",
+            "toolbar row two contains result count, one 44px filter trigger and one 44px More actions trigger",
+            "toolbar controls never use a horizontal scroller",
+            "desktop rows are absent and record cards retain complete data, selection and action parity"
+          ]
+        },
+        "dossier": {
+          "requiredRegions": [
+            "[data-ff-pattern=dossier]",
+            "[data-ff-region=dossier-hero]",
+            "[data-ff-region=dossier-section-select]",
+            "[data-ff-region=dossier-action-sheet-trigger]"
+          ],
+          "assertions": [
+            "exactly one labelled section Select is rendered and the desktop tablist is absent",
+            "exactly one 44px action trigger is rendered and inline desktop hero actions plus action rail are absent",
+            "the action trigger opens one safe-area bottom Sheet with full authorized action parity"
+          ]
+        },
+        "planboard": {
+          "requiredRegions": [
+            "[data-ff-pattern=planboard]",
+            "[data-ff-region=planboard-queue]",
+            "[data-ff-region=planboard-agenda]",
+            "[data-ff-region=planboard-view-toggle]",
+            "[data-ff-region=planboard-non-drag-trigger]"
+          ],
+          "assertions": [
+            "queue cards precede the agenda in DOM and visual order",
+            "Agenda is the first-render view",
+            "Plan or Verplaats opens the full-screen non-drag wizard",
+            "the timeline appears only after the explicit Timeline toggle and is never required for touch placement"
+          ]
+        },
+        "settings": {
+          "requiredRegions": [
+            "[data-ff-pattern=settings]",
+            "[data-ff-region=settings-section-select]",
+            "[data-ff-region=settings-active-section]"
+          ],
+          "assertions": [
+            "one labelled Radix Select precedes the active section",
+            "the desktop settings index is not rendered",
+            "the active form section uses one column"
+          ]
+        },
+        "form": {
+          "requiredRegions": [
+            "[data-ff-pattern=form]",
+            "[data-ff-region=form-fields]",
+            "[data-ff-region=form-actions]"
+          ],
+          "assertions": [
+            "all fields use one content column",
+            "sticky actions remain above the visual viewport keyboard boundary and safe area"
+          ]
+        },
+        "wizard": {
+          "requiredRegions": [
+            "[data-ff-pattern=wizard]",
+            "[data-ff-region=wizard-body]",
+            "[data-ff-region=wizard-footer]"
+          ],
+          "assertions": [
+            "wizard is one safe-area bottom Sheet within 16px side margins and max 100dvh",
+            "body is one column and footer never obscures the active field or error"
+          ]
+        },
+        "sheet": {
+          "requiredRegions": [
+            "[data-ff-pattern=sheet]",
+            "[data-ff-region=sheet-body]",
+            "[data-ff-region=sheet-footer]"
+          ],
+          "assertions": [
+            "sheet stays within 16px side margins and max 100dvh",
+            "one internal vertical scroller keeps the final action reachable above safe area"
+          ]
+        }
+      },
+      "accessibilityAssertions": [
+        "axe has zero critical or serious violations",
+        "every Sheet and Select has an accessible name and deterministic initial focus",
+        "Escape closes only the top overlay and focus returns to the exact opener",
+        "all functions are reachable by keyboard and by touch without drag",
+        "local scrollers are focusable, named, keyboard-scrollable and do not clip focus rings"
+      ],
+      "rule": "Mobile prototype images preserve composition intent only. Production passes through semantic DOM, geometry, accessibility and interaction assertions for the exact contracted transforms; a screenshot pixel diff against the raw or normalized prototype is forbidden."
+    },
+    "beforeEach": [
+      "create a new isolated BrowserContext with empty cookies, localStorage, sessionStorage and service-worker state",
+      "install the fixed clock before navigation and open the pinned local prototype build at entryUrl",
+      "assert body[data-concept=\"fieldflow\"] and the Fieldflow Calm design label; never use a nonexistent global reset helper",
+      "start every scenario from this fresh reload, so dialogs, sheets, menus, toasts and React demo state are empty",
+      "inject the exact hashed canonical-theme stylesheet after all prototype styles and assert every computed variable sentinel",
+      "inject the exact hashed reference stylesheet after canonical-theme.css",
+      "execute the exact typed scenario setup and assert all declared DOM sentinels",
+      "set workspace and local scrollers to the declared positions",
+      "wait for fonts and two animation frames"
+    ],
+    "forbidden": [
+      "hiding production navigation, headers, controls, labels, forms, cards or content",
+      "masking spacing or geometry differences outside the hashed accessibility normalization stylesheet",
+      "editing fixture text to make a diff pass",
+      "using a raw audit anchor directly as a pixel baseline",
+      "using a raw or normalized mobile prototype image as a production pixel baseline",
+      "using capture-only CSS to imitate a structural mobile transform instead of rendering its Sheet, Select, stacked toolbar or non-drag planboard DOM"
+    ]
+  },
+  "viewports": {
+    "desktop": {
+      "width": 1440,
+      "height": 1000
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "proofSemantics": {
+    "activeInteractionClaims": [
+      "active-pointer-drag",
+      "active-touch-placement",
+      "active-keyboard-placement"
+    ],
+    "settledPostPlacementClaims": [
+      "post-placement-end-state",
+      "undo-availability"
+    ],
+    "rule": "A scenario may prove only its explicit proofClaims. A settled post-placement frame occurs after release or confirmation and therefore cannot prove active pointer drag, active touch placement or active keyboard positioning, regardless of the setup input used."
+  },
+  "setupDriver": {
+    "schemaVersion": 2,
+    "engine": "Playwright locator API",
+    "freshContextPerScenario": true,
+    "operationSchema": {
+      "allowedOps": [
+        "assert",
+        "navigate",
+        "click",
+        "focus",
+        "press",
+        "waitFor"
+      ],
+      "allowedLocatorKinds": [
+        "role",
+        "css",
+        "text",
+        "aria-label",
+        "toast-description"
+      ],
+      "navigationFormFactors": ["current", "mobile"]
+    },
+    "profiles": {
+      "dashboard-clean": {
+        "steps": [
+          {
+            "op": "assert",
+            "locator": {
+              "by": "css",
+              "value": "body[data-concept=\"fieldflow\"]"
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 1,
+            "name": "Goedemorgen, Danny",
+            "exact": true
+          },
+          { "by": "css", "value": ".metric-grid" },
+          { "by": "css", "value": ".surface-panel" }
+        ]
+      },
+      "planning-clean": {
+        "steps": [
+          { "op": "navigate", "label": "Planning", "formFactor": "current" }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 1,
+            "name": "Planbord",
+            "exact": true
+          },
+          {
+            "by": "aria-label",
+            "value": "Dagplanning per medewerker",
+            "exact": true
+          },
+          { "by": "text", "value": "FG-2062", "exact": true }
+        ]
+      },
+      "planning-place-fg2062": {
+        "steps": [
+          { "op": "navigate", "label": "Planning", "formFactor": "current" },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "Plan",
+              "exact": true,
+              "within": {
+                "by": "text",
+                "value": "FG-2062",
+                "exact": true,
+                "ancestor": "article"
+              }
+            }
+          },
+          {
+            "op": "focus",
+            "locator": {
+              "by": "role",
+              "role": "gridcell",
+              "name": "Plan Avondsluiting bij Rayan Akachar",
+              "exact": true
+            }
+          },
+          { "op": "press", "key": "Enter", "times": 1 },
+          {
+            "op": "waitFor",
+            "locator": {
+              "by": "toast-description",
+              "value": "08:00–10:30 · gecontroleerd op overlap",
+              "exact": true
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          { "by": "text", "value": "FG-2062", "exact": true },
+          { "by": "text", "value": "Avondsluiting", "exact": true },
+          { "by": "text", "value": "Ongedaan maken", "exact": true },
+          {
+            "by": "toast-description",
+            "value": "08:00–10:30 · gecontroleerd op overlap",
+            "exact": true
+          }
+        ]
+      },
+      "planning-mobile-agenda": {
+        "steps": [
+          { "op": "navigate", "label": "Planning", "formFactor": "mobile" },
+          {
+            "op": "assert",
+            "condition": "absent",
+            "locator": {
+              "by": "aria-label",
+              "value": "Dagplanning per medewerker",
+              "exact": true
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 1,
+            "name": "Planbord",
+            "exact": true
+          },
+          { "by": "text", "value": "opdrachten in werkvoorraad" },
+          { "by": "role", "role": "button", "name": "Open bord", "exact": true }
+        ]
+      },
+      "planning-mobile-timeline-place-fg2062": {
+        "steps": [
+          { "op": "navigate", "label": "Planning", "formFactor": "mobile" },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "Open bord",
+              "exact": true
+            }
+          },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "Plan",
+              "exact": true,
+              "within": {
+                "by": "text",
+                "value": "FG-2062",
+                "exact": true,
+                "ancestor": ".mobile-work-card"
+              }
+            }
+          },
+          {
+            "op": "focus",
+            "locator": {
+              "by": "role",
+              "role": "gridcell",
+              "name": "Plan Avondsluiting bij Rayan Akachar",
+              "exact": true
+            }
+          },
+          { "op": "press", "key": "Enter", "times": 1 },
+          {
+            "op": "waitFor",
+            "locator": {
+              "by": "toast-description",
+              "value": "08:00–10:30 · gecontroleerd op overlap",
+              "exact": true
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "aria-label",
+            "value": "Dagplanning per medewerker",
+            "exact": true
+          },
+          { "by": "text", "value": "FG-2062", "exact": true },
+          { "by": "text", "value": "Ongedaan maken", "exact": true },
+          {
+            "by": "toast-description",
+            "value": "08:00–10:30 · gecontroleerd op overlap",
+            "exact": true
+          }
+        ]
+      },
+      "customers-clean": {
+        "steps": [
+          { "op": "navigate", "label": "Klanten", "formFactor": "current" }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 1,
+            "name": "Klanten",
+            "exact": true
+          },
+          { "by": "text", "value": "Hofstaete Vastgoed", "exact": true },
+          { "by": "css", "value": ".data-panel" }
+        ]
+      },
+      "customer-dossier-clean": {
+        "steps": [
+          { "op": "navigate", "label": "Klanten", "formFactor": "current" },
+          {
+            "op": "click",
+            "locator": {
+              "by": "css",
+              "value": ".identity-cell",
+              "hasText": "Hofstaete Vastgoed",
+              "exact": true
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          { "by": "text", "value": "Terug naar klanten", "exact": true },
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 2,
+            "name": "Hofstaete Vastgoed",
+            "exact": true
+          },
+          { "by": "css", "value": ".dossier-hero" },
+          { "by": "css", "value": ".dossier-tabs" }
+        ]
+      },
+      "settings-organization-clean": {
+        "steps": [
+          {
+            "op": "navigate",
+            "label": "Instellingen",
+            "formFactor": "current"
+          },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "^Organisatie",
+              "match": "regex"
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 1,
+            "name": "Organisatiebeheer",
+            "exact": true
+          },
+          {
+            "by": "role",
+            "role": "heading",
+            "level": 4,
+            "name": "Basisinstellingen",
+            "exact": true
+          },
+          { "by": "css", "value": ".settings-form" }
+        ]
+      },
+      "assignment-wizard-step-one": {
+        "steps": [
+          { "op": "navigate", "label": "Opdrachten", "formFactor": "current" },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "Nieuwe opdracht",
+              "exact": true,
+              "within": { "by": "css", "value": ".workspace-heading" }
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          { "by": "role", "role": "dialog" },
+          {
+            "by": "role",
+            "role": "heading",
+            "name": "Nieuwe opdracht",
+            "exact": true
+          },
+          { "by": "text", "value": "Stap 1 van 5", "exact": true },
+          { "by": "css", "value": ".wizard-body" }
+        ]
+      },
+      "customer-filter-sheet": {
+        "steps": [
+          { "op": "navigate", "label": "Klanten", "formFactor": "current" },
+          {
+            "op": "click",
+            "locator": {
+              "by": "role",
+              "role": "button",
+              "name": "Filters",
+              "match": "contains",
+              "within": { "by": "css", "value": ".data-panel" }
+            }
+          }
+        ],
+        "expectedDomSentinels": [
+          { "by": "role", "role": "dialog" },
+          { "by": "role", "role": "heading", "name": "Filters", "exact": true },
+          { "by": "text", "value": "2 filters toepassen", "exact": true },
+          { "by": "css", "value": ".prototype-sheet" }
+        ]
+      }
+    },
+    "rule": "W00 executes only these typed opcodes and locator objects in order. Free-text steps, helper strings, unknown opcodes, implicit locators and guessed fallbacks fail validation."
+  },
+  "scenarios": [
+    {
+      "id": "dashboard-desktop-clean",
+      "pattern": "dashboard",
+      "viewport": "desktop",
+      "prototypeView": "dashboard",
+      "state": "initial-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "01-dashboard-desktop-1440.png",
+      "output": "normalized/dashboard-desktop-1440.png",
+      "setupProfile": "dashboard-clean"
+    },
+    {
+      "id": "dashboard-mobile-clean",
+      "pattern": "dashboard",
+      "viewport": "mobile",
+      "prototypeView": "dashboard",
+      "state": "initial-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "02-dashboard-mobile-390.png",
+      "output": "normalized/dashboard-mobile-390.png",
+      "setupProfile": "dashboard-clean"
+    },
+    {
+      "id": "planboard-desktop-clean",
+      "pattern": "planboard",
+      "viewport": "desktop",
+      "prototypeView": "planning",
+      "state": "initial-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "boardScroll": {
+        "left": 0
+      },
+      "rawAnchor": "03-planboard-desktop-1440.png",
+      "output": "normalized/planboard-desktop-1440.png",
+      "setupProfile": "planning-clean"
+    },
+    {
+      "id": "planboard-desktop-post-placement",
+      "pattern": "planboard",
+      "viewport": "desktop",
+      "prototypeView": "planning",
+      "state": "post-valid-placement-with-undo",
+      "interaction": "Perform one canonical queue-to-board placement, wait for the success state and keep Undo visible.",
+      "proofClaims": ["post-placement-end-state", "undo-availability"],
+      "excludedProofClaims": [
+        "active-pointer-drag",
+        "active-touch-placement",
+        "active-keyboard-placement"
+      ],
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "boardScroll": {
+        "left": 0
+      },
+      "rawAnchor": "03-planboard-desktop-1440.png",
+      "output": "normalized/planboard-desktop-post-placement-1440.png",
+      "setupProfile": "planning-place-fg2062"
+    },
+    {
+      "id": "planboard-mobile-agenda-clean",
+      "pattern": "planboard",
+      "viewport": "mobile",
+      "prototypeView": "planning",
+      "state": "default-agenda-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/planboard-mobile-agenda-390.png",
+      "setupProfile": "planning-mobile-agenda"
+    },
+    {
+      "id": "planboard-mobile-timeline-post-placement",
+      "pattern": "planboard",
+      "viewport": "mobile",
+      "prototypeView": "planning",
+      "state": "explicit-timeline-post-valid-placement-with-undo",
+      "interaction": "Activate the explicit Timeline toggle and complete the non-drag canonical placement flow; keep Undo visible.",
+      "proofClaims": ["post-placement-end-state", "undo-availability"],
+      "excludedProofClaims": [
+        "active-pointer-drag",
+        "active-touch-placement",
+        "active-keyboard-placement",
+        "complete-mobile-non-drag-flow"
+      ],
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "04-planboard-mobile-390.png",
+      "output": "normalized/planboard-mobile-timeline-post-placement-390.png",
+      "setupProfile": "planning-mobile-timeline-place-fg2062"
+    },
+    {
+      "id": "customer-list-desktop-clean",
+      "pattern": "list",
+      "viewport": "desktop",
+      "prototypeView": "customers",
+      "state": "initial-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "05-list-desktop-1440.png",
+      "output": "normalized/customer-list-desktop-1440.png",
+      "setupProfile": "customers-clean"
+    },
+    {
+      "id": "customer-list-mobile-clean",
+      "pattern": "list",
+      "viewport": "mobile",
+      "prototypeView": "customers",
+      "state": "initial-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "06-list-mobile-390.png",
+      "output": "normalized/customer-list-mobile-390.png",
+      "setupProfile": "customers-clean"
+    },
+    {
+      "id": "customer-dossier-desktop-clean",
+      "pattern": "dossier",
+      "viewport": "desktop",
+      "prototypeView": "customers",
+      "state": "customer-dossier-overview-clean",
+      "interaction": "Open the Hofstaete Vastgoed customer dossier and select Overzicht.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "07-dossier-desktop-1440.png",
+      "output": "normalized/customer-dossier-desktop-1440.png",
+      "setupProfile": "customer-dossier-clean"
+    },
+    {
+      "id": "customer-dossier-mobile-clean",
+      "pattern": "dossier",
+      "viewport": "mobile",
+      "prototypeView": "customers",
+      "state": "customer-dossier-overview-clean",
+      "interaction": "Open the Hofstaete Vastgoed customer dossier, select Overzicht and clear all prior toasts.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "08-dossier-mobile-390.png",
+      "output": "normalized/customer-dossier-mobile-390.png",
+      "setupProfile": "customer-dossier-clean"
+    },
+    {
+      "id": "form-desktop-clean",
+      "pattern": "form",
+      "viewport": "desktop",
+      "prototypeView": "settings",
+      "state": "organization-form-clean",
+      "interaction": "Open Instellingen, select Organisatie and position the first complete form section at the top of the application workspace.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "09-settings-desktop-1440.png",
+      "output": "normalized/form-desktop-1440.png",
+      "setupProfile": "settings-organization-clean"
+    },
+    {
+      "id": "form-mobile-clean",
+      "pattern": "form",
+      "viewport": "mobile",
+      "prototypeView": "settings",
+      "state": "organization-form-clean",
+      "interaction": "Open Instellingen, select Organisatie and position the first complete form section at the top of the application workspace.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/form-mobile-390.png",
+      "setupProfile": "settings-organization-clean"
+    },
+    {
+      "id": "wizard-desktop-step-one",
+      "pattern": "wizard",
+      "viewport": "desktop",
+      "prototypeView": "assignments",
+      "state": "entity-wizard-step-one-open",
+      "interaction": "Use the primary new-assignment action to open EntityWizard and keep step one untouched.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/wizard-desktop-step-one-1440.png",
+      "setupProfile": "assignment-wizard-step-one"
+    },
+    {
+      "id": "wizard-mobile-step-one",
+      "pattern": "wizard",
+      "viewport": "mobile",
+      "prototypeView": "assignments",
+      "state": "entity-wizard-step-one-open",
+      "interaction": "Use the primary new-assignment action to open EntityWizard and keep step one untouched.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/wizard-mobile-step-one-390.png",
+      "setupProfile": "assignment-wizard-step-one"
+    },
+    {
+      "id": "filter-sheet-desktop-open",
+      "pattern": "sheet",
+      "viewport": "desktop",
+      "prototypeView": "customers",
+      "state": "filter-sheet-open",
+      "interaction": "Open Filters and leave the filter Sheet in its initial state.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/filter-sheet-desktop-1440.png",
+      "setupProfile": "customer-filter-sheet"
+    },
+    {
+      "id": "filter-sheet-mobile-open",
+      "pattern": "sheet",
+      "viewport": "mobile",
+      "prototypeView": "customers",
+      "state": "filter-sheet-open",
+      "interaction": "Open Filters and leave the filter Sheet in its initial state.",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/filter-sheet-mobile-390.png",
+      "setupProfile": "customer-filter-sheet"
+    },
+    {
+      "id": "settings-desktop-clean",
+      "pattern": "settings",
+      "viewport": "desktop",
+      "prototypeView": "settings",
+      "state": "organization-section-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": "09-settings-desktop-1440.png",
+      "output": "normalized/settings-desktop-1440.png",
+      "setupProfile": "settings-organization-clean"
+    },
+    {
+      "id": "settings-mobile-clean",
+      "pattern": "settings",
+      "viewport": "mobile",
+      "prototypeView": "settings",
+      "state": "organization-section-clean",
+      "workspaceScroll": {
+        "top": 0,
+        "left": 0
+      },
+      "rawAnchor": null,
+      "output": "normalized/settings-mobile-390.png",
+      "setupProfile": "settings-organization-clean"
+    }
+  ],
+  "evidenceContract": {
+    "schemaVersion": 2,
+    "requiredAtState": "BASELINE_READY",
+    "artifactPathBase": "evidence/visual",
+    "contractRoot": {
+      "algorithm": "sha256",
+      "serialization": "JSON.stringify of schemaVersion, name, stateModel, source, immutable environment with runtimeImageDigest.value and fonts.resolvedFiles reset to null, normalization, viewports, proofSemantics, setupDriver, scenarios and evidenceContract with scenarioEvidence reset to null",
+      "rule": "Every scenario artifact, capture binding and reviewer attestation carries this root; changing any executable capture instruction invalidates all prior evidence."
+    },
+    "perScenarioFields": {
+      "png": "path, width, height and sha256; strict pixel baseline only for desktop-canonical-pixel, human composition reference only for mobile-responsive-contract",
+      "domSnapshot": "path and sha256 of a typed scenario-bound JSON artifact",
+      "computedGeometry": "path and sha256 of a typed scenario-bound JSON artifact",
+      "computedStyles": "path and sha256 of a typed scenario-bound JSON artifact, including open portal variables and resolved fonts",
+      "setupActionLog": "path and sha256 of a typed scenario-bound JSON artifact",
+      "runtimeErrorLog": "path and sha256 of a typed scenario-bound JSON artifact with every error array empty",
+      "authorId": "non-empty capture author identity",
+      "reviewers": "exactly one product-design and one visual-a11y reviewer, both independent, unique and not the author, with GitHub approval provenance and a capture-bound attestation",
+      "prototypeCommit": "exact pinned 40-character prototype commit",
+      "provenance": "GitHub Actions run bound to repository, capture workflow, contract head and pull request",
+      "captureBinding": "sha256 binding of scenario, contract root, runtime, driver, provenance and all six desktop artifact hashes or all nine mobile artifact hashes"
+    },
+    "perScenarioPathTemplates": {
+      "png": "{scenario.output}",
+      "domSnapshot": "normalized/{scenarioId}.dom.json",
+      "computedGeometry": "normalized/{scenarioId}.geometry.json",
+      "computedStyles": "normalized/{scenarioId}.styles.json",
+      "setupActionLog": "normalized/{scenarioId}.setup.json",
+      "runtimeErrorLog": "normalized/{scenarioId}.errors.json"
+    },
+    "globalFields": {
+      "runtimeImageDigest": "sha256 OCI digest",
+      "browser": "Playwright version, Chromium revision and browser version",
+      "fontFiles": "resolved family, file and sha256 for every used font"
+    },
+    "mobileProductionEvidence": {
+      "requiredForReferenceMode": "mobile-responsive-contract",
+      "prototypeCaptureBindingIsSufficient": false,
+      "recordsSource": "The nine scenarioEvidence members whose viewport is mobile; a second detached evidence list is forbidden.",
+      "requiredFields": [
+        "scenarioId",
+        "referenceMode",
+        "headCommit",
+        "viewport",
+        "transformPattern",
+        "responsiveContractSha256",
+        "prototypeCommit",
+        "authorId",
+        "provenance",
+        "png",
+        "domSnapshot",
+        "computedGeometry",
+        "computedStyles",
+        "setupActionLog",
+        "runtimeErrorLog",
+        "axeReport",
+        "keyboardInteractionTrace",
+        "touchInteractionTrace",
+        "captureBinding",
+        "reviewers",
+        "assertions",
+        "status"
+      ],
+      "requiredConstants": {
+        "referenceMode": "mobile-responsive-contract",
+        "status": "passed"
+      },
+      "artifactPathTemplates": {
+        "png": "production/{scenarioId}.png",
+        "domSnapshot": "production/{scenarioId}.dom.json",
+        "computedGeometry": "production/{scenarioId}.geometry.json",
+        "computedStyles": "production/{scenarioId}.styles.json",
+        "setupActionLog": "production/{scenarioId}.setup.json",
+        "runtimeErrorLog": "production/{scenarioId}.errors.json",
+        "axeReport": "production/{scenarioId}.axe.json",
+        "keyboardInteractionTrace": "production/{scenarioId}.keyboard.json",
+        "touchInteractionTrace": "production/{scenarioId}.touch.json"
+      },
+      "beforeEach": [
+        "create a new isolated BrowserContext with no retained tenant, overlay, focus, storage, cache or service-worker state",
+        "install the fixed Europe/Amsterdam clock and authenticate the deterministic Fieldflow evidence tenant before navigation",
+        "open the production candidate at the scenario route and assert one semantic application region; never open the prototype build",
+        "assert that canonical-theme.css and reference-normalization.css are not loaded in production",
+        "execute every scenario production assertion in declared order and require every semantic region sentinel exactly once",
+        "wait for document.fonts.ready, two animation frames and zero pending network requests"
+      ],
+      "setupActionsByScenario": {
+        "dashboard-mobile-clean": [
+          "navigate to the tenant dashboard at /",
+          "assert the mobile header, page heading and one-column dashboard content"
+        ],
+        "planboard-mobile-agenda-clean": [
+          "navigate to /planning",
+          "assert queue cards precede the Agenda view and Timeline is closed"
+        ],
+        "planboard-mobile-timeline-post-placement": [
+          "navigate to /planning and activate the explicit Timeline toggle",
+          "select FG-2062, place it by keyboard for Rayan Akachar and confirm",
+          "assert the 08:00–10:30 saved block and reachable Undo action"
+        ],
+        "customer-list-mobile-clean": [
+          "navigate to /customers",
+          "assert stacked search/actions and prioritized customer cards"
+        ],
+        "customer-dossier-mobile-clean": [
+          "navigate to /customers/customer-fixture-id",
+          "assert one labelled section Select and one More actions Sheet trigger"
+        ],
+        "form-mobile-clean": [
+          "navigate to /settings/organization",
+          "assert one-column fields and a safe-area-aware form action region"
+        ],
+        "wizard-mobile-step-one": [
+          "navigate to /assignments and activate Nieuwe opdracht",
+          "assert the first wizard step in one safe-area bottom Sheet"
+        ],
+        "filter-sheet-mobile-open": [
+          "navigate to /customers and activate Filters",
+          "assert the labelled filter Sheet, internal body and reachable footer"
+        ],
+        "settings-mobile-clean": [
+          "navigate to /settings/organization",
+          "assert one settings section Select and one-column active section"
+        ]
+      },
+      "semanticSentinelSource": "normalization.responsiveContractGate.geometryAssertions.requiredShellRegions followed by transformsByPattern[scenario.pattern].requiredRegions with first-occurrence deduplication",
+      "artifactPayloads": {
+        "setupActionLog": "production-setup-action-log with the exact mobile beforeEach sequence, exact scenario assertions and semantic sentinels all passed",
+        "computedGeometry": "semantic-region-geometry with every required pattern/shell region, no document overflow, >=44px targets, >=8px adjacent controls, >=16px adjacent containers, >=12px text-to-border padding and every transform assertion passed",
+        "domSnapshot": "production-dom-snapshot with exactly one semantic application region, every required transform region, no prototype/lab selectors and no desktop-only duplicate UI",
+        "computedStyles": "production-computed-styles with resolved font hashes, non-empty semantic root variables, portal checks and zero capture-only stylesheets",
+        "axeReport": "axe-report with zero critical and serious violations",
+        "keyboardInteractionTrace": "interaction-trace for keyboard with deterministic initial focus, successful operation, Escape/Cancel return focus and announcements",
+        "touchInteractionTrace": "interaction-trace for touch proving all functions without drag, successful operation, Cancel return target and announcements"
+      },
+      "assertionBinding": "Every assertion is keyed by scenarioId, transform pattern and the exact selector or interaction claim from normalization.responsiveContractGate.",
+      "rule": "All nine mobile scenarios require the complete typed production payload inside scenarioEvidence. Listing a viewport, attaching the prototype capture or passing desktop pixel comparison never satisfies a mobile transform assertion."
+    },
+    "requiredReviewerRoles": ["product-design", "visual-a11y"],
+    "provenanceSchema": {
+      "provider": "github-actions",
+      "repository": "veele-services/platform",
+      "workflowPath": ".github/workflows/fieldflow-calm-visual-baseline.yml",
+      "workflowBlobSha256": "64 lowercase hex characters, identical on PR base and head",
+      "jobName": "normalized-baseline",
+      "jobId": "positive integer",
+      "eventName": "pull_request",
+      "runId": "positive integer",
+      "runAttempt": "positive integer",
+      "headCommit": "40 lowercase hex characters",
+      "baseCommit": "different 40 lowercase hex ancestor",
+      "pullRequestNumber": "positive integer",
+      "attestationProvider": "github-artifact-attestations"
+    },
+    "reviewerSchema": {
+      "roles": ["product-design", "visual-a11y"],
+      "independent": true,
+      "selfReview": false,
+      "approvalProvider": "github-pull-request-review",
+      "approvalState": "APPROVED",
+      "approvalRepository": "veele-services/platform",
+      "approvalApiUrlTemplate": "https://api.github.com/repos/veele-services/platform/pulls/{pullRequestNumber}/reviews/{reviewId}",
+      "attestationAlgorithm": "sha256(JSON.stringify({scenarioId,prototypeCommit,captureContractRootSha256,runtimeImageDigest,captureBindingSha256,reviewerId,role,repository,pullRequestNumber,reviewId,reviewedHeadCommit,state,submittedAt}))",
+      "reviewBodyMarker": "FIELDFLOW-BASELINE: scenario=<scenarioId>; binding=<captureBinding.sha256>; role=<role>",
+      "rule": "The validator resolves every review, PR, Actions run and job live through the GitHub API, verifies the trusted workflow blob on base and head, and verifies the PNG GitHub Artifact Attestation. Inline names, self-review, duplicate reviewers, non-APPROVED states, another head, another PR or an unbound digest fail closed."
+    },
+    "artifactSchemas": {
+      "commonBinding": {
+        "schemaVersion": 1,
+        "required": [
+          "scenarioId",
+          "prototypeCommit",
+          "captureContractRootSha256",
+          "runtimeImageDigest",
+          "driver",
+          "viewport"
+        ],
+        "driver": "exact setup engine, Playwright version, Chromium name/revision/version",
+        "viewport": "exact scenario viewport id, width, height and deviceScaleFactor"
+      },
+      "setupActionLog": {
+        "artifactType": "setup-action-log",
+        "rule": "Exact profile steps, beforeEach instructions and expected DOM sentinels occur once in declared order; every result is passed, every present sentinel has at least one match and errors is empty."
+      },
+      "runtimeErrorLog": {
+        "artifactType": "runtime-error-log",
+        "emptyArrays": [
+          "consoleErrors",
+          "consoleWarnings",
+          "pageErrors",
+          "requestFailures",
+          "httpResponses400Plus",
+          "serverErrors",
+          "hydrationErrors",
+          "unhandledRejections",
+          "unexpectedThirdPartyRequests"
+        ]
+      },
+      "computedGeometry": {
+        "artifactType": "computed-geometry",
+        "maximumAbsoluteDeltaPxByReferenceMode": {
+          "desktop-canonical-pixel": 1,
+          "mobile-responsive-contract-internal-consistency": 1
+        },
+        "minimumInteractiveTargetPx": 44,
+        "rule": "Desktop measurements cover the exact prototype selector union and every baseline rectangle delta is at most one pixel. Mobile measurements cover the semantic region selectors in responsiveContractGate, satisfy its spacing, viewport and ordering assertions and are never compared with prototype coordinates. Every DOM interactive target is uniquely measured and at least 44 by 44 pixels."
+      },
+      "computedStyles": {
+        "artifactType": "computed-styles",
+        "requiredHashes": [
+          "canonicalThemeStylesheetSha256",
+          "referenceStylesheetSha256",
+          "semanticOutputSha256",
+          "themeResolutionSha256"
+        ],
+        "rule": "Fonts are ready and exactly hash-bound; root variables match every canonical sentinel; wizard and sheet scenarios additionally prove body-level Dialog or Sheet portal variables."
+      },
+      "domSnapshot": {
+        "artifactType": "dom-snapshot",
+        "forbiddenSelectors": [".lab-bar", ".concept-caption"],
+        "forbiddenAccessibleNames": ["Herstel demo"],
+        "rule": "Desktop prototype capture records the body concept, one full-viewport .fg-app and all setup sentinels. Mobile production evidence records exactly one semantic application region and every required transform region. In both modes interactive-target count is recorded and lab chrome, restore control and hidden production nodes are absent."
+      },
+      "mobileAxeReport": {
+        "artifactType": "axe-report",
+        "appliesToReferenceMode": "mobile-responsive-contract",
+        "maximumCriticalViolations": 0,
+        "maximumSeriousViolations": 0,
+        "rule": "The report is captured from the production DOM after the scenario transform and any required Sheet or Select is open."
+      },
+      "mobileInteractionTrace": {
+        "artifactType": "interaction-trace",
+        "appliesToReferenceMode": "mobile-responsive-contract",
+        "requiredInputModes": ["keyboard", "touch"],
+        "rule": "The trace binds initial focus, tab or swipe-free touch reachability, open state, Escape or Cancel, exact return focus and the final announced state to one scenario and transform assertion set."
+      }
+    },
+    "scenarioEvidence": null
+  }
+}
