@@ -12,11 +12,14 @@ import { and, eq, inArray } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { createClient, createClientFromRequest } from "@/lib/supabase/server";
 import {
-  isFieldgridSubdomain,
   isPlatformHost,
   normalizeHost,
   resolveTenantByHost,
 } from "@/lib/auth/tenant-resolver";
+import {
+  isBackofficeDevelopmentFallbackHost,
+  readBackofficeRequestHost,
+} from "@/lib/auth/request-host";
 
 export const BACKOFFICE_TENANT_COOKIE = "backoffice_tenant_id";
 
@@ -26,7 +29,7 @@ export type BackofficeTenantOption = {
   slug: string;
 };
 
-type HostTenantResolution =
+export type HostTenantResolution =
   | { kind: "tenant"; tenantId: string }
   | { kind: "platform" }
   | { kind: "blocked" }
@@ -65,9 +68,15 @@ function logDefaultTenantFallback(reason: string, userId: string | null): void {
   });
 }
 
-async function getHostTenantResolutionForHost(host: string): Promise<HostTenantResolution> {
+async function getBackofficeHostTenantResolutionForHost(
+  host: string,
+): Promise<HostTenantResolution> {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost) return { kind: "none" };
+  if (!normalizedHost) {
+    return process.env.NODE_ENV === "production"
+      ? { kind: "blocked" }
+      : { kind: "none" };
+  }
   if (!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)) {
     return { kind: "blocked" };
   }
@@ -76,22 +85,39 @@ async function getHostTenantResolutionForHost(host: string): Promise<HostTenantR
   const tenant = await resolveTenantByHost(normalizedHost);
   if (tenant) return { kind: "tenant", tenantId: tenant.id };
 
-  if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
-  return { kind: "none" };
+  if (isBackofficeDevelopmentFallbackHost(normalizedHost)) {
+    return { kind: "none" };
+  }
+
+  // Every non-local host must resolve to an active tenant or platform context.
+  // Falling back to the user's first tenant here would let an unknown custom
+  // host bypass host-to-tenant binding.
+  return { kind: "blocked" };
 }
 
-async function getHostTenantResolution(): Promise<HostTenantResolution> {
+async function getHostTenantResolutionFromHeaders(
+  requestHeaders: Pick<Headers, "get">,
+): Promise<HostTenantResolution> {
+  const requestHost = readBackofficeRequestHost(requestHeaders);
+  if (requestHost.kind !== "host") return requestHost;
+  return getBackofficeHostTenantResolutionForHost(requestHost.host);
+}
+
+export async function getBackofficeHostTenantResolution(): Promise<HostTenantResolution> {
   const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  return getHostTenantResolutionForHost(host);
+  return getHostTenantResolutionFromHeaders(requestHeaders);
 }
 
-async function getHostTenantResolutionFromRequest(request: Request): Promise<HostTenantResolution> {
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-  return getHostTenantResolutionForHost(host);
+export async function getBackofficeHostTenantResolutionFromRequest(
+  request: Request,
+): Promise<HostTenantResolution> {
+  return getHostTenantResolutionFromHeaders(request.headers);
 }
 
-function getCookieValueFromRequest(request: Request, name: string): string | null {
+function getCookieValueFromRequest(
+  request: Request,
+  name: string,
+): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;
 
@@ -112,7 +138,9 @@ function getCookieValueFromRequest(request: Request, name: string): string | nul
   return null;
 }
 
-export async function getActiveBackofficeTenantsForUser(userId: string): Promise<BackofficeTenantOption[]> {
+export async function getActiveBackofficeTenantsForUser(
+  userId: string,
+): Promise<BackofficeTenantOption[]> {
   return db
     .select({
       id: tenantsTable.id,
@@ -132,7 +160,10 @@ export async function getActiveBackofficeTenantsForUser(userId: string): Promise
     .orderBy(tenantsTable.name);
 }
 
-export async function userHasActiveTenant(userId: string, tenantId: string): Promise<boolean> {
+export async function userHasActiveTenant(
+  userId: string,
+  tenantId: string,
+): Promise<boolean> {
   const [tenantUser] = await db
     .select({ tenantId: tenantUsersTable.tenantId })
     .from(tenantUsersTable)
@@ -162,7 +193,7 @@ export async function getCurrentTenantId(): Promise<string | null> {
     return null;
   }
 
-  const hostResolution = await getHostTenantResolution();
+  const hostResolution = await getBackofficeHostTenantResolution();
   if (hostResolution.kind === "tenant") {
     if (await userHasActiveTenant(user.id, hostResolution.tenantId)) {
       return hostResolution.tenantId;
@@ -177,8 +208,13 @@ export async function getCurrentTenantId(): Promise<string | null> {
 
   if (hostResolution.kind === "platform") {
     const cookieStore = await cookies();
-    const supportTenantId = cookieStore.get(FIELDGRID_SUPPORT_TENANT_COOKIE)?.value;
-    if (supportTenantId && await getActiveSupportAccessForUser(user.id, supportTenantId)) {
+    const supportTenantId = cookieStore.get(
+      FIELDGRID_SUPPORT_TENANT_COOKIE,
+    )?.value;
+    if (
+      supportTenantId &&
+      (await getActiveSupportAccessForUser(user.id, supportTenantId))
+    ) {
       return supportTenantId;
     }
   }
@@ -195,14 +231,19 @@ export async function getCurrentTenantId(): Promise<string | null> {
 
   const cookieStore = await cookies();
   const selectedTenantId = cookieStore.get(BACKOFFICE_TENANT_COOKIE)?.value;
-  if (selectedTenantId && tenantOptions.some((tenant) => tenant.id === selectedTenantId)) {
+  if (
+    selectedTenantId &&
+    tenantOptions.some((tenant) => tenant.id === selectedTenantId)
+  ) {
     return selectedTenantId;
   }
 
   return tenantOptions[0]?.id ?? null;
 }
 
-export async function getCurrentTenantIdFromRequest(request: Request): Promise<string | null> {
+export async function getCurrentTenantIdFromRequest(
+  request: Request,
+): Promise<string | null> {
   const user = await getCurrentBackofficeUserFromRequest(request);
   if (!user) {
     if (isDefaultTenantFallbackAllowed()) {
@@ -213,7 +254,8 @@ export async function getCurrentTenantIdFromRequest(request: Request): Promise<s
     return null;
   }
 
-  const hostResolution = await getHostTenantResolutionFromRequest(request);
+  const hostResolution =
+    await getBackofficeHostTenantResolutionFromRequest(request);
   if (hostResolution.kind === "tenant") {
     if (await userHasActiveTenant(user.id, hostResolution.tenantId)) {
       return hostResolution.tenantId;
@@ -274,7 +316,9 @@ export async function requireCurrentTenantId(): Promise<string> {
   return tenantId;
 }
 
-export async function requireCurrentTenantIdFromRequest(request: Request): Promise<string> {
+export async function requireCurrentTenantIdFromRequest(
+  request: Request,
+): Promise<string> {
   const tenantId = await getCurrentTenantIdFromRequest(request);
   if (!tenantId) {
     throw new Error(

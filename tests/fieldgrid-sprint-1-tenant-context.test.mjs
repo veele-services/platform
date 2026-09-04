@@ -54,7 +54,7 @@ test("dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback", () =>
 test("backoffice tenant selection is host-first before switcher cookie", () => {
   const tenantAuth = read(backofficeTenantAuth);
 
-  const hostResolutionIndex = tenantAuth.indexOf("const hostResolution = await getHostTenantResolution();");
+  const hostResolutionIndex = tenantAuth.indexOf("const hostResolution = await getBackofficeHostTenantResolution();");
   const cookieIndex = tenantAuth.indexOf("const cookieStore = await cookies();");
   assert.notEqual(hostResolutionIndex, -1, "host resolution should exist");
   assert.notEqual(cookieIndex, -1, "cookie lookup should exist");
@@ -67,7 +67,8 @@ test("backoffice tenant selection is host-first before switcher cookie", () => {
       "await userHasActiveTenant(user.id, hostResolution.tenantId)",
       "if (hostResolution.kind === \"blocked\")",
       "return null;",
-      "selectedTenantId && tenantOptions.some",
+      "selectedTenantId &&",
+      "tenantOptions.some((tenant) => tenant.id === selectedTenantId)",
     ],
     backofficeTenantAuth,
   );
