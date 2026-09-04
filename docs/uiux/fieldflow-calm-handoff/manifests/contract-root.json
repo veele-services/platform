@@ -43,9 +43,9 @@
     "validator": "39f26fc2e38c3443ff7f46f8da23d2930893552a45acb06a8c4275eefa57b217",
     "primaryTests": "faaa09e19dee9266b63bf446e7e074a20bfd817f2d75bd9b677f17f73e178412",
     "contractRootOracleTests": "2bf4c5110089a9f0284345f3b4f5200f5ed5a8a7706f0e6d9ffd8641a925b972",
-    "trustedDependencyInputs": "6e17f87fdf851d097eab9d8991f45ddc2aef2a1fd3f557df5e070f6873009af8",
+    "trustedDependencyInputs": "63b3eb36aa89e30cc8bab47409e8f59b22459fdf240830815640a48430494dc8",
     "trustedRootWorkflow": "40ac644820fbd71956466a1456e7d6214e747398be83e6cdb833ebacafc5b061",
     "packageCommand": "98a0a1f169cdd5eec085eb1f2ef9a27eb404bcd604fb6e128234e1c8c3455d93"
   },
-  "rootSha256": "9763e6b62733c0817d9805d8b63033fa1bbc94aa0ed07443c2f704b80419116a"
+  "rootSha256": "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788"
 }
