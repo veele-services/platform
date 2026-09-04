@@ -66,14 +66,13 @@ jobs:
           path: trusted
           persist-credentials: false
 
-      # The base repository exposes every PR head, including private-fork
-      # commits, through this read-only ref. The checkout remains unsafe to
-      # execute; every later step treats it as inert Git data only.
-      - name: Checkout untrusted PR head as inert Git data
+      # This checkout may come from an attacker-controlled fork. It is unsafe
+      # to execute; every later step treats it as inert Git data only.
+      - name: Checkout untrusted candidate as inert Git data
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
-          repository: ${{ env.BASE_REPOSITORY }}
-          ref: refs/pull/${{ env.PULL_REQUEST_NUMBER }}/head
+          repository: ${{ env.CANDIDATE_REPOSITORY }}
+          ref: ${{ env.CANDIDATE_SHA }}
           fetch-depth: 0
           lfs: false
           submodules: false
