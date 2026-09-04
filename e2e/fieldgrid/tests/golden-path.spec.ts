@@ -430,11 +430,35 @@ test("8. Negative guards", async ({ page }) => {
   });
   await expectDeniedOrLogin(page, response);
   await expect(page.locator("body")).not.toContainText("Runtime Customer A");
+
+  const platformOwnerId = "20000000-0000-4000-8000-000000000002";
+  await useIdentity(page, platformOwnerId, tenantAHost);
+  response = await page.goto(backofficeUrl("/platform", tenantAHost), {
+    waitUntil: "domcontentloaded",
+  });
+  await expectDeniedOrLogin(page, response);
+  await expect(page.locator("body")).not.toContainText("Runtime Customer B");
+  response = await page.goto(
+    backofficeUrl("/api/platform/staging-smoke", tenantAHost),
+    { waitUntil: "domcontentloaded" },
+  );
+  expect(response?.status()).toBe(401);
+
+  await useIdentity(page, platformOwnerId, unknownHost);
+  response = await page.goto(backofficeUrl("/platform", unknownHost), {
+    waitUntil: "domcontentloaded",
+  });
+  await expectDeniedOrLogin(page, response);
+  await expect(page.locator("body")).not.toContainText("Runtime Customer B");
+
   await useIdentity(page, "20000000-0000-4000-8000-000000000102", unknownHost);
   response = await page.goto(backofficeUrl("/", unknownHost), {
     waitUntil: "domcontentloaded",
   });
   await expectDeniedOrLogin(page, response);
+  await expect(page.locator("body")).not.toContainText(
+    /Runtime Customer A|Planbord/u,
+  );
   await useIdentity(page, "20000000-0000-4000-8000-000000000106", tenantAHost);
   response = await page.goto(personnelUrl("/personeel/opdrachten"), {
     waitUntil: "domcontentloaded",

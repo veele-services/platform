@@ -18,11 +18,8 @@ import {
 } from "@workspace/db";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  isPlatformHost,
-  normalizeHost,
-  resolveTenantByHost,
-} from "@/lib/auth/tenant-resolver";
+import { isPlatformHost, normalizeHost } from "@/lib/auth/tenant-resolver";
+import { getBackofficeHostTenantResolution } from "@/lib/auth/tenant";
 
 export const metadata: Metadata = {
   title: "Inloggen",
@@ -56,9 +53,10 @@ function safeNextPath(value: string | undefined, fallback = "/"): string {
   return value;
 }
 
-async function getLoginBranding(host: string): Promise<LoginBranding> {
-  const tenant = await resolveTenantByHost(host);
-  const tenantBranding = tenant ? await getTenantBranding(tenant.id) : null;
+async function getLoginBranding(
+  tenantId: string | null,
+): Promise<LoginBranding> {
+  const tenantBranding = tenantId ? await getTenantBranding(tenantId) : null;
   const theme = tenantBranding ?? (await getPlatformBrandTheme());
   const whitelabel = Boolean(tenantBranding?.customBrandingEnabled);
   const displayName = whitelabel
@@ -114,9 +112,13 @@ export default async function LoginPage({ searchParams }: Props) {
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "",
   );
   if (!isFieldgridHostAllowedForRuntimeEnvironment(host)) notFound();
+  const hostResolution = await getBackofficeHostTenantResolution();
+  if (hostResolution.kind === "blocked") notFound();
   const fallbackNextPath = isPlatformHost(host) ? "/platform" : "/";
   const nextPath = safeNextPath(next, fallbackNextPath);
-  const branding = await getLoginBranding(host);
+  const branding = await getLoginBranding(
+    hostResolution.kind === "tenant" ? hostResolution.tenantId : null,
+  );
   const subtitle = branding.whitelabel
     ? `Inloggen met uw ${branding.displayName}-account`
     : `Inloggen met uw ${branding.platformName}-account`;
