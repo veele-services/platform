@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "capturedFrom": {
+    "prototypeCommit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
+    "variant": "fieldflow",
+    "url": "https://fieldgrid-backoffice-lab.famgoldenbelt.chatgpt.site"
+  },
+  "purpose": "Immutable human-review anchors for Fieldflow Calm composition, spacing, hierarchy and responsive adaptation. These raw captures are not direct pixel baselines.",
+  "pixelBaselineReady": false,
+  "normalizedCaptureContract": "capture-contract.json",
+  "referenceNormalization": {
+    "rawCapturesMayIncludeLabChromeOrStaleDemoState": true,
+    "labChromeHeightPx": {
+      "desktop": 64,
+      "mobileMax860": 52
+    },
+    "implementationMustNotRenderLabChrome": true,
+    "normalizedBaselineRequiredBeforePixelGate": true,
+    "canonicalThemeStylesheet": {
+      "file": "canonical-theme.css",
+      "sha256": "0888d74c18068753d8ecced2caf2af3b8e97b97d615bed1eb27f2af2e5f8c2d4",
+      "fixtureId": "default",
+      "expectedSemanticOutputSha256": "5ef0276d8b38db6a1d7e47404f8b37562ad06e410d54f345f0819c43a6493b84",
+      "expectedResolutionSha256": "9254176dabd3bdbcca404f3927cd69339713c40ed2e31de4e2476ee5f6dab729"
+    },
+    "referenceStylesheet": {
+      "file": "reference-normalization.css",
+      "sha256": "1c2b732877b821616826dcb5a2720a5a0e318cdcbfc30912c0d6db3e6a7feb9d"
+    },
+    "approvedAccessibilityDelta": [
+      "WCAG-safe muted, form-boundary, status and planboard foreground pairs",
+      "44px minimum rendered interactive target",
+      "13px minimum interactive labels, 16px form controls and explicit 11–12px dense metadata tokens"
+    ],
+    "prototypeOnlyElements": [
+      ".lab-bar",
+      ".concept-caption",
+      "the planning control whose exact accessible text is Herstel demo"
+    ],
+    "rule": "W00 recaptures this exact prototype commit after removing only the declared prototype-only elements, making .fg-app fill the viewport, injecting the hashed canonical-theme bridge and then the hashed accessibility stylesheet. Raw files remain human audit anchors because some contain lab chrome, inaccessible raw token/target values, prior-page content, scroll offsets or transient demo feedback. Only those normalized outputs are pixel baselines; both stylesheets, DOM snapshot, computed token sentinels, browser build and hashes are immutable evidence."
+  },
+  "knownRawArtifactsByFile": {
+    "01-dashboard-desktop-1440.png": ["desktop lab bar", "concept caption"],
+    "02-dashboard-mobile-390.png": ["mobile lab bar"],
+    "03-planboard-desktop-1440.png": [
+      "prototype demo reset",
+      "non-canonical scroll/crop"
+    ],
+    "04-planboard-mobile-390.png": [
+      "mobile lab bar",
+      "prototype demo reset",
+      "optional Timeline state rather than default Agenda"
+    ],
+    "05-list-desktop-1440.png": ["desktop lab bar", "concept caption"],
+    "06-list-mobile-390.png": [
+      "mobile lab bar",
+      "non-canonical app-header scroll state"
+    ],
+    "07-dossier-desktop-1440.png": ["non-canonical workspace scroll/crop"],
+    "08-dossier-mobile-390.png": [
+      "mobile lab bar",
+      "stale prior-page header",
+      "stale planning success toast"
+    ],
+    "09-settings-desktop-1440.png": ["desktop lab bar", "concept caption"]
+  },
+  "rules": [
+    "Hashes must match before implementation starts.",
+    "References prove intent but do not replace runtime acceptance at all mandatory widths.",
+    "Raw screenshots are human audit anchors; only W00 outputs produced from capture-contract.json are eligible as pixel baselines.",
+    "Tenant branding may change approved skin tokens only; density may change only its named geometry axes and interaction remains contracted.",
+    "Reference replacement requires a reviewed design decision and an updated manifest hash."
+  ],
+  "files": [
+    {
+      "file": "01-dashboard-desktop-1440.png",
+      "pattern": "dashboard",
+      "formFactor": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "62882488e5be3342348f68cf3294ef63713114fdb9e6148889ea559f8b33b1a4"
+    },
+    {
+      "file": "02-dashboard-mobile-390.png",
+      "pattern": "dashboard",
+      "formFactor": "mobile",
+      "width": 390,
+      "height": 844,
+      "sha256": "9a1f51b5fa7768d8c3a992df963c5403eafd4788d585326051a6d7051d3846e4"
+    },
+    {
+      "file": "03-planboard-desktop-1440.png",
+      "pattern": "planboard",
+      "formFactor": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "a0283709338df53b09cae27a55748dc205796d1c3181eae92c7923acf537d50a"
+    },
+    {
+      "file": "04-planboard-mobile-390.png",
+      "pattern": "planboard",
+      "formFactor": "mobile",
+      "width": 390,
+      "height": 844,
+      "sha256": "ffbaf2c4d5c8fcafee0021bbf1f036961b5bce85f4889a3439d9739461d38982"
+    },
+    {
+      "file": "05-list-desktop-1440.png",
+      "pattern": "list",
+      "formFactor": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "464a4bdf53a78f50a34631eb0089a8193138b1836fc9ac1a365ba21336e0e159"
+    },
+    {
+      "file": "06-list-mobile-390.png",
+      "pattern": "list",
+      "formFactor": "mobile",
+      "width": 390,
+      "height": 844,
+      "sha256": "d89210dd442c8c53b959e613f1c007792a1dc76142c2cb7f6dd4955a3d3ea90a"
+    },
+    {
+      "file": "07-dossier-desktop-1440.png",
+      "pattern": "dossier",
+      "formFactor": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "058cce7059bba6f7cbc8f65f8cb301c17e9b510d6e32c8166b373daae220d84f"
+    },
+    {
+      "file": "08-dossier-mobile-390.png",
+      "pattern": "dossier",
+      "formFactor": "mobile",
+      "width": 390,
+      "height": 844,
+      "sha256": "1e98e3d4fb8095ca7a51008cd772af953d7a97f114f1c0ad54fcff82d36cec02"
+    },
+    {
+      "file": "09-settings-desktop-1440.png",
+      "pattern": "settings",
+      "formFactor": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "e6efd251589b77485921fd39521c4362d38dda09e9d4ed9139d979c620057d0c"
+    }
+  ]
+}

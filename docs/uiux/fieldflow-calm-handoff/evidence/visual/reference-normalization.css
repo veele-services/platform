@@ -1,0 +1,142 @@
+/*
+ * Fieldflow Calm CI reference normalization v1.
+ *
+ * W00 injects this exact, hashed stylesheet into the pinned prototype before
+ * producing normalized baselines. It resolves the three approved differences
+ * between the raw design-lab and releaseable production UI: WCAG-safe color
+ * pairs, a 44px minimum interactive target and legible component type. It may
+ * not hide or rewrite production content, hierarchy, copy or business state.
+ */
+
+body[data-concept="fieldflow"] {
+  --muted-foreground: #5d716e;
+  --muted-text: #5d716e;
+  --input: #7a918c;
+
+  --status-success-bg: #e4f4ec;
+  --status-success-border: #15996e;
+  --status-success-fg: #0f513c;
+  --status-warning-bg: #fff0de;
+  --status-warning-border: #c76516;
+  --status-warning-fg: #74400f;
+  --status-danger-bg: #fbe8e8;
+  --status-danger-border: #c54141;
+  --status-danger-fg: #7f2727;
+  --status-info-bg: #e7efff;
+  --status-info-border: #3e73ce;
+  --status-info-fg: #244e91;
+
+  --plan-mint-bg: #dcf5e9;
+  --plan-mint-fg: #174c3c;
+  --plan-blue-bg: #e3edfd;
+  --plan-blue-fg: #2c62a9;
+  --plan-aqua-bg: #dff3f1;
+  --plan-aqua-fg: #1d6f73;
+  --plan-peach-bg: #fae8d9;
+  --plan-peach-fg: #994e20;
+  --plan-yellow-bg: #f7edc8;
+  --plan-yellow-fg: #805a0a;
+  --plan-rose-bg: #f9e0e5;
+  --plan-rose-fg: #a84355;
+  --plan-lilac-bg: #ece4f8;
+  --plan-lilac-fg: #7654a9;
+  --plan-orange-bg: #f9e4d2;
+  --plan-orange-fg: #934b10;
+}
+
+body[data-concept="fieldflow"]
+  :is(
+    button,
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    a[href],
+    [role="button"],
+    [role="menuitem"],
+    [role="option"],
+    [role="tab"],
+    [data-slot="select-trigger"]
+  ) {
+  min-block-size: 44px;
+  font-size: 13px;
+}
+
+body[data-concept="fieldflow"] :is(input, textarea, select) {
+  font-size: 16px;
+}
+
+body[data-concept="fieldflow"] small {
+  font-size: 12px;
+}
+
+body[data-concept="fieldflow"]
+  :is(
+    button,
+    [role="button"],
+    [role="menuitem"],
+    [role="option"],
+    [role="tab"]
+  ) {
+  min-inline-size: 44px;
+}
+
+body[data-concept="fieldflow"]
+  :is(input[type="checkbox"], input[type="radio"]) {
+  outline-offset: 10px;
+}
+
+body[data-concept="fieldflow"] .schedule-block.color-aqua {
+  color: #1d6f73;
+}
+
+body[data-concept="fieldflow"] .schedule-block.color-peach {
+  color: #994e20;
+}
+
+body[data-concept="fieldflow"] .schedule-block.color-yellow {
+  color: #805a0a;
+}
+
+body[data-concept="fieldflow"] .schedule-block.color-orange {
+  color: #934b10;
+}
+
+body[data-concept="fieldflow"] .status-pill.tone-success {
+  color: var(--status-success-fg);
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+}
+
+body[data-concept="fieldflow"] .status-pill.tone-warning {
+  color: var(--status-warning-fg);
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+body[data-concept="fieldflow"] .status-pill.tone-danger {
+  color: var(--status-danger-fg);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+
+body[data-concept="fieldflow"] .status-pill.tone-info {
+  color: var(--status-info-fg);
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+}
+
+body[data-concept="fieldflow"]
+  :is(
+    .panel-heading p,
+    .queue-head span,
+    .board-hours span,
+    .schedule-block-main > span,
+    .drop-preview span
+  ) {
+  font-size: 11px;
+}
+
+body[data-concept="fieldflow"]
+  :is(.schedule-block-main strong, .drop-preview strong) {
+  font-size: 13px;
+}
