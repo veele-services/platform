@@ -153,6 +153,7 @@ jobs:
           set -euo pipefail
           node scripts/fieldgrid-fieldflow-calm-handoff.mjs \
             --verify-contract-root \
+            --base-sha "$BASE_SHA" \
             --candidate-root ../candidate \
             --candidate-sha "$CANDIDATE_SHA"
 

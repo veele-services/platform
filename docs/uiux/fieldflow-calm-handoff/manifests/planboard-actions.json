@@ -188,7 +188,7 @@
         },
         "desktopInteraction": "Drag a queue card to a personnel lane, select it with Enter/Space and move by keyboard, or choose Select and schedule from an interest response; preview always names employee, date, snapped start/end and state before commit.",
         "mobileInteraction": "Queue or interest card action Plan opens a bottom/fullscreen sheet with employee, date, exact quarter-hour, duration, evaluation and confirmation; drag is never required.",
-        "commitSemantics": "Atomically set the scheduled interval, create or reactivate exactly the selected assigned staffing link, transition plannable to scheduled when required and, for source.kind=interest, transition exactly that locked interest response to confirmed in the same receipt/audit/revision/outbox transaction; update capacity from canonical assigned staffing and never rebalance another assignment."
+        "commitSemantics": "Atomically set the scheduled interval, create or reactivate exactly the selected assigned staffing link and, for source.kind=interest, transition exactly that locked interest response to confirmed in the same receipt/audit/revision/outbox transaction. Reconcile requiredSlots as max(explicit required personnel count, distinct required role count, 1), recompute filledSlots from distinct personnel with an active assigned staffing link, and transition to scheduled only when scheduledDate, scheduledStart and scheduledEnd are all present and filledSlots >= requiredSlots. Never regress an active or final workflow status, never overwrite planned fields when work starts or completes, and never rebalance another assignment."
       },
       {
         "action": "move",
@@ -692,7 +692,11 @@
       "capacity-dependencies"
     ],
     "preconditions": "The response is same-tenant, belongs to payload.assignmentId and payload.targetPersonnelId, has an allowed interested/selected state, and its lifecycleVersion/updatedAt match the request vector.",
-    "atomicTransition": "Set the response to confirmed, create/reactivate exactly one assigned staffing link, derive filled/required capacity with resolveRequiredSlots, schedule the assignment, increment one tenant revision and write one receipt, audit record and outbox event in one transaction.",
+    "requiredSlotsRule": "max(explicit required personnel count, distinct required role count, 1)",
+    "filledSlotsRule": "count distinct personnel with an active assigned staffing link",
+    "scheduledTransitionRule": "Transition to scheduled only when scheduledDate, scheduledStart and scheduledEnd are all present and filledSlots is greater than or equal to requiredSlots.",
+    "statusNonRegressionRule": "Never regress active or final workflow statuses; preserve planned fields and keep actual lifecycle timestamps authoritative for effective display.",
+    "atomicTransition": "Set the response to confirmed, create/reactivate exactly one assigned staffing link, reconcile requiredSlots with resolveRequiredSlots, recompute filledSlots, conditionally transition to scheduled under scheduledTransitionRule, increment one tenant revision and write one receipt, audit record and outbox event in one transaction.",
     "idempotency": "Retry and restart use the enclosing tenant+actor+mutationId receipt; concurrent selection at capacity allows one winner and every loser returns VERSION_STALE or REQUIRED_SLOTS_EXCEEDED with zero writes.",
     "undo": "The receipt includes the interest response in server-only before/after records and versions, so place undo restores its prior domain status with a fresh monotone lifecycle version together with assignment and staffing."
   },

@@ -32,7 +32,7 @@ const ROUTES_CONTENT_SHA256 =
 const PRODUCTION_INVENTORY_CONTENT_SHA256 =
   "84f152e580936c2c9aa28845997d2acf7ac53faa01693266aad8223a2906a850";
 const ACCEPTANCE_CONTRACT_SHA256 =
-  "73d3b8a1228d60acc993fb4413c0c19f48d42629e498cb038637a2a91b72352b";
+  "291457e3ca89f254e90fab74043dc90e04f157a8cb16f8231b87b2c1fc859feb";
 const RISKS_CONTRACT_SHA256 =
   "5a4c7bfa104129ad4f2c41f057417a94142a005da58077aac0e5bd7312a2d356";
 const TOKENS_CONTENT_SHA256 =
@@ -42,7 +42,7 @@ const COMPONENT_STATES_CONTENT_SHA256 =
 const THEME_DERIVATION_CONTENT_SHA256 =
   "c2ffa66d80fcf6fc3f561a525cc4ce361c3b1ad217eb40518e32fb3f6e69e32e";
 const NORMATIVE_DOCS_DIGEST_SHA256 =
-  "143c8d7d1ea5aa451daf1511dd7647085709298abe6101af34a02d9b256bcd9e";
+  "ae974b53ec8eaecc40546ec5e6bb473b92b01878b5b635761153d8a2ad5e27bf";
 const CONTRACT_ROOT_PATH =
   "docs/uiux/fieldflow-calm-handoff/manifests/contract-root.json";
 const CONTRACT_ROOT_WORKFLOW_PATH =
@@ -539,6 +539,21 @@ function lifecycleIndependentContract(manifest, collectionField) {
       ({ state: _state, evidence: _evidence, ...contract }) => contract,
     ),
   };
+}
+
+function lifecycleIndependentCaptureContract(contract) {
+  const projection = structuredClone(contract);
+  delete projection.state;
+  if (projection.environment?.runtimeImageDigest) {
+    projection.environment.runtimeImageDigest.value = null;
+  }
+  if (projection.environment?.fonts) {
+    projection.environment.fonts.resolvedFiles = null;
+  }
+  if (projection.evidenceContract) {
+    projection.evidenceContract.scenarioEvidence = null;
+  }
+  return projection;
 }
 
 function relativeLuminance(hex) {
@@ -5188,6 +5203,10 @@ export function validatePlanboardActionContract(
       "versionEntry",
       "lockOrder",
       "preconditions",
+      "requiredSlotsRule",
+      "filledSlotsRule",
+      "scheduledTransitionRule",
+      "statusNonRegressionRule",
       "atomicTransition",
       "idempotency",
       "undo",
@@ -5196,6 +5215,14 @@ export function validatePlanboardActionContract(
     interest?.sourceDiscriminant !== "payload.source.kind=interest" ||
     JSON.stringify(interest?.requiredSourceFields) !==
       JSON.stringify(["interestResponseId"]) ||
+    interest?.requiredSlotsRule !==
+      "max(explicit required personnel count, distinct required role count, 1)" ||
+    interest?.filledSlotsRule !==
+      "count distinct personnel with an active assigned staffing link" ||
+    interest?.scheduledTransitionRule !==
+      "Transition to scheduled only when scheduledDate, scheduledStart and scheduledEnd are all present and filledSlots is greater than or equal to requiredSlots." ||
+    interest?.statusNonRegressionRule !==
+      "Never regress active or final workflow statuses; preserve planned fields and keep actual lifecycle timestamps authoritative for effective display." ||
     !interest?.atomicTransition?.includes(
       "one receipt, audit record and outbox event",
     ) ||
@@ -5874,12 +5901,12 @@ export function validateVerificationMatrix(
       );
     }
     const generatedInputs = {
-      acceptance,
+      acceptance: lifecycleIndependentContract(acceptance, "requirements"),
       routes,
       productionInventory: inventory,
       componentStates,
-      risks,
-      captureContract,
+      risks: lifecycleIndependentContract(risks, "risks"),
+      captureContract: lifecycleIndependentCaptureContract(captureContract),
       whitelabelSurfaces: surfaces,
     };
     const expectedPaths = {
@@ -10246,34 +10273,7 @@ function expectedMobileEvidenceAssertions(contract, scenario) {
 }
 
 export function computeCaptureContractRootSha256(contract) {
-  const environment = {
-    ...contract.environment,
-    runtimeImageDigest: {
-      ...contract.environment?.runtimeImageDigest,
-      value: null,
-    },
-    fonts: {
-      ...contract.environment?.fonts,
-      resolvedFiles: null,
-    },
-  };
-  const evidenceContract = {
-    ...contract.evidenceContract,
-    scenarioEvidence: null,
-  };
-  return hashJson({
-    schemaVersion: contract.schemaVersion,
-    name: contract.name,
-    stateModel: contract.stateModel,
-    source: contract.source,
-    environment,
-    normalization: contract.normalization,
-    viewports: contract.viewports,
-    proofSemantics: contract.proofSemantics,
-    setupDriver: contract.setupDriver,
-    scenarios: contract.scenarios,
-    evidenceContract,
-  });
+  return hashJson(lifecycleIndependentCaptureContract(contract));
 }
 
 function captureBindingProjection(binding) {
@@ -13080,6 +13080,494 @@ export function validateLifecycleTransition(
   }
 }
 
+const FIELDFLOW_PACKAGE_PATH = "docs/uiux/fieldflow-calm-handoff";
+const ACCEPTANCE_MANIFEST_PATH = `${FIELDFLOW_PACKAGE_PATH}/manifests/acceptance.json`;
+const RISKS_MANIFEST_PATH = `${FIELDFLOW_PACKAGE_PATH}/manifests/risks.json`;
+const CAPTURE_CONTRACT_PATH = `${FIELDFLOW_PACKAGE_PATH}/evidence/visual/capture-contract.json`;
+
+function readGitJson(root, commit, path, errors, label) {
+  const bytes = readGitFile(root, commit, path);
+  if (!bytes) {
+    errors.push(`${label}: Git-blob ontbreekt op ${commit}: ${path}.`);
+    return null;
+  }
+  try {
+    return { bytes, value: JSON.parse(bytes.toString("utf8")) };
+  } catch {
+    errors.push(`${label}: Git-blob is geen geldige JSON: ${path}.`);
+    return null;
+  }
+}
+
+function addPromotionEvidencePath(errors, allowedPaths, root, path, label) {
+  if (!isSafeEvidencePath(path, root)) {
+    errors.push(`${label}: evidencepad is niet veilig: ${path}.`);
+    return false;
+  }
+  allowedPaths.add(path);
+  return true;
+}
+
+function collectMachineReportClosure(
+  errors,
+  allowedPaths,
+  { root, candidateSha, reportPath, subjectId },
+) {
+  if (
+    !addPromotionEvidencePath(errors, allowedPaths, root, reportPath, subjectId)
+  ) {
+    return;
+  }
+  const report = readGitJson(
+    root,
+    candidateSha,
+    reportPath,
+    errors,
+    subjectId,
+  )?.value;
+  if (!report) return;
+  for (const attachment of report.attachments ?? []) {
+    addPromotionEvidencePath(
+      errors,
+      allowedPaths,
+      root,
+      attachment?.path,
+      subjectId,
+    );
+  }
+  const matrixCoverages = [
+    report.verificationMatrix?.requirement,
+    ...(report.verificationMatrix?.sharedMatrices ?? []),
+  ];
+  for (const coverage of matrixCoverages) {
+    for (const shard of coverage?.shards ?? []) {
+      const shardPath = shard?.assertionReportPath;
+      if (
+        !addPromotionEvidencePath(
+          errors,
+          allowedPaths,
+          root,
+          shardPath,
+          subjectId,
+        )
+      ) {
+        continue;
+      }
+      const shardReport = readGitJson(
+        root,
+        candidateSha,
+        shardPath,
+        errors,
+        subjectId,
+      )?.value;
+      for (const attachment of shardReport?.attachments ?? []) {
+        addPromotionEvidencePath(
+          errors,
+          allowedPaths,
+          root,
+          attachment?.path,
+          subjectId,
+        );
+      }
+    }
+  }
+}
+
+function collectRequirementEvidenceClosure(
+  errors,
+  allowedPaths,
+  { root, candidateSha, item },
+) {
+  const reference = parseHashedArtifactReference(item.evidence?.index);
+  if (
+    !reference ||
+    !addPromotionEvidencePath(
+      errors,
+      allowedPaths,
+      root,
+      reference?.path,
+      item.id,
+    )
+  ) {
+    errors.push(`${item.id}: promotion mist een veilige evidence-index.`);
+    return;
+  }
+  const indexRecord = readGitJson(
+    root,
+    candidateSha,
+    reference.path,
+    errors,
+    item.id,
+  );
+  if (!indexRecord) return;
+  if (
+    createHash("sha256").update(indexRecord.bytes).digest("hex") !==
+    reference.sha256
+  ) {
+    errors.push(`${item.id}: promotion evidence-indexhash wijkt af.`);
+    return;
+  }
+  const index = indexRecord.value;
+  for (const record of index.codePaths ?? []) {
+    const candidateBlob = readGitFile(root, candidateSha, record?.path);
+    if (
+      !candidateBlob ||
+      createHash("sha256").update(candidateBlob).digest("hex") !==
+        record?.blobSha256
+    ) {
+      errors.push(
+        `${item.id}: bewezen codeblob ontbreekt of wijkt af op promotion-HEAD D: ${record?.path}.`,
+      );
+    }
+  }
+  const reportPaths = new Set([
+    ...(index.commands ?? []).map((command) => command?.reportPath),
+    ...(index.artifacts?.runtime ?? []).map((artifact) => artifact?.path),
+    ...(index.artifacts?.staging ?? []).map((artifact) => artifact?.path),
+  ]);
+  for (const reportPath of reportPaths) {
+    collectMachineReportClosure(errors, allowedPaths, {
+      root,
+      candidateSha,
+      reportPath,
+      subjectId: item.id,
+    });
+  }
+}
+
+function collectCaptureEvidenceClosure(
+  errors,
+  allowedPaths,
+  { root, candidateSha, capture },
+) {
+  const artifactBase = capture.evidenceContract?.artifactPathBase;
+  const evidenceRecords = capture.evidenceContract?.scenarioEvidence;
+  if (!isNonEmptyString(artifactBase) || !Array.isArray(evidenceRecords)) {
+    errors.push("Visuele baselinepromotion mist haar evidenceclosure.");
+    return;
+  }
+  const visualPrefix = `${FIELDFLOW_PACKAGE_PATH}/evidence/visual/`;
+  const artifactFields = [
+    "png",
+    "domSnapshot",
+    "computedGeometry",
+    "computedStyles",
+    "setupActionLog",
+    "runtimeErrorLog",
+    "axeReport",
+    "keyboardInteractionTrace",
+    "touchInteractionTrace",
+  ];
+  for (const evidence of evidenceRecords) {
+    for (const field of artifactFields) {
+      const artifactPath = evidence?.[field]?.path;
+      if (!isNonEmptyString(artifactPath)) continue;
+      const repositoryPath = posix.join(
+        FIELDFLOW_PACKAGE_PATH,
+        artifactBase,
+        artifactPath,
+      );
+      if (
+        !repositoryPath.startsWith(visualPrefix) ||
+        !isSafeRelativePath(repositoryPath, root) ||
+        !/^[A-Za-z0-9._/-]+$/u.test(repositoryPath)
+      ) {
+        errors.push(
+          `${evidence?.scenarioId ?? "Visuele baseline"}: evidencepad is niet veilig: ${artifactPath}.`,
+        );
+        continue;
+      }
+      allowedPaths.add(repositoryPath);
+      if (!readGitFile(root, candidateSha, repositoryPath)) {
+        errors.push(
+          `${evidence?.scenarioId ?? "Visuele baseline"}: evidenceblob ontbreekt: ${repositoryPath}.`,
+        );
+      }
+    }
+  }
+}
+
+function gitDiffNameStatus(root, baseSha, candidateSha) {
+  const output = execFileSync(
+    "git",
+    [
+      "diff",
+      "--name-status",
+      "-z",
+      "--no-renames",
+      "--no-ext-diff",
+      "--no-textconv",
+      baseSha,
+      candidateSha,
+      "--",
+    ],
+    { cwd: root, maxBuffer: 16 * 1024 * 1024 },
+  );
+  const fields = output.toString("utf8").split("\0");
+  if (fields.at(-1) === "") fields.pop();
+  if (fields.length % 2 !== 0) {
+    throw new Error("Git name-status-output heeft geen geldige NUL-vorm.");
+  }
+  const entries = [];
+  for (let index = 0; index < fields.length; index += 2) {
+    entries.push({ status: fields[index], path: fields[index + 1] });
+  }
+  return entries;
+}
+
+function gitTreeEntry(root, commit, path) {
+  try {
+    const output = execFileSync(
+      "git",
+      ["ls-tree", "-z", "--full-tree", commit, "--", path],
+      { cwd: root, maxBuffer: 1024 * 1024 },
+    ).toString("utf8");
+    if (!output) return null;
+    const [metadata, entryPath] = output.replace(/\0$/u, "").split("\t", 2);
+    const [mode, type, object] = metadata.split(" ");
+    return { mode, type, object, path: entryPath };
+  } catch {
+    return null;
+  }
+}
+
+function validateHistoricalCommitSurvives(
+  errors,
+  { root, baseSha, candidateSha, historicalCommit, label },
+) {
+  const mergeBases = execFileSync(
+    "git",
+    ["merge-base", "--all", baseSha, historicalCommit],
+    { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 },
+  )
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  if (mergeBases.length !== 1) {
+    errors.push(
+      `${label}: protected base en historische HEAD hebben niet exact één merge-base.`,
+    );
+    return;
+  }
+  for (const entry of gitDiffNameStatus(
+    root,
+    mergeBases[0],
+    historicalCommit,
+  )) {
+    const historicalEntry = gitTreeEntry(root, historicalCommit, entry.path);
+    const candidateEntry = gitTreeEntry(root, candidateSha, entry.path);
+    if (JSON.stringify(candidateEntry) !== JSON.stringify(historicalEntry)) {
+      errors.push(
+        `${label}: historische implementatie- of capturetree uit C is niet byte- en mode-exact aanwezig op promotion-HEAD D: ${entry.path}.`,
+      );
+    }
+  }
+}
+
+function changedLifecycleItems(base, candidate, itemsField, idField) {
+  const baseItems = new Map(
+    (base?.[itemsField] ?? []).map((item) => [item[idField], item]),
+  );
+  return (candidate?.[itemsField] ?? []).filter((item) => {
+    const baseItem = baseItems.get(item[idField]);
+    return baseItem && baseItem.state !== item.state;
+  });
+}
+
+export function validateEvidencePromotion(
+  errors,
+  { root, baseSha, candidateSha } = {},
+) {
+  try {
+    if (
+      !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
+      !/^[0-9a-f]{40}$/u.test(candidateSha ?? "")
+    ) {
+      errors.push("Evidencepromotion vereist exacte base- en kandidaat-SHA's.");
+      return;
+    }
+    if (
+      !gitCommitExists(root, baseSha) ||
+      !gitCommitExists(root, candidateSha) ||
+      baseSha === candidateSha ||
+      !gitCommitIsAncestor(root, baseSha, candidateSha)
+    ) {
+      errors.push(
+        "Evidencepromotion vereist een bestaande, verschillende base die ancestor is van de kandidaat.",
+      );
+      return;
+    }
+    const baseAcceptance = readGitJson(
+      root,
+      baseSha,
+      ACCEPTANCE_MANIFEST_PATH,
+      errors,
+      "Acceptance",
+    )?.value;
+    const candidateAcceptance = readGitJson(
+      root,
+      candidateSha,
+      ACCEPTANCE_MANIFEST_PATH,
+      errors,
+      "Acceptance",
+    )?.value;
+    const baseRisks = readGitJson(
+      root,
+      baseSha,
+      RISKS_MANIFEST_PATH,
+      errors,
+      "Risico",
+    )?.value;
+    const candidateRisks = readGitJson(
+      root,
+      candidateSha,
+      RISKS_MANIFEST_PATH,
+      errors,
+      "Risico",
+    )?.value;
+    const baseCapture = readGitJson(
+      root,
+      baseSha,
+      CAPTURE_CONTRACT_PATH,
+      errors,
+      "Visuele baseline",
+    )?.value;
+    const candidateCapture = readGitJson(
+      root,
+      candidateSha,
+      CAPTURE_CONTRACT_PATH,
+      errors,
+      "Visuele baseline",
+    )?.value;
+    if (
+      !baseAcceptance ||
+      !candidateAcceptance ||
+      !baseRisks ||
+      !candidateRisks ||
+      !baseCapture ||
+      !candidateCapture
+    ) {
+      return;
+    }
+
+    const acceptanceChanges = changedLifecycleItems(
+      baseAcceptance,
+      candidateAcceptance,
+      "requirements",
+      "id",
+    );
+    const riskChanges = changedLifecycleItems(
+      baseRisks,
+      candidateRisks,
+      "risks",
+      "id",
+    );
+    const captureChanged = baseCapture.state !== candidateCapture.state;
+    if (
+      acceptanceChanges.length === 0 &&
+      riskChanges.length === 0 &&
+      !captureChanged
+    ) {
+      return;
+    }
+
+    const allowedPaths = new Set();
+    if (acceptanceChanges.length > 0) {
+      allowedPaths.add(ACCEPTANCE_MANIFEST_PATH);
+    }
+    if (riskChanges.length > 0) allowedPaths.add(RISKS_MANIFEST_PATH);
+    if (captureChanged) allowedPaths.add(CAPTURE_CONTRACT_PATH);
+    const validatedHistoricalCommits = new Set();
+
+    for (const item of [...acceptanceChanges, ...riskChanges]) {
+      const implementationCommit = item.evidence?.commit;
+      const historyValid =
+        /^[0-9a-f]{40}$/u.test(implementationCommit ?? "") &&
+        implementationCommit !== candidateSha &&
+        gitCommitIsAncestor(root, implementationCommit, candidateSha);
+      if (!historyValid) {
+        errors.push(
+          `${item.id}: implementation- of capture-HEAD ${implementationCommit ?? "ontbreekt"} is geen ancestor van promotion-HEAD ${candidateSha}.`,
+        );
+      } else if (!validatedHistoricalCommits.has(implementationCommit)) {
+        validatedHistoricalCommits.add(implementationCommit);
+        validateHistoricalCommitSurvives(errors, {
+          root,
+          baseSha,
+          candidateSha,
+          historicalCommit: implementationCommit,
+          label: item.id,
+        });
+      }
+      collectRequirementEvidenceClosure(errors, allowedPaths, {
+        root,
+        candidateSha,
+        item,
+      });
+    }
+
+    if (captureChanged) {
+      const captureHeads = new Set(
+        (candidateCapture.evidenceContract?.scenarioEvidence ?? []).map(
+          (evidence) => evidence?.provenance?.headCommit,
+        ),
+      );
+      if (captureHeads.size === 0) {
+        errors.push("Visuele baselinepromotion mist een capture-HEAD.");
+      }
+      for (const captureHead of captureHeads) {
+        const historyValid =
+          /^[0-9a-f]{40}$/u.test(captureHead ?? "") &&
+          captureHead !== candidateSha &&
+          gitCommitIsAncestor(root, captureHead, candidateSha);
+        if (!historyValid) {
+          errors.push(
+            `Visuele baseline: implementation- of capture-HEAD ${captureHead ?? "ontbreekt"} is geen ancestor van promotion-HEAD ${candidateSha}.`,
+          );
+        } else if (!validatedHistoricalCommits.has(captureHead)) {
+          validatedHistoricalCommits.add(captureHead);
+          validateHistoricalCommitSurvives(errors, {
+            root,
+            baseSha,
+            candidateSha,
+            historicalCommit: captureHead,
+            label: "Visuele baseline",
+          });
+        }
+      }
+      collectCaptureEvidenceClosure(errors, allowedPaths, {
+        root,
+        candidateSha,
+        capture: candidateCapture,
+      });
+    }
+
+    for (const entry of gitDiffNameStatus(root, baseSha, candidateSha)) {
+      if (!["A", "M"].includes(entry.status)) {
+        errors.push(
+          `Evidencepromotion gebruikt verboden Git-status ${entry.status} voor ${entry.path}.`,
+        );
+        continue;
+      }
+      if (!allowedPaths.has(entry.path)) {
+        errors.push(
+          `Evidencepromotion bevat een niet-toegestaan pad: ${entry.path}.`,
+        );
+        continue;
+      }
+      if (gitTreeEntry(root, candidateSha, entry.path)?.mode !== "100644") {
+        errors.push(
+          `Evidencepromotion vereist een niet-uitvoerbare reguliere blob: ${entry.path}.`,
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `Evidencepromotion kon niet fail-closed worden gevalideerd: ${error}`,
+    );
+  }
+}
+
 function validateNormativeProseContracts(errors, packageRoot) {
   const discoveredDocs = readdirSync(packageRoot)
     .filter((file) => file.endsWith(".md"))
@@ -13289,6 +13777,8 @@ export function validateFieldflowHandoff({
 
 function runCli() {
   if (process.argv.includes("--verify-contract-root")) {
+    const baseShaIndex = process.argv.indexOf("--base-sha");
+    const baseSha = baseShaIndex >= 0 ? process.argv[baseShaIndex + 1] : null;
     const candidateIndex = process.argv.indexOf("--candidate-root");
     const candidateArgument =
       candidateIndex >= 0 ? process.argv[candidateIndex + 1] : null;
@@ -13296,11 +13786,12 @@ function runCli() {
     const candidateSha =
       candidateShaIndex >= 0 ? process.argv[candidateShaIndex + 1] : null;
     if (
+      !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
       !isNonEmptyString(candidateArgument) ||
       !/^[0-9a-f]{40}$/u.test(candidateSha ?? "")
     ) {
       process.stderr.write(
-        "Fieldflow contract-rootcontrole vereist --candidate-root <repository> en --candidate-sha <40-tekens-SHA>.\n",
+        "Fieldflow contract-rootcontrole vereist --base-sha <40-tekens-SHA>, --candidate-root <repository> en --candidate-sha <40-tekens-SHA>.\n",
       );
       process.exitCode = 1;
       return;
@@ -13347,6 +13838,13 @@ function runCli() {
         candidatePackageRoot,
       });
     }
+    if (trustErrors.length === 0) {
+      validateEvidencePromotion(trustErrors, {
+        root: candidateRoot,
+        baseSha,
+        candidateSha,
+      });
+    }
     if (trustErrors.length > 0) {
       process.stderr.write(
         [
@@ -13359,7 +13857,7 @@ function runCli() {
       return;
     }
     process.stdout.write(
-      "Fieldflow protected contract-root, immutable checkout en volledige lifecycle-inhoud komen exact overeen met het extern vertrouwde contract.\n",
+      "Fieldflow protected contract-root, immutable checkout, evidence-only promotiondiff en volledige lifecycle-inhoud komen exact overeen met het extern vertrouwde contract.\n",
     );
     return;
   }

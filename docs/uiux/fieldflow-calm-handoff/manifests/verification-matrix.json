@@ -6,7 +6,7 @@
   "generatedAgainst": {
     "acceptance": {
       "path": "manifests/acceptance.json",
-      "semanticSha256": "a31b8c974b7208ad1b17c58bc1817d7f66e3ed0d5340e633150d4efee47830e0"
+      "semanticSha256": "291457e3ca89f254e90fab74043dc90e04f157a8cb16f8231b87b2c1fc859feb"
     },
     "routes": {
       "path": "manifests/routes.json",
@@ -22,11 +22,11 @@
     },
     "risks": {
       "path": "manifests/risks.json",
-      "semanticSha256": "cf1ab20c294a14582179eb13f11cf81165dea11a6423a07f1d72e9f3091dddf8"
+      "semanticSha256": "5a4c7bfa104129ad4f2c41f057417a94142a005da58077aac0e5bd7312a2d356"
     },
     "captureContract": {
       "path": "evidence/visual/capture-contract.json",
-      "semanticSha256": "fff2f7df3570089c4a41a9537e89412e4af5c510b7883a7da281a1252e27a910"
+      "semanticSha256": "5550675c91dc670ed473820feca70a09cdc64535f68284e5c06bf49cb1f46daa"
     },
     "whitelabelSurfaces": {
       "path": "manifests/surfaces.json",
@@ -36,7 +36,7 @@
   "canonicalization": {
     "algorithm": "fieldflow-verification-tuple-jsonl-v1",
     "encoding": "UTF-8",
-    "inputSemanticHash": "lowercase SHA-256 of UTF-8 JSON.stringify(JSON.parse(source bytes)); object key and array order are preserved, insignificant source whitespace is removed, and no LF is appended",
+    "inputSemanticHash": "lowercase SHA-256 of UTF-8 JSON.stringify over the parsed normative input with object key and array order preserved and no appended LF; acceptance requirements and risks omit only item state/evidence, while capture omits top-level state and normalizes runtimeImageDigest.value, fonts.resolvedFiles and scenarioEvidence to null; every other input uses the complete parsed value",
     "tupleFieldOrder": [
       "schemaVersion",
       "family",

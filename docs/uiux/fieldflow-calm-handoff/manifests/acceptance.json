@@ -1362,7 +1362,7 @@
       "id": "FFC-PB-022",
       "priority": "P0",
       "category": "planboard",
-      "requirement": "Interest selection atomically assigns personnel, updates capacity and emits one deduplicated refresh.",
+      "requirement": "Interest selection atomically confirms the selected response and assigns that personnel member. It reconciles requiredSlots as max(explicit required personnel count, distinct required role count, 1), recomputes filledSlots from distinct active assigned personnel, and transitions to scheduled only when the complete planned moment exists and every required slot is filled. It never regresses an active or final workflow status, preserves planned fields when work starts or completes, and emits one deduplicated refresh.",
       "workPackage": "W06",
       "verification": "database-integration",
       "routes": ["/planning", "/assignments/[id]"],

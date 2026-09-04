@@ -48,6 +48,7 @@ import {
   validateProductionInventory,
   validateRequirementEvidence,
   validateEvidenceIndexPayload,
+  validateEvidencePromotion,
   validateMachineEvidenceReport,
   validateRiskEvidence,
   validateRoutes,
@@ -1029,6 +1030,646 @@ test("protected lifecycle comparison rejects skips, downgrades and same-state ev
   }
 });
 
+test("evidence promotion allows only lifecycle manifests and their exact evidence closure", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-promotion-root-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/implementation"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          { id: "FFC-TEST-001", state: "CONTRACTED", evidence: null },
+        ],
+      })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "CONTRACTED",
+        environment: {
+          runtimeImageDigest: { value: null },
+          fonts: { resolvedFiles: null },
+        },
+        evidenceContract: { scenarioEvidence: null },
+      })}\n`,
+    );
+    writeFileSync(
+      resolve(fakeRoot, "implementation.js"),
+      "export const ok = false;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "common base B"], {
+      cwd: fakeRoot,
+    });
+    const commonBase = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+
+    writeFileSync(
+      resolve(fakeRoot, "implementation.js"),
+      "export const ok = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "implementation C"], {
+      cwd: fakeRoot,
+    });
+    const implementationCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    execFileSync(
+      "git",
+      ["checkout", "--quiet", "-b", "protected", commonBase],
+      {
+        cwd: fakeRoot,
+      },
+    );
+    writeFileSync(
+      resolve(fakeRoot, "implementation.js"),
+      "export const ok = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "squash merge S"], {
+      cwd: fakeRoot,
+    });
+    const protectedBase = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    execFileSync(
+      "git",
+      ["merge", "--quiet", "--no-ff", implementationCommit, "-m", "bind C"],
+      { cwd: fakeRoot },
+    );
+
+    const evidencePath =
+      "docs/uiux/fieldflow-calm-handoff/evidence/implementation/FFC-TEST-001.json";
+    const evidenceIndex = {
+      codePaths: [
+        {
+          path: "implementation.js",
+          blobSha256: createHash("sha256")
+            .update("export const ok = true;\n")
+            .digest("hex"),
+        },
+      ],
+      commands: [],
+      artifacts: { runtime: [], staging: [] },
+    };
+    const evidenceBytes = `${JSON.stringify(evidenceIndex)}\n`;
+    writeFileSync(resolve(fakeRoot, evidencePath), evidenceBytes);
+    const evidenceSha256 = createHash("sha256")
+      .update(evidenceBytes)
+      .digest("hex");
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          {
+            id: "FFC-TEST-001",
+            state: "IMPLEMENTED",
+            evidence: {
+              commit: implementationCommit,
+              index: `${evidencePath}#sha256=${evidenceSha256}`,
+            },
+          },
+        ],
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "promotion D"], {
+      cwd: fakeRoot,
+    });
+    const promotionCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const validErrors = [];
+    validateEvidencePromotion(validErrors, {
+      root: fakeRoot,
+      baseSha: protectedBase,
+      candidateSha: promotionCommit,
+    });
+    assert.deepEqual(validErrors, []);
+
+    writeFileSync(
+      resolve(fakeRoot, "auth-bypass.js"),
+      "export const bypass = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "smuggled code"], {
+      cwd: fakeRoot,
+    });
+    const smuggledCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const smuggledErrors = [];
+    validateEvidencePromotion(smuggledErrors, {
+      root: fakeRoot,
+      baseSha: protectedBase,
+      candidateSha: smuggledCommit,
+    });
+    assert.match(
+      smuggledErrors.join("\n"),
+      /promotion bevat een niet-toegestaan pad: auth-bypass\.js/u,
+    );
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("evidence promotion rejects an implementation head outside promotion history", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-promotion-ancestry-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/implementation"), {
+      recursive: true,
+    });
+    const baseAcceptance = {
+      requirements: [
+        { id: "FFC-TEST-001", state: "CONTRACTED", evidence: null },
+      ],
+    };
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify(baseAcceptance)}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "CONTRACTED",
+        environment: {
+          runtimeImageDigest: { value: null },
+          fonts: { resolvedFiles: null },
+        },
+        evidenceContract: { scenarioEvidence: null },
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "base"], {
+      cwd: fakeRoot,
+    });
+    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+
+    writeFileSync(
+      resolve(fakeRoot, "implementation.js"),
+      "export const c = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "unrelated C"], {
+      cwd: fakeRoot,
+    });
+    const unrelatedImplementation = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    execFileSync("git", ["checkout", "--quiet", baseCommit], { cwd: fakeRoot });
+
+    const evidencePath =
+      "docs/uiux/fieldflow-calm-handoff/evidence/implementation/FFC-TEST-001.json";
+    const evidenceBytes = `${JSON.stringify({
+      codePaths: [],
+      commands: [],
+      artifacts: { runtime: [], staging: [] },
+    })}\n`;
+    writeFileSync(resolve(fakeRoot, evidencePath), evidenceBytes);
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          {
+            id: "FFC-TEST-001",
+            state: "IMPLEMENTED",
+            evidence: {
+              commit: unrelatedImplementation,
+              index: `${evidencePath}#sha256=${createHash("sha256")
+                .update(evidenceBytes)
+                .digest("hex")}`,
+            },
+          },
+        ],
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "divergent D"], {
+      cwd: fakeRoot,
+    });
+    const promotionCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const errors = [];
+    validateEvidencePromotion(errors, {
+      root: fakeRoot,
+      baseSha: baseCommit,
+      candidateSha: promotionCommit,
+      basePackageRoot: packageRoot,
+      candidatePackageRoot: packageRoot,
+    });
+    assert.match(
+      errors.join("\n"),
+      /implementation- of capture-HEAD .* is geen ancestor van promotion-HEAD/u,
+    );
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("evidence promotion rejects a proven implementation reverted before D", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-promotion-revert-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/implementation"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          { id: "FFC-TEST-001", state: "CONTRACTED", evidence: null },
+        ],
+      })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({ state: "CONTRACTED" })}\n`,
+    );
+    writeFileSync(resolve(fakeRoot, "implementation.js"), "old behavior\n");
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "protected base B"], {
+      cwd: fakeRoot,
+    });
+    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+
+    writeFileSync(resolve(fakeRoot, "implementation.js"), "proven behavior\n");
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "implementation C"], {
+      cwd: fakeRoot,
+    });
+    const implementationCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+
+    const evidencePath =
+      "docs/uiux/fieldflow-calm-handoff/evidence/implementation/FFC-TEST-001.json";
+    const evidenceBytes = `${JSON.stringify({
+      codePaths: [
+        {
+          path: "implementation.js",
+          blobSha256: createHash("sha256")
+            .update("proven behavior\n")
+            .digest("hex"),
+        },
+      ],
+      commands: [],
+      artifacts: { runtime: [], staging: [] },
+    })}\n`;
+    writeFileSync(resolve(fakeRoot, "implementation.js"), "old behavior\n");
+    writeFileSync(resolve(fakeRoot, evidencePath), evidenceBytes);
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          {
+            id: "FFC-TEST-001",
+            state: "IMPLEMENTED",
+            evidence: {
+              commit: implementationCommit,
+              index: `${evidencePath}#sha256=${createHash("sha256")
+                .update(evidenceBytes)
+                .digest("hex")}`,
+            },
+          },
+        ],
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "promotion D"], {
+      cwd: fakeRoot,
+    });
+    const promotionCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const errors = [];
+    validateEvidencePromotion(errors, {
+      root: fakeRoot,
+      baseSha: baseCommit,
+      candidateSha: promotionCommit,
+    });
+    assert.match(
+      errors.join("\n"),
+      /bewezen codeblob ontbreekt of wijkt af op promotion-HEAD D/u,
+    );
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("implementation changes without a lifecycle advance remain outside the promotion allowlist", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-implementation-root-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        requirements: [
+          { id: "FFC-TEST-001", state: "CONTRACTED", evidence: null },
+        ],
+      })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({ state: "CONTRACTED" })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "base"], {
+      cwd: fakeRoot,
+    });
+    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    mkdirSync(resolve(fakeRoot, "artifacts/backoffice/src"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(fakeRoot, "artifacts/backoffice/src/product.ts"),
+      "export const implementation = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "implementation C"], {
+      cwd: fakeRoot,
+    });
+    const candidateCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const errors = [];
+    validateEvidencePromotion(errors, {
+      root: fakeRoot,
+      baseSha: baseCommit,
+      candidateSha: candidateCommit,
+    });
+    assert.deepEqual(errors, []);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("baseline promotion permits only the capture contract and its scenario artifacts", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-baseline-promotion-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual/production"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({ requirements: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "CONTRACTED",
+        evidenceContract: {
+          artifactPathBase: "evidence/visual",
+          scenarioEvidence: null,
+        },
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "capture C"], {
+      cwd: fakeRoot,
+    });
+    const captureCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/production/scenario.png"),
+      "capture bytes\n",
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "BASELINE_READY",
+        evidenceContract: {
+          artifactPathBase: "evidence/visual",
+          scenarioEvidence: [
+            {
+              scenarioId: "scenario",
+              provenance: { headCommit: captureCommit },
+              png: { path: "production/scenario.png" },
+            },
+          ],
+        },
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "baseline D"], {
+      cwd: fakeRoot,
+    });
+    const promotionCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const errors = [];
+    validateEvidencePromotion(errors, {
+      root: fakeRoot,
+      baseSha: captureCommit,
+      candidateSha: promotionCommit,
+    });
+    assert.deepEqual(errors, []);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("baseline promotion rejects captured production reverted before D", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-baseline-revert-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual/production"), {
+      recursive: true,
+    });
+    mkdirSync(resolve(fakeRoot, "artifacts/backoffice/src"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(packageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({ requirements: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "manifests/risks.json"),
+      `${JSON.stringify({ risks: [] })}\n`,
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "CONTRACTED",
+        evidenceContract: {
+          artifactPathBase: "evidence/visual",
+          scenarioEvidence: null,
+        },
+      })}\n`,
+    );
+    writeFileSync(
+      resolve(fakeRoot, "artifacts/backoffice/src/page.tsx"),
+      "export default function Page() { return 'old'; }\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "protected base B"], {
+      cwd: fakeRoot,
+    });
+    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    writeFileSync(
+      resolve(fakeRoot, "artifacts/backoffice/src/page.tsx"),
+      "export default function Page() { return 'captured'; }\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "capture C"], {
+      cwd: fakeRoot,
+    });
+    const captureCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+
+    writeFileSync(
+      resolve(fakeRoot, "artifacts/backoffice/src/page.tsx"),
+      "export default function Page() { return 'old'; }\n",
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/production/scenario.png"),
+      "capture bytes\n",
+    );
+    writeFileSync(
+      resolve(packageRoot, "evidence/visual/capture-contract.json"),
+      `${JSON.stringify({
+        state: "BASELINE_READY",
+        evidenceContract: {
+          artifactPathBase: "evidence/visual",
+          scenarioEvidence: [
+            {
+              scenarioId: "scenario",
+              provenance: { headCommit: captureCommit },
+              png: { path: "production/scenario.png" },
+            },
+          ],
+        },
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "baseline D"], {
+      cwd: fakeRoot,
+    });
+    const promotionCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const errors = [];
+    validateEvidencePromotion(errors, {
+      root: fakeRoot,
+      baseSha: baseCommit,
+      candidateSha: promotionCommit,
+    });
+    assert.match(
+      errors.join("\n"),
+      /historische implementatie- of capturetree uit C is niet byte- en mode-exact aanwezig/u,
+    );
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
 test("route inventory covers exactly every tenant dashboard and auth page", () => {
   const sources = discoverPageSources();
   assert.equal(sources.length, 79);
@@ -1082,6 +1723,29 @@ test("verification matrix recomputes every tuple stream and rejects tuple or pla
   const errors = [];
   validateVerificationMatrix(errors, { ...inputs, manifest: matrix });
   assert.deepEqual(errors, []);
+
+  const lifecycleAdvancedInputs = clone(inputs);
+  lifecycleAdvancedInputs.acceptance.requirements[0].state = "IMPLEMENTED";
+  lifecycleAdvancedInputs.acceptance.requirements[0].evidence = {
+    commit: "a".repeat(40),
+    index: `outputs/fieldflow-calm/index.json#sha256=${"b".repeat(64)}`,
+  };
+  lifecycleAdvancedInputs.risks.risks[0].state = "MITIGATED";
+  lifecycleAdvancedInputs.risks.risks[0].evidence = {
+    commit: "c".repeat(40),
+    index: `outputs/fieldflow-calm/risk.json#sha256=${"d".repeat(64)}`,
+  };
+  lifecycleAdvancedInputs.captureContract.state = "BASELINE_READY";
+  lifecycleAdvancedInputs.captureContract.environment.runtimeImageDigest.value = `sha256:${"e".repeat(64)}`;
+  lifecycleAdvancedInputs.captureContract.environment.fonts.resolvedFiles = [];
+  lifecycleAdvancedInputs.captureContract.evidenceContract.scenarioEvidence =
+    [];
+  const lifecycleErrors = [];
+  validateVerificationMatrix(lifecycleErrors, {
+    ...lifecycleAdvancedInputs,
+    manifest: matrix,
+  });
+  assert.deepEqual(lifecycleErrors, []);
 
   const drifted = clone(matrix);
   drifted.requirementBindings[0].tuplePayloadStreamSha256 = "0".repeat(64);
@@ -1298,6 +1962,22 @@ test("planboard action contract closes result storage, revisions and receipts", 
     validate(splitTransaction).join("\n"),
     /receipt-, replay-, RLS-, undo- of retentiecontract is onvolledig/u,
   );
+
+  for (const field of [
+    "requiredSlotsRule",
+    "filledSlotsRule",
+    "scheduledTransitionRule",
+    "statusNonRegressionRule",
+  ]) {
+    const weakenedInterestSelection = clone(planboard);
+    weakenedInterestSelection.interestSelectionContract[field] =
+      "Schedule immediately after selecting one candidate.";
+    assert.match(
+      validate(weakenedInterestSelection).join("\n"),
+      /Planboard interestselectie is niet als gesloten, atomische en volledig undoable/u,
+      field,
+    );
+  }
 });
 
 test("every e2e verification spelling requires the browser evidence command", () => {
