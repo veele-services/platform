@@ -6,7 +6,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import {
+  getBackofficeHostTenantResolution,
+  requireCurrentTenantId,
+} from "@/lib/auth/tenant";
 import { COOKIE_NAME } from "@/lib/auth/session-permissions";
 import { findAuthUserByEmail } from "@/lib/auth/portal-invites";
 import {
@@ -277,6 +280,11 @@ export async function signIn(
 
   if (!email || !password) {
     return { error: "E-mailadres en wachtwoord zijn verplicht." };
+  }
+
+  const hostResolution = await getBackofficeHostTenantResolution();
+  if (hostResolution.kind === "blocked") {
+    return { error: "Deze aanmeldlocatie is niet beschikbaar." };
   }
 
   const supabase = await createClient();

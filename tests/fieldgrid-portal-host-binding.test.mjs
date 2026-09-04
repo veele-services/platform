@@ -90,7 +90,55 @@ test("every runtime surface validates environment ownership before platform-host
   }
 });
 
-test("platform support and login reject cross-environment fixed hosts", () => {
+test("backoffice denies unresolved and ambiguous request hosts before tenant fallback or sign-in", () => {
+  const helper = read("artifacts/backoffice/src/lib/auth/tenant.ts");
+  const requestHost = read("artifacts/backoffice/src/lib/auth/request-host.ts");
+  const login = read("artifacts/backoffice/src/app/(auth)/login/page.tsx");
+  const auth = read("artifacts/backoffice/src/app/actions/auth.ts");
+  const resolver = helper.indexOf(
+    "const tenant = await resolveTenantByHost(normalizedHost)",
+  );
+  const developmentException = helper.indexOf(
+    "isBackofficeDevelopmentFallbackHost(normalizedHost)",
+    resolver,
+  );
+  const blockedReturn = helper.indexOf(
+    'return { kind: "blocked" };',
+    developmentException,
+  );
+  const tenantFallback = helper.indexOf(
+    "const tenantOptions = await getActiveBackofficeTenantsForUser(user.id)",
+  );
+
+  assert.ok(resolver >= 0, "backoffice should resolve the request host");
+  assert.ok(
+    developmentException > resolver && blockedReturn > developmentException,
+    "an unresolved non-development host must be blocked",
+  );
+  assert.ok(
+    blockedReturn < tenantFallback,
+    "host denial must precede membership and cookie fallback",
+  );
+  assert.match(requestHost, /trimmedHost\.includes\(","\)/u);
+  assert.match(requestHost, /REQUEST_HOST_PATTERN\.test\(trimmedHost\)/u);
+  assert.match(requestHost, /\["localhost", "127\.0\.0\.1", "::1"\]/u);
+  assert.match(requestHost, /process\.env\.REPLIT_DOMAINS/u);
+  assert.match(
+    login,
+    /getBackofficeHostTenantResolution\(\)[\s\S]*hostResolution\.kind === "blocked"[\s\S]*notFound\(\)/u,
+  );
+  assert.match(
+    auth,
+    /getBackofficeHostTenantResolution\(\)[\s\S]*hostResolution\.kind === "blocked"[\s\S]*Deze aanmeldlocatie is niet beschikbaar\./u,
+  );
+  assert.ok(
+    auth.indexOf("getBackofficeHostTenantResolution()") <
+      auth.indexOf("supabase.auth.signInWithPassword"),
+    "host denial must happen before credentials are submitted",
+  );
+});
+
+test("platform access, support, and login are bound to a strict environment-owned host", () => {
   const platform = read("artifacts/backoffice/src/lib/auth/platform.ts");
   const login = read("artifacts/backoffice/src/app/(auth)/login/page.tsx");
 
@@ -104,9 +152,61 @@ test("platform support and login reject cross-environment fixed hosts", () => {
     platformEnvironmentGuard >= 0 &&
       platformClassification > platformEnvironmentGuard,
   );
+  assert.match(
+    platform,
+    /requestHost\.kind === "host"[\s\S]*isEnvironmentOwnedPlatformHost\(requestHost\.host\)/u,
+  );
   assert.equal(
-    platform.match(/return isEnvironmentOwnedPlatformHost\(host\);/gu)?.length,
+    platform.match(/readBackofficeRequestHost\(/gu)?.length,
     2,
+    "both server-component and Request guards must use strict host parsing",
+  );
+
+  const currentPlatformUser = platform.indexOf(
+    "export async function getCurrentPlatformUser()",
+  );
+  const currentHostGuard = platform.indexOf(
+    "if (!(await isCurrentHostPlatformHost())) return null;",
+    currentPlatformUser,
+  );
+  const currentIdentityLookup = platform.indexOf(
+    "const userId = await getCurrentUserId();",
+    currentPlatformUser,
+  );
+  assert.ok(
+    currentPlatformUser >= 0 &&
+      currentHostGuard > currentPlatformUser &&
+      currentIdentityLookup > currentHostGuard,
+    "platform identity must be rejected by host before session lookup",
+  );
+
+  const requestPlatformUser = platform.indexOf(
+    "export async function getCurrentPlatformUserFromRequest(",
+  );
+  const requestHostGuard = platform.indexOf(
+    "if (!isRequestHostPlatformHost(request)) return null;",
+    requestPlatformUser,
+  );
+  const requestIdentityLookup = platform.indexOf(
+    "const userId = await getCurrentUserIdFromRequest(request);",
+    requestPlatformUser,
+  );
+  assert.ok(
+    requestPlatformUser >= 0 &&
+      requestHostGuard > requestPlatformUser &&
+      requestIdentityLookup > requestHostGuard,
+    "platform API identity must be rejected by host before session lookup",
+  );
+
+  const supportGrant = platform.indexOf(
+    "export async function getActiveSupportGrant(tenantId: string)",
+  );
+  assert.ok(
+    platform.indexOf(
+      "if (!(await isCurrentHostPlatformHost())) return null;",
+      supportGrant,
+    ) > supportGrant,
+    "support grants must not authorize actions from tenant or unknown hosts",
   );
 
   const loginEnvironmentGuard = login.indexOf(
@@ -114,16 +214,13 @@ test("platform support and login reject cross-environment fixed hosts", () => {
   );
   const loginClassification = login.indexOf("isPlatformHost(host)");
   assert.ok(
-    loginEnvironmentGuard >= 0 &&
-      loginClassification > loginEnvironmentGuard,
+    loginEnvironmentGuard >= 0 && loginClassification > loginEnvironmentGuard,
   );
 });
 
 test("customer portal identity is scoped to the host tenant", () => {
   const customer = read("artifacts/klant-pwa/src/actions/customer.ts");
-  const customerLayout = read(
-    "artifacts/klant-pwa/src/app/(app)/layout.tsx",
-  );
+  const customerLayout = read("artifacts/klant-pwa/src/app/(app)/layout.tsx");
 
   assert.match(customer, /requireCurrentCustomerPortalTenantId/u);
   assert.match(
