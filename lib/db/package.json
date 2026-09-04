@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
+    "./tenant-context": "./src/tenant-context.ts",
     "./email-service": "./src/email-service.ts",
     "./email-provider-resolution": "./src/email-provider-resolution.ts",
     "./email-secret-crypto": "./src/email-secret-crypto.ts",

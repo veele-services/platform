@@ -9,6 +9,10 @@ import {
 } from "@workspace/db";
 import { cookies, headers } from "next/headers";
 import { createClient, createClientFromRequest } from "@/lib/supabase/server";
+import {
+  readBackofficeRequestHost,
+  type BackofficeRequestHost,
+} from "@/lib/auth/request-host";
 import { isPlatformHost, normalizeHost } from "@/lib/auth/tenant-resolver";
 
 export type PlatformUserRole = "owner" | "admin" | "support";
@@ -29,7 +33,7 @@ export type CurrentSupportMode = {
   ttlSeconds: number;
   permissionKeys: string[];
   moduleKeys: string[];
-  priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
+  priority: (typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY)[number];
 };
 
 async function getCurrentUserId(): Promise<string | null> {
@@ -41,7 +45,9 @@ async function getCurrentUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-async function getCurrentUserIdFromRequest(request: Request): Promise<string | null> {
+async function getCurrentUserIdFromRequest(
+  request: Request,
+): Promise<string | null> {
   const supabase = createClientFromRequest(request);
   const {
     data: { user },
@@ -58,13 +64,22 @@ function isEnvironmentOwnedPlatformHost(host: string): boolean {
   );
 }
 
-async function isCurrentHostPlatformHost(): Promise<boolean> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  return isEnvironmentOwnedPlatformHost(host);
+function isParsedPlatformHost(requestHost: BackofficeRequestHost): boolean {
+  return (
+    requestHost.kind === "host" &&
+    isEnvironmentOwnedPlatformHost(requestHost.host)
+  );
 }
 
-function getCookieValueFromRequest(request: Request, name: string): string | null {
+async function isCurrentHostPlatformHost(): Promise<boolean> {
+  const requestHeaders = await headers();
+  return isParsedPlatformHost(readBackofficeRequestHost(requestHeaders));
+}
+
+function getCookieValueFromRequest(
+  request: Request,
+  name: string,
+): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;
 
@@ -86,16 +101,19 @@ function getCookieValueFromRequest(request: Request, name: string): string | nul
 }
 
 function isRequestHostPlatformHost(request: Request): boolean {
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-  return isEnvironmentOwnedPlatformHost(host);
+  return isParsedPlatformHost(readBackofficeRequestHost(request.headers));
 }
 
 export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {
+  if (!(await isCurrentHostPlatformHost())) return null;
+
   const userId = await getCurrentUserId();
   return getPlatformUserForUserId(userId);
 }
 
-async function getPlatformUserForUserId(userId: string | null): Promise<CurrentPlatformUser | null> {
+async function getPlatformUserForUserId(
+  userId: string | null,
+): Promise<CurrentPlatformUser | null> {
   if (!userId) return null;
 
   const platformUser = await getActivePlatformUserForUser(userId);
@@ -109,7 +127,11 @@ async function getPlatformUserForUserId(userId: string | null): Promise<CurrentP
   };
 }
 
-export async function getCurrentPlatformUserFromRequest(request: Request): Promise<CurrentPlatformUser | null> {
+export async function getCurrentPlatformUserFromRequest(
+  request: Request,
+): Promise<CurrentPlatformUser | null> {
+  if (!isRequestHostPlatformHost(request)) return null;
+
   const userId = await getCurrentUserIdFromRequest(request);
   return getPlatformUserForUserId(userId);
 }
@@ -123,7 +145,9 @@ export async function requirePlatformAdmin(): Promise<CurrentPlatformUser> {
   return platformUser;
 }
 
-export async function requirePlatformAdminFromRequest(request: Request): Promise<CurrentPlatformUser> {
+export async function requirePlatformAdminFromRequest(
+  request: Request,
+): Promise<CurrentPlatformUser> {
   const platformUser = await getCurrentPlatformUserFromRequest(request);
   if (!platformUser || !isPlatformAdminRole(platformUser.role)) {
     throw new Error("Forbidden: platform-admin access required");
@@ -142,6 +166,8 @@ export async function requirePlatformSupportUser(): Promise<CurrentPlatformUser>
 }
 
 export async function getActiveSupportGrant(tenantId: string) {
+  if (!(await isCurrentHostPlatformHost())) return null;
+
   const userId = await getCurrentUserId();
   if (!userId) return null;
 
@@ -169,9 +195,16 @@ export async function getCurrentSupportMode(): Promise<CurrentSupportMode | null
     platformUserId: supportAccess.platformUser.id,
     reason: supportAccess.grant.reason,
     expiresAt: expiresAt.toISOString(),
-    ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
-    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys) ? supportAccess.grant.permissionKeys : [],
-    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys) ? supportAccess.grant.moduleKeys : [],
+    ttlSeconds: Math.max(
+      0,
+      Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+    ),
+    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys)
+      ? supportAccess.grant.permissionKeys
+      : [],
+    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys)
+      ? supportAccess.grant.moduleKeys
+      : [],
     priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
   };
 }
@@ -200,9 +233,16 @@ export async function getCurrentSupportModeFromRequest(
     platformUserId: supportAccess.platformUser.id,
     reason: supportAccess.grant.reason,
     expiresAt: expiresAt.toISOString(),
-    ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
-    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys) ? supportAccess.grant.permissionKeys : [],
-    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys) ? supportAccess.grant.moduleKeys : [],
+    ttlSeconds: Math.max(
+      0,
+      Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+    ),
+    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys)
+      ? supportAccess.grant.permissionKeys
+      : [],
+    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys)
+      ? supportAccess.grant.moduleKeys
+      : [],
     priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
   };
 }

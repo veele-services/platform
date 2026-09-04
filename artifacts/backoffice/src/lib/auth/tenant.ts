@@ -16,6 +16,10 @@ import {
   normalizeHost,
   resolveTenantByHost,
 } from "@/lib/auth/tenant-resolver";
+import {
+  isBackofficeDevelopmentFallbackHost,
+  readBackofficeRequestHost,
+} from "@/lib/auth/request-host";
 
 export const BACKOFFICE_TENANT_COOKIE = "backoffice_tenant_id";
 
@@ -25,7 +29,7 @@ export type BackofficeTenantOption = {
   slug: string;
 };
 
-type HostTenantResolution =
+export type HostTenantResolution =
   | { kind: "tenant"; tenantId: string }
   | { kind: "platform" }
   | { kind: "blocked" }
@@ -64,11 +68,15 @@ function logDefaultTenantFallback(reason: string, userId: string | null): void {
   });
 }
 
-async function getHostTenantResolutionForHost(
+async function getBackofficeHostTenantResolutionForHost(
   host: string,
 ): Promise<HostTenantResolution> {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost) return { kind: "none" };
+  if (!normalizedHost) {
+    return process.env.NODE_ENV === "production"
+      ? { kind: "blocked" }
+      : { kind: "none" };
+  }
   if (!isFieldgridHostAllowedForRuntimeEnvironment(normalizedHost)) {
     return { kind: "blocked" };
   }
@@ -77,10 +85,9 @@ async function getHostTenantResolutionForHost(
   const tenant = await resolveTenantByHost(normalizedHost);
   if (tenant) return { kind: "tenant", tenantId: tenant.id };
 
-  const isLocalDevelopmentHost =
-    process.env.NODE_ENV !== "production" &&
-    ["localhost", "127.0.0.1", "::1"].includes(normalizedHost);
-  if (isLocalDevelopmentHost) return { kind: "none" };
+  if (isBackofficeDevelopmentFallbackHost(normalizedHost)) {
+    return { kind: "none" };
+  }
 
   // Every non-local host must resolve to an active tenant or platform context.
   // Falling back to the user's first tenant here would let an unknown custom
@@ -88,21 +95,23 @@ async function getHostTenantResolutionForHost(
   return { kind: "blocked" };
 }
 
-async function getHostTenantResolution(): Promise<HostTenantResolution> {
-  const requestHeaders = await headers();
-  const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  return getHostTenantResolutionForHost(host);
+async function getHostTenantResolutionFromHeaders(
+  requestHeaders: Pick<Headers, "get">,
+): Promise<HostTenantResolution> {
+  const requestHost = readBackofficeRequestHost(requestHeaders);
+  if (requestHost.kind !== "host") return requestHost;
+  return getBackofficeHostTenantResolutionForHost(requestHost.host);
 }
 
-async function getHostTenantResolutionFromRequest(
+export async function getBackofficeHostTenantResolution(): Promise<HostTenantResolution> {
+  const requestHeaders = await headers();
+  return getHostTenantResolutionFromHeaders(requestHeaders);
+}
+
+export async function getBackofficeHostTenantResolutionFromRequest(
   request: Request,
 ): Promise<HostTenantResolution> {
-  const host =
-    request.headers.get("x-forwarded-host") ??
-    request.headers.get("host") ??
-    "";
-  return getHostTenantResolutionForHost(host);
+  return getHostTenantResolutionFromHeaders(request.headers);
 }
 
 function getCookieValueFromRequest(
@@ -184,7 +193,7 @@ export async function getCurrentTenantId(): Promise<string | null> {
     return null;
   }
 
-  const hostResolution = await getHostTenantResolution();
+  const hostResolution = await getBackofficeHostTenantResolution();
   if (hostResolution.kind === "tenant") {
     if (await userHasActiveTenant(user.id, hostResolution.tenantId)) {
       return hostResolution.tenantId;
@@ -245,7 +254,8 @@ export async function getCurrentTenantIdFromRequest(
     return null;
   }
 
-  const hostResolution = await getHostTenantResolutionFromRequest(request);
+  const hostResolution =
+    await getBackofficeHostTenantResolutionFromRequest(request);
   if (hostResolution.kind === "tenant") {
     if (await userHasActiveTenant(user.id, hostResolution.tenantId)) {
       return hostResolution.tenantId;

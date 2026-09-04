@@ -191,6 +191,22 @@ test("browser scenarios use real runtime hostnames instead of forbidden Host hea
   assert.doesNotMatch(spec, /http:\/\/127\.0\.0\.1:932[123]/);
 });
 
+test("browser scenarios deny platform-owner sessions on tenant and unknown hosts", () => {
+  const spec = browserSpec();
+  assert.match(
+    spec,
+    /useIdentity\(page, platformOwnerId, tenantAHost\)[\s\S]*backofficeUrl\("\/platform", tenantAHost\)/u,
+  );
+  assert.match(
+    spec,
+    /backofficeUrl\("\/api\/platform\/staging-smoke", tenantAHost\)[\s\S]*status\(\)\)\.toBe\(401\)/u,
+  );
+  assert.match(
+    spec,
+    /useIdentity\(page, platformOwnerId, unknownHost\)[\s\S]*backofficeUrl\("\/platform", unknownHost\)/u,
+  );
+});
+
 test("suspended-tenant navigation is bound to the denial DOM instead of full resource load", () => {
   const spec = browserSpec();
   assert.match(
@@ -794,6 +810,10 @@ test("complex cold-start browser journeys have bounded CI headroom", () => {
   );
   assert.match(
     spec,
+    /expect\(page\.locator\("body"\)\)\.not\.toContainText\(\s+\/Runtime Customer A\|Planbord\/u/u,
+  );
+  assert.match(
+    spec,
     /page\.goto\(customerUrl\("\/klant\/facturen"\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/u,
   );
 });
@@ -953,10 +973,7 @@ test("Playwright uses explicit stack runner instead of config.webServer recursio
     runner,
     /name: 'core'[\s\S]*accessibility\.spec\.ts[\s\S]*golden-path\.spec\.ts/,
   );
-  assert.match(
-    runner,
-    /name: 'workflow-bot'[\s\S]*workflow-bot\.spec\.ts/,
-  );
+  assert.match(runner, /name: 'workflow-bot'[\s\S]*workflow-bot\.spec\.ts/);
   assert.match(runner, /resetFixturesBetweenPhases/);
   assert.match(runner, /mergePhaseReports\(completedPhases\)/);
   assert.match(runner, /PLAYWRIGHT_JSON_OUTPUT_FILE/);
