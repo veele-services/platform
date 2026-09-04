@@ -7,11 +7,10 @@ const workflow = readFileSync(
   "utf8",
 );
 
-test("resolved staging promotion branches must match the exact main tree", () => {
-  assert.match(workflow, /head_branch" == codex\/promote-\*/u);
-  assert.match(workflow, /PR_HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
-  assert.match(workflow, /git fetch origin main --depth=1/u);
-  assert.match(workflow, /git diff --quiet origin\/main "\$PR_HEAD_SHA"/u);
-  assert.match(workflow, /Promotion branch differs from main/u);
-  assert.doesNotMatch(workflow, /head_branch" == codex\/\*/u);
+test("staging pull requests accept only main as their source", () => {
+  assert.match(workflow, /base_branch" == "staging"/u);
+  assert.match(workflow, /head_branch" == "main"/u);
+  assert.doesNotMatch(workflow, /head_branch" == codex\/promote-/u);
+  assert.doesNotMatch(workflow, /git diff --quiet origin\/main/u);
+  assert.doesNotMatch(workflow, /exact main tree only/u);
 });
