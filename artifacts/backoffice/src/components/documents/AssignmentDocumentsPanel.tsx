@@ -58,12 +58,14 @@ interface Props {
   assignmentId: string;
   initialDocuments: DocumentRow[];
   canWrite: boolean;
+  canDelete: boolean;
 }
 
 export function AssignmentDocumentsPanel({
   assignmentId,
   initialDocuments,
   canWrite,
+  canDelete,
 }: Props) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [showUpload, setShowUpload] = useState(false);
@@ -265,19 +267,21 @@ export function AssignmentDocumentsPanel({
                   onClick={() => handleDownload(doc)}
                   disabled={isPending && downloadingId === doc.id}
                   title="Downloaden"
-                  className="rounded p-1.5 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded transition-colors hover:bg-slate-100 disabled:opacity-50"
+                  aria-label={`Download ${doc.name}`}
                 >
                   <Download
                     className="h-3.5 w-3.5"
                     style={{ color: downloadingId === doc.id ? "#94A3B8" : "var(--color-primary)" }}
                   />
                 </button>
-                {canWrite && (
+                {canDelete && (
                   <button
                     onClick={() => setDeleteTarget(doc)}
                     disabled={isPending && deletingId === doc.id}
                     title="Verwijderen"
-                    className="rounded p-1.5 transition-colors hover:bg-red-50 disabled:opacity-50"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded transition-colors hover:bg-red-50 disabled:opacity-50"
+                    aria-label={`Verwijder ${doc.name}`}
                   >
                     <Trash2
                       className="h-3.5 w-3.5"

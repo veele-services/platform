@@ -5,6 +5,10 @@ import test from "node:test";
 
 const migrationPath = "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql";
 const migration = readFileSync(migrationPath, "utf8");
+const tenantRbacMigration = readFileSync(
+  "lib/db/migrations/20260824150000_tenant_role_membership_scope.sql",
+  "utf8",
+);
 const customerIdentity = readFileSync("artifacts/klant-pwa/src/actions/customer.ts", "utf8");
 const customerAssignments = readFileSync("artifacts/klant-pwa/src/actions/assignments.ts", "utf8");
 const customerReports = readFileSync("artifacts/klant-pwa/src/actions/reports.ts", "utf8");
@@ -85,6 +89,121 @@ test("tenantless write inventory excludes read-only projections", () => {
   assert.match(dbHarness, /join information_schema\.tables tables_row/u);
   assert.match(dbHarness, /tables_row\.table_type = 'BASE TABLE'/u);
 });
+
+test("tenant RBAC migration adds both fail-closed composite ownership constraints", () => {
+  assert.match(tenantRbacMigration, /FOREIGN KEY \(tenant_id, tenant_role_id\)/u);
+  assert.match(tenantRbacMigration, /FOREIGN KEY \(tenant_id, user_id\)/u);
+  assert.doesNotMatch(tenantRbacMigration, /UPDATE\s+public\.tenant_user_roles/iu);
+  assert.doesNotMatch(tenantRbacMigration, /DELETE\s+FROM\s+public\.tenant_user_roles/iu);
+});
+
+test(
+  "installed tenant RBAC constraints reject cross-tenant roles and non-members",
+  async () => {
+    if (!process.env.DATABASE_URL) {
+      assert.match(
+        tenantRbacMigration,
+        /ADD CONSTRAINT tenant_user_roles_tenant_role_scope_fk[\s\S]*FOREIGN KEY \(tenant_id, tenant_role_id\)[\s\S]*NOT VALID/u,
+      );
+      assert.match(
+        tenantRbacMigration,
+        /ADD CONSTRAINT tenant_user_roles_tenant_membership_fk[\s\S]*FOREIGN KEY \(tenant_id, user_id\)[\s\S]*NOT VALID/u,
+      );
+      return;
+    }
+
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+    await client.query("begin");
+    try {
+      const tenantA = "a1000000-0000-4000-8000-000000000001";
+      const tenantB = "a1000000-0000-4000-8000-000000000002";
+      const userA = "a2000000-0000-4000-8000-000000000001";
+      const userB = "a2000000-0000-4000-8000-000000000002";
+      const roleA = "a3000000-0000-4000-8000-000000000001";
+
+      await client.query(
+        "insert into public.tenants (id, slug, name) values ($1, 'rbac-runtime-a', 'RBAC runtime A'), ($2, 'rbac-runtime-b', 'RBAC runtime B')",
+        [tenantA, tenantB],
+      );
+      await client.query(
+        "insert into public.tenant_users (tenant_id, user_id, role, status) values ($1, $2, 'member', 'active'), ($3, $4, 'member', 'active')",
+        [tenantA, userA, tenantB, userB],
+      );
+      await client.query(
+        "insert into public.tenant_roles (id, tenant_id, name, is_custom) values ($1, $2, 'Runtime role A', true)",
+        [roleA, tenantA],
+      );
+      await client.query(
+        "insert into public.tenant_user_roles (tenant_id, user_id, tenant_role_id) values ($1, $2, $3)",
+        [tenantA, userA, roleA],
+      );
+
+      for (const [savepoint, values, expectedConstraint] of [
+        [
+          "cross_tenant_role",
+          [tenantB, userB, roleA],
+          "tenant_user_roles_tenant_role_scope_fk",
+        ],
+        [
+          "missing_membership",
+          [tenantA, userB, roleA],
+          "tenant_user_roles_tenant_membership_fk",
+        ],
+      ]) {
+        await client.query(`savepoint ${savepoint}`);
+        try {
+          await client.query(
+            "insert into public.tenant_user_roles (tenant_id, user_id, tenant_role_id) values ($1, $2, $3)",
+            values,
+          );
+          assert.fail(`Expected ${expectedConstraint} to reject the insert`);
+        } catch (error) {
+          assert.equal(error.code, "23503");
+          assert.equal(error.constraint, expectedConstraint);
+          await client.query(`rollback to savepoint ${savepoint}`);
+        }
+        await client.query(`release savepoint ${savepoint}`);
+      }
+
+      await client.query(
+        "alter table public.tenant_user_roles validate constraint tenant_user_roles_tenant_role_scope_fk",
+      );
+      await client.query(
+        "alter table public.tenant_user_roles validate constraint tenant_user_roles_tenant_membership_fk",
+      );
+      const validated = await client.query(`
+        select conname, convalidated
+        from pg_constraint
+        where conrelid = 'public.tenant_user_roles'::regclass
+          and conname in (
+            'tenant_user_roles_tenant_role_scope_fk',
+            'tenant_user_roles_tenant_membership_fk'
+          )
+        order by conname
+      `);
+      assert.deepEqual(
+        validated.rows,
+        [
+          {
+            conname: "tenant_user_roles_tenant_membership_fk",
+            convalidated: true,
+          },
+          {
+            conname: "tenant_user_roles_tenant_role_scope_fk",
+            convalidated: true,
+          },
+        ],
+      );
+    } finally {
+      await client.query("rollback");
+      await client.end();
+    }
+  },
+);
 
 test(
   "installed Phase 2C definer catalog has trusted paths and explicit ACLs",

@@ -37,11 +37,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MaterialDetailPage({ params }: Props) {
-  const [canRead, canWrite, canReadDocuments, canWriteDocuments] = await Promise.all([
+  const [canRead, canUpdate, canArchive, canManage, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await Promise.all([
     hasPermission("materials", "view"),
     hasPermission("materials", "update"),
+    hasPermission("materials", "archive"),
+    hasPermission("materials", "manage"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="materials" action="view" />;
@@ -57,14 +60,15 @@ export default async function MaterialDetailPage({ params }: Props) {
 
   return (
     <>
-      <MaterialDetailView material={material} options={options} canWrite={canWrite} />
+      <MaterialDetailView material={material} options={options} canWrite={canUpdate || canManage} canArchive={canArchive || canManage} />
       {canReadDocuments && (
         <div className="mx-auto w-full max-w-[1800px] px-8 pb-8">
           <DocumentAttachmentPanel
             entityType="material"
             entityId={material.id}
             initialDocuments={documents}
-            canWrite={canWrite && canWriteDocuments}
+            canWrite={(canUpdate || canManage) && canWriteDocuments}
+            canDelete={(canUpdate || canManage) && canDeleteDocuments}
             title="Materiaalafbeeldingen en documenten"
             uploadLabel="Bestand koppelen"
             emptyMessage="Nog geen afbeelding, veiligheidsblad of productdocument gekoppeld."

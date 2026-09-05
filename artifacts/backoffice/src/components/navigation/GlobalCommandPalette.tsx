@@ -242,7 +242,7 @@ export function GlobalCommandPalette({
                     <CommandShortcut>G P</CommandShortcut>
                   </CommandItem>
                 ) : null}
-                {permissions.has("assignments:write") ? (
+                {permissions.has("assignments:read") && permissions.has("assignments:write") ? (
                   <CommandItem
                     value="nieuwe opdracht"
                     onSelect={() => navigate("/assignments?create=1")}

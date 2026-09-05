@@ -46,7 +46,9 @@ const ACTION_LABELS: Record<string, string> = {
 const RESOURCE_LABELS: Record<string, string> = {
   settings:    "Instellingen",
   roles:       "Rollen",
+  tenant_roles: "Rollen",
   users:       "Gebruikers",
+  tenant_users: "Gebruikers",
   customers:   "Klanten",
   objects:     "Objecten",
   assignments: "Opdrachten",

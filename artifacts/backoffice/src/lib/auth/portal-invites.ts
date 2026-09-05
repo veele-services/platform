@@ -10,6 +10,7 @@ import {
   PORTAL_ONBOARDING_VERSION_METADATA,
   resolveCredentialRecoveryOrigin,
   resolveFieldgridDeploymentEnvironment,
+  revokeCredentialRecoveryChallenges,
   type CredentialRecoverySurface,
 } from "@workspace/db";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -174,6 +175,7 @@ export async function provisionPortalUserForActivation(opts: {
   created: boolean;
   challengeId: string;
   expiresAt: Date;
+  rollback: () => Promise<void>;
 }> {
   const admin = createAdminClient();
   const email = opts.email.trim().toLowerCase();
@@ -210,6 +212,7 @@ export async function provisionPortalUserForActivation(opts: {
 
   let user: User;
   let created = false;
+  let originalUser: User | null = null;
   if (!createError && createdData.user) {
     user = createdData.user;
     created = true;
@@ -225,6 +228,7 @@ export async function provisionPortalUserForActivation(opts: {
         "Het bestaande auth-account kon niet veilig worden opgehaald.",
       );
     }
+    originalUser = existingUser;
     const existingPortal = existingUser.app_metadata?.portal;
     if (
       existingPortal &&
@@ -267,56 +271,107 @@ export async function provisionPortalUserForActivation(opts: {
     user = updatedData.user;
   }
 
-  const challenge = await issueCredentialRecoveryChallenge({
-    surface,
-    purpose: "activation",
-    tenantId: opts.tenantId,
-    accountIdentifier: email,
-    subjectUserId: user.id,
-    redirectOrigin,
-    actorUserId: opts.actorUserId ?? null,
-    networkSignal: opts.actorUserId
-      ? `actor:${opts.actorUserId}`
-      : "backoffice-issued",
-    clientSignal: "account-activation",
-  });
-  if (
-    challenge.status !== "issued" ||
-    !challenge.challengeId ||
-    !challenge.code ||
-    !challenge.expiresAt
-  ) {
-    throw new Error(
-      "Er is recent al een activatiemail verstuurd. Probeer het later opnieuw.",
-    );
-  }
+  let challengeId: string | null = null;
+  let rolledBack = false;
+  const rollback = async () => {
+    if (rolledBack) return;
+    const errors: string[] = [];
 
-  const { subject, html } = buildAccountActivationEmail({
-    recipientName: profileName ?? email,
-    portalName: opts.portalName,
-    activationUrl: opts.activationUrl,
-    code: challenge.code,
-  });
-  const sent = await sendEmailWithResult({
-    to: email,
-    subject,
-    html,
-    tenantId: opts.tenantId,
-    purpose: `${surface}_account_activation`,
-  });
-  const deliveryUncertain =
-    !sent.success && sent.deliveryEffect === "unknown";
-  await markCredentialRecoveryDelivery(
-    challenge.challengeId,
-    sent.success || deliveryUncertain,
-  );
-  if (deliveryUncertain) throw new PortalInviteDeliveryUncertainError();
-  if (!sent.success) throw new Error("Activatiemail versturen mislukt.");
+    if (challengeId) {
+      try {
+        await revokeCredentialRecoveryChallenges({
+          tenantId: opts.tenantId,
+          surface,
+          purpose: "activation",
+          subjectUserId: user.id,
+          actorUserId: opts.actorUserId ?? null,
+          reason: "portal_invite_rolled_back",
+        });
+      } catch {
+        errors.push("activatie-intrekking");
+      }
+    }
 
-  return {
-    user,
-    created,
-    challengeId: challenge.challengeId,
-    expiresAt: challenge.expiresAt,
+    if (created) {
+      const { error } = await admin.auth.admin.deleteUser(user.id);
+      if (error) errors.push("auth-accountverwijdering");
+    } else if (originalUser) {
+      const { error } = await admin.auth.admin.updateUserById(user.id, {
+        app_metadata: originalUser.app_metadata,
+        user_metadata: originalUser.user_metadata,
+      });
+      if (error) errors.push("auth-metadataherstel");
+    }
+
+    if (errors.length > 0) {
+      throw new Error(
+        `Uitnodiging is geweigerd, maar ${errors.join(" en ")} vereist handmatige controle.`,
+      );
+    }
+    rolledBack = true;
   };
+
+  try {
+    const challenge = await issueCredentialRecoveryChallenge({
+      surface,
+      purpose: "activation",
+      tenantId: opts.tenantId,
+      accountIdentifier: email,
+      subjectUserId: user.id,
+      redirectOrigin,
+      actorUserId: opts.actorUserId ?? null,
+      networkSignal: opts.actorUserId
+        ? `actor:${opts.actorUserId}`
+        : "backoffice-issued",
+      clientSignal: "account-activation",
+    });
+    if (
+      challenge.status !== "issued" ||
+      !challenge.challengeId ||
+      !challenge.code ||
+      !challenge.expiresAt
+    ) {
+      throw new Error(
+        "Er is recent al een activatiemail verstuurd. Probeer het later opnieuw.",
+      );
+    }
+    challengeId = challenge.challengeId;
+
+    const { subject, html } = buildAccountActivationEmail({
+      recipientName: profileName ?? email,
+      portalName: opts.portalName,
+      activationUrl: opts.activationUrl,
+      code: challenge.code,
+    });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId: opts.tenantId,
+      purpose: `${surface}_account_activation`,
+    });
+    const deliveryUncertain =
+      !sent.success && sent.deliveryEffect === "unknown";
+    await markCredentialRecoveryDelivery(
+      challenge.challengeId,
+      sent.success || deliveryUncertain,
+    );
+    if (deliveryUncertain) throw new PortalInviteDeliveryUncertainError();
+    if (!sent.success) throw new Error("Activatiemail versturen mislukt.");
+
+    return {
+      user,
+      created,
+      challengeId: challenge.challengeId,
+      expiresAt: challenge.expiresAt,
+      rollback,
+    };
+  } catch (error) {
+    try {
+      await rollback();
+    } catch (rollbackError) {
+      throw rollbackError;
+    }
+    throw error;
+  }
 }

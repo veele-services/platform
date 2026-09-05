@@ -44,12 +44,14 @@ function formatDate(value: string | null): string {
 }
 
 export default async function InventoryDetailPage({ params }: Props) {
-  const [canRead, canUpdate, canManage, canReadDocuments, canWriteDocuments] = await Promise.all([
+  const [canRead, canUpdate, canArchive, canManage, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await Promise.all([
     hasPermission("inventory", "view"),
     hasPermission("inventory", "update"),
+    hasPermission("inventory", "archive"),
     hasPermission("inventory", "manage"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="inventory" action="view" />;
@@ -82,7 +84,7 @@ export default async function InventoryDetailPage({ params }: Props) {
           <FollowupMetric label="Volgende onderhoud" value={formatDate(followup.nextMaintenanceDueDate)} tone={followup.overdueMaintenanceCount > 0 ? "danger" : "neutral"} />
         </div>
       </div>
-      <InventoryDetailView item={item} options={options} canWrite={canUpdate || canManage} />
+      <InventoryDetailView item={item} options={options} canWrite={canUpdate || canManage} canArchive={canArchive || canManage} />
       {canReadDocuments && (
         <div className="mx-auto w-full max-w-[1800px] px-8 pb-8">
           <DocumentAttachmentPanel
@@ -90,6 +92,7 @@ export default async function InventoryDetailPage({ params }: Props) {
             entityId={item.id}
             initialDocuments={documents}
             canWrite={(canUpdate || canManage) && canWriteDocuments}
+            canDelete={(canUpdate || canManage) && canDeleteDocuments}
             title="Inventarisfoto's en documenten"
             uploadLabel="Bestand koppelen"
             emptyMessage="Nog geen foto, handleiding, certificaat of document gekoppeld."

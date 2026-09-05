@@ -1556,7 +1556,7 @@ export async function setObjectStatus(
 }
 
 export async function deleteObject(id: string): Promise<ActionResult> {
-  await requirePermission("objects", "write");
+  await requirePermission("objects", "delete");
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();

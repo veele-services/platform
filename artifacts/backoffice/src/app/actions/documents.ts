@@ -189,6 +189,45 @@ async function isDocumentEntityInTenant(input: {
   return false;
 }
 
+async function canMutateDocumentContext(
+  entityType: DocumentEntityType,
+): Promise<boolean> {
+  if (entityType === "material") {
+    const [canUpdate, canManage] = await Promise.all([
+      hasPermission("materials", "update"),
+      hasPermission("materials", "manage"),
+    ]);
+    return canUpdate || canManage;
+  }
+
+  if (entityType === "inventory_item") {
+    const [canUpdate, canManage] = await Promise.all([
+      hasPermission("inventory", "update"),
+      hasPermission("inventory", "manage"),
+    ]);
+    return canUpdate || canManage;
+  }
+
+  if (entityType === "inventory_issue") {
+    const [canResolve, canManageMaintenance, canManage] = await Promise.all([
+      hasPermission("inventory", "resolve_issue"),
+      hasPermission("inventory", "manage_maintenance"),
+      hasPermission("inventory", "manage"),
+    ]);
+    return canResolve || canManageMaintenance || canManage;
+  }
+
+  if (entityType === "inventory_maintenance") {
+    const [canManageMaintenance, canManage] = await Promise.all([
+      hasPermission("inventory", "manage_maintenance"),
+      hasPermission("inventory", "manage"),
+    ]);
+    return canManageMaintenance || canManage;
+  }
+
+  return true;
+}
+
 function revalidateDocumentContext(entityType: DocumentEntityType, entityId: string | null) {
   revalidatePath("/documents");
   if (entityType === "assignment" && entityId) revalidatePath(`/assignments/${entityId}`);
@@ -424,6 +463,13 @@ export async function uploadDocument(
         ? (entityType as DocumentEntityType)
         : "general";
 
+    if (!(await canMutateDocumentContext(safeEntityType))) {
+      return {
+        success: false,
+        message: "U heeft geen rechten om documenten in deze context te wijzigen.",
+      };
+    }
+
     const entityAllowed = await isDocumentEntityInTenant({
       entityType: safeEntityType,
       entityId,
@@ -503,7 +549,7 @@ export async function uploadDocument(
 
 export async function deleteDocument(id: string): Promise<ActionResult> {
   try {
-    await requirePermission("documents", "write");
+    await requirePermission("documents", "delete");
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -531,6 +577,12 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
       tenantId,
     });
     if (!allowed) return { success: false, message: "Document niet gevonden." };
+    if (!(await canMutateDocumentContext(doc.entityType as DocumentEntityType))) {
+      return {
+        success: false,
+        message: "U heeft geen rechten om documenten in deze context te wijzigen.",
+      };
+    }
 
     const storagePath = getSafeDocumentStoragePath(doc.storagePath, tenantId);
     if (!storagePath) {

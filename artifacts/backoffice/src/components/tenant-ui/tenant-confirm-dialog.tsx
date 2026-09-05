@@ -26,7 +26,7 @@ export interface TenantConfirmDialogProps {
   confirmDisabled?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onConfirm?: () => void | Promise<void>;
+  onConfirm?: () => void | boolean | Promise<void | boolean>;
 }
 
 export function TenantConfirmDialog({
@@ -54,8 +54,8 @@ export function TenantConfirmDialog({
     setPending(true);
 
     try {
-      await onConfirm();
-      setOpen(false);
+      const shouldClose = await onConfirm();
+      if (shouldClose !== false) setOpen(false);
     } finally {
       setPending(false);
     }

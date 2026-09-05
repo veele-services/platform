@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { getRole, getRolePlanCapabilities } from "@/app/actions/settings";
+import { getTenantRole, getTenantRolePlanCapabilities } from "@/app/actions/tenant-roles";
 import { RolDetailView } from "@/components/settings/RolDetailView";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 
@@ -21,7 +21,7 @@ export default async function RolDetailPage({ params }: Props) {
   if (!canRead) return <ForbiddenPage resource="rollen" action="read" />;
 
   const { id } = await params;
-  const [role, capabilities] = await Promise.all([getRole(id), getRolePlanCapabilities()]);
+  const [role, capabilities] = await Promise.all([getTenantRole(id), getTenantRolePlanCapabilities()]);
   if (!role) notFound();
 
   return (

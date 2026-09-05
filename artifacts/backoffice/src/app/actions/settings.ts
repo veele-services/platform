@@ -21,6 +21,7 @@ import {
   personnelNotificationsTable,
   sectorsTable,
   tenantsTable,
+  tenantUserRolesTable,
   tenantUsersTable,
   toSafeStorageSegment,
 } from "@workspace/db";
@@ -1476,7 +1477,7 @@ export async function uploadOrgLogo(
 
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
-export async function getRolePlanCapabilities(): Promise<RolePlanCapabilities> {
+async function getRolePlanCapabilities(): Promise<RolePlanCapabilities> {
   await requirePermission("roles", "read");
   const [{ customRoles, plan }, canResetSystemRoles] = await Promise.all([
     getTenantPlanCapabilities(),
@@ -1497,7 +1498,7 @@ async function requireCustomRolesEnabled(): Promise<ActionResult | null> {
   return null;
 }
 
-export async function listRoles(): Promise<RoleRow[]> {
+async function listRoles(): Promise<RoleRow[]> {
   await requirePermission("roles", "read");
 
   const rows = await db
@@ -1522,7 +1523,7 @@ export async function listRoles(): Promise<RoleRow[]> {
   }));
 }
 
-export async function getRole(id: string): Promise<RoleDetail | null> {
+async function getRole(id: string): Promise<RoleDetail | null> {
   await requirePermission("roles", "read");
 
   const [role] = await db
@@ -1568,7 +1569,7 @@ export async function getRole(id: string): Promise<RoleDetail | null> {
   };
 }
 
-export async function createRole(data: {
+async function createRole(data: {
   name: string;
   description: string | null;
 }): Promise<ActionResult<{ id: string }>> {
@@ -1612,7 +1613,7 @@ export async function createRole(data: {
   return { success: true, data: { id: inserted.id } };
 }
 
-export async function updateRole(data: {
+async function updateRole(data: {
   id: string;
   name: string;
   description: string | null;
@@ -1679,7 +1680,7 @@ export async function updateRole(data: {
  * Toggle a single permission on/off for a role.
  * Used by the permission matrix checkboxes for optimistic per-toggle saves.
  */
-export async function toggleRolePermission(
+async function toggleRolePermission(
   roleId: string,
   permissionId: string,
   enabled: boolean,
@@ -1735,7 +1736,7 @@ export async function toggleRolePermission(
  * Batch-replace all permissions for a role.
  * Deletes all existing role-permissions and re-inserts the provided set.
  */
-export async function updateRolePermissions(
+async function updateRolePermissions(
   roleId: string,
   permissionIds: string[],
 ): Promise<ActionResult> {
@@ -1810,7 +1811,7 @@ async function assertTenantUserAccess(
   return null;
 }
 
-export async function listUsersWithRoles(): Promise<UserRow[]> {
+async function listUsersWithRoles(): Promise<UserRow[]> {
   await requirePermission("users", "read");
 
   const admin = createAdminClient();
@@ -1865,7 +1866,7 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
   });
 }
 
-export async function inviteUser(data: {
+async function inviteUser(data: {
   email: string;
   roleId: string;
 }): Promise<ActionResult> {
@@ -2122,7 +2123,7 @@ export async function sendUserPasswordReset(
  * Delete a custom (non-system) role.
  * Blocked when the role is a system role or when any active users are assigned to it.
  */
-export async function deleteRole(roleId: string): Promise<ActionResult> {
+async function deleteRole(roleId: string): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
   const supabase = await createClient();
@@ -2192,7 +2193,7 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function resetSystemRolesToDefault(): Promise<ActionResult> {
+async function resetSystemRolesToDefault(): Promise<ActionResult> {
   await requirePermission("roles", "delete");
 
   const supabase = await createClient();
@@ -2262,7 +2263,7 @@ export async function resetSystemRolesToDefault(): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function updateUserRoles(
+async function updateUserRoles(
   userId: string,
   roleIds: string[],
 ): Promise<ActionResult> {
@@ -2355,7 +2356,13 @@ export async function listAuditLog(
     );
   }
   if (module) {
-    conditions.push(eq(auditLogTable.resource, module));
+    const canonicalResources =
+      module === "roles"
+        ? ["roles", "tenant_roles"]
+        : module === "users"
+          ? ["users", "tenant_users"]
+          : [module];
+    conditions.push(inArray(auditLogTable.resource, canonicalResources));
   }
   if (dateFrom) {
     conditions.push(gte(auditLogTable.createdAt, new Date(dateFrom)));
@@ -2372,11 +2379,12 @@ export async function listAuditLog(
       exists(
         db
           .select({ one: sql`1` })
-          .from(userRolesTable)
+          .from(tenantUserRolesTable)
           .where(
             and(
-              eq(userRolesTable.userId, auditLogTable.userId),
-              eq(userRolesTable.roleId, roleId),
+              eq(tenantUserRolesTable.tenantId, tenantId),
+              eq(tenantUserRolesTable.userId, auditLogTable.userId),
+              eq(tenantUserRolesTable.tenantRoleId, roleId),
             ),
           ),
       ),
@@ -2400,7 +2408,13 @@ export async function listAuditLog(
         pEmail: personnelTable.email,
       })
       .from(auditLogTable)
-      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+      .leftJoin(
+        personnelTable,
+        and(
+          eq(personnelTable.userId, auditLogTable.userId),
+          eq(personnelTable.tenantId, auditLogTable.tenantId),
+        ),
+      )
       .where(where)
       .orderBy(desc(auditLogTable.createdAt))
       .limit(AUDIT_PAGE_SIZE)
@@ -2409,7 +2423,13 @@ export async function listAuditLog(
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(auditLogTable)
-      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+      .leftJoin(
+        personnelTable,
+        and(
+          eq(personnelTable.userId, auditLogTable.userId),
+          eq(personnelTable.tenantId, auditLogTable.tenantId),
+        ),
+      )
       .where(where),
 
     createAdminClient().auth.admin.listUsers({ perPage: 1000 }),

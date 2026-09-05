@@ -31,9 +31,11 @@ interface Props {
   object:    ObjectDetail;
   sectors:   SectorOption[];
   customers: CustomerOption[];
+  canWrite: boolean;
+  canDelete: boolean;
 }
 
-export function ObjectDetailActions({ object: obj, sectors, customers }: Props) {
+export function ObjectDetailActions({ object: obj, sectors, customers, canWrite, canDelete }: Props) {
   const router = useRouter();
   const [sheetOpen,  setSheetOpen]    = useState(false);
   const [deleteOpen, setDeleteOpen]   = useState(false);
@@ -90,9 +92,14 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
           error={geocodeError ?? obj.geocodingError}
           compact
         />
-        <DropdownMenu>
+        {canWrite || canDelete ? <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11 w-11 p-0"
+              aria-label="Objectacties openen"
+            >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -101,33 +108,30 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setSheetOpen(true)}>
-              <Pencil className="mr-2 h-4 w-4" /> Bewerken
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleGeocode} disabled={isPending}>
-              <MapPin className="mr-2 h-4 w-4" /> Locatie opnieuw geocoden
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleToggleStatus} disabled={isPending}>
-              {obj.isActive ? (
-                <><ToggleLeft className="mr-2 h-4 w-4" /> Deactiveren</>
-              ) : (
-                <><ToggleRight className="mr-2 h-4 w-4" /> Activeren</>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => setDeleteOpen(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
-            </DropdownMenuItem>
+            {canWrite ? <>
+              <DropdownMenuItem onSelect={() => setSheetOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Bewerken
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleGeocode} disabled={isPending}>
+                <MapPin className="mr-2 h-4 w-4" /> Locatie opnieuw geocoden
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleToggleStatus} disabled={isPending}>
+                {obj.isActive ? <><ToggleLeft className="mr-2 h-4 w-4" /> Deactiveren</> : <><ToggleRight className="mr-2 h-4 w-4" /> Activeren</>}
+              </DropdownMenuItem>
+            </> : null}
+            {canDelete ? <>
+              {canWrite ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuItem onSelect={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+              </DropdownMenuItem>
+            </> : null}
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> : null}
       </div>
 
       {/* Edit sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      {canWrite ? <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
           <SheetHeader>
             <SheetTitle>Object bewerken</SheetTitle>
@@ -144,10 +148,10 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
             />
           ) : null}
         </SheetContent>
-      </Sheet>
+      </Sheet> : null}
 
       {/* Delete confirm */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      {canDelete ? <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Object verwijderen?</AlertDialogTitle>
@@ -167,7 +171,7 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog> : null}
     </>
   );
 }
