@@ -17,10 +17,10 @@ function str(value: string | string[] | undefined, fallback = ""): string {
 }
 
 export default async function InventoryPage({ searchParams }: Props) {
-  const [canRead, canCreate, canUpdate, canManage] = await Promise.all([
+  const [canRead, canCreate, canArchive, canManage] = await Promise.all([
     hasPermission("inventory", "view"),
     hasPermission("inventory", "create"),
-    hasPermission("inventory", "update"),
+    hasPermission("inventory", "archive"),
     hasPermission("inventory", "manage"),
   ]);
 
@@ -65,7 +65,8 @@ export default async function InventoryPage({ searchParams }: Props) {
         rows={rows}
         total={total}
         options={options}
-        canWrite={canCreate || canUpdate || canManage}
+        canCreate={canCreate || canManage}
+        canArchive={canArchive || canManage}
         page={page}
         initialSearch={search}
         initialStatus={status}

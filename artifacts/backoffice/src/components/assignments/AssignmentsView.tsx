@@ -161,6 +161,7 @@ interface AssignmentsViewProps {
   customers: CustomerOption[];
   regionOptions: RegionOption[];
   canWrite: boolean;
+  canDelete: boolean;
   page: number;
   initialSearch: string;
   initialStatus: string;
@@ -178,6 +179,7 @@ export function AssignmentsView({
   customers,
   regionOptions,
   canWrite,
+  canDelete,
   page,
   initialSearch,
   initialStatus,
@@ -460,10 +462,10 @@ export function AssignmentsView({
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </Button>
-        {canWrite ? (
+        {canWrite || canDelete ? (
           <TenantActionMenu
             actions={[
-              {
+              ...(canWrite ? [{
                 id: "edit",
                 label: "Bewerken",
                 icon: <Pencil className="size-4" />,
@@ -471,24 +473,24 @@ export function AssignmentsView({
                   setEditingId(row.id);
                   setSheetOpen(true);
                 },
-              },
-              {
+              }] : []),
+              ...(canDelete ? [{
                 id: "delete",
                 label: "Annuleren",
                 icon: <Trash2 className="size-4" />,
                 destructive: true,
-                separatorBefore: true,
+                separatorBefore: canWrite,
                 onSelect: () => {
                   setDeleteReason("");
                   setDeleteTarget({ id: row.id, title: row.title });
                 },
-              },
+              }] : []),
             ]}
           />
         ) : null}
       </div>
     ),
-    [canWrite],
+    [canDelete, canWrite],
   );
 
   const columns = useMemo<FieldgridDataViewColumn<AssignmentRow>[]>(
@@ -789,7 +791,7 @@ export function AssignmentsView({
           onChange: handleSort,
         }}
         selection={
-          canWrite
+          canDelete
             ? {
                 selectedIds: selected,
                 onSelectionChange: setSelected,
@@ -798,7 +800,7 @@ export function AssignmentsView({
             : undefined
         }
         bulkActions={
-          canWrite
+          canDelete
             ? ({ clear }) => (
                 <>
                   <Button
@@ -892,8 +894,7 @@ export function AssignmentsView({
       />
 
       {canWrite ? (
-        <>
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetContent
               side="right"
               className="w-full overflow-y-auto sm:max-w-[560px]"
@@ -917,8 +918,11 @@ export function AssignmentsView({
                 onCancel={() => setSheetOpen(false)}
               />
             </SheetContent>
-          </Sheet>
+        </Sheet>
+      ) : null}
 
+      {canDelete ? (
+        <>
           <TenantConfirmDialog
             open={bulkCancelOpen}
             onOpenChange={(open) => {

@@ -130,6 +130,7 @@ export default async function ObjectDetailPage({
 
   const [
     canWrite,
+    canDelete,
     canReadAssignments,
     canReadMaterials,
     canReadInventory,
@@ -142,6 +143,7 @@ export default async function ObjectDetailPage({
     canReadDossierTimeline,
   ] = await Promise.all([
     hasPermission("objects", "write"),
+    hasPermission("objects", "delete"),
     hasPermission("assignments", "read"),
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
@@ -380,7 +382,7 @@ export default async function ObjectDetailPage({
 
       <TenantDetailLayout
         aside={
-          canWrite ? (
+          canWrite || canDelete ? (
             <TenantDetailResponsiveActions
               title="Objectacties"
               description="Pas objectgegevens, klantkoppeling en servicecontext aan."
@@ -389,6 +391,8 @@ export default async function ObjectDetailPage({
                 object={obj}
                 sectors={sectors}
                 customers={customers}
+                canWrite={canWrite}
+                canDelete={canDelete}
               />
             </TenantDetailResponsiveActions>
           ) : undefined

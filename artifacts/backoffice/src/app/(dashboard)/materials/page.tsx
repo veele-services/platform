@@ -17,11 +17,13 @@ function str(value: string | string[] | undefined, fallback = ""): string {
 }
 
 export default async function MaterialsPage({ searchParams }: Props) {
-  const [canRead, canWrite, canAdjust, canTransfer] = await Promise.all([
+  const [canRead, canCreate, canAdjust, canTransfer, canArchive, canManage] = await Promise.all([
     hasPermission("materials", "view"),
     hasPermission("materials", "create"),
     hasPermission("materials", "adjust_stock"),
     hasPermission("materials", "transfer_stock"),
+    hasPermission("materials", "archive"),
+    hasPermission("materials", "manage"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="materials" action="view" />;
@@ -65,8 +67,10 @@ export default async function MaterialsPage({ searchParams }: Props) {
         rows={rows}
         total={total}
         options={options}
-        canWrite={canWrite}
-        canAdjust={canAdjust || canTransfer}
+        canCreate={canCreate || canManage}
+        canAdjust={canAdjust || canManage}
+        canTransfer={canTransfer || canManage}
+        canArchive={canArchive || canManage}
         page={page}
         initialSearch={search}
         initialStatus={status}

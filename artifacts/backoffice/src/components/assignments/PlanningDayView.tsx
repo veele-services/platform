@@ -171,6 +171,7 @@ interface PlanningDayViewProps {
   rows:       TimelinePersonnelRow[];
   unassigned: TimelineAssignment[];
   canWrite:   boolean;
+  canCreateAssignment: boolean;
   customers:  CustomerOption[];
 }
 
@@ -179,6 +180,7 @@ export function PlanningDayView({
   rows,
   unassigned,
   canWrite,
+  canCreateAssignment,
   customers,
 }: PlanningDayViewProps) {
   const router = useRouter();
@@ -395,7 +397,7 @@ export function PlanningDayView({
             Volgende dag
             <ArrowLeft className="h-4 w-4 rotate-180" />
           </Button>
-          {canWrite && (
+          {canCreateAssignment && (
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />
               Nieuwe opdracht
@@ -421,7 +423,7 @@ export function PlanningDayView({
           <p className="text-sm font-medium" style={{ color: "#94A3B8" }}>
             Geen opdrachten ingepland op deze dag
           </p>
-          {canWrite && (
+          {canCreateAssignment && (
             <Button
               size="sm"
               variant="outline"
@@ -701,7 +703,7 @@ export function PlanningDayView({
       )}
 
       {/* ── Create assignment sheet ──────────────────────────────────── */}
-      {canWrite && (
+      {canCreateAssignment && (
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
           <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
             <SheetHeader>

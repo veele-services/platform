@@ -67,6 +67,7 @@ interface ObjectsViewProps {
   sectors:             SectorOption[];
   regionOptions:       RegionOption[];
   canWrite:            boolean;
+  canDelete:           boolean;
   page:                number;
   initialSearch:       string;
   initialCustomerId:   string;
@@ -84,6 +85,7 @@ export function ObjectsView({
   sectors,
   regionOptions,
   canWrite,
+  canDelete,
   page,
   initialSearch,
   initialCustomerId,
@@ -292,15 +294,17 @@ export function ObjectsView({
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
                 },
-                {
-                  id: "delete",
-                  label: "Verwijderen",
-                  icon: <Trash2 className="h-4 w-4" />,
-                  destructive: true,
-                  separatorBefore: true,
-                  onSelect: () => setDeleteTarget({ id: row.id, name: row.name }),
-                },
               ]
+            : []),
+          ...(canDelete
+            ? [{
+                id: "delete",
+                label: "Verwijderen",
+                icon: <Trash2 className="h-4 w-4" />,
+                destructive: true,
+                separatorBefore: true,
+                onSelect: () => setDeleteTarget({ id: row.id, name: row.name }),
+              }]
             : []),
         ]}
       />

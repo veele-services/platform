@@ -146,9 +146,16 @@ function EntityLink({ doc }: { doc: DocumentRow }) {
 interface Props {
   initialDocuments: DocumentRow[];
   canWrite: boolean;
+  canDelete: boolean;
+  contextMutationCapabilities: Partial<Record<DocumentEntityType, boolean>>;
 }
 
-export function DocumentsView({ initialDocuments, canWrite }: Props) {
+export function DocumentsView({
+  initialDocuments,
+  canWrite,
+  canDelete,
+  contextMutationCapabilities,
+}: Props) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [activeFilter, setActiveFilter] = useState<DocumentEntityType | "all">(
     "all",
@@ -161,6 +168,10 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
+
+  const canMutateContext = (entityType: DocumentEntityType) =>
+    contextMutationCapabilities[entityType] !== false;
+  const uploadEntityTypes = DOCUMENT_ENTITY_TYPES.filter(canMutateContext);
 
   const [uploadName, setUploadName] = useState("");
   const [uploadEntityType, setUploadEntityType] =
@@ -424,7 +435,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
               disabled: isPending && downloadingId === doc.id,
               onSelect: () => handleDownload(doc),
             },
-            ...(canWrite
+            ...(canDelete && canMutateContext(doc.entityType)
               ? [
                   {
                     id: "delete",
@@ -534,7 +545,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             className="veele-input mt-1 w-full"
             disabled={isPending}
           >
-            {DOCUMENT_ENTITY_TYPES.map((type) => (
+            {uploadEntityTypes.map((type) => (
               <option key={type} value={type}>
                 {ENTITY_TYPE_SINGULAR[type]}
               </option>

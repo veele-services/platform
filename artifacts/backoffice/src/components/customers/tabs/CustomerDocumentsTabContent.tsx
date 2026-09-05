@@ -5,15 +5,17 @@ interface Props {
   entityId:  string;
   documents: DocumentRow[];
   canWrite:  boolean;
+  canDelete: boolean;
 }
 
-export function CustomerDocumentsTabContent({ entityId, documents, canWrite }: Props) {
+export function CustomerDocumentsTabContent({ entityId, documents, canWrite, canDelete }: Props) {
   return (
     <EntityDocumentsPanel
       entityType="customer"
       entityId={entityId}
       initialDocuments={documents}
       canWrite={canWrite}
+      canDelete={canDelete}
     />
   );
 }

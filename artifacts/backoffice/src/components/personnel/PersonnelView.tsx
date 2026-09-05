@@ -209,6 +209,7 @@ interface PersonnelViewProps {
   roles: RoleOption[];
   sectors: SectorOption[];
   canWrite: boolean;
+  canDelete: boolean;
   page: number;
   initialSearch: string;
   initialRoleId: string;
@@ -226,6 +227,7 @@ export function PersonnelView({
   roles,
   sectors,
   canWrite,
+  canDelete,
   page,
   initialSearch,
   initialRoleId,
@@ -515,19 +517,17 @@ export function PersonnelView({
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
                 },
-                {
-                  id: "delete",
-                  label: "Verwijderen",
-                  icon: <Trash2 className="size-4" />,
-                  destructive: true,
-                  separatorBefore: true,
-                  onSelect: () =>
-                    setDeleteTarget({
-                      id: row.id,
-                      name: `${row.firstName} ${row.lastName}`,
-                    }),
-                },
               ]
+            : []),
+          ...(canDelete
+            ? [{
+                id: "delete",
+                label: "Verwijderen",
+                icon: <Trash2 className="size-4" />,
+                destructive: true,
+                separatorBefore: true,
+                onSelect: () => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` }),
+              }]
             : []),
         ]}
       />

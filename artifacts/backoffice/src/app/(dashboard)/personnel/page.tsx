@@ -25,9 +25,10 @@ function str(v: string | string[] | undefined, fallback = ""): string {
 }
 
 export default async function PersonnelPage({ searchParams }: Props) {
-  const [canRead, canWrite] = await Promise.all([
+  const [canRead, canWrite, canDelete] = await Promise.all([
     hasPermission("personnel", "read"),
     hasPermission("personnel", "write"),
+    hasPermission("personnel", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="personnel" action="read" />;
@@ -89,6 +90,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
         roles={roles}
         sectors={sectors}
         canWrite={canWrite}
+        canDelete={canDelete}
         page={page}
         initialSearch={search}
         initialRoleId={roleId}

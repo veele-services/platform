@@ -13,9 +13,26 @@ export default async function DocumentsPage() {
     return <ForbiddenPage resource="documents" action="read" />;
   }
 
-  const [documents, canWrite] = await Promise.all([
+  const [
+    documents,
+    canWrite,
+    canDelete,
+    canUpdateMaterials,
+    canManageMaterials,
+    canUpdateInventory,
+    canResolveInventoryIssues,
+    canManageInventoryMaintenance,
+    canManageInventory,
+  ] = await Promise.all([
     listDocuments(),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
+    hasPermission("materials", "update"),
+    hasPermission("materials", "manage"),
+    hasPermission("inventory", "update"),
+    hasPermission("inventory", "resolve_issue"),
+    hasPermission("inventory", "manage_maintenance"),
+    hasPermission("inventory", "manage"),
   ]);
 
   return (
@@ -26,7 +43,21 @@ export default async function DocumentsPage() {
         </p>
       </div>
 
-      <DocumentsView initialDocuments={documents} canWrite={canWrite} />
+      <DocumentsView
+        initialDocuments={documents}
+        canWrite={canWrite}
+        canDelete={canDelete}
+        contextMutationCapabilities={{
+          material: canUpdateMaterials || canManageMaterials,
+          inventory_item: canUpdateInventory || canManageInventory,
+          inventory_issue:
+            canResolveInventoryIssues ||
+            canManageInventoryMaintenance ||
+            canManageInventory,
+          inventory_maintenance:
+            canManageInventoryMaintenance || canManageInventory,
+        }}
+      />
     </div>
   );
 }

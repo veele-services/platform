@@ -33,6 +33,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 const PAGE_SIZE = 25;
 
@@ -73,8 +74,10 @@ export function MaterialsView({
   rows,
   total,
   options,
-  canWrite,
+  canCreate,
   canAdjust,
+  canTransfer,
+  canArchive,
   page,
   initialSearch,
   initialStatus,
@@ -83,8 +86,10 @@ export function MaterialsView({
   rows: MaterialRow[];
   total: number;
   options: MaterialManagementOptions;
-  canWrite: boolean;
+  canCreate: boolean;
   canAdjust: boolean;
+  canTransfer: boolean;
+  canArchive: boolean;
   page: number;
   initialSearch: string;
   initialStatus: string;
@@ -95,7 +100,7 @@ export function MaterialsView({
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [stockType, setStockType] =
-    useState<MaterialStockMovementInput["movementType"]>("received");
+    useState<MaterialStockMovementInput["movementType"]>(canAdjust ? "received" : "transferred");
   const [targetType, setTargetType] = useState("object");
   const [searchInput, setSearchInput] = useState(initialSearch);
 
@@ -276,19 +281,21 @@ export function MaterialsView({
             <option value="inactive">Inactief</option>
             <option value="archived">Gearchiveerd</option>
           </SelectAdapter>
-          {canAdjust && (
+          {(canAdjust || canTransfer) && (
             <StockMovementSheet
               activeRows={activeRows}
               options={options}
               pending={pending}
               stockType={stockType}
+              canAdjust={canAdjust}
+              canTransfer={canTransfer}
               targetType={targetType}
               onStockTypeChange={setStockType}
               onTargetTypeChange={setTargetType}
               onSubmit={handleStock}
             />
           )}
-          {canWrite && (
+          {canCreate && (
             <CreateMaterialSheet
               options={options}
               pending={pending}
@@ -451,22 +458,30 @@ export function MaterialsView({
                             Openen
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
-                          {canWrite && !row.archivedAt && (
-                            <button
-                              type="button"
-                              onClick={() =>
+                          {canArchive && !row.archivedAt && (
+                            <TenantConfirmDialog
+                              title="Materiaal archiveren?"
+                              description={`Weet u zeker dat u ${row.name} wilt archiveren?`}
+                              confirmLabel="Archiveren"
+                              destructive
+                              onConfirm={() =>
                                 run(
                                   () => archiveMaterial(row.id),
                                   "Materiaal gearchiveerd.",
                                 )
                               }
-                              className="inline-flex items-center gap-1 text-xs font-medium hover:underline disabled:opacity-60"
-                              style={{ color: "#B45309" }}
-                              disabled={pending}
-                            >
-                              <Archive className="h-3.5 w-3.5" />
-                              Archiveer
-                            </button>
+                              trigger={
+                                <button
+                                  type="button"
+                                  className="inline-flex min-h-11 items-center gap-1 px-2 text-xs font-medium hover:underline disabled:opacity-60"
+                                  style={{ color: "#B45309" }}
+                                  disabled={pending}
+                                >
+                                  <Archive className="h-3.5 w-3.5" />
+                                  Archiveer
+                                </button>
+                              }
+                            />
                           )}
                         </div>
                       </td>
@@ -651,6 +666,8 @@ function StockMovementSheet({
   options,
   pending,
   stockType,
+  canAdjust,
+  canTransfer,
   targetType,
   onStockTypeChange,
   onTargetTypeChange,
@@ -660,6 +677,8 @@ function StockMovementSheet({
   options: MaterialManagementOptions;
   pending: boolean;
   stockType: MaterialStockMovementInput["movementType"];
+  canAdjust: boolean;
+  canTransfer: boolean;
   targetType: string;
   onStockTypeChange: (
     value: MaterialStockMovementInput["movementType"],
@@ -714,9 +733,8 @@ function StockMovementSheet({
                 className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
                 style={{ borderColor: "#CBD5E1" }}
               >
-                <option value="received">Ontvangen</option>
-                <option value="corrected">Corrigeren</option>
-                <option value="transferred">Verplaatsen</option>
+                {canAdjust ? <><option value="received">Ontvangen</option><option value="corrected">Corrigeren</option></> : null}
+                {canTransfer ? <option value="transferred">Verplaatsen</option> : null}
               </SelectAdapter>
             </label>
             <label className="text-sm font-medium" style={{ color: "#334155" }}>

@@ -70,12 +70,14 @@ interface Props {
   users: UserRow[];
   roles: RoleRow[];
   canWrite: boolean;
+  canAssignRoles: boolean;
 }
 
 export function GebruikersView({
   users: initialUsers,
   roles,
   canWrite,
+  canAssignRoles,
 }: Props) {
   const [users, setUsers] = useState(initialUsers);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -223,7 +225,7 @@ export function GebruikersView({
           {error && <Flash tone="error" text={error} />}
           {success && <Flash tone="success" text={success} />}
         </div>
-        {canWrite && (
+        {canAssignRoles && roles.length > 0 && (
           <InviteUserSheet
             open={inviteOpen}
             onOpenChange={setInviteOpen}
@@ -335,6 +337,7 @@ export function GebruikersView({
                         onDeactivate={() => handleDeactivate(user.userId)}
                         onResend={() => handleResend(user.userId)}
                         onPasswordReset={() => handlePasswordReset(user.userId)}
+                        canAssignRoles={canAssignRoles && user.canManageRoles}
                         onEditRoles={() =>
                           startEditRoles(user.userId, user.roleIds)
                         }
@@ -355,17 +358,19 @@ export function GebruikersView({
         )}
       </div>
 
-      <EditRolesSheet
-        open={Boolean(editingUser)}
-        user={editingUser}
-        roles={roles}
-        selectedRoleIds={editRoleIds}
-        pending={isPending}
-        actionError={editingUser ? actionError[editingUser.userId] : undefined}
-        onOpenChange={(open) => !open && cancelEditRoles()}
-        onToggleRole={toggleRoleId}
-        onSubmit={() => editingUser && handleSaveRoles(editingUser.userId)}
-      />
+      {canAssignRoles && (
+        <EditRolesSheet
+          open={Boolean(editingUser)}
+          user={editingUser}
+          roles={roles}
+          selectedRoleIds={editRoleIds}
+          pending={isPending}
+          actionError={editingUser ? actionError[editingUser.userId] : undefined}
+          onOpenChange={(open) => !open && cancelEditRoles()}
+          onToggleRole={toggleRoleId}
+          onSubmit={() => editingUser && handleSaveRoles(editingUser.userId)}
+        />
+      )}
     </div>
   );
 }
@@ -533,6 +538,7 @@ function UserActionMenu({
   onDeactivate,
   onResend,
   onPasswordReset,
+  canAssignRoles,
   onEditRoles,
 }: {
   user: UserRow;
@@ -542,6 +548,7 @@ function UserActionMenu({
   onDeactivate: () => void;
   onResend: () => void;
   onPasswordReset: () => void;
+  canAssignRoles: boolean;
   onEditRoles: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -550,13 +557,15 @@ function UserActionMenu({
     <div className="inline-flex items-center justify-end">
       <TenantActionMenu
         actions={[
-          {
-            id: "roles",
-            label: "Rollen bewerken",
-            icon: <Pencil className="h-3.5 w-3.5" />,
-            disabled: pending,
-            onSelect: () => onEditRoles(),
-          },
+          ...(canAssignRoles
+            ? [{
+                id: "roles",
+                label: "Rollen bewerken",
+                icon: <Pencil className="h-3.5 w-3.5" />,
+                disabled: pending,
+                onSelect: () => onEditRoles(),
+              }]
+            : []),
           {
             id: "password-reset",
             label: "Resetcode mailen",

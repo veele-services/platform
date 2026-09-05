@@ -20,9 +20,10 @@ function str(v: string | string[] | undefined, fallback = ""): string {
 }
 
 export default async function CustomersPage({ searchParams }: Props) {
-  const [canRead, canWrite] = await Promise.all([
+  const [canRead, canWrite, canDelete] = await Promise.all([
     hasPermission("customers", "read"),
     hasPermission("customers", "write"),
+    hasPermission("customers", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="customers" action="read" />;
@@ -57,6 +58,7 @@ export default async function CustomersPage({ searchParams }: Props) {
         customerTypes={customerTypes}
         accountManagers={accountManagers}
         canWrite={canWrite}
+        canDelete={canDelete}
         canWriteNotes={canWrite}
         page={page}
         initialSearch={search}

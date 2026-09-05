@@ -2,15 +2,16 @@
 
 import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Save } from "lucide-react";
-import { toggleRolePermission, updateRole } from "@/app/actions/settings";
-import type { RoleDetail, PermissionItem, RolePlanCapabilities } from "@/app/actions/settings";
+import { Save } from "lucide-react";
+import { toggleTenantRolePermission, updateTenantRole } from "@/app/actions/tenant-roles";
+import type { TenantRoleDetail, TenantPermissionItem, TenantRolePlanCapabilities } from "@/app/actions/tenant-roles";
 import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
-  role:     RoleDetail;
+  role:     TenantRoleDetail;
   canWrite: boolean;
-  capabilities: RolePlanCapabilities;
+  capabilities: TenantRolePlanCapabilities;
 }
 
 const RESOURCE_LABELS: Record<string, string> = {
@@ -53,7 +54,7 @@ export function RolDetailView({ role, canWrite, capabilities }: Props) {
   const canEditCustomRole = canWrite && capabilities.customRoles && !role.isSystem;
   const enabledIds = new Set(role.permissions.map((p) => p.id));
 
-  const byResource = new Map<string, PermissionItem[]>();
+  const byResource = new Map<string, TenantPermissionItem[]>();
   for (const p of role.allPermissions) {
     const list = byResource.get(p.resource) ?? [];
     list.push(p);
@@ -114,9 +115,9 @@ function RoleMetadataForm({
   canEdit,
   capabilities,
 }: {
-  role: RoleDetail;
+  role: TenantRoleDetail;
   canEdit: boolean;
-  capabilities: RolePlanCapabilities;
+  capabilities: TenantRolePlanCapabilities;
 }) {
   const router = useRouter();
   const [name, setName] = useState(role.name);
@@ -128,7 +129,7 @@ function RoleMetadataForm({
     e.preventDefault();
     setMessage(null);
     startTransition(async () => {
-      const result = await updateRole({
+      const result = await updateTenantRole({
         id: role.id,
         name: name.trim(),
         description: description.trim() || null,
@@ -210,7 +211,7 @@ function ResourceRow({
   canWrite,
 }: {
   resource:    string;
-  permissions: PermissionItem[];
+  permissions: TenantPermissionItem[];
   enabledIds:  Set<string>;
   roleId:      string;
   canWrite:    boolean;
@@ -243,7 +244,7 @@ function PermissionToggle({
   roleId,
   canWrite,
 }: {
-  permission: PermissionItem;
+  permission: TenantPermissionItem;
   enabled:    boolean;
   roleId:     string;
   canWrite:   boolean;
@@ -251,15 +252,16 @@ function PermissionToggle({
   const [checked, setChecked] = useState(enabled);
   const [isPending, startTransition] = useTransition();
   const [flash, setFlash] = useState<"ok" | "err" | null>(null);
+  const canToggle = canWrite && (checked || permission.canGrant);
 
   const handleChange = useCallback(
     (next: boolean) => {
-      if (!canWrite || isPending) return;
+      if (!canToggle || isPending) return;
       setChecked(next);
       setFlash(null);
 
       startTransition(async () => {
-        const result = await toggleRolePermission(roleId, permission.id, next);
+        const result = await toggleTenantRolePermission(roleId, permission.id, next);
         if (!result.success) {
           setChecked(!next);
           setFlash("err");
@@ -270,44 +272,26 @@ function PermissionToggle({
         }
       });
     },
-    [canWrite, isPending, roleId, permission.id],
+    [canToggle, isPending, roleId, permission.id],
   );
 
   return (
-    <label
-      className={`inline-flex items-center gap-2 text-xs select-none ${canWrite ? "cursor-pointer" : "cursor-default"}`}
-    >
+    <label className={`inline-flex min-h-11 items-center gap-2 text-xs select-none ${canToggle ? "cursor-pointer" : "cursor-default"}`}>
+      <Checkbox
+        checked={checked}
+        disabled={!canToggle || isPending}
+        aria-label={`${actionLabel(permission.action)} voor ${resourceLabel(permission.resource)}`}
+        onCheckedChange={(next) => handleChange(next === true)}
+      />
       <span
-        role="checkbox"
-        aria-checked={checked}
-        tabIndex={canWrite ? 0 : -1}
-        onClick={() => canWrite && handleChange(!checked)}
-        onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); canWrite && handleChange(!checked); } }}
-        className={`
-          relative inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border transition-colors focus-visible:outline-none focus-visible:ring-2
-          ${checked ? "border-transparent" : "border-slate-300"}
-          ${isPending ? "opacity-50" : ""}
-        `}
-        style={{
-          backgroundColor: checked ? "var(--color-primary)" : "#F8FAFC",
-        }}
-      >
-        {checked && (
-          <svg
-            className="h-3 w-3 text-white"
-            fill="none" viewBox="0 0 12 12"
-            stroke="currentColor" strokeWidth={2.5}
-          >
-            <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </span>
-      <span
+        aria-live="polite"
         style={{
           color: flash === "err" ? "#DC2626" : flash === "ok" ? "#059669" : "#374151",
         }}
       >
         {actionLabel(permission.action)}
+        {!checked && canWrite && !permission.canGrant ? " — niet toewijsbaar" : ""}
+        {flash === "err" ? " — opslaan mislukt" : flash === "ok" ? " — opgeslagen" : ""}
       </span>
     </label>
   );
