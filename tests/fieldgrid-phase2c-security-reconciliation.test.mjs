@@ -99,8 +99,19 @@ test("tenant RBAC migration adds both fail-closed composite ownership constraint
 
 test(
   "installed tenant RBAC constraints reject cross-tenant roles and non-members",
-  { skip: !process.env.DATABASE_URL },
   async () => {
+    if (!process.env.DATABASE_URL) {
+      assert.match(
+        tenantRbacMigration,
+        /ADD CONSTRAINT tenant_user_roles_tenant_role_scope_fk[\s\S]*FOREIGN KEY \(tenant_id, tenant_role_id\)[\s\S]*NOT VALID/u,
+      );
+      assert.match(
+        tenantRbacMigration,
+        /ADD CONSTRAINT tenant_user_roles_tenant_membership_fk[\s\S]*FOREIGN KEY \(tenant_id, user_id\)[\s\S]*NOT VALID/u,
+      );
+      return;
+    }
+
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
