@@ -514,6 +514,18 @@ test("evidence workflows are base-owned, exact-head, pinned, and secret-free", (
     /name: \$\{\{ needs\.validate\.outputs\.artifact-name \}\}/u,
   );
   assert.match(evidenceAttestationJob, /Checkout the trusted PR base/u);
+  assert.match(
+    evidenceAttestationJob,
+    /repository: \$\{\{ github\.event\.pull_request\.base\.repo\.full_name \}\}[\s\S]*ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/u,
+  );
+  assert.doesNotMatch(
+    evidenceAttestationJob,
+    /ref: \$\{\{ needs\.validate\.outputs\.base-sha \}\}/u,
+  );
+  assert.match(
+    evidenceAttestationJob,
+    /EXPECTED_BASE: \$\{\{ needs\.validate\.outputs\.base-sha \}\}[\s\S]*git -C trusted rev-parse --verify 'HEAD\^\{commit\}'\)" = "\$EXPECTED_BASE"/u,
+  );
   assert.match(evidenceAttestationJob, /\.summary\.manual == 0/u);
   assert.match(evidenceAttestationJob, /pull_request_target/u);
   assert.doesNotMatch(
@@ -594,6 +606,18 @@ test("evidence workflows are base-owned, exact-head, pinned, and secret-free", (
     /name: \$\{\{ needs\.validate\.outputs\.artifact-name \}\}/u,
   );
   assert.match(visualAttestationJob, /Checkout the trusted PR base/u);
+  assert.match(
+    visualAttestationJob,
+    /repository: \$\{\{ github\.event\.pull_request\.base\.repo\.full_name \}\}[\s\S]*ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/u,
+  );
+  assert.doesNotMatch(
+    visualAttestationJob,
+    /ref: \$\{\{ needs\.validate\.outputs\.base-sha \}\}/u,
+  );
+  assert.match(
+    visualAttestationJob,
+    /EXPECTED_BASE: \$\{\{ needs\.validate\.outputs\.base-sha \}\}[\s\S]*git -C trusted rev-parse --verify 'HEAD\^\{commit\}'\)" = "\$EXPECTED_BASE"/u,
+  );
   assert.match(visualAttestationJob, /EXPECTED_WORKFLOW_SHA256/u);
   assert.match(visualAttestationJob, /\.artifacts \| all/u);
   assert.doesNotMatch(
