@@ -9,6 +9,12 @@ import {
   saveWeeklyAvailability,
 } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
+import {
+  addCalendarDays,
+  addCalendarMonths,
+  amsterdamDateKey,
+  parseCalendarDateKey,
+} from "@workspace/db/amsterdam-date";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, lte } from "drizzle-orm";
 
@@ -42,63 +48,25 @@ export type AvailabilityCalendarData = {
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function dateKey(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-function todayDateKey(): string {
-  return dateKey(new Date());
-}
-
-function parseDateKey(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
-}
-
-function addDays(value: string, days: number): string {
-  const date = parseDateKey(value);
-  date.setDate(date.getDate() + days);
-  return dateKey(date);
-}
-
-function addMonths(
-  value: string,
-  months: number,
-  preferredDay: number,
-): string {
-  const source = parseDateKey(value);
-  const target = new Date(source.getFullYear(), source.getMonth() + months, 1);
-  const lastDay = new Date(
-    target.getFullYear(),
-    target.getMonth() + 1,
-    0,
-  ).getDate();
-  target.setDate(Math.min(preferredDay, lastDay));
-  return dateKey(target);
-}
-
 function buildRepeatDates(
   startDate: string,
   repeatType: AvailabilityRepeat,
   maxDate: string,
 ): string[] {
   const dates: string[] = [];
-  const preferredDay = parseDateKey(startDate).getDate();
+  const preferredDay = parseCalendarDateKey(startDate)?.day;
+  if (!preferredDay) return dates;
   let current = startDate;
   let step = 0;
 
   while (current <= maxDate && dates.length < 380) {
     dates.push(current);
     if (repeatType === "none") break;
-    if (repeatType === "daily") current = addDays(current, 1);
-    if (repeatType === "weekly") current = addDays(current, 7);
+    if (repeatType === "daily") current = addCalendarDays(current, 1);
+    if (repeatType === "weekly") current = addCalendarDays(current, 7);
     if (repeatType === "monthly") {
       step += 1;
-      current = addMonths(startDate, step, preferredDay);
+      current = addCalendarMonths(startDate, step, preferredDay);
     }
   }
 
@@ -115,16 +83,14 @@ function validateTimeRange(startTime: string, endTime: string): string | null {
   return null;
 }
 
-async function getAvailabilityAdvanceDays(tenantId?: string): Promise<number> {
+async function getAvailabilityAdvanceDays(tenantId: string): Promise<number> {
   const [settings] = await db
     .select({
       availabilityAdvanceDays:
         organizationSettingsTable.availabilityAdvanceDays,
     })
     .from(organizationSettingsTable)
-    .where(
-      tenantId ? eq(organizationSettingsTable.tenantId, tenantId) : undefined,
-    )
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
   return settings?.availabilityAdvanceDays ?? 60;
@@ -176,9 +142,9 @@ export async function getMyAvailabilityCalendar(): Promise<AvailabilityCalendarD
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const today = todayDateKey();
-  let advanceDays = await getAvailabilityAdvanceDays();
-  let maxDate = addDays(today, advanceDays);
+  const today = amsterdamDateKey();
+  let advanceDays = 60;
+  let maxDate = addCalendarDays(today, advanceDays);
 
   if (!user) {
     return { today, maxDate, advanceDays, entries: [], weeklyVersion: null };
@@ -189,7 +155,7 @@ export async function getMyAvailabilityCalendar(): Promise<AvailabilityCalendarD
     return { today, maxDate, advanceDays, entries: [], weeklyVersion: null };
   }
   advanceDays = await getAvailabilityAdvanceDays(personnel.tenantId);
-  maxDate = addDays(today, advanceDays);
+  maxDate = addCalendarDays(today, advanceDays);
 
   const rows = await db
     .select()
@@ -296,9 +262,9 @@ export async function saveAvailabilityDay(input: {
   if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const today = todayDateKey();
+  const today = amsterdamDateKey();
   const advanceDays = await getAvailabilityAdvanceDays(personnel.tenantId);
-  const maxDate = addDays(today, advanceDays);
+  const maxDate = addCalendarDays(today, advanceDays);
   if (input.date < today) {
     return {
       success: false,

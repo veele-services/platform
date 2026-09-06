@@ -93,22 +93,25 @@ export async function requestLeave(
 
   // Notify org admin — fire-and-forget
   void (async () => {
+    const [person] = await db
+      .select({
+        firstName: personnelTable.firstName,
+        lastName: personnelTable.lastName,
+        tenantId: personnelTable.tenantId,
+      })
+      .from(personnelTable)
+      .where(eq(personnelTable.id, personnelId))
+      .limit(1);
+    if (!person) return;
+
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
       .from(organizationSettingsTable)
+      .where(eq(organizationSettingsTable.tenantId, person.tenantId))
       .limit(1);
     if (orgSettings?.emailAfzender) {
-      const [person] = await db
-        .select({
-          firstName: personnelTable.firstName,
-          lastName: personnelTable.lastName,
-          tenantId: personnelTable.tenantId,
-        })
-        .from(personnelTable)
-        .where(eq(personnelTable.id, personnelId))
-        .limit(1);
       const { subject, html } = buildLeaveRequestedEmail({
-        personnelName: `${person?.firstName ?? ""} ${person?.lastName ?? ""}`.trim(),
+        personnelName: `${person.firstName ?? ""} ${person.lastName ?? ""}`.trim(),
         startDate,
         endDate:       endDate ?? null,
         leaveType,
@@ -118,11 +121,18 @@ export async function requestLeave(
         to: orgSettings.emailAfzender,
         subject,
         html,
-        tenantId: person?.tenantId ?? null,
+        tenantId: person.tenantId,
         purpose: "leave_request_submitted",
       });
     }
-  })();
+  })().catch((notificationError: unknown) => {
+    console.error(
+      "Verlofnotificatie kon niet worden voorbereid",
+      notificationError instanceof Error
+        ? notificationError.message
+        : "Onbekende notificatiefout",
+    );
+  });
 
   revalidatePath("/verlof");
   return { success: true };

@@ -636,6 +636,7 @@ export async function submitReport(
       const [orgSettings] = await db
         .select({ emailAfzender: organizationSettingsTable.emailAfzender })
         .from(organizationSettingsTable)
+        .where(eq(organizationSettingsTable.tenantId, tenantId))
         .limit(1);
       if (orgSettings?.emailAfzender) {
         const { subject, html } = buildReportSubmittedEmail({
@@ -651,7 +652,12 @@ export async function submitReport(
           purpose: "report_submitted",
         });
       }
-    })();
+    })().catch((error: unknown) => {
+      console.error(
+        "Rapport ingediend-notificatie kon niet worden voorbereid",
+        error instanceof Error ? error.message : "Onbekende notificatiefout",
+      );
+    });
 
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/reports");
@@ -757,9 +763,15 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
       })
       .from(reportsTable)
       .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
-      .leftJoin(organizationSettingsTable, sql`true`)
-      .where(eq(reportsTable.id, reportId))
+      .leftJoin(
+        personnelTable,
+        and(
+          eq(personnelTable.userId, reportsTable.submittedBy),
+          eq(personnelTable.tenantId, assignmentsTable.tenantId),
+        ),
+      )
+      .leftJoin(organizationSettingsTable, eq(organizationSettingsTable.tenantId, assignmentsTable.tenantId))
+      .where(and(eq(reportsTable.id, reportId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1);
 
     if (detail?.notifEnabled && detail.personnelEmail) {
@@ -776,7 +788,12 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
         purpose: "report_approved",
       });
     }
-  })();
+  })().catch((error: unknown) => {
+    console.error(
+      "Rapport goedgekeurd-notificatie kon niet worden voorbereid",
+      error instanceof Error ? error.message : "Onbekende notificatiefout",
+    );
+  });
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
@@ -853,9 +870,15 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
       })
       .from(reportsTable)
       .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
-      .leftJoin(organizationSettingsTable, sql`true`)
-      .where(eq(reportsTable.id, reportId))
+      .leftJoin(
+        personnelTable,
+        and(
+          eq(personnelTable.userId, reportsTable.submittedBy),
+          eq(personnelTable.tenantId, assignmentsTable.tenantId),
+        ),
+      )
+      .leftJoin(organizationSettingsTable, eq(organizationSettingsTable.tenantId, assignmentsTable.tenantId))
+      .where(and(eq(reportsTable.id, reportId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1);
 
     if (detail?.notifEnabled && detail.personnelEmail) {
@@ -873,7 +896,12 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
         purpose: "report_rejected",
       });
     }
-  })();
+  })().catch((error: unknown) => {
+    console.error(
+      "Rapport afgekeurd-notificatie kon niet worden voorbereid",
+      error instanceof Error ? error.message : "Onbekende notificatiefout",
+    );
+  });
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");

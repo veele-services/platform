@@ -2,6 +2,12 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "./connection";
 import {
+  addCalendarDays,
+  addCalendarMonths,
+  amsterdamDateKey,
+  parseCalendarDateKey,
+} from "./amsterdam-date";
+import {
   auditLogTable,
   availabilityDayEntriesTable,
   availabilityWindowsTable,
@@ -30,44 +36,24 @@ export type DateExceptionInput = {
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function dateKey(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-export function todayDateKey(): string {
-  return dateKey(new Date());
+export function todayDateKey(now: Date = new Date()): string {
+  return amsterdamDateKey(now);
 }
 function parseDateKey(value: string): Date | null {
-  if (!DATE_RE.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(year!, month! - 1, day!);
-  return dateKey(parsed) === value ? parsed : null;
+  const parts = parseCalendarDateKey(value);
+  return parts
+    ? new Date(Date.UTC(parts.year, parts.month - 1, parts.day))
+    : null;
 }
 export function addAvailabilityDays(value: string, days: number): string {
-  const date = parseDateKey(value);
-  if (!date) throw new Error("invalid date");
-  date.setDate(date.getDate() + days);
-  return dateKey(date);
+  return addCalendarDays(value, days);
 }
 function addMonths(
   value: string,
   months: number,
   preferredDay: number,
 ): string {
-  const source = parseDateKey(value)!;
-  const target = new Date(source.getFullYear(), source.getMonth() + months, 1);
-  const lastDay = new Date(
-    target.getFullYear(),
-    target.getMonth() + 1,
-    0,
-  ).getDate();
-  target.setDate(Math.min(preferredDay, lastDay));
-  return dateKey(target);
+  return addCalendarMonths(value, months, preferredDay);
 }
 export function buildAvailabilityRepeatDates(
   startDate: string,
@@ -77,7 +63,7 @@ export function buildAvailabilityRepeatDates(
   const dates: string[] = [];
   const parsed = parseDateKey(startDate);
   if (!parsed) return dates;
-  const preferredDay = parsed.getDate();
+  const preferredDay = parsed.getUTCDate();
   let current = startDate;
   let step = 0;
   while (current <= maxDate && dates.length < 380) {

@@ -163,8 +163,9 @@ test("finance background jobs skip tenants without the finance module", () => {
     reminders,
     [
       "requireJobTenantModule",
-      "customerTenantId:    customersTable.tenantId",
-      "requireJobTenantModule(invoice.customerTenantId, \"finance\")",
+      "tenantId: invoicesTable.tenantId",
+      "const invoiceTenantId = invoice.tenantId",
+      "invoiceTenantId",
       "let moduleDisabled = 0;",
       "moduleDisabled++",
       "res.json({ ok: true, sent, skipped, moduleDisabled });",
@@ -176,8 +177,9 @@ test("finance background jobs skip tenants without the finance module", () => {
     quotes,
     [
       "requireJobTenantModule",
-      "customerTenantId: customersTable.tenantId",
-      "requireJobTenantModule(q.customerTenantId, \"finance\")",
+      "tenantId: quotesTable.tenantId",
+      "const quoteTenantId = q.tenantId",
+      "quoteTenantId",
       "let moduleDisabled = 0;",
       "moduleDisabled++",
       "res.json({ ok: true, expired, notified, skipped, moduleDisabled });",

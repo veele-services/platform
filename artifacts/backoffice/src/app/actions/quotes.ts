@@ -855,6 +855,7 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
   const [orgSettings] = await db
     .select({ notifEnabled: organizationSettingsTable.notifOfferteVerlopen })
     .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
   for (const q of expirableQuotes) {

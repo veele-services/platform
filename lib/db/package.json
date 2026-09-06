@@ -27,6 +27,7 @@
     "./staffing-lifecycle": "./src/staffing-lifecycle.ts",
     "./brand-color-contrast": "./src/brand-color-contrast.ts",
     "./form-time-range": "./src/form-time-range.ts",
+    "./amsterdam-date": "./src/amsterdam-date.ts",
     "./object-metrics": "./src/object-metrics.ts",
     "./portal-onboarding": "./src/portal-onboarding.ts",
     "./portal-onboarding-client": "./src/portal-onboarding-client.ts",
