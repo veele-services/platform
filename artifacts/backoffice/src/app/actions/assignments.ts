@@ -3967,7 +3967,7 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
 }
 
 export async function deleteAssignment(id: string, reason: string): Promise<ActionResult> {
-  await requirePermission("assignments", "write");
+  await requirePermission("assignments", "delete");
   const tenantId = await requireCurrentTenantId();
   const normalizedReason = reason.trim();
   if (!normalizedReason) {

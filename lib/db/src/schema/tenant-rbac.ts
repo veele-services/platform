@@ -1,5 +1,6 @@
 import {
   boolean,
+  foreignKey,
   index,
   pgTable,
   text,
@@ -12,7 +13,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { permissionsTable } from "./permissions";
 import { rolesTable } from "./roles";
-import { tenantsTable } from "./tenants";
+import { tenantsTable, tenantUsersTable } from "./tenants";
 
 export const tenantRolesTable = pgTable(
   "tenant_roles",
@@ -34,6 +35,7 @@ export const tenantRolesTable = pgTable(
   },
   (table) => [
     uniqueIndex("tenant_roles_tenant_name_idx").on(table.tenantId, table.name),
+    uniqueIndex("tenant_roles_tenant_id_idx").on(table.tenantId, table.id),
     index("tenant_roles_tenant_idx").on(table.tenantId),
     index("tenant_roles_template_idx").on(table.templateRoleId),
   ],
@@ -72,6 +74,16 @@ export const tenantUserRolesTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.tenantRoleId],
+      foreignColumns: [tenantRolesTable.tenantId, tenantRolesTable.id],
+      name: "tenant_user_roles_tenant_role_scope_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+      name: "tenant_user_roles_tenant_membership_fk",
+    }).onDelete("cascade"),
     uniqueIndex("tenant_user_roles_unique_idx").on(table.tenantId, table.userId, table.tenantRoleId),
     index("tenant_user_roles_user_idx").on(table.userId),
     index("tenant_user_roles_role_idx").on(table.tenantRoleId),

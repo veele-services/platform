@@ -130,6 +130,7 @@ export default async function CustomerDetailPage({
     canReadAssignments,
     canReadDocuments,
     canWriteDocuments,
+    canDeleteDocuments,
     canReadInvoices,
     canReadReports,
     canReadTickets,
@@ -145,6 +146,7 @@ export default async function CustomerDetailPage({
     hasPermission("assignments", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
     hasPermission("invoices", "read"),
     hasPermission("reports", "read"),
     hasPermission("tickets", "read"),
@@ -443,6 +445,7 @@ export default async function CustomerDetailPage({
             entityId={id}
             documents={documents}
             canWrite={canWriteDocuments}
+            canDelete={canDeleteDocuments}
           />
         )}
 

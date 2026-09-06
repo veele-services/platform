@@ -191,6 +191,7 @@ export async function getUserRoles(
       and(
         eq(tenantUserRolesTable.userId, userId),
         eq(tenantUserRolesTable.tenantId, tenantId),
+        eq(tenantRolesTable.tenantId, tenantId),
       ),
     );
 

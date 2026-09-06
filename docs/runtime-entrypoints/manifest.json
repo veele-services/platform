@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:eb520186cddf5723fe31aab2490d5522565b556c565acc081f6290261aacf813",
+  "inventoryHash": "sha256:077d989402f40e44c193c010b6de739ae66376d7f2779257bdc2f3aa6c1d4b00",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -35,11 +35,11 @@
     "www"
   ],
   "counts": {
-    "total": 960,
-    "uniqueRuntimeNodes": 840,
-    "classifications": 960,
+    "total": 957,
+    "uniqueRuntimeNodes": 837,
+    "classifications": 957,
     "externalEntrypoints": 113,
-    "internalDbCallsites": 739,
+    "internalDbCallsites": 736,
     "providerBoundaries": 85,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -51,7 +51,7 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 732,
+      "raw-sql-callsite": 729,
       "provider-boundary": 85,
       "storage-signed-url-issuance": 20
     },
@@ -59,7 +59,7 @@
       "review-required": 20,
       "high": 4,
       "medium": 437,
-      "low": 414,
+      "low": 411,
       "informational": 85
     }
   },
@@ -72,9 +72,9 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:dd34a78fbe0e79806bcd6fa9d70dd767ea6706bb19c09817232bf3bae0511a09",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:a84c36c28c1924ef92560293383615171bd95e3274b7eb9d5a4b659d0db9d7f1",
+    "raw-sql-callsite": "sha256:67f9def086ed31ae0fadfa7fc0e1cbea9ecfec83cbe15e04b2c87666e72e4925",
     "provider-boundary": "sha256:31f667e2b71c17f70fbb6445860dd11a3ea6e30fceb9b0ad734a40bf163b3322",
-    "storage-signed-url-issuance": "sha256:10738acdca836b98825ce6a7a957ef19312edf69be6730bf97df29e0f86278af"
+    "storage-signed-url-issuance": "sha256:7e639cd73805cfb7ee2d9189ef0bcb33e4c1183b8c1022e837c46b83e06ef23a"
   },
   "riskDimensions": [
     "tenantSource",

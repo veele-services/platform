@@ -987,7 +987,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
 }
 
 export async function deleteCustomer(id: string): Promise<ActionResult> {
-  await requirePermission("customers", "write");
+  await requirePermission("customers", "delete");
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();

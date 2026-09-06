@@ -39,7 +39,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
   const sort = sp.sort ?? "createdAt";
   const dir = sp.dir ?? "desc";
 
-  const [{ rows, total }, customers, regionOptions, canWrite] =
+  const [{ rows, total }, customers, regionOptions, canWrite, canDelete] =
     await Promise.all([
       listAssignmentsRegionAware({
         page,
@@ -54,6 +54,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
       getCustomerOptions(),
       listRegionOptions(),
       hasPermission("assignments", "write"),
+      hasPermission("assignments", "delete"),
     ]);
 
   return (
@@ -64,6 +65,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         customers={customers}
         regionOptions={regionOptions}
         canWrite={canWrite}
+        canDelete={canDelete}
         page={page}
         initialSearch={search}
         initialStatus={status}

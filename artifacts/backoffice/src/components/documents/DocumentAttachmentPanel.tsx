@@ -28,6 +28,7 @@ interface DocumentAttachmentPanelProps {
   entityId: string;
   initialDocuments: DocumentRow[];
   canWrite: boolean;
+  canDelete: boolean;
   title: string;
   uploadLabel?: string;
   emptyMessage?: string;
@@ -63,6 +64,7 @@ export function DocumentAttachmentPanel({
   entityId,
   initialDocuments,
   canWrite,
+  canDelete,
   title,
   uploadLabel = "Document uploaden",
   emptyMessage = "Nog geen documenten gekoppeld.",
@@ -252,18 +254,20 @@ export function DocumentAttachmentPanel({
                         type="button"
                         onClick={() => handleDownload(row)}
                         disabled={downloadingId === row.id}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 disabled:opacity-50"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-slate-100 disabled:opacity-50"
+                        aria-label={`Download ${row.name}`}
                         title="Downloaden"
                         style={{ color: "#475569" }}
                       >
                         <Download className="h-4 w-4" />
                       </button>
-                      {canWrite && (
+                      {canDelete && (
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(row)}
                           disabled={deletingId === row.id}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 disabled:opacity-50"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-red-50 disabled:opacity-50"
+                          aria-label={`Verwijder ${row.name}`}
                           title="Verwijderen"
                           style={{ color: "#DC2626" }}
                         >

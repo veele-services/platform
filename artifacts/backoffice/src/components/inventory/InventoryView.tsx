@@ -30,6 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 const PAGE_SIZE = 25;
 const INVENTORY_STATUS_OPTIONS = [
@@ -109,7 +110,8 @@ export function InventoryView({
   rows,
   total,
   options,
-  canWrite,
+  canCreate,
+  canArchive,
   page,
   initialSearch,
   initialStatus,
@@ -118,7 +120,8 @@ export function InventoryView({
   rows: InventoryRow[];
   total: number;
   options: InventoryManagementOptions;
-  canWrite: boolean;
+  canCreate: boolean;
+  canArchive: boolean;
   page: number;
   initialSearch: string;
   initialStatus: string;
@@ -291,7 +294,7 @@ export function InventoryView({
               </option>
             ))}
           </SelectAdapter>
-          {canWrite && (
+          {canCreate && (
             <CreateInventorySheet
               locationType={locationType}
               options={options}
@@ -452,22 +455,30 @@ export function InventoryView({
                             Openen
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
-                          {canWrite && !row.archivedAt && (
-                            <button
-                              type="button"
-                              onClick={() =>
+                          {canArchive && !row.archivedAt && (
+                            <TenantConfirmDialog
+                              title="Inventarisitem archiveren?"
+                              description={`Weet u zeker dat u ${row.name} wilt archiveren?`}
+                              confirmLabel="Archiveren"
+                              destructive
+                              onConfirm={() =>
                                 run(
                                   () => archiveInventoryItem(row.id),
                                   "Inventarisitem gearchiveerd.",
                                 )
                               }
-                              disabled={pending}
-                              className="inline-flex items-center gap-1 text-xs font-medium hover:underline disabled:opacity-60"
-                              style={{ color: "#B45309" }}
-                            >
-                              <Archive className="h-3.5 w-3.5" />
-                              Archiveer
-                            </button>
+                              trigger={
+                                <button
+                                  type="button"
+                                  disabled={pending}
+                                  className="inline-flex min-h-11 items-center gap-1 px-2 text-xs font-medium hover:underline disabled:opacity-60"
+                                  style={{ color: "#B45309" }}
+                                >
+                                  <Archive className="h-3.5 w-3.5" />
+                                  Archiveer
+                                </button>
+                              }
+                            />
                           )}
                         </div>
                       </td>

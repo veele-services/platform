@@ -66,12 +66,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function InventoryIssueDetailPage({ params }: Props) {
-  const [canRead, canResolve, canManageMaintenance, canReadDocuments, canWriteDocuments] = await Promise.all([
+  const [canRead, canResolve, canManageMaintenance, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await Promise.all([
     hasPermission("inventory", "view"),
     hasPermission("inventory", "resolve_issue").then(async (allowed) => allowed || await hasPermission("inventory", "manage")),
     hasPermission("inventory", "manage_maintenance").then(async (allowed) => allowed || await hasPermission("inventory", "manage")),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="inventory" action="view" />;
@@ -134,6 +135,7 @@ export default async function InventoryIssueDetailPage({ params }: Props) {
             entityId={issue.id}
             initialDocuments={documents}
             canWrite={canWriteDocuments && (canResolve || canManageMaintenance)}
+            canDelete={canDeleteDocuments && (canResolve || canManageMaintenance)}
             title="Storingmedia en bewijs"
             uploadLabel="Bewijs koppelen"
             emptyMessage="Nog geen foto, video-notitie of bewijsstuk gekoppeld."

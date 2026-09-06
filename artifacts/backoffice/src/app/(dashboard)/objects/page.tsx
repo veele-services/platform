@@ -40,9 +40,10 @@ async function safePageData<T>(
 }
 
 export default async function ObjectsPage({ searchParams }: Props) {
-  const [canRead, canWrite] = await Promise.all([
+  const [canRead, canWrite, canDelete] = await Promise.all([
     hasPermission("objects", "read"),
     hasPermission("objects", "write"),
+    hasPermission("objects", "delete"),
   ]);
 
   if (!canRead) return <ForbiddenPage resource="objects" action="read" />;
@@ -134,6 +135,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
         sectors={sectors}
         regionOptions={regionOptions}
         canWrite={canWrite}
+        canDelete={canDelete}
         page={page}
         initialSearch={search}
         initialCustomerId={customerId}

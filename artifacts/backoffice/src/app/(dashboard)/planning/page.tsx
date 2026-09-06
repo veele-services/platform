@@ -93,12 +93,11 @@ export default async function PlanningPage({ searchParams }: Props) {
   } = await searchParams;
   const mapEnabled = isPlanningDayMapEnabled();
 
-  const [canWrite, customers] = await Promise.all([
+  const [canWrite, canCreateAssignment] = await Promise.all([
     hasPermission("planning", "write"),
-    hasPermission("planning", "write").then((w) =>
-      w ? getCustomerOptions() : Promise.resolve([]),
-    ),
+    hasPermission("assignments", "write"),
   ]);
+  const customers = canCreateAssignment ? await getCustomerOptions() : [];
 
   if (day && isValidDate(day)) {
     const { rows, unassigned } = await getDayTimelineData(day);
@@ -111,6 +110,7 @@ export default async function PlanningPage({ searchParams }: Props) {
             rows={rows}
             unassigned={unassigned}
             canWrite={canWrite}
+            canCreateAssignment={canCreateAssignment}
             customers={customers}
           />
         </TenantWorkbenchPanel>

@@ -120,6 +120,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     canReadObjects,
     canReadDocuments,
     canWriteDocuments,
+    canDeleteDocuments,
     canReadMaterials,
     canReadInventory,
     personnelPortalEnabled,
@@ -134,6 +135,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("objects", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
     hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
     isCurrentTenantModuleEnabled("personnel_portal"),
@@ -775,6 +777,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
               entityId={id}
               initialDocuments={documents}
               canWrite={canWriteDocuments}
+              canDelete={canDeleteDocuments}
             />
           </div>
         )}

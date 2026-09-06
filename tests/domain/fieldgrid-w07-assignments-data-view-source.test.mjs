@@ -68,8 +68,8 @@ test("W07 assignments preserves server query state and explicit filter apply", (
 });
 
 test("W07 assignments keeps permission-gated selection and cancellation mutations", () => {
-  assert.match(assignmentsView, /selection=\{\s*canWrite/u);
-  assert.match(assignmentsView, /bulkActions=\{\s*canWrite/u);
+  assert.match(assignmentsView, /selection=\{\s*canDelete/u);
+  assert.match(assignmentsView, /bulkActions=\{\s*canDelete/u);
   assert.match(assignmentsView, /selectedIds: selected/u);
   assert.match(assignmentsView, /Promise\.all\(/u);
   assert.match(assignmentsView, /deleteAssignment\(id, reason\)/u);
@@ -78,7 +78,11 @@ test("W07 assignments keeps permission-gated selection and cancellation mutation
     assignmentsView,
     /confirmDisabled=\{!bulkCancelReason\.trim\(\) \|\| pending\}/u,
   );
-  assert.match(assignmentsView, /\{canWrite \? \(\s*<>\s*<Sheet/u);
+  assert.match(assignmentsView, /\{canWrite \? \(\s*<Sheet/u);
+  assert.match(
+    assignmentsView,
+    /\{canDelete \? \(\s*<>\s*<TenantConfirmDialog/u,
+  );
   assert.match(
     assignmentsView,
     /Reden voor annuleren van geselecteerde opdrachten/u,

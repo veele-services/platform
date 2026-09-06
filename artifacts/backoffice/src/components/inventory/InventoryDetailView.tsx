@@ -29,6 +29,7 @@ import {
   TenantDetailLayout,
   TenantDetailSectionNav,
   TenantPageShell,
+  TenantConfirmDialog,
   TenantWorkbenchPanel,
 } from "@/components/tenant-ui";
 
@@ -112,10 +113,12 @@ export function InventoryDetailView({
   item,
   options,
   canWrite,
+  canArchive,
 }: {
   item: InventoryDetail;
   options: InventoryManagementOptions;
   canWrite: boolean;
+  canArchive: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -217,31 +220,41 @@ export function InventoryDetailView({
           QR-label
         </Link>
       </Button>
-      {canWrite && !item.archivedAt ? (
+      {(canWrite || canArchive) && !item.archivedAt ? (
         <>
-          <EditInventorySheet
+          {canWrite ? <EditInventorySheet
             item={item}
             locationType={locationType}
             options={options}
             pending={pending}
             onLocationTypeChange={setLocationType}
             onSubmit={handleUpdate}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending}
-            onClick={() =>
-              run(
-                () => archiveInventoryItem(item.id),
-                "Inventarisitem gearchiveerd.",
-              )
-            }
-            className="text-amber-700"
-          >
-            <Archive className="h-4 w-4" />
-            Archiveer
-          </Button>
+          /> : null}
+          {canArchive ? (
+            <TenantConfirmDialog
+              title="Inventarisitem archiveren?"
+              description={`Weet u zeker dat u ${item.name} wilt archiveren?`}
+              confirmLabel="Archiveren"
+              destructive
+              onConfirm={() =>
+                run(
+                  () => archiveInventoryItem(item.id),
+                  "Inventarisitem gearchiveerd.",
+                )
+              }
+              trigger={
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  className="min-h-11 text-amber-700"
+                >
+                  <Archive className="h-4 w-4" />
+                  Archiveer
+                </Button>
+              }
+            />
+          ) : null}
         </>
       ) : null}
     </>
