@@ -20,9 +20,11 @@
 - Kandidaatstate:
 - Exact één toegestane stap: ja / geen statewijziging
 - Lifecyclepayload bij gelijkblijvende state exact identiek:
-- Keten: acceptance `CONTRACTED → IMPLEMENTED → VERIFIED_LOCAL → VERIFIED_STAGING → RELEASED` / risico `OPEN → MITIGATED → VERIFIED_LOCAL → VERIFIED_STAGING → CLOSED` / baseline `CONTRACTED → BASELINE_READY`
+- Keten: acceptance `CONTRACTED → IMPLEMENTED → VERIFIED_LOCAL → VERIFIED_STAGING → RELEASED` / risico `OPEN → MITIGATED → VERIFIED_LOCAL → VERIFIED_STAGING → CLOSED` / baseline `CONTRACTED → REFERENCE_READY → BASELINE_READY`
 - Geen downgrade, skip, onbekende state, vooruitgevuld veld of bewijsvervanging:
 - Promotion-PR wijzigt uitsluitend evidence-index + lifecycleclaim:
+- Capturepromotie: W00 uitsluitend `CONTRACTED → REFERENCE_READY` / W12 uitsluitend `REFERENCE_READY → BASELINE_READY`:
+- Bij `REFERENCE_READY → BASELINE_READY`: runtime/fontpayload en negen desktoprecords inclusief volgorde byte-identiek; exact negen mobiele records als suffix:
 
 ## Contractscope
 
@@ -123,6 +125,10 @@
 ## Protected trust boundary
 
 - Workflowevent uitsluitend `pull_request_target` zonder pathfilter/dispatch:
+- `pull_request_review` ontbreekt; rootretrigger uitsluitend echte body-`edited` na reviews:
+- `github.ref=refs/heads/main`, `workflow_ref=<workflow>@refs/heads/main` en exacte `workflow_sha`:
+- Main-executor-, protected-base- en kandidaatworkflow byte-identiek:
+- Environment `fieldflow-calm-contract` laat alleen `main` toe:
 - Eventrepository/base repository exact `veele-services/platform`:
 - Baseref exact `codex/fieldgrid-uiux-master`:
 - Base- en kandidaat-SHA exact lowercase 40-hex en verschillend:
@@ -135,9 +141,9 @@
 - Install uitsluitend uit trusted base, frozen lockfile, `--ignore-scripts`:
 - Dependencyclosure bindt alle package-/lock-/workspace-/`.npmrc`-/pnpmhook-/patchinputs:
 - Checkout/setup-node/pnpm Actions op goedgekeurde immutable commit-SHA's:
-- `GH_TOKEN` alleen validatorstap; scopes alleen actions/attestations/contents/pull-requests read:
+- `GH_TOKEN` alleen noodzakelijke API-stappen; scopes alleen actions/attestations/checks/contents/pull-requests read:
 - Stabiele `Fieldflow Calm contract root`-eindjob via `always()` en alleen groen op verificatieresultaat `success`:
-- Contract-rootrotatie, indien van toepassing: aparte PR + drie disciplines + externe Environmentwaarde pas na merge door beheerder:
+- Contract-rootrotatie, indien van toepassing: aparte PR + drie disciplines + daarna body-edit van nul naar exact één `FIELDFLOW-ROOT-RECHECK` door auteur of live write/maintain/admin + externe Environmentwaarde pas na merge door beheerder:
 
 ## Tests
 
@@ -170,8 +176,12 @@
 - Assertions/summary: minimaal één per test-ID; alle passed; failed/skipped/notRun/manual allemaal 0:
 - Errorchannels console/page/request/server/hydration: allemaal leeg:
 - Attachments: JUnit/log/trace/screenshot/geometry volgens scope + SHA-256:
-- GitHub Artifact Attestation door trusted signer-workflow:
-- Provenance: implementatiebase/**C** ancestry + implementatie-PR + workflowblob op base/**C** + run/attempt/job succesvol:
+- GitHub Artifact Attestation: ingecheckte gehashte HEAD-unieke bundle, offline `gh attestation verify --bundle`, exacte main-cert-identity/issuer, signer/source-SHA, SLSA-v1 envelope, hosted runner, run-attempt en exact één veilig reportsubject:
+- Provenance per rapportkind: implementatiebase/**C** ancestry + implementatie-PR + workflowblob op main-executor/base/**C** + run/check-suite/exacte attempt-job succesvol; geen `run.pull_requests`-afhankelijkheid:
+- Transportgrens A/B/C: alleen disposable non-OIDC A draait kandidaatcommands; raw artifact/receipt/nonce zijn onbetrouwbaar en niet-authenticerend; schone non-OIDC B leidt run/attempt/HEAD/job/artifact zelf af, valideert exacte veilige closure zonder symlinks/hardlinks met alleen base-owned code/dependencies en maakt een eigen attempt-uniek validated artifact; alleen C heeft OIDC en attesteert B:
+- Runner-containment: read-only kandidaatbron, dedicated writable output, geen nonce/GitHub-credential/secret/file-commandpad voor kandidaatprocessen, alle procesgroepen/cgroups beëindigd vóór raw transfer; ontbrekende root-gebonden runner faalt gesloten:
+- Historisch transport: `artifactId`/digest en alleen de finale gesigneerde naam zijn indexmetadata; raw-, validated- en finalenaam binden exact `runAttempt`, raw/validated namen staan nooit in de index en remote availability/expiry/retention is geen latere trustbron:
+- Promotion-ready closure: canoniek rapport + directe attachments + alle verification-matrixshards/-attachments + `<subject>.<mode>.<head>.bundle.json`, zonder symlinkcomponenten:
 - Fixture/tenant:
 - Browser/OS/font:
 - Screenshots:

@@ -8,13 +8,26 @@
     "VERIFIED_STAGING",
     "RELEASED"
   ],
+  "captureLifecycleBinding": {
+    "schemaVersion": 1,
+    "contractPath": "evidence/visual/capture-contract.json",
+    "stateModel": ["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"],
+    "stateRequirementsSource": "evidenceContract.stateRequirements",
+    "promotionRulesSource": "evidenceContract.promotionRules",
+    "workPackageExitStates": {
+      "W00": "REFERENCE_READY",
+      "W12": "BASELINE_READY"
+    },
+    "twoPhasePromotionRequired": true,
+    "rule": "W00 may exit only after the ordered nine-record desktop reference set is promoted to REFERENCE_READY. W12 may promote BASELINE_READY only by preserving that desktop prefix byte-identically and appending the ordered nine-record mobile production set. A skip, downgrade or same-state replacement is invalid."
+  },
   "evidenceContract": {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "rule": "Every claim points to one hashed JSON evidence index bound to the requirement ID, verification method, exact implementation head and root-bound verification tuple matrix. A file hash alone is never evidence: typed reports, exhaustive tuple assertions, historical GitHub Actions provenance, Git ancestry, live GitHub review attestations and release deployment status are verified fail-closed. Free-text, sampled, manual, NOT_RUN, skipped and zero-proof claims never advance state.",
     "claimFields": ["commit", "index", "releasedCommit"],
     "indexReferenceFormat": "repository-relative-path#sha256=<64 lowercase hex>",
     "indexSchema": {
-      "schemaVersion": 2,
+      "schemaVersion": 3,
       "indexFields": [
         "schemaVersion",
         "subjectId",
@@ -47,6 +60,8 @@
         "fieldflow-release": "pnpm fieldgrid:fieldflow-calm:release --verify"
       },
       "artifactKinds": ["runtime", "staging"],
+      "provenanceKinds": ["runtime", "staging"],
+      "provenanceCardinality": "Each required report kind has exactly one separate provenance record; a non-required kind is null. Runtime and staging provenance may name different workflow runs/artifacts but must bind the same implementation PR, base and HEAD.",
       "artifactFields": [
         "path",
         "sha256",
@@ -156,8 +171,16 @@
         "trace",
         "video"
       ],
-      "trustedWorkflow": ".github/workflows/fieldflow-calm-evidence.yml must have the same blob SHA-256 on PR base and evidence head",
-      "provenanceFields": [
+      "trustedWorkflow": ".github/workflows/fieldflow-calm-evidence.yml must have the same blob SHA-256 on the main executor commit, PR base and evidence head",
+      "transportArtifactRetentionDays": 90,
+      "transportArtifactTrust": "raw producer artifacts, receipts and nonces are untrusted and non-authenticating; a separate clean non-OIDC job independently derives event/run/attempt/head/job/artifact bindings, validates the exact safe regular-file closure without symlinks or hardlinks using only byte-identical base-owned code and dependencies, and emits an attempt-unique validated artifact; only an isolated OIDC job may attest that validated package; promotion validity depends on the checked-in bundle, not remote artifact availability or expiry",
+      "actionsRunPullRequestsTrust": "forbidden; bind the live PR, Actions run, check suite and exact attempt job independently",
+      "attestationSubjectCardinality": {
+        "runtimeOrStagingReport": 1,
+        "subjectName": "report.json",
+        "uniqueSafeNamesRequired": true
+      },
+      "reportProvenanceFields": [
         "provider=github-actions",
         "repository=veele-services/platform",
         "headCommit",
@@ -165,12 +188,22 @@
         "pullRequestNumber",
         "workflowPath",
         "workflowBlobSha256",
+        "executorWorkflowSha",
+        "evidenceMode",
         "runId",
         "runAttempt",
+        "checkSuiteId",
         "jobId",
         "jobName",
-        "eventName=pull_request",
+        "eventName=pull_request_target",
         "attestationProvider=github-artifact-attestations"
+      ],
+      "indexProvenanceAdditionalFields": [
+        "artifactId",
+        "artifactName=fieldflow-calm-<subjectId>-<evidenceMode>-<headCommit>-attempt-<runAttempt> (final signed artifact; never -unsigned)",
+        "artifactDigest=sha256:<64 lowercase hex>",
+        "attestationBundlePath=outputs/fieldflow-calm/attestations/<subjectId>.<evidenceMode>.<headCommit>.bundle.json",
+        "attestationBundleSha256"
       ],
       "reviewerFields": [
         "id",

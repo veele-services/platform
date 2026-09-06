@@ -101,9 +101,10 @@ Doel:
 - actuele route/action/permission/moduleinventaris;
 - brontrace vanaf ieder exact page-exportsymbool naar de concrete UI-action owner en, voor mutaties, het exacte aangeroepen `async` Server Action-target op de vastgezette platformblob;
 - legacy screenshots en testbaseline;
-- trusted-base `.github/workflows/fieldflow-calm-visual-baseline.yml` met alleen `pull_request`, job `normalized-baseline`, read-only bronrechten en GitHub-API-reviewverificatie; de workflow wordt eerst afzonderlijk gereviewd en gemerged en mag zichzelf niet als bewijs vertrouwen;
+- trusted-base `.github/workflows/fieldflow-calm-visual-baseline.yml` met uitsluitend base-owned `pull_request_target`, inclusief `edited` voor een veilige body-marker-retrigger, kandidaatcheckout via `refs/pull/<nummer>/head` en een vaste A/B/C-grens: disposable non-OIDC producer `normalized-baseline`, schone non-OIDC validatie-/packagejob en aparte OIDC-signer; de workflow wordt eerst afzonderlijk gereviewd en gemerged en mag zichzelf niet als bewijs vertrouwen;
+- een root-gebonden containment-runner die kandidaatcommands alleen in A start met read-only bron, dedicated writable output, een omgeving zonder nonce/GitHub-credentials/secrets/file-commandpaden en volledige procesgroep-/cgroupterminatie vóór raw upload; raw artifact, receipt en nonce zijn niet-authenticerend, B leidt alle immutable GitHub-bindingen zelf af en bij ontbrekende runner faalt productie gesloten;
 - Fieldflowmanifestvalidator;
-- beschermde contract-rootbootstrap: merge eerst het goedgekeurde pakket, registreer daarna `contract-root.json#rootSha256` als Environment-variable en maak de base-eigen `Fieldflow Calm contract root`-check verplicht; de implementerende PR kan deze waarde of workflow niet zelf vertrouwen/roteren;
+- beschermde contract-rootbootstrap: kopieer eerst de drie goedgekeurde workflows byte-identiek naar default branch `main`, bevestig dat Environment `fieldflow-calm-contract` alleen `main` toelaat, merge daarna het exacte pakket, registreer `contract-root.json#rootSha256` als Environment-variable en maak de stabiele `Fieldflow Calm contract root`-check verplicht; de implementerende PR kan deze waarde of workflows niet zelf vertrouwen/roteren;
 - P0-veiligheidsbesluiten.
 
 Verplicht in W00 brongetrouw beslissen en als expliciete dependency aan de
@@ -135,9 +136,10 @@ Exit:
 - negatieve bronvervalsingstests bewijzen dat een ongebruikt symbool uit een bereikbare module, een verwisselde action owner, worktreedrift, een late `"use server"`-directive en een synchrone Server Action-export fail-closed zijn;
 - geen `OPEN` risico met `ownerWorkPackage: W00`, plus geen `OPEN` dependency-risico dat W01 aantoonbaar blokkeert; P0/P1-risico's van latere eigenaarspakketten blijven zichtbaar en blokkeren pas hun eigen exit;
 - legacybaseline vast;
-- `evidence/visual/capture-contract.json` staat op `BASELINE_READY`, met gepinde runtime-image/font hashes en exact achttien volledig gereviewde scenario-evidencerecords: negen genormaliseerde desktop-pixelrecords en negen mobiele semantische productierecords voor dashboard, lijst, dossier, planbord, settings, formulier, wizard en Sheet;
-- elk scenariorecord komt uit de vastgezette GitHub Actions-workflow, bindt contractroot, prototypecommit, run, PR, HEAD, driver en alle artefacthashes, en heeft twee live via de GitHub API opgeloste `APPROVED` reviews: één `product-design` en één `visual-a11y`, nooit de auteur en nooit dezelfde persoon;
-- de handoffvalidator heeft per desktoprecord alle vijf JSON-artefacten en per mobiel record alle acht JSON-artefacten inhoudelijk geparseerd en accepteert geen setupafwijking, runtimefout, ontbrekende selector/regio, desktopgeometrydelta boven 1 px, target onder 44×44 px, onvoldoende mobiele spacing, horizontale overflow, Axe-fout, onjuist theme/font/portalbewijs, capture-CSS in productie, dragafhankelijkheid, zichtbare labchrome of een screenshotwissel zonder nieuwe capturebinding en reviews.
+- `evidence/visual/capture-contract.json` is via een afzonderlijke tweefasenpromotie precies één stap van `CONTRACTED` naar `REFERENCE_READY` gegaan, met gepinde runtime-image/font hashes en exact negen volledig gereviewde genormaliseerde desktop-pixelrecords in de gecontracteerde desktopvolgorde;
+- elk desktoprecord komt uit de vastgezette GitHub Actions-workflow, bindt contractroot, prototypecommit, run, PR, HEAD, driver en alle artefacthashes, en heeft twee live via de GitHub API opgeloste `APPROVED` reviews: één `product-design` en één `visual-a11y`, nooit de auteur en nooit dezelfde persoon;
+- de handoffvalidator heeft per desktoprecord alle vijf JSON-artefacten inhoudelijk geparseerd en accepteert geen setupafwijking, runtimefout, ontbrekende selector, geometrydelta boven 1 px, target onder 44×44 px, onjuist theme/font/portalbewijs, zichtbare labchrome of een screenshotwissel zonder nieuwe capturebinding en reviews;
+- mobiele productie-evidence blijft tot W12 afwezig; W00 mag `BASELINE_READY` niet claimen en mag `CONTRACTED → BASELINE_READY` niet overslaan.
 
 ### W01 — Theme, white-label en tenantisolatie
 
@@ -429,6 +431,8 @@ Exit:
 
 - geen `manual` of `NOT_RUN`;
 - zero missing evidence;
+- `evidence/visual/capture-contract.json` is via een nieuwe, afzonderlijke tweefasenpromotie precies één stap van `REFERENCE_READY` naar `BASELINE_READY` gegaan: de runtime-/fontpayload en de negen desktoprecords inclusief volgorde zijn byte-identiek gebleven, waarna exact negen volledig gereviewde mobiele semantische productierecords in de gecontracteerde mobiele volgorde zijn toegevoegd;
+- de handoffvalidator heeft per mobiel record alle acht JSON-artefacten inhoudelijk geparseerd en accepteert geen ontbrekende regio, target onder 44×44 px, onvoldoende spacing, horizontale overflow, Axe-fout, onjuist productiethema/fontbewijs, capture-CSS, dragafhankelijkheid, focusfout of screenshotwissel zonder nieuwe capturebinding en reviews;
 - geen `OPEN` P0/P1-risico met `ownerWorkPackage: W12` en geen `OPEN` dependency-risico dat W13 aantoonbaar blokkeert; risico's met een latere eigenaar blijven zichtbaar en de globale eis dat alle 50 `CLOSED` zijn geldt bij W14/promotie.
 
 ### W13 — Onafhankelijke review en mainpromotie
