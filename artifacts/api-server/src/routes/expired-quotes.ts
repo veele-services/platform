@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
 import {
+  amsterdamDateKey,
+  db,
   quotesTable,
   customersTable,
   auditLogTable,
@@ -8,7 +9,6 @@ import {
 } from "@workspace/db";
 import { eq, and, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { amsterdamDateKey } from "@workspace/db/amsterdam-date";
 import { sendEmailWithResult, buildQuoteExpiredEmail } from "../lib/email";
 import { requireJobTenantModule } from "../lib/module-guards";
 

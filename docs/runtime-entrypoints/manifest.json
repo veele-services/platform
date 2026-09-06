@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:077d989402f40e44c193c010b6de739ae66376d7f2779257bdc2f3aa6c1d4b00",
+  "inventoryHash": "sha256:028ab4e55d2dfd8896bfd35608e0d1c5762dd50724b3bbd88be7c12118858ea9",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -35,11 +35,11 @@
     "www"
   ],
   "counts": {
-    "total": 957,
-    "uniqueRuntimeNodes": 837,
-    "classifications": 957,
+    "total": 952,
+    "uniqueRuntimeNodes": 836,
+    "classifications": 952,
     "externalEntrypoints": 113,
-    "internalDbCallsites": 736,
+    "internalDbCallsites": 731,
     "providerBoundaries": 85,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -51,15 +51,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 729,
+      "raw-sql-callsite": 724,
       "provider-boundary": 85,
       "storage-signed-url-issuance": 20
     },
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 437,
-      "low": 411,
+      "medium": 438,
+      "low": 405,
       "informational": 85
     }
   },
@@ -70,9 +70,9 @@
     "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:ec92eb3e630e8977bb3585735ea6d5abdb24f39a24e6a245ee611e37fe10729c",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "database-callsite": "sha256:dd34a78fbe0e79806bcd6fa9d70dd767ea6706bb19c09817232bf3bae0511a09",
+    "database-callsite": "sha256:4fd1c187f4e1595ee12f2c7015d8b1bded14ee70e1048466fbdf31efe5751a0b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:67f9def086ed31ae0fadfa7fc0e1cbea9ecfec83cbe15e04b2c87666e72e4925",
+    "raw-sql-callsite": "sha256:7d677a1014ee3b992b44e9fbd00620bdee34cc12d7e1f472a947322a5b29db17",
     "provider-boundary": "sha256:31f667e2b71c17f70fbb6445860dd11a3ea6e30fceb9b0ad734a40bf163b3322",
     "storage-signed-url-issuance": "sha256:7e639cd73805cfb7ee2d9189ef0bcb33e4c1183b8c1022e837c46b83e06ef23a"
   },

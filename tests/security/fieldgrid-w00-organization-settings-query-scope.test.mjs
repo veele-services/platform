@@ -440,15 +440,15 @@ const reviewedScopeDigests = new Map([
   ],
   [
     "artifacts/api-server/src/routes/expired-quotes.ts#<module>:organization_settings:leftJoin:1",
-    "3e818cf4584831008b6d",
+    "b674e9e1f9c3dcbb26b8",
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:leftJoin:1",
-    "bd9d2b11279df24e92d5",
+    "2f6d7d7b4605816d6af2",
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:from:1",
-    "bd9d2b11279df24e92d5",
+    "2f6d7d7b4605816d6af2",
   ],
   [
     "artifacts/backoffice/src/app/actions/knowledgebase.ts#getTenantKnowledgebaseAuthoringState:organization_settings:from:1",
