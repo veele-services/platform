@@ -470,6 +470,14 @@ test("evidence workflows are base-owned, exact-head, pinned, and secret-free", (
   );
   assert.match(evidenceValidator, /working-directory: trusted/u);
   assert.match(evidenceValidator, /runEvidenceCli\(args, \{ root/u);
+  assert.match(
+    evidenceValidator,
+    /case "\$EVIDENCE_MODE" in[\s\S]*runtime \| browser\) mode_flags=\(\) ;;[\s\S]*visual\) mode_flags=\(--run --strict\) ;;[\s\S]*staging\) mode_flags=\(--strict\) ;;[\s\S]*release\) mode_flags=\(--verify\) ;;[\s\S]*readonly -a mode_flags/u,
+  );
+  assert.match(
+    evidenceValidator,
+    /--expected-head "\$FIELDGRID_EXACT_HEAD" \\\n+            "\$\{mode_flags\[@\]\}"/u,
+  );
   assert.match(evidenceValidator, /producer_conclusion.*success/u);
   assert.match(evidenceValidator, /raw_artifact_name=/u);
   assert.match(evidenceValidator, /\.workflow_run\.head_sha/u);
