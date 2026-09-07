@@ -2,9 +2,15 @@
 
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+} from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, posix, relative, resolve, sep } from "node:path";
+import { basename, dirname, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
@@ -32,7 +38,7 @@ const ROUTES_CONTENT_SHA256 =
 const PRODUCTION_INVENTORY_CONTENT_SHA256 =
   "84f152e580936c2c9aa28845997d2acf7ac53faa01693266aad8223a2906a850";
 const ACCEPTANCE_CONTRACT_SHA256 =
-  "291457e3ca89f254e90fab74043dc90e04f157a8cb16f8231b87b2c1fc859feb";
+  "a42adce927eefd50bd6ef1476c011a424c7aa571fdfcae86eec23976696f30f3";
 const RISKS_CONTRACT_SHA256 =
   "5a4c7bfa104129ad4f2c41f057417a94142a005da58077aac0e5bd7312a2d356";
 const TOKENS_CONTENT_SHA256 =
@@ -42,11 +48,24 @@ const COMPONENT_STATES_CONTENT_SHA256 =
 const THEME_DERIVATION_CONTENT_SHA256 =
   "c2ffa66d80fcf6fc3f561a525cc4ce361c3b1ad217eb40518e32fb3f6e69e32e";
 const NORMATIVE_DOCS_DIGEST_SHA256 =
-  "ae974b53ec8eaecc40546ec5e6bb473b92b01878b5b635761153d8a2ad5e27bf";
+  "7a0bcf6c4c1c74ae108ebe2a0b2500fe26ade30510270e9ad10045864eb8a2f2";
 const CONTRACT_ROOT_PATH =
   "docs/uiux/fieldflow-calm-handoff/manifests/contract-root.json";
 const CONTRACT_ROOT_WORKFLOW_PATH =
   ".github/workflows/fieldflow-calm-contract-root.yml";
+const EVIDENCE_WORKFLOW_PATH = ".github/workflows/fieldflow-calm-evidence.yml";
+const VISUAL_BASELINE_WORKFLOW_PATH =
+  ".github/workflows/fieldflow-calm-visual-baseline.yml";
+const EVIDENCE_VALIDATOR_PATH = "scripts/fieldgrid-fieldflow-calm-evidence.mjs";
+const EVIDENCE_RUNNER_PATH =
+  "scripts/fieldgrid-fieldflow-calm-evidence-runner.mjs";
+const VISUAL_BASELINE_RUNNER_PATH =
+  "scripts/fieldgrid-fieldflow-calm-visual-baseline.mjs";
+const EVIDENCE_TEST_PATH = "tests/fieldgrid-fieldflow-calm-evidence.test.mjs";
+const RUNTIME_EVIDENCE_VALIDATOR_PATH =
+  "e2e/fieldgrid/validate-runtime-evidence.mjs";
+const PLAYWRIGHT_JOURNEY_EVIDENCE_PATH =
+  "scripts/fieldgrid-playwright-journey-evidence.mjs";
 const CONTRACT_ROOT_TEST_PATH =
   "tests/fieldgrid-fieldflow-calm-handoff.test.mjs";
 const CONTRACT_ROOT_ORACLE_TEST_PATH =
@@ -54,17 +73,25 @@ const CONTRACT_ROOT_ORACLE_TEST_PATH =
 const CONTRACT_ROOT_VALIDATOR_PATH =
   "scripts/fieldgrid-fieldflow-calm-handoff.mjs";
 const CONTRACT_ROOT_PACKAGE_SCRIPT = "fieldgrid:fieldflow-calm-handoff:check";
+const LEGACY_CONTRACT_ROOT_SHA256 =
+  "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788";
 const CONTRACT_ROOT_TRUST_POLICY = {
   repository: "veele-services/platform",
   protectedBaseBranch: "codex/fieldgrid-uiux-master",
+  executionBranch: "main",
+  environmentBranchPolicy: "main",
+  candidateRefTemplate: "refs/pull/{pullRequestNumber}/head",
   requiredStatusCheck: "Fieldflow Calm contract root",
   protectedEnvironment: "fieldflow-calm-contract",
-  protectedVariable: "FIELDFLOW_CALM_TRUSTED_ROOT_SHA256",
+  activeProtectedVariable: "FIELDFLOW_CALM_TRUSTED_ROOT_SHA256",
+  pendingProtectedVariable: "FIELDFLOW_CALM_PENDING_ROOT_SHA256",
   trustedWorkflow: CONTRACT_ROOT_WORKFLOW_PATH,
   bootstrapRule:
-    "After this package is independently approved and merged, a repository administrator records rootSha256 in the protected environment and makes the pull_request_target status check required before any lifecycle state may advance.",
+    "The one-time v1 to v2 bootstrap is break-glass-only: (1) freeze the exact foundation HEAD after all ordinary branch-protection requirements other than the temporarily bypassed root-status check are satisfied; (2) copy its three byte-identical v2 workflows (contract root, evidence and visual baseline) to main through a separate PR while the root check remains fail-closed and the UIUX base is frozen; (3) confirm that fieldflow-calm-contract allows only main, snapshot protection/environment state and set pending to the frozen candidate root; (4) temporarily remove only the required root-status check; (5) merge only that frozen foundation HEAD into UIUX; (6) set active to the candidate root and clear pending; (7) immediately restore the required root-status check; (8) require a successful normal-mode probe before unfreezing. Any pre-merge mismatch aborts and restores the snapshots; any post-merge mismatch keeps UIUX frozen, reverts the exact UIUX merge, restores all three main workflows byte-identically through controlled reverts, restores the prior environment policy, active/pending values and required check, and only then probes normal mode. The contract-root protocol adds no reviewer count, reviewer role or review-body marker beyond repository branch protection. Automated v2 rotation never accepts a v1 base.",
+  runnerIsolationRule:
+    "Evidence and baseline execution use three disposable GitHub-hosted jobs: an untrusted non-OIDC producer, a clean non-OIDC validator/package job and an isolated OIDC signer. The producer runs candidate commands only inside a containment boundary with read-only candidate source, a dedicated writable output root, no nonce, GitHub credential, secret or file-command path in the candidate subprocess environment, and verified termination of every candidate process before raw transfer. Raw artifacts, receipts and producer nonces are non-authenticating. The validator independently derives immutable event, run, attempt, head, job and artifact bindings, accepts only an exact safe regular-file closure without symlinks or hardlinks, and executes only byte-identical base-owned validator code and dependencies. Only the signer may receive id-token: write, and it attests only the validator's attempt-unique package. A missing containment-capable runner fails closed.",
   rotationRule:
-    "A root change is a dedicated contract-change PR with product-design, functional-security and visual-a11y approval; the protected value changes only after that review and never from PR code.",
+    "A dedicated root-change PR sets a distinct pending root whose lineage follows the active base root. The contract-root protocol adds no reviewer count, reviewer role or review-body marker beyond repository branch protection. After pending is set for the frozen candidate, a pull_request_target edited event is used only as a generic trusted retrigger; the edit itself carries no approval semantics. pull_request_review is forbidden because it executes against a candidate-influenced merge ref. Candidate code stays inert and the active value changes only after merge.",
 };
 const NORMATIVE_DOC_FILES = [
   "00-BRON-EN-BESLUITEN.md",
@@ -740,6 +767,21 @@ function isSafeEvidencePath(path, root) {
   );
 }
 
+function isRegularFileWithoutSymlinkComponents(root, path) {
+  if (!isSafeRelativePath(path, root)) return false;
+  const absolute = resolve(root, path);
+  let current = sep;
+  try {
+    for (const component of absolute.split(sep).filter(Boolean)) {
+      current = resolve(current, component);
+      if (lstatSync(current).isSymbolicLink()) return false;
+    }
+    return current === absolute && lstatSync(current).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function readGitFile(root, commit, path) {
   try {
     const type = execFileSync("git", ["cat-file", "-t", `${commit}:${path}`], {
@@ -904,72 +946,218 @@ function githubApiPaginatedJson(endpoint) {
   }
 }
 
-export function attestationOutputMatches(records, expected) {
-  if (!Array.isArray(records) || records.length === 0) return false;
-  const serialized = JSON.stringify(records);
-  return (
-    serialized.includes(expected.sha256) &&
-    serialized.includes(expected.provenance.headCommit) &&
-    serialized.includes(String(expected.provenance.runId)) &&
-    serialized.includes(expected.provenance.workflowPath)
+function githubWorkflowBlobMatchesExecutor(
+  apiJson,
+  repository,
+  workflowPath,
+  executorWorkflowSha,
+  workflowBlobSha256,
+) {
+  const commit = apiJson(
+    `repos/${repository}/git/commits/${executorWorkflowSha}`,
   );
+  const workflow = apiJson(
+    `repos/${repository}/contents/${workflowPath}?ref=${encodeURIComponent(executorWorkflowSha)}`,
+  );
+  if (
+    commit?.sha !== executorWorkflowSha ||
+    workflow?.type !== "file" ||
+    workflow?.encoding !== "base64" ||
+    typeof workflow?.content !== "string" ||
+    !/^[0-9a-f]{40}$/u.test(workflow?.sha ?? "")
+  ) {
+    return false;
+  }
+  try {
+    const bytes = Buffer.from(workflow.content.replace(/\s/gu, ""), "base64");
+    return (
+      bytes.length > 0 &&
+      (!Number.isSafeInteger(workflow.size) ||
+        workflow.size === bytes.length) &&
+      createHash("sha256").update(bytes).digest("hex") === workflowBlobSha256
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function attestationOutputMatches(records, expected) {
+  if (!Array.isArray(records) || records.length !== 1) return false;
+  const provenance = expected?.provenance;
+  const expectedSubjects = expected?.subjects ?? [
+    { name: expected?.filename, sha256: expected?.sha256 },
+  ];
+  const workflowIdentity = `https://github.com/${provenance?.repository}/${provenance?.workflowPath}@refs/heads/main`;
+  const repositoryUri = `https://github.com/${provenance?.repository}`;
+  const repositoryOwnerUri = "https://github.com/veele-services";
+  const runInvocationUri = `${repositoryUri}/actions/runs/${provenance?.runId}/attempts/${provenance?.runAttempt}`;
+  return records.every((record) => {
+    const result = record?.verificationResult;
+    const certificate = result?.signature?.certificate;
+    const statement = result?.statement;
+    const subjects = statement?.subject;
+    const validSubjects =
+      Array.isArray(subjects) &&
+      subjects.length === expected.subjectCount &&
+      Array.isArray(expectedSubjects) &&
+      expectedSubjects.length === expected.subjectCount &&
+      new Set(expectedSubjects.map((subject) => subject?.name)).size ===
+        expected.subjectCount &&
+      new Set(subjects.map((subject) => subject?.name)).size ===
+        expected.subjectCount &&
+      subjects.every(
+        (subject) =>
+          typeof subject?.name === "string" &&
+          /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u.test(subject.name) &&
+          !subject.name.includes("..") &&
+          !subject.name.startsWith("/") &&
+          hasExactKeys(subject.digest, ["sha256"]) &&
+          /^[0-9a-f]{64}$/u.test(subject.digest.sha256 ?? ""),
+      );
+    return (
+      result?.mediaType ===
+        "application/vnd.dev.sigstore.verificationresult+json;version=0.1" &&
+      Array.isArray(result?.verifiedTimestamps) &&
+      result.verifiedTimestamps.length > 0 &&
+      certificate?.issuer === "https://token.actions.githubusercontent.com" &&
+      certificate?.subjectAlternativeName === workflowIdentity &&
+      certificate?.buildSignerURI === workflowIdentity &&
+      certificate?.buildConfigURI === workflowIdentity &&
+      certificate?.buildSignerDigest === provenance?.executorWorkflowSha &&
+      certificate?.buildConfigDigest === provenance?.executorWorkflowSha &&
+      certificate?.sourceRepositoryDigest === provenance?.executorWorkflowSha &&
+      certificate?.buildTrigger === "pull_request_target" &&
+      certificate?.sourceRepositoryRef === "refs/heads/main" &&
+      certificate?.sourceRepositoryURI === repositoryUri &&
+      certificate?.sourceRepositoryIdentifier === "1253788801" &&
+      certificate?.sourceRepositoryOwnerURI === repositoryOwnerUri &&
+      certificate?.sourceRepositoryOwnerIdentifier === "289047844" &&
+      certificate?.sourceRepositoryVisibilityAtSigning === "public" &&
+      certificate?.runnerEnvironment === "github-hosted" &&
+      certificate?.runInvocationURI === runInvocationUri &&
+      statement?._type === "https://in-toto.io/Statement/v1" &&
+      statement?.predicateType === "https://slsa.dev/provenance/v1" &&
+      validSubjects &&
+      expectedSubjects.every(
+        (expectedSubject) =>
+          typeof expectedSubject?.name === "string" &&
+          /^[0-9a-f]{64}$/u.test(expectedSubject?.sha256 ?? "") &&
+          subjects.some(
+            (subject) =>
+              subject.name === expectedSubject.name &&
+              subject.digest.sha256 === expectedSubject.sha256,
+          ),
+      )
+    );
+  });
 }
 
 function githubArtifactAttestationVerifies(path, expected) {
   try {
+    if (!isNonEmptyString(expected.bundlePath)) return false;
     const output = execFileSync(
       "gh",
       [
         "attestation",
         "verify",
         path,
+        "--bundle",
+        expected.bundlePath,
         "--repo",
         EVIDENCE_REPOSITORY,
-        "--signer-workflow",
-        `${EVIDENCE_REPOSITORY}/.github/workflows/fieldflow-calm-evidence.yml`,
+        "--cert-identity",
+        `https://github.com/${EVIDENCE_REPOSITORY}/.github/workflows/fieldflow-calm-evidence.yml@refs/heads/main`,
+        "--cert-oidc-issuer",
+        "https://token.actions.githubusercontent.com",
+        "--signer-digest",
+        expected.provenance.executorWorkflowSha,
+        "--source-digest",
+        expected.provenance.executorWorkflowSha,
+        "--source-ref",
+        "refs/heads/main",
+        "--predicate-type",
+        "https://slsa.dev/provenance/v1",
+        "--digest-alg",
+        "sha256",
         "--deny-self-hosted-runners",
         "--format",
         "json",
       ],
       {
         encoding: "utf8",
-        maxBuffer: 16 * 1024 * 1024,
+        maxBuffer: 64 * 1024 * 1024,
         stdio: ["ignore", "pipe", "ignore"],
       },
     );
     const records = JSON.parse(output);
-    return attestationOutputMatches(records, expected);
+    return attestationOutputMatches(records, {
+      ...expected,
+      filename: "report.json",
+      subjectCount: 1,
+    });
   } catch {
     return false;
   }
 }
 
-function validateEvidenceProvenance(
+const EVIDENCE_REPORT_PROVENANCE_FIELDS = [
+  "provider",
+  "repository",
+  "headCommit",
+  "baseCommit",
+  "pullRequestNumber",
+  "workflowPath",
+  "workflowBlobSha256",
+  "executorWorkflowSha",
+  "evidenceMode",
+  "runId",
+  "runAttempt",
+  "checkSuiteId",
+  "jobId",
+  "jobName",
+  "eventName",
+  "attestationProvider",
+];
+
+const EVIDENCE_INDEX_PROVENANCE_FIELDS = [
+  ...EVIDENCE_REPORT_PROVENANCE_FIELDS,
+  "artifactId",
+  "artifactName",
+  "artifactDigest",
+  "attestationBundlePath",
+  "attestationBundleSha256",
+];
+
+export function evidenceReportProvenanceProjection(provenance) {
+  return Object.fromEntries(
+    EVIDENCE_REPORT_PROVENANCE_FIELDS.map((field) => [
+      field,
+      provenance?.[field],
+    ]),
+  );
+}
+
+export function validateEvidenceProvenance(
   errors,
   item,
   authorId,
   codePaths,
   provenance,
+  reportKind,
   root,
   verifyFiles,
+  { apiJson = githubApiJson, apiPaginatedJson = githubApiPaginatedJson } = {},
 ) {
-  const fields = [
-    "provider",
-    "repository",
-    "headCommit",
-    "baseCommit",
-    "pullRequestNumber",
-    "workflowPath",
-    "workflowBlobSha256",
-    "runId",
-    "runAttempt",
-    "jobId",
-    "jobName",
-    "eventName",
-    "attestationProvider",
-  ];
+  const allowedModes =
+    reportKind === "runtime"
+      ? ["runtime", "browser", "visual"]
+      : reportKind === "staging"
+        ? ["staging", "release"]
+        : [];
+  const expectedArtifactName = `fieldflow-calm-${item.id}-${provenance?.evidenceMode}-${item.evidence?.commit}-attempt-${provenance?.runAttempt}`;
+  const expectedBundlePath = `outputs/fieldflow-calm/attestations/${item.id}.${provenance?.evidenceMode}.${item.evidence?.commit}.bundle.json`;
   const structurallyValid =
-    hasExactKeys(provenance, fields) &&
+    hasExactKeys(provenance, EVIDENCE_INDEX_PROVENANCE_FIELDS) &&
     provenance.provider === "github-actions" &&
     provenance.repository === EVIDENCE_REPOSITORY &&
     provenance.headCommit === item.evidence?.commit &&
@@ -980,14 +1168,25 @@ function validateEvidenceProvenance(
     provenance.workflowPath ===
       ".github/workflows/fieldflow-calm-evidence.yml" &&
     /^[0-9a-f]{64}$/u.test(provenance.workflowBlobSha256 ?? "") &&
+    /^[0-9a-f]{40}$/u.test(provenance.executorWorkflowSha ?? "") &&
+    allowedModes.includes(provenance.evidenceMode) &&
     Number.isInteger(provenance.runId) &&
     provenance.runId > 0 &&
     Number.isInteger(provenance.runAttempt) &&
     provenance.runAttempt > 0 &&
+    Number.isInteger(provenance.checkSuiteId) &&
+    provenance.checkSuiteId > 0 &&
     Number.isInteger(provenance.jobId) &&
     provenance.jobId > 0 &&
-    isNonEmptyString(provenance.jobName) &&
-    provenance.eventName === "pull_request" &&
+    provenance.jobName === "Fieldflow Calm evidence" &&
+    provenance.eventName === "pull_request_target" &&
+    Number.isInteger(provenance.artifactId) &&
+    provenance.artifactId > 0 &&
+    provenance.artifactName === expectedArtifactName &&
+    /^sha256:[0-9a-f]{64}$/u.test(provenance.artifactDigest ?? "") &&
+    provenance.attestationBundlePath === expectedBundlePath &&
+    isSafeEvidencePath(provenance.attestationBundlePath, root) &&
+    /^[0-9a-f]{64}$/u.test(provenance.attestationBundleSha256 ?? "") &&
     provenance.attestationProvider === "github-artifact-attestations";
   if (!structurallyValid) {
     errors.push(
@@ -1001,6 +1200,18 @@ function validateEvidenceProvenance(
     );
     return false;
   }
+  const attestationBundle = resolve(root, provenance.attestationBundlePath);
+  if (
+    !isRegularFileWithoutSymlinkComponents(
+      root,
+      provenance.attestationBundlePath,
+    ) ||
+    hashFile(attestationBundle) !== provenance.attestationBundleSha256
+  ) {
+    errors.push(
+      `${item.id}: duurzame attestationbundle ontbreekt of wijkt af van de gehashte indexprovenance.`,
+    );
+  }
   if (
     !gitCommitExists(root, provenance.baseCommit) ||
     !gitCommitIsAncestor(root, provenance.baseCommit, provenance.headCommit)
@@ -1009,7 +1220,7 @@ function validateEvidenceProvenance(
       `${item.id}: evidence-base bestaat niet of is geen ancestor van exact HEAD.`,
     );
   }
-  const changedFiles = githubApiPaginatedJson(
+  const changedFiles = apiPaginatedJson(
     `repos/${EVIDENCE_REPOSITORY}/pulls/${provenance.pullRequestNumber}/files?per_page=100`,
   );
   const changedPaths = new Set(
@@ -1046,8 +1257,21 @@ function validateEvidenceProvenance(
       `${item.id}: trusted workflowblob moet identiek bestaan op PR-base en evidence-HEAD.`,
     );
   }
+  if (
+    !githubWorkflowBlobMatchesExecutor(
+      apiJson,
+      provenance.repository,
+      provenance.workflowPath,
+      provenance.executorWorkflowSha,
+      provenance.workflowBlobSha256,
+    )
+  ) {
+    errors.push(
+      `${item.id}: main-executorcommit of workflowblob bestaat niet of wijkt af van de trusted base/head workflow.`,
+    );
+  }
 
-  const pullRequest = githubApiJson(
+  const pullRequest = apiJson(
     `repos/${EVIDENCE_REPOSITORY}/pulls/${provenance.pullRequestNumber}`,
   );
   if (
@@ -1061,33 +1285,48 @@ function validateEvidenceProvenance(
       `${item.id}: live GitHub-PR bindt author/base/head niet exact aan de index.`,
     );
   }
-  const run = githubApiJson(
+  const run = apiJson(
     `repos/${EVIDENCE_REPOSITORY}/actions/runs/${provenance.runId}`,
+  );
+  const checkSuite = apiJson(
+    `repos/${EVIDENCE_REPOSITORY}/check-suites/${provenance.checkSuiteId}`,
   );
   if (
     !run ||
+    run.id !== provenance.runId ||
     run.head_sha !== provenance.headCommit ||
     run.run_attempt !== provenance.runAttempt ||
     run.event !== provenance.eventName ||
     run.path !== provenance.workflowPath ||
     run.repository?.full_name !== EVIDENCE_REPOSITORY ||
-    run.conclusion !== "success" ||
-    !Array.isArray(run.pull_requests) ||
-    !run.pull_requests.some(
-      (pull) => pull.number === provenance.pullRequestNumber,
-    )
+    run.check_suite_id !== provenance.checkSuiteId ||
+    run.conclusion !== "success"
   ) {
     errors.push(
       `${item.id}: live GitHub Actions-run is niet succesvol of niet exact aan PR/HEAD gebonden.`,
     );
   }
-  const jobs = githubApiJson(
-    `repos/${EVIDENCE_REPOSITORY}/actions/runs/${provenance.runId}/jobs?filter=all`,
+  if (
+    !checkSuite ||
+    checkSuite.id !== provenance.checkSuiteId ||
+    checkSuite.head_sha !== provenance.headCommit ||
+    checkSuite.status !== "completed" ||
+    checkSuite.conclusion !== "success" ||
+    checkSuite.app?.slug !== "github-actions"
+  ) {
+    errors.push(
+      `${item.id}: live GitHub check-suite bindt GitHub Actions, exact HEAD en success niet.`,
+    );
+  }
+  const jobs = apiJson(
+    `repos/${EVIDENCE_REPOSITORY}/actions/runs/${provenance.runId}/attempts/${provenance.runAttempt}/jobs`,
   );
-  const job = jobs?.jobs?.find(
+  const matchingJobs = jobs?.jobs?.filter(
     (candidate) => candidate.id === provenance.jobId,
   );
+  const job = matchingJobs?.[0];
   if (
+    matchingJobs?.length !== 1 ||
     !job ||
     job.name !== provenance.jobName ||
     job.run_attempt !== provenance.runAttempt ||
@@ -1588,7 +1827,8 @@ export function validateMachineEvidenceReport(
     report.subjectId !== item.id ||
     report.headCommit !== item.evidence?.commit ||
     report.verification !== evidenceVerification(item) ||
-    hashJson(report.provenance) !== hashJson(provenance)
+    hashJson(report.provenance) !==
+      hashJson(evidenceReportProvenanceProjection(provenance))
   ) {
     errors.push(
       `${item.id}: ${kind}-rapport mist schema/subject/HEAD/verification/provenancebinding.`,
@@ -1735,7 +1975,7 @@ function validateHashedArtifactRecord(
   }
   if (!verifyFiles) return null;
   const artifactPath = resolve(root, artifact.path);
-  if (!existsSync(artifactPath) || !statSync(artifactPath).isFile()) {
+  if (!isRegularFileWithoutSymlinkComponents(root, artifact.path)) {
     errors.push(`${subjectId}: bewijsbestand bestaat niet: ${artifact.path}.`);
     return null;
   } else if (hashFile(artifactPath) !== artifact.sha256) {
@@ -1746,6 +1986,7 @@ function validateHashedArtifactRecord(
     !githubArtifactAttestationVerifies(artifactPath, {
       sha256: artifact.sha256,
       provenance,
+      bundlePath: resolve(root, provenance.attestationBundlePath),
     })
   ) {
     errors.push(
@@ -1798,7 +2039,7 @@ export function validateEvidenceIndexPayload(
   if (
     !hasExactKeys(index, allowedIndexFields) ||
     !/^(?:FFC-[A-Z0-9]+-\d{3}|R-\d{3})$/u.test(item.id ?? "") ||
-    index?.schemaVersion !== 2 ||
+    index?.schemaVersion !== 3 ||
     index?.subjectId !== item.id ||
     index?.headCommit !== item.evidence?.commit ||
     !/^[0-9a-f]{40}$/u.test(index?.headCommit ?? "") ||
@@ -1889,17 +2130,16 @@ export function validateEvidenceIndexPayload(
     errors.push(`${item.id}: IMPLEMENTED mag nog geen commandbewijs claimen.`);
   }
 
-  if (commandsRequired) {
-    validateEvidenceProvenance(
-      errors,
-      item,
-      index?.authorId,
-      index?.codePaths,
-      index?.provenance,
-      root,
-      verifyFiles,
+  const provenanceByKind = index?.provenance;
+  if (!hasExactKeys(provenanceByKind, ["runtime", "staging"])) {
+    errors.push(
+      `${item.id}: provenance moet exact afzonderlijke runtime- en stagingrecords bevatten.`,
     );
-  } else if (index?.provenance !== null) {
+  }
+  if (
+    !commandsRequired &&
+    (provenanceByKind?.runtime !== null || provenanceByKind?.staging !== null)
+  ) {
     errors.push(`${item.id}: IMPLEMENTED mag nog geen CI-provenance claimen.`);
   }
 
@@ -1920,6 +2160,7 @@ export function validateEvidenceIndexPayload(
     const artifacts = Array.isArray(index?.artifacts?.[kind])
       ? index.artifacts[kind]
       : [];
+    const provenance = provenanceByKind?.[kind];
     if (required && (!Array.isArray(artifacts) || artifacts.length !== 1)) {
       errors.push(
         `${item.id}: evidence-index vereist exact één canoniek ${kind}-JSON-rapport.`,
@@ -1930,6 +2171,22 @@ export function validateEvidenceIndexPayload(
         `${item.id}: deze state mag nog geen ${kind}-rapport claimen.`,
       );
     }
+    if (required) {
+      validateEvidenceProvenance(
+        errors,
+        item,
+        index?.authorId,
+        index?.codePaths,
+        provenance,
+        kind,
+        root,
+        verifyFiles,
+      );
+    } else if (provenance !== null) {
+      errors.push(
+        `${item.id}: ${kind}-provenance is verboden zolang het rapport niet vereist is.`,
+      );
+    }
     const paths = new Set();
     for (const artifact of artifacts ?? []) {
       const report = validateHashedArtifactRecord(
@@ -1938,7 +2195,7 @@ export function validateEvidenceIndexPayload(
         artifact,
         root,
         verifyFiles,
-        index.provenance,
+        provenance,
       );
       if (paths.has(artifact?.path)) {
         errors.push(`${item.id}: dubbel ${kind}-artifactpad.`);
@@ -1957,13 +2214,31 @@ export function validateEvidenceIndexPayload(
           ...validateMachineEvidenceReport(item, report, {
             kind,
             commandIds: kindCommandIds,
-            provenance: index.provenance,
+            provenance,
             root,
             verifyFiles,
           }),
         );
       }
     }
+  }
+
+  const provenanceRecords = [
+    provenanceByKind?.runtime,
+    provenanceByKind?.staging,
+  ].filter((record) => record && typeof record === "object");
+  if (
+    provenanceRecords.some(
+      (record) =>
+        record.repository !== provenanceRecords[0]?.repository ||
+        record.headCommit !== provenanceRecords[0]?.headCommit ||
+        record.baseCommit !== provenanceRecords[0]?.baseCommit ||
+        record.pullRequestNumber !== provenanceRecords[0]?.pullRequestNumber,
+    )
+  ) {
+    errors.push(
+      `${item.id}: runtime- en stagingprovenance moeten dezelfde implementatie-PR/base/HEAD binden.`,
+    );
   }
 
   if (commandsRequired && Array.isArray(commands)) {
@@ -1993,7 +2268,7 @@ export function validateEvidenceIndexPayload(
     item,
     index?.authorId,
     reviewers,
-    index?.provenance,
+    provenanceByKind?.runtime ?? provenanceByKind?.staging,
     verifyFiles,
   );
   if (localVerified && (!validReviewers || reviewers.length < 1)) {
@@ -9256,14 +9531,48 @@ export function validateAcceptance(errors, manifest, knownRoutes, root) {
   ) {
     errors.push("Acceptance-statevolgorde wijkt af van het canonieke model.");
   }
+  if (
+    JSON.stringify(manifest.captureLifecycleBinding) !==
+    JSON.stringify({
+      schemaVersion: 1,
+      contractPath: "evidence/visual/capture-contract.json",
+      stateModel: ["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"],
+      stateRequirementsSource: "evidenceContract.stateRequirements",
+      promotionRulesSource: "evidenceContract.promotionRules",
+      workPackageExitStates: {
+        W00: "REFERENCE_READY",
+        W12: "BASELINE_READY",
+      },
+      twoPhasePromotionRequired: true,
+      rule: "W00 may exit only after the ordered nine-record desktop reference set is promoted to REFERENCE_READY. W12 may promote BASELINE_READY only by preserving that desktop prefix byte-identically and appending the ordered nine-record mobile production set. A skip, downgrade or same-state replacement is invalid.",
+    })
+  ) {
+    errors.push(
+      "Acceptancecontract mist de exacte W00/W12 two-phase capture-lifecyclebinding.",
+    );
+  }
   const evidenceContract = manifest.evidenceContract;
   if (
-    evidenceContract?.schemaVersion !== 4 ||
+    evidenceContract?.schemaVersion !== 5 ||
     JSON.stringify(evidenceContract?.claimFields) !==
       JSON.stringify(["commit", "index", "releasedCommit"]) ||
     evidenceContract?.indexReferenceFormat !==
       "repository-relative-path#sha256=<64 lowercase hex>" ||
-    evidenceContract?.indexSchema?.schemaVersion !== 2 ||
+    evidenceContract?.indexSchema?.schemaVersion !== 3 ||
+    JSON.stringify(evidenceContract?.indexSchema?.indexFields) !==
+      JSON.stringify([
+        "schemaVersion",
+        "subjectId",
+        "headCommit",
+        "authorId",
+        "verification",
+        "codePaths",
+        "commands",
+        "artifacts",
+        "reviewers",
+        "provenance",
+        "release",
+      ]) ||
     JSON.stringify(evidenceContract?.indexSchema?.subjectBinding) !==
       JSON.stringify(["subjectId", "headCommit", "authorId", "verification"]) ||
     JSON.stringify(evidenceContract?.indexSchema?.codePathFields) !==
@@ -9282,6 +9591,10 @@ export function validateAcceptance(errors, manifest, knownRoutes, root) {
       JSON.stringify(EVIDENCE_COMMANDS) ||
     JSON.stringify(evidenceContract?.indexSchema?.artifactKinds) !==
       JSON.stringify(["runtime", "staging"]) ||
+    JSON.stringify(evidenceContract?.indexSchema?.provenanceKinds) !==
+      JSON.stringify(["runtime", "staging"]) ||
+    evidenceContract?.indexSchema?.provenanceCardinality !==
+      "Each required report kind has exactly one separate provenance record; a non-required kind is null. Runtime and staging provenance may name different workflow runs/artifacts but must bind the same implementation PR, base and HEAD." ||
     JSON.stringify(evidenceContract?.indexSchema?.artifactFields) !==
       JSON.stringify([
         "path",
@@ -9391,6 +9704,50 @@ export function validateAcceptance(errors, manifest, knownRoutes, root) {
       ]) ||
     JSON.stringify(evidenceContract?.indexSchema?.errorChannels) !==
       JSON.stringify(EVIDENCE_ERROR_CHANNELS) ||
+    evidenceContract?.indexSchema?.trustedWorkflow !==
+      ".github/workflows/fieldflow-calm-evidence.yml must have the same blob SHA-256 on the main executor commit, PR base and evidence head" ||
+    evidenceContract?.indexSchema?.transportArtifactRetentionDays !== 90 ||
+    evidenceContract?.indexSchema?.transportArtifactTrust !==
+      "raw producer artifacts, receipts and nonces are untrusted and non-authenticating; a separate clean non-OIDC job independently derives event/run/attempt/head/job/artifact bindings, validates the exact safe regular-file closure without symlinks or hardlinks using only byte-identical base-owned code and dependencies, and emits an attempt-unique validated artifact; only an isolated OIDC job may attest that validated package; promotion validity depends on the checked-in bundle, not remote artifact availability or expiry" ||
+    evidenceContract?.indexSchema?.actionsRunPullRequestsTrust !==
+      "forbidden; bind the live PR, Actions run, check suite and exact attempt job independently" ||
+    JSON.stringify(
+      evidenceContract?.indexSchema?.attestationSubjectCardinality,
+    ) !==
+      JSON.stringify({
+        runtimeOrStagingReport: 1,
+        subjectName: "report.json",
+        uniqueSafeNamesRequired: true,
+      }) ||
+    JSON.stringify(evidenceContract?.indexSchema?.reportProvenanceFields) !==
+      JSON.stringify([
+        "provider=github-actions",
+        "repository=veele-services/platform",
+        "headCommit",
+        "baseCommit",
+        "pullRequestNumber",
+        "workflowPath",
+        "workflowBlobSha256",
+        "executorWorkflowSha",
+        "evidenceMode",
+        "runId",
+        "runAttempt",
+        "checkSuiteId",
+        "jobId",
+        "jobName",
+        "eventName=pull_request_target",
+        "attestationProvider=github-artifact-attestations",
+      ]) ||
+    JSON.stringify(
+      evidenceContract?.indexSchema?.indexProvenanceAdditionalFields,
+    ) !==
+      JSON.stringify([
+        "artifactId",
+        "artifactName=fieldflow-calm-<subjectId>-<evidenceMode>-<headCommit>-attempt-<runAttempt> (final signed artifact; never -unsigned)",
+        "artifactDigest=sha256:<64 lowercase hex>",
+        "attestationBundlePath=outputs/fieldflow-calm/attestations/<subjectId>.<evidenceMode>.<headCommit>.bundle.json",
+        "attestationBundleSha256",
+      ]) ||
     JSON.stringify(evidenceContract?.indexSchema?.reviewerFields) !==
       JSON.stringify([
         "id",
@@ -10364,14 +10721,24 @@ function validateBaselineProvenance(errors, label, provenance) {
       "repository",
       "workflowPath",
       "workflowBlobSha256",
+      "executorWorkflowSha",
       "jobName",
       "jobId",
+      "checkSuiteId",
       "eventName",
       "runId",
       "runAttempt",
       "headCommit",
       "baseCommit",
       "pullRequestNumber",
+      "artifactId",
+      "artifactName",
+      "artifactDigest",
+      "attestationManifestPath",
+      "attestationManifestSha256",
+      "attestationBundlePath",
+      "attestationBundleSha256",
+      "artifactSubjectCount",
       "attestationProvider",
     ]) &&
     provenance.provider === "github-actions" &&
@@ -10379,10 +10746,13 @@ function validateBaselineProvenance(errors, label, provenance) {
     provenance.workflowPath ===
       ".github/workflows/fieldflow-calm-visual-baseline.yml" &&
     /^[0-9a-f]{64}$/u.test(provenance.workflowBlobSha256 ?? "") &&
+    /^[0-9a-f]{40}$/u.test(provenance.executorWorkflowSha ?? "") &&
     provenance.jobName === "normalized-baseline" &&
     Number.isInteger(provenance.jobId) &&
     provenance.jobId > 0 &&
-    provenance.eventName === "pull_request" &&
+    Number.isInteger(provenance.checkSuiteId) &&
+    provenance.checkSuiteId > 0 &&
+    provenance.eventName === "pull_request_target" &&
     Number.isInteger(provenance.runId) &&
     provenance.runId > 0 &&
     Number.isInteger(provenance.runAttempt) &&
@@ -10392,6 +10762,18 @@ function validateBaselineProvenance(errors, label, provenance) {
     provenance.baseCommit !== provenance.headCommit &&
     Number.isInteger(provenance.pullRequestNumber) &&
     provenance.pullRequestNumber > 0 &&
+    Number.isInteger(provenance.artifactId) &&
+    provenance.artifactId > 0 &&
+    provenance.artifactName ===
+      `fieldflow-calm-baseline-${provenance.headCommit}-attempt-${provenance.runAttempt}` &&
+    /^sha256:[0-9a-f]{64}$/u.test(provenance.artifactDigest ?? "") &&
+    provenance.attestationManifestPath ===
+      "normalized/attestation-manifest.json" &&
+    /^[0-9a-f]{64}$/u.test(provenance.attestationManifestSha256 ?? "") &&
+    provenance.attestationBundlePath ===
+      `normalized/attestations/${provenance.headCommit}.bundle.json` &&
+    /^[0-9a-f]{64}$/u.test(provenance.attestationBundleSha256 ?? "") &&
+    [10, 19].includes(provenance.artifactSubjectCount) &&
     provenance.attestationProvider === "github-artifact-attestations";
   if (!valid) {
     errors.push(`${label}: GitHub Actions-captureprovenance is ongeldig.`);
@@ -10479,28 +10861,47 @@ function validateBaselineReviewers(errors, evidence, contractRootSha256) {
 
 function githubBaselineArtifactAttestationVerifies(path, expected) {
   try {
+    if (!isNonEmptyString(expected.bundlePath)) return false;
     const output = execFileSync(
       "gh",
       [
         "attestation",
         "verify",
         path,
+        "--bundle",
+        expected.bundlePath,
         "--repo",
         "veele-services/platform",
-        "--signer-workflow",
-        "veele-services/platform/.github/workflows/fieldflow-calm-visual-baseline.yml",
+        "--cert-identity",
+        "https://github.com/veele-services/platform/.github/workflows/fieldflow-calm-visual-baseline.yml@refs/heads/main",
+        "--cert-oidc-issuer",
+        "https://token.actions.githubusercontent.com",
+        "--signer-digest",
+        expected.provenance.executorWorkflowSha,
+        "--source-digest",
+        expected.provenance.executorWorkflowSha,
+        "--source-ref",
+        "refs/heads/main",
+        "--predicate-type",
+        "https://slsa.dev/provenance/v1",
+        "--digest-alg",
+        "sha256",
         "--deny-self-hosted-runners",
         "--format",
         "json",
       ],
       {
         encoding: "utf8",
-        maxBuffer: 16 * 1024 * 1024,
+        maxBuffer: 64 * 1024 * 1024,
         stdio: ["ignore", "pipe", "ignore"],
       },
     );
     const records = JSON.parse(output);
-    return attestationOutputMatches(records, expected);
+    return attestationOutputMatches(records, {
+      ...expected,
+      filename: basename(path),
+      subjectCount: expected.provenance.artifactSubjectCount,
+    });
   } catch {
     return false;
   }
@@ -10520,6 +10921,13 @@ export function validateBaselineExternalEvidence(
   const label = evidence?.scenarioId ?? "onbekend-scenario";
   const provenance = evidence?.provenance;
   if (!validateBaselineProvenance([], label, provenance)) return;
+  const expectedSubjectCount =
+    evidence?.referenceMode === "mobile-responsive-contract" ? 19 : 10;
+  if (provenance.artifactSubjectCount !== expectedSubjectCount) {
+    errors.push(
+      `${label}: attestation-subjectaantal past niet bij desktop- of mobiele baselinefase.`,
+    );
+  }
   if (
     !gitCommitExists(root, provenance.baseCommit) ||
     !gitCommitExists(root, provenance.headCommit) ||
@@ -10551,6 +10959,199 @@ export function validateBaselineExternalEvidence(
       `${label}: baselineworkflow moet als identieke trusted blob op PR-base en capture-HEAD bestaan.`,
     );
   }
+  const visualEvidenceRoot = resolve(
+    root,
+    FIELDFLOW_PACKAGE_PATH,
+    "evidence/visual",
+  );
+  const manifestPath = resolve(
+    visualEvidenceRoot,
+    provenance.attestationManifestPath,
+  );
+  const bundlePath = resolve(
+    visualEvidenceRoot,
+    provenance.attestationBundlePath,
+  );
+  let attestationManifest = null;
+  if (
+    !isRegularFileWithoutSymlinkComponents(
+      visualEvidenceRoot,
+      provenance.attestationManifestPath,
+    ) ||
+    hashFile(manifestPath) !== provenance.attestationManifestSha256
+  ) {
+    errors.push(
+      `${label}: geattesteerd baselinemanifest ontbreekt of wijkt af van provenance.`,
+    );
+  } else {
+    try {
+      attestationManifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    } catch {
+      errors.push(
+        `${label}: geattesteerd baselinemanifest is geen geldige JSON.`,
+      );
+    }
+  }
+  if (
+    !isRegularFileWithoutSymlinkComponents(
+      visualEvidenceRoot,
+      provenance.attestationBundlePath,
+    ) ||
+    hashFile(bundlePath) !== provenance.attestationBundleSha256
+  ) {
+    errors.push(
+      `${label}: duurzame baseline-attestationbundle ontbreekt of wijkt af van provenance.`,
+    );
+  }
+  const expectedManifestState =
+    evidence?.referenceMode === "mobile-responsive-contract"
+      ? "BASELINE_READY"
+      : "REFERENCE_READY";
+  const expectedManifestArtifactCount =
+    expectedManifestState === "BASELINE_READY" ? 135 : 54;
+  const expectedManifestScenarioCount =
+    expectedManifestState === "BASELINE_READY" ? 18 : 9;
+  const expectedTypeCounts = {
+    screenshot: expectedManifestScenarioCount,
+    dom: expectedManifestScenarioCount,
+    geometry: expectedManifestScenarioCount,
+    styles: expectedManifestScenarioCount,
+    setup: expectedManifestScenarioCount,
+    "runtime-errors": expectedManifestScenarioCount,
+    axe: expectedManifestState === "BASELINE_READY" ? 9 : 0,
+    keyboard: expectedManifestState === "BASELINE_READY" ? 9 : 0,
+    touch: expectedManifestState === "BASELINE_READY" ? 9 : 0,
+  };
+  const manifestArtifacts = attestationManifest?.artifacts;
+  const manifestValid =
+    hasExactObjectKeys(attestationManifest, [
+      "artifacts",
+      "baseCommit",
+      "checkSuiteId",
+      "executorWorkflowSha",
+      "headCommit",
+      "jobId",
+      "runAttempt",
+      "runId",
+      "schemaVersion",
+      "state",
+      "workflowBlobSha256",
+    ]) &&
+    attestationManifest.schemaVersion === 1 &&
+    attestationManifest.state === expectedManifestState &&
+    attestationManifest.headCommit === provenance.headCommit &&
+    attestationManifest.baseCommit === provenance.baseCommit &&
+    attestationManifest.workflowBlobSha256 === provenance.workflowBlobSha256 &&
+    attestationManifest.executorWorkflowSha ===
+      provenance.executorWorkflowSha &&
+    attestationManifest.runId === provenance.runId &&
+    attestationManifest.runAttempt === provenance.runAttempt &&
+    attestationManifest.checkSuiteId === provenance.checkSuiteId &&
+    attestationManifest.jobId === provenance.jobId &&
+    Array.isArray(manifestArtifacts) &&
+    manifestArtifacts.length === expectedManifestArtifactCount &&
+    new Set(manifestArtifacts.map((artifact) => artifact?.path)).size ===
+      expectedManifestArtifactCount &&
+    new Set(
+      manifestArtifacts?.map(
+        (artifact) => `${artifact?.scenarioId}|${artifact?.type}`,
+      ),
+    ).size === expectedManifestArtifactCount &&
+    new Set(manifestArtifacts.map((artifact) => artifact?.scenarioId)).size ===
+      expectedManifestScenarioCount &&
+    !manifestArtifacts.some(
+      (artifact) =>
+        !hasExactObjectKeys(artifact, [
+          "path",
+          "scenarioId",
+          "sha256",
+          "type",
+        ]) ||
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(artifact?.scenarioId ?? "") ||
+        !Object.hasOwn(expectedTypeCounts, artifact?.type) ||
+        !/^outputs\/fieldflow-calm\/visual-baseline\/[A-Za-z0-9._/-]+$/u.test(
+          artifact?.path ?? "",
+        ) ||
+        artifact.path.includes("..") ||
+        (artifact.type === "screenshot"
+          ? !artifact.path.endsWith(".png")
+          : !artifact.path.endsWith(".json")) ||
+        !/^[0-9a-f]{64}$/u.test(artifact?.sha256 ?? ""),
+    ) &&
+    !Object.entries(expectedTypeCounts).some(
+      ([type, count]) =>
+        manifestArtifacts.filter((artifact) => artifact?.type === type)
+          .length !== count,
+    ) &&
+    new Set(
+      manifestArtifacts
+        .filter((artifact) => artifact?.type === "screenshot")
+        .map((artifact) => basename(artifact.path)),
+    ).size ===
+      expectedSubjectCount - 1;
+  if (!manifestValid) {
+    errors.push(
+      `${label}: geattesteerd baselinemanifest bindt run en alle sidecars niet exact.`,
+    );
+  } else {
+    for (const artifact of manifestArtifacts) {
+      const relativePath = artifact.path.replace(
+        /^outputs\/fieldflow-calm\/visual-baseline\//u,
+        "",
+      );
+      const checkedInPath = resolve(visualEvidenceRoot, relativePath);
+      if (
+        !isRegularFileWithoutSymlinkComponents(
+          visualEvidenceRoot,
+          relativePath,
+        ) ||
+        hashFile(checkedInPath) !== artifact.sha256
+      ) {
+        errors.push(
+          `${label}: baselinemanifest-sidecar ontbreekt, gebruikt een symlinkcomponent of wijkt af: ${relativePath}.`,
+        );
+      }
+    }
+  }
+  const evidenceArtifactFields = [
+    "png",
+    "domSnapshot",
+    "computedGeometry",
+    "computedStyles",
+    "setupActionLog",
+    "runtimeErrorLog",
+    ...(evidence?.referenceMode === "mobile-responsive-contract"
+      ? ["axeReport", "keyboardInteractionTrace", "touchInteractionTrace"]
+      : []),
+  ];
+  for (const field of evidenceArtifactFields) {
+    const artifact = evidence?.[field];
+    const originalPath = `outputs/fieldflow-calm/visual-baseline/${artifact?.path}`;
+    if (
+      !manifestArtifacts?.some(
+        (manifestArtifact) =>
+          manifestArtifact.path === originalPath &&
+          manifestArtifact.sha256 === artifact?.sha256,
+      )
+    ) {
+      errors.push(
+        `${label}: baselinemanifest mist sidecarbinding voor ${field}.`,
+      );
+    }
+  }
+  if (
+    !githubWorkflowBlobMatchesExecutor(
+      apiJson,
+      provenance.repository,
+      provenance.workflowPath,
+      provenance.executorWorkflowSha,
+      provenance.workflowBlobSha256,
+    )
+  ) {
+    errors.push(
+      `${label}: main-executorcommit of baselineworkflowblob bestaat niet of wijkt af van de trusted base/head workflow.`,
+    );
+  }
   const pullRequest = apiJson(
     `repos/veele-services/platform/pulls/${provenance.pullRequestNumber}`,
   );
@@ -10567,29 +11168,45 @@ export function validateBaselineExternalEvidence(
   const run = apiJson(
     `repos/veele-services/platform/actions/runs/${provenance.runId}`,
   );
+  const checkSuite = apiJson(
+    `repos/veele-services/platform/check-suites/${provenance.checkSuiteId}`,
+  );
   if (
     !run ||
+    run.id !== provenance.runId ||
     run.head_sha !== provenance.headCommit ||
     run.run_attempt !== provenance.runAttempt ||
     run.event !== provenance.eventName ||
     run.path !== provenance.workflowPath ||
     run.repository?.full_name !== provenance.repository ||
-    run.conclusion !== "success" ||
-    !run.pull_requests?.some(
-      (pull) => pull.number === provenance.pullRequestNumber,
-    )
+    run.check_suite_id !== provenance.checkSuiteId ||
+    run.conclusion !== "success"
   ) {
     errors.push(
       `${label}: live GitHub Actions-basislinerun is niet succesvol of niet aan PR/HEAD gebonden.`,
     );
   }
+  if (
+    !checkSuite ||
+    checkSuite.id !== provenance.checkSuiteId ||
+    checkSuite.head_sha !== provenance.headCommit ||
+    checkSuite.status !== "completed" ||
+    checkSuite.conclusion !== "success" ||
+    checkSuite.app?.slug !== "github-actions"
+  ) {
+    errors.push(
+      `${label}: live GitHub check-suite bindt de baseline niet aan GitHub Actions, exact HEAD en success.`,
+    );
+  }
   const jobs = apiJson(
-    `repos/veele-services/platform/actions/runs/${provenance.runId}/jobs?filter=all`,
+    `repos/veele-services/platform/actions/runs/${provenance.runId}/attempts/${provenance.runAttempt}/jobs`,
   );
-  const job = jobs?.jobs?.find(
+  const matchingJobs = jobs?.jobs?.filter(
     (candidate) => candidate.id === provenance.jobId,
   );
+  const job = matchingJobs?.[0];
   if (
+    matchingJobs?.length !== 1 ||
     !job ||
     job.name !== provenance.jobName ||
     job.run_attempt !== provenance.runAttempt ||
@@ -10641,6 +11258,19 @@ export function validateBaselineExternalEvidence(
     !attestationVerifier(pngPath, {
       sha256: evidence.png?.sha256,
       provenance,
+      bundlePath,
+      subjects: [
+        {
+          name: basename(provenance.attestationManifestPath),
+          sha256: provenance.attestationManifestSha256,
+        },
+        ...(manifestArtifacts ?? [])
+          .filter((artifact) => artifact?.type === "screenshot")
+          .map((artifact) => ({
+            name: basename(artifact.path),
+            sha256: artifact.sha256,
+          })),
+      ],
     })
   ) {
     errors.push(
@@ -11446,6 +12076,11 @@ export function validateBaselineScenarioEvidencePayload(
     errors.push(`${label}: baseline-evidencerecord heeft een ongeldige vorm.`);
   }
   validateBaselineProvenance(errors, label, evidence?.provenance);
+  if (evidence?.provenance?.artifactSubjectCount !== (mobile ? 19 : 10)) {
+    errors.push(
+      `${label}: attestation-subjectaantal past niet bij desktop- of mobiele baselinefase.`,
+    );
+  }
   const artifactDigests = {
     png: evidence?.png?.sha256,
     domSnapshot: evidence?.domSnapshot?.sha256,
@@ -11595,6 +12230,67 @@ function readCaptureJsonArtifact(errors, label, visualRoot, artifact) {
   }
 }
 
+export function validateCaptureLifecyclePayload(errors, contract) {
+  const states = ["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"];
+  if (!states.includes(contract?.state)) {
+    errors.push("Capturelifecycle bevat een onbekende state.");
+    return;
+  }
+  const runtime = contract?.environment?.runtimeImageDigest?.value;
+  const fonts = contract?.environment?.fonts?.resolvedFiles;
+  const evidence = contract?.evidenceContract?.scenarioEvidence;
+  if (contract.state === "CONTRACTED") {
+    if (runtime !== null || fonts !== null || evidence !== null) {
+      errors.push(
+        "CONTRACTED capturecontract mag geen onbewezen baselinebewijs claimen.",
+      );
+    }
+    return;
+  }
+  if (!/^sha256:[0-9a-f]{64}$/u.test(runtime ?? "")) {
+    errors.push(`${contract.state} vereist een exacte runtime-image digest.`);
+  }
+  if (
+    !Array.isArray(fonts) ||
+    fonts.length === 0 ||
+    fonts.some(
+      (font) =>
+        !hasExactObjectKeys(font, ["family", "file", "sha256"]) ||
+        !isNonEmptyString(font.family) ||
+        !isNonEmptyString(font.file) ||
+        !/^[0-9a-f]{64}$/u.test(font.sha256 ?? ""),
+    ) ||
+    new Set(
+      (fonts ?? []).map(
+        (font) => `${font.family}\0${font.file}\0${font.sha256}`,
+      ),
+    ).size !== (fonts?.length ?? 0)
+  ) {
+    errors.push(
+      `${contract.state} vereist unieke hashes van alle opgeloste fonts.`,
+    );
+  }
+  const desktopIds =
+    contract?.normalization?.referencePolicy?.desktopCanonicalPixel
+      ?.scenarioIds ?? [];
+  const mobileIds =
+    contract?.normalization?.referencePolicy?.mobileResponsiveContract
+      ?.scenarioIds ?? [];
+  const expectedIds =
+    contract.state === "REFERENCE_READY"
+      ? desktopIds
+      : [...desktopIds, ...mobileIds];
+  if (
+    !Array.isArray(evidence) ||
+    JSON.stringify(evidence.map((record) => record?.scenarioId)) !==
+      JSON.stringify(expectedIds)
+  ) {
+    errors.push(
+      `${contract.state} vereist exact ${expectedIds.length} geordende scenarioEvidence-records met de desktopset als vaste prefix.`,
+    );
+  }
+}
+
 export function validateCaptureContract(
   errors,
   packageRoot,
@@ -11602,7 +12298,7 @@ export function validateCaptureContract(
   visualManifest,
 ) {
   if (
-    contract.schemaVersion !== 1 ||
+    contract.schemaVersion !== 2 ||
     contract.source?.prototypeCommit !== PROTOTYPE_COMMIT ||
     contract.source?.variant !== "fieldflow"
   ) {
@@ -11610,11 +12306,12 @@ export function validateCaptureContract(
   }
   if (
     JSON.stringify(contract.stateModel) !==
-      JSON.stringify(["CONTRACTED", "BASELINE_READY"]) ||
+      JSON.stringify(["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"]) ||
     !contract.stateModel?.includes(contract.state)
   ) {
     errors.push("Capturecontract heeft een ongeldige state/stateModel.");
   }
+  validateCaptureLifecyclePayload(errors, contract);
   if (
     contract.environment?.playwrightVersion !== "1.55.1" ||
     contract.environment?.browser?.name !== "chromium" ||
@@ -11878,7 +12575,7 @@ export function validateCaptureContract(
       "mobile-responsive-contract" ||
     mobileEvidenceContract?.prototypeCaptureBindingIsSufficient !== false ||
     mobileEvidenceContract?.recordsSource !==
-      "The nine scenarioEvidence members whose viewport is mobile; a second detached evidence list is forbidden." ||
+      "At BASELINE_READY, the nine mobile scenarioEvidence members are appended after the byte-identical nine-record REFERENCE_READY desktop prefix; a second detached evidence list is forbidden." ||
     JSON.stringify(mobileEvidenceContract?.requiredFields) !==
       JSON.stringify(expectedMobileEvidenceFields) ||
     JSON.stringify(mobileEvidenceContract?.requiredConstants) !==
@@ -11925,7 +12622,9 @@ export function validateCaptureContract(
         "axeReport",
         "keyboardInteractionTrace",
         "touchInteractionTrace",
-      ])
+      ]) ||
+    mobileEvidenceContract?.rule !==
+      "BASELINE_READY requires the complete typed production payload for all nine mobile scenarios as the ordered suffix of scenarioEvidence. Listing a viewport, attaching the prototype capture or passing desktop pixel comparison never satisfies a mobile transform assertion."
   ) {
     errors.push(
       "Mobiele contractreferentie mist de exacte 9/9-partitie, transforms, spacing, Axe en keyboard/touch-productiebewijsvorm.",
@@ -12287,9 +12986,77 @@ export function validateCaptureContract(
     "unhandledRejections",
     "unexpectedThirdPartyRequests",
   ];
+  const expectedStateRequirements = {
+    CONTRACTED: {
+      runtimeImageDigestValue: null,
+      fontResolvedFiles: null,
+      scenarioEvidence: null,
+    },
+    REFERENCE_READY: {
+      runtimeImageDigestValue: "sha256:<64 lowercase hex characters>",
+      fontResolvedFiles: "non-empty array of unique family/file/sha256 records",
+      scenarioEvidence: {
+        recordCount: 9,
+        referenceMode: "desktop-canonical-pixel",
+        scenarioIdsSource:
+          "normalization.referencePolicy.desktopCanonicalPixel.scenarioIds",
+        order: "exact source order",
+      },
+    },
+    BASELINE_READY: {
+      runtimeImageDigestValue: "byte-identical to REFERENCE_READY",
+      fontResolvedFiles: "byte-identical to REFERENCE_READY",
+      scenarioEvidence: {
+        recordCount: 18,
+        desktopPrefixCount: 9,
+        desktopPrefixScenarioIdsSource:
+          "normalization.referencePolicy.desktopCanonicalPixel.scenarioIds",
+        mobileSuffixCount: 9,
+        mobileSuffixScenarioIdsSource:
+          "normalization.referencePolicy.mobileResponsiveContract.scenarioIds",
+        order:
+          "exact desktop source order followed by exact mobile source order",
+        desktopPrefixPreservation:
+          "The UTF-8 JSON.stringify byte sequence of each desktop record and the nine-record order are identical to REFERENCE_READY.",
+      },
+    },
+  };
+  const expectedPromotionRules = {
+    allowedTransitions: [
+      "CONTRACTED -> REFERENCE_READY",
+      "REFERENCE_READY -> BASELINE_READY",
+    ],
+    workPackageExitStates: {
+      W00: "REFERENCE_READY",
+      W12: "BASELINE_READY",
+    },
+    sameStateRule:
+      "State, runtimeImageDigest, resolvedFiles and scenarioEvidence must remain byte-identical; same-state replacement is forbidden.",
+    forbidden: [
+      "CONTRACTED -> BASELINE_READY",
+      "any downgrade",
+      "any unknown state",
+      "same-state lifecycle-payload replacement",
+      "REFERENCE_READY -> BASELINE_READY with a changed, removed, reordered or replaced desktop prefix",
+    ],
+    twoPhase: {
+      captureHead:
+        "Immutable capture/implementation HEAD C produces the required artifacts, attestations and exact-HEAD reviews while the lifecycle manifest remains at its prior state.",
+      promotionHead:
+        "A later narrow promotion HEAD D changes only the lifecycle manifest and its transitively referenced evidence closure, names C as the historical evidence subject and advances exactly one state.",
+      ancestry:
+        "C is an ancestor of D and D is never substituted for the evidenced capture/implementation HEAD C.",
+      rootRotation:
+        "Contract-root rotation is a separate third process and is never combined with either evidence phase.",
+    },
+  };
   if (
-    contract.evidenceContract?.schemaVersion !== 2 ||
-    contract.evidenceContract?.requiredAtState !== "BASELINE_READY" ||
+    contract.evidenceContract?.schemaVersion !== 4 ||
+    contract.evidenceContract?.requiredAtState !== "REFERENCE_READY" ||
+    JSON.stringify(contract.evidenceContract?.stateRequirements) !==
+      JSON.stringify(expectedStateRequirements) ||
+    JSON.stringify(contract.evidenceContract?.promotionRules) !==
+      JSON.stringify(expectedPromotionRules) ||
     contract.evidenceContract?.artifactPathBase !== "evidence/visual" ||
     contract.evidenceContract?.contractRoot?.algorithm !== "sha256" ||
     !contract.evidenceContract?.contractRoot?.serialization?.startsWith(
@@ -12309,15 +13076,41 @@ export function validateCaptureContract(
         workflowPath: ".github/workflows/fieldflow-calm-visual-baseline.yml",
         workflowBlobSha256:
           "64 lowercase hex characters, identical on PR base and head",
+        executorWorkflowSha:
+          "40 lowercase hex characters for the main-owned workflow executor",
         jobName: "normalized-baseline",
         jobId: "positive integer",
-        eventName: "pull_request",
+        checkSuiteId: "positive integer",
+        eventName: "pull_request_target",
         runId: "positive integer",
         runAttempt: "positive integer",
         headCommit: "40 lowercase hex characters",
         baseCommit: "different 40 lowercase hex ancestor",
         pullRequestNumber: "positive integer",
+        artifactId: "positive integer",
+        artifactName:
+          "fieldflow-calm-baseline-<headCommit>-attempt-<runAttempt> (final signed artifact; never -unsigned)",
+        artifactDigest: "sha256:<64 lowercase hex characters>",
+        attestationManifestPath: "safe evidence/visual-relative JSON path",
+        attestationManifestSha256: "64 lowercase hex characters",
+        attestationBundlePath:
+          "normalized/attestations/<headCommit>.bundle.json",
+        attestationBundleSha256: "64 lowercase hex characters",
+        artifactSubjectCount:
+          "10 for desktop REFERENCE_READY (manifest plus 9 PNGs) or 19 for mobile BASELINE_READY (manifest plus 18 PNGs)",
         attestationProvider: "github-artifact-attestations",
+      }) ||
+    contract.evidenceContract?.transportArtifactRetentionDays !== 90 ||
+    contract.evidenceContract?.transportArtifactTrust !==
+      "raw producer artifacts, receipts and nonces are untrusted and non-authenticating; a separate clean non-OIDC job independently derives event/run/attempt/head/job/artifact bindings, validates the exact safe regular-file closure without symlinks or hardlinks using only byte-identical base-owned code and dependencies, and emits an attempt-unique validated artifact; only an isolated OIDC job may attest that validated package; promotion validity depends on the checked-in bundle, not remote artifact availability or expiry" ||
+    contract.evidenceContract?.actionsRunPullRequestsTrust !==
+      "forbidden; bind the live PR, Actions run, check suite and exact attempt job independently" ||
+    JSON.stringify(contract.evidenceContract?.attestationSubjectCardinality) !==
+      JSON.stringify({
+        REFERENCE_READY: 10,
+        BASELINE_READY: 19,
+        uniqueSafeNamesRequired: true,
+        requestedPngMustBePresent: true,
       }) ||
     JSON.stringify(contract.evidenceContract?.reviewerSchema?.roles) !==
       JSON.stringify(["product-design", "visual-a11y"]) ||
@@ -12387,13 +13180,14 @@ export function validateCaptureContract(
       );
     }
   }
-  if (contract.state === "BASELINE_READY") {
+  if (["REFERENCE_READY", "BASELINE_READY"].includes(contract.state)) {
+    const stateLabel = contract.state;
     if (
       !/^sha256:[0-9a-f]{64}$/u.test(
         contract.environment?.runtimeImageDigest?.value ?? "",
       )
     ) {
-      errors.push("BASELINE_READY vereist een exacte runtime-image digest.");
+      errors.push(`${stateLabel} vereist een exacte runtime-image digest.`);
     }
     const fontFiles = contract.environment?.fonts?.resolvedFiles;
     if (
@@ -12401,22 +13195,39 @@ export function validateCaptureContract(
       fontFiles.length === 0 ||
       fontFiles.some(
         (font) =>
+          !hasExactObjectKeys(font, ["family", "file", "sha256"]) ||
           !font.family ||
           !font.file ||
           !/^[0-9a-f]{64}$/u.test(font.sha256 ?? ""),
-      )
+      ) ||
+      new Set(
+        fontFiles.map((font) => `${font.family}\0${font.file}\0${font.sha256}`),
+      ).size !== fontFiles.length
     ) {
-      errors.push("BASELINE_READY vereist hashes van alle opgeloste fonts.");
+      errors.push(`${stateLabel} vereist hashes van alle opgeloste fonts.`);
     }
     const scenarioEvidence = contract.evidenceContract?.scenarioEvidence;
+    const desktopScenarioIds =
+      contract.normalization?.referencePolicy?.desktopCanonicalPixel
+        ?.scenarioIds ?? [];
+    const mobileScenarioIds =
+      contract.normalization?.referencePolicy?.mobileResponsiveContract
+        ?.scenarioIds ?? [];
+    const expectedEvidenceIds =
+      contract.state === "REFERENCE_READY"
+        ? desktopScenarioIds
+        : [...desktopScenarioIds, ...mobileScenarioIds];
     if (
       !Array.isArray(scenarioEvidence) ||
-      scenarioEvidence.length !== requiredScenarioIds.size
+      JSON.stringify(
+        scenarioEvidence?.map((evidence) => evidence?.scenarioId),
+      ) !== JSON.stringify(expectedEvidenceIds)
     ) {
       errors.push(
-        "BASELINE_READY vereist exact één evidence-record per scenario.",
+        `${stateLabel} vereist exact geordende evidence-records in de gecontracteerde desktop-prefix/mobile-suffixvolgorde.`,
       );
-    } else {
+    }
+    if (Array.isArray(scenarioEvidence)) {
       const evidenceIds = new Set();
       const evidenceArtifactPaths = new Set();
       const visualRoot = resolve(
@@ -12558,9 +13369,9 @@ export function validateCaptureContract(
             : null;
         validateBaselineExternalEvidence(errors, evidence, attestedPngPath);
       }
-      for (const scenarioId of seen) {
+      for (const scenarioId of expectedEvidenceIds) {
         if (!evidenceIds.has(scenarioId)) {
-          errors.push(`${scenarioId}: BASELINE_READY evidence ontbreekt.`);
+          errors.push(`${scenarioId}: ${stateLabel} evidence ontbreekt.`);
         }
       }
     }
@@ -12742,16 +13553,29 @@ export function validateCandidateCheckoutSafety(
       .split("\0")
       .filter(Boolean)
       .map((entry) => /^(\d+)\s+(\S+)\s+[0-9a-f]+\t(.+)$/u.exec(entry))
-      .filter(
-        (match) =>
+      .filter((match) => {
+        if (
           !match ||
           match[2] !== "blob" ||
-          !["100644", "100755"].includes(match[1]),
-      )
+          !["100644", "100755"].includes(match[1])
+        ) {
+          return true;
+        }
+        const path = match[3];
+        return (
+          !/^[\x20-\x7e]+$/u.test(path) ||
+          path.startsWith("/") ||
+          path.includes("\\") ||
+          posix.normalize(path) !== path ||
+          path
+            .split("/")
+            .some((component) => ["", ".", ".."].includes(component))
+        );
+      })
       .map((match) => match?.[3] ?? "onleesbaar tree-entry");
     if (unsafeEntries.length > 0) {
       errors.push(
-        `Kandidaat-Git-tree bevat symlinks, submodules of niet-reguliere blobs: ${unsafeEntries.join(", ")}.`,
+        `Kandidaat-Git-tree bevat symlinks, submodules, onveilige paden of niet-reguliere blobs: ${unsafeEntries.join(", ")}.`,
       );
     }
   } catch (error) {
@@ -12759,6 +13583,131 @@ export function validateCandidateCheckoutSafety(
       `Kandidaatcheckout kon niet fail-closed worden gevalideerd: ${error}`,
     );
   }
+}
+
+const CONTRACT_ROOT_STATIC_INPUT_PATHS = [
+  ...NORMATIVE_DOC_FILES.map((file) =>
+    posix.join("docs/uiux/fieldflow-calm-handoff", file),
+  ),
+  "docs/uiux/fieldflow-calm-handoff/manifests/routes.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/production-inventory.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/mismatch-traceability.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/navigation-contract.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/component-api-contract.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/planboard-actions.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/verification-matrix.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/acceptance.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/risks.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/fieldflow-tokens.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/component-states.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/component-source-coverage.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/theme-derivation.json",
+  "docs/uiux/fieldflow-calm-handoff/manifests/surfaces.json",
+  "docs/uiux/fieldflow-calm-handoff/evidence/visual/manifest.json",
+  "docs/uiux/fieldflow-calm-handoff/evidence/visual/capture-contract.json",
+  "docs/uiux/fieldflow-calm-handoff/evidence/visual/canonical-theme.css",
+  "docs/uiux/fieldflow-calm-handoff/evidence/visual/reference-normalization.css",
+  "docs/uiux/fieldflow-calm-handoff/evidence/prototype/source-manifest.json",
+  "docs/uiux/fieldflow-calm-handoff/reference/theme-derivation.mjs",
+  "docs/uiux/fieldflow-calm-handoff/reference/theme-derivation.test.mjs",
+  "docs/uiux/fieldflow-calm-handoff/reference/verification-matrix.schema.json",
+  CONTRACT_ROOT_VALIDATOR_PATH,
+  CONTRACT_ROOT_TEST_PATH,
+  CONTRACT_ROOT_ORACLE_TEST_PATH,
+  CONTRACT_ROOT_WORKFLOW_PATH,
+  EVIDENCE_WORKFLOW_PATH,
+  VISUAL_BASELINE_WORKFLOW_PATH,
+  EVIDENCE_VALIDATOR_PATH,
+  EVIDENCE_RUNNER_PATH,
+  VISUAL_BASELINE_RUNNER_PATH,
+  EVIDENCE_TEST_PATH,
+  RUNTIME_EVIDENCE_VALIDATOR_PATH,
+  PLAYWRIGHT_JOURNEY_EVIDENCE_PATH,
+];
+
+function contractRootInputPaths(root, packageRoot) {
+  const paths = new Set([
+    ...CONTRACT_ROOT_STATIC_INPUT_PATHS,
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    ".npmrc",
+    ".pnpmfile.cjs",
+    ".pnpmfile.js",
+    "pnpmfile.cjs",
+    "pnpmfile.js",
+    ...listTrustedDependencyInputPaths(root),
+  ]);
+  try {
+    const visual = readJson(
+      resolve(packageRoot, "evidence/visual/manifest.json"),
+    );
+    for (const record of visual.files ?? []) {
+      if (isNonEmptyString(record?.file)) {
+        paths.add(
+          posix.join(
+            "docs/uiux/fieldflow-calm-handoff/evidence/visual",
+            record.file,
+          ),
+        );
+      }
+    }
+  } catch {
+    // The fixed manifest path remains in the closure and normal validation
+    // reports malformed JSON. Do not silently discover arbitrary paths.
+  }
+  try {
+    const prototype = readJson(
+      resolve(packageRoot, "evidence/prototype/source-manifest.json"),
+    );
+    if (isNonEmptyString(prototype.archive?.file)) {
+      paths.add(
+        posix.join(
+          "docs/uiux/fieldflow-calm-handoff/evidence/prototype",
+          prototype.archive.file,
+        ),
+      );
+    }
+  } catch {
+    // See the visual-manifest note above.
+  }
+  return [...paths].sort();
+}
+
+export function computeFieldflowContractRootInputClosureSha256({
+  root = ROOT,
+  packageRoot = resolve(root, "docs/uiux/fieldflow-calm-handoff"),
+} = {}) {
+  const serialization = contractRootInputPaths(root, packageRoot)
+    .map((path) => {
+      const absolutePath = resolve(root, path);
+      let digest;
+      if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) {
+        digest = "ABSENT";
+      } else if (
+        path === "docs/uiux/fieldflow-calm-handoff/manifests/acceptance.json"
+      ) {
+        digest = hashJson(
+          lifecycleIndependentContract(readJson(absolutePath), "requirements"),
+        );
+      } else if (
+        path === "docs/uiux/fieldflow-calm-handoff/manifests/risks.json"
+      ) {
+        digest = hashJson(
+          lifecycleIndependentContract(readJson(absolutePath), "risks"),
+        );
+      } else if (
+        path ===
+        "docs/uiux/fieldflow-calm-handoff/evidence/visual/capture-contract.json"
+      ) {
+        digest = computeCaptureContractRootSha256(readJson(absolutePath));
+      } else {
+        digest = hashFile(absolutePath);
+      }
+      return `${path}:${digest}`;
+    })
+    .join("\n");
+  return createHash("sha256").update(serialization).digest("hex");
 }
 
 export function computeFieldflowContractDigests({
@@ -12872,6 +13821,22 @@ export function computeFieldflowContractDigests({
     contractRootOracleTests: hashOptionalFile(
       resolve(root, CONTRACT_ROOT_ORACLE_TEST_PATH),
     ),
+    evidenceWorkflow: hashOptionalFile(resolve(root, EVIDENCE_WORKFLOW_PATH)),
+    visualBaselineWorkflow: hashOptionalFile(
+      resolve(root, VISUAL_BASELINE_WORKFLOW_PATH),
+    ),
+    evidenceValidator: hashOptionalFile(resolve(root, EVIDENCE_VALIDATOR_PATH)),
+    evidenceRunner: hashOptionalFile(resolve(root, EVIDENCE_RUNNER_PATH)),
+    visualBaselineRunner: hashOptionalFile(
+      resolve(root, VISUAL_BASELINE_RUNNER_PATH),
+    ),
+    evidenceTests: hashOptionalFile(resolve(root, EVIDENCE_TEST_PATH)),
+    runtimeEvidenceValidator: hashOptionalFile(
+      resolve(root, RUNTIME_EVIDENCE_VALIDATOR_PATH),
+    ),
+    playwrightJourneyEvidence: hashOptionalFile(
+      resolve(root, PLAYWRIGHT_JOURNEY_EVIDENCE_PATH),
+    ),
     trustedDependencyInputs: computeTrustedDependencyInputsDigest(root),
     trustedRootWorkflow: hashOptionalFile(
       resolve(root, CONTRACT_ROOT_WORKFLOW_PATH),
@@ -12879,6 +13844,10 @@ export function computeFieldflowContractDigests({
     packageCommand: createHash("sha256")
       .update(packageJson.scripts?.[CONTRACT_ROOT_PACKAGE_SCRIPT] ?? "MISSING")
       .digest("hex"),
+    rootInputClosure: computeFieldflowContractRootInputClosureSha256({
+      root,
+      packageRoot,
+    }),
   };
 }
 
@@ -12888,6 +13857,7 @@ export function computeFieldflowContractRootSha256(manifest) {
     name: manifest.name,
     algorithm: manifest.algorithm,
     serialization: manifest.serialization,
+    lineage: manifest.lineage,
     trustPolicy: manifest.trustPolicy,
     digests: manifest.digests,
   });
@@ -12909,15 +13879,22 @@ export function validateFieldflowContractRoot(
       "name",
       "algorithm",
       "serialization",
+      "lineage",
       "trustPolicy",
       "digests",
       "rootSha256",
     ]) ||
-    manifest.schemaVersion !== 1 ||
+    manifest.schemaVersion !== 2 ||
     manifest.name !== "Fieldflow Calm protected contract root" ||
     manifest.algorithm !== "sha256" ||
     manifest.serialization !==
-      "SHA-256 of JSON.stringify({schemaVersion,name,algorithm,serialization,trustPolicy,digests}) with the property order stored in this manifest" ||
+      "SHA-256 of JSON.stringify({schemaVersion,name,algorithm,serialization,lineage,trustPolicy,digests}) with the property order stored in this manifest" ||
+    !hasExactKeys(manifest.lineage, ["sequence", "previousRootSha256"]) ||
+    !Number.isSafeInteger(manifest.lineage.sequence) ||
+    manifest.lineage.sequence < 1 ||
+    !/^[0-9a-f]{64}$/u.test(manifest.lineage.previousRootSha256 ?? "") ||
+    (manifest.lineage.sequence === 1 &&
+      manifest.lineage.previousRootSha256 !== LEGACY_CONTRACT_ROOT_SHA256) ||
     JSON.stringify(manifest.trustPolicy) !==
       JSON.stringify(CONTRACT_ROOT_TRUST_POLICY)
   ) {
@@ -12949,6 +13926,240 @@ export function validateFieldflowContractRoot(
   ) {
     errors.push(
       "Een gevorderde lifecycleclaim vereist de exact overeenkomende beschermde FIELDFLOW_CALM_TRUSTED_ROOT_SHA256.",
+    );
+  }
+}
+
+export function determineFieldflowContractRootMode(
+  errors,
+  { baseManifest, candidateManifest, activeRoot, pendingRoot } = {},
+) {
+  const shaPattern = /^[0-9a-f]{64}$/u;
+  if (!shaPattern.test(activeRoot ?? "")) {
+    errors.push(
+      "Contract-rootprotocol vereist één geldige actieve beschermde root.",
+    );
+    return null;
+  }
+  const pendingAbsent =
+    pendingRoot === undefined || pendingRoot === null || pendingRoot === "";
+  if (pendingAbsent) {
+    if (
+      baseManifest?.rootSha256 !== activeRoot ||
+      candidateManifest?.rootSha256 !== activeRoot
+    ) {
+      errors.push(
+        "Normale contract-rootcontrole vereist active == base.root == candidate.root en geen pending root.",
+      );
+      return null;
+    }
+    return "normal";
+  }
+  if (!shaPattern.test(pendingRoot) || pendingRoot === activeRoot) {
+    errors.push(
+      "Rootrotatie vereist een geldige pending root die verschilt van de actieve root.",
+    );
+    return null;
+  }
+  const baseSequence = baseManifest?.lineage?.sequence;
+  if (
+    baseManifest?.schemaVersion !== 2 ||
+    baseManifest?.rootSha256 !== activeRoot ||
+    candidateManifest?.rootSha256 !== pendingRoot ||
+    !Number.isSafeInteger(baseSequence) ||
+    candidateManifest?.lineage?.previousRootSha256 !==
+      baseManifest?.rootSha256 ||
+    candidateManifest?.lineage?.sequence !== baseSequence + 1
+  ) {
+    errors.push(
+      "Geautomatiseerde v2-rootrotatie vereist een v2-base, active == base.root, pending == candidate.root en exact opvolgende lineage; v1 naar v2 is uitsluitend break-glass bootstrap.",
+    );
+    return null;
+  }
+  return "rotation";
+}
+
+export function validateContractRootRotationTrigger(
+  errors,
+  { eventName, eventAction } = {},
+) {
+  if (eventName !== "pull_request_target" || eventAction !== "edited") {
+    errors.push(
+      "Rootrotatie vereist uitsluitend een generieke pull_request_target-edited retrigger nadat pending extern is gezet.",
+    );
+  }
+}
+
+export function validateContractRootPullRequestIdentity(
+  errors,
+  {
+    repository = CONTRACT_ROOT_TRUST_POLICY.repository,
+    protectedBaseBranch = CONTRACT_ROOT_TRUST_POLICY.protectedBaseBranch,
+    pullRequestNumber,
+    baseSha,
+    candidateSha,
+    apiJson = githubApiJson,
+  } = {},
+) {
+  if (
+    repository !== CONTRACT_ROOT_TRUST_POLICY.repository ||
+    !Number.isSafeInteger(pullRequestNumber) ||
+    pullRequestNumber < 1 ||
+    !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
+    !/^[0-9a-f]{40}$/u.test(candidateSha ?? "")
+  ) {
+    errors.push("Live contract-root-PR mist geldige repository/PR/SHA-inputs.");
+    return null;
+  }
+  const pullRequest = apiJson(`repos/${repository}/pulls/${pullRequestNumber}`);
+  const author = pullRequest?.user?.login;
+  if (
+    !pullRequest ||
+    pullRequest.state !== "open" ||
+    pullRequest.base?.repo?.full_name !== repository ||
+    pullRequest.base?.ref !== protectedBaseBranch ||
+    pullRequest.base?.sha !== baseSha ||
+    pullRequest.head?.sha !== candidateSha ||
+    !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u.test(author ?? "")
+  ) {
+    errors.push(
+      "Live contract-root-PR bindt repository, open state, auteur, basebranch, base-SHA en candidate-SHA niet exact.",
+    );
+    return null;
+  }
+  return pullRequest;
+}
+
+function validateRotationCollectionImmutability(
+  errors,
+  { label, baseItems, candidateItems, idField, initialState },
+) {
+  const candidateById = new Map(
+    (candidateItems ?? []).map((item) => [item?.[idField], item]),
+  );
+  for (const baseItem of baseItems ?? []) {
+    const candidateItem = candidateById.get(baseItem?.[idField]);
+    if (
+      !candidateItem ||
+      JSON.stringify({
+        state: candidateItem.state,
+        evidence: candidateItem.evidence ?? null,
+      }) !==
+        JSON.stringify({
+          state: baseItem.state,
+          evidence: baseItem.evidence ?? null,
+        })
+    ) {
+      errors.push(
+        `${label} ${baseItem?.[idField] ?? "onbekend"}: lifecycle/evidence moet tijdens rootrotatie immutable blijven.`,
+      );
+    }
+  }
+  const baseIds = new Set((baseItems ?? []).map((item) => item?.[idField]));
+  for (const candidateItem of candidateItems ?? []) {
+    if (
+      !baseIds.has(candidateItem?.[idField]) &&
+      (candidateItem?.state !== initialState ||
+        Object.hasOwn(candidateItem ?? {}, "evidence"))
+    ) {
+      errors.push(
+        `${label} ${candidateItem?.[idField] ?? "onbekend"}: een nieuw contractitem moet zonder bewijs in ${initialState} starten.`,
+      );
+    }
+  }
+}
+
+function captureLifecycleEvidenceProjection(capture) {
+  return {
+    state: capture?.state,
+    runtimeImageDigest: capture?.environment?.runtimeImageDigest?.value,
+    resolvedFonts: capture?.environment?.fonts?.resolvedFiles,
+    scenarioEvidence: capture?.evidenceContract?.scenarioEvidence,
+  };
+}
+
+export function validateContractRootRotationDiff(
+  errors,
+  {
+    root,
+    baseRoot = ROOT,
+    baseSha,
+    candidateSha,
+    basePackageRoot = resolve(baseRoot, "docs/uiux/fieldflow-calm-handoff"),
+    candidatePackageRoot = resolve(root, "docs/uiux/fieldflow-calm-handoff"),
+  } = {},
+) {
+  try {
+    const baseAcceptance = readJson(
+      resolve(basePackageRoot, "manifests/acceptance.json"),
+    );
+    const candidateAcceptance = readJson(
+      resolve(candidatePackageRoot, "manifests/acceptance.json"),
+    );
+    const baseRisks = readJson(
+      resolve(basePackageRoot, "manifests/risks.json"),
+    );
+    const candidateRisks = readJson(
+      resolve(candidatePackageRoot, "manifests/risks.json"),
+    );
+    validateRotationCollectionImmutability(errors, {
+      label: "Acceptance-eis",
+      baseItems: baseAcceptance.requirements,
+      candidateItems: candidateAcceptance.requirements,
+      idField: "id",
+      initialState: "CONTRACTED",
+    });
+    validateRotationCollectionImmutability(errors, {
+      label: "Risico",
+      baseItems: baseRisks.risks,
+      candidateItems: candidateRisks.risks,
+      idField: "id",
+      initialState: "OPEN",
+    });
+    const baseCapture = readJson(
+      resolve(basePackageRoot, "evidence/visual/capture-contract.json"),
+    );
+    const candidateCapture = readJson(
+      resolve(candidatePackageRoot, "evidence/visual/capture-contract.json"),
+    );
+    if (
+      JSON.stringify(captureLifecycleEvidenceProjection(candidateCapture)) !==
+      JSON.stringify(captureLifecycleEvidenceProjection(baseCapture))
+    ) {
+      errors.push(
+        "Visuele baseline: lifecycle, runtime, fonts en scenarioEvidence moeten tijdens rootrotatie immutable blijven.",
+      );
+    }
+
+    const allowedPaths = new Set([
+      CONTRACT_ROOT_PATH,
+      ...contractRootInputPaths(baseRoot, basePackageRoot),
+      ...contractRootInputPaths(root, candidatePackageRoot),
+    ]);
+    for (const entry of gitDiffNameStatus(root, baseSha, candidateSha)) {
+      if (
+        !["A", "M", "D"].includes(entry.status) ||
+        !isSafeRelativePath(entry.path, root) ||
+        !/^[A-Za-z0-9._/@+() -]+$/u.test(entry.path) ||
+        !allowedPaths.has(entry.path)
+      ) {
+        errors.push(
+          `Rootrotatie bevat een verboden non-root-closure pad of Git-status: ${entry.status} ${entry.path}.`,
+        );
+        continue;
+      }
+      if (
+        entry.status !== "D" &&
+        gitTreeEntry(root, candidateSha, entry.path)?.mode !== "100644"
+      ) {
+        errors.push(
+          `Rootrotatie vereist mode 100644 en een reguliere blob: ${entry.path}.`,
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `Rootrotatiediff kon niet fail-closed worden gevalideerd: ${error}`,
     );
   }
 }
@@ -13047,31 +14258,44 @@ export function validateLifecycleTransition(
     const candidateCapture = readJson(
       resolve(candidatePackageRoot, "evidence/visual/capture-contract.json"),
     );
-    const captureStates = ["CONTRACTED", "BASELINE_READY"];
+    const captureStates = ["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"];
     const from = captureStates.indexOf(baseCapture.state);
     const to = captureStates.indexOf(candidateCapture.state);
     if (from < 0 || to < 0 || to < from || to > from + 1) {
       errors.push(
         `Visuele baseline: lifecycle mag niet downgraden of een status overslaan (${baseCapture.state} -> ${candidateCapture.state}).`,
       );
-    } else if (
-      to === from &&
-      JSON.stringify({
-        runtimeImageDigest: candidateCapture.environment?.runtimeImageDigest,
-        resolvedFonts: candidateCapture.environment?.fonts?.resolvedFiles,
-        scenarioEvidence:
-          candidateCapture.evidenceContract?.scenarioEvidence ?? null,
-      }) !==
-        JSON.stringify({
-          runtimeImageDigest: baseCapture.environment?.runtimeImageDigest,
-          resolvedFonts: baseCapture.environment?.fonts?.resolvedFiles,
-          scenarioEvidence:
-            baseCapture.evidenceContract?.scenarioEvidence ?? null,
-        })
-    ) {
-      errors.push(
-        "Visuele baseline: bewijsvelden mogen niet worden vervangen zonder CONTRACTED -> BASELINE_READY of afzonderlijke rootrotatie/correctie.",
-      );
+    } else {
+      const baseEvidence = captureLifecycleEvidenceProjection(baseCapture);
+      const candidateEvidence =
+        captureLifecycleEvidenceProjection(candidateCapture);
+      if (
+        to === from &&
+        JSON.stringify(candidateEvidence) !== JSON.stringify(baseEvidence)
+      ) {
+        errors.push(
+          "Visuele baseline: bewijsvelden mogen niet worden vervangen zonder een lifecycletransitie.",
+        );
+      }
+      if (from === 1 && to === 2) {
+        const baseScenarios = baseEvidence.scenarioEvidence;
+        const candidateScenarios = candidateEvidence.scenarioEvidence;
+        if (
+          candidateEvidence.runtimeImageDigest !==
+            baseEvidence.runtimeImageDigest ||
+          JSON.stringify(candidateEvidence.resolvedFonts) !==
+            JSON.stringify(baseEvidence.resolvedFonts) ||
+          !Array.isArray(baseScenarios) ||
+          !Array.isArray(candidateScenarios) ||
+          candidateScenarios.length < baseScenarios.length ||
+          JSON.stringify(candidateScenarios.slice(0, baseScenarios.length)) !==
+            JSON.stringify(baseScenarios)
+        ) {
+          errors.push(
+            "Visuele baseline: REFERENCE_READY -> BASELINE_READY moet runtime, fonts en de volledige desktop-scenarioEvidence byte- en volgorde-exact als prefix behouden.",
+          );
+        }
+      }
     }
   } catch (error) {
     errors.push(
@@ -13233,6 +14457,19 @@ function collectRequirementEvidenceClosure(
       subjectId: item.id,
     });
   }
+  for (const provenance of [
+    index.provenance?.runtime,
+    index.provenance?.staging,
+  ]) {
+    if (!provenance) continue;
+    addPromotionEvidencePath(
+      errors,
+      allowedPaths,
+      root,
+      provenance.attestationBundlePath,
+      item.id,
+    );
+  }
 }
 
 function collectCaptureEvidenceClosure(
@@ -13281,6 +14518,34 @@ function collectCaptureEvidenceClosure(
       if (!readGitFile(root, candidateSha, repositoryPath)) {
         errors.push(
           `${evidence?.scenarioId ?? "Visuele baseline"}: evidenceblob ontbreekt: ${repositoryPath}.`,
+        );
+      }
+    }
+    for (const provenanceField of [
+      "attestationManifestPath",
+      "attestationBundlePath",
+    ]) {
+      const artifactPath = evidence?.provenance?.[provenanceField];
+      if (!isNonEmptyString(artifactPath)) continue;
+      const repositoryPath = posix.join(
+        FIELDFLOW_PACKAGE_PATH,
+        artifactBase,
+        artifactPath,
+      );
+      if (
+        !repositoryPath.startsWith(visualPrefix) ||
+        !isSafeRelativePath(repositoryPath, root) ||
+        !/^[A-Za-z0-9._/-]+$/u.test(repositoryPath)
+      ) {
+        errors.push(
+          `${evidence?.scenarioId ?? "Visuele baseline"}: attestationpad is niet veilig: ${artifactPath}.`,
+        );
+        continue;
+      }
+      allowedPaths.add(repositoryPath);
+      if (!readGitFile(root, candidateSha, repositoryPath)) {
+        errors.push(
+          `${evidence?.scenarioId ?? "Visuele baseline"}: attestationblob ontbreekt: ${repositoryPath}.`,
         );
       }
     }
@@ -13641,6 +14906,7 @@ export function validateFieldflowHandoff({
   root = ROOT,
   packageRoot = resolve(root, "docs/uiux/fieldflow-calm-handoff"),
   executeReference = true,
+  trustedRoot = process.env.FIELDFLOW_CALM_TRUSTED_ROOT_SHA256,
 } = {}) {
   const errors = [];
   validateRequiredFiles(errors, packageRoot);
@@ -13769,6 +15035,7 @@ export function validateFieldflowHandoff({
       risks,
       captureContract,
     ),
+    trustedRoot,
   });
   validateNoUnresolvedMarkers(errors, packageRoot);
   validateMarkdownLinks(errors, packageRoot);
@@ -13785,13 +15052,26 @@ function runCli() {
     const candidateShaIndex = process.argv.indexOf("--candidate-sha");
     const candidateSha =
       candidateShaIndex >= 0 ? process.argv[candidateShaIndex + 1] : null;
+    const pullRequestIndex = process.argv.indexOf("--pull-request-number");
+    const pullRequestNumber =
+      pullRequestIndex >= 0
+        ? Number(process.argv[pullRequestIndex + 1])
+        : Number.NaN;
+    const eventNameIndex = process.argv.indexOf("--event-name");
+    const eventName =
+      eventNameIndex >= 0 ? process.argv[eventNameIndex + 1] : null;
+    const eventActionIndex = process.argv.indexOf("--event-action");
+    const eventAction =
+      eventActionIndex >= 0 ? process.argv[eventActionIndex + 1] : null;
     if (
       !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
       !isNonEmptyString(candidateArgument) ||
-      !/^[0-9a-f]{40}$/u.test(candidateSha ?? "")
+      !/^[0-9a-f]{40}$/u.test(candidateSha ?? "") ||
+      !Number.isSafeInteger(pullRequestNumber) ||
+      pullRequestNumber < 1
     ) {
       process.stderr.write(
-        "Fieldflow contract-rootcontrole vereist --base-sha <40-tekens-SHA>, --candidate-root <repository> en --candidate-sha <40-tekens-SHA>.\n",
+        "Fieldflow contract-rootcontrole vereist --base-sha <40-tekens-SHA>, --candidate-root <repository>, --candidate-sha <40-tekens-SHA>, --pull-request-number <positief geheel getal> en de base-owned eventmetadata.\n",
       );
       process.exitCode = 1;
       return;
@@ -13811,16 +15091,34 @@ function runCli() {
     }
     const trustErrors = [];
     validateCandidateCheckoutSafety(trustErrors, {
+      root: ROOT,
+      expectedCommit: baseSha,
+    });
+    validateCandidateCheckoutSafety(trustErrors, {
       root: candidateRoot,
       expectedCommit: candidateSha,
     });
+    const baseManifest = readJson(resolve(ROOT, CONTRACT_ROOT_PATH));
+    const candidateManifest = readJson(candidateManifestPath);
     if (trustErrors.length === 0) {
+      validateFieldflowContractRoot(trustErrors, {
+        root: ROOT,
+        packageRoot: PACKAGE_ROOT,
+        manifest: baseManifest,
+      });
       validateFieldflowContractRoot(trustErrors, {
         root: candidateRoot,
         packageRoot: candidatePackageRoot,
-        manifest: readJson(candidateManifestPath),
-        requireExternalTrust: true,
-        trustedRoot: process.env.FIELDFLOW_CALM_TRUSTED_ROOT_SHA256,
+        manifest: candidateManifest,
+      });
+    }
+    let mode = null;
+    if (trustErrors.length === 0) {
+      mode = determineFieldflowContractRootMode(trustErrors, {
+        baseManifest,
+        candidateManifest,
+        activeRoot: process.env.FIELDFLOW_CALM_TRUSTED_ROOT_SHA256,
+        pendingRoot: process.env.FIELDFLOW_CALM_PENDING_ROOT_SHA256,
       });
     }
     if (trustErrors.length === 0) {
@@ -13829,20 +15127,40 @@ function runCli() {
           root: candidateRoot,
           packageRoot: candidatePackageRoot,
           executeReference: false,
+          trustedRoot: candidateManifest.rootSha256,
         }),
       );
     }
     if (trustErrors.length === 0) {
+      validateContractRootPullRequestIdentity(trustErrors, {
+        pullRequestNumber,
+        baseSha,
+        candidateSha,
+      });
+    }
+    if (trustErrors.length === 0 && mode === "normal") {
       validateLifecycleTransition(trustErrors, {
         basePackageRoot: PACKAGE_ROOT,
         candidatePackageRoot,
       });
-    }
-    if (trustErrors.length === 0) {
       validateEvidencePromotion(trustErrors, {
         root: candidateRoot,
         baseSha,
         candidateSha,
+      });
+    }
+    if (trustErrors.length === 0 && mode === "rotation") {
+      validateContractRootRotationDiff(trustErrors, {
+        root: candidateRoot,
+        baseRoot: ROOT,
+        baseSha,
+        candidateSha,
+        basePackageRoot: PACKAGE_ROOT,
+        candidatePackageRoot,
+      });
+      validateContractRootRotationTrigger(trustErrors, {
+        eventName,
+        eventAction,
       });
     }
     if (trustErrors.length > 0) {
@@ -13857,7 +15175,7 @@ function runCli() {
       return;
     }
     process.stdout.write(
-      "Fieldflow protected contract-root, immutable checkout, evidence-only promotiondiff en volledige lifecycle-inhoud komen exact overeen met het extern vertrouwde contract.\n",
+      `Fieldflow protected contract-root ${mode}, immutable base-owned PR-ref, trusted-base validator, lifecycle/evidencebeleid en externe roottrust zijn exact gevalideerd.\n`,
     );
     return;
   }

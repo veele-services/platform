@@ -21,6 +21,7 @@ import {
   computeCaptureContractRootSha256,
   computeFieldflowContractDigests,
   computeFieldflowContractRootSha256,
+  computeFieldflowContractRootInputClosureSha256,
   computeTrustedDependencyInputsDigest,
   computeProductionSourceDigest,
   contrastRatio,
@@ -32,6 +33,7 @@ import {
   requiredEvidenceCommandIds,
   routeFromSource,
   validateCaptureContract,
+  validateCaptureLifecyclePayload,
   validateBaselineScenarioEvidencePayload,
   validateBaselineExternalEvidence,
   validateComponentApiContract,
@@ -40,6 +42,11 @@ import {
   validateAcceptance,
   validateFieldflowHandoff,
   validateFieldflowContractRoot,
+  determineFieldflowContractRootMode,
+  evidenceReportProvenanceProjection,
+  validateContractRootPullRequestIdentity,
+  validateContractRootRotationTrigger,
+  validateContractRootRotationDiff,
   validateCandidateCheckoutSafety,
   validateLifecycleTransition,
   validateMismatchTraceability,
@@ -48,6 +55,7 @@ import {
   validateProductionInventory,
   validateRequirementEvidence,
   validateEvidenceIndexPayload,
+  validateEvidenceProvenance,
   validateEvidencePromotion,
   validateMachineEvidenceReport,
   validateRiskEvidence,
@@ -185,14 +193,24 @@ function baselineScenarioFixture() {
     repository: "veele-services/platform",
     workflowPath: ".github/workflows/fieldflow-calm-visual-baseline.yml",
     workflowBlobSha256: "4".repeat(64),
+    executorWorkflowSha: "5".repeat(40),
     jobName: "normalized-baseline",
     jobId: 87654321,
-    eventName: "pull_request",
+    checkSuiteId: 76543210,
+    eventName: "pull_request_target",
     runId: 987654321,
     runAttempt: 1,
     headCommit: "3".repeat(40),
     baseCommit: "4".repeat(40),
     pullRequestNumber: 4242,
+    artifactId: 65432109,
+    artifactName: `fieldflow-calm-baseline-${"3".repeat(40)}-attempt-1`,
+    artifactDigest: `sha256:${"6".repeat(64)}`,
+    attestationManifestPath: "normalized/attestation-manifest.json",
+    attestationManifestSha256: "7".repeat(64),
+    attestationBundlePath: `normalized/attestations/${"3".repeat(40)}.bundle.json`,
+    attestationBundleSha256: "8".repeat(64),
+    artifactSubjectCount: 10,
     attestationProvider: "github-artifact-attestations",
   };
   const captureBinding = {
@@ -450,14 +468,24 @@ function mobileBaselineScenarioFixture() {
     repository: "veele-services/platform",
     workflowPath: ".github/workflows/fieldflow-calm-visual-baseline.yml",
     workflowBlobSha256: "4".repeat(64),
+    executorWorkflowSha: "5".repeat(40),
     jobName: "normalized-baseline",
     jobId: 87654321,
-    eventName: "pull_request",
+    checkSuiteId: 76543210,
+    eventName: "pull_request_target",
     runId: 987654321,
     runAttempt: 1,
     headCommit: "3".repeat(40),
     baseCommit: "4".repeat(40),
     pullRequestNumber: 4242,
+    artifactId: 65432109,
+    artifactName: `fieldflow-calm-baseline-${"3".repeat(40)}-attempt-1`,
+    artifactDigest: `sha256:${"6".repeat(64)}`,
+    attestationManifestPath: "normalized/attestation-manifest.json",
+    attestationManifestSha256: "7".repeat(64),
+    attestationBundlePath: `normalized/attestations/${"3".repeat(40)}.bundle.json`,
+    attestationBundleSha256: "8".repeat(64),
+    artifactSubjectCount: 19,
     attestationProvider: "github-artifact-attestations",
   };
   const captureBinding = {
@@ -741,7 +769,7 @@ function implementationEvidenceFixture(state = "IMPLEMENTED") {
     },
   };
   const index = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     subjectId: item.id,
     headCommit: commit,
     authorId: "implementer-a",
@@ -755,13 +783,20 @@ function implementationEvidenceFixture(state = "IMPLEMENTED") {
     commands: [],
     artifacts: { runtime: [], staging: [] },
     reviewers: [],
-    provenance: null,
+    provenance: { runtime: null, staging: null },
     release: null,
   };
   return { item, index };
 }
 
-function evidenceProvenanceFixture(item) {
+function evidenceProvenanceFixture(item, evidenceMode = "runtime") {
+  const ordinal = [
+    "runtime",
+    "browser",
+    "visual",
+    "staging",
+    "release",
+  ].indexOf(evidenceMode);
   return {
     provider: "github-actions",
     repository: "veele-services/platform",
@@ -770,11 +805,19 @@ function evidenceProvenanceFixture(item) {
     pullRequestNumber: 42,
     workflowPath: ".github/workflows/fieldflow-calm-evidence.yml",
     workflowBlobSha256: "c".repeat(64),
-    runId: 1001,
+    executorWorkflowSha: "d".repeat(40),
+    evidenceMode,
+    runId: 1001 + ordinal,
     runAttempt: 1,
-    jobId: 2002,
-    jobName: "fieldflow-evidence",
-    eventName: "pull_request",
+    checkSuiteId: 1501 + ordinal,
+    jobId: 2002 + ordinal,
+    jobName: "Fieldflow Calm evidence",
+    eventName: "pull_request_target",
+    artifactId: 3003 + ordinal,
+    artifactName: `fieldflow-calm-${item.id}-${evidenceMode}-${item.evidence.commit}-attempt-1`,
+    artifactDigest: `sha256:${"e".repeat(64)}`,
+    attestationBundlePath: `outputs/fieldflow-calm/attestations/${item.id}.${evidenceMode}.${item.evidence.commit}.bundle.json`,
+    attestationBundleSha256: "f".repeat(64),
     attestationProvider: "github-artifact-attestations",
   };
 }
@@ -786,7 +829,7 @@ function evidenceReportFixture(item, provenance) {
     subjectId: item.id,
     headCommit: item.evidence.commit,
     verification: item.verification,
-    provenance,
+    provenance: evidenceReportProvenanceProjection(provenance),
     coverage: {
       routes: item.routes,
       themes: item.themes,
@@ -861,6 +904,455 @@ test("protected contract root binds every normative input and external trust", (
   assert.match(trustErrors.join("\n"), /beschermde.*TRUSTED_ROOT_SHA256/su);
 });
 
+test("contract-root v2 truth table separates normal validation from root rotation", () => {
+  const active = "a".repeat(64);
+  const pending = "b".repeat(64);
+  const baseManifest = {
+    schemaVersion: 2,
+    lineage: { sequence: 7, previousRootSha256: "9".repeat(64) },
+    rootSha256: active,
+  };
+  const normalErrors = [];
+  assert.equal(
+    determineFieldflowContractRootMode(normalErrors, {
+      baseManifest,
+      candidateManifest: clone(baseManifest),
+      activeRoot: active,
+      pendingRoot: "",
+    }),
+    "normal",
+  );
+  assert.deepEqual(normalErrors, []);
+
+  const rotatedManifest = {
+    schemaVersion: 2,
+    lineage: { sequence: 8, previousRootSha256: active },
+    rootSha256: pending,
+  };
+  const rotationErrors = [];
+  assert.equal(
+    determineFieldflowContractRootMode(rotationErrors, {
+      baseManifest,
+      candidateManifest: rotatedManifest,
+      activeRoot: active,
+      pendingRoot: pending,
+    }),
+    "rotation",
+  );
+  assert.deepEqual(rotationErrors, []);
+
+  for (const invalid of [
+    { pendingRoot: active, candidateManifest: rotatedManifest },
+    {
+      pendingRoot: pending,
+      candidateManifest: {
+        ...rotatedManifest,
+        lineage: { sequence: 9, previousRootSha256: active },
+      },
+    },
+    {
+      pendingRoot: pending,
+      baseManifest: {
+        schemaVersion: 1,
+        rootSha256:
+          "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788",
+      },
+      candidateManifest: {
+        ...rotatedManifest,
+        lineage: {
+          sequence: 1,
+          previousRootSha256:
+            "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788",
+        },
+      },
+      activeRoot:
+        "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788",
+    },
+  ]) {
+    const errors = [];
+    assert.equal(
+      determineFieldflowContractRootMode(errors, {
+        baseManifest,
+        activeRoot: active,
+        ...invalid,
+      }),
+      null,
+    );
+    assert.ok(errors.length > 0);
+  }
+});
+
+test("contract-root PR identity binds the open protected base and exact head", () => {
+  const pullRequestNumber = 449;
+  const baseSha = "1".repeat(40);
+  const candidateSha = "2".repeat(40);
+  const pullRequest = {
+    state: "open",
+    user: { login: "root-author" },
+    base: {
+      ref: "codex/fieldgrid-uiux-master",
+      sha: baseSha,
+      repo: { full_name: "veele-services/platform" },
+    },
+    head: { sha: candidateSha },
+  };
+  const errors = [];
+  assert.equal(
+    validateContractRootPullRequestIdentity(errors, {
+      pullRequestNumber,
+      baseSha,
+      candidateSha,
+      apiJson: () => pullRequest,
+    }),
+    pullRequest,
+  );
+  assert.deepEqual(errors, []);
+
+  const invalidPullRequests = [
+    { ...pullRequest, state: "closed" },
+    { ...pullRequest, base: { ...pullRequest.base, ref: "main" } },
+    { ...pullRequest, base: { ...pullRequest.base, sha: "3".repeat(40) } },
+    { ...pullRequest, head: { sha: "4".repeat(40) } },
+    { ...pullRequest, user: { login: "invalid_login" } },
+  ];
+  for (const invalidPullRequest of invalidPullRequests) {
+    const identityErrors = [];
+    assert.equal(
+      validateContractRootPullRequestIdentity(identityErrors, {
+        pullRequestNumber,
+        baseSha,
+        candidateSha,
+        apiJson: () => invalidPullRequest,
+      }),
+      null,
+    );
+    assert.match(identityErrors.join("\n"), /bindt.*niet exact/u);
+  }
+});
+
+test("root rotation uses a generic edited retrigger without bespoke reviews", () => {
+  const errors = [];
+  validateContractRootRotationTrigger(errors, {
+    eventName: "pull_request_target",
+    eventAction: "edited",
+  });
+  assert.deepEqual(errors, []);
+
+  for (const unsafeEvent of [
+    {
+      eventName: "pull_request_review",
+      eventAction: "submitted",
+    },
+    {
+      eventName: "pull_request_target",
+      eventAction: "synchronize",
+    },
+  ]) {
+    const unsafeEventErrors = [];
+    validateContractRootRotationTrigger(unsafeEventErrors, unsafeEvent);
+    assert.match(
+      unsafeEventErrors.join("\n"),
+      /generieke pull_request_target-edited retrigger/u,
+    );
+  }
+
+  const validatorSource = readFileSync(
+    resolve(ROOT, "scripts/fieldgrid-fieldflow-calm-handoff.mjs"),
+    "utf8",
+  );
+  assert.match(
+    validatorSource,
+    /validateContractRootRotationTrigger\(trustErrors,\s*\{\s*eventName,\s*eventAction,/u,
+  );
+  assert.equal(validatorSource.includes("CONTRACT_ROOT_REVIEW_ROLES"), false);
+  assert.equal(validatorSource.includes("FIELDFLOW-ROOT-ROTATION"), false);
+  assert.equal(validatorSource.includes("FIELDFLOW-ROOT-RECHECK"), false);
+});
+
+test("root rotation permits only root closure files and freezes lifecycle evidence", () => {
+  const candidateRoot = mkdtempSync(
+    resolve(ROOT, "fieldflow-rotation-candidate-"),
+  );
+  const baseRoot = mkdtempSync(resolve(ROOT, "fieldflow-rotation-base-"));
+  try {
+    for (const repository of [candidateRoot, baseRoot]) {
+      execFileSync("git", ["init", "--quiet"], { cwd: repository });
+      execFileSync(
+        "git",
+        ["config", "user.email", "fieldflow@example.invalid"],
+        {
+          cwd: repository,
+        },
+      );
+      execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+        cwd: repository,
+      });
+      const packageRoot = resolve(
+        repository,
+        "docs/uiux/fieldflow-calm-handoff",
+      );
+      mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+      mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+      writeFileSync(
+        resolve(packageRoot, "manifests/acceptance.json"),
+        `${JSON.stringify({
+          contractRevision: 1,
+          requirements: [{ id: "FFC-TEST", state: "CONTRACTED" }],
+        })}\n`,
+      );
+      writeFileSync(
+        resolve(packageRoot, "manifests/risks.json"),
+        `${JSON.stringify({ risks: [{ id: "R-TEST", state: "OPEN" }] })}\n`,
+      );
+      writeFileSync(
+        resolve(packageRoot, "evidence/visual/capture-contract.json"),
+        `${JSON.stringify({
+          state: "CONTRACTED",
+          environment: {
+            runtimeImageDigest: { value: null },
+            fonts: { resolvedFiles: null },
+          },
+          evidenceContract: { scenarioEvidence: null },
+        })}\n`,
+      );
+      execFileSync("git", ["add", "."], { cwd: repository });
+      execFileSync("git", ["commit", "--quiet", "-m", "base root"], {
+        cwd: repository,
+      });
+    }
+    const baseSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: candidateRoot,
+      encoding: "utf8",
+    }).trim();
+    const candidatePackageRoot = resolve(
+      candidateRoot,
+      "docs/uiux/fieldflow-calm-handoff",
+    );
+    writeFileSync(
+      resolve(candidatePackageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        contractRevision: 2,
+        requirements: [{ id: "FFC-TEST", state: "CONTRACTED" }],
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: candidateRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "root-only change"], {
+      cwd: candidateRoot,
+    });
+    const validCandidate = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: candidateRoot,
+      encoding: "utf8",
+    }).trim();
+    const validErrors = [];
+    validateContractRootRotationDiff(validErrors, {
+      root: candidateRoot,
+      baseRoot,
+      baseSha,
+      candidateSha: validCandidate,
+    });
+    assert.deepEqual(validErrors, []);
+
+    writeFileSync(
+      resolve(candidateRoot, "auth-bypass.js"),
+      "export default true;\n",
+    );
+    writeFileSync(
+      resolve(candidatePackageRoot, "manifests/acceptance.json"),
+      `${JSON.stringify({
+        contractRevision: 2,
+        requirements: [{ id: "FFC-TEST", state: "IMPLEMENTED" }],
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: candidateRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "smuggled rotation"], {
+      cwd: candidateRoot,
+    });
+    const invalidCandidate = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: candidateRoot,
+      encoding: "utf8",
+    }).trim();
+    const invalidErrors = [];
+    validateContractRootRotationDiff(invalidErrors, {
+      root: candidateRoot,
+      baseRoot,
+      baseSha,
+      candidateSha: invalidCandidate,
+    });
+    assert.match(invalidErrors.join("\n"), /lifecycle\/evidence.*immutable/u);
+    assert.match(
+      invalidErrors.join("\n"),
+      /non-root-closure.*auth-bypass\.js/u,
+    );
+  } finally {
+    rmSync(candidateRoot, { recursive: true, force: true });
+    rmSync(baseRoot, { recursive: true, force: true });
+  }
+});
+
+test("fixed root-input closure binds new evidence executors and tests", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-root-closure-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    mkdirSync(resolve(fakeRoot, "scripts"), { recursive: true });
+    writeFileSync(
+      resolve(fakeRoot, "scripts/fieldgrid-fieldflow-calm-evidence.mjs"),
+      "export const trusted = true;\n",
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    const before = computeFieldflowContractRootInputClosureSha256({
+      root: fakeRoot,
+      packageRoot: resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff"),
+    });
+    writeFileSync(
+      resolve(fakeRoot, "scripts/fieldgrid-fieldflow-calm-evidence-runner.mjs"),
+      "export const unexpectedlyInstalled = true;\n",
+    );
+    const afterAbsentToPresent = computeFieldflowContractRootInputClosureSha256(
+      {
+        root: fakeRoot,
+        packageRoot: resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff"),
+      },
+    );
+    assert.notEqual(afterAbsentToPresent, before);
+    const normalErrors = [];
+    assert.equal(
+      determineFieldflowContractRootMode(normalErrors, {
+        baseManifest: { rootSha256: before },
+        candidateManifest: { rootSha256: afterAbsentToPresent },
+        activeRoot: before,
+        pendingRoot: "",
+      }),
+      null,
+    );
+    assert.match(
+      normalErrors.join("\n"),
+      /active == base\.root == candidate\.root/u,
+    );
+    writeFileSync(
+      resolve(fakeRoot, "scripts/fieldgrid-fieldflow-calm-visual-baseline.mjs"),
+      "export const unexpectedlyInstalled = true;\n",
+    );
+    const afterBothRunnersPresent =
+      computeFieldflowContractRootInputClosureSha256({
+        root: fakeRoot,
+        packageRoot: resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff"),
+      });
+    assert.notEqual(afterBothRunnersPresent, afterAbsentToPresent);
+    writeFileSync(
+      resolve(fakeRoot, "scripts/fieldgrid-fieldflow-calm-evidence.mjs"),
+      "export const trusted = false;\n",
+    );
+    const after = computeFieldflowContractRootInputClosureSha256({
+      root: fakeRoot,
+      packageRoot: resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff"),
+    });
+    assert.notEqual(after, afterBothRunnersPresent);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("root-input closure permits lifecycle evidence only through the separate promotion gate", () => {
+  const fakeRoot = mkdtempSync(
+    resolve(ROOT, "fieldflow-root-lifecycle-closure-"),
+  );
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    const packageRoot = resolve(fakeRoot, "docs/uiux/fieldflow-calm-handoff");
+    mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+    mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+    const acceptancePath = resolve(packageRoot, "manifests/acceptance.json");
+    const risksPath = resolve(packageRoot, "manifests/risks.json");
+    const capturePath = resolve(
+      packageRoot,
+      "evidence/visual/capture-contract.json",
+    );
+    writeFileSync(
+      acceptancePath,
+      `${JSON.stringify({
+        rule: "immutable contract",
+        requirements: [{ id: "FFC-TEST", state: "CONTRACTED" }],
+      })}\n`,
+    );
+    writeFileSync(
+      risksPath,
+      `${JSON.stringify({ risks: [{ id: "R-TEST", state: "OPEN" }] })}\n`,
+    );
+    writeFileSync(
+      capturePath,
+      `${JSON.stringify({
+        state: "CONTRACTED",
+        immutable: "capture contract",
+        environment: {
+          runtimeImageDigest: { value: null },
+          fonts: { resolvedFiles: null },
+        },
+        evidenceContract: { scenarioEvidence: null },
+      })}\n`,
+    );
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    const contractedRoot = computeFieldflowContractRootInputClosureSha256({
+      root: fakeRoot,
+      packageRoot,
+    });
+    writeFileSync(
+      acceptancePath,
+      `${JSON.stringify({
+        rule: "immutable contract",
+        requirements: [
+          {
+            id: "FFC-TEST",
+            state: "IMPLEMENTED",
+            evidence: { commit: "a".repeat(40) },
+          },
+        ],
+      })}\n`,
+    );
+    writeFileSync(
+      risksPath,
+      `${JSON.stringify({
+        risks: [
+          {
+            id: "R-TEST",
+            state: "MITIGATED",
+            evidence: { commit: "b".repeat(40) },
+          },
+        ],
+      })}\n`,
+    );
+    writeFileSync(
+      capturePath,
+      `${JSON.stringify({
+        state: "REFERENCE_READY",
+        immutable: "capture contract",
+        environment: {
+          runtimeImageDigest: { value: `sha256:${"c".repeat(64)}` },
+          fonts: {
+            resolvedFiles: [{ family: "A", file: "a", sha256: "d".repeat(64) }],
+          },
+        },
+        evidenceContract: { scenarioEvidence: [{ scenarioId: "desktop" }] },
+      })}\n`,
+    );
+    const promotedRoot = computeFieldflowContractRootInputClosureSha256({
+      root: fakeRoot,
+      packageRoot,
+    });
+    assert.equal(promotedRoot, contractedRoot);
+
+    const acceptance = JSON.parse(readFileSync(acceptancePath, "utf8"));
+    acceptance.rule = "changed contract";
+    writeFileSync(acceptancePath, `${JSON.stringify(acceptance)}\n`);
+    const changedContractRoot = computeFieldflowContractRootInputClosureSha256({
+      root: fakeRoot,
+      packageRoot,
+    });
+    assert.notEqual(changedContractRoot, promotedRoot);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
 test("trusted dependency digest binds package-manager and executable dependency inputs", () => {
   const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-dependency-root-"));
   try {
@@ -894,25 +1386,337 @@ test("trusted dependency digest binds package-manager and executable dependency 
 test("artifact attestation output is bound to digest, HEAD, run and trusted workflow", () => {
   const expected = {
     sha256: "a".repeat(64),
+    filename: "report.json",
+    subjectCount: 1,
     provenance: {
+      repository: "veele-services/platform",
       headCommit: "b".repeat(40),
+      executorWorkflowSha: "c".repeat(40),
       runId: 12345,
+      runAttempt: 2,
       workflowPath: ".github/workflows/fieldflow-calm-evidence.yml",
     },
   };
+  const workflowIdentity =
+    "https://github.com/veele-services/platform/.github/workflows/fieldflow-calm-evidence.yml@refs/heads/main";
   const record = [
     {
-      subject: { digest: { sha256: expected.sha256 } },
-      source: { digest: expected.provenance.headCommit },
-      invocation: {
-        id: `https://github.com/veele-services/platform/actions/runs/${expected.provenance.runId}`,
-        workflow: expected.provenance.workflowPath,
+      verificationResult: {
+        mediaType:
+          "application/vnd.dev.sigstore.verificationresult+json;version=0.1",
+        verifiedTimestamps: [
+          { type: "Tlog", timestamp: "2026-09-03T10:00:00Z" },
+        ],
+        signature: {
+          certificate: {
+            issuer: "https://token.actions.githubusercontent.com",
+            subjectAlternativeName: workflowIdentity,
+            buildSignerURI: workflowIdentity,
+            buildConfigURI: workflowIdentity,
+            buildSignerDigest: expected.provenance.executorWorkflowSha,
+            buildConfigDigest: expected.provenance.executorWorkflowSha,
+            buildTrigger: "pull_request_target",
+            runInvocationURI: `https://github.com/veele-services/platform/actions/runs/${expected.provenance.runId}/attempts/${expected.provenance.runAttempt}`,
+            sourceRepositoryURI: "https://github.com/veele-services/platform",
+            sourceRepositoryDigest: expected.provenance.executorWorkflowSha,
+            sourceRepositoryRef: "refs/heads/main",
+            sourceRepositoryIdentifier: "1253788801",
+            sourceRepositoryOwnerURI: "https://github.com/veele-services",
+            sourceRepositoryOwnerIdentifier: "289047844",
+            sourceRepositoryVisibilityAtSigning: "public",
+            runnerEnvironment: "github-hosted",
+          },
+        },
+        statement: {
+          _type: "https://in-toto.io/Statement/v1",
+          predicateType: "https://slsa.dev/provenance/v1",
+          subject: [
+            {
+              name: expected.filename,
+              digest: { sha256: expected.sha256 },
+            },
+          ],
+          predicate: {
+            sourceRepositoryDigest: "f".repeat(40),
+            runInvocationURI: "https://attacker.invalid/run/1",
+          },
+        },
       },
     },
   ];
   assert.equal(attestationOutputMatches(record, expected), true);
-  record[0].source.digest = "c".repeat(40);
-  assert.equal(attestationOutputMatches(record, expected), false);
+  for (const [field, invalid] of [
+    ["subjectAlternativeName", `${workflowIdentity}/suffix`],
+    ["issuer", "https://attacker.invalid"],
+    ["sourceRepositoryDigest", "d".repeat(40)],
+    ["sourceRepositoryRef", "refs/heads/codex/fieldgrid-uiux-master"],
+    [
+      "runInvocationURI",
+      "https://github.com/veele-services/platform/actions/runs/12345",
+    ],
+  ]) {
+    const drifted = clone(record);
+    drifted[0].verificationResult.signature.certificate[field] = invalid;
+    assert.equal(attestationOutputMatches(drifted, expected), false, field);
+  }
+  const subjectDrift = clone(record);
+  subjectDrift[0].verificationResult.statement.subject[0].digest.sha256 =
+    "d".repeat(64);
+  assert.equal(attestationOutputMatches(subjectDrift, expected), false);
+  const extraSubject = clone(record);
+  extraSubject[0].verificationResult.statement.subject.push({
+    name: "unrequested.json",
+    digest: { sha256: "e".repeat(64) },
+  });
+  assert.equal(attestationOutputMatches(extraSubject, expected), false);
+  const unsafeSubject = clone(record);
+  unsafeSubject[0].verificationResult.statement.subject[0].name =
+    "../report.json";
+  assert.equal(attestationOutputMatches(unsafeSubject, expected), false);
+  assert.equal(
+    attestationOutputMatches([clone(record[0]), clone(record[0])], expected),
+    false,
+  );
+});
+
+test("evidence provenance binds the main executor commit to the trusted workflow blob", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-executor-binding-"));
+  try {
+    execFileSync("git", ["init", "--quiet"], { cwd: fakeRoot });
+    execFileSync("git", ["config", "user.email", "fieldflow@example.invalid"], {
+      cwd: fakeRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Fieldflow Test"], {
+      cwd: fakeRoot,
+    });
+    const workflowPath = ".github/workflows/fieldflow-calm-evidence.yml";
+    mkdirSync(resolve(fakeRoot, ".github/workflows"), { recursive: true });
+    writeFileSync(resolve(fakeRoot, workflowPath), "name: executor\n");
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "executor"], {
+      cwd: fakeRoot,
+    });
+    const executorSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const trustedWorkflow = "name: trusted evidence\n";
+    writeFileSync(resolve(fakeRoot, workflowPath), trustedWorkflow);
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "base"], {
+      cwd: fakeRoot,
+    });
+    const baseSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    writeFileSync(resolve(fakeRoot, "candidate.txt"), "candidate\n");
+    execFileSync("git", ["add", "."], { cwd: fakeRoot });
+    execFileSync("git", ["commit", "--quiet", "-m", "candidate"], {
+      cwd: fakeRoot,
+    });
+    const headSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: fakeRoot,
+      encoding: "utf8",
+    }).trim();
+    const item = {
+      id: "FFC-TEST-001",
+      evidence: { commit: headSha },
+    };
+    const provenance = evidenceProvenanceFixture(item);
+    provenance.baseCommit = baseSha;
+    provenance.executorWorkflowSha = executorSha;
+    provenance.workflowBlobSha256 = createHash("sha256")
+      .update(trustedWorkflow)
+      .digest("hex");
+    provenance.artifactName = `fieldflow-calm-${item.id}-runtime-${headSha}-attempt-${provenance.runAttempt}`;
+    const bundleBytes = '{"mediaType":"test-bundle"}\n';
+    mkdirSync(dirname(resolve(fakeRoot, provenance.attestationBundlePath)), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(fakeRoot, provenance.attestationBundlePath),
+      bundleBytes,
+    );
+    provenance.attestationBundleSha256 = createHash("sha256")
+      .update(bundleBytes)
+      .digest("hex");
+    const repositoryId = 1253788801;
+    const executorContents = (bytes = trustedWorkflow) => ({
+      type: "file",
+      encoding: "base64",
+      content: Buffer.from(bytes).toString("base64"),
+      size: Buffer.byteLength(bytes),
+      sha: "9".repeat(40),
+    });
+    const apiJson = (endpoint, executorBytes = trustedWorkflow) => {
+      if (endpoint.endsWith(`/git/commits/${executorSha}`))
+        return { sha: executorSha };
+      if (endpoint.includes(`/contents/${workflowPath}?ref=${executorSha}`))
+        return executorContents(executorBytes);
+      if (endpoint.endsWith(`/pulls/${provenance.pullRequestNumber}`))
+        return {
+          head: { sha: headSha },
+          base: { sha: baseSha },
+          user: { login: "author" },
+          draft: false,
+        };
+      if (endpoint.endsWith(`/actions/runs/${provenance.runId}`))
+        return {
+          id: provenance.runId,
+          head_sha: headSha,
+          run_attempt: provenance.runAttempt,
+          event: provenance.eventName,
+          path: workflowPath,
+          repository: { full_name: provenance.repository, id: repositoryId },
+          check_suite_id: provenance.checkSuiteId,
+          conclusion: "success",
+        };
+      if (endpoint.endsWith(`/check-suites/${provenance.checkSuiteId}`))
+        return {
+          id: provenance.checkSuiteId,
+          head_sha: headSha,
+          status: "completed",
+          conclusion: "success",
+          app: { slug: "github-actions" },
+        };
+      if (
+        endpoint.endsWith(
+          `/actions/runs/${provenance.runId}/attempts/${provenance.runAttempt}/jobs`,
+        )
+      )
+        return {
+          jobs: [
+            {
+              id: provenance.jobId,
+              name: provenance.jobName,
+              run_attempt: provenance.runAttempt,
+              head_sha: headSha,
+              conclusion: "success",
+            },
+          ],
+        };
+      if (endpoint.endsWith(`/actions/artifacts/${provenance.artifactId}`))
+        return {
+          id: provenance.artifactId,
+          name: provenance.artifactName,
+          digest: provenance.artifactDigest,
+          expired: false,
+          size_in_bytes: 128,
+          created_at: "2026-01-01T00:00:00Z",
+          expires_at: "2026-04-01T00:00:00Z",
+          workflow_run: {
+            id: provenance.runId,
+            head_sha: headSha,
+            repository_id: repositoryId,
+          },
+        };
+      return null;
+    };
+    const options = {
+      apiJson,
+      apiPaginatedJson: () => [{ filename: "candidate.txt" }],
+    };
+    const validErrors = [];
+    validateEvidenceProvenance(
+      validErrors,
+      item,
+      "author",
+      [{ path: "candidate.txt" }],
+      provenance,
+      "runtime",
+      fakeRoot,
+      true,
+      options,
+    );
+    assert.deepEqual(validErrors, []);
+
+    const originalBundleSha256 = provenance.attestationBundleSha256;
+    provenance.attestationBundleSha256 = "0".repeat(64);
+    const mismatchedBundleErrors = [];
+    validateEvidenceProvenance(
+      mismatchedBundleErrors,
+      item,
+      "author",
+      [{ path: "candidate.txt" }],
+      provenance,
+      "runtime",
+      fakeRoot,
+      true,
+      options,
+    );
+    assert.match(
+      mismatchedBundleErrors.join("\n"),
+      /duurzame attestationbundle.*wijkt af/u,
+    );
+    provenance.attestationBundleSha256 = originalBundleSha256;
+
+    const expectedBundlePath = provenance.attestationBundlePath;
+    provenance.attestationBundlePath = `outputs/fieldflow-calm/attestations/${item.id}.runtime.bundle.json`;
+    const staleBundlePathErrors = [];
+    validateEvidenceProvenance(
+      staleBundlePathErrors,
+      item,
+      "author",
+      [{ path: "candidate.txt" }],
+      provenance,
+      "runtime",
+      fakeRoot,
+      true,
+      options,
+    );
+    assert.match(staleBundlePathErrors.join("\n"), /CI-provenance/u);
+    provenance.attestationBundlePath = expectedBundlePath;
+
+    const bundlePath = resolve(fakeRoot, provenance.attestationBundlePath);
+    const bundleDirectory = dirname(bundlePath);
+    const realBundleDirectory = resolve(fakeRoot, "real-attestation-bundles");
+    rmSync(bundleDirectory, { recursive: true, force: true });
+    mkdirSync(realBundleDirectory, { recursive: true });
+    writeFileSync(
+      resolve(realBundleDirectory, bundlePath.split("/").at(-1)),
+      bundleBytes,
+    );
+    symlinkSync(realBundleDirectory, bundleDirectory, "dir");
+    const symlinkBundleErrors = [];
+    validateEvidenceProvenance(
+      symlinkBundleErrors,
+      item,
+      "author",
+      [{ path: "candidate.txt" }],
+      provenance,
+      "runtime",
+      fakeRoot,
+      true,
+      options,
+    );
+    assert.match(
+      symlinkBundleErrors.join("\n"),
+      /duurzame attestationbundle.*ontbreekt/u,
+    );
+    rmSync(bundleDirectory, { force: true });
+    mkdirSync(bundleDirectory, { recursive: true });
+    writeFileSync(bundlePath, bundleBytes);
+
+    const driftErrors = [];
+    validateEvidenceProvenance(
+      driftErrors,
+      item,
+      "author",
+      [{ path: "candidate.txt" }],
+      provenance,
+      "runtime",
+      fakeRoot,
+      true,
+      {
+        ...options,
+        apiJson: (endpoint) => apiJson(endpoint, "name: attacker\n"),
+      },
+    );
+    assert.match(driftErrors.join("\n"), /main-executorcommit.*workflowblob/u);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
 });
 
 test("protected candidate checkout rejects dirty trees, symlinks and non-exact commits", () => {
@@ -1028,6 +1832,158 @@ test("protected lifecycle comparison rejects skips, downgrades and same-state ev
   } finally {
     rmSync(fakeRoot, { recursive: true, force: true });
   }
+});
+
+test("capture lifecycle preserves the REFERENCE_READY desktop prefix through BASELINE_READY", () => {
+  const fakeRoot = mkdtempSync(resolve(ROOT, "fieldflow-capture-lifecycle-"));
+  const basePackageRoot = resolve(fakeRoot, "base");
+  const candidatePackageRoot = resolve(fakeRoot, "candidate");
+  try {
+    for (const packageRoot of [basePackageRoot, candidatePackageRoot]) {
+      mkdirSync(resolve(packageRoot, "manifests"), { recursive: true });
+      mkdirSync(resolve(packageRoot, "evidence/visual"), { recursive: true });
+      writeFileSync(
+        resolve(packageRoot, "manifests/acceptance.json"),
+        '{"requirements":[]}\n',
+      );
+      writeFileSync(
+        resolve(packageRoot, "manifests/risks.json"),
+        '{"risks":[]}\n',
+      );
+    }
+    const runtime = `sha256:${"a".repeat(64)}`;
+    const fonts = [
+      { family: "Aptos", file: "/fonts/aptos.woff2", sha256: "b".repeat(64) },
+    ];
+    const desktop = Array.from({ length: 9 }, (_, index) => ({
+      scenarioId: `desktop-${index + 1}`,
+      captureBinding: { sha256: String(index).repeat(64) },
+    }));
+    const mobile = Array.from({ length: 9 }, (_, index) => ({
+      scenarioId: `mobile-${index + 1}`,
+      captureBinding: { sha256: String(index + 1).repeat(64) },
+    }));
+    const capture = (state, scenarioEvidence, runtimeValue = runtime) => ({
+      state,
+      environment: {
+        runtimeImageDigest: { value: runtimeValue },
+        fonts: { resolvedFiles: fonts },
+      },
+      evidenceContract: { scenarioEvidence },
+    });
+    const writeCapture = (packageRoot, value) =>
+      writeFileSync(
+        resolve(packageRoot, "evidence/visual/capture-contract.json"),
+        `${JSON.stringify(value)}\n`,
+      );
+
+    writeCapture(basePackageRoot, capture("REFERENCE_READY", desktop));
+    writeCapture(
+      candidatePackageRoot,
+      capture("BASELINE_READY", [...clone(desktop), ...mobile]),
+    );
+    const valid = [];
+    validateLifecycleTransition(valid, {
+      basePackageRoot,
+      candidatePackageRoot,
+    });
+    assert.deepEqual(valid, []);
+
+    const mutatedPrefix = [...clone(desktop), ...mobile];
+    mutatedPrefix[0].captureBinding.sha256 = "f".repeat(64);
+    writeCapture(
+      candidatePackageRoot,
+      capture("BASELINE_READY", mutatedPrefix),
+    );
+    const prefixErrors = [];
+    validateLifecycleTransition(prefixErrors, {
+      basePackageRoot,
+      candidatePackageRoot,
+    });
+    assert.match(prefixErrors.join("\n"), /desktop-scenarioEvidence.*prefix/u);
+
+    writeCapture(basePackageRoot, capture("CONTRACTED", null, null));
+    writeCapture(
+      candidatePackageRoot,
+      capture("BASELINE_READY", [...desktop, ...mobile]),
+    );
+    const skipErrors = [];
+    validateLifecycleTransition(skipErrors, {
+      basePackageRoot,
+      candidatePackageRoot,
+    });
+    assert.match(skipErrors.join("\n"), /status overslaan/u);
+
+    writeCapture(
+      basePackageRoot,
+      capture("BASELINE_READY", [...desktop, ...mobile]),
+    );
+    writeCapture(candidatePackageRoot, capture("REFERENCE_READY", desktop));
+    const downgradeErrors = [];
+    validateLifecycleTransition(downgradeErrors, {
+      basePackageRoot,
+      candidatePackageRoot,
+    });
+    assert.match(downgradeErrors.join("\n"), /mag niet downgraden/u);
+
+    writeCapture(basePackageRoot, capture("REFERENCE_READY", desktop));
+    writeCapture(
+      candidatePackageRoot,
+      capture("REFERENCE_READY", clone(desktop), `sha256:${"c".repeat(64)}`),
+    );
+    const replacementErrors = [];
+    validateLifecycleTransition(replacementErrors, {
+      basePackageRoot,
+      candidatePackageRoot,
+    });
+    assert.match(replacementErrors.join("\n"), /bewijsvelden.*vervangen/u);
+  } finally {
+    rmSync(fakeRoot, { recursive: true, force: true });
+  }
+});
+
+test("REFERENCE_READY requires exactly the ordered nine desktop records before mobile evidence", () => {
+  const contract = clone(manifest("evidence/visual/capture-contract.json"));
+  const desktopIds =
+    contract.normalization.referencePolicy.desktopCanonicalPixel.scenarioIds;
+  const mobileIds =
+    contract.normalization.referencePolicy.mobileResponsiveContract.scenarioIds;
+  contract.state = "REFERENCE_READY";
+  contract.environment.runtimeImageDigest.value = `sha256:${"a".repeat(64)}`;
+  contract.environment.fonts.resolvedFiles = [
+    { family: "Aptos", file: "/fonts/aptos.woff2", sha256: "b".repeat(64) },
+  ];
+  contract.evidenceContract.scenarioEvidence = desktopIds.map((scenarioId) => ({
+    scenarioId,
+  }));
+  const referenceErrors = [];
+  validateCaptureLifecyclePayload(referenceErrors, contract);
+  assert.deepEqual(referenceErrors, []);
+
+  [
+    contract.evidenceContract.scenarioEvidence.slice(0, 8),
+    [...contract.evidenceContract.scenarioEvidence].reverse(),
+    [
+      ...contract.evidenceContract.scenarioEvidence,
+      { scenarioId: mobileIds[0] },
+    ],
+  ].forEach((scenarioEvidence) => {
+    const errors = [];
+    validateCaptureLifecyclePayload(errors, {
+      ...contract,
+      evidenceContract: { ...contract.evidenceContract, scenarioEvidence },
+    });
+    assert.match(errors.join("\n"), /exact 9 geordende scenarioEvidence/u);
+  });
+
+  contract.state = "BASELINE_READY";
+  contract.evidenceContract.scenarioEvidence = [
+    ...desktopIds,
+    ...mobileIds,
+  ].map((scenarioId) => ({ scenarioId }));
+  const baselineErrors = [];
+  validateCaptureLifecyclePayload(baselineErrors, contract);
+  assert.deepEqual(baselineErrors, []);
 });
 
 test("evidence promotion allows only lifecycle manifests and their exact evidence closure", () => {
@@ -2120,7 +3076,7 @@ test("hashed evidence index binds code files to subject and implementation head"
 test("verified evidence rejects an irrelevant true command and fake self-review", () => {
   const { item, index } = implementationEvidenceFixture("VERIFIED_LOCAL");
   const provenance = evidenceProvenanceFixture(item);
-  index.provenance = provenance;
+  index.provenance.runtime = provenance;
   index.commands = [
     {
       id: "fieldflow-runtime",
@@ -2158,7 +3114,7 @@ test("verified evidence rejects an irrelevant true command and fake self-review"
 test("plausible local evidence cannot promote without live GitHub validation", () => {
   const { item, index } = implementationEvidenceFixture("VERIFIED_LOCAL");
   const provenance = evidenceProvenanceFixture(item);
-  index.provenance = provenance;
+  index.provenance.runtime = provenance;
   index.commands = [
     {
       id: "fieldflow-runtime",
@@ -2201,7 +3157,8 @@ test("plausible local evidence cannot promote without live GitHub validation", (
 test("staging evidence requires two distinct independent reviewer roles", () => {
   const { item, index } = implementationEvidenceFixture("VERIFIED_STAGING");
   const provenance = evidenceProvenanceFixture(item);
-  index.provenance = provenance;
+  index.provenance.runtime = provenance;
+  index.provenance.staging = evidenceProvenanceFixture(item, "staging");
   index.commands = [
     {
       id: "fieldflow-runtime",
@@ -2823,6 +3780,31 @@ test("mobile BASELINE_READY accepts complete responsive production evidence", ()
   );
 });
 
+test("baseline attestation subject cardinality is exact for each lifecycle phase", () => {
+  const desktop = baselineScenarioFixture();
+  desktop.evidence.provenance.artifactSubjectCount = 19;
+  assert.match(
+    validateBaselineScenarioEvidencePayload(
+      desktop.contract,
+      desktop.scenario,
+      desktop.evidence,
+      desktop.artifacts,
+    ).join("\n"),
+    /attestation-subjectaantal/u,
+  );
+  const mobile = mobileBaselineScenarioFixture();
+  mobile.evidence.provenance.artifactSubjectCount = 10;
+  assert.match(
+    validateBaselineScenarioEvidencePayload(
+      mobile.contract,
+      mobile.scenario,
+      mobile.evidence,
+      mobile.artifacts,
+    ).join("\n"),
+    /attestation-subjectaantal/u,
+  );
+});
+
 test("mobile BASELINE_READY rejects missing Axe evidence", () => {
   const { contract, scenario, evidence, artifacts } =
     mobileBaselineScenarioFixture();
@@ -2925,6 +3907,19 @@ test("BASELINE_READY rejects fake, duplicate and self reviewer provenance", () =
   );
 });
 
+test("BASELINE_READY requires a HEAD-unique durable bundle path", () => {
+  const { contract, scenario, evidence, artifacts } = baselineScenarioFixture();
+  evidence.provenance.attestationBundlePath =
+    "normalized/attestations/attestation.bundle.json";
+  const output = validateBaselineScenarioEvidencePayload(
+    contract,
+    scenario,
+    evidence,
+    artifacts,
+  ).join("\n");
+  assert.match(output, /GitHub Actions-captureprovenance is ongeldig/u);
+});
+
 test("BASELINE_READY rejects structurally plausible but unverifiable GitHub claims", () => {
   const { evidence } = baselineScenarioFixture();
   const errors = [];
@@ -2941,6 +3936,38 @@ test("BASELINE_READY rejects structurally plausible but unverifiable GitHub clai
   assert.match(output, /normalized-baseline-job/u);
   assert.match(output, /live GitHub-review/u);
   assert.match(output, /Artifact Attestation/u);
+
+  const executorBlobErrors = [];
+  const provenance = evidence.provenance;
+  validateBaselineExternalEvidence(
+    executorBlobErrors,
+    evidence,
+    "/tmp/fake-baseline.png",
+    {
+      root: ROOT,
+      apiJson: (endpoint) => {
+        if (endpoint.endsWith(`/git/commits/${provenance.executorWorkflowSha}`))
+          return { sha: provenance.executorWorkflowSha };
+        if (endpoint.includes(`/contents/${provenance.workflowPath}?ref=`)) {
+          const bytes = "name: attacker-controlled executor\n";
+          return {
+            type: "file",
+            encoding: "base64",
+            content: Buffer.from(bytes).toString("base64"),
+            size: Buffer.byteLength(bytes),
+            sha: "9".repeat(40),
+          };
+        }
+        return null;
+      },
+      apiPaginatedJson: () => null,
+      attestationVerifier: () => true,
+    },
+  );
+  assert.match(
+    executorBlobErrors.join("\n"),
+    /main-executorcommit.*baselineworkflowblob/u,
+  );
 });
 
 test("BASELINE_READY rejects an unrelated PNG even with plausible dimensions", () => {

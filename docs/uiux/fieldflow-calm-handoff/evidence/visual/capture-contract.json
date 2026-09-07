@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Fieldflow Calm normalized visual capture contract",
   "state": "CONTRACTED",
-  "stateModel": ["CONTRACTED", "BASELINE_READY"],
+  "stateModel": ["CONTRACTED", "REFERENCE_READY", "BASELINE_READY"],
   "source": {
     "prototypeCommit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
     "variant": "fieldflow",
@@ -20,7 +20,7 @@
     "runtimeImageDigest": {
       "value": null,
       "format": "sha256:<64 lowercase hex characters>",
-      "requiredAtState": "BASELINE_READY"
+      "requiredAtState": "REFERENCE_READY"
     },
     "deviceScaleFactor": 1,
     "colorScheme": "light",
@@ -37,7 +37,7 @@
         "file": "repository-relative or runtime-image path",
         "sha256": "64 lowercase hex characters"
       },
-      "requiredAtState": "BASELINE_READY"
+      "requiredAtState": "REFERENCE_READY"
     },
     "clock": {
       "iso8601": "2026-09-02T09:42:00+02:00",
@@ -1033,8 +1033,62 @@
     }
   ],
   "evidenceContract": {
-    "schemaVersion": 2,
-    "requiredAtState": "BASELINE_READY",
+    "schemaVersion": 4,
+    "requiredAtState": "REFERENCE_READY",
+    "stateRequirements": {
+      "CONTRACTED": {
+        "runtimeImageDigestValue": null,
+        "fontResolvedFiles": null,
+        "scenarioEvidence": null
+      },
+      "REFERENCE_READY": {
+        "runtimeImageDigestValue": "sha256:<64 lowercase hex characters>",
+        "fontResolvedFiles": "non-empty array of unique family/file/sha256 records",
+        "scenarioEvidence": {
+          "recordCount": 9,
+          "referenceMode": "desktop-canonical-pixel",
+          "scenarioIdsSource": "normalization.referencePolicy.desktopCanonicalPixel.scenarioIds",
+          "order": "exact source order"
+        }
+      },
+      "BASELINE_READY": {
+        "runtimeImageDigestValue": "byte-identical to REFERENCE_READY",
+        "fontResolvedFiles": "byte-identical to REFERENCE_READY",
+        "scenarioEvidence": {
+          "recordCount": 18,
+          "desktopPrefixCount": 9,
+          "desktopPrefixScenarioIdsSource": "normalization.referencePolicy.desktopCanonicalPixel.scenarioIds",
+          "mobileSuffixCount": 9,
+          "mobileSuffixScenarioIdsSource": "normalization.referencePolicy.mobileResponsiveContract.scenarioIds",
+          "order": "exact desktop source order followed by exact mobile source order",
+          "desktopPrefixPreservation": "The UTF-8 JSON.stringify byte sequence of each desktop record and the nine-record order are identical to REFERENCE_READY."
+        }
+      }
+    },
+    "promotionRules": {
+      "allowedTransitions": [
+        "CONTRACTED -> REFERENCE_READY",
+        "REFERENCE_READY -> BASELINE_READY"
+      ],
+      "workPackageExitStates": {
+        "W00": "REFERENCE_READY",
+        "W12": "BASELINE_READY"
+      },
+      "sameStateRule": "State, runtimeImageDigest, resolvedFiles and scenarioEvidence must remain byte-identical; same-state replacement is forbidden.",
+      "forbidden": [
+        "CONTRACTED -> BASELINE_READY",
+        "any downgrade",
+        "any unknown state",
+        "same-state lifecycle-payload replacement",
+        "REFERENCE_READY -> BASELINE_READY with a changed, removed, reordered or replaced desktop prefix"
+      ],
+      "twoPhase": {
+        "captureHead": "Immutable capture/implementation HEAD C produces the required artifacts, attestations and exact-HEAD reviews while the lifecycle manifest remains at its prior state.",
+        "promotionHead": "A later narrow promotion HEAD D changes only the lifecycle manifest and its transitively referenced evidence closure, names C as the historical evidence subject and advances exactly one state.",
+        "ancestry": "C is an ancestor of D and D is never substituted for the evidenced capture/implementation HEAD C.",
+        "rootRotation": "Contract-root rotation is a separate third process and is never combined with either evidence phase."
+      }
+    },
     "artifactPathBase": "evidence/visual",
     "contractRoot": {
       "algorithm": "sha256",
@@ -1070,7 +1124,7 @@
     "mobileProductionEvidence": {
       "requiredForReferenceMode": "mobile-responsive-contract",
       "prototypeCaptureBindingIsSufficient": false,
-      "recordsSource": "The nine scenarioEvidence members whose viewport is mobile; a second detached evidence list is forbidden.",
+      "recordsSource": "At BASELINE_READY, the nine mobile scenarioEvidence members are appended after the byte-identical nine-record REFERENCE_READY desktop prefix; a second detached evidence list is forbidden.",
       "requiredFields": [
         "scenarioId",
         "referenceMode",
@@ -1168,7 +1222,7 @@
         "touchInteractionTrace": "interaction-trace for touch proving all functions without drag, successful operation, Cancel return target and announcements"
       },
       "assertionBinding": "Every assertion is keyed by scenarioId, transform pattern and the exact selector or interaction claim from normalization.responsiveContractGate.",
-      "rule": "All nine mobile scenarios require the complete typed production payload inside scenarioEvidence. Listing a viewport, attaching the prototype capture or passing desktop pixel comparison never satisfies a mobile transform assertion."
+      "rule": "BASELINE_READY requires the complete typed production payload for all nine mobile scenarios as the ordered suffix of scenarioEvidence. Listing a viewport, attaching the prototype capture or passing desktop pixel comparison never satisfies a mobile transform assertion."
     },
     "requiredReviewerRoles": ["product-design", "visual-a11y"],
     "provenanceSchema": {
@@ -1176,15 +1230,34 @@
       "repository": "veele-services/platform",
       "workflowPath": ".github/workflows/fieldflow-calm-visual-baseline.yml",
       "workflowBlobSha256": "64 lowercase hex characters, identical on PR base and head",
+      "executorWorkflowSha": "40 lowercase hex characters for the main-owned workflow executor",
       "jobName": "normalized-baseline",
       "jobId": "positive integer",
-      "eventName": "pull_request",
+      "checkSuiteId": "positive integer",
+      "eventName": "pull_request_target",
       "runId": "positive integer",
       "runAttempt": "positive integer",
       "headCommit": "40 lowercase hex characters",
       "baseCommit": "different 40 lowercase hex ancestor",
       "pullRequestNumber": "positive integer",
+      "artifactId": "positive integer",
+      "artifactName": "fieldflow-calm-baseline-<headCommit>-attempt-<runAttempt> (final signed artifact; never -unsigned)",
+      "artifactDigest": "sha256:<64 lowercase hex characters>",
+      "attestationManifestPath": "safe evidence/visual-relative JSON path",
+      "attestationManifestSha256": "64 lowercase hex characters",
+      "attestationBundlePath": "normalized/attestations/<headCommit>.bundle.json",
+      "attestationBundleSha256": "64 lowercase hex characters",
+      "artifactSubjectCount": "10 for desktop REFERENCE_READY (manifest plus 9 PNGs) or 19 for mobile BASELINE_READY (manifest plus 18 PNGs)",
       "attestationProvider": "github-artifact-attestations"
+    },
+    "transportArtifactRetentionDays": 90,
+    "transportArtifactTrust": "raw producer artifacts, receipts and nonces are untrusted and non-authenticating; a separate clean non-OIDC job independently derives event/run/attempt/head/job/artifact bindings, validates the exact safe regular-file closure without symlinks or hardlinks using only byte-identical base-owned code and dependencies, and emits an attempt-unique validated artifact; only an isolated OIDC job may attest that validated package; promotion validity depends on the checked-in bundle, not remote artifact availability or expiry",
+    "actionsRunPullRequestsTrust": "forbidden; bind the live PR, Actions run, check suite and exact attempt job independently",
+    "attestationSubjectCardinality": {
+      "REFERENCE_READY": 10,
+      "BASELINE_READY": 19,
+      "uniqueSafeNamesRequired": true,
+      "requestedPngMustBePresent": true
     },
     "reviewerSchema": {
       "roles": ["product-design", "visual-a11y"],

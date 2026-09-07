@@ -1,0 +1,1050 @@
+name: Fieldflow Calm evidence
+
+on:
+  pull_request_target:
+    branches:
+      - codex/fieldgrid-uiux-master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - edited
+
+permissions: {}
+
+concurrency:
+  group: fieldflow-calm-evidence-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  produce:
+    name: Fieldflow Calm evidence
+    if: ${{ contains(github.event.pull_request.body || '', 'FIELDFLOW-RUN:') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      EXPECTED_REPOSITORY: veele-services/platform
+      EXPECTED_BASE_REF: codex/fieldgrid-uiux-master
+      EXPECTED_EXECUTION_BRANCH: main
+      EXPECTED_EVENT_REF: refs/heads/main
+      EXPECTED_WORKFLOW_PATH: .github/workflows/fieldflow-calm-evidence.yml
+      BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      EVENT_REF: ${{ github.ref }}
+      GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      FIELDGRID_EXACT_HEAD: ${{ github.event.pull_request.head.sha }}
+      GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+      EXECUTOR_WORKFLOW_REF: ${{ github.workflow_ref }}
+      EXECUTOR_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      FIELDFLOW_JOB_NAME: Fieldflow Calm evidence
+    steps:
+      - name: Validate immutable pull-request identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          readonly sha_pattern='^[0-9a-f]{40}$'
+          readonly integer_pattern='^[1-9][0-9]*$'
+          readonly expected_workflow_ref="${EXPECTED_REPOSITORY}/${EXPECTED_WORKFLOW_PATH}@refs/heads/${EXPECTED_EXECUTION_BRANCH}"
+          test "$GITHUB_EVENT_NAME" = "pull_request_target"
+          test "$EVENT_REF" = "$EXPECTED_EVENT_REF"
+          test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REF" = "$EXPECTED_BASE_REF"
+          test "$EXECUTOR_WORKFLOW_REF" = "$expected_workflow_ref"
+          [[ "$EXECUTOR_WORKFLOW_SHA" =~ $sha_pattern ]]
+          [[ "$GITHUB_BASE_SHA" =~ $sha_pattern ]]
+          [[ "$FIELDGRID_EXACT_HEAD" =~ $sha_pattern ]]
+          test "$GITHUB_BASE_SHA" != "$FIELDGRID_EXACT_HEAD"
+          [[ "$GITHUB_PR_NUMBER" =~ $integer_pattern ]]
+          printf 'head_sha=%s\n' "$FIELDGRID_EXACT_HEAD" >> "$GITHUB_OUTPUT"
+          printf 'base_sha=%s\n' "$GITHUB_BASE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout main workflow executor identity
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: ${{ env.EXECUTOR_WORKFLOW_SHA }}
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: executor
+
+      - name: Checkout trusted protected base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: ${{ env.GITHUB_BASE_SHA }}
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: trusted
+
+      - name: Checkout candidate through the base repository PR ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
+          fetch-depth: 0
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: candidate
+
+      - name: Enforce exact head, ancestry, regular blobs, and trusted executables
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test ! -L .
+          test ! -L ../executor
+          test ! -L ../trusted
+          test "$(git -C ../executor rev-parse --verify 'HEAD^{commit}')" = "$EXECUTOR_WORKFLOW_SHA"
+          test "$(git -C ../trusted rev-parse --verify 'HEAD^{commit}')" = "$GITHUB_BASE_SHA"
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$FIELDGRID_EXACT_HEAD"
+          git cat-file -e "$GITHUB_BASE_SHA^{commit}"
+          git merge-base --is-ancestor "$GITHUB_BASE_SHA" "$FIELDGRID_EXACT_HEAD"
+
+          while IFS= read -r -d '' record; do
+            metadata="${record%%$'\t'*}"
+            mode="${metadata%% *}"
+            remainder="${metadata#* }"
+            type="${remainder%% *}"
+            case "$mode:$type" in
+              100644:blob | 100755:blob) ;;
+              *) printf 'Unsafe candidate tree entry: %s\n' "$record" >&2; exit 1 ;;
+            esac
+          done < <(git ls-tree -r -z --full-tree "$FIELDGRID_EXACT_HEAD")
+
+          git diff --quiet "$GITHUB_BASE_SHA" "$FIELDGRID_EXACT_HEAD" -- \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            .npmrc \
+            .pnpmfile.cjs \
+            .pnpmfile.js \
+            pnpmfile.cjs \
+            pnpmfile.js \
+            ':(glob)**/package.json' \
+            ':(glob)**/.npmrc' \
+            ':(glob)**/.pnpmfile.cjs' \
+            ':(glob)**/.pnpmfile.js' \
+            ':(glob)patches/**'
+
+          readonly trusted_paths=(
+            .github/workflows/fieldflow-calm-evidence.yml
+            scripts/fieldgrid-fieldflow-calm-evidence.mjs
+            scripts/fieldgrid-fieldflow-calm-handoff.mjs
+            scripts/fieldgrid-playwright-journey-evidence.mjs
+            e2e/fieldgrid/finalize-runtime-evidence.mjs
+            e2e/fieldgrid/validate-runtime-evidence.mjs
+            package.json
+            pnpm-lock.yaml
+          )
+          for path in "${trusted_paths[@]}"; do
+            test "$(git rev-parse "$GITHUB_BASE_SHA:$path")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$path")"
+          done
+          readonly workflow="$EXPECTED_WORKFLOW_PATH"
+          test "$(git -C ../executor rev-parse "HEAD:$workflow")" = "$(git -C ../trusted rev-parse "HEAD:$workflow")"
+          test "$(git -C ../trusted rev-parse "HEAD:$workflow")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$workflow")"
+          cmp -- "../executor/$workflow" "../trusted/$workflow"
+          cmp -- "../trusted/$workflow" "$workflow"
+          readonly runner='scripts/fieldgrid-fieldflow-calm-evidence-runner.mjs'
+          if ! git cat-file -e "$GITHUB_BASE_SHA:$runner" 2>/dev/null; then
+            printf 'Trusted evidence runner is not installed on the PR base. Evidence is intentionally fail-closed.\n' >&2
+            exit 1
+          fi
+          test "$(git rev-parse "$GITHUB_BASE_SHA:$runner")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$runner")"
+          test -z "$(git -C ../executor status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C ../trusted status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Parse one typed evidence request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t requests < <(
+            jq -r '(.pull_request.body // "") | split("\n")[] | select(test("^FIELDFLOW-RUN: subject=(FFC-[A-Z0-9]+-[0-9]{3}|R-[0-9]{3}); mode=(runtime|browser|visual|staging|release)$"))' "$GITHUB_EVENT_PATH"
+          )
+          test "${#requests[@]}" -eq 1
+          readonly request="${requests[0]}"
+          readonly subject="$(sed -E 's/^FIELDFLOW-RUN: subject=([^;]+); mode=.*$/\1/' <<< "$request")"
+          readonly mode="$(sed -E 's/^.*; mode=([^;]+)$/\1/' <<< "$request")"
+          [[ "$subject" =~ ^(FFC-[A-Z0-9]+-[0-9]{3}|R-[0-9]{3})$ ]]
+          [[ "$mode" =~ ^(runtime|browser|visual|staging|release)$ ]]
+          printf 'subject=%s\n' "$subject" >> "$GITHUB_OUTPUT"
+          printf 'mode=%s\n' "$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.1.0
+        with:
+          version: 11.5.2
+          run_install: false
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      - name: Install trusted dependency graph without lifecycle scripts
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node --version)" != ""
+          test "$(pnpm --version)" = "11.5.2"
+          pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve current job and immutable workflow binding
+        id: binding
+        working-directory: candidate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          readonly workflow="$EXPECTED_WORKFLOW_PATH"
+          readonly workflow_sha="$(sha256sum "../trusted/$workflow" | cut -d ' ' -f 1)"
+          [[ "$workflow_sha" =~ ^[0-9a-f]{64}$ ]]
+          test "$workflow_sha" = "$(git show "$GITHUB_BASE_SHA:$workflow" | sha256sum | cut -d ' ' -f 1)"
+
+          mapfile -t run_binding < <(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              --jq '.check_suite_id, .event, .head_sha, .path, .run_attempt, .repository.full_name'
+          )
+          [[ "${run_binding[0]}" =~ ^[1-9][0-9]*$ ]]
+          test "${run_binding[1]}" = "pull_request_target"
+          test "${run_binding[2]}" = "$FIELDGRID_EXACT_HEAD"
+          test "${run_binding[3]}" = "$EXPECTED_WORKFLOW_PATH"
+          test "${run_binding[4]}" = "$GITHUB_RUN_ATTEMPT"
+          test "${run_binding[5]}" = "$GITHUB_REPOSITORY"
+
+          job_id=''
+          for poll in 1 2 3 4 5; do
+            mapfile -t matching_job_ids < <(
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" \
+                --jq '.jobs[] | select(.name == "Fieldflow Calm evidence") | .id'
+            )
+            test "${#matching_job_ids[@]}" -le 1
+            if test "${#matching_job_ids[@]}" -eq 1 && [[ "${matching_job_ids[0]}" =~ ^[1-9][0-9]*$ ]]; then
+              job_id="${matching_job_ids[0]}"
+              break
+            fi
+            sleep 2
+          done
+          [[ "$job_id" =~ ^[1-9][0-9]*$ ]]
+          printf 'workflow_sha=%s\n' "$workflow_sha" >> "$GITHUB_OUTPUT"
+          printf 'job_id=%s\n' "$job_id" >> "$GITHUB_OUTPUT"
+          printf 'check_suite_id=%s\n' "${run_binding[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Produce raw evidence inside the disposable untrusted zone
+        working-directory: candidate
+        shell: bash
+        env:
+          EVIDENCE_SUBJECT: ${{ steps.request.outputs.subject }}
+          EVIDENCE_MODE: ${{ steps.request.outputs.mode }}
+          FIELDFLOW_JOB_ID: ${{ steps.binding.outputs.job_id }}
+          FIELDFLOW_CHECK_SUITE_ID: ${{ steps.binding.outputs.check_suite_id }}
+          FIELDFLOW_WORKFLOW_BLOB_SHA256: ${{ steps.binding.outputs.workflow_sha }}
+          FIELDFLOW_EXECUTOR_WORKFLOW_SHA: ${{ env.EXECUTOR_WORKFLOW_SHA }}
+        run: |
+          set -euo pipefail
+
+          readonly runner='scripts/fieldgrid-fieldflow-calm-evidence-runner.mjs'
+          readonly transport_root='fieldflow-untrusted'
+          readonly input="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          readonly receipt="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.receipt.json"
+          test -z "$(git ls-files -- "$transport_root" "$input" "$receipt")"
+          test ! -e "$transport_root"
+          readonly nonce="$(openssl rand -hex 32)"
+
+          node "$runner" \
+            --mode "$EVIDENCE_MODE" \
+            --evidence-subject "$EVIDENCE_SUBJECT" \
+            --expected-head "$FIELDGRID_EXACT_HEAD" \
+            --candidate-root "$(pwd -P)" \
+            --transport-root "$transport_root" \
+            --output "$input" \
+            --receipt "$receipt" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id "$FIELDFLOW_JOB_ID" \
+            --nonce "$nonce"
+
+      # Everything emitted after candidate execution is untrusted. This action
+      # uploads only the runner's dedicated mirror root; no shell, validator,
+      # package step, job output, credential, cache, or OIDC operation follows.
+      - name: Upload raw producer output as untrusted transport
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldflow-calm-raw-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: candidate/fieldflow-untrusted
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  validate:
+    name: Validate and package Fieldflow Calm evidence
+    if: ${{ needs.produce.result == 'success' }}
+    needs:
+      - produce
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    env:
+      EXPECTED_REPOSITORY: veele-services/platform
+      EXPECTED_BASE_REF: codex/fieldgrid-uiux-master
+      EXPECTED_EXECUTION_BRANCH: main
+      EXPECTED_EVENT_REF: refs/heads/main
+      EXPECTED_WORKFLOW_PATH: .github/workflows/fieldflow-calm-evidence.yml
+      BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      EVENT_REF: ${{ github.ref }}
+      GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      FIELDGRID_EXACT_HEAD: ${{ github.event.pull_request.head.sha }}
+      GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+      EXECUTOR_WORKFLOW_REF: ${{ github.workflow_ref }}
+      EXECUTOR_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      FIELDFLOW_JOB_NAME: Fieldflow Calm evidence
+    outputs:
+      artifact-name: ${{ steps.result.outputs.artifact_name }}
+      validated-artifact-name: ${{ steps.result.outputs.validated_artifact_name }}
+      report-sha256: ${{ steps.result.outputs.report_sha256 }}
+      subject-id: ${{ steps.request.outputs.subject }}
+      mode: ${{ steps.request.outputs.mode }}
+      head-sha: ${{ steps.identity.outputs.head_sha }}
+      base-sha: ${{ steps.identity.outputs.base_sha }}
+      workflow-sha256: ${{ steps.binding.outputs.workflow_sha }}
+      job-id: ${{ steps.binding.outputs.producer_job_id }}
+      check-suite-id: ${{ steps.binding.outputs.check_suite_id }}
+      validated-artifact-id: ${{ steps.validated-upload.outputs.artifact-id }}
+      validated-artifact-digest: ${{ steps.validated-upload.outputs.artifact-digest }}
+    steps:
+      - name: Independently validate immutable pull-request identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          readonly sha_pattern='^[0-9a-f]{40}$'
+          readonly integer_pattern='^[1-9][0-9]*$'
+          readonly expected_workflow_ref="${EXPECTED_REPOSITORY}/${EXPECTED_WORKFLOW_PATH}@refs/heads/${EXPECTED_EXECUTION_BRANCH}"
+          test "$GITHUB_EVENT_NAME" = "pull_request_target"
+          test "$EVENT_REF" = "$EXPECTED_EVENT_REF"
+          test "$GITHUB_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REF" = "$EXPECTED_BASE_REF"
+          test "$EXECUTOR_WORKFLOW_REF" = "$expected_workflow_ref"
+          [[ "$EXECUTOR_WORKFLOW_SHA" =~ $sha_pattern ]]
+          [[ "$GITHUB_BASE_SHA" =~ $sha_pattern ]]
+          [[ "$FIELDGRID_EXACT_HEAD" =~ $sha_pattern ]]
+          test "$GITHUB_BASE_SHA" != "$FIELDGRID_EXACT_HEAD"
+          [[ "$GITHUB_PR_NUMBER" =~ $integer_pattern ]]
+          printf 'head_sha=%s\n' "$FIELDGRID_EXACT_HEAD" >> "$GITHUB_OUTPUT"
+          printf 'base_sha=%s\n' "$GITHUB_BASE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout main workflow executor identity for clean validation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: ${{ env.EXECUTOR_WORKFLOW_SHA }}
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: executor
+
+      - name: Checkout trusted protected base for clean validation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: ${{ env.GITHUB_BASE_SHA }}
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: trusted
+
+      - name: Checkout candidate as inert validation data
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ env.BASE_REPOSITORY }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
+          fetch-depth: 0
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: candidate-data
+
+      - name: Rebind exact head and base-owned validator closure
+        working-directory: candidate-data
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test ! -L .
+          test ! -L ../executor
+          test ! -L ../trusted
+          test "$(git -C ../executor rev-parse --verify 'HEAD^{commit}')" = "$EXECUTOR_WORKFLOW_SHA"
+          test "$(git -C ../trusted rev-parse --verify 'HEAD^{commit}')" = "$GITHUB_BASE_SHA"
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$FIELDGRID_EXACT_HEAD"
+          git cat-file -e "$GITHUB_BASE_SHA^{commit}"
+          git merge-base --is-ancestor "$GITHUB_BASE_SHA" "$FIELDGRID_EXACT_HEAD"
+
+          while IFS= read -r -d '' record; do
+            metadata="${record%%$'\t'*}"
+            mode="${metadata%% *}"
+            remainder="${metadata#* }"
+            type="${remainder%% *}"
+            case "$mode:$type" in
+              100644:blob | 100755:blob) ;;
+              *) printf 'Unsafe candidate tree entry: %s\n' "$record" >&2; exit 1 ;;
+            esac
+          done < <(git ls-tree -r -z --full-tree "$FIELDGRID_EXACT_HEAD")
+
+          git diff --quiet "$GITHUB_BASE_SHA" "$FIELDGRID_EXACT_HEAD" -- \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            .npmrc \
+            .pnpmfile.cjs \
+            .pnpmfile.js \
+            pnpmfile.cjs \
+            pnpmfile.js \
+            ':(glob)**/package.json' \
+            ':(glob)**/.npmrc' \
+            ':(glob)**/.pnpmfile.cjs' \
+            ':(glob)**/.pnpmfile.js' \
+            ':(glob)patches/**'
+
+          readonly trusted_paths=(
+            .github/workflows/fieldflow-calm-evidence.yml
+            scripts/fieldgrid-fieldflow-calm-evidence.mjs
+            scripts/fieldgrid-fieldflow-calm-handoff.mjs
+            scripts/fieldgrid-playwright-journey-evidence.mjs
+            e2e/fieldgrid/finalize-runtime-evidence.mjs
+            e2e/fieldgrid/validate-runtime-evidence.mjs
+            package.json
+            pnpm-lock.yaml
+          )
+          for path in "${trusted_paths[@]}"; do
+            test "$(git rev-parse "$GITHUB_BASE_SHA:$path")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$path")"
+          done
+          readonly workflow="$EXPECTED_WORKFLOW_PATH"
+          test "$(git -C ../executor rev-parse "HEAD:$workflow")" = "$(git -C ../trusted rev-parse "HEAD:$workflow")"
+          test "$(git -C ../trusted rev-parse "HEAD:$workflow")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$workflow")"
+          cmp -- "../executor/$workflow" "../trusted/$workflow"
+          cmp -- "../trusted/$workflow" "$workflow"
+          readonly runner='scripts/fieldgrid-fieldflow-calm-evidence-runner.mjs'
+          if ! git cat-file -e "$GITHUB_BASE_SHA:$runner" 2>/dev/null; then
+            printf 'Trusted evidence runner is not installed on the PR base. Evidence is intentionally fail-closed.\n' >&2
+            exit 1
+          fi
+          test "$(git rev-parse "$GITHUB_BASE_SHA:$runner")" = "$(git rev-parse "$FIELDGRID_EXACT_HEAD:$runner")"
+          test -z "$(git -C ../executor status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git -C ../trusted status --porcelain=v1 --untracked-files=all)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Independently parse one typed evidence request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t requests < <(
+            jq -r '(.pull_request.body // "") | split("\n")[] | select(test("^FIELDFLOW-RUN: subject=(FFC-[A-Z0-9]+-[0-9]{3}|R-[0-9]{3}); mode=(runtime|browser|visual|staging|release)$"))' "$GITHUB_EVENT_PATH"
+          )
+          test "${#requests[@]}" -eq 1
+          readonly request="${requests[0]}"
+          readonly subject="$(sed -E 's/^FIELDFLOW-RUN: subject=([^;]+); mode=.*$/\1/' <<< "$request")"
+          readonly mode="$(sed -E 's/^.*; mode=([^;]+)$/\1/' <<< "$request")"
+          [[ "$subject" =~ ^(FFC-[A-Z0-9]+-[0-9]{3}|R-[0-9]{3})$ ]]
+          [[ "$mode" =~ ^(runtime|browser|visual|staging|release)$ ]]
+          printf 'subject=%s\n' "$subject" >> "$GITHUB_OUTPUT"
+          printf 'mode=%s\n' "$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm for trusted validation only
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.1.0
+        with:
+          version: 11.5.2
+          run_install: false
+
+      - name: Setup Node.js 24 for trusted validation
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      - name: Install only the trusted-base dependency graph
+        working-directory: trusted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(pnpm --version)" = "11.5.2"
+          pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve live producer job and immutable workflow binding
+        id: binding
+        working-directory: trusted
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          readonly workflow="$EXPECTED_WORKFLOW_PATH"
+          readonly workflow_sha="$(sha256sum "$workflow" | cut -d ' ' -f 1)"
+          [[ "$workflow_sha" =~ ^[0-9a-f]{64}$ ]]
+          test "$workflow_sha" = "$(git show "$GITHUB_BASE_SHA:$workflow" | sha256sum | cut -d ' ' -f 1)"
+          mapfile -t run_binding < <(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              --jq '.check_suite_id, .event, .head_sha, .path, .run_attempt, .repository.full_name'
+          )
+          [[ "${run_binding[0]}" =~ ^[1-9][0-9]*$ ]]
+          test "${run_binding[1]}" = "pull_request_target"
+          test "${run_binding[2]}" = "$FIELDGRID_EXACT_HEAD"
+          test "${run_binding[3]}" = "$EXPECTED_WORKFLOW_PATH"
+          test "${run_binding[4]}" = "$GITHUB_RUN_ATTEMPT"
+          test "${run_binding[5]}" = "$GITHUB_REPOSITORY"
+
+          mapfile -t producer_jobs < <(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name == "Fieldflow Calm evidence") | [.id, .head_sha, .run_attempt, .conclusion] | @tsv'
+          )
+          test "${#producer_jobs[@]}" -eq 1
+          IFS=$'\t' read -r producer_job_id producer_head producer_attempt producer_conclusion <<< "${producer_jobs[0]}"
+          [[ "$producer_job_id" =~ ^[1-9][0-9]*$ ]]
+          test "$producer_head" = "$FIELDGRID_EXACT_HEAD"
+          test "$producer_attempt" = "$GITHUB_RUN_ATTEMPT"
+          test "$producer_conclusion" = "success"
+          readonly raw_artifact_name="fieldflow-calm-raw-${GITHUB_PR_NUMBER}-${FIELDGRID_EXACT_HEAD}-run-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          raw_artifacts=()
+          for poll in 1 2 3 4 5; do
+            mapfile -t raw_artifacts < <(
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" |
+                jq -r --arg name "$raw_artifact_name" '.artifacts[] | select(.name == $name) | [.id, .digest, .expired, .workflow_run.id, .workflow_run.head_sha] | @tsv'
+            )
+            test "${#raw_artifacts[@]}" -le 1
+            test "${#raw_artifacts[@]}" -eq 0 || break
+            sleep 2
+          done
+          test "${#raw_artifacts[@]}" -eq 1
+          IFS=$'\t' read -r raw_artifact_id raw_digest raw_expired raw_run_id raw_head <<< "${raw_artifacts[0]}"
+          [[ "$raw_artifact_id" =~ ^[1-9][0-9]*$ ]]
+          [[ "$raw_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$raw_expired" = "false"
+          test "$raw_run_id" = "$GITHUB_RUN_ID"
+          test "$raw_head" = "$FIELDGRID_EXACT_HEAD"
+          printf 'workflow_sha=%s\n' "$workflow_sha" >> "$GITHUB_OUTPUT"
+          printf 'producer_job_id=%s\n' "$producer_job_id" >> "$GITHUB_OUTPUT"
+          printf 'check_suite_id=%s\n' "${run_binding[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Download raw output without trusting producer metadata
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: fieldflow-calm-raw-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: untrusted
+
+      - name: Validate raw transport paths and copy only inert evidence data
+        shell: bash
+        env:
+          EVIDENCE_SUBJECT: ${{ steps.request.outputs.subject }}
+          EVIDENCE_MODE: ${{ steps.request.outputs.mode }}
+          EXPECTED_PRODUCER_JOB_ID: ${{ steps.binding.outputs.producer_job_id }}
+        run: |
+          set -euo pipefail
+
+          readonly workspace_root="$(pwd -P)"
+          readonly input="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          readonly receipt="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.receipt.json"
+          readonly report="outputs/fieldflow-calm/reports/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          test -d untrusted
+          test ! -L untrusted
+          test -z "$(find untrusted -mindepth 1 ! -type f ! -type d -print -quit)"
+          test -f "untrusted/$input"
+          test -f "untrusted/$receipt"
+          test ! -e "untrusted/$report"
+          test -z "$(git -C candidate-data ls-files -- "$input" "$receipt" "$report")"
+          test ! -e "candidate-data/$input"
+          test ! -e "candidate-data/$receipt"
+          test ! -e "candidate-data/$report"
+
+          mapfile -d '' -t raw_files < <(find untrusted -type f -print0)
+          test "${#raw_files[@]}" -ge 2
+          for raw_file in "${raw_files[@]}"; do
+            relative_path="${raw_file#untrusted/}"
+            test "$relative_path" != "$raw_file"
+            [[ "$relative_path" =~ ^(outputs/fieldflow-calm/|docs/uiux/fieldflow-calm-handoff/evidence/implementation/)[A-Za-z0-9._/-]+$ ]]
+            [[ "$relative_path" != *..* ]]
+            test -z "$(git -C candidate-data ls-files -- "$relative_path")"
+            test "$(stat -c '%h' -- "$raw_file")" -eq 1
+            resolved="$(realpath -e -- "$raw_file")"
+            case "$resolved" in "$workspace_root"/untrusted/*) ;; *) exit 1 ;; esac
+            install -D -m 0600 -- "$raw_file" "candidate-data/$relative_path"
+            test "$(stat -c '%h' -- "candidate-data/$relative_path")" -eq 1
+          done
+
+          readonly input_sha="$(sha256sum "candidate-data/$input" | cut -d ' ' -f 1)"
+          jq -e \
+            --arg subject "$EVIDENCE_SUBJECT" \
+            --arg mode "$EVIDENCE_MODE" \
+            --arg head "$FIELDGRID_EXACT_HEAD" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --argjson job_id "$EXPECTED_PRODUCER_JOB_ID" \
+            --arg input "$input" \
+            --arg input_sha "$input_sha" \
+            'keys == ["headCommit", "jobId", "mode", "nonceSha256", "payloadPath", "payloadSha256", "producer", "runAttempt", "runId", "schemaVersion", "status", "subjectId"] and
+             .schemaVersion == 1 and .producer == "fieldflow-calm-trusted-runner-v1" and
+             .subjectId == $subject and .mode == $mode and .headCommit == $head and
+             .runId == $run_id and .runAttempt == $run_attempt and .jobId == $job_id and
+             (.nonceSha256 | test("^[0-9a-f]{64}$")) and
+             .payloadPath == $input and .payloadSha256 == $input_sha and .status == "passed"' \
+            "candidate-data/$receipt" >/dev/null
+
+      - name: Run only the base-owned validator against inert candidate data
+        working-directory: trusted
+        shell: bash
+        env:
+          EVIDENCE_SUBJECT: ${{ steps.request.outputs.subject }}
+          EVIDENCE_MODE: ${{ steps.request.outputs.mode }}
+          FIELDFLOW_JOB_ID: ${{ steps.binding.outputs.producer_job_id }}
+          FIELDFLOW_CHECK_SUITE_ID: ${{ steps.binding.outputs.check_suite_id }}
+          FIELDFLOW_WORKFLOW_BLOB_SHA256: ${{ steps.binding.outputs.workflow_sha }}
+          FIELDFLOW_EXECUTOR_WORKFLOW_SHA: ${{ env.EXECUTOR_WORKFLOW_SHA }}
+        run: |
+          set -euo pipefail
+
+          readonly candidate_root="$(realpath -e -- ../candidate-data)"
+          readonly input="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          readonly report="outputs/fieldflow-calm/reports/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          declare -a mode_flags
+          case "$EVIDENCE_MODE" in
+            runtime | browser) mode_flags=() ;;
+            visual) mode_flags=(--run --strict) ;;
+            staging) mode_flags=(--strict) ;;
+            release) mode_flags=(--verify) ;;
+            *) printf 'Unsupported evidence mode: %s\n' "$EVIDENCE_MODE" >&2; exit 1 ;;
+          esac
+          readonly -a mode_flags
+          node --input-type=module \
+            -e 'import { runEvidenceCli } from "./scripts/fieldgrid-fieldflow-calm-evidence.mjs"; const [root, ...args] = process.argv.slice(1); const result = runEvidenceCli(args, { root, env: process.env }); process.stdout.write(`${JSON.stringify(result)}\n`);' \
+            "$candidate_root" \
+            --mode "$EVIDENCE_MODE" \
+            --evidence-subject "$EVIDENCE_SUBJECT" \
+            --input "$input" \
+            --report "$report" \
+            --expected-head "$FIELDGRID_EXACT_HEAD" \
+            "${mode_flags[@]}"
+
+      - name: Prove exact raw closure and build the validated package
+        working-directory: candidate-data
+        shell: bash
+        env:
+          EVIDENCE_SUBJECT: ${{ steps.request.outputs.subject }}
+          EVIDENCE_MODE: ${{ steps.request.outputs.mode }}
+        run: |
+          set -euo pipefail
+
+          readonly candidate_root="$(pwd -P)"
+          readonly untrusted_root="$(realpath -e -- ../untrusted)"
+          readonly input="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          readonly receipt="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.receipt.json"
+          readonly report="outputs/fieldflow-calm/reports/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          readonly validated_root='fieldflow-validated'
+          readonly package_root="$validated_root/promotion-ready"
+          test ! -e "$validated_root"
+          mkdir -p "$package_root"
+          install -m 0600 -- "$report" "$validated_root/report.json"
+          declare -A raw_expected=()
+          declare -A packaged=()
+
+          assert_safe_bound_file() {
+            local path="$1"
+            local digest="$2"
+            [[ "$path" =~ ^(outputs/fieldflow-calm/|docs/uiux/fieldflow-calm-handoff/evidence/implementation/)[A-Za-z0-9._/-]+$ ]]
+            [[ "$path" != *..* ]]
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+            test -f "$path"
+            test ! -L "$path"
+            test "$(stat -c '%h' -- "$path")" -eq 1
+            test "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$digest"
+          }
+          mark_raw_file() {
+            local path="$1"
+            local digest="$2"
+            assert_safe_bound_file "$path" "$digest"
+            test -f "$untrusted_root/$path"
+            test ! -L "$untrusted_root/$path"
+            test "$(sha256sum "$untrusted_root/$path" | cut -d ' ' -f 1)" = "$digest"
+            raw_expected[$path]=1
+          }
+          copy_bound_file() {
+            local path="$1"
+            local digest="$2"
+            assert_safe_bound_file "$path" "$digest"
+            if test -z "${packaged[$path]+set}"; then
+              install -D -m 0600 -- "$path" "$package_root/$path"
+              test "$(stat -c '%h' -- "$package_root/$path")" -eq 1
+              packaged[$path]=1
+            fi
+          }
+
+          mark_raw_file "$input" "$(sha256sum "$input" | cut -d ' ' -f 1)"
+          mark_raw_file "$receipt" "$(sha256sum "$receipt" | cut -d ' ' -f 1)"
+          copy_bound_file "$report" "$(sha256sum "$report" | cut -d ' ' -f 1)"
+          while IFS=$'\t' read -r path digest; do
+            test -n "$path" || continue
+            mark_raw_file "$path" "$digest"
+            copy_bound_file "$path" "$digest"
+          done < <(jq -r '.attachments[]? | [.path, .sha256] | @tsv' "$report")
+          while IFS=$'\t' read -r shard_path shard_digest; do
+            test -n "$shard_path" || continue
+            mark_raw_file "$shard_path" "$shard_digest"
+            copy_bound_file "$shard_path" "$shard_digest"
+            while IFS=$'\t' read -r attachment_path attachment_digest; do
+              test -n "$attachment_path" || continue
+              mark_raw_file "$attachment_path" "$attachment_digest"
+              copy_bound_file "$attachment_path" "$attachment_digest"
+            done < <(jq -r '.attachments[]? | [.path, .sha256] | @tsv' "$shard_path")
+          done < <(
+            jq -r '[.verificationMatrix.requirement?, .verificationMatrix.sharedMatrices[]?] | .[]? | .shards[]? | [.assertionReportPath, .assertionReportSha256] | @tsv' "$report"
+          )
+          mapfile -d '' -t raw_files < <(find "$untrusted_root" -type f -print0)
+          test "${#raw_files[@]}" -eq "${#raw_expected[@]}"
+          test -z "$(find "$validated_root" -type l -print -quit)"
+          mapfile -d '' -t packaged_files < <(find "$package_root" -type f -print0)
+          test "${#packaged_files[@]}" -eq "${#packaged[@]}"
+          for packaged_file in "$validated_root/report.json" "${packaged_files[@]}"; do
+            test "$(stat -c '%h' -- "$packaged_file")" -eq 1
+          done
+
+      - name: Bind independently validated artifact names and report digest
+        id: result
+        working-directory: candidate-data
+        shell: bash
+        env:
+          EVIDENCE_SUBJECT: ${{ steps.request.outputs.subject }}
+          EVIDENCE_MODE: ${{ steps.request.outputs.mode }}
+        run: |
+          set -euo pipefail
+          readonly digest="$(sha256sum fieldflow-validated/report.json | cut -d ' ' -f 1)"
+          [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+          printf 'artifact_name=fieldflow-calm-%s-%s-%s-attempt-%s\n' "$EVIDENCE_SUBJECT" "$EVIDENCE_MODE" "$FIELDGRID_EXACT_HEAD" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+          printf 'validated_artifact_name=fieldflow-calm-validated-%s-%s-%s-run-%s-attempt-%s\n' "$EVIDENCE_SUBJECT" "$EVIDENCE_MODE" "$FIELDGRID_EXACT_HEAD" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+          printf 'report_sha256=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Upload cleanly validated evidence for isolated attestation
+        id: validated-upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.result.outputs.validated_artifact_name }}
+          path: candidate-data/fieldflow-validated
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  attest:
+    name: Attest Fieldflow Calm evidence
+    if: ${{ needs.validate.result == 'success' }}
+    needs:
+      - validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    outputs:
+      artifact-id: ${{ steps.signed-upload.outputs.artifact-id }}
+      artifact-name: ${{ needs.validate.outputs.artifact-name }}
+      artifact-digest: ${{ steps.signed-upload.outputs.artifact-digest }}
+      attestation-bundle-path: ${{ steps.bundle.outputs.bundle_relative }}
+      attestation-bundle-sha256: ${{ steps.bundle.outputs.bundle_sha256 }}
+    steps:
+      - name: Checkout the trusted PR base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.base.repo.full_name }}
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          lfs: false
+          submodules: false
+          persist-credentials: false
+          path: trusted
+
+      - name: Download only the validated report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.validate.outputs.validated-artifact-name }}
+          path: attested
+
+      - name: Recheck exact artifact and head binding
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ needs.validate.outputs.head-sha }}
+          EXPECTED_SHA256: ${{ needs.validate.outputs.report-sha256 }}
+          EXPECTED_SUBJECT: ${{ needs.validate.outputs.subject-id }}
+          EXPECTED_MODE: ${{ needs.validate.outputs.mode }}
+          EXPECTED_BASE: ${{ needs.validate.outputs.base-sha }}
+          EXPECTED_WORKFLOW_SHA256: ${{ needs.validate.outputs.workflow-sha256 }}
+          EXPECTED_EXECUTOR_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EXPECTED_JOB_ID: ${{ needs.validate.outputs.job-id }}
+          EXPECTED_CHECK_SUITE_ID: ${{ needs.validate.outputs.check-suite-id }}
+          EXPECTED_ARTIFACT_ID: ${{ needs.validate.outputs.validated-artifact-id }}
+          EXPECTED_ARTIFACT_NAME: ${{ needs.validate.outputs.validated-artifact-name }}
+          EXPECTED_ARTIFACT_DIGEST: ${{ needs.validate.outputs.validated-artifact-digest }}
+          EXPECTED_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          readonly workspace_root="$(pwd -P)"
+          assert_no_symlink_components() {
+            local path="$1"
+            [[ "$path" == /* ]]
+            [[ "$path" != *"//"* ]]
+            [[ "$path" != *"/./"* ]]
+            [[ "$path" != *"/../"* ]]
+            [[ "$path" != */. ]]
+            [[ "$path" != */.. ]]
+            local cursor=''
+            local component
+            local -a components
+            IFS='/' read -r -a components <<< "${path#/}"
+            for component in "${components[@]}"; do
+              test -n "$component"
+              test "$component" != .
+              test "$component" != ..
+              cursor="$cursor/$component"
+              test ! -L "$cursor"
+            done
+          }
+          test -f attested/report.json
+          assert_no_symlink_components "$workspace_root/attested/report.json"
+          test "$(sha256sum attested/report.json | cut -d ' ' -f 1)" = "$EXPECTED_SHA256"
+          test "$(git -C trusted rev-parse --verify 'HEAD^{commit}')" = "$EXPECTED_BASE"
+          test "$(sha256sum trusted/.github/workflows/fieldflow-calm-evidence.yml | cut -d ' ' -f 1)" = "$EXPECTED_WORKFLOW_SHA256"
+          [[ "$EXPECTED_CHECK_SUITE_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EXPECTED_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EXPECTED_ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          jq -e \
+            --argjson artifact_id "$EXPECTED_ARTIFACT_ID" \
+            --arg artifact_name "$EXPECTED_ARTIFACT_NAME" \
+            --arg artifact_digest "sha256:$EXPECTED_ARTIFACT_DIGEST" \
+            --arg head "$EXPECTED_HEAD" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            '.id == $artifact_id and .name == $artifact_name and .digest == $artifact_digest and
+             .expired == false and (.size_in_bytes | numbers) > 0 and
+             ((.expires_at | fromdateiso8601) - (.created_at | fromdateiso8601)) >= 7776000 and
+             .workflow_run.id == $run_id and .workflow_run.head_sha == $head' \
+            < <(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$EXPECTED_ARTIFACT_ID") >/dev/null
+          case "$EXPECTED_MODE" in
+            runtime | browser | visual) expected_kind='runtime' ;;
+            staging | release) expected_kind='staging' ;;
+            *) exit 1 ;;
+          esac
+          jq -e \
+            --arg subject "$EXPECTED_SUBJECT" \
+            --arg head "$EXPECTED_HEAD" \
+            --arg base "$EXPECTED_BASE" \
+            --arg kind "$expected_kind" \
+            --arg workflow_sha "$EXPECTED_WORKFLOW_SHA256" \
+            --arg executor_sha "$EXPECTED_EXECUTOR_WORKFLOW_SHA" \
+            --arg evidence_mode "$EXPECTED_MODE" \
+            --argjson job_id "$EXPECTED_JOB_ID" \
+            --argjson check_suite_id "$EXPECTED_CHECK_SUITE_ID" \
+            --argjson pr_number "$EXPECTED_PR_NUMBER" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            '((keys == ["assertions", "attachments", "coverage", "errors", "headCommit", "kind", "provenance", "schemaVersion", "subjectId", "summary", "verification"]) or
+              (keys == ["assertions", "attachments", "coverage", "errors", "headCommit", "kind", "provenance", "schemaVersion", "subjectId", "summary", "verification", "verificationMatrix"])) and
+             .schemaVersion == 1 and .subjectId == $subject and .headCommit == $head and .kind == $kind and
+             (.verification | type == "string" and length > 0) and
+             (.coverage | keys == ["commandIds", "densities", "routes", "testIds", "themes", "viewports"]) and
+             (.coverage.testIds | type == "array" and length > 0) and
+             (.assertions | type == "array" and length > 0 and all(.status == "passed")) and
+             (.summary | keys == ["failed", "manual", "notRun", "passed", "skipped"]) and
+             .summary.passed == (.assertions | length) and .summary.failed == 0 and
+             .summary.skipped == 0 and .summary.notRun == 0 and .summary.manual == 0 and
+             (.errors | keys == ["console", "hydration", "page", "request", "server"]) and
+             ([.errors[] | length] | all(. == 0)) and
+             (.attachments | type == "array" and length > 0) and
+             (.provenance | keys == ["attestationProvider", "baseCommit", "checkSuiteId", "eventName", "evidenceMode", "executorWorkflowSha", "headCommit", "jobId", "jobName", "provider", "pullRequestNumber", "repository", "runAttempt", "runId", "workflowBlobSha256", "workflowPath"]) and
+             .provenance.provider == "github-actions" and .provenance.repository == "veele-services/platform" and
+             .provenance.headCommit == $head and .provenance.baseCommit == $base and
+             .provenance.pullRequestNumber == $pr_number and
+             .provenance.workflowPath == ".github/workflows/fieldflow-calm-evidence.yml" and
+             .provenance.workflowBlobSha256 == $workflow_sha and .provenance.executorWorkflowSha == $executor_sha and
+             .provenance.evidenceMode == $evidence_mode and .provenance.runId == $run_id and
+             .provenance.runAttempt == $run_attempt and .provenance.checkSuiteId == $check_suite_id and .provenance.jobId == $job_id and
+             .provenance.jobName == "Fieldflow Calm evidence" and
+             .provenance.eventName == "pull_request_target" and
+             .provenance.attestationProvider == "github-artifact-attestations"' attested/report.json >/dev/null
+          readonly package_root='attested/promotion-ready'
+          test -d "$package_root"
+          test -z "$(find "$package_root" -type l -print -quit)"
+          declare -A expected_paths=()
+          verify_packaged_file() {
+            local path="$1"
+            local digest="$2"
+            [[ "$path" =~ ^(outputs/fieldflow-calm/|docs/uiux/fieldflow-calm-handoff/evidence/implementation/)[A-Za-z0-9._/-]+$ ]]
+            [[ "$path" != *..* ]]
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+            assert_no_symlink_components "$workspace_root/attested/promotion-ready/$path"
+            test -f "$package_root/$path"
+            test "$(sha256sum "$package_root/$path" | cut -d ' ' -f 1)" = "$digest"
+            expected_paths[$path]=1
+          }
+          readonly canonical_report="outputs/fieldflow-calm/reports/${EXPECTED_SUBJECT}.${EXPECTED_MODE}.json"
+          verify_packaged_file "$canonical_report" "$EXPECTED_SHA256"
+          while IFS=$'\t' read -r path digest; do
+            test -n "$path" || continue
+            verify_packaged_file "$path" "$digest"
+          done < <(jq -r '.attachments[]? | [.path, .sha256] | @tsv' attested/report.json)
+          while IFS=$'\t' read -r shard_path shard_digest; do
+            test -n "$shard_path" || continue
+            verify_packaged_file "$shard_path" "$shard_digest"
+            while IFS=$'\t' read -r attachment_path attachment_digest; do
+              test -n "$attachment_path" || continue
+              verify_packaged_file "$attachment_path" "$attachment_digest"
+            done < <(
+              jq -r '.attachments[]? | [.path, .sha256] | @tsv' "$package_root/$shard_path"
+            )
+          done < <(
+            jq -r '[.verificationMatrix.requirement?, .verificationMatrix.sharedMatrices[]?] | .[]? | .shards[]? | [.assertionReportPath, .assertionReportSha256] | @tsv' attested/report.json
+          )
+          mapfile -d '' -t packaged_files < <(find "$package_root" -type f -print0)
+          test "${#packaged_files[@]}" -eq "${#expected_paths[@]}"
+
+      - name: Attest the exact validated report
+        id: attest
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-path: attested/report.json
+
+      - name: Preserve and immediately verify the durable attestation bundle
+        id: bundle
+        shell: bash
+        env:
+          ATTESTATION_BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+          EXPECTED_EXECUTOR_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EXPECTED_SUBJECT: ${{ needs.validate.outputs.subject-id }}
+          EXPECTED_MODE: ${{ needs.validate.outputs.mode }}
+          EXPECTED_HEAD: ${{ needs.validate.outputs.head-sha }}
+          EXPECTED_SHA256: ${{ needs.validate.outputs.report-sha256 }}
+        run: |
+          set -euo pipefail
+          assert_no_symlink_components() {
+            local path="$1"
+            [[ "$path" == /* ]]
+            [[ "$path" != *"//"* ]]
+            [[ "$path" != *"/./"* ]]
+            [[ "$path" != *"/../"* ]]
+            [[ "$path" != */. ]]
+            [[ "$path" != */.. ]]
+            local cursor=''
+            local component
+            local -a components
+            IFS='/' read -r -a components <<< "${path#/}"
+            for component in "${components[@]}"; do
+              test -n "$component"
+              test "$component" != .
+              test "$component" != ..
+              cursor="$cursor/$component"
+              test ! -L "$cursor"
+            done
+          }
+          test -n "$ATTESTATION_BUNDLE_PATH"
+          assert_no_symlink_components "$RUNNER_TEMP"
+          readonly runner_temp="$(realpath -e -- "$RUNNER_TEMP")"
+          assert_no_symlink_components "$ATTESTATION_BUNDLE_PATH"
+          test -f "$ATTESTATION_BUNDLE_PATH"
+          readonly bundle_source="$(realpath -e -- "$ATTESTATION_BUNDLE_PATH")"
+          case "$bundle_source" in "$runner_temp"/*) ;; *) exit 1 ;; esac
+          [[ "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]]
+          readonly bundle_relative="outputs/fieldflow-calm/attestations/${EXPECTED_SUBJECT}.${EXPECTED_MODE}.${EXPECTED_HEAD}.bundle.json"
+          readonly bundle_target="attested/promotion-ready/$bundle_relative"
+          mapfile -d '' -t package_files_before < <(find attested/promotion-ready -type f -print0)
+          test ! -e "$bundle_target"
+          test ! -L "$bundle_target"
+          assert_no_symlink_components "$(pwd -P)/attested/promotion-ready"
+          install -D -m 0600 -- "$bundle_source" "$bundle_target"
+          assert_no_symlink_components "$(pwd -P)/$bundle_target"
+          mapfile -d '' -t package_files_after < <(find attested/promotion-ready -type f -print0)
+          test "${#package_files_after[@]}" -eq "$(( ${#package_files_before[@]} + 1 ))"
+          readonly bundle_sha="$(sha256sum "$bundle_target" | cut -d ' ' -f 1)"
+          [[ "$bundle_sha" =~ ^[0-9a-f]{64}$ ]]
+          gh attestation verify attested/report.json \
+            --bundle "$bundle_target" \
+            --repo veele-services/platform \
+            --cert-identity "https://github.com/veele-services/platform/.github/workflows/fieldflow-calm-evidence.yml@refs/heads/main" \
+            --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --signer-digest "$EXPECTED_EXECUTOR_WORKFLOW_SHA" \
+            --source-digest "$EXPECTED_EXECUTOR_WORKFLOW_SHA" \
+            --source-ref refs/heads/main \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --digest-alg sha256 \
+            --deny-self-hosted-runners \
+            --format json > "$RUNNER_TEMP/fieldflow-attestation-verification.json"
+          jq -e \
+            --arg sha "$EXPECTED_SHA256" \
+            'type == "array" and length == 1 and
+             (.[0].verificationResult.statement.subject == [
+               {name: "report.json", digest: {sha256: $sha}}
+             ])' "$RUNNER_TEMP/fieldflow-attestation-verification.json" >/dev/null
+          printf 'bundle_relative=%s\n' "$bundle_relative" >> "$GITHUB_OUTPUT"
+          printf 'bundle_sha256=%s\n' "$bundle_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Upload promotion-ready signed evidence package
+        id: signed-upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ needs.validate.outputs.artifact-name }}
+          path: attested/promotion-ready
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  status:
+    name: Fieldflow Calm evidence status
+    if: ${{ always() }}
+    needs:
+      - produce
+      - validate
+      - attest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      REQUESTED: ${{ contains(github.event.pull_request.body || '', 'FIELDFLOW-RUN:') }}
+      PRODUCER_RESULT: ${{ needs.produce.result }}
+      VALIDATOR_RESULT: ${{ needs.validate.result }}
+      ATTESTATION_RESULT: ${{ needs.attest.result }}
+    steps:
+      - name: Require attestation whenever evidence was requested
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "$REQUESTED" = "true"; then
+            test "$PRODUCER_RESULT" = "success"
+            test "$VALIDATOR_RESULT" = "success"
+            test "$ATTESTATION_RESULT" = "success"
+          else
+            test "$PRODUCER_RESULT" = "skipped"
+            test "$VALIDATOR_RESULT" = "skipped"
+            test "$ATTESTATION_RESULT" = "skipped"
+          fi

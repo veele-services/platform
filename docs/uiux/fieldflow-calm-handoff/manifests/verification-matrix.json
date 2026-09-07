@@ -6,7 +6,7 @@
   "generatedAgainst": {
     "acceptance": {
       "path": "manifests/acceptance.json",
-      "semanticSha256": "291457e3ca89f254e90fab74043dc90e04f157a8cb16f8231b87b2c1fc859feb"
+      "semanticSha256": "a42adce927eefd50bd6ef1476c011a424c7aa571fdfcae86eec23976696f30f3"
     },
     "routes": {
       "path": "manifests/routes.json",
@@ -26,7 +26,7 @@
     },
     "captureContract": {
       "path": "evidence/visual/capture-contract.json",
-      "semanticSha256": "5550675c91dc670ed473820feca70a09cdc64535f68284e5c06bf49cb1f46daa"
+      "semanticSha256": "5dc1515d456872e07f304d245fcdc9964cf5fecc7cff75b4069c93ed001f5309"
     },
     "whitelabelSurfaces": {
       "path": "manifests/surfaces.json",
