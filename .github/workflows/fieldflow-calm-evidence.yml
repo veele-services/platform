@@ -631,6 +631,15 @@ jobs:
           readonly candidate_root="$(realpath -e -- ../candidate-data)"
           readonly input="outputs/fieldflow-calm/input/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
           readonly report="outputs/fieldflow-calm/reports/$EVIDENCE_SUBJECT.$EVIDENCE_MODE.json"
+          declare -a mode_flags
+          case "$EVIDENCE_MODE" in
+            runtime | browser) mode_flags=() ;;
+            visual) mode_flags=(--run --strict) ;;
+            staging) mode_flags=(--strict) ;;
+            release) mode_flags=(--verify) ;;
+            *) printf 'Unsupported evidence mode: %s\n' "$EVIDENCE_MODE" >&2; exit 1 ;;
+          esac
+          readonly -a mode_flags
           node --input-type=module \
             -e 'import { runEvidenceCli } from "./scripts/fieldgrid-fieldflow-calm-evidence.mjs"; const [root, ...args] = process.argv.slice(1); const result = runEvidenceCli(args, { root, env: process.env }); process.stdout.write(`${JSON.stringify(result)}\n`);' \
             "$candidate_root" \
@@ -638,7 +647,8 @@ jobs:
             --evidence-subject "$EVIDENCE_SUBJECT" \
             --input "$input" \
             --report "$report" \
-            --expected-head "$FIELDGRID_EXACT_HEAD"
+            --expected-head "$FIELDGRID_EXACT_HEAD" \
+            "${mode_flags[@]}"
 
       - name: Prove exact raw closure and build the validated package
         working-directory: candidate-data
