@@ -45,7 +45,7 @@ import {
   determineFieldflowContractRootMode,
   evidenceReportProvenanceProjection,
   validateContractRootPullRequestIdentity,
-  validateContractRootRotationReviews,
+  validateContractRootRotationTrigger,
   validateContractRootRotationDiff,
   validateCandidateCheckoutSafety,
   validateLifecycleTransition,
@@ -904,7 +904,7 @@ test("protected contract root binds every normative input and external trust", (
   assert.match(trustErrors.join("\n"), /beschermde.*TRUSTED_ROOT_SHA256/su);
 });
 
-test("contract-root v2 truth table separates normal validation from reviewed rotation", () => {
+test("contract-root v2 truth table separates normal validation from root rotation", () => {
   const active = "a".repeat(64);
   const pending = "b".repeat(64);
   const baseManifest = {
@@ -982,157 +982,79 @@ test("contract-root v2 truth table separates normal validation from reviewed rot
   }
 });
 
-test("root rotation requires three unique live exact-head role approvals", () => {
+test("contract-root PR identity binds the open protected base and exact head", () => {
   const pullRequestNumber = 449;
   const baseSha = "1".repeat(40);
   const candidateSha = "2".repeat(40);
-  const activeRoot = "a".repeat(64);
-  const pendingRoot = "b".repeat(64);
-  const author = "root-author";
-  const reviewSubmittedAt = "2026-09-03T10:00:00Z";
-  const editedAt = "2026-09-03T11:00:00Z";
-  const roles = ["product-design", "functional-security", "visual-a11y"];
-  const reviews = roles.map((role, index) => ({
-    id: 100 + index,
-    user: { login: `reviewer-${index + 1}` },
-    state: "APPROVED",
-    commit_id: candidateSha,
-    submitted_at: reviewSubmittedAt,
-    body: `FIELDFLOW-ROOT-ROTATION: head=${candidateSha}; active=${activeRoot}; pending=${pendingRoot}; role=${role}`,
-  }));
   const pullRequest = {
     state: "open",
-    user: { login: author },
+    user: { login: "root-author" },
     base: {
       ref: "codex/fieldgrid-uiux-master",
       sha: baseSha,
       repo: { full_name: "veele-services/platform" },
     },
     head: { sha: candidateSha },
-    body: `FIELDFLOW-ROOT-RECHECK: head=${candidateSha}; active=${activeRoot}; pending=${pendingRoot}`,
-    updated_at: editedAt,
   };
-  const apiJson = (endpoint) =>
-    endpoint.endsWith(`/pulls/${pullRequestNumber}`)
-      ? pullRequest
-      : { permission: "write" };
   const errors = [];
-  validateContractRootPullRequestIdentity(errors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    apiJson,
-  });
-  validateContractRootRotationReviews(errors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
+  assert.equal(
+    validateContractRootPullRequestIdentity(errors, {
+      pullRequestNumber,
+      baseSha,
+      candidateSha,
+      apiJson: () => pullRequest,
+    }),
+    pullRequest,
+  );
+  assert.deepEqual(errors, []);
+
+  const invalidPullRequests = [
+    { ...pullRequest, state: "closed" },
+    { ...pullRequest, base: { ...pullRequest.base, ref: "main" } },
+    { ...pullRequest, base: { ...pullRequest.base, sha: "3".repeat(40) } },
+    { ...pullRequest, head: { sha: "4".repeat(40) } },
+    { ...pullRequest, user: { login: "invalid_login" } },
+  ];
+  for (const invalidPullRequest of invalidPullRequests) {
+    const identityErrors = [];
+    assert.equal(
+      validateContractRootPullRequestIdentity(identityErrors, {
+        pullRequestNumber,
+        baseSha,
+        candidateSha,
+        apiJson: () => invalidPullRequest,
+      }),
+      null,
+    );
+    assert.match(identityErrors.join("\n"), /bindt.*niet exact/u);
+  }
+});
+
+test("root rotation uses a generic edited retrigger without bespoke reviews", () => {
+  const errors = [];
+  validateContractRootRotationTrigger(errors, {
     eventName: "pull_request_target",
     eventAction: "edited",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: { from: "" },
-    eventSenderLogin: author,
-    apiJson,
-    apiPaginatedJson: () => reviews,
   });
   assert.deepEqual(errors, []);
 
-  const staleEditErrors = [];
-  const staleEditAt = reviewSubmittedAt;
-  validateContractRootRotationReviews(staleEditErrors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_target",
-    eventAction: "edited",
-    eventPullRequestUpdatedAt: staleEditAt,
-    eventBodyChange: { from: "" },
-    eventSenderLogin: author,
-    apiJson: (endpoint) =>
-      endpoint.endsWith(`/pulls/${pullRequestNumber}`)
-        ? { ...pullRequest, updated_at: staleEditAt }
-        : { permission: "write" },
-    apiPaginatedJson: () => reviews,
-  });
-  assert.match(staleEditErrors.join("\n"), /body-edit.*later/u);
-
-  const unsafeEventErrors = [];
-  validateContractRootRotationReviews(unsafeEventErrors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_review",
-    eventAction: "submitted",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: { from: "" },
-    eventSenderLogin: author,
-    apiJson,
-    apiPaginatedJson: () => reviews,
-  });
-  assert.match(unsafeEventErrors.join("\n"), /pull_request_target-edited/u);
-
-  const preExistingMarkerErrors = [];
-  validateContractRootRotationReviews(preExistingMarkerErrors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_target",
-    eventAction: "edited",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: { from: pullRequest.body },
-    eventSenderLogin: author,
-    apiJson,
-    apiPaginatedJson: () => reviews,
-  });
-  assert.match(preExistingMarkerErrors.join("\n"), /nul naar exact één/u);
-
-  const titleOnlyEditErrors = [];
-  validateContractRootRotationReviews(titleOnlyEditErrors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_target",
-    eventAction: "edited",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: null,
-    eventSenderLogin: author,
-    apiJson,
-    apiPaginatedJson: () => reviews,
-  });
-  assert.match(titleOnlyEditErrors.join("\n"), /pull_request_target-edited/u);
-
-  const unauthorizedSenderErrors = [];
-  validateContractRootRotationReviews(unauthorizedSenderErrors, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_target",
-    eventAction: "edited",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: { from: "" },
-    eventSenderLogin: "untrusted-editor",
-    apiJson: (endpoint) =>
-      endpoint.endsWith(`/pulls/${pullRequestNumber}`)
-        ? pullRequest
-        : { permission: "read" },
-    apiPaginatedJson: () => reviews,
-  });
-  assert.match(
-    unauthorizedSenderErrors.join("\n"),
-    /PR-auteur.*write\/maintain\/admin/u,
-  );
+  for (const unsafeEvent of [
+    {
+      eventName: "pull_request_review",
+      eventAction: "submitted",
+    },
+    {
+      eventName: "pull_request_target",
+      eventAction: "synchronize",
+    },
+  ]) {
+    const unsafeEventErrors = [];
+    validateContractRootRotationTrigger(unsafeEventErrors, unsafeEvent);
+    assert.match(
+      unsafeEventErrors.join("\n"),
+      /generieke pull_request_target-edited retrigger/u,
+    );
+  }
 
   const validatorSource = readFileSync(
     resolve(ROOT, "scripts/fieldgrid-fieldflow-calm-handoff.mjs"),
@@ -1140,36 +1062,11 @@ test("root rotation requires three unique live exact-head role approvals", () =>
   );
   assert.match(
     validatorSource,
-    /validateContractRootRotationReviews\(trustErrors,[\s\S]*?eventName,[\s\S]*?eventAction,[\s\S]*?eventPullRequestUpdatedAt,[\s\S]*?eventBodyChange,[\s\S]*?eventSenderLogin,/u,
+    /validateContractRootRotationTrigger\(trustErrors,\s*\{\s*eventName,\s*eventAction,/u,
   );
-
-  const duplicateAndStale = clone(reviews);
-  duplicateAndStale[1].user.login = duplicateAndStale[0].user.login;
-  duplicateAndStale[2].commit_id = "3".repeat(40);
-  duplicateAndStale.push({
-    ...duplicateAndStale[0],
-    id: 999,
-    state: "CHANGES_REQUESTED",
-  });
-  const rejected = [];
-  validateContractRootRotationReviews(rejected, {
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName: "pull_request_target",
-    eventAction: "edited",
-    eventPullRequestUpdatedAt: editedAt,
-    eventBodyChange: { from: "" },
-    eventSenderLogin: author,
-    apiJson,
-    apiPaginatedJson: () => duplicateAndStale,
-  });
-  assert.match(
-    rejected.join("\n"),
-    /drie unieke niet-auteurreviewers.*exact-HEAD APPROVED.*FIELDFLOW-ROOT-ROTATION/su,
-  );
+  assert.equal(validatorSource.includes("CONTRACT_ROOT_REVIEW_ROLES"), false);
+  assert.equal(validatorSource.includes("FIELDFLOW-ROOT-ROTATION"), false);
+  assert.equal(validatorSource.includes("FIELDFLOW-ROOT-RECHECK"), false);
 });
 
 test("root rotation permits only root closure files and freezes lifecycle evidence", () => {

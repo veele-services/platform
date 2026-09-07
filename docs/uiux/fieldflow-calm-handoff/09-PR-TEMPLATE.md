@@ -125,7 +125,7 @@
 ## Protected trust boundary
 
 - Workflowevent uitsluitend `pull_request_target` zonder pathfilter/dispatch:
-- `pull_request_review` ontbreekt; rootretrigger uitsluitend echte body-`edited` na reviews:
+- `pull_request_review` ontbreekt; rootretrigger uitsluitend een gewone body- of titeledit nadat pending extern is gezet, zonder reviewbetekenis:
 - `github.ref=refs/heads/main`, `workflow_ref=<workflow>@refs/heads/main` en exacte `workflow_sha`:
 - Main-executor-, protected-base- en kandidaatworkflow byte-identiek:
 - Environment `fieldflow-calm-contract` laat alleen `main` toe:
@@ -143,7 +143,7 @@
 - Checkout/setup-node/pnpm Actions op goedgekeurde immutable commit-SHA's:
 - `GH_TOKEN` alleen noodzakelijke API-stappen; scopes alleen actions/attestations/checks/contents/pull-requests read:
 - Stabiele `Fieldflow Calm contract root`-eindjob via `always()` en alleen groen op verificatieresultaat `success`:
-- Contract-rootrotatie, indien van toepassing: aparte PR + drie disciplines + daarna body-edit van nul naar exact één `FIELDFLOW-ROOT-RECHECK` door auteur of live write/maintain/admin + externe Environmentwaarde pas na merge door beheerder:
+- Contract-rootrotatie, indien van toepassing: aparte PR onder gewone branch protection + generieke `edited`-retrigger nadat pending extern is gezet + geen extra reviewerrollen/-markers + actieve Environmentwaarde pas na merge door beheerder:
 
 ## Tests
 

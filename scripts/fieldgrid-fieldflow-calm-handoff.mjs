@@ -48,7 +48,7 @@ const COMPONENT_STATES_CONTENT_SHA256 =
 const THEME_DERIVATION_CONTENT_SHA256 =
   "c2ffa66d80fcf6fc3f561a525cc4ce361c3b1ad217eb40518e32fb3f6e69e32e";
 const NORMATIVE_DOCS_DIGEST_SHA256 =
-  "295eeed570413e996d44bf56691f26906070b99166142fff4fdfb8180af81ad9";
+  "7a0bcf6c4c1c74ae108ebe2a0b2500fe26ade30510270e9ad10045864eb8a2f2";
 const CONTRACT_ROOT_PATH =
   "docs/uiux/fieldflow-calm-handoff/manifests/contract-root.json";
 const CONTRACT_ROOT_WORKFLOW_PATH =
@@ -75,11 +75,6 @@ const CONTRACT_ROOT_VALIDATOR_PATH =
 const CONTRACT_ROOT_PACKAGE_SCRIPT = "fieldgrid:fieldflow-calm-handoff:check";
 const LEGACY_CONTRACT_ROOT_SHA256 =
   "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788";
-const CONTRACT_ROOT_REVIEW_ROLES = [
-  "product-design",
-  "functional-security",
-  "visual-a11y",
-];
 const CONTRACT_ROOT_TRUST_POLICY = {
   repository: "veele-services/platform",
   protectedBaseBranch: "codex/fieldgrid-uiux-master",
@@ -92,11 +87,11 @@ const CONTRACT_ROOT_TRUST_POLICY = {
   pendingProtectedVariable: "FIELDFLOW_CALM_PENDING_ROOT_SHA256",
   trustedWorkflow: CONTRACT_ROOT_WORKFLOW_PATH,
   bootstrapRule:
-    "The one-time v1 to v2 bootstrap is break-glass-only: (1) freeze the exact foundation HEAD after three independent role approvals; (2) copy its three byte-identical v2 workflows (contract root, evidence and visual baseline) to main through a separate reviewed PR while the root check remains fail-closed and the UIUX base is frozen; (3) confirm that fieldflow-calm-contract allows only main, snapshot protection/environment state and set pending to the frozen candidate root; (4) temporarily remove only the required root-status check; (5) merge only that frozen foundation HEAD into UIUX; (6) set active to the candidate root and clear pending; (7) immediately restore the required root-status check; (8) require a successful normal-mode probe before unfreezing. Any pre-merge mismatch aborts and restores the snapshots; any post-merge mismatch keeps UIUX frozen, reverts the exact UIUX merge, restores all three main workflows byte-identically through controlled reviewed reverts, restores the prior environment policy, active/pending values and required check, and only then probes normal mode. Automated v2 rotation never accepts a v1 base.",
+    "The one-time v1 to v2 bootstrap is break-glass-only: (1) freeze the exact foundation HEAD after all ordinary branch-protection requirements other than the temporarily bypassed root-status check are satisfied; (2) copy its three byte-identical v2 workflows (contract root, evidence and visual baseline) to main through a separate PR while the root check remains fail-closed and the UIUX base is frozen; (3) confirm that fieldflow-calm-contract allows only main, snapshot protection/environment state and set pending to the frozen candidate root; (4) temporarily remove only the required root-status check; (5) merge only that frozen foundation HEAD into UIUX; (6) set active to the candidate root and clear pending; (7) immediately restore the required root-status check; (8) require a successful normal-mode probe before unfreezing. Any pre-merge mismatch aborts and restores the snapshots; any post-merge mismatch keeps UIUX frozen, reverts the exact UIUX merge, restores all three main workflows byte-identically through controlled reverts, restores the prior environment policy, active/pending values and required check, and only then probes normal mode. The contract-root protocol adds no reviewer count, reviewer role or review-body marker beyond repository branch protection. Automated v2 rotation never accepts a v1 base.",
   runnerIsolationRule:
     "Evidence and baseline execution use three disposable GitHub-hosted jobs: an untrusted non-OIDC producer, a clean non-OIDC validator/package job and an isolated OIDC signer. The producer runs candidate commands only inside a containment boundary with read-only candidate source, a dedicated writable output root, no nonce, GitHub credential, secret or file-command path in the candidate subprocess environment, and verified termination of every candidate process before raw transfer. Raw artifacts, receipts and producer nonces are non-authenticating. The validator independently derives immutable event, run, attempt, head, job and artifact bindings, accepts only an exact safe regular-file closure without symlinks or hardlinks, and executes only byte-identical base-owned validator code and dependencies. Only the signer may receive id-token: write, and it attests only the validator's attempt-unique package. A missing containment-capable runner fails closed.",
   rotationRule:
-    "A dedicated root-change PR sets a distinct pending root whose lineage follows the active base root and requires three unique non-author exact-HEAD APPROVED reviews for product-design, functional-security and visual-a11y with FIELDFLOW-ROOT-ROTATION markers. After those reviews, an author or maintainer must edit the PR body to add the exact FIELDFLOW-ROOT-RECHECK marker; only that later base-owned pull_request_target edited event may validate rotation. pull_request_review is forbidden because it executes against a candidate-influenced merge ref. Candidate code stays inert and the active value changes only after merge.",
+    "A dedicated root-change PR sets a distinct pending root whose lineage follows the active base root. The contract-root protocol adds no reviewer count, reviewer role or review-body marker beyond repository branch protection. After pending is set for the frozen candidate, a pull_request_target edited event is used only as a generic trusted retrigger; the edit itself carries no approval semantics. pull_request_review is forbidden because it executes against a candidate-influenced merge ref. Candidate code stays inert and the active value changes only after merge.",
 };
 const NORMATIVE_DOC_FILES = [
   "00-BRON-EN-BESLUITEN.md",
@@ -13984,181 +13979,13 @@ export function determineFieldflowContractRootMode(
   return "rotation";
 }
 
-export function validateContractRootRotationReviews(
+export function validateContractRootRotationTrigger(
   errors,
-  {
-    repository = CONTRACT_ROOT_TRUST_POLICY.repository,
-    protectedBaseBranch = CONTRACT_ROOT_TRUST_POLICY.protectedBaseBranch,
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    activeRoot,
-    pendingRoot,
-    eventName,
-    eventAction,
-    eventPullRequestUpdatedAt,
-    eventBodyChange,
-    eventSenderLogin,
-    apiJson = githubApiJson,
-    apiPaginatedJson = githubApiPaginatedJson,
-  } = {},
+  { eventName, eventAction } = {},
 ) {
-  if (
-    repository !== CONTRACT_ROOT_TRUST_POLICY.repository ||
-    !Number.isSafeInteger(pullRequestNumber) ||
-    pullRequestNumber < 1 ||
-    !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
-    !/^[0-9a-f]{40}$/u.test(candidateSha ?? "") ||
-    !/^[0-9a-f]{64}$/u.test(activeRoot ?? "") ||
-    !/^[0-9a-f]{64}$/u.test(pendingRoot ?? "") ||
-    eventName !== "pull_request_target" ||
-    eventAction !== "edited" ||
-    !hasExactKeys(eventBodyChange, ["from"]) ||
-    typeof eventBodyChange.from !== "string" ||
-    !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u.test(eventSenderLogin ?? "") ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u.test(
-      eventPullRequestUpdatedAt ?? "",
-    )
-  ) {
+  if (eventName !== "pull_request_target" || eventAction !== "edited") {
     errors.push(
-      "Rootrotatiereviews missen geldige PR-, SHA-, root- of pull_request_target-edited-inputs.",
-    );
-    return;
-  }
-  const pullRequest = validateContractRootPullRequestIdentity(errors, {
-    repository,
-    protectedBaseBranch,
-    pullRequestNumber,
-    baseSha,
-    candidateSha,
-    apiJson,
-  });
-  if (!pullRequest) return;
-  const recheckMarker = `FIELDFLOW-ROOT-RECHECK: head=${candidateSha}; active=${activeRoot}; pending=${pendingRoot}`;
-  const previousRecheckMarkers = eventBodyChange.from
-    .split(/\r?\n/u)
-    .filter((line) => line === recheckMarker);
-  const recheckMarkers = String(pullRequest.body ?? "")
-    .split(/\r?\n/u)
-    .filter((line) => line === recheckMarker);
-  if (
-    previousRecheckMarkers.length !== 0 ||
-    recheckMarkers.length !== 1 ||
-    pullRequest.updated_at !== eventPullRequestUpdatedAt
-  ) {
-    errors.push(
-      "Rootrotatie vereist een body-edit van nul naar exact één FIELDFLOW-ROOT-RECHECK marker en dezelfde edited-event timestamp.",
-    );
-  }
-  const author = pullRequest.user.login;
-  const senderPermission =
-    eventSenderLogin.toLowerCase() === author.toLowerCase()
-      ? null
-      : apiJson(
-          `repos/${repository}/collaborators/${eventSenderLogin}/permission`,
-        );
-  if (
-    eventSenderLogin.toLowerCase() !== author.toLowerCase() &&
-    !["admin", "maintain", "write"].some(
-      (permission) =>
-        senderPermission?.permission === permission ||
-        senderPermission?.role_name === permission,
-    )
-  ) {
-    errors.push(
-      "De FIELDFLOW-ROOT-RECHECK body-edit moet van de PR-auteur of een live write/maintain/admin collaborator komen.",
-    );
-  }
-  const reviews = apiPaginatedJson(
-    `repos/${repository}/pulls/${pullRequestNumber}/reviews?per_page=100`,
-  );
-  if (!Array.isArray(reviews)) {
-    errors.push(
-      "Live rootrotatiereviews konden niet fail-closed worden gelezen.",
-    );
-    return;
-  }
-  const byReviewer = new Map();
-  for (const review of reviews) {
-    const login = review?.user?.login;
-    if (
-      !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/u.test(login ?? "") ||
-      review.commit_id !== candidateSha ||
-      !Number.isSafeInteger(review.id) ||
-      !["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)
-    ) {
-      continue;
-    }
-    const previous = byReviewer.get(login.toLowerCase());
-    if (!previous || previous.id < review.id) {
-      byReviewer.set(login.toLowerCase(), review);
-    }
-  }
-  const roleApprovals = new Map();
-  for (const review of byReviewer.values()) {
-    const login = review.user.login;
-    if (
-      review.state !== "APPROVED" ||
-      login.toLowerCase() === author.toLowerCase() ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u.test(review.submitted_at ?? "")
-    ) {
-      continue;
-    }
-    const matchingRoles = CONTRACT_ROOT_REVIEW_ROLES.filter((role) =>
-      String(review.body ?? "")
-        .split(/\r?\n/u)
-        .includes(
-          `FIELDFLOW-ROOT-ROTATION: head=${candidateSha}; active=${activeRoot}; pending=${pendingRoot}; role=${role}`,
-        ),
-    );
-    if (matchingRoles.length !== 1) continue;
-    const permission = apiJson(
-      `repos/${repository}/collaborators/${login}/permission`,
-    );
-    const mayApprove =
-      ["admin", "maintain", "write"].includes(permission?.permission) ||
-      ["admin", "maintain", "write"].includes(permission?.role_name);
-    if (!mayApprove) continue;
-    const role = matchingRoles[0];
-    const records = roleApprovals.get(role) ?? [];
-    records.push({
-      login: login.toLowerCase(),
-      reviewId: review.id,
-      submittedAt: review.submitted_at,
-    });
-    roleApprovals.set(role, records);
-  }
-  let approvedTriplet = null;
-  for (const first of roleApprovals.get(CONTRACT_ROOT_REVIEW_ROLES[0]) ?? []) {
-    for (const second of roleApprovals.get(CONTRACT_ROOT_REVIEW_ROLES[1]) ??
-      []) {
-      for (const third of roleApprovals.get(CONTRACT_ROOT_REVIEW_ROLES[2]) ??
-        []) {
-        if (
-          first.login !== second.login &&
-          first.login !== third.login &&
-          second.login !== third.login
-        ) {
-          approvedTriplet = [first, second, third];
-          break;
-        }
-      }
-      if (approvedTriplet) break;
-    }
-    if (approvedTriplet) break;
-  }
-  if (!approvedTriplet) {
-    errors.push(
-      "Rootrotatie vereist drie unieke niet-auteurreviewers met write/maintain/admin, exact-HEAD APPROVED en exacte FIELDFLOW-ROOT-ROTATION markers voor product-design, functional-security en visual-a11y.",
-    );
-  } else if (
-    approvedTriplet.some(
-      (review) =>
-        Date.parse(review.submittedAt) >= Date.parse(eventPullRequestUpdatedAt),
-    )
-  ) {
-    errors.push(
-      "De FIELDFLOW-ROOT-RECHECK body-edit moet aantoonbaar later zijn dan alle drie exacte rootrotatiereviews.",
+      "Rootrotatie vereist uitsluitend een generieke pull_request_target-edited retrigger nadat pending extern is gezet.",
     );
   }
 }
@@ -15236,23 +15063,6 @@ function runCli() {
     const eventActionIndex = process.argv.indexOf("--event-action");
     const eventAction =
       eventActionIndex >= 0 ? process.argv[eventActionIndex + 1] : null;
-    const eventUpdatedAtIndex = process.argv.indexOf("--event-pr-updated-at");
-    const eventPullRequestUpdatedAt =
-      eventUpdatedAtIndex >= 0 ? process.argv[eventUpdatedAtIndex + 1] : null;
-    const eventBodyChangeIndex = process.argv.indexOf(
-      "--event-body-change-json",
-    );
-    let eventBodyChange = null;
-    if (eventBodyChangeIndex >= 0) {
-      try {
-        eventBodyChange = JSON.parse(process.argv[eventBodyChangeIndex + 1]);
-      } catch {
-        eventBodyChange = null;
-      }
-    }
-    const eventSenderIndex = process.argv.indexOf("--event-sender-login");
-    const eventSenderLogin =
-      eventSenderIndex >= 0 ? process.argv[eventSenderIndex + 1] : null;
     if (
       !/^[0-9a-f]{40}$/u.test(baseSha ?? "") ||
       !isNonEmptyString(candidateArgument) ||
@@ -15309,9 +15119,6 @@ function runCli() {
         candidateManifest,
         activeRoot: process.env.FIELDFLOW_CALM_TRUSTED_ROOT_SHA256,
         pendingRoot: process.env.FIELDFLOW_CALM_PENDING_ROOT_SHA256,
-        eventName,
-        eventAction,
-        eventPullRequestUpdatedAt,
       });
     }
     if (trustErrors.length === 0) {
@@ -15351,17 +15158,9 @@ function runCli() {
         basePackageRoot: PACKAGE_ROOT,
         candidatePackageRoot,
       });
-      validateContractRootRotationReviews(trustErrors, {
-        pullRequestNumber,
-        baseSha,
-        candidateSha,
-        activeRoot: process.env.FIELDFLOW_CALM_TRUSTED_ROOT_SHA256,
-        pendingRoot: process.env.FIELDFLOW_CALM_PENDING_ROOT_SHA256,
+      validateContractRootRotationTrigger(trustErrors, {
         eventName,
         eventAction,
-        eventPullRequestUpdatedAt,
-        eventBodyChange,
-        eventSenderLogin,
       });
     }
     if (trustErrors.length > 0) {

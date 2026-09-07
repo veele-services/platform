@@ -20,7 +20,7 @@ function independentRoot(manifest) {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
-test("independent oracle pins the reviewed Fieldflow Calm contract root", () => {
+test("independent oracle pins the protected Fieldflow Calm contract root", () => {
   const manifest = JSON.parse(
     readFileSync(
       resolve(
@@ -64,7 +64,26 @@ test("independent oracle pins the reviewed Fieldflow Calm contract root", () => 
     bootstrap,
     /pre-merge mismatch aborts.*post-merge mismatch.*reverts the exact UIUX merge.*restores all three main workflows byte-identically.*restores the prior environment policy, active\/pending values and required check.*only then probes normal mode/su,
   );
+  assert.match(
+    bootstrap,
+    /ordinary branch-protection requirements other than the temporarily bypassed root-status check/u,
+  );
+  assert.match(
+    bootstrap,
+    /adds no reviewer count, reviewer role or review-body marker beyond repository branch protection/u,
+  );
+  assert.doesNotMatch(bootstrap, /three independent role approvals/u);
   assert.match(bootstrap, /Automated v2 rotation never accepts a v1 base/u);
+  const rotation = manifest.trustPolicy.rotationRule;
+  assert.match(
+    rotation,
+    /adds no reviewer count, reviewer role or review-body marker beyond repository branch protection/u,
+  );
+  assert.match(
+    rotation,
+    /pull_request_target edited event.*generic trusted retrigger.*no approval semantics/su,
+  );
+  assert.doesNotMatch(rotation, /FIELDFLOW-ROOT-(?:ROTATION|RECHECK)/u);
   const runnerIsolation = manifest.trustPolicy.runnerIsolationRule;
   assert.match(
     runnerIsolation,
@@ -108,19 +127,14 @@ test("independent oracle pins the base-owned inert-candidate workflow boundary",
   );
   assert.match(workflow, /test "\$EVENT_NAME" = "pull_request_target"/u);
   assert.match(workflow, /test "\$EVENT_ACTION" = "edited"/u);
-  assert.match(workflow, /EVENT_BODY_CHANGE_JSON:.*event\.changes\.body/u);
-  assert.match(workflow, /EVENT_SENDER_LOGIN:.*event\.sender\.login/u);
+  assert.doesNotMatch(workflow, /EVENT_PULL_REQUEST_UPDATED_AT/u);
+  assert.doesNotMatch(workflow, /EVENT_BODY_CHANGE_JSON/u);
+  assert.doesNotMatch(workflow, /EVENT_SENDER_LOGIN/u);
   assert.match(workflow, /--event-name "\$EVENT_NAME"/u);
   assert.match(workflow, /--event-action "\$EVENT_ACTION"/u);
-  assert.match(
-    workflow,
-    /--event-pr-updated-at "\$EVENT_PULL_REQUEST_UPDATED_AT"/u,
-  );
-  assert.match(
-    workflow,
-    /--event-body-change-json "\$EVENT_BODY_CHANGE_JSON"/u,
-  );
-  assert.match(workflow, /--event-sender-login "\$EVENT_SENDER_LOGIN"/u);
+  assert.doesNotMatch(workflow, /--event-pr-updated-at/u);
+  assert.doesNotMatch(workflow, /--event-body-change-json/u);
+  assert.doesNotMatch(workflow, /--event-sender-login/u);
   assert.match(workflow, /EXECUTOR_WORKFLOW_SHA:.*github\.workflow_sha/u);
   assert.match(
     workflow,
