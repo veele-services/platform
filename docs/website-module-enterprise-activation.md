@@ -60,8 +60,10 @@ values to production:
 Add `FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID` as a **staging environment
 secret** before any post-prepare action. It must be the UUID of one existing
 active platform owner or admin. The first `prepare-managed` run may omit it; in
-that case the script fails closed unless the database contains exactly one
-active owner/admin, then writes that UUID to the short-lived fixture artifact.
+that case the script selects exactly one active admin. Only when there are no
+active admins may it select exactly one active owner. Multiple active admins,
+or multiple active owners without an admin, fail closed. The selected actor is
+revalidated before its UUID is written to the short-lived fixture artifact.
 Set the secret to that exact value before continuing. `prepare-managed` alone
 uses the runtime URL only to validate the distinct project/principal contract,
 then selects the existing migration-admin `DATABASE_URL` secret through the

@@ -292,23 +292,44 @@ async function resolveAutomationActor(
      FROM public.platform_users
      WHERE status = 'active' AND role IN ('owner', 'admin')
        AND ($1::uuid IS NULL OR user_id = $1::uuid)
-     ORDER BY CASE WHEN role = 'owner' THEN 0 ELSE 1 END, user_id`,
+     ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, user_id`,
     [requested || null],
   );
+  return selectAutomationActor(result.rows, requested);
+}
+
+export function selectAutomationActor(
+  candidates: ReadonlyArray<{ user_id: string; role: string }>,
+  requested: string,
+): string {
   if (requested) {
-    if (result.rows.length !== 1 || result.rows[0]?.user_id !== requested) {
+    if (candidates.length !== 1 || candidates[0]?.user_id !== requested) {
       throw new Error(
         "Configured automation actor is not an active platform owner/admin",
       );
     }
     return requested;
   }
-  if (result.rows.length !== 1) {
+  return selectDefaultAutomationActor(candidates);
+}
+
+export function selectDefaultAutomationActor(
+  candidates: ReadonlyArray<{ user_id: string; role: string }>,
+): string {
+  const admins = candidates.filter((candidate) => candidate.role === "admin");
+  if (admins.length === 1) return admins[0]!.user_id;
+  if (admins.length > 1) {
     throw new Error(
-      "Prepare-managed requires exactly one active platform owner/admin when no actor is configured",
+      "Prepare-managed requires exactly one active platform admin when no actor is configured",
     );
   }
-  return result.rows[0]!.user_id;
+  const owners = candidates.filter((candidate) => candidate.role === "owner");
+  if (owners.length !== 1) {
+    throw new Error(
+      "Prepare-managed requires exactly one active platform owner when no admin or actor is configured",
+    );
+  }
+  return owners[0]!.user_id;
 }
 
 async function resolveRuntimeTenant(
@@ -1077,6 +1098,7 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
         options.changeReference,
       );
       await fetchMode(MANAGED_PROOF_URL, "managed_cms");
+      await resolveAutomationActor(dbModule.pool, actorUserId);
       await writePrincipalFixtures(
         dbModule,
         managed,
