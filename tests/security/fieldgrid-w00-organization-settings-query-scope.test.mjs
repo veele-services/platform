@@ -504,7 +504,7 @@ const reviewedScopeDigests = new Map([
   ],
   [
     "artifacts/backoffice/src/app/actions/quotes.ts#processExpiredQuotes:organization_settings:from:1",
-    "3e5ff9c9fb070914fb1b",
+    "aedc86ae8e7f7bd55650",
   ],
   [
     "artifacts/backoffice/src/app/actions/reports.ts#submitReport:organization_settings:from:1",
