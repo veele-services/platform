@@ -679,14 +679,14 @@ const reviewedRawTenantDomainInventory = new Map([
         digest: "d824941e9f8200e477ef",
         context: "platform-admin-global",
         reason:
-          "Platform staging smoke intentionally counts all non-reserved tenant domains.",
+          "Platform staging smoke intentionally counts all non-reserved tenant domains after either platform-admin authorization or the exact staging-only automation bearer check.",
       },
       {
         functionName: "buildPlatformStagingSmokeDashboard",
         digest: "b38a25a53e2e927ede19",
         context: "platform-admin-global",
         reason:
-          "Platform staging smoke intentionally counts all verified tenant domains.",
+          "Platform staging smoke intentionally counts all verified tenant domains after either platform-admin authorization or the exact staging-only automation bearer check.",
       },
     ],
   ],
@@ -787,11 +787,11 @@ const reviewedRawScopeDigests = new Map([
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-smoke.ts#buildPlatformStagingSmokeDashboard:d824941e9f8200e477ef",
-    "152bb1a6960d8f8d0ab5",
+    "599231094ba329badd0c",
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-smoke.ts#buildPlatformStagingSmokeDashboard:b38a25a53e2e927ede19",
-    "152bb1a6960d8f8d0ab5",
+    "599231094ba329badd0c",
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-tenants.ts#tenantListDomainStatusSql:2b080227aa14507e9cdc",
@@ -849,7 +849,7 @@ const reviewedRawFileDigests = new Map([
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-smoke.ts",
-    "e74db38fc70d131a607f",
+    "a1f05aa41e723a32e1cf",
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-tenants.ts",
