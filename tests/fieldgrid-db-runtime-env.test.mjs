@@ -57,13 +57,17 @@ test("db package and cli entrypoints load deployment env before DATABASE_URL", (
   );
   assertContains(
     connection,
-    ['databaseConnectionConfig("runtime")', "new Pool"],
+    [
+      "configuredDatabaseConnectionPurpose()",
+      "databaseConnectionConfig(",
+      "new Pool",
+    ],
     "db connection isolation guard",
   );
   assert.ok(
-    connection.indexOf('databaseConnectionConfig("runtime")') <
+    connection.indexOf("databaseConnectionConfig(") <
       connection.indexOf("new Pool"),
-    "db connection should build the guarded runtime config before creating a pool",
+    "db connection should build the guarded purpose-specific config before creating a pool",
   );
 
   for (const [label, content, guardedConfig] of [

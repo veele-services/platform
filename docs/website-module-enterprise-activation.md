@@ -60,17 +60,24 @@ values to production:
 Add `FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID` as a **staging environment
 secret** before any post-prepare action. It must be the UUID of one existing
 active platform owner or admin. The first `prepare-managed` run may omit it; in
-that case the script fails closed unless the database contains exactly one
-active owner/admin, then writes that UUID to the short-lived fixture artifact.
+that case the script selects exactly one active admin. Only when there are no
+active admins may it select exactly one active owner. Multiple active admins,
+or multiple active owners without an admin, fail closed. The selected actor is
+revalidated before its UUID is written to the short-lived fixture artifact.
 Set the secret to that exact value before continuing. `prepare-managed` alone
-uses the existing migration-admin `DATABASE_URL` secret. `complete-custom`,
+uses the runtime URL only to validate the distinct project/principal contract,
+then selects the existing migration-admin `DATABASE_URL` secret through the
+step-scoped migration connection purpose. `complete-custom`,
 `verify` and `rollback-custom` use only the least-privilege
 `FIELDGRID_RUNTIME_DATABASE_URL` secret. Every database step installs and
 checks the pinned Supabase Root 2021 CA from
 `FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64` and requires TLS `verify-full`;
 certificate, connection strings and passwords are never uploaded.
 
-Configure the proof URLs and automation-actor secret before `prepare-managed`.
+Configure the proof URLs and runtime-database secret before `prepare-managed`.
+Configure the automation actor before that run when its UUID is already known;
+otherwise set it immediately from the successful short-lived fixture before
+any post-prepare action.
 Configure the website/marketing unit names, ports and health URLs only after the
 first application promotion has completed on the existing four-service gate.
 Enable the recurring custom-health refresher only in the deployment that has
@@ -251,11 +258,14 @@ Staging Proof State** from `main` with:
 
 The staging-environment job idempotently provisions the Enterprise,
 website-only proof tenant, publishes its reviewed managed content and verifies
-`https://managed-proof.staging.fieldgrid.nl/`. The shorter generic `managed`
-tenant label is reserved and must never be used. The job also
+`https://managed-proof-w00-v2.staging.fieldgrid.nl/`. This fixed, versioned
+namespace and its V2 automation marker prevent the job from claiming an older
+or operator-owned proof tenant. The previous `managed-proof` namespace remains
+untouched and is not valid evidence for this rollout. The shorter generic
+`managed` tenant label is reserved and must never be used. The job also
 creates the one-day `w00-principal-fixtures.json` artifact containing exactly
 the existing `field-demo.staging.fieldgrid.nl` and new
-`managed-proof.staging.fieldgrid.nl` host/tenant-ID pairs plus the verified
+`managed-proof-w00-v2.staging.fieldgrid.nl` host/tenant-ID pairs plus the verified
 automation actor UUID. It contains no email address, upstream, credential or
 other PII. Download it only for the W00 principal proof and delete it after use.
 This operation cannot register, approve or activate a custom release.
@@ -266,6 +276,9 @@ From the exact main SHA, dispatch **Phase 2E Staging Promotion Preflight** with:
 
 - `expected_main_sha`: exact green main SHA;
 - `expected_staging_sha`: current exact staging SHA and rollback target;
+- `expected_active_staging_release_sha`: current active release-marker SHA;
+- `rollback_deploy_run_id`: required when that marker differs from the staging
+  Git ref;
 - `confirmation`: `phase2e-staging-only`.
 
 The workflow verifies immutable refs, required secrets and the four existing
@@ -312,7 +325,7 @@ website-stack symlink and prior Caddy state. It never moves a Git ref.
 Use only these two staging proof sites:
 
 - the automation-owned managed site bound to
-  `managed-proof.staging.fieldgrid.nl`;
+  `managed-proof-w00-v2.staging.fieldgrid.nl`;
 - the Veele custom site bound to `veeleservices.staging.fieldgrid.nl`.
 
 Create and publish the real Veele lead form, set its UUID as

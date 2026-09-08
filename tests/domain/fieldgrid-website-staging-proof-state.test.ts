@@ -4,11 +4,20 @@ import {
   CUSTOM_PROOF_HOST,
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
+  MANAGED_PROOF_SLUG,
+  WEBSITE_STAGING_PROOF_MARKER,
+  managedProofCandidateErrorCode,
+  managedProofDomainBindingRequired,
+  safeErrorCode,
+  selectAutomationActor,
+  selectDefaultAutomationActor,
   validateWebsiteStagingProofStateConfig,
 } from "../../scripts/fieldgrid-website-staging-proof-state.mts";
 
 const sha = "a".repeat(40);
 const actor = "10000000-0000-4000-8000-000000000001";
+const UUID_PATTERN_FOR_TEST =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/iu;
 
 function options(
   mode: "prepare-managed" | "complete-custom" | "verify" | "rollback-custom",
@@ -21,6 +30,38 @@ function options(
   } as const;
 }
 
+test("managed proof retries an incomplete expected-domain binding and rejects collisions", () => {
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: null,
+      canonicalDomainStatus: null,
+    }),
+    true,
+  );
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: MANAGED_PROOF_HOST,
+      canonicalDomainStatus: "pending",
+    }),
+    true,
+  );
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: MANAGED_PROOF_HOST,
+      canonicalDomainStatus: "active",
+    }),
+    false,
+  );
+  assert.throws(
+    () =>
+      managedProofDomainBindingRequired({
+        canonicalHostname: "different.staging.fieldgrid.nl",
+        canonicalDomainStatus: "active",
+      }),
+    /different domain/u,
+  );
+});
+
 function baseEnvironment() {
   return {
     APP_ENV: "staging",
@@ -28,6 +69,9 @@ function baseEnvironment() {
     GITHUB_REF_NAME: "main",
     GITHUB_SHA: sha,
     DATABASE_URL: "postgresql://staging.invalid/fieldgrid",
+    FIELDGRID_MIGRATION_DATABASE_URL:
+      "postgresql://migration.staging.invalid/fieldgrid",
+    FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
     WEBSITE_MANAGED_ACCEPTANCE_URL: MANAGED_PROOF_URL,
     WEBSITE_CUSTOM_ACCEPTANCE_URL: `https://${CUSTOM_PROOF_HOST}/`,
     FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: actor,
@@ -37,7 +81,7 @@ function baseEnvironment() {
 }
 
 test("prepare-managed is exact-main, explicit and independent of custom routing", () => {
-  assert.equal(MANAGED_PROOF_HOST, "managed-proof.staging.fieldgrid.nl");
+  assert.equal(MANAGED_PROOF_HOST, "managed-proof-w00-v2.staging.fieldgrid.nl");
   assert.deepEqual(
     validateWebsiteStagingProofStateConfig(
       options("prepare-managed"),
@@ -65,6 +109,149 @@ test("prepare-managed is exact-main, explicit and independent of custom routing"
     }).join(";"),
     /must run from main/u,
   );
+  assert.match(
+    validateWebsiteStagingProofStateConfig(options("prepare-managed"), {
+      ...baseEnvironment(),
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: undefined,
+    }).join(";"),
+    /migration connection purpose/u,
+  );
+});
+
+test("managed proof candidates require one exact automation-owned identity", () => {
+  const owned = {
+    tenant_id: "10000000-0000-4000-8000-000000000030",
+    slug: MANAGED_PROOF_SLUG,
+    plan_key: "enterprise",
+    domain: MANAGED_PROOF_HOST,
+    marker: WEBSITE_STAGING_PROOF_MARKER,
+    environment: "staging",
+    provisioned_slug: MANAGED_PROOF_SLUG,
+    provisioned_plan_key: "enterprise",
+    provisioned_primary_domain: MANAGED_PROOF_HOST,
+    provisioned_owner_email: null,
+    provisioned_requested_by: actor,
+    tenant_created_by: actor,
+  };
+
+  assert.equal(managedProofCandidateErrorCode([]), null);
+  assert.equal(managedProofCandidateErrorCode([owned]), null);
+  assert.equal(
+    managedProofCandidateErrorCode([owned, { ...owned }]),
+    "managed_proof_identity_ambiguous",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, slug: "occupied" }]),
+    "managed_proof_identity_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, plan_key: "starter" }]),
+    "managed_proof_plan_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, marker: null }]),
+    "managed_proof_ownership_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, domain: null }]),
+    "managed_proof_identity_mismatch",
+  );
+  for (const candidate of [
+    { ...owned, environment: "production" },
+    { ...owned, provisioned_slug: "other" },
+    { ...owned, provisioned_plan_key: "starter" },
+    { ...owned, provisioned_primary_domain: "other.staging.fieldgrid.nl" },
+    { ...owned, provisioned_owner_email: "operator@example.invalid" },
+    { ...owned, provisioned_requested_by: null },
+    {
+      ...owned,
+      provisioned_requested_by: "10000000-0000-4000-8000-000000000099",
+    },
+  ]) {
+    assert.equal(
+      managedProofCandidateErrorCode([candidate]),
+      "managed_proof_ownership_mismatch",
+    );
+  }
+});
+
+test("proof evidence does not trust arbitrary external error codes", () => {
+  const error = Object.assign(new Error("opaque failure"), {
+    code: "credential-shaped-token",
+  });
+  assert.equal(safeErrorCode(error), "proof_state_failed");
+});
+
+test("actorless prepare prefers one admin and only falls back to one owner", () => {
+  const owner = "10000000-0000-4000-8000-000000000010";
+  const ownerTwo = "10000000-0000-4000-8000-000000000011";
+  const admin = "10000000-0000-4000-8000-000000000020";
+  const adminTwo = "10000000-0000-4000-8000-000000000021";
+
+  assert.equal(
+    selectDefaultAutomationActor([
+      { user_id: admin, role: "admin" },
+      { user_id: owner, role: "owner" },
+      { user_id: ownerTwo, role: "owner" },
+    ]),
+    admin,
+  );
+  assert.equal(
+    selectDefaultAutomationActor([{ user_id: owner, role: "owner" }]),
+    owner,
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: admin, role: "admin" },
+        { user_id: adminTwo, role: "admin" },
+        { user_id: owner, role: "owner" },
+      ]),
+    /exactly one active platform admin/u,
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: owner, role: "owner" },
+        { user_id: ownerTwo, role: "owner" },
+      ]),
+    /exactly one active platform owner/u,
+  );
+  assert.throws(
+    () => selectDefaultAutomationActor([]),
+    (error: unknown) => {
+      assert.match(String(error), /exactly one active platform owner/u);
+      assert.doesNotMatch(String(error), UUID_PATTERN_FOR_TEST);
+      return true;
+    },
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: "should-not-be-selected", role: "support" },
+      ]),
+    /exactly one active platform owner/u,
+  );
+});
+
+test("a configured active owner or admin remains the exact actor", () => {
+  assert.equal(
+    selectAutomationActor([{ user_id: actor, role: "owner" }], actor),
+    actor,
+  );
+  assert.throws(
+    () =>
+      selectAutomationActor(
+        [
+          {
+            user_id: "10000000-0000-4000-8000-000000000099",
+            role: "admin",
+          },
+        ],
+        actor,
+      ),
+    /not an active platform owner\/admin/u,
+  );
 });
 
 test("complete-custom requires an unambiguous route for the exact staging SHA", () => {
@@ -82,6 +269,8 @@ test("complete-custom requires an unambiguous route for the exact staging SHA", 
     GITHUB_REF_NAME: "staging",
     FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION:
       "website-staging-complete-custom",
+    FIELDGRID_MIGRATION_DATABASE_URL: undefined,
+    FIELDGRID_DATABASE_CONNECTION_PURPOSE: undefined,
     FIELDGRID_CUSTOM_ROUTE_KEY: exactRoute.routeKey,
     FIELDGRID_CUSTOM_EXPECTED_HOST: CUSTOM_PROOF_HOST,
     FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: JSON.stringify([exactRoute]),
@@ -100,6 +289,13 @@ test("complete-custom requires an unambiguous route for the exact staging SHA", 
       FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: undefined,
     }).join(";"),
     /automation actor is required/u,
+  );
+  assert.match(
+    validateWebsiteStagingProofStateConfig(options("complete-custom"), {
+      ...environment,
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
+    }).join(";"),
+    /runtime connection purpose/u,
   );
   assert.match(
     validateWebsiteStagingProofStateConfig(options("complete-custom"), {

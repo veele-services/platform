@@ -1351,6 +1351,7 @@ test("staging release paths separate runtime and migration principals with verif
   const promoter = read("scripts/fieldgrid-phase2e-staging-promote.mjs");
   const phase2e = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
   const runtimeConnection = read("lib/db/src/connection.ts");
+  const databaseEnvironment = read("lib/db/src/database-environment.ts");
   const migrationRunner = read("lib/db/src/migrate.ts");
   const smtpBackfill = read("scripts/fieldgrid-smtp-credential-backfill.mts");
   const objectBackfill = read(
@@ -1490,7 +1491,22 @@ test("staging release paths separate runtime and migration principals with verif
     /--rollback-env "\$BASE_DIR\/shared\/\.env\.rollback-\$GITHUB_SHA"/u,
   );
 
-  assert.match(runtimeConnection, /databaseConnectionConfig\("runtime"\)/u);
+  assert.match(
+    runtimeConnection,
+    /databaseConnectionConfig\([\s\S]*configuredDatabaseConnectionPurpose\(\)/u,
+  );
+  assert.match(
+    databaseEnvironment,
+    /if \(!configured \|\| configured === "runtime"\) return "runtime"/u,
+  );
+  assert.match(
+    databaseEnvironment,
+    /if \(configured === "migration"\) return "migration"/u,
+  );
+  assert.match(
+    databaseEnvironment,
+    /throw new Error\("Database connection purpose is invalid\."\)/u,
+  );
   assert.match(migrationRunner, /databaseConnectionConfig\("migration"\)/u);
   assert.match(smtpBackfill, /databaseConnectionConfig\("migration"\)/u);
   assert.match(objectBackfill, /databaseConnectionConfig\("migration"\)/u);

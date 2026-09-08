@@ -17,6 +17,15 @@ export type DatabaseConnectionConfig = {
   ssl: false | { rejectUnauthorized: true; ca: string };
 };
 
+export function configuredDatabaseConnectionPurpose(
+  env: RuntimeEnvironment = process.env,
+): DatabaseConnectionPurpose {
+  const configured = env.FIELDGRID_DATABASE_CONNECTION_PURPOSE?.trim();
+  if (!configured || configured === "runtime") return "runtime";
+  if (configured === "migration") return "migration";
+  throw new Error("Database connection purpose is invalid.");
+}
+
 export const SUPABASE_ROOT_2021_CA_SHA256 =
   "807025ad50d4ed219d2c9c7d299c004f824eb00cf7f65afef607d07b72e6cafa";
 
@@ -198,6 +207,11 @@ function databaseUrlForPurpose(
     throw new Error("Live runtime database principal is not permitted.");
   }
   if (purpose === "runtime" || !liveEnvironment) return runtimeUrl;
+
+  // A migration process receives two independent credentials. Prove that the
+  // unused runtime credential belongs to this exact live environment as well;
+  // validating only the selected admin URL would permit cross-project drift.
+  assertDatabaseEnvironmentIsolation(env);
 
   const migrationUrl = required(env, "FIELDGRID_MIGRATION_DATABASE_URL");
   assertDistinctDatabaseCredentials(runtimeUrl, migrationUrl);

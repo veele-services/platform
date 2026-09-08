@@ -110,9 +110,20 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   const workflow = read(".github/workflows/website-staging-proof-state.yml");
   const operations = read("docs/website-module-enterprise-activation.md");
 
-  assert.match(script, /managed-proof\.staging\.fieldgrid\.nl/u);
+  assert.match(script, /managed-proof-w00-v2\.staging\.fieldgrid\.nl/u);
   assert.doesNotMatch(script, /["'`]managed\.staging\.fieldgrid\.nl/u);
   assert.doesNotMatch(operations, /managed\.staging\.fieldgrid\.nl/u);
+  assert.match(script, /FIELDGRID_WEBSITE_STAGING_PROOF_W00_V2/u);
+  for (const code of [
+    "managed_proof_identity_ambiguous",
+    "managed_proof_identity_mismatch",
+    "managed_proof_plan_mismatch",
+    "managed_proof_ownership_mismatch",
+    "runtime_host_binding_invalid",
+    "runtime_host_settings_invalid",
+  ]) {
+    assert.match(script, new RegExp(code, "u"));
+  }
   assert.match(script, /reader\.read\(\)/u);
   assert.match(script, /await reader\.cancel\(\)/u);
   assert.match(script, /\.fieldgrid-release-sha/u);
@@ -120,7 +131,45 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     script,
     /options\.mode !== "prepare-managed" && !UUID_PATTERN\.test\(actor\)/u,
   );
-  assert.match(script, /if \(result\.rows\.length !== 1\)/u);
+  assert.match(
+    script,
+    /WHERE status = 'active' AND role IN \('owner', 'admin'\)/u,
+  );
+  const actorResolver = script.slice(
+    script.indexOf("async function resolveAutomationActor"),
+    script.indexOf("async function resolveRuntimeTenant"),
+  );
+  assert.match(
+    actorResolver,
+    /return selectAutomationActor\(result\.rows, requested\)/u,
+  );
+  assert.match(actorResolver, /candidates\.length !== 1/u);
+  assert.match(actorResolver, /const admins = candidates\.filter/u);
+  assert.match(actorResolver, /if \(admins\.length === 1\)/u);
+  assert.match(actorResolver, /if \(admins\.length > 1\)/u);
+  assert.match(actorResolver, /if \(owners\.length !== 1\)/u);
+  assert.doesNotMatch(actorResolver, /\bLIMIT\s+1\b/iu);
+  assert.doesNotMatch(actorResolver, /auth\.users|email/iu);
+  assert.match(
+    script,
+    /await resolveAutomationActor\(dbModule\.pool, actorUserId\);/u,
+  );
+  const runFunction = script.slice(script.indexOf("async function run("));
+  const prepareManagedBranch = runFunction.slice(
+    runFunction.indexOf('if (options.mode === "prepare-managed")'),
+    runFunction.indexOf('} else if (options.mode === "complete-custom")'),
+  );
+  assert.ok(
+    prepareManagedBranch.indexOf(
+      "await resolveRuntimeTenant(dbModule.pool, FIELD_DEMO_HOST);",
+    ) < prepareManagedBranch.indexOf("await ensureManagedProof("),
+    "field-demo must be validated before managed-proof mutation",
+  );
+  assert.ok(
+    prepareManagedBranch.indexOf("await ensureManagedProof(") <
+      prepareManagedBranch.indexOf("await writePrincipalFixtures("),
+    "principal fixtures must revalidate field-demo after managed-proof mutation",
+  );
   assert.match(workflow, /prepare-managed/u);
   assert.match(workflow, /complete-custom/u);
   assert.match(workflow, /sleep 370/u);
@@ -145,8 +194,47 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
       "- name: Prove durable custom health after six-minute soak",
     ),
   );
+  const prepareStep = workflow.slice(
+    workflow.indexOf(
+      "- name: Prepare managed proof with migration-admin connection",
+    ),
+    workflow.indexOf(
+      "- name: Complete, verify or rollback with runtime connection",
+    ),
+  );
+  assert.match(
+    prepareStep,
+    /DATABASE_URL: \$\{\{ secrets\.FIELDGRID_RUNTIME_DATABASE_URL \}\}/u,
+  );
+  assert.match(
+    prepareStep,
+    /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+  );
+  assert.match(
+    prepareStep,
+    /FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration/u,
+  );
+  assert.equal(
+    (workflow.match(/FIELDGRID_DATABASE_CONNECTION_PURPOSE/gu) ?? []).length,
+    1,
+  );
+  assert.match(workflow, /fieldgrid-database-connection-purpose\.test\.ts/u);
+  assert.doesNotMatch(
+    prepareStep,
+    /\n\s+DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+  );
   assert.doesNotMatch(runtimeStep, /secrets\.DATABASE_URL/u);
   assert.doesNotMatch(runtimeStep, /FIELDGRID_MIGRATION_DATABASE_URL/u);
+  assert.doesNotMatch(runtimeStep, /FIELDGRID_DATABASE_CONNECTION_PURPOSE/u);
+  assert.doesNotMatch(
+    read(".github/workflows/deploy.yml"),
+    /FIELDGRID_DATABASE_CONNECTION_PURPOSE/u,
+  );
+  assert.ok(
+    script.indexOf("const evidence: ProofEvidence") <
+      script.indexOf('await import("../lib/db/src/index.ts")'),
+    "proof evidence must be initialized before the database bootstrap",
+  );
   assert.match(workflow, /scripts\/fieldgrid-database-root-cert\.mjs/u);
   assert.match(workflow, /DB_SSL_REJECT_UNAUTHORIZED: "true"/u);
   assert.match(workflow, /PGSSLMODE: verify-full/u);

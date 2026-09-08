@@ -1,7 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "./runtime-env";
-import { databaseConnectionConfig } from "./database-environment";
+import {
+  configuredDatabaseConnectionPurpose,
+  databaseConnectionConfig,
+} from "./database-environment";
 import * as schema from "./schema";
 
 const { Pool } = pg;
@@ -14,7 +17,9 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const runtimeDatabaseConnection = databaseConnectionConfig("runtime");
+const databaseConnection = databaseConnectionConfig(
+  configuredDatabaseConnectionPurpose(),
+);
 
-export const pool = new Pool(runtimeDatabaseConnection);
+export const pool = new Pool(databaseConnection);
 export const db = drizzle(pool, { schema });
