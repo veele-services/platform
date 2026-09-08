@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { buildPlatformStagingSmokeDashboard } from "@/app/actions/platform-smoke";
-import { requirePlatformAdminFromRequest } from "@/lib/auth/platform";
+import {
+  isRequestHostPlatformHost,
+  requirePlatformAdminFromRequest,
+} from "@/lib/auth/platform";
 import { classifyStagingSmokeAutomationBearer } from "@/lib/auth/staging-smoke-automation";
 
 async function requireStagingSmokeAccess(request: Request): Promise<void> {
   const automationAuth = classifyStagingSmokeAutomationBearer(request);
-  if (automationAuth === "valid") return;
+  if (automationAuth === "valid") {
+    if (!isRequestHostPlatformHost(request)) {
+      throw new Error("Invalid staging smoke automation host");
+    }
+    return;
+  }
   if (automationAuth === "invalid") {
     throw new Error("Invalid staging smoke automation authorization");
   }
