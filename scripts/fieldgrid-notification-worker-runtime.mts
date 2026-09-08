@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -36,6 +39,11 @@ let templateOutboxDir: string | null = null;
 let originalReminderEmail: string | null = null;
 const originalNodeEnv = process.env["NODE_ENV"];
 const originalTestOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
+const originalAdminApiSecret = process.env["ADMIN_API_SECRET"];
+const runtimeAdminApiSecret = `runtime-${randomUUID()}`;
+process.env["ADMIN_API_SECRET"] = runtimeAdminApiSecret;
+let apiServer: Server | null = null;
+let apiBaseUrl: string | null = null;
 const logger = { info() {}, warn() {}, error() {} };
 
 type Channel = "email" | "push";
@@ -142,13 +150,7 @@ async function createReminderInvoice() {
        status, due_date, total_amount
      ) values ($1,$2,$3,$4,$5,'sent',current_date - 30,121.00)
      returning due_date::text`,
-    [
-      id,
-      tenantA,
-      invoiceNumber,
-      FIXTURE.customers.a,
-      assignmentId,
-    ],
+    [id, tenantA, invoiceNumber, FIXTURE.customers.a, assignmentId],
   );
   return {
     id,
@@ -212,8 +214,8 @@ async function enqueuePaymentReminder(input: {
 
 async function queueState(id: string) {
   const result = await client.query(
-    `select status, attempts, delivery_key, delivery_started_at, current_attempt_id,
-            terminal_attempt_id, response, last_error
+    `select status, attempts, max_attempts, delivery_key, delivery_started_at,
+            current_attempt_id, terminal_attempt_id, response, last_error
      from public.notification_delivery_queue where id = $1`,
     [id],
   );
@@ -242,6 +244,36 @@ async function runEmail(options: Record<string, unknown> = {}) {
     deliveryOverride: async () => delivered(),
     ...options,
   });
+}
+
+async function callPaymentReminderCron() {
+  if (!apiServer) {
+    const { default: app } = await import("../artifacts/api-server/src/app.ts");
+    apiServer = app.listen(0, "127.0.0.1");
+    await once(apiServer, "listening");
+    const address = apiServer.address();
+    assert.ok(address && typeof address !== "string");
+    apiBaseUrl = `http://127.0.0.1:${(address as AddressInfo).port}`;
+  }
+
+  assert.ok(apiBaseUrl);
+  const response = await fetch(`${apiBaseUrl}/api/admin/payment-reminders`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${runtimeAdminApiSecret}`,
+      connection: "close",
+    },
+  });
+  const body = (await response.json()) as {
+    ok?: boolean;
+    queued?: number;
+    skipped?: number;
+    moduleDisabled?: number;
+    error?: string;
+  };
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.ok, true);
+  return body;
 }
 
 async function makeStaleProcessing(queueId: string, deliveryStarted: boolean) {
@@ -648,6 +680,7 @@ try {
   assert.deepEqual(await queueState(attemptFailure.id), {
     status: "pending",
     attempts: 0,
+    max_attempts: 5,
     delivery_key: (await queueState(attemptFailure.id)).delivery_key,
     delivery_started_at: null,
     current_attempt_id: null,
@@ -1222,33 +1255,166 @@ try {
     },
   });
   assert.equal(skippedReminderResult.skipped, 1);
-  assert.equal((await queueState(skippedReminder.id)).status, "skipped");
+  const skippedBeforeCronRecovery = await queueState(skippedReminder.id);
+  assert.equal(skippedBeforeCronRecovery.status, "skipped");
+  assert.equal(skippedBeforeCronRecovery.attempts, 1);
+  assert.equal(skippedBeforeCronRecovery.max_attempts, 5);
+  assert.ok(skippedBeforeCronRecovery.terminal_attempt_id);
   await client.query(
     `update public.customers set contact_email=$3
      where id=$1 and tenant_id=$2`,
     [FIXTURE.customers.a, tenantA, reminderEmail],
   );
-  const skippedReminderRetry = await retryFailedNotifications({
-    queueIds: [skippedReminder.id],
-    reason: "Runtime recovery after a confirmed pre-provider skip",
-    logger,
+
+  const outcomePendingReminderInvoice = await createReminderInvoice();
+  const outcomePendingReminder = await enqueuePaymentReminder({
+    invoiceId: outcomePendingReminderInvoice.id,
+    invoiceNumber: outcomePendingReminderInvoice.invoiceNumber,
+    dueDate: outcomePendingReminderInvoice.dueDate,
+    recipientEmail: reminderEmail,
   });
-  assert.equal(skippedReminderRetry.requeued, 1);
-  const recoveredReminderResult = await runEmail({
-    workerId: "runtime-payment-reminder-skipped-recovered",
-    queueIds: [skippedReminder.id],
+  let outcomePendingDeliveries = 0;
+  const outcomePendingReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-outcome-pending",
+    queueIds: [outcomePendingReminder.id],
+    deliveryOverride: async () => {
+      outcomePendingDeliveries += 1;
+      throw new Error("provider response lost after delivery started");
+    },
   });
-  assert.equal(recoveredReminderResult.sent, 1);
-  assert.equal((await queueState(skippedReminder.id)).status, "sent");
-  assert.ok(
+  assert.equal(outcomePendingDeliveries, 1);
+  assert.equal(outcomePendingReminderResult.outcomePending, 1);
+  const outcomePendingBeforeCronRecovery = await queueState(
+    outcomePendingReminder.id,
+  );
+  assert.equal(outcomePendingBeforeCronRecovery.status, "outcome_pending");
+  assert.equal(outcomePendingBeforeCronRecovery.attempts, 1);
+  assert.equal(outcomePendingBeforeCronRecovery.max_attempts, 5);
+  assert.ok(outcomePendingBeforeCronRecovery.current_attempt_id);
+  assert.equal(outcomePendingBeforeCronRecovery.terminal_attempt_id, null);
+
+  const failedBeforeCronRecovery = await queueState(failedReminder.id);
+  assert.equal(failedBeforeCronRecovery.attempts, 1);
+  assert.equal(failedBeforeCronRecovery.max_attempts, 1);
+  assert.ok(failedBeforeCronRecovery.terminal_attempt_id);
+
+  const paymentQueueIdsBeforeCron = new Set(
     (
       await client.query(
-        `select last_reminder_sent_at from public.invoices
-         where id=$1 and tenant_id=$2`,
-        [skippedReminderInvoice.id, tenantA],
+        `select id from public.notification_delivery_queue
+         where event_key='payment_reminder'`,
       )
-    ).rows[0].last_reminder_sent_at,
+    ).rows.map((row) => String(row.id)),
   );
+  const cronRecovery = await callPaymentReminderCron();
+  const paymentQueueIdsAfterCron = (
+    await client.query(
+      `select id from public.notification_delivery_queue
+       where event_key='payment_reminder'`,
+    )
+  ).rows.map((row) => String(row.id));
+  for (const queueId of paymentQueueIdsAfterCron) {
+    if (!paymentQueueIdsBeforeCron.has(queueId)) createdQueueIds.push(queueId);
+  }
+  assert.ok((cronRecovery.queued ?? 0) >= 2);
+  assert.ok((cronRecovery.skipped ?? 0) >= 1);
+
+  const failedAfterCronRecovery = await queueState(failedReminder.id);
+  assert.equal(failedAfterCronRecovery.status, "retry");
+  assert.equal(failedAfterCronRecovery.attempts, 1);
+  assert.equal(failedAfterCronRecovery.max_attempts, 6);
+  assert.equal(failedAfterCronRecovery.terminal_attempt_id, null);
+  assert.equal(failedAfterCronRecovery.last_error, null);
+
+  const skippedAfterCronRecovery = await queueState(skippedReminder.id);
+  assert.equal(skippedAfterCronRecovery.status, "retry");
+  assert.equal(skippedAfterCronRecovery.attempts, 1);
+  assert.equal(skippedAfterCronRecovery.max_attempts, 6);
+  assert.equal(skippedAfterCronRecovery.terminal_attempt_id, null);
+  assert.equal(skippedAfterCronRecovery.last_error, null);
+
+  const outcomePendingAfterCronRecovery = await queueState(
+    outcomePendingReminder.id,
+  );
+  assert.equal(outcomePendingAfterCronRecovery.status, "outcome_pending");
+  assert.equal(outcomePendingAfterCronRecovery.attempts, 1);
+  assert.equal(outcomePendingAfterCronRecovery.max_attempts, 5);
+  assert.equal(
+    outcomePendingAfterCronRecovery.current_attempt_id,
+    outcomePendingBeforeCronRecovery.current_attempt_id,
+  );
+  assert.equal(outcomePendingAfterCronRecovery.terminal_attempt_id, null);
+
+  const cycleRows = await client.query(
+    `select id, idempotency_key
+     from public.notification_delivery_queue
+     where idempotency_key=any($1::text[])
+     order by idempotency_key`,
+    [
+      [
+        failedReminder.cycleKey,
+        skippedReminder.cycleKey,
+        outcomePendingReminder.cycleKey,
+      ],
+    ],
+  );
+  assert.equal(cycleRows.rowCount, 3);
+  assert.deepEqual(
+    new Set(cycleRows.rows.map((row) => row.id)),
+    new Set([failedReminder.id, skippedReminder.id, outcomePendingReminder.id]),
+  );
+
+  let outcomePendingRedeliveries = 0;
+  const outcomePendingSecondRun = await runEmail({
+    workerId: "runtime-payment-reminder-outcome-pending-not-retried",
+    queueIds: [outcomePendingReminder.id],
+    deliveryOverride: async () => {
+      outcomePendingRedeliveries += 1;
+      return delivered();
+    },
+  });
+  assert.equal(outcomePendingSecondRun.claimed, 0);
+  assert.equal(outcomePendingRedeliveries, 0);
+  assert.equal(
+    (await queueState(outcomePendingReminder.id)).status,
+    "outcome_pending",
+  );
+
+  const recoveredReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-cron-recovered",
+    queueIds: [failedReminder.id, skippedReminder.id],
+  });
+  assert.equal(recoveredReminderResult.sent, 2);
+  assert.equal((await queueState(failedReminder.id)).status, "sent");
+  assert.equal((await queueState(skippedReminder.id)).status, "sent");
+  const recoveredReminderEvidence = await client.query(
+    `select id, last_reminder_sent_at
+     from public.invoices
+     where tenant_id=$1 and id=any($2::uuid[])
+     order by id`,
+    [tenantA, [failedReminderInvoice.id, skippedReminderInvoice.id]],
+  );
+  assert.equal(recoveredReminderEvidence.rowCount, 2);
+  assert.ok(
+    recoveredReminderEvidence.rows.every(
+      (row) => row.last_reminder_sent_at instanceof Date,
+    ),
+  );
+  const unknownReminderEvidence = await client.query(
+    `select
+       invoice.last_reminder_sent_at,
+       count(audit.id)::int as audit_count
+     from public.invoices invoice
+     left join public.audit_log audit
+       on audit.tenant_id=invoice.tenant_id
+      and audit.resource_id=invoice.id::text
+      and audit.action='payment_reminder_sent'
+     where invoice.id=$1 and invoice.tenant_id=$2
+     group by invoice.last_reminder_sent_at`,
+    [outcomePendingReminderInvoice.id, tenantA],
+  );
+  assert.equal(unknownReminderEvidence.rows[0].last_reminder_sent_at, null);
+  assert.equal(unknownReminderEvidence.rows[0].audit_count, 0);
 
   const templateOverrideId = randomUUID();
   createdTemplateOverrideIds.push(templateOverrideId);
@@ -1510,7 +1676,20 @@ try {
     process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"] = originalTestOutboxPath;
   }
   if (templateOutboxDir) {
-    await rm(templateOutboxDir, { recursive: true, force: true }).catch(() => {});
+    await rm(templateOutboxDir, { recursive: true, force: true }).catch(
+      () => {},
+    );
+  }
+  if (apiServer) {
+    apiServer.closeAllConnections();
+    await new Promise<void>((resolve) => {
+      apiServer!.close(() => resolve());
+    }).catch(() => {});
+  }
+  if (originalAdminApiSecret === undefined) {
+    delete process.env["ADMIN_API_SECRET"];
+  } else {
+    process.env["ADMIN_API_SECRET"] = originalAdminApiSecret;
   }
   await client.end();
   await pool.end();

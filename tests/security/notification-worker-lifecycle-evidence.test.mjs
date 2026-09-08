@@ -26,6 +26,10 @@ const workerRoute = readFileSync(
   "artifacts/api-server/src/routes/notification-worker.ts",
   "utf8",
 );
+const paymentRemindersRoute = readFileSync(
+  "artifacts/api-server/src/routes/payment-reminders.ts",
+  "utf8",
+);
 const emailService = readFileSync("lib/db/src/email-service.ts", "utf8");
 const emailHelper = readFileSync(
   "artifacts/api-server/src/lib/email.ts",
@@ -103,11 +107,39 @@ test("payment reminders recheck source state and record delivery only on durable
     /if \(outcome\.status === "sent"\)[\s\S]*UPDATE invoices[\s\S]*SET last_reminder_sent_at = now\(\)[\s\S]*INSERT INTO audit_log/u,
   );
   assert.match(worker, /"payment_reminder_sent"/u);
-  assert.match(worker, /invoiceTimestampUpdated: invoiceUpdate\.rowCount === 1/u);
+  assert.match(
+    worker,
+    /invoiceTimestampUpdated: invoiceUpdate\.rowCount === 1/u,
+  );
   assert.match(runtime, /runtime-payment-reminder-success/u);
   assert.match(runtime, /runtime-payment-reminder-failed/u);
   assert.match(runtime, /runtime-payment-reminder-skipped-recovery/u);
-  assert.match(runtime, /runtime-payment-reminder-skipped-recovered/u);
+  assert.match(runtime, /callPaymentReminderCron/u);
+  assert.match(runtime, /runtime-payment-reminder-cron-recovered/u);
+  assert.match(runtime, /runtime-payment-reminder-outcome-pending/u);
+  assert.match(
+    runtime,
+    /runtime-payment-reminder-outcome-pending-not-retried/u,
+  );
+  assert.match(runtime, /failedAfterCronRecovery\.max_attempts, 6/u);
+  assert.match(runtime, /skippedAfterCronRecovery\.max_attempts, 6/u);
+  assert.match(runtime, /failedAfterCronRecovery\.terminal_attempt_id, null/u);
+  assert.match(runtime, /skippedAfterCronRecovery\.terminal_attempt_id, null/u);
+  assert.match(runtime, /outcomePendingSecondRun\.claimed, 0/u);
+  assert.match(runtime, /outcomePendingRedeliveries, 0/u);
+  assert.match(
+    paymentRemindersRoute,
+    /targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`/u,
+  );
+  assert.match(paymentRemindersRoute, /terminalAttemptId: null/u);
+  assert.match(
+    paymentRemindersRoute,
+    /maxAttempts: sql<number>`greatest\([\s\S]*notificationDeliveryQueueTable\.maxAttempts[\s\S]*notificationDeliveryQueueTable\.attempts\} \+ 5/u,
+  );
+  assert.match(
+    paymentRemindersRoute,
+    /setWhere: inArray\(notificationDeliveryQueueTable\.status, \[\s*"failed",\s*"skipped",\s*\]\)/u,
+  );
   assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
   assert.match(runtime, /Herstartbestendige tenantinhoud/u);
   assert.match(runtime, /runtime-payment-reminder-cross-tenant/u);
@@ -115,7 +147,9 @@ test("payment reminders recheck source state and record delivery only on durable
   const updateIndex = worker.indexOf("UPDATE invoices");
   const auditIndex = worker.indexOf("INSERT INTO audit_log", updateIndex);
   const commitIndex = worker.indexOf('client.query("COMMIT")', auditIndex);
-  assert.ok(updateIndex >= 0 && updateIndex < auditIndex && auditIndex < commitIndex);
+  assert.ok(
+    updateIndex >= 0 && updateIndex < auditIndex && auditIndex < commitIndex,
+  );
 });
 
 test("uncertain provider effects never become an automatic blind redelivery", () => {
@@ -143,10 +177,7 @@ test("dispatch counters follow eventual durable e-mail outcomes", () => {
     /SELECT id FROM notification_dispatches[\s\S]*FOR UPDATE/u,
   );
   assert.match(worker, /count\(\*\) FILTER \(WHERE status = 'sent'\)/u);
-  assert.match(
-    worker,
-    /status IN \('failed', 'skipped', 'partial'\)/u,
-  );
+  assert.match(worker, /status IN \('failed', 'skipped', 'partial'\)/u);
   assert.match(worker, /dispatch\.tenant_id = \$2/u);
   assert.match(runtime, /runtime-dispatch-eventual-success/u);
   assert.match(runtime, /runtime-dispatch-eventual-failure/u);
