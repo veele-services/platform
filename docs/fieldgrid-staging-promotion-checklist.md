@@ -23,15 +23,32 @@ Runtime evidence blijft verplicht voor releases die tenantgrenzen, storage/downl
 
 ```bash
 pnpm fieldgrid:mvp-sprint2-runtime-proof:strict
-pnpm fieldgrid:sprint15-staging-smoke:run-read-only
+pnpm fieldgrid:sprint15-staging-smoke:run-read-only --expected-staging "$EXPECTED_STAGING_SHA"
 pnpm fieldgrid:sprint7-migration-smoke --run --target all
+pnpm fieldgrid:staging-promotion-gate:strict --expected-main "$APPROVED_MAIN_SHA" --expected-staging "$EXPECTED_STAGING_SHA"
 ```
+
+Na de fast-forward voert de deploy eerst de forward-migraties uit met
+step-scoped `FIELDGRID_MIGRATION_DATABASE_URL`. Daarna, maar nog vóór de aparte
+runtime-roleprovisioning en activatie, voert de deploy de bestaande
+W00-eigendomsgate uit met diezelfde migratie-admincredential en bindt het
+rapport aan `$GITHUB_SHA` en `.fieldgrid-release-sha`.
 
 ## Altijd geldig
 
 - [ ] Geen drop, reset of rebuild van stagingdata.
 - [ ] `main` blijft de bron van waarheid.
 - [ ] Staging-promotie gebeurt pas na groene relevante checks.
+- [ ] De muterende Phase2E-promoter heeft vóór iedere push zelf de strikte exact-SHA evidencegate uitgevoerd.
+- [ ] De GitHub-secret `FIELDGRID_RUNTIME_DATABASE_URL` wordt alleen als runtime `DATABASE_URL` gebruikt; de bestaande GitHub-secret `DATABASE_URL` wordt alleen step-scoped als `FIELDGRID_MIGRATION_DATABASE_URL` gebruikt. Er bestaat geen vereiste stored secret `FIELDGRID_MIGRATION_DATABASE_URL` en er is geen adminfallback voor runtime.
+- [ ] Beide databasecredentials zijn queryloos, structureel verschillend en wijzen naar project `olyfmekyqozxrbrwwszu`; de migratiecredential komt niet in de gedeelde service-`.env`.
+- [ ] `FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64` bevat exact de gepinde Supabase Root 2021 CA; iedere live databaseverbinding gebruikt het geverifieerde private bestand en `verify-full`, nooit `PGSSLROOTCERT=system`.
+- [ ] De bestaande W00 migration-admin-eigendomsgate draait na alle databasebackfills maar vóór runtime-roleprovisioning/-verificatie en activatie, met tenant A/B hostvariabelen en beschermde tenant-ID-secrets, en is exact aan de nieuwe release-SHA gebonden.
+- [ ] De runtime-principal heeft nul tabeleigendom, is geen superuser/`BYPASSRLS`/admin en kan zulke rollen niet besturen; de eerste redeploy wacht op de runtime-rolepatch en de secrets `FIELDGRID_RUNTIME_DATABASE_URL` plus `FIELDGRID_RUNTIME_DATABASE_PASSWORD`.
+- [ ] Na de admin-W00-gate voert de deploy idempotent `fieldgrid-w00-runtime-principal.mjs --apply` uit met de step-scoped migration URL, de runtimepasswordsecret, de runtime-URL, vaste confirmatie en exacte release-SHA; daarna moet `fieldgrid-w00-runtime-principal-gate.mjs --strict` groen zijn vóór activatie.
+- [ ] De kandidaat-`.env` blijft release-lokaal tot alle pre-activatiegates groen zijn; publicatie naar `shared/.env` en de `current`-wissel gebeuren als één herstelbare activatiestap.
+- [ ] Een mislukte health gate herstelt zowel de vorige `current`-symlink als de bijbehorende vorige `shared/.env`; Phase2E accepteert een afwijkende actieve marker alleen met exact failed-run/job/artifact rollbackbewijs.
+- [ ] De staging-smoke is vers, bevat alle bekende checks, heeft alle `minimumGreen` checks op `ok` en rapporteert de `.fieldgrid-release-sha` die exact gelijk is aan de verwachte staging-SHA.
 - [ ] Elke PR noemt de geraakte data-classificatie-items.
 - [ ] Elke PR noemt de geraakte test-id's.
 - [ ] Elke runtime-, schema- of migratie-PR noemt een rollbackpad of veilige fallback.

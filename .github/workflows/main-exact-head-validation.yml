@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -63,7 +63,7 @@ jobs:
             command: pnpm run typecheck
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
@@ -74,12 +74,12 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -104,7 +104,7 @@ jobs:
       PORT: "3000"
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
@@ -114,11 +114,11 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
@@ -168,11 +168,11 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -183,7 +183,7 @@ jobs:
 
       - name: Upload Finding 8 evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: exact-head-dependency-security
           path: artifacts/dependency-security/**
@@ -203,6 +203,8 @@ jobs:
             command: pnpm fieldgrid:test:db-integration-tenant-ab
           - lane: rls-security
             command: pnpm fieldgrid:test:rls-security
+          - lane: w00-db-acl-hardening
+            command: pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && node scripts/fieldgrid-w00-db-acl-hardening-runtime.mjs
           - lane: api-runtime
             command: pnpm fieldgrid:test:api-runtime
           - lane: phase-b-previous-release-database-compatibility
@@ -232,7 +234,7 @@ jobs:
       PGSSLMODE: disable
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -243,11 +245,11 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -263,7 +265,7 @@ jobs:
 
       - name: Upload Runtime Safety artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: exact-head-${{ matrix.lane }}
           path: |
@@ -277,7 +279,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
@@ -289,7 +291,7 @@ jobs:
 
       - run: corepack enable
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -299,7 +301,7 @@ jobs:
 
       - name: Upload full runtime entrypoint inventory
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: exact-head-runtime-entrypoint-inventory
           path: artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json
@@ -311,7 +313,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -322,11 +324,11 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
@@ -346,7 +348,7 @@ jobs:
 
       - name: Upload baseline differential artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: exact-head-test-baseline-differential
           path: outputs/fieldgrid-test-baseline-differential/**
@@ -383,7 +385,7 @@ jobs:
       SESSION_SECRET: fieldgrid-e2e-local-session-secret-minimum-32-bytes
     steps:
       - name: Checkout recorded run head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ env.FIELDGRID_VALIDATION_SHA }}
@@ -393,11 +395,11 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ env.FIELDGRID_VALIDATION_SHA }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -472,7 +474,7 @@ jobs:
 
       - name: Download exact-head database evidence
         if: always()
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: exact-head-*
           path: artifacts/runtime-safety-harness
@@ -505,7 +507,7 @@ jobs:
 
       - name: Upload Fieldgrid Playwright artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           # Keep this outside `exact-head-*`: the database evidence download
           # above runs again during failed-job reruns and must not ingest a

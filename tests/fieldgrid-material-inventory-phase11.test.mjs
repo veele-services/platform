@@ -16,7 +16,9 @@ test("phase 11 fixtures cover demo-a, demo-b and veele as ordinary tenants", () 
   const fixtures = buildMaterialInventoryPhase11Fixtures();
   const validation = validateMaterialInventoryPhase11Fixtures(fixtures);
   const tenants = fixtures.tenants.map((tenant) => tenant.slug);
-  const modules = fixtures.moduleEntitlements.map((entitlement) => entitlement.moduleKey);
+  const modules = fixtures.moduleEntitlements.map(
+    (entitlement) => entitlement.moduleKey,
+  );
 
   assert.equal(validation.ok, true, validation.errors.join("\n"));
   assert.deepEqual(tenants, ["demo-a", "demo-b", "veele"]);
@@ -43,13 +45,26 @@ test("phase 11 hardening plan includes migration, storage, QR, billing and audit
 });
 
 test("phase 11 workflow is manual and runs the safe contract checks", () => {
-  const workflow = read(".github/workflows/fieldgrid-material-inventory-phase11.yml");
+  const workflow = read(
+    ".github/workflows/fieldgrid-material-inventory-phase11.yml",
+  );
 
   assert.match(workflow, /workflow_dispatch/);
   assert.match(workflow, /fieldgrid:material-inventory-phase11:check/);
   assert.match(workflow, /pnpm test/);
   assert.match(workflow, /pnpm run typecheck/);
-  assert.match(workflow, /FIELDGRID_MIGRATION_DATABASE_URL/);
+  assert.match(workflow, /scripts\/fieldgrid-setup-postgresql17\.sh/u);
+  assert.match(
+    workflow,
+    /scripts\/fieldgrid-local-migration-smoke\.mjs --run/u,
+  );
+  assert.doesNotMatch(workflow, /environment:\s+staging/u);
+  assert.doesNotMatch(workflow, /\$\{\{\s*secrets\./u);
+  assert.doesNotMatch(
+    workflow,
+    /FIELDGRID_MIGRATION_SMOKE_(?:EMPTY|STAGING_COPY)_DATABASE_URL/u,
+  );
+  assert.doesNotMatch(workflow, /pnpm run db:migrate/);
 });
 
 test("phase 11 documentation names the minimum staging gates", () => {

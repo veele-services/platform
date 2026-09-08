@@ -8,8 +8,17 @@ on:
         required: true
         type: string
       expected_staging_sha:
-        description: "Exact current staging SHA and rollback target"
+        description: "Exact current staging Git ref SHA"
         required: true
+        type: string
+      expected_active_staging_release_sha:
+        description: "Exact active staging release marker SHA (may differ only after proven rollback)"
+        required: true
+        type: string
+      rollback_deploy_run_id:
+        description: "Required failed deploy run ID only when active release differs from the staging Git ref"
+        required: false
+        default: ""
         type: string
       confirmation:
         description: "Type phase2e-staging-only"
@@ -17,6 +26,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -26,7 +36,6 @@ concurrency:
 jobs:
   preflight:
     name: Backup, restore and migration rehearsal
-    if: github.ref_name == 'main'
     runs-on: [self-hosted, linux, x64, veele]
     timeout-minutes: 60
     environment: staging
@@ -36,7 +45,13 @@ jobs:
       PHASE2E_CONFIRM: ${{ inputs.confirmation }}
       EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      EXPECTED_ACTIVE_STAGING_RELEASE_SHA: ${{ inputs.expected_active_staging_release_sha }}
+      ROLLBACK_DEPLOY_RUN_ID: ${{ inputs.rollback_deploy_run_id }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
       STAGING_BASE_DIR: /var/www/veele/staging
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
 
       APP_URL: ${{ vars.APP_URL }}
       BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
@@ -59,12 +74,67 @@ jobs:
       FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
 
     steps:
+      - name: Reject non-main preflight dispatch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+
       - name: Checkout exact main candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.expected_main_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Verify immutable main ref before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          checkout="$(git rev-parse HEAD)"
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$checkout" = "$GITHUB_SHA"
+          test "$checkout" = "$EXPECTED_MAIN_SHA"
+          remote="$(
+            node --input-type=module -e '
+              if (!/^[a-f0-9]{40}$/u.test(process.env.EXPECTED_MAIN_SHA ?? "")) {
+                throw new Error("Expected main SHA is invalid");
+              }
+              const response = await fetch(
+                `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`,
+                {
+                  headers: {
+                    Accept: "application/vnd.github+json",
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    "X-GitHub-Api-Version": "2022-11-28",
+                  },
+                },
+              );
+              if (!response.ok) {
+                throw new Error(`main ref lookup failed with HTTP ${response.status}`);
+              }
+              const sha = (await response.json()).object?.sha ?? "";
+              if (!/^[a-f0-9]{40}$/u.test(sha)) {
+                throw new Error("main ref lookup returned an invalid SHA");
+              }
+              process.stdout.write(sha);
+            '
+          )"
+          test "$remote" = "$EXPECTED_MAIN_SHA"
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
 
       - name: Set up pinned unprivileged PostgreSQL 17
         run: scripts/fieldgrid-setup-postgresql17.sh
@@ -77,6 +147,7 @@ jobs:
           postgres --version
           initdb --version
           pg_restore --version
+          unzip -v >/dev/null
           systemctl --version
 
       - name: Install locked dependencies
@@ -91,7 +162,8 @@ jobs:
       - name: Prove backup, isolated restore, migrations, secrets, routes and rollback target
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -105,15 +177,56 @@ jobs:
           WEBSITE_FORM_HASH_SECRET: ${{ secrets.WEBSITE_FORM_HASH_SECRET }}
         run: |
           set -euo pipefail
-          pnpm fieldgrid:phase2e-staging-preflight --run \
-            --expected-main "$EXPECTED_MAIN_SHA" \
+          preflight_args=(
+            --run
+            --expected-main "$EXPECTED_MAIN_SHA"
             --expected-staging "$EXPECTED_STAGING_SHA"
+            --expected-active-staging-release "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
+          )
+          if [ -n "$ROLLBACK_DEPLOY_RUN_ID" ]; then
+            preflight_args+=(--rollback-deploy-run-id "$ROLLBACK_DEPLOY_RUN_ID")
+          fi
+          pnpm fieldgrid:phase2e-staging-preflight "${preflight_args[@]}"
+
+      - name: Capture authenticated exact-SHA live staging smoke
+        env:
+          FIELDGRID_STAGING_SMOKE_BEARER: ${{ secrets.ADMIN_API_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$FIELDGRID_STAGING_SMOKE_BEARER"
+          pnpm fieldgrid:sprint15-staging-smoke:run-read-only \
+            --expected-staging "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
+
+      - name: Assemble bounded promotion evidence tree
+        if: always()
+        run: |
+          set -euo pipefail
+          bundle_root="$RUNNER_TEMP/fieldgrid-phase2e-promotion-evidence-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          test ! -e "$bundle_root"
+          install -d -m 0700 "$bundle_root"
+          for evidence_directory in \
+            artifacts/phase2e-staging-preflight/ \
+            artifacts/staging-smoke/ \
+            artifacts/migration-smoke/
+          do
+            test -d "$evidence_directory"
+            unsafe_entry="$(find "$evidence_directory" \
+              \( -type l -o -type f ! -name '*.json' -o ! -type d ! -type f \) \
+              -print -quit)"
+            test -z "$unsafe_entry"
+            while IFS= read -r -d '' evidence_file; do
+              install -D -m 0600 "$evidence_file" "$bundle_root/$evidence_file"
+            done < <(find "$evidence_directory" -type f -name '*.json' -print0)
+          done
+          test -s "$bundle_root/artifacts/phase2e-staging-preflight/phase2e-staging-preflight.json"
+          test -n "$(find "$bundle_root/artifacts/staging-smoke" -type f -name '*.json' -print -quit)"
+          test -n "$(find "$bundle_root/artifacts/migration-smoke" -type f -name '*.json' -print -quit)"
 
       - name: Upload secret-free preflight evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: phase2e-staging-preflight-${{ github.run_id }}-${{ inputs.expected_main_sha }}
-          path: artifacts/phase2e-staging-preflight/
-          if-no-files-found: warn
+          name: phase2e-staging-preflight-${{ github.run_id }}-${{ github.sha }}
+          path: ${{ runner.temp }}/fieldgrid-phase2e-promotion-evidence-${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: error
           retention-days: 14

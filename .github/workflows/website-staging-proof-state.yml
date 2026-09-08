@@ -1,0 +1,281 @@
+name: Website Staging Proof State
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Proof-state action"
+        required: true
+        type: choice
+        options:
+          - prepare-managed
+          - complete-custom
+          - verify
+          - rollback-custom
+      expected_sha:
+        description: "Exact main SHA for prepare, exact staging SHA otherwise"
+        required: true
+        type: string
+      change_reference:
+        description: "Reviewed change or incident reference"
+        required: true
+        type: string
+      confirmation:
+        description: "Type the operation-specific website-staging confirmation"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  proof-state:
+    name: Exact-SHA managed/custom proof state
+    if: >-
+      (inputs.operation == 'prepare-managed' &&
+       github.ref_name == 'main' &&
+       inputs.confirmation == 'website-staging-prepare-managed') ||
+      (inputs.operation == 'complete-custom' &&
+       github.ref_name == 'staging' &&
+       inputs.confirmation == 'website-staging-complete-custom') ||
+      (inputs.operation == 'verify' &&
+       github.ref_name == 'staging' &&
+       inputs.confirmation == 'website-staging-read-only') ||
+      (inputs.operation == 'rollback-custom' &&
+       github.ref_name == 'staging' &&
+       inputs.confirmation == 'website-staging-rollback-custom')
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 40
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      PROOF_OPERATION: ${{ inputs.operation }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      CHANGE_REFERENCE: ${{ inputs.change_reference }}
+      WEBSITE_MANAGED_ACCEPTANCE_URL: ${{ vars.WEBSITE_MANAGED_ACCEPTANCE_URL }}
+      WEBSITE_CUSTOM_ACCEPTANCE_URL: ${{ vars.WEBSITE_CUSTOM_ACCEPTANCE_URL }}
+      WEBSITE_PUBLIC_HEALTH_URL: ${{ vars.WEBSITE_PUBLIC_HEALTH_URL }}
+      MARKETING_PUBLIC_HEALTH_URL: ${{ vars.MARKETING_PUBLIC_HEALTH_URL }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+
+    steps:
+      - name: Checkout exact release candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case "$PROOF_OPERATION" in
+            prepare-managed) expected_branch=main ;;
+            complete-custom|verify|rollback-custom) expected_branch=staging ;;
+            *) echo "::error::Unknown proof-state operation"; exit 1 ;;
+          esac
+          export EXPECTED_BRANCH="$expected_branch"
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --input-type=module -e '
+            if (!/^[a-f0-9]{40}$/u.test(process.env.EXPECTED_SHA ?? "")) {
+              throw new Error("Expected SHA is invalid");
+            }
+            const branch = process.env.EXPECTED_BRANCH;
+            if (branch !== "main" && branch !== "staging") {
+              throw new Error("Expected branch is invalid");
+            }
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) {
+              throw new Error(`Ref lookup failed with HTTP ${response.status}`);
+            }
+            const payload = await response.json();
+            if (payload.object?.sha !== process.env.EXPECTED_SHA) {
+              throw new Error("Expected SHA is not the exact remote branch head");
+            }
+          '
+
+      - name: Install locked dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Install exact pinned database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --check \
+            --file "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Validate proof-state contract
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-website-staging-proof-state.mts --check
+          pnpm --filter @workspace/db exec tsx --test \
+            ../../tests/domain/fieldgrid-website-custom-health-refresh.test.ts \
+            ../../tests/domain/fieldgrid-website-staging-proof-state.test.ts
+          node --test tests/security/website-staging-proof-state-source.test.mjs
+
+      - name: Reverify source head immediately before database access
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case "$PROOF_OPERATION" in
+            prepare-managed) expected_branch=main ;;
+            complete-custom|verify|rollback-custom) expected_branch=staging ;;
+            *) echo "::error::Unknown proof-state operation"; exit 1 ;;
+          esac
+          export EXPECTED_BRANCH="$expected_branch"
+          node --input-type=module -e '
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${process.env.EXPECTED_BRANCH}`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) {
+              throw new Error(`Ref recheck failed with HTTP ${response.status}`);
+            }
+            const payload = await response.json();
+            if (payload.object?.sha !== process.env.EXPECTED_SHA) {
+              throw new Error("Remote branch advanced before database access");
+            }
+          '
+
+      - name: Prepare managed proof with migration-admin connection
+        if: inputs.operation == 'prepare-managed'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-website-staging-proof-state.mts \
+            --prepare-managed \
+            --expected-sha "$EXPECTED_SHA" \
+            --change-reference "$CHANGE_REFERENCE"
+
+      - name: Complete, verify or rollback with runtime connection
+        if: inputs.operation != 'prepare-managed'
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
+          FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          case "$PROOF_OPERATION" in
+            complete-custom) mode=--complete-custom ;;
+            verify) mode=--verify ;;
+            rollback-custom) mode=--rollback-custom ;;
+            *) echo "::error::Unknown proof-state operation"; exit 1 ;;
+          esac
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-website-staging-proof-state.mts \
+            "$mode" \
+            --expected-sha "$EXPECTED_SHA" \
+            --change-reference "$CHANGE_REFERENCE"
+
+      - name: Prove durable custom health after six-minute soak
+        if: inputs.operation == 'complete-custom'
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
+          FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION: website-staging-read-only
+        run: |
+          set -euo pipefail
+          sleep 370
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-website-staging-proof-state.mts \
+            --verify \
+            --expected-sha "$EXPECTED_SHA" \
+            --change-reference "$CHANGE_REFERENCE"
+          pnpm fieldgrid:website-staging-acceptance --run \
+            --expected-staging "$EXPECTED_SHA" \
+            --website-health "$WEBSITE_PUBLIC_HEALTH_URL" \
+            --marketing-health "$MARKETING_PUBLIC_HEALTH_URL" \
+            --managed-url "$WEBSITE_MANAGED_ACCEPTANCE_URL" \
+            --custom-url "$WEBSITE_CUSTOM_ACCEPTANCE_URL"
+
+      - name: Run full read-only acceptance
+        if: inputs.operation == 'verify'
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:website-staging-acceptance --run \
+            --expected-staging "$EXPECTED_SHA" \
+            --website-health "$WEBSITE_PUBLIC_HEALTH_URL" \
+            --marketing-health "$MARKETING_PUBLIC_HEALTH_URL" \
+            --managed-url "$WEBSITE_MANAGED_ACCEPTANCE_URL" \
+            --custom-url "$WEBSITE_CUSTOM_ACCEPTANCE_URL"
+
+      - name: Upload short-lived principal fixtures
+        if: always() && inputs.operation == 'prepare-managed'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: w00-principal-fixtures-${{ github.run_id }}
+          path: artifacts/website-staging-proof-state/w00-principal-fixtures.json
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Upload secret-free proof evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: website-staging-proof-state-${{ github.run_id }}
+          path: |
+            artifacts/website-staging-proof-state/${{ inputs.operation }}.json
+            artifacts/website-staging-proof-state/verify.json
+            artifacts/website-staging-acceptance/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove temporary database root certificate
+        if: always()
+        run: |
+          set -euo pipefail
+          certificate_path="${FIELDGRID_DATABASE_SSL_ROOT_CERT:-}"
+          if [ -z "$certificate_path" ]; then
+            exit 0
+          fi
+          expected_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          test "$certificate_path" = "$expected_path"
+          rm -f -- "$certificate_path"

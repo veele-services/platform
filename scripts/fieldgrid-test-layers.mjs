@@ -48,6 +48,7 @@ export const fieldgridTestLayers = [
     ciCommand: "pnpm fieldgrid:test:security-recursive",
     requiredTestFiles: [
       "tests/security/assignment-personnel-tenant-guard-source.test.mjs",
+      "tests/security/fieldgrid-w00-db-acl-hardening-source.test.mjs",
     ],
     requiredSignals: ["FG-ASSIGNMENT-PERSONNEL-GUARD", "FG-RLS-ACTOR-MODEL"],
   },
@@ -88,13 +89,29 @@ export const fieldgridTestLayers = [
     label: "Authenticated RLS",
     owner: "Platform security",
     purpose:
-      "Authenticated actors gebruiken SET LOCAL ROLE, row_security en JWT GUCs voor tenantgebonden RLS bewijs.",
+      "Authenticated actors gebruiken SET LOCAL ROLE, row_security en JWT GUCs voor tenantgebonden RLS bewijs; W00 sluit browserrollen en transitive SET-capabilities op server-only tenantconfiguratie.",
     ciCommand:
       "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:rls",
     requiredTestFiles: [
       "tests/security/assignment-personnel-tenant-guard-source.test.mjs",
+      "scripts/fieldgrid-runtime-safety-rls-harness.mjs",
+      "scripts/fieldgrid-w00-db-acl-closure.mjs",
     ],
     requiredSignals: ["FG-AUTHENTICATED-RLS", "FG-MULTI-TENANT-CONTEXT"],
+  },
+  {
+    id: "w00-db-acl-hardening",
+    label: "W00 DB ACL hardening",
+    owner: "Platform security",
+    purpose:
+      "Een verse PostgreSQL 17 database bewijst dat W00 ACL-drift sluit, browserrollen default-deny blijven en owner-/rolpaden fail-closed zijn.",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && node scripts/fieldgrid-w00-db-acl-hardening-runtime.mjs",
+    requiredTestFiles: [
+      "scripts/fieldgrid-w00-db-acl-hardening-runtime.mjs",
+      "tests/security/fieldgrid-w00-db-acl-hardening-source.test.mjs",
+    ],
+    requiredSignals: ["FG-W00-DB-ACL-HARDENING"],
   },
   {
     id: "phase-b-previous-release-database-compatibility",
@@ -271,6 +288,7 @@ export async function buildFieldgridTestLayersPlan() {
       "postgres17-migration-smoke",
       "db-integration-tenant-ab",
       "rls-security",
+      "w00-db-acl-hardening",
       "phase-b-previous-release-database-compatibility",
       "api-runtime",
     ],

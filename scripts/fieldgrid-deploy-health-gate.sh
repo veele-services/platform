@@ -12,6 +12,8 @@ Options:
   --previous-release DIR       Previous current symlink target for rollback.
   --rollback-on-failure        Restore previous symlink, restart services, reload Caddy and verify rollback health.
   --restart-before-check       Restart services and reload Caddy before the new-release health check.
+  --shared-env PATH            Exact shared runtime env paired with --rollback-env.
+  --rollback-env PATH          Pre-activation env copy retained by atomic activation.
   --evidence-file PATH         Write structured JSON evidence.
   --help                       Show this help.
 
@@ -23,6 +25,9 @@ Configuration:
   FIELDGRID_DEPLOY_HEALTH_ATTEMPTS   Retry attempts per endpoint/service/port. Default: 12.
   FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS  Sleep between attempts. Default: 5.
   FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS Curl per-request timeout. Default: 5.
+
+The staging backoffice loopback probe derives its Host header only from the
+exact canonical APP_URL=https://staging.fieldgrid.nl origin.
 
 Endpoint modes:
   exact-200     Only HTTP 200 is healthy.
@@ -41,6 +46,9 @@ EVIDENCE_FILE=""
 EVIDENCE_GROUP="${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}"
 CHECK_EXPECTED_SHA="1"
 RESTART_BEFORE_CHECK="0"
+SHARED_ENV=""
+ROLLBACK_ENV=""
+ENVIRONMENT_GROUP="${FIELDGRID_DEPLOY_ENV_GROUP:-${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}}"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -51,6 +59,8 @@ while [ "$#" -gt 0 ]; do
     --previous-release) PREVIOUS_RELEASE="${2:-}"; shift 2 ;;
     --rollback-on-failure) ROLLBACK_ON_FAILURE="1"; shift ;;
     --restart-before-check) RESTART_BEFORE_CHECK="1"; shift ;;
+    --shared-env) SHARED_ENV="${2:-}"; shift 2 ;;
+    --rollback-env) ROLLBACK_ENV="${2:-}"; shift 2 ;;
     --evidence-file) EVIDENCE_FILE="${2:-}"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -63,6 +73,7 @@ SYSTEMCTL_READ_SUDO="${SYSTEMCTL_READ_SUDO:-}"
 CURL_BIN="${CURL_BIN:-curl}"
 SS_BIN="${SS_BIN:-ss}"
 SLEEP_BIN="${SLEEP_BIN:-sleep}"
+ROLLBACK_LN_BIN="${ROLLBACK_LN_BIN:-ln}"
 ATTEMPTS="${FIELDGRID_DEPLOY_HEALTH_ATTEMPTS:-12}"
 RETRY_SECONDS="${FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS:-5}"
 CURL_MAX_TIME="${FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS:-5}"
@@ -75,6 +86,17 @@ json_escape() {
 
 sanitize_url() {
   printf '%s' "$1" | sed -E 's#(https?://)([^/@]+@)?([^/?#]+).*#\1\3#'
+}
+
+canonical_platform_probe_host() {
+  case "${APP_URL:-}" in
+    https://staging.fieldgrid.nl|https://staging.fieldgrid.nl/)
+      printf '%s' "staging.fieldgrid.nl"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 record_check() {
@@ -114,6 +136,7 @@ write_evidence() {
   {
     cat <<JSON
 {
+  "version": "fieldgrid-deploy-health-gate-v2",
   "tool": "fieldgrid-deploy-health-gate",
   "environment": "$(json_escape "$ENVIRONMENT")",
   "status": "$(json_escape "$status")",
@@ -379,7 +402,18 @@ check_ports() {
 }
 
 http_status() {
-  "$CURL_BIN" -sS -o /dev/null -w '%{http_code}' --max-time "$CURL_MAX_TIME" "$1"
+  local url="$1"
+  local host_header="${2:-}"
+  if [ -n "$host_header" ]; then
+    "$CURL_BIN" -sS -o /dev/null -w '%{http_code}' \
+      --max-time "$CURL_MAX_TIME" \
+      --header "Host: $host_header" \
+      --url "$url"
+  else
+    "$CURL_BIN" -sS -o /dev/null -w '%{http_code}' \
+      --max-time "$CURL_MAX_TIME" \
+      --url "$url"
+  fi
 }
 
 endpoint_is_healthy() {
@@ -388,10 +422,20 @@ endpoint_is_healthy() {
   local url
   local mode
   local status
+  local host_header=""
+  local expected_local_url
   name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
   url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
   mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
-  status="$(http_status "$url" 2>/dev/null || printf '000')"
+  if [ "$name" = "local-backoffice" ]; then
+    expected_local_url="http://127.0.0.1:${BACKOFFICE_PORT:-${PORT:-}}/admin/login"
+    if [ -z "${BACKOFFICE_PORT:-${PORT:-}}" ] || [ "$url" != "$expected_local_url" ]; then
+      record_check "endpoint:$name" "fail" "local backoffice probe URL is not canonical"
+      return 1
+    fi
+    host_header="$PLATFORM_PROBE_HOST"
+  fi
+  status="$(http_status "$url" "$host_header" 2>/dev/null || printf '000')"
 
   if [ "$mode" = "exact-200" ] && [ "$status" = "200" ]; then
     record_check "endpoint:$name" "pass" "HTTP 200 $(sanitize_url "$url")"
@@ -551,6 +595,100 @@ restart_services_and_reload_caddy() {
   return "$failed"
 }
 
+validate_rollback_environment_paths() {
+  if { [ -n "$SHARED_ENV" ] && [ -z "$ROLLBACK_ENV" ]; } || \
+     { [ -z "$SHARED_ENV" ] && [ -n "$ROLLBACK_ENV" ]; }; then
+    return 1
+  fi
+  if [ -z "$SHARED_ENV" ]; then
+    return 0
+  fi
+  [ "$SHARED_ENV" = "$BASE_DIR/shared/.env" ] || return 1
+  [ "$ROLLBACK_ENV" = "$BASE_DIR/shared/.env.rollback-$EXPECTED_SHA" ] || return 1
+  if [ -e "$SHARED_ENV" ] && { [ ! -f "$SHARED_ENV" ] || [ -L "$SHARED_ENV" ]; }; then
+    return 1
+  fi
+  if [ -f "$ROLLBACK_ENV" ] && [ ! -L "$ROLLBACK_ENV" ] && \
+     [ ! -e "$ROLLBACK_ENV.absent" ]; then
+    return 0
+  fi
+  if [ -f "$ROLLBACK_ENV.absent" ] && [ ! -L "$ROLLBACK_ENV.absent" ] && \
+     [ ! -e "$ROLLBACK_ENV" ]; then
+    return 0
+  fi
+  return 1
+}
+
+discard_rollback_environment() {
+  if [ -z "$ROLLBACK_ENV" ]; then
+    return 0
+  fi
+  rm -f "$ROLLBACK_ENV" "$ROLLBACK_ENV.absent"
+}
+
+restore_rollback_environment() {
+  local candidate_copy
+  local restore_temp
+  if [ -z "$ROLLBACK_ENV" ]; then
+    return 0
+  fi
+  validate_rollback_environment_paths || return 1
+  candidate_copy="$BASE_DIR/shared/.env.failed-candidate.$$"
+  restore_temp="$BASE_DIR/shared/.env.rollback-restore.$$"
+  rm -f "$candidate_copy" "$restore_temp"
+
+  if [ -f "$SHARED_ENV" ]; then
+    cp -p "$SHARED_ENV" "$candidate_copy" || return 1
+    chmod 600 "$candidate_copy" || return 1
+  fi
+
+  if [ -f "$ROLLBACK_ENV" ]; then
+    cp "$ROLLBACK_ENV" "$restore_temp" || {
+      rm -f "$candidate_copy" "$restore_temp"
+      return 1
+    }
+    chmod 640 "$restore_temp" || {
+      rm -f "$candidate_copy" "$restore_temp"
+      return 1
+    }
+    if [ -n "$ENVIRONMENT_GROUP" ]; then
+      chgrp "$ENVIRONMENT_GROUP" "$restore_temp" || {
+        rm -f "$candidate_copy" "$restore_temp"
+        return 1
+      }
+    fi
+    mv -f "$restore_temp" "$SHARED_ENV" || {
+      rm -f "$candidate_copy" "$restore_temp"
+      return 1
+    }
+  else
+    rm -f "$SHARED_ENV" || {
+      rm -f "$candidate_copy"
+      return 1
+    }
+  fi
+
+  ROLLBACK_CANDIDATE_ENV_COPY="$candidate_copy"
+  return 0
+}
+
+restore_candidate_environment_after_failed_rollback() {
+  if [ -n "${ROLLBACK_CANDIDATE_ENV_COPY:-}" ] && \
+     [ -f "$ROLLBACK_CANDIDATE_ENV_COPY" ]; then
+    chmod 640 "$ROLLBACK_CANDIDATE_ENV_COPY" || return 1
+    if [ -n "$ENVIRONMENT_GROUP" ]; then
+      chgrp "$ENVIRONMENT_GROUP" "$ROLLBACK_CANDIDATE_ENV_COPY" || return 1
+    fi
+    mv -f "$ROLLBACK_CANDIDATE_ENV_COPY" "$SHARED_ENV" || return 1
+    ROLLBACK_CANDIDATE_ENV_COPY=""
+    chmod 640 "$SHARED_ENV" || return 1
+    if [ -n "$ENVIRONMENT_GROUP" ]; then
+      chgrp "$ENVIRONMENT_GROUP" "$SHARED_ENV" || return 1
+    fi
+  fi
+  return 0
+}
+
 rollback() {
   local current_before_rollback
   local temp_link
@@ -592,20 +730,41 @@ rollback() {
     return 1
   fi
 
+  if ! restore_rollback_environment; then
+    record_check "rollback:environment" "fail" "failed to restore previous runtime environment"
+    write_evidence "fail" "rollback runtime environment restore failed" "failed"
+    return 1
+  fi
+  record_check "rollback:environment" "pass" "previous runtime environment restored"
+
   temp_link="$BASE_DIR/.current.rollback.$$"
   rm -f "$temp_link"
-  if ! ln -s "$PREVIOUS_RELEASE" "$temp_link"; then
+  if ! "$ROLLBACK_LN_BIN" -s "$PREVIOUS_RELEASE" "$temp_link"; then
     record_check "rollback:symlink" "fail" "failed to create temporary rollback symlink"
+    if ! restore_candidate_environment_after_failed_rollback; then
+      record_check "rollback:environment-recovery" "fail" "failed to restore candidate runtime environment after symlink failure"
+      write_evidence "fail" "rollback symlink creation and candidate environment recovery failed" "failed"
+      return 1
+    fi
+    record_check "rollback:environment-recovery" "pass" "candidate runtime environment restored after symlink failure"
     write_evidence "fail" "rollback symlink creation failed" "failed"
     return 1
   fi
   if ! mv -Tf "$temp_link" "$BASE_DIR/current"; then
     rm -f "$temp_link"
     record_check "rollback:symlink" "fail" "failed to atomically restore previous release"
+    if ! restore_candidate_environment_after_failed_rollback; then
+      record_check "rollback:environment-recovery" "fail" "failed to restore candidate runtime environment after symlink replacement failure"
+      write_evidence "fail" "rollback symlink replacement and candidate environment recovery failed" "failed"
+      return 1
+    fi
+    record_check "rollback:environment-recovery" "pass" "candidate runtime environment restored after symlink replacement failure"
     write_evidence "fail" "rollback symlink replacement failed" "failed"
     return 1
   fi
   record_check "rollback:symlink" "pass" "current symlink restored to previous release"
+  rm -f "${ROLLBACK_CANDIDATE_ENV_COPY:-}"
+  discard_rollback_environment || true
 
   if restart_services_and_reload_caddy; then
     record_check "rollback:restart" "pass" "services restarted and Caddy reloaded after rollback"
@@ -639,6 +798,12 @@ fi
 [ -n "$BASE_DIR" ] || fail_now "--base-dir is required"
 [ -n "$RELEASE_PATH" ] || fail_now "--release-path is required"
 [ -n "$EXPECTED_SHA" ] || fail_now "--expected-sha is required"
+if ! validate_rollback_environment_paths; then
+  fail_now "runtime environment rollback paths or material are invalid"
+fi
+if ! PLATFORM_PROBE_HOST="$(canonical_platform_probe_host)"; then
+  fail_now "APP_URL must be the canonical staging origin for loopback Host routing"
+fi
 
 if [ "$RESTART_BEFORE_CHECK" = "1" ]; then
   if restart_services_and_reload_caddy; then
@@ -659,6 +824,11 @@ if [ "$RESTART_BEFORE_CHECK" = "1" ]; then
 fi
 
 if run_health_checks; then
+  if ! discard_rollback_environment; then
+    record_check "activation:environment-finalize" "fail" "failed to remove runtime environment rollback material"
+    write_evidence "fail" "release health passed but rollback material cleanup failed" "not-needed"
+    exit 1
+  fi
   write_evidence "pass" "release health gate passed" "not-needed"
   echo "fieldgrid-deploy-health-gate: release health gate passed"
   exit 0

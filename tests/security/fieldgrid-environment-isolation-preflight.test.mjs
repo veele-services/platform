@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import {
   assertDistinctProjectFingerprints,
   projectIdentityFingerprint,
@@ -11,9 +17,16 @@ import {
   supabaseProjectRefFromPublicUrl,
   validateEnvironmentIsolation,
 } from "../../scripts/fieldgrid-environment-isolation-preflight.mjs";
+import { SUPABASE_ROOT_2021_CA_PEM } from "../fixtures/fieldgrid-supabase-root-2021-ca.mjs";
 
 const stagingProject = "olyfmekyqozxrbrwwszu";
 const productionProject = "abcdefghijklmnopqrst";
+const certificateDirectory = mkdtempSync(
+  join(tmpdir(), "fieldgrid-environment-isolation-cert-"),
+);
+const certificatePath = join(certificateDirectory, "supabase-root.crt");
+writeFileSync(certificatePath, SUPABASE_ROOT_2021_CA_PEM, { mode: 0o600 });
+after(() => rmSync(certificateDirectory, { recursive: true, force: true }));
 
 function environment(
   target,
@@ -27,8 +40,10 @@ function environment(
         ? "https://staging.fieldgrid.nl"
         : "https://app.fieldgrid.nl",
     DATABASE_URL: `postgresql://postgres:secret@db.${projectRef}.supabase.co:5432/postgres`,
+    FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://supabase_admin.${projectRef}:migration-secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
     NEXT_PUBLIC_SUPABASE_URL: `https://${projectRef}.supabase.co`,
     EXPECTED_SUPABASE_PROJECT_REF: projectRef,
+    FIELDGRID_DATABASE_SSL_ROOT_CERT: certificatePath,
   };
 }
 
@@ -132,6 +147,99 @@ test("expected project identity is mandatory", () => {
   );
 });
 
+test("required migration credential is distinct, queryless and project-bound", () => {
+  const fixture = environment("staging");
+  assert.equal(
+    validateEnvironmentIsolation(fixture, {
+      requireMigrationDatabase: true,
+    }).environment,
+    "staging",
+  );
+
+  const missing = { ...fixture };
+  delete missing.FIELDGRID_MIGRATION_DATABASE_URL;
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(missing, {
+        requireMigrationDatabase: true,
+      }),
+    /FIELDGRID_MIGRATION_DATABASE_URL is required/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(
+        {
+          ...fixture,
+          FIELDGRID_MIGRATION_DATABASE_URL: fixture.DATABASE_URL,
+        },
+        { requireMigrationDatabase: true },
+      ),
+    /must be distinct/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(
+        {
+          ...fixture,
+          FIELDGRID_MIGRATION_DATABASE_URL: `${fixture.FIELDGRID_MIGRATION_DATABASE_URL}?sslmode=disable`,
+        },
+        { requireMigrationDatabase: true },
+      ),
+    /forbidden connection overrides/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(
+        {
+          ...fixture,
+          FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://supabase_admin.${productionProject}:migration-secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+        },
+        { requireMigrationDatabase: true },
+      ),
+    /expected environment project/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(
+        {
+          ...fixture,
+          FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://postgres.${stagingProject}:different-secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+        },
+        { requireMigrationDatabase: true },
+      ),
+    /principals and secrets must be distinct/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation(
+        {
+          ...fixture,
+          FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://migration_role.${stagingProject}:secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+        },
+        { requireMigrationDatabase: true },
+      ),
+    /principals and secrets must be distinct/u,
+  );
+});
+
+test("live isolation requires the pinned private root certificate", () => {
+  const fixture = environment("staging");
+  assert.throws(
+    () =>
+      validateEnvironmentIsolation({
+        ...fixture,
+        FIELDGRID_DATABASE_SSL_ROOT_CERT: "",
+      }),
+    /FIELDGRID_DATABASE_SSL_ROOT_CERT/u,
+  );
+  chmodSync(certificatePath, 0o644);
+  assert.throws(
+    () => validateEnvironmentIsolation(fixture),
+    /permissions must be 0600/u,
+  );
+  chmodSync(certificatePath, 0o600);
+});
+
 test("cross-environment comparison rejects identical projects", () => {
   const staging = projectIdentityFingerprint(stagingProject);
   const production = projectIdentityFingerprint(productionProject);
@@ -172,4 +280,15 @@ test("workflow exposes environment secrets only from exact main", () => {
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/u);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/u);
   assert.match(workflow, /persist-credentials: false/u);
+  assert.match(
+    workflow,
+    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
+  );
+  assert.match(
+    workflow,
+    /DATABASE_URL:\s*\$\{\{\s*secrets\.FIELDGRID_RUNTIME_DATABASE_URL\s*\}\}/u,
+  );
+  assert.match(workflow, /--require-migration-database/u);
+  assert.match(workflow, /FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64/u);
+  assert.match(workflow, /fieldgrid-database-root-cert\.mjs/u);
 });

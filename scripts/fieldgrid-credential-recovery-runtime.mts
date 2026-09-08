@@ -273,25 +273,53 @@ try {
 
   const security = await client.query(`
     select
-      c.relname,
+      c.relname::text,
       c.relrowsecurity,
       c.relforcerowsecurity,
-      has_table_privilege('anon', c.oid, 'select') as anon_select,
-      has_table_privilege('authenticated', c.oid, 'select') as authenticated_select,
-      has_table_privilege('service_role', c.oid, 'select') as service_select
+      role_row.role_name::text,
+      operation_row.operation::text,
+      has_table_privilege(
+        role_row.role_name,
+        c.oid,
+        operation_row.operation
+      ) as has_privilege
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
+    cross join (
+      values
+        ('anon'::name),
+        ('authenticated'::name),
+        ('service_role'::name),
+        ('fieldgrid_runtime_data'::name),
+        ('fieldgrid_runtime_app'::name)
+    ) role_row(role_name)
+    cross join unnest(array[
+      'SELECT', 'INSERT', 'UPDATE', 'DELETE'
+    ]::text[]) operation_row(operation)
     where n.nspname = 'public'
       and c.relname in ('credential_recovery_challenges', 'credential_recovery_events')
-    order by c.relname
+    order by c.relname, role_row.role_name, operation_row.operation
   `);
-  assert.equal(security.rows.length, 2);
+  const expectedRuntimePrivileges = {
+    credential_recovery_challenges: new Set(["SELECT", "INSERT", "UPDATE"]),
+    credential_recovery_events: new Set(["SELECT", "INSERT"]),
+  };
+  const runtimeRoles = new Set([
+    "fieldgrid_runtime_app",
+    "fieldgrid_runtime_data",
+  ]);
+  assert.equal(security.rows.length, 40);
   for (const row of security.rows) {
     assert.equal(row.relrowsecurity, true);
     assert.equal(row.relforcerowsecurity, true);
-    assert.equal(row.anon_select, false);
-    assert.equal(row.authenticated_select, false);
-    assert.equal(row.service_select, true);
+    assert.equal(
+      row.has_privilege,
+      runtimeRoles.has(row.role_name) &&
+        expectedRuntimePrivileges[
+          row.relname as keyof typeof expectedRuntimePrivileges
+        ].has(row.operation),
+      `${row.role_name} ${row.operation} on ${row.relname}`,
+    );
   }
 
   const audit = await client.query(

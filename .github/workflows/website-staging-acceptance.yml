@@ -39,14 +39,47 @@ jobs:
       WEBSITE_CUSTOM_ACCEPTANCE_URL: ${{ vars.WEBSITE_CUSTOM_ACCEPTANCE_URL }}
       FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
       FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
 
     steps:
       - name: Checkout exact staging release
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.expected_staging_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Verify immutable staging ref before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          checkout="$(git rev-parse HEAD)"
+          test "$GITHUB_SHA" = "$EXPECTED_STAGING_SHA"
+          test "$checkout" = "$GITHUB_SHA"
+          test "$checkout" = "$EXPECTED_STAGING_SHA"
+          node --input-type=module -e '
+            if (!/^[a-f0-9]{40}$/u.test(process.env.EXPECTED_STAGING_SHA ?? "")) {
+              throw new Error("Expected staging SHA is invalid");
+            }
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/staging`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) {
+              throw new Error(`staging ref lookup failed with HTTP ${response.status}`);
+            }
+            const sha = (await response.json()).object?.sha ?? "";
+            if (sha !== process.env.EXPECTED_STAGING_SHA) {
+              throw new Error("Expected SHA is not the exact remote staging head");
+            }
+          '
 
       - name: Install locked dependencies
         run: |
@@ -61,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm fieldgrid:website-staging-acceptance --run \
-            --expected-staging "${{ inputs.expected_staging_sha }}" \
+            --expected-staging "$EXPECTED_STAGING_SHA" \
             --website-health "$WEBSITE_PUBLIC_HEALTH_URL" \
             --marketing-health "$MARKETING_PUBLIC_HEALTH_URL" \
             --managed-url "$WEBSITE_MANAGED_ACCEPTANCE_URL" \
@@ -69,9 +102,9 @@ jobs:
 
       - name: Upload secret-free acceptance evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: website-staging-acceptance-${{ github.run_id }}-${{ inputs.expected_staging_sha }}
+          name: website-staging-acceptance-${{ github.run_id }}-${{ github.sha }}
           path: artifacts/website-staging-acceptance/
           if-no-files-found: warn
           retention-days: 14

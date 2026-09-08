@@ -39,26 +39,42 @@ to the custom origin.
 Add these GitHub **staging environment variables**. Do not add their Phase 9
 values to production:
 
-| Variable                               | Contract                                                                     |
-| -------------------------------------- | ---------------------------------------------------------------------------- |
-| `WEBSITE_SERVICE_NAME`                 | Exact systemd unit for `@workspace/website-runtime`.                         |
-| `WEBSITE_PORT`                         | Unique localhost-only numeric port.                                          |
-| `WEBSITE_PUBLIC_HEALTH_URL`            | HTTPS URL ending `/healthz` on a `*.staging.fieldgrid.nl` host.              |
-| `MARKETING_SERVICE_NAME`               | Exact independent systemd unit for the reviewed custom application.          |
-| `MARKETING_PORT`                       | Unique localhost-only numeric port for the custom application.               |
-| `MARKETING_PUBLIC_HEALTH_URL`          | Exact custom-origin process health URL ending in `/healthz`.                 |
-| `WEBSITE_PUBLIC_URL`                   | Optional public base used by the deploy health gate.                         |
-| `WEBSITE_MANAGED_ACCEPTANCE_URL`       | Exact active managed proof site on `*.staging.fieldgrid.nl`.                 |
-| `WEBSITE_CUSTOM_ACCEPTANCE_URL`        | Exact active custom proof site on a different `*.staging.fieldgrid.nl` host. |
-| `FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON` | Reviewed JSON array described below.                                         |
-| `NEXT_PUBLIC_MARKETING_SITE_URL`       | Exact canonical custom proof origin on `*.staging.fieldgrid.nl`.             |
-| `FIELDGRID_CUSTOM_ROUTE_KEY`           | Exact opaque route key in the reviewed route registry.                       |
-| `FIELDGRID_CUSTOM_EXPECTED_HOST`       | Hostname equal to the canonical custom proof host.                           |
-| `FIELDGRID_WEBSITE_FORM_ID`            | Published form UUID; configure after staging site provisioning.              |
+| Variable                                          | Contract                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `WEBSITE_SERVICE_NAME`                            | Exact systemd unit for `@workspace/website-runtime`.                         |
+| `WEBSITE_PORT`                                    | Unique localhost-only numeric port.                                          |
+| `WEBSITE_PUBLIC_HEALTH_URL`                       | HTTPS URL ending `/healthz` on a `*.staging.fieldgrid.nl` host.              |
+| `MARKETING_SERVICE_NAME`                          | Exact independent systemd unit for the reviewed custom application.          |
+| `MARKETING_PORT`                                  | Unique localhost-only numeric port for the custom application.               |
+| `MARKETING_PUBLIC_HEALTH_URL`                     | Exact custom-origin process health URL ending in `/healthz`.                 |
+| `WEBSITE_PUBLIC_URL`                              | Optional public base used by the deploy health gate.                         |
+| `WEBSITE_MANAGED_ACCEPTANCE_URL`                  | Exact active managed proof site on `*.staging.fieldgrid.nl`.                 |
+| `WEBSITE_CUSTOM_ACCEPTANCE_URL`                   | Exact active custom proof site on a different `*.staging.fieldgrid.nl` host. |
+| `FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON`            | Reviewed JSON array described below.                                         |
+| `NEXT_PUBLIC_MARKETING_SITE_URL`                  | Exact canonical custom proof origin on `*.staging.fieldgrid.nl`.             |
+| `FIELDGRID_CUSTOM_ROUTE_KEY`                      | Exact opaque route key in the reviewed route registry.                       |
+| `FIELDGRID_CUSTOM_EXPECTED_HOST`                  | Hostname equal to the canonical custom proof host.                           |
+| `FIELDGRID_WEBSITE_FORM_ID`                       | Published form UUID; configure after staging site provisioning.              |
+| `FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED` | Set to exact `true` only in staging after migration `20260909121000`.        |
 
-Configure `WEBSITE_*` and `MARKETING_*` only after the first application
-promotion has completed on the existing four-service gate. Adding them before
-that promotion would require services that do not exist yet.
+Add `FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID` as a **staging environment
+secret** before any post-prepare action. It must be the UUID of one existing
+active platform owner or admin. The first `prepare-managed` run may omit it; in
+that case the script fails closed unless the database contains exactly one
+active owner/admin, then writes that UUID to the short-lived fixture artifact.
+Set the secret to that exact value before continuing. `prepare-managed` alone
+uses the existing migration-admin `DATABASE_URL` secret. `complete-custom`,
+`verify` and `rollback-custom` use only the least-privilege
+`FIELDGRID_RUNTIME_DATABASE_URL` secret. Every database step installs and
+checks the pinned Supabase Root 2021 CA from
+`FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64` and requires TLS `verify-full`;
+certificate, connection strings and passwords are never uploaded.
+
+Configure the proof URLs and automation-actor secret before `prepare-managed`.
+Configure the website/marketing unit names, ports and health URLs only after the
+first application promotion has completed on the existing four-service gate.
+Enable the recurring custom-health refresher only in the deployment that has
+successfully applied migration `20260909121000`.
 
 The route JSON is operator-owned configuration. It is not tenant input:
 
@@ -209,7 +225,11 @@ HTTPS health endpoint returning exact schema version 3:
 The platform resolves every origin address, rejects non-public ranges, pins a
 public address for the request, performs normal TLS hostname verification,
 requires HTTP 200, limits the response to 32 KiB and times out after eight
-seconds. Health evidence older than five minutes blocks activation.
+seconds. The staging API refreshes active custom delivery evidence every 60
+seconds under a process-local guard and a global PostgreSQL advisory lock.
+Claims are bounded, compare-and-set recording refuses superseded identities,
+and only healthy-to-failed or failed-to-healthy transitions produce audit
+events. Health evidence older than five minutes remains fail-closed.
 
 ## Guarded staging sequence
 
@@ -219,7 +239,28 @@ Require exact-head CI on the Phase 9 PR with zero failed, cancelled or pending
 authoritative checks. Squash-merge only after human review. Record the squash
 main SHA.
 
-### 2. Backup, isolated restore and migration rehearsal
+### 2. Prepare the managed proof and principal fixture
+
+After the exact main merge, but before moving `staging`, dispatch **Website
+Staging Proof State** from `main` with:
+
+- `operation`: `prepare-managed`;
+- `expected_sha`: the exact remote main head;
+- `change_reference`: the reviewed PR/change reference;
+- `confirmation`: `website-staging-prepare-managed`.
+
+The staging-environment job idempotently provisions the Enterprise,
+website-only proof tenant, publishes its reviewed managed content and verifies
+`https://managed-proof.staging.fieldgrid.nl/`. The shorter generic `managed`
+tenant label is reserved and must never be used. The job also
+creates the one-day `w00-principal-fixtures.json` artifact containing exactly
+the existing `field-demo.staging.fieldgrid.nl` and new
+`managed-proof.staging.fieldgrid.nl` host/tenant-ID pairs plus the verified
+automation actor UUID. It contains no email address, upstream, credential or
+other PII. Download it only for the W00 principal proof and delete it after use.
+This operation cannot register, approve or activate a custom release.
+
+### 3. Backup, isolated restore and migration rehearsal
 
 From the exact main SHA, dispatch **Phase 2E Staging Promotion Preflight** with:
 
@@ -236,7 +277,7 @@ the previous staging release marker. It does not move a ref or deploy.
 Stop on any mismatch. Do not promote until its secret-free evidence artifact is
 green.
 
-### 3. Promote through the existing exact-ref staging contract
+### 4. Promote through the existing exact-ref staging contract
 
 Use the existing normal, non-force, fast-forward main-to-staging promotion.
 The staging deploy must:
@@ -248,7 +289,7 @@ The staging deploy must:
 
 Do not manually bypass a failed deployment.
 
-### 4. Deploy the exact website stack
+### 5. Deploy the exact website stack
 
 After the four-service promotion is green:
 
@@ -266,11 +307,12 @@ The stack workflow owns only the exact staging systemd units and imported
 `fieldgrid-website-staging.caddy` snippet. On failure it restores both the prior
 website-stack symlink and prior Caddy state. It never moves a Git ref.
 
-### 5. Provision the proof sites and form
+### 6. Confirm proof sites and form
 
-Create or select two staging proof sites:
+Use only these two staging proof sites:
 
-- one managed site bound to `managed.staging.fieldgrid.nl`;
+- the automation-owned managed site bound to
+  `managed-proof.staging.fieldgrid.nl`;
 - the Veele custom site bound to `veeleservices.staging.fieldgrid.nl`.
 
 Create and publish the real Veele lead form, set its UUID as
@@ -279,7 +321,31 @@ the same exact staging SHA. `/healthz` proves process readiness independently;
 `/api/health` remains fail-closed until the form UUID and complete activation
 identity are present.
 
-### 6. Register, health-check and approve
+### 7. Complete the custom proof, soak and accept
+
+After both the core release and website-stack release markers equal the same
+exact staging SHA, dispatch **Website Staging Proof State** from `staging` with:
+
+- `operation`: `complete-custom`;
+- `expected_sha`: that exact remote staging head;
+- `change_reference`: the reviewed PR/change reference;
+- `confirmation`: `website-staging-complete-custom`.
+
+The job first refuses unequal release markers or an ambiguous route registry.
+It then idempotently registers, health-checks, approves and activates only the
+exact `git-commit:<expected_sha>` Veele identity. A failed immediate public
+verification rolls back that newly activated delivery through the audited
+service. Success is held for 370 seconds, proving that the 60-second refresher
+keeps evidence fresh beyond the five-minute expiry window, and then runs both
+the exact database-state verification and full read-only website acceptance.
+
+During rollout, retain the old active and new candidate registrations in
+`FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON` until activation and soak finish. Put the
+new exact identity first because current exact-identity validators resolve the
+first matching route. Remove the old identity only through a later reviewed
+environment update after acceptance is green.
+
+### 8. Manual equivalent: register, health-check and approve
 
 As a platform admin:
 
@@ -297,7 +363,7 @@ As a platform admin:
 Registration, health and approval each require server-side platform-admin
 authorization and append a tenant-scoped audit event.
 
-### 7. Activate exact revision
+### 9. Manual equivalent: activate exact revision
 
 In the same tab, re-read the current mode, target and delivery revision. Enter a
 change reference and reason, then activate. The server atomically verifies all
@@ -315,10 +381,11 @@ The resulting operation row is append-only and records:
 If another writer changed the state, activation is blocked without moving the
 delivery revision.
 
-### 8. Collect read-only staging evidence
+### 10. Re-run read-only staging evidence
 
 After one managed and one custom proof host are active and healthy, dispatch
-**Website Staging Acceptance** from the exact staging ref:
+**Website Staging Proof State** from the exact staging ref with operation
+`verify`, or dispatch **Website Staging Acceptance** directly:
 
 - `expected_staging_sha`: exact deployed staging SHA;
 - `confirmation`: `website-staging-read-only`.
@@ -332,6 +399,11 @@ no form UUID, endpoint, body, route origin or secret and performs no deployment
 or form submission.
 
 ## Explicit rollback
+
+For the automated exact identity, dispatch **Website Staging Proof State** from
+the exact `staging` head with operation `rollback-custom`, confirmation
+`website-staging-rollback-custom`, and the original change reference. It refuses
+to roll back a different active custom release.
 
 Use **Rollback naar vorige activatie** only after recording the current exact
 mode, target and revision. Rollback:

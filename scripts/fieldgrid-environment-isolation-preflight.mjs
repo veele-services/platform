@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { validateDatabaseRootCertificateFile } from "./fieldgrid-database-root-cert.mjs";
 
 const SUPABASE_PROJECT_REF_PATTERN = /^[a-z0-9]{8,64}$/u;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/u;
@@ -22,7 +23,11 @@ function parseUrl(value, name, protocols) {
   if (!protocols.includes(parsed.protocol)) {
     throw new Error(`${name} uses an unsupported protocol.`);
   }
-  if (!parsed.hostname || (parsed.username && name !== "DATABASE_URL")) {
+  if (
+    !parsed.hostname ||
+    (parsed.username &&
+      !["DATABASE_URL", "FIELDGRID_MIGRATION_DATABASE_URL"].includes(name))
+  ) {
     throw new Error(`${name} contains an invalid authority.`);
   }
   return parsed;
@@ -65,23 +70,31 @@ function assertProjectRef(value, source) {
   return value;
 }
 
-export function supabaseProjectRefFromDatabaseUrl(value) {
-  const parsed = parseUrl(value, "DATABASE_URL", ["postgres:", "postgresql:"]);
+export function supabaseProjectRefFromDatabaseUrl(
+  value,
+  name = "DATABASE_URL",
+) {
+  const parsed = parseUrl(value, name, ["postgres:", "postgresql:"]);
+  if (parsed.search || parsed.hash) {
+    throw new Error(`${name} contains forbidden connection overrides.`);
+  }
   const directMatch = /^db\.([a-z0-9]+)\.supabase\.co$/u.exec(parsed.hostname);
   const decodedUser = decodeURIComponent(parsed.username);
-  const poolerUserMatch = /^postgres\.([a-z0-9]+)$/u.exec(decodedUser);
+  const poolerUserMatch = /^[a-z_][a-z0-9_-]*\.([a-z0-9]{8,64})$/u.exec(
+    decodedUser,
+  );
   const directRef = directMatch?.[1] ?? null;
   const poolerRef = poolerUserMatch?.[1] ?? null;
 
   if (directRef && poolerRef && directRef !== poolerRef) {
-    throw new Error("DATABASE_URL contains conflicting project identities.");
+    throw new Error(`${name} contains conflicting project identities.`);
   }
-  if (directRef) return assertProjectRef(directRef, "DATABASE_URL");
+  if (directRef) return assertProjectRef(directRef, name);
   if (parsed.hostname.endsWith(".pooler.supabase.com") && poolerRef) {
-    return assertProjectRef(poolerRef, "DATABASE_URL");
+    return assertProjectRef(poolerRef, name);
   }
   throw new Error(
-    "DATABASE_URL must use a Supabase direct or pooler project identity.",
+    `${name} must use a Supabase direct or pooler project identity.`,
   );
 }
 
@@ -114,7 +127,56 @@ export function projectIdentityFingerprint(projectRef) {
     .digest("hex");
 }
 
-export function validateEnvironmentIsolation(env = process.env) {
+function equalSecretValues(left, right) {
+  const leftBytes = Buffer.from(left, "utf8");
+  const rightBytes = Buffer.from(right, "utf8");
+  return (
+    leftBytes.length === rightBytes.length &&
+    timingSafeEqual(leftBytes, rightBytes)
+  );
+}
+
+function databaseCredentialIdentity(value, name) {
+  const parsed = parseUrl(value, name, ["postgres:", "postgresql:"]);
+  let role;
+  let password;
+  try {
+    role = decodeURIComponent(parsed.username).toLowerCase();
+    password = decodeURIComponent(parsed.password);
+  } catch {
+    throw new Error(`${name} contains invalid credential encoding.`);
+  }
+  const projectRef = parsed.hostname.endsWith(".pooler.supabase.com")
+    ? role.match(/\.([a-z0-9]{8,64})$/u)?.[1]
+    : undefined;
+  if (projectRef) role = role.slice(0, -(projectRef.length + 1));
+  if (!role || !password) {
+    throw new Error(`${name} must contain a database role and secret.`);
+  }
+  return { role, password };
+}
+
+function assertDistinctDatabaseCredentials(runtimeUrl, migrationUrl) {
+  const runtime = databaseCredentialIdentity(runtimeUrl, "DATABASE_URL");
+  const migration = databaseCredentialIdentity(
+    migrationUrl,
+    "FIELDGRID_MIGRATION_DATABASE_URL",
+  );
+  if (
+    equalSecretValues(runtimeUrl, migrationUrl) ||
+    equalSecretValues(runtime.role, migration.role) ||
+    equalSecretValues(runtime.password, migration.password)
+  ) {
+    throw new Error(
+      "Runtime and migration database principals and secrets must be distinct.",
+    );
+  }
+}
+
+export function validateEnvironmentIsolation(
+  env = process.env,
+  { requireMigrationDatabase = false } = {},
+) {
   const environment = required(env.APP_ENV, "APP_ENV");
   const target = required(
     env.TARGET_ENVIRONMENT ?? env.TARGET ?? environment,
@@ -196,16 +258,55 @@ export function validateEnvironmentIsolation(env = process.env) {
   const forbiddenProjectRef = String(
     env.FORBIDDEN_SUPABASE_PROJECT_REF ?? "",
   ).trim();
+
+  const migrationDatabaseUrl = String(
+    env.FIELDGRID_MIGRATION_DATABASE_URL ?? "",
+  ).trim();
+  if (requireMigrationDatabase && !migrationDatabaseUrl) {
+    throw new Error("FIELDGRID_MIGRATION_DATABASE_URL is required.");
+  }
+  if (migrationDatabaseUrl) {
+    assertDistinctDatabaseCredentials(
+      required(env.DATABASE_URL, "DATABASE_URL"),
+      migrationDatabaseUrl,
+    );
+    const migrationProjectRef = supabaseProjectRefFromDatabaseUrl(
+      migrationDatabaseUrl,
+      "FIELDGRID_MIGRATION_DATABASE_URL",
+    );
+    if (
+      migrationProjectRef !== publicProjectRef ||
+      migrationProjectRef !== expectedProjectRef
+    ) {
+      throw new Error(
+        "Migration database does not match the expected environment project.",
+      );
+    }
+    if (forbiddenProjectRef && migrationProjectRef === forbiddenProjectRef) {
+      throw new Error(
+        "Migration database matches the forbidden opposite environment project.",
+      );
+    }
+  }
   if (forbiddenProjectRef && databaseProjectRef === forbiddenProjectRef) {
     throw new Error(
       "Configured database matches the forbidden opposite environment project.",
     );
   }
 
+  const rootCertificate = validateDatabaseRootCertificateFile(
+    env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
+  );
+
   return {
     environment,
     appHost: expectedAppHost,
     projectFingerprint: projectIdentityFingerprint(databaseProjectRef),
+    databaseTls: {
+      mode: "verify-full",
+      rootCertificateSha256: rootCertificate.fingerprintSha256,
+      certificatePathRecorded: false,
+    },
   };
 }
 
@@ -228,12 +329,15 @@ function parseArgs(argv) {
   const options = {
     validate: false,
     emitGithubOutput: false,
+    requireMigrationDatabase: false,
     compare: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--validate") options.validate = true;
-    else if (argument === "--emit-github-output") {
+    else if (argument === "--require-migration-database") {
+      options.requireMigrationDatabase = true;
+    } else if (argument === "--emit-github-output") {
       options.emitGithubOutput = true;
     } else if (argument === "--compare") {
       options.compare = [argv[index + 1] ?? "", argv[index + 2] ?? ""];
@@ -258,7 +362,9 @@ export function runCli(argv = process.argv.slice(2), env = process.env) {
     throw new Error("Use --validate or --compare.");
   }
 
-  const result = validateEnvironmentIsolation(env);
+  const result = validateEnvironmentIsolation(env, {
+    requireMigrationDatabase: options.requireMigrationDatabase,
+  });
   if (options.emitGithubOutput) {
     const outputPath = required(env.GITHUB_OUTPUT, "GITHUB_OUTPUT");
     appendFileSync(

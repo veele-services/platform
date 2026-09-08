@@ -7,9 +7,14 @@ import {
   assertObjectSecurityCryptoConfigured,
   encryptObjectSecurityPayload,
 } from "../lib/db/src/object-security-crypto.ts";
-import { assertDatabaseEnvironmentIsolation } from "../lib/db/src/database-environment.ts";
+import {
+  assertDatabaseEnvironmentIsolation,
+  databaseConnectionConfig,
+} from "../lib/db/src/database-environment.ts";
 
-const dbRequire = createRequire(new URL("../lib/db/package.json", import.meta.url));
+const dbRequire = createRequire(
+  new URL("../lib/db/package.json", import.meta.url),
+);
 const { Pool } = dbRequire("pg") as typeof import("pg");
 const APPLY_CONFIRMATION = "object-security-encrypted-v1";
 
@@ -42,12 +47,18 @@ async function applyBackfill(client: import("pg").PoolClient): Promise<number> {
   await client.query("BEGIN");
   try {
     for (const candidate of candidates.rows) {
-      const locked = await client.query<LegacyRow>(`
+      const locked = await client.query<LegacyRow>(
+        `
         SELECT id, tenant_id, created_by, access_info, key_info, alarm_info
         FROM public.objects WHERE tenant_id = $1 AND id = $2 FOR UPDATE
-      `, [candidate.tenant_id, candidate.id]);
+      `,
+        [candidate.tenant_id, candidate.id],
+      );
       const object = locked.rows[0];
-      if (!object || (!object.access_info && !object.key_info && !object.alarm_info)) {
+      if (
+        !object ||
+        (!object.access_info && !object.key_info && !object.alarm_info)
+      ) {
         continue;
       }
       const entries = [
@@ -57,43 +68,70 @@ async function applyBackfill(client: import("pg").PoolClient): Promise<number> {
       ] as const;
       for (const [category, title, plaintext] of entries) {
         if (!plaintext) continue;
-        const conflict = await client.query(`
+        const conflict = await client.query(
+          `
           SELECT id FROM public.object_security_records
           WHERE tenant_id = $1 AND object_id = $2 AND category = $3
           LIMIT 1 FOR UPDATE
-        `, [object.tenant_id, object.id, category]);
-        if (conflict.rowCount) throw new Error("Encrypted record conflicts with legacy plaintext backfill.");
-        const revision = await client.query<{ generation: string }>(`
+        `,
+          [object.tenant_id, object.id, category],
+        );
+        if (conflict.rowCount)
+          throw new Error(
+            "Encrypted record conflicts with legacy plaintext backfill.",
+          );
+        const revision = await client.query<{ generation: string }>(
+          `
           SELECT generation::text FROM public.object_security_object_revisions
           WHERE tenant_id = $1 AND object_id = $2 FOR UPDATE
-        `, [object.tenant_id, object.id]);
+        `,
+          [object.tenant_id, object.id],
+        );
         const generation = Number(revision.rows[0]?.generation ?? 0) + 1;
         const recordId = randomUUID();
-        const encrypted = encryptObjectSecurityPayload({ waarde: plaintext }, {
-          tenantId: object.tenant_id,
-          objectId: object.id,
-          recordId,
-          category,
-          version: 1,
-          generation,
-        });
-        await client.query(`
+        const encrypted = encryptObjectSecurityPayload(
+          { waarde: plaintext },
+          {
+            tenantId: object.tenant_id,
+            objectId: object.id,
+            recordId,
+            category,
+            version: 1,
+            generation,
+          },
+        );
+        await client.query(
+          `
           INSERT INTO public.object_security_records (
             id, tenant_id, object_id, category, title, encrypted_payload,
             encryption_key_version, version, generation, status, source,
             change_reason, created_by, reviewed_by, reviewed_at
           ) VALUES ($1,$2,$3,$4,$5,$6,$7,1,$8,'active','legacy_backfill',
                     'Versleutelde migratie uit afgeschermde legacykolom',$9,$9,now())
-        `, [recordId, object.tenant_id, object.id, category, title,
-          encrypted.encryptedPayload, encrypted.keyVersion, generation,
-          object.created_by ?? "00000000-0000-0000-0000-000000000000"]);
+        `,
+          [
+            recordId,
+            object.tenant_id,
+            object.id,
+            category,
+            title,
+            encrypted.encryptedPayload,
+            encrypted.keyVersion,
+            generation,
+            object.created_by ?? "00000000-0000-0000-0000-000000000000",
+          ],
+        );
       }
-      const cleared = await client.query(`
+      const cleared = await client.query(
+        `
         UPDATE public.objects SET access_info = NULL, key_info = NULL, alarm_info = NULL
         WHERE tenant_id = $1 AND id = $2
           AND (access_info IS NOT NULL OR key_info IS NOT NULL OR alarm_info IS NOT NULL)
-      `, [object.tenant_id, object.id]);
-      if (cleared.rowCount !== 1) throw new Error("Legacy object changed concurrently.");
+      `,
+        [object.tenant_id, object.id],
+      );
+      if (cleared.rowCount !== 1)
+        throw new Error("Legacy object changed concurrently.");
       migrated += 1;
     }
     await client.query("COMMIT");
@@ -107,17 +145,28 @@ async function applyBackfill(client: import("pg").PoolClient): Promise<number> {
 async function main(): Promise<void> {
   const apply = process.argv.includes("--apply");
   const isolation = assertDatabaseEnvironmentIsolation(process.env);
-  if (apply && isolation.environment !== "staging") throw new Error("Legacy secret backfill apply is staging-only.");
-  if (apply && process.env.FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM !== APPLY_CONFIRMATION) {
-    throw new Error(`Set FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM=${APPLY_CONFIRMATION}.`);
+  if (apply && isolation.environment !== "staging")
+    throw new Error("Legacy secret backfill apply is staging-only.");
+  if (
+    apply &&
+    process.env.FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM !==
+      APPLY_CONFIRMATION
+  ) {
+    throw new Error(
+      `Set FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM=${APPLY_CONFIRMATION}.`,
+    );
   }
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required.");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(databaseConnectionConfig("migration"));
   const client = await pool.connect();
   try {
     const migrated = apply ? await applyBackfill(client) : 0;
     const remaining = await countLegacy(client);
-    console.log(JSON.stringify({ migrated_count: migrated, legacy_plaintext_count: remaining }));
+    console.log(
+      JSON.stringify({
+        migrated_count: migrated,
+        legacy_plaintext_count: remaining,
+      }),
+    );
     if (remaining !== 0) throw new Error("Legacy object plaintext remains.");
   } finally {
     client.release();
@@ -125,9 +174,16 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : "Object security backfill failed.");
+    console.error(
+      error instanceof Error
+        ? error.message
+        : "Object security backfill failed.",
+    );
     process.exitCode = 1;
   });
 }
