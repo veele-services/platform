@@ -125,7 +125,7 @@ test("proof CLI writes sanitized evidence when database bootstrap fails", () => 
     FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION:
       "website-staging-prepare-managed",
     WEBSITE_MANAGED_ACCEPTANCE_URL:
-      "https://managed-proof.staging.fieldgrid.nl/",
+      "https://managed-proof-w00-v2.staging.fieldgrid.nl/",
     WEBSITE_CUSTOM_ACCEPTANCE_URL:
       "https://veeleservices.staging.fieldgrid.nl/",
   };

@@ -6,10 +6,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 export const WEBSITE_STAGING_PROOF_STATE_VERSION =
   "fieldgrid-website-staging-proof-state-v1";
 export const WEBSITE_STAGING_PROOF_MARKER =
-  "FIELDGRID_WEBSITE_STAGING_PROOF_V1";
-export const MANAGED_PROOF_HOST = "managed-proof.staging.fieldgrid.nl";
+  "FIELDGRID_WEBSITE_STAGING_PROOF_W00_V2";
+export const MANAGED_PROOF_HOST = "managed-proof-w00-v2.staging.fieldgrid.nl";
 export const MANAGED_PROOF_URL = `https://${MANAGED_PROOF_HOST}/`;
-export const MANAGED_PROOF_SLUG = "managed-proof";
+export const MANAGED_PROOF_SLUG = "managed-proof-w00-v2";
 export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
 export const CUSTOM_PROOF_HOST = "veeleservices.staging.fieldgrid.nl";
 export const CUSTOM_PROOF_URL = `https://${CUSTOM_PROOF_HOST}/`;
@@ -78,6 +78,42 @@ type ManagedProofSiteDomain = {
   canonicalHostname: string | null;
   canonicalDomainStatus: string | null;
 };
+
+type ManagedProofCandidate = {
+  tenant_id: string;
+  slug: string;
+  plan_key: string;
+  domain: string | null;
+  marker: string | null;
+  environment: string | null;
+  provisioned_slug: string | null;
+  provisioned_plan_key: string | null;
+  provisioned_primary_domain: string | null;
+  provisioned_owner_email: string | null;
+  provisioned_requested_by: string | null;
+  tenant_created_by: string | null;
+};
+
+type ManagedProofCandidateErrorCode =
+  | "managed_proof_identity_ambiguous"
+  | "managed_proof_identity_mismatch"
+  | "managed_proof_plan_mismatch"
+  | "managed_proof_ownership_mismatch";
+
+type ProofStateErrorCode =
+  | ManagedProofCandidateErrorCode
+  | "runtime_host_binding_invalid"
+  | "runtime_host_settings_invalid";
+
+class ProofStateError extends Error {
+  readonly code: ProofStateErrorCode;
+
+  constructor(code: ProofStateErrorCode, message: string) {
+    super(message);
+    this.name = "ProofStateError";
+    this.code = code;
+  }
+}
 
 type ProofEvidence = {
   schemaVersion: 1;
@@ -253,12 +289,8 @@ export function validateWebsiteStagingProofStateConfig(
   return errors;
 }
 
-function safeErrorCode(error: unknown): string {
-  const raw =
-    error && typeof error === "object" && "code" in error
-      ? String((error as { code?: unknown }).code ?? "")
-      : "";
-  if (/^[A-Za-z0-9_.:-]{1,80}$/u.test(raw)) return raw;
+export function safeErrorCode(error: unknown): string {
+  if (error instanceof ProofStateError) return error.code;
   const message = error instanceof Error ? error.message : String(error);
   if (/collision/iu.test(message)) return "proof_state_collision";
   if (/actor/iu.test(message)) return "automation_actor_invalid";
@@ -357,7 +389,10 @@ async function resolveRuntimeTenant(
     [host],
   );
   if (result.rows.length !== 1) {
-    throw new Error(`Runtime host collision or missing binding: ${host}`);
+    throw new ProofStateError(
+      "runtime_host_binding_invalid",
+      `Runtime host collision or missing binding: ${host}`,
+    );
   }
   const row = result.rows[0]!;
   if (
@@ -368,7 +403,8 @@ async function resolveRuntimeTenant(
     !["verified", "active"].includes(row.verification_status) ||
     row.disabled_at
   ) {
-    throw new Error(
+    throw new ProofStateError(
+      "runtime_host_settings_invalid",
       `Runtime host settings are not active and verified: ${host}`,
     );
   }
@@ -380,24 +416,57 @@ async function resolveRuntimeTenant(
   };
 }
 
+export function managedProofCandidateErrorCode(
+  candidates: ReadonlyArray<ManagedProofCandidate>,
+): ManagedProofCandidateErrorCode | null {
+  if (candidates.length === 0) return null;
+  if (candidates.length !== 1) return "managed_proof_identity_ambiguous";
+  const candidate = candidates[0]!;
+  if (
+    candidate.slug !== MANAGED_PROOF_SLUG ||
+    candidate.domain !== MANAGED_PROOF_HOST
+  ) {
+    return "managed_proof_identity_mismatch";
+  }
+  if (candidate.plan_key !== "enterprise") {
+    return "managed_proof_plan_mismatch";
+  }
+  if (candidate.marker !== WEBSITE_STAGING_PROOF_MARKER) {
+    return "managed_proof_ownership_mismatch";
+  }
+  if (
+    candidate.environment !== "staging" ||
+    candidate.provisioned_slug !== MANAGED_PROOF_SLUG ||
+    candidate.provisioned_plan_key !== "enterprise" ||
+    candidate.provisioned_primary_domain !== MANAGED_PROOF_HOST ||
+    candidate.provisioned_owner_email !== null ||
+    !candidate.provisioned_requested_by ||
+    candidate.provisioned_requested_by !== candidate.tenant_created_by
+  ) {
+    return "managed_proof_ownership_mismatch";
+  }
+  return null;
+}
+
 async function findManagedProofTenant(
   queryable: Queryable,
 ): Promise<RuntimeTenant | null> {
-  const result = await queryable.query<{
-    tenant_id: string;
-    slug: string;
-    plan_key: string;
-    domain: string;
-    marker: string | null;
-  }>(
+  const result = await queryable.query<ManagedProofCandidate>(
     `SELECT tenant.id AS tenant_id, tenant.slug, tenant.plan_key,
-            domain.domain,
-            provisioning.metadata ->> 'automationMarker' AS marker
+            domain.domain, tenant.created_by AS tenant_created_by,
+            provisioning.metadata ->> 'automationMarker' AS marker,
+            provisioning.metadata ->> 'environment' AS environment,
+            provisioning.slug AS provisioned_slug,
+            provisioning.plan_key AS provisioned_plan_key,
+            provisioning.primary_domain AS provisioned_primary_domain,
+            provisioning.owner_email AS provisioned_owner_email,
+            provisioning.requested_by AS provisioned_requested_by
      FROM public.tenants AS tenant
      LEFT JOIN public.tenant_domains AS domain
        ON domain.tenant_id = tenant.id AND domain.is_primary = true
      LEFT JOIN LATERAL (
-       SELECT run.metadata
+       SELECT run.metadata, run.slug, run.plan_key, run.primary_domain,
+              run.owner_email, run.requested_by
        FROM public.tenant_provisioning_runs AS run
        WHERE run.tenant_id = tenant.id
          AND run.status = 'succeeded'
@@ -409,18 +478,26 @@ async function findManagedProofTenant(
     [MANAGED_PROOF_SLUG, MANAGED_PROOF_HOST, WEBSITE_STAGING_PROOF_MARKER],
   );
   if (result.rows.length === 0) return null;
-  if (result.rows.length !== 1)
-    throw new Error("Managed proof tenant collision");
-  const row = result.rows[0]!;
-  if (
-    row.slug !== MANAGED_PROOF_SLUG ||
-    row.domain !== MANAGED_PROOF_HOST ||
-    row.plan_key !== "enterprise" ||
-    row.marker !== WEBSITE_STAGING_PROOF_MARKER
-  ) {
-    throw new Error("Managed proof tenant collision with unowned state");
+  const errorCode = managedProofCandidateErrorCode(result.rows);
+  if (errorCode) {
+    throw new ProofStateError(
+      errorCode,
+      "Managed proof candidate is not the exact automation-owned identity",
+    );
   }
-  return resolveRuntimeTenant(queryable, MANAGED_PROOF_HOST);
+  const candidate = result.rows[0]!;
+  const runtime = await resolveRuntimeTenant(queryable, MANAGED_PROOF_HOST);
+  if (
+    runtime.tenantId !== candidate.tenant_id ||
+    runtime.slug !== candidate.slug ||
+    runtime.planKey !== candidate.plan_key
+  ) {
+    throw new ProofStateError(
+      "managed_proof_identity_mismatch",
+      "Managed proof runtime binding changed during identity validation",
+    );
+  }
+  return runtime;
 }
 
 function reviewedProofSection(
@@ -1091,6 +1168,10 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
       environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID,
     );
     if (options.mode === "prepare-managed") {
+      // Principal evidence always needs the stable field-demo fixture. Prove that
+      // binding before provisioning or publishing a new managed-proof tenant so
+      // an unrelated fixture problem cannot leave another active proof behind.
+      await resolveRuntimeTenant(dbModule.pool, FIELD_DEMO_HOST);
       const managed = await ensureManagedProof(
         dbModule,
         actorUserId,

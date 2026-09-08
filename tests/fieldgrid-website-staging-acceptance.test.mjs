@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
+  MANAGED_ACCEPTANCE_HOST,
   safeStagingUrl,
   validateWebsiteStagingAcceptanceConfig,
 } from "../scripts/fieldgrid-website-staging-acceptance.mjs";
@@ -13,7 +14,7 @@ const validInput = {
   websiteHealthUrl: "https://website.staging.fieldgrid.nl/healthz",
   marketingHealthUrl:
     "https://veeleservices-origin.staging.fieldgrid.nl/healthz",
-  managedUrl: "https://managed-proof.staging.fieldgrid.nl/",
+  managedUrl: "https://managed-proof-w00-v2.staging.fieldgrid.nl/",
   customUrl: "https://veeleservices.staging.fieldgrid.nl/",
 };
 const validEnvironment = {
@@ -26,15 +27,32 @@ const validEnvironment = {
 };
 
 test("website staging acceptance requires exact staging-only inputs", () => {
+  assert.equal(
+    MANAGED_ACCEPTANCE_HOST,
+    "managed-proof-w00-v2.staging.fieldgrid.nl",
+  );
   assert.deepEqual(
     validateWebsiteStagingAcceptanceConfig(validInput, validEnvironment),
     [],
   );
   assert.equal(
-    safeStagingUrl("https://managed-proof.staging.fieldgrid.nl/", "managed")
-      .hostname,
-    "managed-proof.staging.fieldgrid.nl",
+    safeStagingUrl(
+      "https://managed-proof-w00-v2.staging.fieldgrid.nl/",
+      "managed",
+    ).hostname,
+    "managed-proof-w00-v2.staging.fieldgrid.nl",
   );
+});
+
+test("website staging acceptance rejects the superseded managed proof host", () => {
+  const errors = validateWebsiteStagingAcceptanceConfig(
+    {
+      ...validInput,
+      managedUrl: "https://managed-proof.staging.fieldgrid.nl/",
+    },
+    validEnvironment,
+  );
+  assert.match(errors.join(" "), /exact W00 v2 host/u);
 });
 
 test("website staging acceptance rejects production, credentials and stale refs", () => {

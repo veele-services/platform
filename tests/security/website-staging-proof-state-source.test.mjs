@@ -110,9 +110,20 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   const workflow = read(".github/workflows/website-staging-proof-state.yml");
   const operations = read("docs/website-module-enterprise-activation.md");
 
-  assert.match(script, /managed-proof\.staging\.fieldgrid\.nl/u);
+  assert.match(script, /managed-proof-w00-v2\.staging\.fieldgrid\.nl/u);
   assert.doesNotMatch(script, /["'`]managed\.staging\.fieldgrid\.nl/u);
   assert.doesNotMatch(operations, /managed\.staging\.fieldgrid\.nl/u);
+  assert.match(script, /FIELDGRID_WEBSITE_STAGING_PROOF_W00_V2/u);
+  for (const code of [
+    "managed_proof_identity_ambiguous",
+    "managed_proof_identity_mismatch",
+    "managed_proof_plan_mismatch",
+    "managed_proof_ownership_mismatch",
+    "runtime_host_binding_invalid",
+    "runtime_host_settings_invalid",
+  ]) {
+    assert.match(script, new RegExp(code, "u"));
+  }
   assert.match(script, /reader\.read\(\)/u);
   assert.match(script, /await reader\.cancel\(\)/u);
   assert.match(script, /\.fieldgrid-release-sha/u);
@@ -142,6 +153,22 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(
     script,
     /await resolveAutomationActor\(dbModule\.pool, actorUserId\);/u,
+  );
+  const runFunction = script.slice(script.indexOf("async function run("));
+  const prepareManagedBranch = runFunction.slice(
+    runFunction.indexOf('if (options.mode === "prepare-managed")'),
+    runFunction.indexOf('} else if (options.mode === "complete-custom")'),
+  );
+  assert.ok(
+    prepareManagedBranch.indexOf(
+      "await resolveRuntimeTenant(dbModule.pool, FIELD_DEMO_HOST);",
+    ) < prepareManagedBranch.indexOf("await ensureManagedProof("),
+    "field-demo must be validated before managed-proof mutation",
+  );
+  assert.ok(
+    prepareManagedBranch.indexOf("await ensureManagedProof(") <
+      prepareManagedBranch.indexOf("await writePrincipalFixtures("),
+    "principal fixtures must revalidate field-demo after managed-proof mutation",
   );
   assert.match(workflow, /prepare-managed/u);
   assert.match(workflow, /complete-custom/u);

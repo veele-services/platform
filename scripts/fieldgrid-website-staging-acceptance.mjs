@@ -8,6 +8,8 @@ const repoRoot = resolve(__dirname, "..");
 
 export const WEBSITE_STAGING_ACCEPTANCE_VERSION =
   "fieldgrid-website-staging-acceptance-v1";
+export const MANAGED_ACCEPTANCE_HOST =
+  "managed-proof-w00-v2.staging.fieldgrid.nl";
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const MAX_ASSETS = 8;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -82,6 +84,9 @@ export function validateWebsiteStagingAcceptanceConfig(
   let custom;
   try {
     managed = safeStagingUrl(input.managedUrl, "managed acceptance");
+    if (managed.hostname !== MANAGED_ACCEPTANCE_HOST) {
+      errors.push("managed acceptance host must be the exact W00 v2 host");
+    }
   } catch (error) {
     errors.push(error.message);
   }

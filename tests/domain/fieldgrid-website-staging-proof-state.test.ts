@@ -4,7 +4,11 @@ import {
   CUSTOM_PROOF_HOST,
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
+  MANAGED_PROOF_SLUG,
+  WEBSITE_STAGING_PROOF_MARKER,
+  managedProofCandidateErrorCode,
   managedProofDomainBindingRequired,
+  safeErrorCode,
   selectAutomationActor,
   selectDefaultAutomationActor,
   validateWebsiteStagingProofStateConfig,
@@ -77,7 +81,7 @@ function baseEnvironment() {
 }
 
 test("prepare-managed is exact-main, explicit and independent of custom routing", () => {
-  assert.equal(MANAGED_PROOF_HOST, "managed-proof.staging.fieldgrid.nl");
+  assert.equal(MANAGED_PROOF_HOST, "managed-proof-w00-v2.staging.fieldgrid.nl");
   assert.deepEqual(
     validateWebsiteStagingProofStateConfig(
       options("prepare-managed"),
@@ -112,6 +116,70 @@ test("prepare-managed is exact-main, explicit and independent of custom routing"
     }).join(";"),
     /migration connection purpose/u,
   );
+});
+
+test("managed proof candidates require one exact automation-owned identity", () => {
+  const owned = {
+    tenant_id: "10000000-0000-4000-8000-000000000030",
+    slug: MANAGED_PROOF_SLUG,
+    plan_key: "enterprise",
+    domain: MANAGED_PROOF_HOST,
+    marker: WEBSITE_STAGING_PROOF_MARKER,
+    environment: "staging",
+    provisioned_slug: MANAGED_PROOF_SLUG,
+    provisioned_plan_key: "enterprise",
+    provisioned_primary_domain: MANAGED_PROOF_HOST,
+    provisioned_owner_email: null,
+    provisioned_requested_by: actor,
+    tenant_created_by: actor,
+  };
+
+  assert.equal(managedProofCandidateErrorCode([]), null);
+  assert.equal(managedProofCandidateErrorCode([owned]), null);
+  assert.equal(
+    managedProofCandidateErrorCode([owned, { ...owned }]),
+    "managed_proof_identity_ambiguous",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, slug: "occupied" }]),
+    "managed_proof_identity_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, plan_key: "starter" }]),
+    "managed_proof_plan_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, marker: null }]),
+    "managed_proof_ownership_mismatch",
+  );
+  assert.equal(
+    managedProofCandidateErrorCode([{ ...owned, domain: null }]),
+    "managed_proof_identity_mismatch",
+  );
+  for (const candidate of [
+    { ...owned, environment: "production" },
+    { ...owned, provisioned_slug: "other" },
+    { ...owned, provisioned_plan_key: "starter" },
+    { ...owned, provisioned_primary_domain: "other.staging.fieldgrid.nl" },
+    { ...owned, provisioned_owner_email: "operator@example.invalid" },
+    { ...owned, provisioned_requested_by: null },
+    {
+      ...owned,
+      provisioned_requested_by: "10000000-0000-4000-8000-000000000099",
+    },
+  ]) {
+    assert.equal(
+      managedProofCandidateErrorCode([candidate]),
+      "managed_proof_ownership_mismatch",
+    );
+  }
+});
+
+test("proof evidence does not trust arbitrary external error codes", () => {
+  const error = Object.assign(new Error("opaque failure"), {
+    code: "credential-shaped-token",
+  });
+  assert.equal(safeErrorCode(error), "proof_state_failed");
 });
 
 test("actorless prepare prefers one admin and only falls back to one owner", () => {
