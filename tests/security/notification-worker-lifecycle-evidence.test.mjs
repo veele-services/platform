@@ -27,6 +27,10 @@ const workerRoute = readFileSync(
   "utf8",
 );
 const emailService = readFileSync("lib/db/src/email-service.ts", "utf8");
+const emailHelper = readFileSync(
+  "artifacts/api-server/src/lib/email.ts",
+  "utf8",
+);
 
 test("worker rechecks tenant, module, event and recipient lifecycle after claim", () => {
   for (const signal of [
@@ -62,12 +66,65 @@ test("claim, attempt evidence and terminal finalization are transactionally coup
   assert.match(migration, /notification_delivery_queue_evidence_match/u);
 });
 
+test("payment reminders recheck source state and record delivery only on durable success", () => {
+  for (const signal of [
+    "payment_reminder_payload_invalid",
+    "payment_reminder_source_ineligible",
+    "fieldgridPurpose",
+    "invoice_payment_reminder",
+    "isTenantModuleEnabled",
+    "Europe/Amsterdam",
+  ]) {
+    assert.match(worker, new RegExp(signal.replaceAll("$", "\\$"), "u"));
+  }
+  assert.match(
+    worker,
+    /lower\(\$\{customersTable\.contactEmail\}\) = lower\(\$\{paymentReminder\.recipientEmail\}\)/u,
+  );
+  assert.match(
+    worker,
+    /eq\(invoicesTable\.id, paymentReminder\.invoiceId\)[\s\S]*eq\(invoicesTable\.tenantId, item\.tenant_id\)[\s\S]*eq\(invoicesTable\.customerId, paymentReminder\.customerId\)[\s\S]*eq\(invoicesTable\.status, "sent"\)/u,
+  );
+  assert.match(
+    worker,
+    /isNull\(invoicesTable\.lastReminderSentAt\)[\s\S]*lt\(invoicesTable\.lastReminderSentAt, item\.created_at\)/u,
+  );
+  assert.match(
+    worker,
+    /lt\([\s\S]*invoicesTable\.lastReminderSentAt,[\s\S]*current_timestamp - \([\s\S]*notifHerinneringDagen/u,
+  );
+  assert.match(worker, /isTenantModuleEnabled\(item\.tenant_id, "finance"\)/u);
+  assert.match(worker, /sendTemplatedEmailWithResult/u);
+  assert.match(worker, /variables: paymentReminder\.templateVariables/u);
+  assert.match(emailHelper, /sendTemplatedEmail\(/u);
+  assert.match(emailHelper, /templateVariables: EmailTemplateVariables/u);
+  assert.match(
+    worker,
+    /if \(outcome\.status === "sent"\)[\s\S]*UPDATE invoices[\s\S]*SET last_reminder_sent_at = now\(\)[\s\S]*INSERT INTO audit_log/u,
+  );
+  assert.match(worker, /"payment_reminder_sent"/u);
+  assert.match(worker, /invoiceTimestampUpdated: invoiceUpdate\.rowCount === 1/u);
+  assert.match(runtime, /runtime-payment-reminder-success/u);
+  assert.match(runtime, /runtime-payment-reminder-failed/u);
+  assert.match(runtime, /runtime-payment-reminder-skipped-recovery/u);
+  assert.match(runtime, /runtime-payment-reminder-skipped-recovered/u);
+  assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
+  assert.match(runtime, /Herstartbestendige tenantinhoud/u);
+  assert.match(runtime, /runtime-payment-reminder-cross-tenant/u);
+  assert.match(runtime, /payment_reminder_source_ineligible/u);
+  const updateIndex = worker.indexOf("UPDATE invoices");
+  const auditIndex = worker.indexOf("INSERT INTO audit_log", updateIndex);
+  const commitIndex = worker.indexOf('client.query("COMMIT")', auditIndex);
+  assert.ok(updateIndex >= 0 && updateIndex < auditIndex && auditIndex < commitIndex);
+});
+
 test("uncertain provider effects never become an automatic blind redelivery", () => {
   assert.match(worker, /delivery_started_at IS NOT NULL/u);
   assert.match(worker, /provider_outcome_unknown/u);
   assert.match(worker, /status = 'outcome_pending'/u);
   assert.match(worker, /queueIds: string\[\]/u);
   assert.match(worker, /confirmedNoDelivery/u);
+  assert.match(worker, /status IN \('failed', 'skipped', 'partial'\)/u);
   assert.doesNotMatch(
     worker,
     /WHERE status IN \('failed', 'outcome_pending', 'partial'\)/u,

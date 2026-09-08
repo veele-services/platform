@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   FIXTURE,
   assertDisposableDatabaseForReset,
@@ -26,6 +29,13 @@ const tenantB = FIXTURE.tenants.b;
 const prefix = "runtime-notification-hardening";
 const createdQueueIds: string[] = [];
 const createdDispatchIds: string[] = [];
+const createdInvoiceIds: string[] = [];
+const createdAssignmentIds: string[] = [];
+const createdTemplateOverrideIds: string[] = [];
+let templateOutboxDir: string | null = null;
+let originalReminderEmail: string | null = null;
+const originalNodeEnv = process.env["NODE_ENV"];
+const originalTestOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
 const logger = { info() {}, warn() {}, error() {} };
 
 type Channel = "email" | "push";
@@ -107,6 +117,97 @@ async function enqueue(input: {
     ],
   );
   return result.rows[0] as { id: string; delivery_key: string };
+}
+
+async function createReminderInvoice() {
+  const id = randomUUID();
+  const assignmentId = randomUUID();
+  const invoiceNumber = `RUNTIME-${id.slice(0, 8)}`;
+  createdInvoiceIds.push(id);
+  createdAssignmentIds.push(assignmentId);
+  await client.query(
+    `insert into public.assignments (
+       id, tenant_id, code, title, customer_id, status
+     ) values ($1,$2,$3,'Runtime betalingsherinnering',$4,'completed')`,
+    [
+      assignmentId,
+      tenantA,
+      `RT-${assignmentId.slice(0, 8)}`,
+      FIXTURE.customers.a,
+    ],
+  );
+  const result = await client.query(
+    `insert into public.invoices (
+       id, tenant_id, invoice_number, customer_id, assignment_id,
+       status, due_date, total_amount
+     ) values ($1,$2,$3,$4,$5,'sent',current_date - 30,121.00)
+     returning due_date::text`,
+    [
+      id,
+      tenantA,
+      invoiceNumber,
+      FIXTURE.customers.a,
+      assignmentId,
+    ],
+  );
+  return {
+    id,
+    invoiceNumber,
+    dueDate: String(result.rows[0].due_date),
+  };
+}
+
+async function enqueuePaymentReminder(input: {
+  invoiceId: string;
+  invoiceNumber: string;
+  dueDate: string;
+  tenantId?: string;
+  customerId?: string;
+  recipientEmail: string;
+  maxAttempts?: number;
+}) {
+  const id = randomUUID();
+  const tenantId = input.tenantId ?? tenantA;
+  const customerId = input.customerId ?? FIXTURE.customers.a;
+  const cycleKey = `payment-reminder:${tenantId}:${input.invoiceId}:initial`;
+  createdQueueIds.push(id);
+  await client.query(
+    `insert into public.notification_delivery_queue (
+       id, tenant_id, event_key, channel, recipient_type, customer_id,
+       recipient_email, subject, title, html, payload, status, max_attempts,
+       idempotency_key, delivery_key
+     ) values (
+       $1,$2,'payment_reminder','email','customer',$3,$4,
+       'Runtime betalingsherinnering',$5,'<p>Runtime betalingsherinnering</p>',
+       $6::jsonb,'pending',$7,$8,$8
+     )`,
+    [
+      id,
+      tenantId,
+      customerId,
+      input.recipientEmail,
+      `${prefix}:payment-reminder:${id}`,
+      JSON.stringify({
+        fieldgridPurpose: "invoice_payment_reminder",
+        templateKey: "invoice_payment_reminder",
+        templateVariables: {
+          customerName: "Runtime klant",
+          invoiceNumber: input.invoiceNumber,
+          totalAmount: "€ 121,00",
+          dueDate: input.dueDate,
+          invoiceId: input.invoiceId,
+          invoiceUrl: "https://fieldgrid.test/klant/facturen",
+        },
+        invoiceId: input.invoiceId,
+        invoiceNumber: input.invoiceNumber,
+        dueDate: input.dueDate,
+        herinneringDagen: 7,
+      }),
+      input.maxAttempts ?? 5,
+      cycleKey,
+    ],
+  );
+  return { id, cycleKey };
 }
 
 async function queueState(id: string) {
@@ -988,6 +1089,256 @@ try {
     [fcmGood, fcmInvalid],
   );
 
+  const reminderPrerequisites = await client.query(
+    `select
+       customer.contact_email,
+       customer.is_active,
+       customer.status,
+       coalesce(preference.email_notifications, true) as email_notifications,
+       exists (
+         select 1 from public.notification_event_settings event
+         where event.event_key='payment_reminder' and event.email_enabled=true
+       ) as event_enabled,
+       (
+         select count(*)::int
+         from public.tenant_modules entitlement
+         join public.modules module on module.id=entitlement.module_id
+         where entitlement.tenant_id=$1
+           and entitlement.is_enabled=true
+           and module.key in ('finance','notifications')
+       ) as enabled_modules
+     from public.customers customer
+     left join public.customer_portal_preferences preference
+       on preference.customer_id=customer.id
+     where customer.id=$2 and customer.tenant_id=$1`,
+    [tenantA, FIXTURE.customers.a],
+  );
+  assert.equal(reminderPrerequisites.rows[0].is_active, true);
+  assert.equal(reminderPrerequisites.rows[0].status, "active");
+  assert.equal(reminderPrerequisites.rows[0].email_notifications, true);
+  assert.equal(reminderPrerequisites.rows[0].event_enabled, true);
+  assert.equal(reminderPrerequisites.rows[0].enabled_modules, 2);
+  const reminderEmail = String(reminderPrerequisites.rows[0].contact_email);
+  originalReminderEmail = reminderEmail;
+
+  const sentReminderInvoice = await createReminderInvoice();
+  const sentReminder = await enqueuePaymentReminder({
+    invoiceId: sentReminderInvoice.id,
+    invoiceNumber: sentReminderInvoice.invoiceNumber,
+    dueDate: sentReminderInvoice.dueDate,
+    recipientEmail: reminderEmail,
+  });
+  const duplicateReminder = await client.query(
+    `insert into public.notification_delivery_queue (
+       id, tenant_id, event_key, channel, recipient_type, customer_id,
+       recipient_email, subject, title, html, payload, status, max_attempts,
+       idempotency_key, delivery_key
+     )
+     select $2::uuid, tenant_id, event_key, channel, recipient_type, customer_id,
+            recipient_email, subject, title, html, payload, status, max_attempts,
+            idempotency_key, delivery_key
+     from public.notification_delivery_queue where id=$1
+     on conflict do nothing
+     returning id`,
+    [sentReminder.id, randomUUID()],
+  );
+  assert.equal(duplicateReminder.rowCount, 0);
+  const sentReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-success",
+    queueIds: [sentReminder.id],
+  });
+  assert.equal(sentReminderResult.sent, 1);
+  assert.equal((await queueState(sentReminder.id)).status, "sent");
+  const sentReminderEvidence = await client.query(
+    `select
+       invoice.last_reminder_sent_at,
+       count(audit.id)::int as audit_count,
+       max(audit.metadata->>'queueId') as queue_id
+     from public.invoices invoice
+     left join public.audit_log audit
+       on audit.tenant_id=invoice.tenant_id
+      and audit.resource='invoices'
+      and audit.resource_id=invoice.id::text
+      and audit.action='payment_reminder_sent'
+     where invoice.id=$1 and invoice.tenant_id=$2
+     group by invoice.last_reminder_sent_at`,
+    [sentReminderInvoice.id, tenantA],
+  );
+  assert.ok(sentReminderEvidence.rows[0].last_reminder_sent_at);
+  assert.equal(sentReminderEvidence.rows[0].audit_count, 1);
+  assert.equal(sentReminderEvidence.rows[0].queue_id, sentReminder.id);
+
+  const failedReminderInvoice = await createReminderInvoice();
+  const failedReminder = await enqueuePaymentReminder({
+    invoiceId: failedReminderInvoice.id,
+    invoiceNumber: failedReminderInvoice.invoiceNumber,
+    dueDate: failedReminderInvoice.dueDate,
+    recipientEmail: reminderEmail,
+    maxAttempts: 1,
+  });
+  const failedReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-failed",
+    queueIds: [failedReminder.id],
+    deliveryOverride: async () => providerFailure("failed"),
+  });
+  assert.equal(failedReminderResult.failed, 1);
+  assert.equal((await queueState(failedReminder.id)).status, "failed");
+  const failedReminderEvidence = await client.query(
+    `select
+       invoice.last_reminder_sent_at,
+       count(audit.id)::int as audit_count
+     from public.invoices invoice
+     left join public.audit_log audit
+       on audit.tenant_id=invoice.tenant_id
+      and audit.resource_id=invoice.id::text
+      and audit.action='payment_reminder_sent'
+     where invoice.id=$1 and invoice.tenant_id=$2
+     group by invoice.last_reminder_sent_at`,
+    [failedReminderInvoice.id, tenantA],
+  );
+  assert.equal(failedReminderEvidence.rows[0].last_reminder_sent_at, null);
+  assert.equal(failedReminderEvidence.rows[0].audit_count, 0);
+
+  const skippedReminderInvoice = await createReminderInvoice();
+  const skippedReminder = await enqueuePaymentReminder({
+    invoiceId: skippedReminderInvoice.id,
+    invoiceNumber: skippedReminderInvoice.invoiceNumber,
+    dueDate: skippedReminderInvoice.dueDate,
+    recipientEmail: reminderEmail,
+  });
+  const skippedReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-skipped-recovery",
+    queueIds: [skippedReminder.id],
+    afterClaim: async () => {
+      await client.query(
+        `update public.customers set contact_email=$3
+         where id=$1 and tenant_id=$2`,
+        [
+          FIXTURE.customers.a,
+          tenantA,
+          `changed-${randomUUID()}@runtime.fieldgrid.test`,
+        ],
+      );
+    },
+  });
+  assert.equal(skippedReminderResult.skipped, 1);
+  assert.equal((await queueState(skippedReminder.id)).status, "skipped");
+  await client.query(
+    `update public.customers set contact_email=$3
+     where id=$1 and tenant_id=$2`,
+    [FIXTURE.customers.a, tenantA, reminderEmail],
+  );
+  const skippedReminderRetry = await retryFailedNotifications({
+    queueIds: [skippedReminder.id],
+    reason: "Runtime recovery after a confirmed pre-provider skip",
+    logger,
+  });
+  assert.equal(skippedReminderRetry.requeued, 1);
+  const recoveredReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-skipped-recovered",
+    queueIds: [skippedReminder.id],
+  });
+  assert.equal(recoveredReminderResult.sent, 1);
+  assert.equal((await queueState(skippedReminder.id)).status, "sent");
+  assert.ok(
+    (
+      await client.query(
+        `select last_reminder_sent_at from public.invoices
+         where id=$1 and tenant_id=$2`,
+        [skippedReminderInvoice.id, tenantA],
+      )
+    ).rows[0].last_reminder_sent_at,
+  );
+
+  const templateOverrideId = randomUUID();
+  createdTemplateOverrideIds.push(templateOverrideId);
+  await client.query(
+    `insert into public.tenant_email_template_overrides (
+       id, tenant_id, template_key, is_enabled, subject_template, intro_template
+     ) values (
+       $1,$2,'invoice_payment_reminder',true,
+       'Herstartbewijs {{invoiceNumber}}',
+       'Herstartbestendige tenantinhoud voor {{customerName}}.'
+     )`,
+    [templateOverrideId, tenantA],
+  );
+  templateOutboxDir = await mkdtemp(
+    join(tmpdir(), "fieldgrid-notification-worker-template-"),
+  );
+  const templateOutboxPath = join(templateOutboxDir, "outbox.ndjson");
+  process.env["NODE_ENV"] = "test";
+  process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"] = templateOutboxPath;
+  try {
+    const templatedReminderInvoice = await createReminderInvoice();
+    const templatedReminder = await enqueuePaymentReminder({
+      invoiceId: templatedReminderInvoice.id,
+      invoiceNumber: templatedReminderInvoice.invoiceNumber,
+      dueDate: templatedReminderInvoice.dueDate,
+      recipientEmail: reminderEmail,
+    });
+    const templatedReminderResult = await runEmail({
+      workerId: "runtime-payment-reminder-fresh-process-template",
+      queueIds: [templatedReminder.id],
+      deliveryOverride: undefined,
+    });
+    assert.equal(templatedReminderResult.sent, 1);
+    const captures = (await readFile(templateOutboxPath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(captures.length, 1);
+    assert.equal(captures[0].templateKey, "invoice_payment_reminder");
+    assert.equal(
+      captures[0].subject,
+      `Herstartbewijs ${templatedReminderInvoice.invoiceNumber}`,
+    );
+    assert.match(captures[0].html, /Herstartbestendige tenantinhoud/u);
+    assert.doesNotMatch(
+      captures[0].html,
+      /<p>Runtime betalingsherinnering<\/p>/u,
+    );
+  } finally {
+    if (originalNodeEnv === undefined) delete process.env["NODE_ENV"];
+    else process.env["NODE_ENV"] = originalNodeEnv;
+    if (originalTestOutboxPath === undefined) {
+      delete process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
+    } else {
+      process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"] = originalTestOutboxPath;
+    }
+  }
+
+  const tenantBEmail = String(
+    (
+      await client.query(
+        `select contact_email from public.customers where id=$1 and tenant_id=$2`,
+        [FIXTURE.customers.b, tenantB],
+      )
+    ).rows[0].contact_email,
+  );
+  const crossTenantReminder = await enqueuePaymentReminder({
+    invoiceId: failedReminderInvoice.id,
+    invoiceNumber: failedReminderInvoice.invoiceNumber,
+    dueDate: failedReminderInvoice.dueDate,
+    tenantId: tenantB,
+    customerId: FIXTURE.customers.b,
+    recipientEmail: tenantBEmail,
+  });
+  let crossTenantReminderDeliveries = 0;
+  const crossTenantReminderResult = await runEmail({
+    workerId: "runtime-payment-reminder-cross-tenant",
+    queueIds: [crossTenantReminder.id],
+    deliveryOverride: async () => {
+      crossTenantReminderDeliveries += 1;
+      return delivered();
+    },
+  });
+  assert.equal(crossTenantReminderDeliveries, 0);
+  assert.equal(crossTenantReminderResult.skipped, 1);
+  assert.equal(
+    (await queueState(crossTenantReminder.id)).last_error,
+    "payment_reminder_source_ineligible",
+  );
+
   const rlsA = await enqueue({ tenantId: tenantA });
   const rlsB = await enqueue({ tenantId: tenantB });
   const rlsBAttempt = randomUUID();
@@ -1106,6 +1457,15 @@ try {
       [FIXTURE.personnel.a],
     )
     .catch(() => {});
+  if (originalReminderEmail) {
+    await client
+      .query(
+        `update public.customers set contact_email=$3
+         where id=$1 and tenant_id=$2`,
+        [FIXTURE.customers.a, tenantA, originalReminderEmail],
+      )
+      .catch(() => {});
+  }
   await client
     .query(
       `delete from public.notification_delivery_queue where id=any($1::uuid[])`,
@@ -1114,10 +1474,44 @@ try {
     .catch(() => {});
   await client
     .query(
+      `delete from public.audit_log
+       where action='payment_reminder_sent' and resource_id=any($1::text[])`,
+      [createdInvoiceIds],
+    )
+    .catch(() => {});
+  await client
+    .query(`delete from public.invoices where id=any($1::uuid[])`, [
+      createdInvoiceIds,
+    ])
+    .catch(() => {});
+  await client
+    .query(`delete from public.assignments where id=any($1::uuid[])`, [
+      createdAssignmentIds,
+    ])
+    .catch(() => {});
+  await client
+    .query(
+      `delete from public.tenant_email_template_overrides
+       where id=any($1::uuid[])`,
+      [createdTemplateOverrideIds],
+    )
+    .catch(() => {});
+  await client
+    .query(
       `delete from public.notification_dispatches where id=any($1::uuid[])`,
       [createdDispatchIds],
     )
     .catch(() => {});
+  if (originalNodeEnv === undefined) delete process.env["NODE_ENV"];
+  else process.env["NODE_ENV"] = originalNodeEnv;
+  if (originalTestOutboxPath === undefined) {
+    delete process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
+  } else {
+    process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"] = originalTestOutboxPath;
+  }
+  if (templateOutboxDir) {
+    await rm(templateOutboxDir, { recursive: true, force: true }).catch(() => {});
+  }
   await client.end();
   await pool.end();
 }

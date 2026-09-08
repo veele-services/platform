@@ -1,7 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
 import {
+  customersTable,
   db,
+  invoicesTable,
+  isTenantModuleEnabled,
   nativePushDeviceTokensTable,
+  organizationSettingsTable,
   pool,
   pushSubscriptionsTable,
 } from "@workspace/db";
@@ -10,7 +14,10 @@ import {
   sanitizeCustomerPortalHref,
   sanitizePersonnelPortalHref,
 } from "@workspace/db/portal-routes";
-import { sendEmailWithResult } from "./email";
+import {
+  sendEmailWithResult,
+  sendTemplatedEmailWithResult,
+} from "./email";
 import { logger as defaultLogger } from "./logger";
 import { sendFcmPush } from "./native-push";
 import {
@@ -40,6 +47,7 @@ type QueueRow = {
   max_attempts: number;
   rate_limit_key: string | null;
   delivery_key: string;
+  created_at: Date;
   attempt_id: string;
 };
 
@@ -145,6 +153,7 @@ const DEFAULT_CONFIG: WorkerConfig = {
 
 const QUEUE_ID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 
 function normalizeQueueIds(queueIds?: string[]): string[] | undefined {
   if (queueIds === undefined) return undefined;
@@ -237,6 +246,95 @@ function toRecord(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return {};
+}
+
+type PaymentReminderQueueContext =
+  | { kind: "not_applicable" }
+  | { kind: "invalid" }
+  | {
+      kind: "valid";
+      invoiceId: string;
+      customerId: string;
+      recipientEmail: string;
+      invoiceNumber: string;
+      dueDate: string;
+      herinneringDagen: number;
+      templateKey: "invoice_payment_reminder";
+      templateVariables: {
+        customerName: string;
+        invoiceNumber: string;
+        totalAmount: string;
+        dueDate: string;
+        invoiceId: string;
+        invoiceUrl: string;
+      };
+    };
+
+function paymentReminderQueueContext(
+  item: QueueRow,
+): PaymentReminderQueueContext {
+  if (item.event_key !== "payment_reminder") {
+    return { kind: "not_applicable" };
+  }
+
+  const payload = toRecord(item.payload);
+  const invoiceId = payload["invoiceId"];
+  const invoiceNumber = payload["invoiceNumber"];
+  const dueDate = payload["dueDate"];
+  const herinneringDagen = payload["herinneringDagen"];
+  const templateVariables = toRecord(payload["templateVariables"]);
+  const customerName = templateVariables["customerName"];
+  const totalAmount = templateVariables["totalAmount"];
+  const invoiceUrl = templateVariables["invoiceUrl"];
+  if (
+    payload["fieldgridPurpose"] !== "invoice_payment_reminder" ||
+    payload["templateKey"] !== "invoice_payment_reminder" ||
+    item.channel !== "email" ||
+    item.recipient_type !== "customer" ||
+    typeof invoiceId !== "string" ||
+    !QUEUE_ID_RE.test(invoiceId) ||
+    !item.customer_id ||
+    !QUEUE_ID_RE.test(item.customer_id) ||
+    !item.recipient_email ||
+    typeof invoiceNumber !== "string" ||
+    invoiceNumber.length > 200 ||
+    typeof dueDate !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(dueDate) ||
+    typeof herinneringDagen !== "number" ||
+    !Number.isInteger(herinneringDagen) ||
+    herinneringDagen < 0 ||
+    herinneringDagen > 3650 ||
+    typeof customerName !== "string" ||
+    customerName.length > 500 ||
+    typeof totalAmount !== "string" ||
+    totalAmount.length > 100 ||
+    typeof invoiceUrl !== "string" ||
+    invoiceUrl.length > 2048 ||
+    templateVariables["invoiceId"] !== invoiceId ||
+    templateVariables["invoiceNumber"] !== invoiceNumber ||
+    templateVariables["dueDate"] !== dueDate
+  ) {
+    return { kind: "invalid" };
+  }
+
+  return {
+    kind: "valid",
+    invoiceId,
+    customerId: item.customer_id,
+    recipientEmail: item.recipient_email,
+    invoiceNumber: invoiceNumber.slice(0, 200),
+    dueDate,
+    herinneringDagen,
+    templateKey: "invoice_payment_reminder",
+    templateVariables: {
+      customerName,
+      invoiceNumber,
+      totalAmount,
+      dueDate,
+      invoiceId,
+      invoiceUrl,
+    },
+  };
 }
 
 function errorMessage(error: unknown): string {
@@ -379,6 +477,7 @@ async function claimQueueItems(
         q.max_attempts,
         q.rate_limit_key,
         q.delivery_key,
+        q.created_at,
         q.current_attempt_id
     `,
       [
@@ -607,6 +706,52 @@ async function completeQueueItem(
       throw new Error("notification_queue_finalization_not_owned");
     }
 
+    if (outcome.status === "sent") {
+      const paymentReminder = paymentReminderQueueContext(item);
+      if (paymentReminder.kind === "invalid") {
+        throw new Error("payment_reminder_finalization_payload_invalid");
+      }
+      if (paymentReminder.kind === "valid") {
+        const invoiceUpdate = await client.query(
+          `UPDATE invoices
+           SET last_reminder_sent_at = now(),
+               updated_at = now()
+           WHERE id = $1::uuid
+             AND tenant_id = $2::uuid
+             AND customer_id = $3::uuid
+             AND (
+               last_reminder_sent_at IS NULL
+               OR last_reminder_sent_at < $4::timestamptz
+             )`,
+          [
+            paymentReminder.invoiceId,
+            item.tenant_id,
+            paymentReminder.customerId,
+            item.created_at,
+          ],
+        );
+        await client.query(
+          `INSERT INTO audit_log (
+             tenant_id, user_id, action, resource, resource_id, metadata
+           ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb)`,
+          [
+            item.tenant_id,
+            SYSTEM_ACTOR_UUID,
+            "payment_reminder_sent",
+            "invoices",
+            paymentReminder.invoiceId,
+            JSON.stringify({
+              queueId: item.id,
+              invoiceNumber: paymentReminder.invoiceNumber,
+              dueDate: paymentReminder.dueDate,
+              herinneringDagen: paymentReminder.herinneringDagen,
+              invoiceTimestampUpdated: invoiceUpdate.rowCount === 1,
+            }),
+          ],
+        );
+      }
+    }
+
     if (item.dispatch_id && item.channel === "email") {
       const dispatchLock = await client.query(
         `SELECT id FROM notification_dispatches
@@ -644,9 +789,79 @@ async function completeQueueItem(
 
 type LifecycleDecision = { allowed: true } | { allowed: false; reason: string };
 
+async function checkPaymentReminderLifecycle(
+  item: QueueRow,
+): Promise<LifecycleDecision | null> {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "not_applicable") return null;
+  if (paymentReminder.kind === "invalid") {
+    return { allowed: false, reason: "payment_reminder_payload_invalid" };
+  }
+
+  const [source] = await db
+    .select({ id: invoicesTable.id })
+    .from(invoicesTable)
+    .innerJoin(
+      customersTable,
+      and(
+        eq(customersTable.id, invoicesTable.customerId),
+        eq(customersTable.tenantId, item.tenant_id),
+      ),
+    )
+    .leftJoin(
+      organizationSettingsTable,
+      eq(organizationSettingsTable.tenantId, item.tenant_id),
+    )
+    .where(
+      and(
+        eq(invoicesTable.id, paymentReminder.invoiceId),
+        eq(invoicesTable.tenantId, item.tenant_id),
+        eq(invoicesTable.customerId, paymentReminder.customerId),
+        eq(invoicesTable.status, "sent"),
+        eq(customersTable.isActive, true),
+        eq(customersTable.status, "active"),
+        sql`lower(${customersTable.contactEmail}) = lower(${paymentReminder.recipientEmail})`,
+        sql`coalesce(${organizationSettingsTable.notifBetalingHerinnering}, true)`,
+        lte(
+          invoicesTable.dueDate,
+          sql<string>`(
+            (current_timestamp at time zone 'Europe/Amsterdam')::date
+            - coalesce(${organizationSettingsTable.notifHerinneringDagen}, 7)
+          )`,
+        ),
+        or(
+          isNull(invoicesTable.lastReminderSentAt),
+          and(
+            lt(invoicesTable.lastReminderSentAt, item.created_at),
+            lt(
+              invoicesTable.lastReminderSentAt,
+              sql<Date>`current_timestamp - (
+                coalesce(${organizationSettingsTable.notifHerinneringDagen}, 7)
+                * interval '1 day'
+              )`,
+            ),
+          ),
+        ),
+      ),
+    )
+    .limit(1);
+  const financeEnabled = source
+    ? await isTenantModuleEnabled(item.tenant_id, "finance")
+    : false;
+
+  return source && financeEnabled
+    ? { allowed: true }
+    : { allowed: false, reason: "payment_reminder_source_ineligible" };
+}
+
 async function checkDeliveryLifecycle(
   item: QueueRow,
 ): Promise<LifecycleDecision> {
+  const paymentReminderLifecycle = await checkPaymentReminderLifecycle(item);
+  if (paymentReminderLifecycle && !paymentReminderLifecycle.allowed) {
+    return paymentReminderLifecycle;
+  }
+
   const managementRecipientUserId =
     item.recipient_type === "management" &&
     typeof item.payload?.["recipientUserId"] === "string" &&
@@ -889,7 +1104,20 @@ async function deliverEmailItem(
     );
   }
 
-  if (!item.subject || !item.html) {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "invalid") {
+    return failureOutcome(
+      item,
+      config,
+      false,
+      "Ongeldige betalingsherinnering-payload.",
+    );
+  }
+
+  if (
+    paymentReminder.kind === "not_applicable" &&
+    (!item.subject || !item.html)
+  ) {
     return failureOutcome(
       item,
       config,
@@ -898,14 +1126,23 @@ async function deliverEmailItem(
     );
   }
 
-  const result = await sendEmailWithResult({
-    to: item.recipient_email,
-    subject: item.subject,
-    html: item.html,
-    tenantId: item.tenant_id,
-    purpose: "notification_worker",
-    idempotencyKey: item.delivery_key,
-  });
+  const result =
+    paymentReminder.kind === "valid"
+      ? await sendTemplatedEmailWithResult({
+          to: item.recipient_email,
+          tenantId: item.tenant_id,
+          templateKey: paymentReminder.templateKey,
+          variables: paymentReminder.templateVariables,
+          idempotencyKey: item.delivery_key,
+        })
+      : await sendEmailWithResult({
+          to: item.recipient_email,
+          subject: item.subject!,
+          html: item.html!,
+          tenantId: item.tenant_id,
+          purpose: "notification_worker",
+          idempotencyKey: item.delivery_key,
+        });
 
   if (result.success) {
     return {
@@ -1391,7 +1628,7 @@ export async function retryFailedNotifications(options: {
         WHERE id = ANY($1::uuid[])
           AND channel IN ('email', 'push')
           AND (
-            status IN ('failed', 'partial')
+            status IN ('failed', 'skipped', 'partial')
             OR (status = 'outcome_pending' AND $3::boolean = true)
           )
         FOR UPDATE SKIP LOCKED

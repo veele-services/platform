@@ -5,17 +5,15 @@ import {
   db,
   invoicesTable,
   customersTable,
-  auditLogTable,
+  notificationDeliveryQueueTable,
   organizationSettingsTable,
 } from "@workspace/db";
-import { eq, and, lte, or, isNull, lt, sql } from "drizzle-orm";
+import { eq, and, inArray, lte, or, isNull, lt, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { sendEmailWithResult, buildPaymentReminderEmail } from "../lib/email";
+import { buildPaymentReminderEmail } from "../lib/email";
 import { requireJobTenantModule } from "../lib/module-guards";
 
 const router = Router();
-
-const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 
 function displayInvoiceNumber(
   value: string | null | undefined,
@@ -27,12 +25,13 @@ function displayInvoiceNumber(
 /**
  * POST /api/admin/payment-reminders
  *
- * Sends payment reminder emails for all invoices with status='sent' whose
+ * Queues payment reminder emails for all invoices with status='sent' whose
  * dueDate is at least N days in the past, where N is configured via
  * notif_herinnering_dagen in organization_settings (default: 7).
  *
- * Deduplication: invoices where last_reminder_sent_at is within the last
- * herinneringDagen days are skipped — preventing duplicate reminders per cycle.
+ * Deduplication: each invoice cycle gets one durable notification queue item.
+ * The worker records last_reminder_sent_at only after confirmed delivery, so a
+ * process exit cannot turn a delivery claim into a false sent timestamp.
  *
  * The notification can be disabled per tenant by setting
  * notif_betaling_herinnering = false in organization_settings.
@@ -66,11 +65,6 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       .select({
         id: invoicesTable.id,
         tenantId: invoicesTable.tenantId,
-        invoiceNumber: invoicesTable.invoiceNumber,
-        totalAmount: invoicesTable.totalAmount,
-        dueDate: invoicesTable.dueDate,
-        customerName: customersTable.name,
-        customerEmail: customersTable.contactEmail,
       })
       .from(invoicesTable)
       .leftJoin(
@@ -115,7 +109,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       "payment-reminders: openstaande facturen gevonden",
     );
 
-    let sent = 0;
+    let queued = 0;
     let skipped = 0;
     let moduleDisabled = 0;
 
@@ -136,24 +130,35 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         continue;
       }
 
-      if (!invoice.customerEmail) {
-        skipped++;
-        continue;
-      }
-
-      const claim = await db.transaction(async (tx) => {
+      const queueItem = await db.transaction(async (tx) => {
         const [currentInvoice] = await tx
-          .select({ lastReminderSentAt: invoicesTable.lastReminderSentAt })
+          .select({
+            invoiceNumber: invoicesTable.invoiceNumber,
+            totalAmount: invoicesTable.totalAmount,
+            dueDate: invoicesTable.dueDate,
+            lastReminderSentAt: invoicesTable.lastReminderSentAt,
+            customerId: customersTable.id,
+            customerName: customersTable.name,
+            customerEmail: customersTable.contactEmail,
+          })
           .from(invoicesTable)
+          .innerJoin(
+            customersTable,
+            and(
+              eq(invoicesTable.customerId, customersTable.id),
+              eq(customersTable.tenantId, invoiceTenantId),
+            ),
+          )
           .where(
             and(
               eq(invoicesTable.id, invoice.id),
               eq(invoicesTable.tenantId, invoiceTenantId),
+              eq(invoicesTable.status, "sent"),
             ),
           )
           .for("update")
           .limit(1);
-        if (!currentInvoice) return null;
+        if (!currentInvoice?.customerEmail) return null;
 
         const [settings] = await tx
           .select({
@@ -175,110 +180,105 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         const reminderCutoff = new Date(
           claimedAt.getTime() - herinneringDagen * 24 * 60 * 60 * 1_000,
         );
-        const [claimed] = await tx
-          .update(invoicesTable)
-          .set({ lastReminderSentAt: claimedAt })
-          .where(
-            and(
-              eq(invoicesTable.id, invoice.id),
-              eq(invoicesTable.tenantId, invoiceTenantId),
-              eq(invoicesTable.status, "sent"),
-              lte(invoicesTable.dueDate, dueCutoff),
-              or(
-                isNull(invoicesTable.lastReminderSentAt),
-                lt(invoicesTable.lastReminderSentAt, reminderCutoff),
-              ),
-            ),
-          )
-          .returning({
-            id: invoicesTable.id,
-            tenantId: invoicesTable.tenantId,
-          });
-        if (!claimed || claimed.tenantId !== invoiceTenantId) return null;
-
-        return {
-          claimedAt,
-          herinneringDagen,
-          previousReminderSentAt: currentInvoice.lastReminderSentAt,
-        };
-      });
-      if (!claim) {
-        skipped++;
-        continue;
-      }
-
-      const invoiceNumber = displayInvoiceNumber(
-        invoice.invoiceNumber,
-        invoice.id.slice(0, 8),
-      );
-      const { subject, html } = buildPaymentReminderEmail({
-        customerName: invoice.customerName ?? "",
-        invoiceNumber,
-        totalAmount: invoice.totalAmount ?? "0",
-        dueDate: invoice.dueDate,
-        invoiceId: invoice.id,
-      });
-
-      const emailResult = await sendEmailWithResult({
-        to: invoice.customerEmail,
-        subject,
-        html,
-        tenantId: invoiceTenantId,
-        purpose: "invoice_payment_reminder",
-        idempotencyKey: `payment-reminder:${invoiceTenantId}:${invoice.id}:${claim.previousReminderSentAt?.toISOString() ?? "initial"}`,
-      });
-
-      if (!emailResult.success) {
-        req.log.warn(
-          {
-            invoiceId: invoice.id,
-            tenantId: invoiceTenantId,
-            deliveryEffect: emailResult.deliveryEffect,
-          },
-          "payment-reminders: e-mailbezorging niet bevestigd",
-        );
-        if (emailResult.deliveryEffect === "not_attempted") {
-          const [released] = await db
-            .update(invoicesTable)
-            .set({ lastReminderSentAt: claim.previousReminderSentAt })
-            .where(
-              and(
-                eq(invoicesTable.id, invoice.id),
-                eq(invoicesTable.tenantId, invoiceTenantId),
-                eq(invoicesTable.status, "sent"),
-                eq(invoicesTable.lastReminderSentAt, claim.claimedAt),
-              ),
-            )
-            .returning({ id: invoicesTable.id });
-          if (!released) {
-            req.log.error(
-              { invoiceId: invoice.id, tenantId: invoiceTenantId },
-              "payment-reminders: niet-verzonden claim kon niet worden vrijgegeven",
-            );
-          }
+        if (currentInvoice.dueDate > dueCutoff) return null;
+        if (
+          currentInvoice.lastReminderSentAt &&
+          currentInvoice.lastReminderSentAt >= reminderCutoff
+        ) {
+          return null;
         }
+
+        const invoiceNumber = displayInvoiceNumber(
+          currentInvoice.invoiceNumber,
+          invoice.id.slice(0, 8),
+        );
+        const { subject, html, templateVariables } = buildPaymentReminderEmail({
+          customerName: currentInvoice.customerName ?? "",
+          invoiceNumber,
+          totalAmount: currentInvoice.totalAmount ?? "0",
+          dueDate: currentInvoice.dueDate,
+          invoiceId: invoice.id,
+        });
+        const cycleKey = `payment-reminder:${invoiceTenantId}:${invoice.id}:${currentInvoice.lastReminderSentAt?.getTime() ?? "initial"}`;
+        const [enqueued] = await tx
+          .insert(notificationDeliveryQueueTable)
+          .values({
+            tenantId: invoiceTenantId,
+            eventKey: "payment_reminder",
+            channel: "email",
+            recipientType: "customer",
+            customerId: currentInvoice.customerId,
+            recipientEmail: currentInvoice.customerEmail,
+            subject: subject.slice(0, 240),
+            title: subject.slice(0, 180),
+            html,
+            payload: {
+              fieldgridPurpose: "invoice_payment_reminder",
+              templateKey: "invoice_payment_reminder",
+              templateVariables,
+              invoiceId: invoice.id,
+              invoiceNumber,
+              dueDate: currentInvoice.dueDate,
+              herinneringDagen,
+            },
+            status: "pending",
+            idempotencyKey: cycleKey,
+            deliveryKey: cycleKey,
+          })
+          .onConflictDoUpdate({
+            target: notificationDeliveryQueueTable.idempotencyKey,
+            targetWhere: sql`${notificationDeliveryQueueTable.idempotencyKey} is not null`,
+            set: {
+              recipientType: "customer",
+              customerId: currentInvoice.customerId,
+              recipientEmail: currentInvoice.customerEmail,
+              subject: subject.slice(0, 240),
+              title: subject.slice(0, 180),
+              html,
+              payload: {
+                fieldgridPurpose: "invoice_payment_reminder",
+                templateKey: "invoice_payment_reminder",
+                templateVariables,
+                invoiceId: invoice.id,
+                invoiceNumber,
+                dueDate: currentInvoice.dueDate,
+                herinneringDagen,
+              },
+              status: "retry",
+              nextAttemptAt: claimedAt,
+              lockedAt: null,
+              lockedBy: null,
+              processingStartedAt: null,
+              deliveryStartedAt: null,
+              terminalAttemptId: null,
+              lastError: null,
+              errorDetails: {},
+              response: {},
+              maxAttempts: sql<number>`greatest(
+                ${notificationDeliveryQueueTable.maxAttempts},
+                ${notificationDeliveryQueueTable.attempts} + 5
+              )`,
+              updatedAt: claimedAt,
+            },
+            setWhere: inArray(notificationDeliveryQueueTable.status, [
+              "failed",
+              "skipped",
+            ]),
+          })
+          .returning({ id: notificationDeliveryQueueTable.id });
+
+        return enqueued ?? null;
+      });
+      if (!queueItem) {
         skipped++;
         continue;
       }
 
-      await db.insert(auditLogTable).values({
-        tenantId: invoiceTenantId,
-        userId: SYSTEM_ACTOR_UUID,
-        action: "payment_reminder_sent",
-        resource: "invoices",
-        resourceId: invoice.id,
-        metadata: {
-          invoiceNumber,
-          dueDate: invoice.dueDate,
-          herinneringDagen: claim.herinneringDagen,
-        },
-      });
-
-      sent++;
+      queued++;
     }
 
-    req.log.info({ sent, skipped, moduleDisabled }, "payment-reminders: klaar");
-    res.json({ ok: true, sent, skipped, moduleDisabled });
+    req.log.info({ queued, skipped, moduleDisabled }, "payment-reminders: klaar");
+    res.json({ ok: true, queued, skipped, moduleDisabled });
   } catch (err) {
     req.log.error({ err }, "payment-reminders: onverwachte fout");
     res.status(500).json({ error: "Interne fout" });

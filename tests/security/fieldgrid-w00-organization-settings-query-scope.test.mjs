@@ -72,6 +72,16 @@ const reviewedQueryInventory = new Map([
     ],
   ],
   [
+    "artifacts/api-server/src/lib/notification-worker.ts",
+    [
+      trusted(
+        "checkPaymentReminderLifecycle:organization_settings:leftJoin:1",
+        "tenantId=item.tenant_id",
+        "The durable worker rechecks payment-reminder settings against the queue item's persisted tenant immediately before provider delivery.",
+      ),
+    ],
+  ],
+  [
     "artifacts/api-server/src/routes/expired-quotes.ts",
     [
       trusted(
@@ -92,7 +102,7 @@ const reviewedQueryInventory = new Map([
       trusted(
         "<module>:organization_settings:from:1",
         "tenantId=invoiceTenantId",
-        "The exclusive invoice-row claim rechecks settings using the persisted invoice tenant.",
+        "The exclusive invoice-row transaction rechecks settings before creating the tenant-bound outbox item.",
       ),
     ],
   ],
@@ -439,16 +449,20 @@ const reviewedScopeDigests = new Map([
     "6b0e30261d93c950f507",
   ],
   [
+    "artifacts/api-server/src/lib/notification-worker.ts#checkPaymentReminderLifecycle:organization_settings:leftJoin:1",
+    "d25be7ecc9ce2c6cc7fb",
+  ],
+  [
     "artifacts/api-server/src/routes/expired-quotes.ts#<module>:organization_settings:leftJoin:1",
     "b674e9e1f9c3dcbb26b8",
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:leftJoin:1",
-    "2f6d7d7b4605816d6af2",
+    "ae1412d09ca5862c5364",
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:from:1",
-    "2f6d7d7b4605816d6af2",
+    "ae1412d09ca5862c5364",
   ],
   [
     "artifacts/backoffice/src/app/actions/knowledgebase.ts#getTenantKnowledgebaseAuthoringState:organization_settings:from:1",

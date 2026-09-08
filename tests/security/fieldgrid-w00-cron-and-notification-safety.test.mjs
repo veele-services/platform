@@ -56,7 +56,7 @@ test("expired quote cron claims the persisted quote tenant before mail", () => {
   );
 });
 
-test("payment reminder cron rechecks cutoff under an exclusive tenant claim", () => {
+test("payment reminder cron creates one tenant-bound durable outbox item per cycle", () => {
   const source = read("artifacts/api-server/src/routes/payment-reminders.ts");
 
   assert.match(source, /tenantId:\s+invoicesTable\.tenantId/u);
@@ -73,39 +73,45 @@ test("payment reminder cron rechecks cutoff under an exclusive tenant claim", ()
   );
   assert.match(
     source,
+    /eq\(invoicesTable\.customerId, customersTable\.id\)[\s\S]*eq\(customersTable\.tenantId, invoiceTenantId\)/u,
+  );
+  assert.match(
+    source,
     /eq\(organizationSettingsTable\.tenantId, invoiceTenantId\)[\s\S]*\.for\("share"\)/u,
   );
   assert.match(
     source,
-    /lte\(invoicesTable\.dueDate, dueCutoff\)[\s\S]*isNull\(invoicesTable\.lastReminderSentAt\)[\s\S]*lt\(invoicesTable\.lastReminderSentAt, reminderCutoff\)[\s\S]*\.returning\(\{/u,
+    /currentInvoice\.dueDate > dueCutoff[\s\S]*currentInvoice\.lastReminderSentAt >= reminderCutoff/u,
   );
   assert.match(
     source,
-    /if \(!claimed \|\| claimed\.tenantId !== invoiceTenantId\) return null/u,
+    /\.insert\(notificationDeliveryQueueTable\)[\s\S]*eventKey: "payment_reminder"[\s\S]*recipientType: "customer"[\s\S]*customerId: currentInvoice\.customerId/u,
   );
   assert.match(
     source,
-    /idempotencyKey: `payment-reminder:\$\{invoiceTenantId\}:\$\{invoice\.id\}:\$\{claim\.previousReminderSentAt\?\.toISOString\(\) \?\? "initial"\}`/u,
-  );
-  assert.doesNotMatch(
-    source,
-    /idempotencyKey:[^\n]*claim\.claimedAt/u,
-    "a released claim must reuse the same provider idempotency key on retry",
+    /fieldgridPurpose: "invoice_payment_reminder"[\s\S]*templateKey: "invoice_payment_reminder"[\s\S]*templateVariables[\s\S]*invoiceId: invoice\.id[\s\S]*herinneringDagen/u,
   );
   assert.match(
     source,
-    /deliveryEffect === "not_attempted"[\s\S]*eq\(invoicesTable\.lastReminderSentAt, claim\.claimedAt\)[\s\S]*\.returning\(\{ id: invoicesTable\.id \}\)/u,
+    /const cycleKey = `payment-reminder:\$\{invoiceTenantId\}:\$\{invoice\.id\}:\$\{currentInvoice\.lastReminderSentAt\?\.getTime\(\) \?\? "initial"\}`/u,
   );
   assert.match(
     source,
-    /tenantId:\s+invoiceTenantId,[\s\S]*action:\s+"payment_reminder_sent"/u,
+    /idempotencyKey: cycleKey,[\s\S]*deliveryKey: cycleKey/u,
   );
-  assert.match(source, /sent\+\+;/u);
+  assert.match(
+    source,
+    /\.onConflictDoUpdate\(\{[\s\S]*target: notificationDeliveryQueueTable\.idempotencyKey[\s\S]*targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`[\s\S]*status: "retry"[\s\S]*maxAttempts:[\s\S]*setWhere: inArray\(notificationDeliveryQueueTable\.status,[\s\S]*"failed"[\s\S]*"skipped"/u,
+  );
+  assert.match(source, /queued\+\+;/u);
+  assert.match(source, /res\.json\(\{ ok: true, queued, skipped, moduleDisabled \}\)/u);
+  assert.doesNotMatch(source, /sendEmailWithResult/u);
+  assert.doesNotMatch(source, /\.set\(\{ lastReminderSentAt:/u);
   assertOrdered(
     source,
-    ".set({ lastReminderSentAt: claimedAt })",
-    "sendEmailWithResult({",
-    "payment reminder claim",
+    '.for("update")',
+    ".insert(notificationDeliveryQueueTable)",
+    "payment reminder outbox enqueue",
   );
 });
 

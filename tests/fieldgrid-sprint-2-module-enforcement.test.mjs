@@ -168,7 +168,7 @@ test("finance background jobs skip tenants without the finance module", () => {
       "invoiceTenantId",
       "let moduleDisabled = 0;",
       "moduleDisabled++",
-      "res.json({ ok: true, sent, skipped, moduleDisabled });",
+      "res.json({ ok: true, queued, skipped, moduleDisabled });",
     ],
     paymentReminders,
   );
