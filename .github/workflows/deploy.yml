@@ -1,28 +1,40 @@
 name: Deploy VEELE
 
 on:
-  push:
-    branches:
-      - production
-      - staging
   workflow_dispatch:
+    inputs:
+      expected_staging_sha:
+        description: "Exact promoted staging SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "Type fieldgrid-staging-deploy-exact-sha"
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 concurrency:
-  group: veele-${{ github.ref_name }}
+  group: veele-staging
   cancel-in-progress: false
 
 jobs:
   deploy:
-    if: github.ref_name == 'production' || github.ref_name == 'staging'
+    # W00 is deliberately a staging-only partial rollout. Production remains
+    # frozen until a separate production principal, TLS and rollback package is
+    # reviewed and provisioned; do not run this candidate on the production ref.
     runs-on: [self-hosted, linux, x64, veele]
 
-    environment: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+    environment: staging
 
     env:
-      TARGET: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
-      TARGET_ENVIRONMENT: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
-      SERVICE_NAME: ${{ github.ref_name == 'production' && 'veele-production' || 'veele-staging' }}
-      BASE_DIR: /var/www/veele/${{ github.ref_name == 'production' && 'production' || 'staging' }}
+      TARGET: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
+      SERVICE_NAME: veele-staging
+      BASE_DIR: /var/www/veele/staging
 
       APP_ENV: ${{ vars.APP_ENV }}
       NODE_ENV: ${{ vars.NODE_ENV }}
@@ -32,32 +44,38 @@ jobs:
       BASE_PATH: ${{ vars.BASE_PATH }}
       SITE_URL: ${{ vars.SITE_URL || vars.APP_URL }}
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
-      NEXT_PUBLIC_MARKETING_SITE_URL: ${{ github.ref_name == 'staging' && vars.NEXT_PUBLIC_MARKETING_SITE_URL || '' }}
-      FIELDGRID_WEBSITE_FORM_ID: ${{ github.ref_name == 'staging' && vars.FIELDGRID_WEBSITE_FORM_ID || '' }}
+      NEXT_PUBLIC_MARKETING_SITE_URL: ${{ vars.NEXT_PUBLIC_MARKETING_SITE_URL }}
+      FIELDGRID_WEBSITE_FORM_ID: ${{ vars.FIELDGRID_WEBSITE_FORM_ID }}
       LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
 
       BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
       PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
       KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
       API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
-      WEBSITE_SERVICE_NAME: ${{ github.ref_name == 'staging' && vars.WEBSITE_SERVICE_NAME || '' }}
-      MARKETING_SERVICE_NAME: ${{ github.ref_name == 'staging' && vars.MARKETING_SERVICE_NAME || '' }}
+      WEBSITE_SERVICE_NAME: ${{ vars.WEBSITE_SERVICE_NAME }}
+      MARKETING_SERVICE_NAME: ${{ vars.MARKETING_SERVICE_NAME }}
 
       BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
       PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
       KLANT_PORT: ${{ vars.KLANT_PORT }}
       API_PORT: ${{ vars.API_PORT }}
-      WEBSITE_PORT: ${{ github.ref_name == 'staging' && vars.WEBSITE_PORT || '' }}
-      MARKETING_PORT: ${{ github.ref_name == 'staging' && vars.MARKETING_PORT || '' }}
-      FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON || '' }}
-      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_ROUTE_KEY || '' }}
-      FIELDGRID_CUSTOM_RELEASE_ID: ${{ github.ref_name == 'staging' && format('git-commit:{0}', github.sha) || '' }}
-      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ github.ref_name == 'staging' && vars.FIELDGRID_CUSTOM_EXPECTED_HOST || '' }}
+      WEBSITE_PORT: ${{ vars.WEBSITE_PORT }}
+      MARKETING_PORT: ${{ vars.MARKETING_PORT }}
+      FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
+      FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
+      FIELDGRID_CUSTOM_RELEASE_ID: ${{ format('git-commit:{0}', github.sha) }}
+      FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
+      FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED || 'false' }}
+      FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
       FIELDGRID_RECOVERY_ALLOWED_ORIGINS: ${{ vars.FIELDGRID_RECOVERY_ALLOWED_ORIGINS }}
-      EXPECTED_SUPABASE_PROJECT_REF: ${{ github.ref_name == 'staging' && 'olyfmekyqozxrbrwwszu' || vars.SUPABASE_PROJECT_REF }}
-      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ github.ref_name == 'production' && 'olyfmekyqozxrbrwwszu' || '' }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FORBIDDEN_SUPABASE_PROJECT_REF: ""
 
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -111,8 +129,106 @@ jobs:
       FCM_ANDROID_CHANNEL_ID: ${{ vars.FCM_ANDROID_CHANNEL_ID || secrets.FCM_ANDROID_CHANNEL_ID || 'veele_operations' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Verify exact staging dispatch before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/staging"
+          test "$GITHUB_REPOSITORY" = "veele-services/platform"
+          test "$DEPLOY_CONFIRMATION" = "fieldgrid-staging-deploy-exact-sha"
+          [[ "$EXPECTED_STAGING_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_STAGING_SHA"
+          read -r live_main live_staging < <(
+            node --input-type=module -e '
+              const expected = process.env.EXPECTED_STAGING_SHA ?? "";
+              if (!/^[0-9a-f]{40}$/u.test(expected)) {
+                throw new Error("Expected staging SHA is invalid");
+              }
+              const refs = await Promise.all(
+                ["main", "staging"].map(async (branch) => {
+                  const response = await fetch(
+                    `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+                    {
+                      headers: {
+                        Accept: "application/vnd.github+json",
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                      },
+                    },
+                  );
+                  if (!response.ok) {
+                    throw new Error(`${branch} ref lookup failed with HTTP ${response.status}`);
+                  }
+                  const sha = (await response.json()).object?.sha ?? "";
+                  if (!/^[0-9a-f]{40}$/u.test(sha)) {
+                    throw new Error(`${branch} ref lookup returned an invalid SHA`);
+                  }
+                  return sha;
+                }),
+              );
+              process.stdout.write(`${refs[0]} ${refs[1]}`);
+            '
+          )
+          test "$live_main" = "$EXPECTED_STAGING_SHA"
+          test "$live_staging" = "$EXPECTED_STAGING_SHA"
+
+      - name: Checkout exact staging candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable staging ref before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          checkout="$(git rev-parse HEAD)"
+          test "$checkout" = "$GITHUB_SHA"
+          test "$checkout" = "$EXPECTED_STAGING_SHA"
+          read -r live_main live_staging < <(
+            node --input-type=module -e '
+              const refs = await Promise.all(
+                ["main", "staging"].map(async (branch) => {
+                  const response = await fetch(
+                    `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+                    {
+                      headers: {
+                        Accept: "application/vnd.github+json",
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                      },
+                    },
+                  );
+                  if (!response.ok) {
+                    throw new Error(`${branch} ref lookup failed with HTTP ${response.status}`);
+                  }
+                  const sha = (await response.json()).object?.sha ?? "";
+                  if (!/^[0-9a-f]{40}$/u.test(sha)) {
+                    throw new Error(`${branch} ref lookup returned an invalid SHA`);
+                  }
+                  return sha;
+                }),
+              );
+              process.stdout.write(`${refs[0]} ${refs[1]}`);
+            '
+          )
+          test "$live_main" = "$EXPECTED_STAGING_SHA"
+          test "$live_staging" = "$EXPECTED_STAGING_SHA"
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
 
       - name: Check runtime
         run: |
@@ -162,6 +278,25 @@ jobs:
             exit 1
           fi
 
+          if [ "$FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED" != "true" ] && [ "$FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED" != "false" ]; then
+            echo "::error::FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED must be true or false."
+            exit 1
+          fi
+          if [ "$FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED" = "true" ]; then
+            if [ "$TARGET" != "staging" ]; then
+              echo "::error::Custom website health refresh is staging-only."
+              exit 1
+            fi
+            if ! [[ "$FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
+              echo "::error::FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID must be a UUID when custom website health refresh is enabled."
+              exit 1
+            fi
+            if [ -z "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON" ]; then
+              echo "::error::FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON is required when custom website health refresh is enabled."
+              exit 1
+            fi
+          fi
+
           if [ "$FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED" = "true" ] || [ "$FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED" = "true" ]; then
             for required_secret in FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION FIELDGRID_OBJECT_SECURITY_OTP_PEPPER; do
               if [ -z "${!required_secret:-}" ]; then
@@ -201,9 +336,12 @@ jobs:
           done
 
       - name: Validate environment isolation
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: >-
           node scripts/fieldgrid-environment-isolation-preflight.mjs
           --validate
+          --require-migration-database
 
       - name: Prepare release directory
         run: |
@@ -223,7 +361,17 @@ jobs:
             --exclude='.env' \
             ./ "$RELEASE/"
 
+          if [ "$TARGET" = "staging" ]; then
+            certificate_destination="$RELEASE/.fieldgrid/supabase-root-2021-ca.crt"
+          else
+            certificate_destination="$BASE_DIR/shared/supabase-root-2021-ca.crt"
+          fi
+          install -D -m 600 \
+            "$FIELDGRID_DATABASE_SSL_ROOT_CERT" \
+            "$certificate_destination"
+
           echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+          echo "FIELDGRID_DATABASE_SSL_ROOT_CERT=$certificate_destination" >> "$GITHUB_ENV"
 
       - name: Write staging release SHA marker
         if: env.TARGET == 'staging'
@@ -234,6 +382,13 @@ jobs:
       - name: Write environment file
         run: |
           set -euo pipefail
+
+          ENV_FILE="$BASE_DIR/shared/.env"
+          if [ "$TARGET" = "staging" ]; then
+            # Keep the candidate isolated until migrations and W00 pass. The
+            # activation helper publishes it together with the current symlink.
+            ENV_FILE="$RELEASE/.env"
+          fi
 
           {
             printf 'APP_ENV=%s\n' "$APP_ENV"
@@ -260,8 +415,15 @@ jobs:
             printf 'FIELDGRID_CUSTOM_ROUTE_KEY=%s\n' "$FIELDGRID_CUSTOM_ROUTE_KEY"
             printf 'FIELDGRID_CUSTOM_RELEASE_ID=%s\n' "$FIELDGRID_CUSTOM_RELEASE_ID"
             printf 'FIELDGRID_CUSTOM_EXPECTED_HOST=%s\n' "$FIELDGRID_CUSTOM_EXPECTED_HOST"
+            printf 'FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED=%s\n' "$FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED"
+            printf 'FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID=%s\n' "$FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID"
+            printf 'FIELDGRID_STAGING_DATABASE_POOLER_HOST=%s\n' "$FIELDGRID_STAGING_DATABASE_POOLER_HOST"
             printf 'FIELDGRID_RECOVERY_ALLOWED_ORIGINS=%s\n' "$FIELDGRID_RECOVERY_ALLOWED_ORIGINS"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'DB_SSL=%s\n' "$DB_SSL"
+            printf 'DB_SSL_REJECT_UNAUTHORIZED=%s\n' "$DB_SSL_REJECT_UNAUTHORIZED"
+            printf 'PGSSLMODE=%s\n' "$PGSSLMODE"
+            printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$FIELDGRID_DATABASE_SSL_ROOT_CERT"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
             printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
@@ -311,13 +473,15 @@ jobs:
             printf 'FCM_PRIVATE_KEY=%s\n' "$FCM_PRIVATE_KEY"
             printf 'FCM_SERVICE_ACCOUNT_JSON_BASE64=%s\n' "$FCM_SERVICE_ACCOUNT_JSON_BASE64"
             printf 'FCM_ANDROID_CHANNEL_ID=%s\n' "$FCM_ANDROID_CHANNEL_ID"
-          } > "$BASE_DIR/shared/.env"
+          } > "$ENV_FILE"
 
-          chmod 640 "$BASE_DIR/shared/.env"
-          chgrp veele-deploy "$BASE_DIR/shared/.env"
+          chmod 640 "$ENV_FILE"
+          chgrp veele-deploy "$ENV_FILE"
 
-          ln -sfn "$BASE_DIR/shared/.env" "$RELEASE/.env"
-          ln -sfn "$BASE_DIR/shared/.env" "$RELEASE/.env.production"
+          if [ "$TARGET" = "production" ]; then
+            ln -sfn "$BASE_DIR/shared/.env" "$RELEASE/.env"
+          fi
+          ln -sfn "$RELEASE/.env" "$RELEASE/.env.production"
 
       - name: Install dependencies
         working-directory: ${{ env.RELEASE }}
@@ -325,7 +489,9 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
-      - name: Validate Fieldgrid release signals
+      # This is deliberately contract-only after checkout. Runtime evidence is
+      # enforced by the controlled promotion and pre-activation paths.
+      - name: Validate Fieldgrid release contracts (static)
         working-directory: ${{ env.RELEASE }}
         run: |
           set -euo pipefail
@@ -341,6 +507,8 @@ jobs:
 
       - name: Run database migrations
         working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           pnpm run db:migrate
@@ -349,6 +517,7 @@ jobs:
         if: env.TARGET == 'staging'
         working-directory: ${{ env.RELEASE }}
         env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_SMTP_BACKFILL_CONFIRM: smtp-encrypted-at-rest-v1
         run: |
           set -euo pipefail
@@ -358,6 +527,7 @@ jobs:
         if: env.TARGET == 'staging' && env.FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED == 'true'
         working-directory: ${{ env.RELEASE }}
         env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM: object-security-encrypted-v1
         run: |
           set -euo pipefail
@@ -366,11 +536,15 @@ jobs:
       - name: Verify no plaintext object secrets remain
         if: env.TARGET == 'staging' && env.FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED == 'true'
         working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:object-security-legacy-backfill
       - name: Verify no plaintext SMTP credentials remain
         working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:smtp-credential-backfill
@@ -381,6 +555,82 @@ jobs:
         run: |
           set -euo pipefail
           pnpm fieldgrid:email-provider-readiness
+
+      - name: Verify migration-admin ownership before runtime principal cutover
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          # The existing W00 ownership proof describes the migration principal,
+          # not the zero-ownership application runtime principal. Keep this
+          # credential step-scoped and run any runtime-role provisioning/proof
+          # after this preflight. Never fall back to the admin URL at runtime.
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM: fieldgrid-w00-staging-principal-read-only-v1
+          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
+        run: |
+          set -euo pipefail
+          for required_name in \
+            FIELDGRID_MIGRATION_DATABASE_URL \
+            FIELDGRID_W00_STAGING_TENANT_A_HOST \
+            FIELDGRID_W00_STAGING_TENANT_A_ID \
+            FIELDGRID_W00_STAGING_TENANT_B_HOST \
+            FIELDGRID_W00_STAGING_TENANT_B_ID; do
+            test -n "${!required_name}"
+          done
+
+          FIELDGRID_W00_STAGING_DATABASE_URL="$FIELDGRID_MIGRATION_DATABASE_URL" \
+            pnpm --filter @workspace/db exec tsx \
+              ../../scripts/fieldgrid-w00-staging-principal-gate.mts --strict
+          node scripts/fieldgrid-staging-promotion-gate.mjs \
+            --strict-w00-principal \
+            --expected-deployed-sha "$GITHUB_SHA"
+
+      - name: Provision staging runtime database principal
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_RUNTIME_EXPECTED_SHA: ${{ github.sha }}
+          FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM: fieldgrid-w00-runtime-principal-staging-v1
+          NEXT_PUBLIC_SUPABASE_URL: https://olyfmekyqozxrbrwwszu.supabase.co
+        run: |
+          set -euo pipefail
+          for required_name in \
+            FIELDGRID_MIGRATION_DATABASE_URL \
+            FIELDGRID_RUNTIME_DATABASE_PASSWORD \
+            FIELDGRID_RUNTIME_DATABASE_URL \
+            FIELDGRID_RUNTIME_EXPECTED_SHA \
+            FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM \
+            FIELDGRID_STAGING_DATABASE_POOLER_HOST; do
+            test -n "${!required_name}"
+          done
+          test "$FIELDGRID_RUNTIME_EXPECTED_SHA" = "$GITHUB_SHA"
+          node scripts/fieldgrid-w00-runtime-principal.mjs --apply
+
+      - name: Verify least-privileged staging runtime principal
+        if: env.TARGET == 'staging'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_RUNTIME_EXPECTED_SHA: ${{ github.sha }}
+          FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM: fieldgrid-w00-runtime-principal-staging-v1
+          NEXT_PUBLIC_SUPABASE_URL: https://olyfmekyqozxrbrwwszu.supabase.co
+        run: |
+          set -euo pipefail
+          for required_name in \
+            FIELDGRID_RUNTIME_DATABASE_URL \
+            FIELDGRID_RUNTIME_EXPECTED_SHA \
+            FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM \
+            FIELDGRID_STAGING_DATABASE_POOLER_HOST; do
+            test -n "${!required_name}"
+          done
+          test "$FIELDGRID_RUNTIME_EXPECTED_SHA" = "$GITHUB_SHA"
+          node scripts/fieldgrid-w00-runtime-principal-gate.mjs --strict
 
       - name: Activate release
         if: env.TARGET == 'production'
@@ -428,6 +678,7 @@ jobs:
 
           chown -R github-runner:veele-deploy "$RELEASE"
           chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
+          chmod 600 "$RELEASE/.fieldgrid/supabase-root-2021-ca.crt"
 
           bash "$RELEASE/scripts/fieldgrid-atomic-release-activate.sh" \
             --environment "$TARGET" \
@@ -435,6 +686,9 @@ jobs:
             --release-path "$RELEASE" \
             --expected-sha "$GITHUB_SHA" \
             --migration-status success \
+            --prepared-env "$RELEASE/.env" \
+            --shared-env "$BASE_DIR/shared/.env" \
+            --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
             --evidence-file "$BASE_DIR/shared/atomic-activation-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
 
       - name: Run staging deploy health gate
@@ -468,6 +722,8 @@ jobs:
             --previous-release "${PREVIOUS_CURRENT:-}" \
             --rollback-on-failure \
             --restart-before-check \
+            --shared-env "$BASE_DIR/shared/.env" \
+            --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
             --evidence-file "$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
 
           echo "FIELDGRID_HEALTH_EVIDENCE=$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json" >> "$GITHUB_ENV"
@@ -485,6 +741,10 @@ jobs:
           else
             echo "No health evidence file found."
           fi
+          principal_evidence="$RELEASE/artifacts/runtime-safety-harness/reports/w00-staging-principal-gate.json"
+          if [ -f "$principal_evidence" ]; then
+            cp "$principal_evidence" "$GITHUB_WORKSPACE/fieldgrid-deploy-diagnostics/w00-staging-principal-gate.json"
+          fi
           if [ -L "$BASE_DIR/current" ]; then
             echo "Current symlink: $(readlink "$BASE_DIR/current")"
           else
@@ -493,7 +753,7 @@ jobs:
 
       - name: Upload staging deploy diagnostics
         if: always() && env.TARGET == 'staging'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fieldgrid-staging-deploy-diagnostics-${{ github.run_id }}
           path: fieldgrid-deploy-diagnostics/

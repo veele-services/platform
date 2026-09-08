@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,7 +49,7 @@ export const REQUIRED_REPORT_FIELDS = [
 ];
 
 function usage() {
-  return `Fieldgrid sprint 7 migration smoke\n\nUsage:\n  pnpm fieldgrid:sprint7-migration-smoke:check\n  pnpm fieldgrid:sprint7-migration-smoke --json\n  pnpm fieldgrid:sprint7-migration-smoke --run --target empty-database\n  pnpm fieldgrid:sprint7-migration-smoke --run --target staging-copy\n  pnpm fieldgrid:sprint7-migration-smoke --run --target all\n\nEnvironment:\n  FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL        Database URL for a disposable empty DB\n  FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL Database URL for a restored staging copy\n  FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM=empty-database\n  FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_CONFIRM=staging-copy\n\nSafety:\n  URLs must contain a safe marker such as empty, smoke, test, migration, copy or clone,\n  or the matching CONFIRM variable must be set. Use --allow-unsafe-url only for a\n  deliberately isolated CI database.\n`;
+  return `Fieldgrid sprint 7 migration smoke\n\nUsage:\n  pnpm fieldgrid:sprint7-migration-smoke:check\n  pnpm fieldgrid:sprint7-migration-smoke --json\n  pnpm fieldgrid:sprint7-migration-smoke --run --target empty-database\n  pnpm fieldgrid:sprint7-migration-smoke --run --target staging-copy\n  pnpm fieldgrid:sprint7-migration-smoke --run --target all\n    --expected-main SHA --expected-staging SHA\n\nEnvironment:\n  FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL        Database URL for a disposable empty DB\n  FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL Database URL for a restored staging copy\n  FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM=empty-database\n  FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_CONFIRM=staging-copy\n  FIELDGRID_MIGRATION_SMOKE_EXPECTED_MAIN_SHA          Optional exact candidate binding\n  FIELDGRID_MIGRATION_SMOKE_EXPECTED_STAGING_SHA       Optional exact rollback binding\n\nSafety:\n  URLs must contain a safe marker such as empty, smoke, test, migration, copy or clone,\n  or the matching CONFIRM variable must be set. Use --allow-unsafe-url only for a\n  deliberately isolated CI database.\n`;
 }
 
 export function parseArgs(argv = process.argv.slice(2)) {
@@ -60,8 +60,14 @@ export function parseArgs(argv = process.argv.slice(2)) {
     help: false,
     target: "all",
     outDir: join(repoRoot, "artifacts", "migration-smoke"),
-    timeoutMs: Number(process.env.FIELDGRID_MIGRATION_SMOKE_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS),
+    timeoutMs: Number(
+      process.env.FIELDGRID_MIGRATION_SMOKE_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS,
+    ),
     allowUnsafeUrl: false,
+    expectedMain:
+      process.env.FIELDGRID_MIGRATION_SMOKE_EXPECTED_MAIN_SHA?.trim() ?? "",
+    expectedStaging:
+      process.env.FIELDGRID_MIGRATION_SMOKE_EXPECTED_STAGING_SHA?.trim() ?? "",
     envFiles: {},
   };
 
@@ -97,6 +103,12 @@ export function parseArgs(argv = process.argv.slice(2)) {
       case "--allow-unsafe-url":
         options.allowUnsafeUrl = true;
         break;
+      case "--expected-main":
+        options.expectedMain = nextValue();
+        break;
+      case "--expected-staging":
+        options.expectedStaging = nextValue();
+        break;
       case "--empty-env-file":
         options.envFiles["empty-database"] = resolve(repoRoot, nextValue());
         break;
@@ -120,7 +132,8 @@ export function resolveTarget(value) {
 
   const normalized = value.toLowerCase();
   const target = MIGRATION_SMOKE_TARGETS.find(
-    (candidate) => candidate.id === normalized || candidate.aliases.includes(normalized),
+    (candidate) =>
+      candidate.id === normalized || candidate.aliases.includes(normalized),
   );
 
   if (!target) {
@@ -148,7 +161,10 @@ export function parseEnvFileContent(content) {
 
     const key = trimmed.slice(0, separator).trim();
     let value = trimmed.slice(separator + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
 
@@ -181,13 +197,20 @@ export function databaseUrlContainsSafeMarker(databaseUrl, target) {
   try {
     const parsed = new URL(databaseUrl);
     const searchable = `${parsed.hostname}/${parsed.pathname}`.toLowerCase();
-    return target.requiredUrlMarkers.some((marker) => searchable.includes(marker));
+    return target.requiredUrlMarkers.some((marker) =>
+      searchable.includes(marker),
+    );
   } catch {
     return false;
   }
 }
 
-export function classifyDatabaseUrlSafety(databaseUrl, target, env = process.env, allowUnsafeUrl = false) {
+export function classifyDatabaseUrlSafety(
+  databaseUrl,
+  target,
+  env = process.env,
+  allowUnsafeUrl = false,
+) {
   if (!databaseUrl) {
     return {
       safe: false,
@@ -202,10 +225,16 @@ export function classifyDatabaseUrlSafety(databaseUrl, target, env = process.env
       .map((value) => value.trim())
       .filter(Boolean),
   );
-  const isConfirmed = env[target.confirmVar] === target.id || confirmedTargets.has(target.id);
-  const isExplicitlyAllowed = allowUnsafeUrl || env.FIELDGRID_MIGRATION_SMOKE_ALLOW_UNSAFE_URL === "1";
+  const isConfirmed =
+    env[target.confirmVar] === target.id || confirmedTargets.has(target.id);
+  const isExplicitlyAllowed =
+    allowUnsafeUrl || env.FIELDGRID_MIGRATION_SMOKE_ALLOW_UNSAFE_URL === "1";
 
-  if (isExplicitlyAllowed || isConfirmed || databaseUrlContainsSafeMarker(databaseUrl, target)) {
+  if (
+    isExplicitlyAllowed ||
+    isConfirmed ||
+    databaseUrlContainsSafeMarker(databaseUrl, target)
+  ) {
     return { safe: true, readiness: "configured", reason: null };
   }
 
@@ -223,11 +252,17 @@ export function classifyDatabaseUrlSafety(databaseUrl, target, env = process.env
 export async function buildEnvForTarget(target, options = parseArgs([])) {
   const envFile = await readEnvFile(options.envFiles?.[target.id]);
   const env = { ...process.env, ...envFile };
+  const runtimeDatabaseUrl = env.DATABASE_URL || "";
   const databaseUrl = env[target.envVar] || env.DATABASE_URL || "";
 
   if (databaseUrl) {
     env[target.envVar] = databaseUrl;
-    env.DATABASE_URL = databaseUrl;
+    if (["staging", "production"].includes(env.APP_ENV)) {
+      env.DATABASE_URL = runtimeDatabaseUrl;
+      env.FIELDGRID_MIGRATION_DATABASE_URL = databaseUrl;
+    } else {
+      env.DATABASE_URL = databaseUrl;
+    }
   }
 
   env.DB_MIGRATION_SMOKE_TARGET = target.id;
@@ -251,7 +286,9 @@ export function parseMigrationOutput(stdout = "", stderr = "") {
     const skipped = line.match(/\[db:migrate\]\s+SQL skipped:\s+(.+)$/u);
     if (skipped) skippedMigrations.push(skipped[1].trim());
 
-    const compatibilitySkipped = line.match(/\[db:migrate\]\s+SQL compatibility skipped:\s+([^()]+)(?:\s+\((.+)\))?/u);
+    const compatibilitySkipped = line.match(
+      /\[db:migrate\]\s+SQL compatibility skipped:\s+([^()]+)(?:\s+\((.+)\))?/u,
+    );
     if (compatibilitySkipped) {
       compatibilitySkippedMigrations.push({
         name: compatibilitySkipped[1].trim(),
@@ -259,7 +296,9 @@ export function parseMigrationOutput(stdout = "", stderr = "") {
       });
     }
 
-    const unresolved = line.match(/unresolved(?: rows|_rows)?\s*[:=]\s*(\d+)/iu);
+    const unresolved = line.match(
+      /unresolved(?: rows|_rows)?\s*[:=]\s*(\d+)/iu,
+    );
     if (unresolved) unresolvedRows.push(Number(unresolved[1]));
 
     if (!failedStatement && /(^|\s)(error|fatal):/iu.test(line)) {
@@ -273,7 +312,8 @@ export function parseMigrationOutput(stdout = "", stderr = "") {
     compatibilitySkippedMigrations,
     unresolvedRows,
     failedStatement,
-    drizzleStarted: /\[db:migrate\]\s+Applying Drizzle generated migrations\./u.test(output),
+    drizzleStarted:
+      /\[db:migrate\]\s+Applying Drizzle generated migrations\./u.test(output),
     complete: /\[db:migrate\]\s+Complete\./u.test(output),
   };
 }
@@ -318,30 +358,45 @@ export function buildMigrationSmokePlan(env = process.env) {
   };
 }
 
-export function validateMigrationSmokeContract(plan = buildMigrationSmokePlan()) {
+export function validateMigrationSmokeContract(
+  plan = buildMigrationSmokePlan(),
+) {
   const errors = [];
   const targetIds = new Set(plan.targets.map((target) => target.id));
 
   for (const requiredTarget of ["empty-database", "staging-copy"]) {
-    if (!targetIds.has(requiredTarget)) errors.push(`${requiredTarget} target ontbreekt.`);
+    if (!targetIds.has(requiredTarget))
+      errors.push(`${requiredTarget} target ontbreekt.`);
   }
 
   for (const field of REQUIRED_REPORT_FIELDS) {
-    if (!plan.requiredReportFields.includes(field)) errors.push(`Rapportveld ${field} ontbreekt.`);
+    if (!plan.requiredReportFields.includes(field))
+      errors.push(`Rapportveld ${field} ontbreekt.`);
   }
 
   for (const target of plan.targets) {
     if (!target.envVar) errors.push(`${target.id} mist envVar.`);
     if (!target.confirmVar) errors.push(`${target.id} mist confirmVar.`);
-    if (!target.testIds?.some((testId) => testId === "FG-MIG-001" || testId === "FG-MIG-002")) {
+    if (
+      !target.testIds?.some(
+        (testId) => testId === "FG-MIG-001" || testId === "FG-MIG-002",
+      )
+    ) {
       errors.push(`${target.id} mist FG-MIG test-id.`);
     }
   }
 
-  if (plan.destructive) errors.push("Migration smoke mag niet destructief zijn.");
-  if (plan.mutatesStagingDirectly) errors.push("Migration smoke mag niet direct tegen staging schrijven.");
-  if (!plan.command.includes("@workspace/db") || !plan.command.includes("db:migrate")) {
-    errors.push("Migration smoke moet de bestaande db:migrate runner gebruiken.");
+  if (plan.destructive)
+    errors.push("Migration smoke mag niet destructief zijn.");
+  if (plan.mutatesStagingDirectly)
+    errors.push("Migration smoke mag niet direct tegen staging schrijven.");
+  if (
+    !plan.command.includes("@workspace/db") ||
+    !plan.command.includes("db:migrate")
+  ) {
+    errors.push(
+      "Migration smoke moet de bestaande db:migrate runner gebruiken.",
+    );
   }
 
   return errors;
@@ -352,16 +407,25 @@ function summarizeReport(results) {
 
   return {
     status: failed.length === 0 ? "pass" : "fail",
-    passedTargets: results.filter((result) => result.readiness === "pass").map((result) => result.target),
+    passedTargets: results
+      .filter((result) => result.readiness === "pass")
+      .map((result) => result.target),
     failedTargets: failed.map((result) => result.target),
-    appliedMigrations: results.reduce((total, result) => total + result.appliedMigrations.length, 0),
-    skippedMigrations: results.reduce((total, result) => total + result.skippedMigrations.length, 0),
+    appliedMigrations: results.reduce(
+      (total, result) => total + result.appliedMigrations.length,
+      0,
+    ),
+    skippedMigrations: results.reduce(
+      (total, result) => total + result.skippedMigrations.length,
+      0,
+    ),
     compatibilitySkippedMigrations: results.reduce(
       (total, result) => total + result.compatibilitySkippedMigrations.length,
       0,
     ),
     unresolvedRows: results.reduce(
-      (total, result) => total + result.unresolvedRows.reduce((sum, value) => sum + value, 0),
+      (total, result) =>
+        total + result.unresolvedRows.reduce((sum, value) => sum + value, 0),
       0,
     ),
   };
@@ -369,21 +433,32 @@ function summarizeReport(results) {
 
 export function formatMigrationSmokeResult(result) {
   const details = [];
-  if (result.exitCode !== null && result.exitCode !== undefined) details.push(`exit=${result.exitCode}`);
+  if (result.exitCode !== null && result.exitCode !== undefined)
+    details.push(`exit=${result.exitCode}`);
   if (result.timedOut) details.push("timed-out");
-  if (result.appliedMigrations?.length > 0) details.push(`applied=${result.appliedMigrations.length}`);
-  if (result.skippedMigrations?.length > 0) details.push(`skipped=${result.skippedMigrations.length}`);
+  if (result.appliedMigrations?.length > 0)
+    details.push(`applied=${result.appliedMigrations.length}`);
+  if (result.skippedMigrations?.length > 0)
+    details.push(`skipped=${result.skippedMigrations.length}`);
   if (result.compatibilitySkippedMigrations?.length > 0) {
-    details.push(`compatibility-skipped=${result.compatibilitySkippedMigrations.length}`);
+    details.push(
+      `compatibility-skipped=${result.compatibilitySkippedMigrations.length}`,
+    );
   }
 
   const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
-  const lines = [`[fieldgrid:migration-smoke] ${result.target}: ${result.readiness}${suffix}`];
+  const lines = [
+    `[fieldgrid:migration-smoke] ${result.target}: ${result.readiness}${suffix}`,
+  ];
 
   if (result.readiness !== "pass" && result.safetyReason) {
-    lines.push(`[fieldgrid:migration-smoke] ${result.target} reason: ${result.safetyReason}`);
+    lines.push(
+      `[fieldgrid:migration-smoke] ${result.target} reason: ${result.safetyReason}`,
+    );
   } else if (result.readiness !== "pass" && result.failedStatement) {
-    lines.push(`[fieldgrid:migration-smoke] ${result.target} failure: ${result.failedStatement}`);
+    lines.push(
+      `[fieldgrid:migration-smoke] ${result.target} failure: ${result.failedStatement}`,
+    );
   }
 
   return lines.join("\n");
@@ -425,7 +500,12 @@ async function runCommand(command, args, options) {
 
 export async function runMigrationSmokeTarget(target, options = parseArgs([])) {
   const { env, databaseUrl } = await buildEnvForTarget(target, options);
-  const safety = classifyDatabaseUrlSafety(databaseUrl, target, env, options.allowUnsafeUrl);
+  const safety = classifyDatabaseUrlSafety(
+    databaseUrl,
+    target,
+    env,
+    options.allowUnsafeUrl,
+  );
   const startedAt = new Date();
 
   if (!safety.safe) {
@@ -448,13 +528,20 @@ export async function runMigrationSmokeTarget(target, options = parseArgs([])) {
     };
   }
 
-  const result = await runCommand("pnpm", ["--filter", "@workspace/db", "run", "db:migrate"], {
-    env,
-    timeoutMs: options.timeoutMs,
-  });
+  const result = await runCommand(
+    "pnpm",
+    ["--filter", "@workspace/db", "run", "db:migrate"],
+    {
+      env,
+      timeoutMs: options.timeoutMs,
+    },
+  );
   const finishedAt = new Date();
   const parsed = parseMigrationOutput(result.stdout, result.stderr);
-  const readiness = result.exitCode === 0 && parsed.complete && !result.timedOut ? "pass" : "fail";
+  const readiness =
+    result.exitCode === 0 && parsed.complete && !result.timedOut
+      ? "pass"
+      : "fail";
 
   return {
     target: target.id,
@@ -472,6 +559,36 @@ export async function runMigrationSmokeTarget(target, options = parseArgs([])) {
 }
 
 export async function runMigrationSmoke(options = parseArgs([])) {
+  const hasExpectedRefs = Boolean(
+    options.expectedMain || options.expectedStaging,
+  );
+  let refs = null;
+  if (hasExpectedRefs) {
+    if (
+      !/^[0-9a-f]{40}$/u.test(options.expectedMain) ||
+      !/^[0-9a-f]{40}$/u.test(options.expectedStaging)
+    ) {
+      throw new Error(
+        "Migration smoke release binding requires exact main and staging SHAs.",
+      );
+    }
+    const checkoutResult = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const checkout = checkoutResult.stdout?.trim() ?? "";
+    if (checkoutResult.status !== 0 || checkout !== options.expectedMain) {
+      throw new Error(
+        "Migration smoke checkout does not match the exact expected main SHA.",
+      );
+    }
+    refs = {
+      main: options.expectedMain,
+      staging: options.expectedStaging,
+      checkout,
+    };
+  }
   const selectedTargets = targetsFor(options.target);
   const results = [];
 
@@ -485,6 +602,7 @@ export async function runMigrationSmoke(options = parseArgs([])) {
   const report = {
     version: SPRINT7_MIGRATION_SMOKE_VERSION,
     createdAt: new Date().toISOString(),
+    refs,
     command: "pnpm --filter @workspace/db run db:migrate",
     results,
     summary: summarizeReport(results),
@@ -509,7 +627,9 @@ function printPlan(plan) {
   console.log("");
   console.log("Targets:");
   for (const target of plan.targets) {
-    console.log(`- ${target.id}: ${target.readiness}${target.configured ? ` (${target.redactedDatabaseUrl})` : ""}`);
+    console.log(
+      `- ${target.id}: ${target.readiness}${target.configured ? ` (${target.redactedDatabaseUrl})` : ""}`,
+    );
     if (target.safetyReason) console.log(`  ${target.safetyReason}`);
   }
   console.log("");

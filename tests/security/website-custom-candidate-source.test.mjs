@@ -10,9 +10,7 @@ test("Veele custom health is exact, staging-only and fail-closed", () => {
   const health = read(
     "artifacts/marketing-website/lib/fieldgrid-custom-health.ts",
   );
-  const route = read(
-    "artifacts/marketing-website/app/api/health/route.ts",
-  );
+  const route = read("artifacts/marketing-website/app/api/health/route.ts");
 
   assert.match(health, /environment\.APP_ENV !== "staging"/u);
   assert.match(health, /\.staging\.fieldgrid\.nl/u);
@@ -36,9 +34,7 @@ test("Veele forms use only the durable Fieldgrid public endpoint", () => {
   const form = read(
     "artifacts/marketing-website/components/marketing/lead-form.tsx",
   );
-  const mapping = read(
-    "artifacts/marketing-website/lib/fieldgrid-forms.ts",
-  );
+  const mapping = read("artifacts/marketing-website/lib/fieldgrid-forms.ts");
   const sections = read(
     "artifacts/marketing-website/components/marketing/page-sections.tsx",
   );
@@ -48,10 +44,7 @@ test("Veele forms use only the durable Fieldgrid public endpoint", () => {
 
   assert.match(mapping, /\/api\/website-forms\/\$\{formId\}\/submissions/u);
   assert.match(mapping, /fetch\("\/fieldgrid-runtime\/form-config"/u);
-  assert.match(
-    configRoute,
-    /process\.env\.FIELDGRID_WEBSITE_FORM_ID/u,
-  );
+  assert.match(configRoute, /process\.env\.FIELDGRID_WEBSITE_FORM_ID/u);
   assert.match(form, /"Idempotency-Key": submissionId/u);
   assert.match(form, /buildFieldgridFormSubmission/u);
   assert.doesNotMatch(form, /\/api\/contact|\/api\/offerte/u);
@@ -72,14 +65,12 @@ test("custom candidate build identity is injected only for staging", () => {
   ]) {
     assert.match(
       deploy,
-      new RegExp(
-        `github\\.ref_name == 'staging' && vars\\.${variable}`,
-        "u",
-      ),
+      new RegExp(`${variable}: \\$\\{\\{ vars\\.${variable} \\}\\}`, "u"),
     );
   }
   assert.match(
     deploy,
-    /FIELDGRID_CUSTOM_RELEASE_ID: \$\{\{ github\.ref_name == 'staging' && format\('git-commit:\{0\}', github\.sha\)/u,
+    /FIELDGRID_CUSTOM_RELEASE_ID: \$\{\{ format\('git-commit:\{0\}', github\.sha\) \}\}/u,
   );
+  assert.match(deploy, /test "\$GITHUB_REF" = "refs\/heads\/staging"/u);
 });

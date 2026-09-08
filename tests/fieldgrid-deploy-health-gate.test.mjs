@@ -124,15 +124,20 @@ async function fixture(t) {
   const releases = join(base, "releases");
   const oldRelease = join(releases, "old");
   const newRelease = join(releases, "new");
+  const shared = join(base, "shared");
+  const rollbackEnv = join(shared, `.env.rollback-${expectedSha}`);
   const mockbin = join(root, "mockbin");
   await mkdir(oldRelease, { recursive: true });
   await mkdir(newRelease, { recursive: true });
+  await mkdir(shared, { recursive: true });
   await mkdir(mockbin, { recursive: true });
   await writeFile(join(oldRelease, ".fieldgrid-release-sha"), "old-sha\n");
   await writeFile(
     join(newRelease, ".fieldgrid-release-sha"),
     `${expectedSha}\n`,
   );
+  await writeFile(join(newRelease, ".env"), "RELEASE_ENV=new\n");
+  await writeFile(join(shared, ".env"), "RELEASE_ENV=old\n");
 
   const baseBash = await toBashPath(bash, base);
   const oldReleaseBash = await toBashPath(bash, oldRelease);
@@ -145,6 +150,7 @@ async function fixture(t) {
   );
   const healthEvidenceBash = await toBashPath(bash, join(root, "health.json"));
   const mockLogBash = await toBashPath(bash, join(root, "systemctl.log"));
+  const rollbackEnvBash = await toBashPath(bash, rollbackEnv);
   const symlinkResult = await run(
     bash,
     [
@@ -202,6 +208,7 @@ done
   await makeExecutable(
     join(mockbin, "curl"),
     `#!/usr/bin/env sh
+echo "curl $@" >> "$MOCK_LOG"
 url=""
 for arg in "$@"; do url="$arg"; done
 current="$(readlink "$MOCK_BASE/current" 2>/dev/null || true)"
@@ -237,13 +244,15 @@ esac
     SLEEP_BIN: sleepBin,
     SYSTEMCTL_SUDO: sudoBin,
     MOCK_LISTEN_PORTS: "3100 3200 3300 3400",
+    APP_URL: "https://staging.fieldgrid.nl",
+    BACKOFFICE_PORT: "3100",
     FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "1",
     FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: "0",
     FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS: "1",
     FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api",
     FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400",
     FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-      "local-backoffice|http://127.0.0.1:3100/login|login",
+      "local-backoffice|http://127.0.0.1:3100/admin/login|login",
       "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
       "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
       "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -295,6 +304,9 @@ esac
     oldReleaseBash,
     newRelease,
     newReleaseBash,
+    shared,
+    rollbackEnv,
+    rollbackEnvBash,
     commonEnv,
     activateArgs,
     healthArgs,
@@ -345,6 +357,159 @@ test("healthy activation switches current and passes the health gate", async (t)
       ?.status,
     "pass",
   );
+  const log = await readSystemctlLog(f.root);
+  assert.match(
+    log,
+    /^curl .*--header Host: staging\.fieldgrid\.nl --url http:\/\/127\.0\.0\.1:3100\/admin\/login$/m,
+  );
+  assert.doesNotMatch(log, /--header Host: 127\.0\.0\.1/u);
+});
+
+test("loopback Host routing rejects attacker-controlled and injected APP_URL values", async (t) => {
+  for (const appUrl of [
+    "https://attacker.example.test",
+    "https://staging.fieldgrid.nl.evil.example",
+    "https://staging.fieldgrid.nl\nHost: attacker.example.test",
+  ]) {
+    await t.test(appUrl.replaceAll("\n", "\\n"), async (subtest) => {
+      const f = await fixture(subtest);
+      await run(f.bash, f.activateArgs, { env: f.commonEnv });
+      const result = await run(f.bash, f.healthArgs, {
+        env: { ...f.commonEnv, APP_URL: appUrl },
+        allowFailure: true,
+      });
+      assert.notEqual(result.status, 0);
+      const logPath = join(f.root, "systemctl.log");
+      const log = existsSync(logPath) ? await readFile(logPath, "utf8") : "";
+      assert.doesNotMatch(log, /Host: attacker\.example\.test/u);
+      assert.doesNotMatch(log, /Host: staging\.fieldgrid\.nl\.evil/u);
+    });
+  }
+});
+
+test("staging activation publishes its prepared environment only with the release", async (t) => {
+  const f = await fixture(t);
+  const pairedActivation = [
+    ...f.activateArgs,
+    "--prepared-env",
+    `${f.newReleaseBash}/.env`,
+    "--shared-env",
+    `${f.baseBash}/shared/.env`,
+    "--rollback-env",
+    f.rollbackEnvBash,
+  ];
+
+  const rejected = await run(
+    f.bash,
+    [...pairedActivation, "--migration-status", "failed"],
+    { env: f.commonEnv, allowFailure: true },
+  );
+  assert.notEqual(rejected.status, 0);
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=old\n",
+  );
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+
+  await run(f.bash, pairedActivation, { env: f.commonEnv });
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=new\n",
+  );
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.newReleaseBash);
+  assert.equal(await readFile(f.rollbackEnv, "utf8"), "RELEASE_ENV=old\n");
+
+  await run(
+    f.bash,
+    [
+      ...f.healthArgs,
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
+    ],
+    { env: f.commonEnv },
+  );
+  assert.equal(existsSync(f.rollbackEnv), false);
+});
+
+test("activation evidence failure restores the prior release and group-readable environment", async (t) => {
+  const f = await fixture(t);
+  const evidenceParent = join(f.root, "activation-evidence-parent");
+  await writeFile(evidenceParent, "not-a-directory\n");
+  const invalidEvidencePath = await toBashPath(
+    f.bash,
+    join(evidenceParent, "activate.json"),
+  );
+  const pairedActivation = [
+    ...f.activateArgs.slice(0, -1),
+    invalidEvidencePath,
+    "--prepared-env",
+    `${f.newReleaseBash}/.env`,
+    "--shared-env",
+    `${f.baseBash}/shared/.env`,
+    "--rollback-env",
+    f.rollbackEnvBash,
+  ];
+
+  const result = await run(f.bash, pairedActivation, {
+    env: f.commonEnv,
+    allowFailure: true,
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=old\n",
+  );
+  assert.equal((await stat(join(f.shared, ".env"))).mode & 0o777, 0o640);
+  assert.equal(existsSync(f.rollbackEnv), false);
+
+  const activationSource = await readFile(activateScript, "utf8");
+  assert.ok(
+    activationSource.indexOf('ENV_PUBLISHED="true"') <
+      activationSource.indexOf('mv -f "$SHARED_ENV_TEMP" "$SHARED_ENV"'),
+    "rollback state must be armed before publishing the shared environment",
+  );
+  assert.ok(
+    activationSource.indexOf('write_evidence "pass"') <
+      activationSource.indexOf('ACTIVATION_COMMITTED="true"'),
+    "successful evidence must be durable before activation is committed",
+  );
+});
+
+test("first activation evidence failure removes the candidate environment and symlink", async (t) => {
+  const f = await fixture(t);
+  await rm(join(f.base, "current"), { force: true });
+  await rm(join(f.shared, ".env"), { force: true });
+  const evidenceParent = join(f.root, "first-activation-evidence-parent");
+  await writeFile(evidenceParent, "not-a-directory\n");
+  const invalidEvidencePath = await toBashPath(
+    f.bash,
+    join(evidenceParent, "activate.json"),
+  );
+
+  const result = await run(
+    f.bash,
+    [
+      ...f.activateArgs.slice(0, -1),
+      invalidEvidencePath,
+      "--prepared-env",
+      `${f.newReleaseBash}/.env`,
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
+    ],
+    { env: f.commonEnv, allowFailure: true },
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.equal(existsSync(join(f.base, "current")), false);
+  assert.equal(existsSync(join(f.shared, ".env")), false);
+  assert.equal(existsSync(f.rollbackEnv), false);
+  assert.equal(existsSync(`${f.rollbackEnv}.absent`), false);
 });
 
 test("one dead service fails health evidence", async (t) => {
@@ -412,7 +577,7 @@ test("local 5xx fails health evidence", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-backoffice|http://127.0.0.1:3100/admin/login|login",
         "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
         "local-customer|http://public-bad.example.test/klant/healthz|exact-200",
         "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -477,7 +642,7 @@ test("health gate requires exactly four services, ports, and local endpoints", a
       FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api extra",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-backoffice|http://127.0.0.1:3100/admin/login|login",
         "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
         "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
         "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -519,7 +684,7 @@ test("health gate accepts an explicitly configured fifth website runtime", async
       FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api website",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-backoffice|http://127.0.0.1:3100/admin/login|login",
         "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
         "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
         "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -612,7 +777,7 @@ test("health gate accepts independent website and marketing runtimes", async (t)
         "backoffice personeel klant api website marketing",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500 3600",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-backoffice|http://127.0.0.1:3100/admin/login|login",
         "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
         "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
         "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -671,7 +836,7 @@ test("staging restart uses the exact approved website and marketing service pair
         "backoffice personeel klant api website marketing",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500 3600",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-backoffice|http://127.0.0.1:3100/admin/login|login",
         "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
         "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
         "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
@@ -852,7 +1017,23 @@ test("API-root HTTP 200 is failure when the contract requires exact 404", async 
 
 test("rollback succeeds after a failed new release health check", async (t) => {
   const f = await fixture(t);
-  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await run(
+    f.bash,
+    [
+      ...f.activateArgs,
+      "--prepared-env",
+      `${f.newReleaseBash}/.env`,
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
+    ],
+    { env: f.commonEnv },
+  );
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=new\n",
+  );
 
   const result = await run(
     f.bash,
@@ -861,6 +1042,10 @@ test("rollback succeeds after a failed new release health check", async (t) => {
       "--previous-release",
       f.oldReleaseBash,
       "--rollback-on-failure",
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
     ],
     {
       env: {
@@ -878,6 +1063,11 @@ test("rollback succeeds after a failed new release health check", async (t) => {
 
   assert.notEqual(result.status, 0);
   assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=old\n",
+  );
+  assert.equal(existsSync(f.rollbackEnv), false);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.rollbackStatus, "pass");
   assert.equal(
@@ -886,6 +1076,74 @@ test("rollback succeeds after a failed new release health check", async (t) => {
   );
   assert.equal(
     evidence.checks.find((check) => check.name === "rollback:health")?.status,
+    "pass",
+  );
+});
+
+test("failed rollback symlink restores the candidate environment with group-readable mode", async (t) => {
+  const f = await fixture(t);
+  await run(
+    f.bash,
+    [
+      ...f.activateArgs,
+      "--prepared-env",
+      `${f.newReleaseBash}/.env`,
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
+    ],
+    { env: f.commonEnv },
+  );
+  const failingLn = join(f.root, "failing-ln");
+  await makeExecutable(failingLn, "#!/usr/bin/env sh\nexit 1\n");
+  const failingLnBash = await toBashPath(f.bash, failingLn);
+
+  const result = await run(
+    f.bash,
+    [
+      ...f.healthArgs,
+      "--previous-release",
+      f.oldReleaseBash,
+      "--rollback-on-failure",
+      "--shared-env",
+      `${f.baseBash}/shared/.env`,
+      "--rollback-env",
+      f.rollbackEnvBash,
+    ],
+    {
+      env: {
+        ...f.commonEnv,
+        ROLLBACK_LN_BIN: failingLnBash,
+        FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+          "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+        ].join("\n"),
+      },
+      allowFailure: true,
+    },
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.newReleaseBash);
+  assert.equal(
+    await readFile(join(f.shared, ".env"), "utf8"),
+    "RELEASE_ENV=new\n",
+  );
+  assert.equal((await stat(join(f.shared, ".env"))).mode & 0o777, 0o640);
+  assert.equal(existsSync(f.rollbackEnv), true);
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.rollbackStatus, "failed");
+  assert.equal(
+    evidence.checks.find((check) => check.name === "rollback:symlink")?.status,
+    "fail",
+  );
+  assert.equal(
+    evidence.checks.find(
+      (check) => check.name === "rollback:environment-recovery",
+    )?.status,
     "pass",
   );
 });

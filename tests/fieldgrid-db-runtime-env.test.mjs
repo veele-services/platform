@@ -3,151 +3,105 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 function read(path) {
-  return readFileSync(
-    new URL(`../${path}`, import.meta.url),
-    "utf8",
-  );
+  return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
 function assertContains(content, phrases, label) {
   for (const phrase of phrases) {
-    assert.ok(
-      content.includes(phrase),
-      `${label} should contain ${phrase}`,
-    );
+    assert.ok(content.includes(phrase), `${label} should contain ${phrase}`);
   }
 }
 
-test(
-  "db package and cli entrypoints load deployment env before DATABASE_URL",
-  () => {
-    const runtimeEnv = read(
-      "lib/db/src/runtime-env.ts",
-    );
+test("db package and cli entrypoints load deployment env before DATABASE_URL", () => {
+  const runtimeEnv = read("lib/db/src/runtime-env.ts");
 
-    const dbIndex = read(
-      "lib/db/src/index.ts",
-    );
+  const dbIndex = read("lib/db/src/index.ts");
 
-    const connection = read(
-      "lib/db/src/connection.ts",
-    );
+  const connection = read("lib/db/src/connection.ts");
 
-    const migrate = read(
-      "lib/db/src/migrate.ts",
-    );
+  const migrate = read("lib/db/src/migrate.ts");
 
-    const stagingSeed = read(
-      "lib/db/src/seed/staging-demo.ts",
-    );
+  const stagingSeed = read("lib/db/src/seed/staging-demo.ts");
 
-    const drizzleConfig = read(
-      "lib/db/drizzle.config.ts",
-    );
+  const drizzleConfig = read("lib/db/drizzle.config.ts");
 
-    assertContains(
-      runtimeEnv,
-      [
-        "ENV_FILE_NAMES",
-        "\".env\"",
-        "\".env.production\"",
-        "process.cwd()",
-        "fileURLToPath(import.meta.url)",
-        "if (!process.env[rawKey]) process.env[rawKey] = value",
-      ],
-      "db runtime env loader",
-    );
+  assertContains(
+    runtimeEnv,
+    [
+      "ENV_FILE_NAMES",
+      '".env"',
+      '".env.production"',
+      "process.cwd()",
+      "fileURLToPath(import.meta.url)",
+      "if (!process.env[rawKey]) process.env[rawKey] = value",
+    ],
+    "db runtime env loader",
+  );
 
-    assertContains(
-      dbIndex,
-      [
-        'export * from "./connection";',
-      ],
-      "db index",
-    );
+  assertContains(dbIndex, ['export * from "./connection";'], "db index");
 
-    assertContains(
-      connection,
-      [
-        'import { loadDbRuntimeEnv } from "./runtime-env";',
-        "loadDbRuntimeEnv();",
-        "DATABASE_URL",
-      ],
-      "db connection",
-    );
+  assertContains(
+    connection,
+    [
+      'import { loadDbRuntimeEnv } from "./runtime-env";',
+      "loadDbRuntimeEnv();",
+      "DATABASE_URL",
+    ],
+    "db connection",
+  );
 
+  assert.ok(
+    connection.indexOf("loadDbRuntimeEnv();") <
+      connection.indexOf("DATABASE_URL"),
+    "db connection should load runtime env before DATABASE_URL validation",
+  );
+  assertContains(
+    connection,
+    ['databaseConnectionConfig("runtime")', "new Pool"],
+    "db connection isolation guard",
+  );
+  assert.ok(
+    connection.indexOf('databaseConnectionConfig("runtime")') <
+      connection.indexOf("new Pool"),
+    "db connection should build the guarded runtime config before creating a pool",
+  );
+
+  for (const [label, content, guardedConfig] of [
+    ["migration runner", migrate, 'databaseConnectionConfig("migration")'],
+    ["staging seed", stagingSeed, 'databaseConnectionConfig("migration")'],
+    ["drizzle config", drizzleConfig, 'databaseConnectionConfig("migration")'],
+  ]) {
+    assertContains(content, ["loadDbRuntimeEnv();", guardedConfig], label);
     assert.ok(
-      connection.indexOf("loadDbRuntimeEnv();") <
-        connection.indexOf("DATABASE_URL"),
-      "db connection should load runtime env before DATABASE_URL validation",
+      content.indexOf("loadDbRuntimeEnv();") < content.indexOf(guardedConfig),
+      `${label} should load runtime env before building guarded database config`,
     );
-    assertContains(
-      connection,
-      [
-        "assertDatabaseEnvironmentIsolation();",
-        "new Pool",
-      ],
-      "db connection isolation guard",
-    );
-    assert.ok(
-      connection.indexOf("assertDatabaseEnvironmentIsolation();") <
-        connection.indexOf("new Pool"),
-      "db connection should verify environment identity before creating a pool",
-    );
+  }
+});
 
-    for (const [label, content] of [
-      ["migration runner", migrate],
-      ["staging seed", stagingSeed],
-      ["drizzle config", drizzleConfig],
-    ]) {
-      assertContains(
-        content,
-        [
-          "loadDbRuntimeEnv();",
-          "DATABASE_URL",
-          "assertDatabaseEnvironmentIsolation();",
-        ],
-        label,
-      );
-    }
-  },
-);
+test("migration runner installs legacy updated-at helper before SQL migrations", () => {
+  const migrate = read("lib/db/src/migrate.ts");
 
-test(
-  "migration runner installs legacy updated-at helper before SQL migrations",
-  () => {
-    const migrate = read(
-      "lib/db/src/migrate.ts",
-    );
+  assertContains(
+    migrate,
+    [
+      "const legacySqlPrerequisites",
+      "to_regprocedure('public.set_updated_at()') IS NULL",
+      "CREATE FUNCTION public.set_updated_at()",
+      "RETURNS trigger",
+      "NEW.updated_at = now();",
+      "async function ensureLegacySqlPrerequisites",
+      "await ensureLegacySqlPrerequisites(client);",
+      "await runSqlMigrations(client, sqlMigrations);",
+    ],
+    "migration runner legacy SQL prerequisites",
+  );
 
-    assertContains(
-      migrate,
-      [
-        "const legacySqlPrerequisites",
-        "to_regprocedure('public.set_updated_at()') IS NULL",
-        "CREATE FUNCTION public.set_updated_at()",
-        "RETURNS trigger",
-        "NEW.updated_at = now();",
-        "async function ensureLegacySqlPrerequisites",
-        "await ensureLegacySqlPrerequisites(client);",
-        "await runSqlMigrations(client, sqlMigrations);",
-      ],
-      "migration runner legacy SQL prerequisites",
-    );
+  assert.ok(
+    migrate.indexOf("await ensureLegacySqlPrerequisites(client);") <
+      migrate.indexOf("await runSqlMigrations(client, sqlMigrations);"),
+    "legacy SQL prerequisites should run before hand-written SQL migrations",
+  );
 
-    assert.ok(
-      migrate.indexOf(
-        "await ensureLegacySqlPrerequisites(client);",
-      ) <
-        migrate.indexOf(
-          "await runSqlMigrations(client, sqlMigrations);",
-        ),
-      "legacy SQL prerequisites should run before hand-written SQL migrations",
-    );
-
-    assert.doesNotMatch(
-      migrate,
-      /SECURITY\s+DEFINER/iu,
-    );
-  },
-);
+  assert.doesNotMatch(migrate, /SECURITY\s+DEFINER/iu);
+});

@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const workflowPath = ".github/workflows/main-exact-head-validation.yml";
 const workflow = readFileSync(workflowPath, "utf8").replaceAll("\r\n", "\n");
+const CHECKOUT_SHA = "11d5960a326750d5838078e36cf38b85af677262";
 
 test("exact-head validation preserves PR coverage and adds main push and dispatch", () => {
   assert.match(workflow, /pull_request:\n\s+branches:\n\s+- main/u);
@@ -25,7 +26,10 @@ test("exact-head validation is the sole Playwright orchestration workflow", () =
 });
 
 test("every validation group checks out and proves the immutable event validation SHA", () => {
-  const checkoutGroups = workflow.match(/uses: actions\/checkout@v4/gu) ?? [];
+  const checkoutGroups =
+    workflow.match(
+      new RegExp(`uses: actions/checkout@${CHECKOUT_SHA}`, "gu"),
+    ) ?? [];
   const explicitRefs =
     workflow.match(/ref: \$\{\{ env\.FIELDGRID_VALIDATION_SHA \}\}/gu) ?? [];
   const headProofs = workflow.match(/git rev-parse HEAD/gu) ?? [];
@@ -55,6 +59,7 @@ test("exact-head validation includes every authoritative gate", () => {
     "pnpm fieldgrid:test:postgres17-migration-smoke",
     "pnpm fieldgrid:test:db-integration-tenant-ab",
     "pnpm fieldgrid:test:rls-security",
+    "node scripts/fieldgrid-w00-db-acl-hardening-runtime.mjs",
     "pnpm fieldgrid:test:api-runtime",
     "pnpm fieldgrid:test:phase-b-previous-release-database-compatibility",
     "pnpm fieldgrid:test:credential-recovery-runtime",

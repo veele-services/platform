@@ -10,12 +10,13 @@ Sprint 7 maakt migraties aantoonbaar veiliger voordat staging geraakt wordt. Elk
 - een lege database;
 - een staging-copy database.
 
-De runner gebruikt de bestaande `@workspace/db` migratierunner en schrijft een machineleesbaar JSON-rapport. De runner maakt zelf geen database aan, dropt niets en raakt staging niet direct. De database moet vooraf door CI/ops als lege database of staging-copy zijn ingericht.
+De generieke runner gebruikt de bestaande `@workspace/db` migratierunner en schrijft een machineleesbaar JSON-rapport. De zelf-contained CI-harness maakt daarnaast een tijdelijk, lokaal PostgreSQL 17-cluster met Supabase-compatibiliteit aan. Geen van beide workflows erft of leest een live database-URL.
 
 ## Geleverde onderdelen
 
 - `scripts/fieldgrid-migration-order-check.mjs`: CI-check voor migratievolgorde, legacy dubbele prefixes en timestamp-cutover.
 - `scripts/fieldgrid-sprint7-migration-smoke.mjs`: runner en rapportagecontract.
+- `scripts/fieldgrid-local-migration-smoke.mjs`: zelf-contained lokale PostgreSQL 17-harness die beide targets in een run bewijst.
 - `.github/workflows/fieldgrid-migration-smoke.yml`: handmatige workflow voor lege DB en staging-copy smoke.
 - `tests/fieldgrid-sprint-7-migration-smoke.test.mjs`: guardtests voor targets, safety, parser, workflow, PR-template en package scripts.
 - `package.json`: scripts voor validatie en uitvoering.
@@ -67,6 +68,20 @@ Beide targets:
 pnpm fieldgrid:sprint7-migration-smoke --run --target all
 ```
 
+Zelf-contained lokaal of in CI, zonder externe database-URL's:
+
+```bash
+scripts/fieldgrid-setup-postgresql17.sh
+node scripts/fieldgrid-local-migration-smoke.mjs --run --out artifacts/migration-smoke
+```
+
+Deze harness maakt twee databases in hetzelfde tijdelijke cluster:
+
+- `empty-database`: een applicatie-lege database met uitsluitend de minimale Supabase-compatibiliteitsshims;
+- `staging-copy`: een deterministische lokale compatibility-fixture. Dit is geen backup van live staging.
+
+De Phase 2E-preflight gebruikt dezelfde dual-target runner, maar vult `staging-copy` met de werkelijk gemaakte, geisoleerde restore van staging. Alleen die Phase 2E-run geldt als releasebewijs voor de actuele staginginhoud.
+
 ## Veiligheidsregels
 
 De runner blokkeert onduidelijke database-URL's standaard. Een URL wordt alleen gebruikt wanneer:
@@ -102,12 +117,9 @@ Het rapport bevat minimaal:
 
 ## GitHub Actions workflow
 
-De workflow `Fieldgrid Migration Smoke` is handmatig (`workflow_dispatch`) en gebruikt secrets:
+De workflow `Fieldgrid Migration Smoke` is handmatig (`workflow_dispatch`) en volledig zelf-contained. Zij installeert de checksum-gepinde PostgreSQL 17-runtime, valideert migratievolgorde en smokecontract, en draait altijd beide lokale targets. Er zijn geen database-, Supabase- of staging-secrets nodig.
 
-- `FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL`
-- `FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL`
-
-De workflow valideert eerst migratievolgorde/naming, daarna het smokecontract en draait daarna de gevraagde target. Het JSON-rapport wordt als artifact geupload.
+Een run schrijft exact een `sprint-7-migration-smoke-v1`-rapport met precies `empty-database` en `staging-copy`. Het rapport wordt als artifact geupload. Omdat de lokale `staging-copy` een compatibility-fixture is, vervangt deze workflow niet de echte backup/restore-proef in Phase 2E.
 
 ## PR-contract voor migraties
 
@@ -125,8 +137,8 @@ Minimum voor migratie-PR's:
 ```bash
 pnpm fieldgrid:migration-order-check:check
 pnpm fieldgrid:sprint7-migration-smoke:check
-pnpm fieldgrid:sprint7-migration-smoke --run --target empty-database
-pnpm fieldgrid:sprint7-migration-smoke --run --target staging-copy
+scripts/fieldgrid-setup-postgresql17.sh
+node scripts/fieldgrid-local-migration-smoke.mjs --run --out artifacts/migration-smoke
 ```
 
 ## Migratievolgorde en naming
@@ -137,7 +149,7 @@ Nieuwe migraties gebruiken een timestamp-prefix na `20260618201212`. Bekende leg
 
 ## Stagingcontinuiteit
 
-Deze sprint is runner/docs/test-only. Er wordt geen database gemigreerd, geen schema aangepast en geen runtimegedrag gewijzigd.
+De standalone workflow migreert uitsluitend tijdelijke lokale databases. Er wordt geen database gemigreerd buiten die lokale harness en er wordt geen runtimegedrag gewijzigd.
 
 Latere migraties blijven additive-first. `NOT NULL`, constraint validation en cleanup mogen pas na geslaagde staging-copy smoke en expliciet unresolved-row rapport.
 
@@ -148,7 +160,7 @@ Nog open voor latere sprints:
 - Sprint 8 gebruikt deze runner voor tenant-id hardening en constraint validation.
 - Sprint 9 gebruikt deze runner voor storagebackfill en path-hardening.
 - Sprint 15 toont migration-smoke run history in het staging smoke dashboard.
-- De runner maakt zelf geen databasekopie; backup/restore blijft onder het operations playbook vallen.
+- De standalone harness maakt geen echte stagingkopie; backup/restore en het actuele staging-copy bewijs blijven onderdeel van Phase 2E.
 
 ## Acceptatie
 

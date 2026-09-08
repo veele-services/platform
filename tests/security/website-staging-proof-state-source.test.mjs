@@ -1,0 +1,174 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const read = (path) => readFileSync(path, "utf8");
+
+test("health refresh capability is private, exact and transition-only", () => {
+  const migration = read(
+    "lib/db/migrations/20260909121000_custom_website_health_refresh.sql",
+  );
+  const service = read("lib/db/src/website-custom-health-refresh-service.ts");
+
+  assert.match(
+    migration,
+    /FUNCTION app_private\.fieldgrid_claim_custom_website_health_refresh/u,
+  );
+  assert.match(
+    migration,
+    /FUNCTION app_private\.fieldgrid_record_custom_website_health_refresh/u,
+  );
+  assert.doesNotMatch(
+    migration,
+    /FUNCTION public\.fieldgrid_(?:claim|record)_custom_website_health_refresh/u,
+  );
+  assert.equal(
+    (migration.match(/SET search_path TO pg_catalog$/gmu) ?? []).length,
+    2,
+  );
+  assert.match(
+    migration,
+    /FROM PUBLIC, anon, authenticated, service_role,[\s\S]*fieldgrid_runtime_app, fieldgrid_runtime_data/u,
+  );
+  assert.match(migration, /TO fieldgrid_runtime_data/u);
+  assert.match(
+    migration,
+    /source_migration[\s\S]*20260909121000_custom_website_health_refresh\.sql/u,
+  );
+  assert.match(migration, /v_previous_checked_at IS NOT NULL/u);
+  assert.match(migration, /FOR UPDATE OF deployment SKIP LOCKED/u);
+  assert.match(
+    migration,
+    /deployment\.last_checked_at <= p_attempt_started_at/u,
+  );
+  assert.match(
+    service,
+    /FROM app_private\.fieldgrid_claim_custom_website_health_refresh/u,
+  );
+  assert.match(
+    service,
+    /FROM app_private\.fieldgrid_record_custom_website_health_refresh/u,
+  );
+});
+
+test("background refresher is bounded, non-overlapping and SSRF-safe", () => {
+  const checker = read("lib/db/src/website-custom-health.ts");
+  const refresher = read(
+    "artifacts/api-server/src/lib/custom-website-health-refresher.ts",
+  );
+
+  assert.match(checker, /AbortController/u);
+  assert.match(checker, /customWebsiteOriginAddressesArePublic/u);
+  assert.match(checker, /rejectUnauthorized: true/u);
+  assert.match(checker, /servername: origin\.hostname/u);
+  assert.match(checker, /lookup\(_hostname, _lookupOptions, callback\)/u);
+  assert.match(checker, /CUSTOM_WEBSITE_HEALTH_RESPONSE_MAX_BYTES = 32_768/u);
+  assert.match(
+    refresher,
+    /CUSTOM_WEBSITE_HEALTH_REFRESH_INTERVAL_MS = 60_000/u,
+  );
+  assert.match(refresher, /CUSTOM_WEBSITE_HEALTH_REFRESH_CONCURRENCY = 10/u);
+  assert.match(refresher, /CUSTOM_WEBSITE_HEALTH_REFRESH_MAX_BATCHES = 4/u);
+  assert.match(refresher, /currentRun/u);
+  assert.match(
+    read("lib/db/src/website-custom-health-refresh-service.ts"),
+    /pg_try_advisory_lock/u,
+  );
+});
+
+test("core staging deploy persists the exact health refresh and pooler bindings", () => {
+  const deploy = read(".github/workflows/deploy.yml");
+
+  assert.match(
+    deploy,
+    /FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED: \$\{\{ vars\.FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED \|\| 'false' \}\}/u,
+  );
+  assert.match(
+    deploy,
+    /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: \$\{\{ secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID \}\}/u,
+  );
+  assert.match(
+    deploy,
+    /FIELDGRID_STAGING_DATABASE_POOLER_HOST: \$\{\{ vars\.FIELDGRID_STAGING_DATABASE_POOLER_HOST \}\}/u,
+  );
+  assert.match(deploy, /test "\$GITHUB_REF" = "refs\/heads\/staging"/u);
+  for (const name of [
+    "FIELDGRID_CUSTOM_WEBSITE_HEALTH_REFRESH_ENABLED",
+    "FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID",
+    "FIELDGRID_STAGING_DATABASE_POOLER_HOST",
+  ]) {
+    assert.match(deploy, new RegExp(`printf '${name}=%s\\\\n'`, "u"));
+  }
+  assert.match(
+    deploy,
+    /FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM \\\n+            FIELDGRID_STAGING_DATABASE_POOLER_HOST; do/u,
+  );
+});
+
+test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
+  const script = read("scripts/fieldgrid-website-staging-proof-state.mts");
+  const workflow = read(".github/workflows/website-staging-proof-state.yml");
+  const operations = read("docs/website-module-enterprise-activation.md");
+
+  assert.match(script, /managed-proof\.staging\.fieldgrid\.nl/u);
+  assert.doesNotMatch(script, /["'`]managed\.staging\.fieldgrid\.nl/u);
+  assert.doesNotMatch(operations, /managed\.staging\.fieldgrid\.nl/u);
+  assert.match(script, /reader\.read\(\)/u);
+  assert.match(script, /await reader\.cancel\(\)/u);
+  assert.match(script, /\.fieldgrid-release-sha/u);
+  assert.match(
+    script,
+    /options\.mode !== "prepare-managed" && !UUID_PATTERN\.test\(actor\)/u,
+  );
+  assert.match(script, /if \(result\.rows\.length !== 1\)/u);
+  assert.match(workflow, /prepare-managed/u);
+  assert.match(workflow, /complete-custom/u);
+  assert.match(workflow, /sleep 370/u);
+  assert.match(workflow, /retention-days: 1/u);
+  assert.match(
+    workflow,
+    /secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID/u,
+  );
+  assert.match(
+    workflow,
+    /Prepare managed proof with migration-admin connection[\s\S]*secrets\.DATABASE_URL/u,
+  );
+  assert.match(
+    workflow,
+    /Complete, verify or rollback with runtime connection[\s\S]*secrets\.FIELDGRID_RUNTIME_DATABASE_URL/u,
+  );
+  const runtimeStep = workflow.slice(
+    workflow.indexOf(
+      "- name: Complete, verify or rollback with runtime connection",
+    ),
+    workflow.indexOf(
+      "- name: Prove durable custom health after six-minute soak",
+    ),
+  );
+  assert.doesNotMatch(runtimeStep, /secrets\.DATABASE_URL/u);
+  assert.doesNotMatch(runtimeStep, /FIELDGRID_MIGRATION_DATABASE_URL/u);
+  assert.match(workflow, /scripts\/fieldgrid-database-root-cert\.mjs/u);
+  assert.match(workflow, /DB_SSL_REJECT_UNAUTHORIZED: "true"/u);
+  assert.match(workflow, /PGSSLMODE: verify-full/u);
+  assert.match(
+    workflow,
+    /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/u,
+  );
+  assert.equal(
+    (
+      workflow.match(
+        /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu,
+      ) ?? []
+    ).length,
+    2,
+  );
+  assert.doesNotMatch(workflow, /uses:\s+[^\s#]+@v\d+/u);
+  assert.match(
+    workflow,
+    /EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu/u,
+  );
+  assert.match(
+    workflow,
+    /NEXT_PUBLIC_SUPABASE_URL: \$\{\{ secrets\.NEXT_PUBLIC_SUPABASE_URL \}\}/u,
+  );
+});

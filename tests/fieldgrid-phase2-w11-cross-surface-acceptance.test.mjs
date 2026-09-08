@@ -77,10 +77,7 @@ test("offline browser evidence uses stable reporter metadata instead of a title 
     collector,
     /playwright\('9\. Offline work-order mutation survives refresh and converges after reconnect'\)/u,
   );
-  assert.match(
-    journeyResolver,
-    /journeyIds = extractPlaywrightJourneyIds/u,
-  );
+  assert.match(journeyResolver, /journeyIds = extractPlaywrightJourneyIds/u);
   assert.match(finalizer, /exactGitHead/u);
   assert.match(journeyResolver, /Expected exactly one Playwright journey/u);
   assert.doesNotMatch(journeyResolver, /endsWith/u);
@@ -130,7 +127,10 @@ test("authoritative exact-head workflow collects runtime sources and uploads onl
   assert.match(workflow, /artifacts\/fieldgrid-phase2-runtime\/\*\*/u);
   assert.match(workflow, /FIELDGRID_EXACT_HEAD/u);
   assert.doesNotMatch(workflow, /artifacts\/fieldgrid-phase2-w11/u);
-  assert.match(workflow, /actions\/download-artifact@v4/u);
+  assert.match(
+    workflow,
+    /actions\/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4\.3\.0/u,
+  );
   assert.match(workflow, /lane: credential-recovery-runtime/u);
   assert.match(workflow, /lane: phase2d-runtime-journeys/u);
 });

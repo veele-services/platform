@@ -431,6 +431,8 @@ function isPublicIpv6Address(value: string): boolean {
   const isUnspecified = words.every((word) => word === 0);
   const isLoopback =
     words.slice(0, 7).every((word) => word === 0) && words[7] === 1;
+  const isIpv4Mapped =
+    words.slice(0, 5).every((word) => word === 0) && words[5] === 0xffff;
   const hasEmbeddedIpv4 = value.includes(".");
   if (hasEmbeddedIpv4) {
     const ipv4 = `${words[6]! >> 8}.${words[6]! & 255}.${words[7]! >> 8}.${words[7]! & 255}`;
@@ -439,8 +441,9 @@ function isPublicIpv6Address(value: string): boolean {
   if (
     isUnspecified ||
     isLoopback ||
+    isIpv4Mapped ||
     (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
-    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfeff) ||
     firstHextet >= 0xff00 ||
     (words[0] === 0x2001 && words[1] === 0x0db8)
   ) {

@@ -19,15 +19,44 @@ test("database mutations are manual and staging-only", () => {
   assert.match(workflow, /environment:\s*staging/u);
   assert.match(workflow, /TARGET_ENVIRONMENT:\s*staging/u);
   assert.match(workflow, /APP_ENV:\s*staging/u);
-  assert.match(workflow, /EXPECTED_SUPABASE_PROJECT_REF:\s*olyfmekyqozxrbrwwszu/u);
-  assert.match(workflow, /DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u);
-  assert.match(workflow, /NEXT_PUBLIC_SUPABASE_URL:\s*\$\{\{\s*secrets\.NEXT_PUBLIC_SUPABASE_URL\s*\}\}/u);
+  assert.match(
+    workflow,
+    /EXPECTED_SUPABASE_PROJECT_REF:\s*olyfmekyqozxrbrwwszu/u,
+  );
+  assert.match(
+    workflow,
+    /DATABASE_URL:\s*\$\{\{\s*secrets\.FIELDGRID_RUNTIME_DATABASE_URL\s*\}\}/u,
+  );
+  assert.match(
+    workflow,
+    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
+  );
+  assert.match(
+    workflow,
+    /NEXT_PUBLIC_SUPABASE_URL:\s*\$\{\{\s*secrets\.NEXT_PUBLIC_SUPABASE_URL\s*\}\}/u,
+  );
+  assert.match(workflow, /--require-migration-database/u);
+  assert.match(workflow, /DB_SSL_REJECT_UNAUTHORIZED:\s*["']?true/u);
+  assert.match(workflow, /PGSSLMODE:\s*verify-full/u);
   assert.match(workflow, /pnpm run db:migrate/u);
   assert.match(workflow, /group:\s*veele-staging/u);
-  assert.doesNotMatch(workflow, /FIELDGRID_MIGRATION_SMOKE_(EMPTY|STAGING_COPY)_DATABASE_URL/u);
+  assert.doesNotMatch(
+    workflow,
+    /FIELDGRID_MIGRATION_SMOKE_(EMPTY|STAGING_COPY)_DATABASE_URL/u,
+  );
   assert.doesNotMatch(workflow, /\bmain\b/u);
 
-  assert.match(deployWorkflow, /branches:\s*\r?\n(?:\s+- [^\r\n]+\r?\n)*\s+- staging/u);
+  const migrationRunner = read("lib/db/src/migrate.ts");
+  assert.match(migrationRunner, /databaseConnectionConfig\("migration"\)/u);
+  assert.doesNotMatch(
+    migrationRunner,
+    /FIELDGRID_MIGRATION_DATABASE_URL\s*\?\?\s*process\.env\.DATABASE_URL/u,
+  );
+
+  assert.match(deployWorkflow, /workflow_dispatch:/u);
+  assert.doesNotMatch(deployWorkflow, /\n\s*push:/u);
+  assert.match(deployWorkflow, /environment:\s*staging/u);
+  assert.match(deployWorkflow, /GITHUB_REF" = "refs\/heads\/staging/u);
   assert.doesNotMatch(deployWorkflow, /\s+- main(?:\r?\n|$)/u);
 
   assert.match(docs, /`main` is the canonical source branch/u);

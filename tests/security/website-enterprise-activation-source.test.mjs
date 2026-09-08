@@ -26,17 +26,20 @@ test("enterprise website operations are platform-only and exact-state guarded", 
 
 test("custom health probing resists SSRF and records no private response data", () => {
   const service = read("lib/db/src/website-enterprise-activation-service.ts");
+  const health = read("lib/db/src/website-custom-health.ts");
   const proxy = read("artifacts/website-runtime/src/lib/custom-proxy.ts");
   const migration = read(
     "lib/db/migrations/20260721290000_website_enterprise_activation.sql",
   );
 
-  assert.match(service, /from "node:dns\/promises"/u);
-  assert.match(service, /customWebsiteOriginAddressesArePublic/u);
-  assert.match(service, /rejectUnauthorized: true/u);
-  assert.match(service, /body\.length > 32_768/u);
-  assert.match(service, /request\.setTimeout\(8_000/u);
+  assert.match(service, /requestCustomWebsiteHealthEvidence/u);
+  assert.match(health, /from "node:dns\/promises"/u);
+  assert.match(health, /customWebsiteOriginAddressesArePublic/u);
+  assert.match(health, /rejectUnauthorized: true/u);
+  assert.match(health, /CUSTOM_WEBSITE_HEALTH_RESPONSE_MAX_BYTES = 32_768/u);
+  assert.match(health, /CUSTOM_WEBSITE_HEALTH_REQUEST_TIMEOUT_MS = 8_000/u);
   assert.doesNotMatch(service, /console\.(?:log|error|warn)/u);
+  assert.doesNotMatch(health, /console\.(?:log|error|warn)/u);
   assert.match(proxy, /FORWARDED_REQUEST_HEADERS/u);
   assert.match(proxy, /const forwarded = new Headers\(\)/u);
   assert.match(
@@ -117,16 +120,17 @@ test("runtime and deployment controls are staging-only and production-safe", () 
   );
   assert.match(
     deploy,
-    /github\.ref_name == 'staging' && vars\.WEBSITE_SERVICE_NAME/u,
+    /WEBSITE_SERVICE_NAME: \$\{\{ vars\.WEBSITE_SERVICE_NAME \}\}/u,
   );
   assert.match(
     deploy,
-    /github\.ref_name == 'staging' && vars\.MARKETING_SERVICE_NAME/u,
+    /MARKETING_SERVICE_NAME: \$\{\{ vars\.MARKETING_SERVICE_NAME \}\}/u,
   );
   assert.match(
     deploy,
-    /github\.ref_name == 'staging' && vars\.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON/u,
+    /FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: \$\{\{ vars\.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON \}\}/u,
   );
+  assert.match(deploy, /test "\$GITHUB_REF" = "refs\/heads\/staging"/u);
   assert.match(acceptance, /productionChanged: false/u);
   assert.match(acceptance, /deploymentPerformed: false/u);
   assert.match(acceptance, /secretsRecorded: false/u);
