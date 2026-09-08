@@ -85,8 +85,8 @@ test("tenant-aware mail callsites pass tenant context into the provider service"
   const reports = read("artifacts/backoffice/src/app/actions/reports.ts");
   const availability = read("artifacts/backoffice/src/app/actions/availability.ts");
 
-  assert.match(paymentReminders, /tenantId:\s*invoice\.customerTenantId/u);
-  assert.match(expiredQuotes, /tenantId:\s*q\.customerTenantId/u);
+  assert.match(paymentReminders, /tenantId:\s*invoiceTenantId/u);
+  assert.match(expiredQuotes, /tenantId:\s*quoteTenantId/u);
   assert.match(worker, /tenantId:\s*item\.tenant_id/u);
   assert.match(invoices, /purpose:\s*"invoice_available"/u);
   assert.match(invoices, /purpose:\s*"invoice_payment_reminder"/u);

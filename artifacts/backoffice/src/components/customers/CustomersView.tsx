@@ -70,6 +70,7 @@ interface CustomersViewProps {
   customerTypes: CustomerTypeOption[];
   accountManagers: AccountManagerOption[];
   canWrite: boolean;
+  canDelete: boolean;
   canWriteNotes: boolean;
   page: number;
   initialSearch: string;
@@ -92,6 +93,7 @@ export function CustomersView({
   customerTypes,
   accountManagers,
   canWrite,
+  canDelete,
   canWriteNotes,
   page,
   initialSearch,
@@ -470,16 +472,17 @@ export function CustomersView({
                   separatorBefore: true,
                   onSelect: () => handleStatusToggle(row.id, row.isActive),
                 },
-                {
-                  id: "delete",
-                  label: "Verwijderen",
-                  icon: <Trash2 className="h-4 w-4" />,
-                  destructive: true,
-                  separatorBefore: true,
-                  onSelect: () =>
-                    setDeleteTarget({ id: row.id, name: row.name }),
-                },
               ]
+            : []),
+          ...(canDelete
+            ? [{
+                id: "delete",
+                label: "Verwijderen",
+                icon: <Trash2 className="h-4 w-4" />,
+                destructive: true,
+                separatorBefore: true,
+                onSelect: () => setDeleteTarget({ id: row.id, name: row.name }),
+              }]
             : []),
         ]}
       />

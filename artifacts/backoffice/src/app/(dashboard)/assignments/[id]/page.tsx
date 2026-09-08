@@ -1026,6 +1026,7 @@ export default async function AssignmentDetailPage({
     canWriteQuotes,
     canReadDocuments,
     canWriteDocuments,
+    canDeleteDocuments,
     canReadPlanning,
     canWritePlanning,
     canReadSecurity,
@@ -1041,6 +1042,7 @@ export default async function AssignmentDetailPage({
     hasPermission("quotes", "write"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("documents", "delete"),
     hasPermission("planning", "read"),
     hasPermission("planning", "write"),
     hasPermission("object_security", "read"),
@@ -1780,6 +1782,7 @@ export default async function AssignmentDetailPage({
             assignmentId={assignment.id}
             initialDocuments={assignmentDocuments}
             canWrite={canWriteDocuments}
+            canDelete={canDeleteDocuments}
           />
         </div>
       )}

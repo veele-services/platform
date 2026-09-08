@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm prototype source snapshot",
+  "commit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
+  "tree": "f151330872f0cd224f197a89fb04c9091235bc8f",
+  "commitDate": "2026-09-03T03:01:48+02:00",
+  "commitSubject": "Redesign five premium responsive backoffice concepts",
+  "archive": {
+    "file": "fieldgrid-backoffice-lab-098d3ce41da66851675fe467eb9747ebff5bd4ae.tar.gz",
+    "format": "tar.gz",
+    "sha256": "23532b430d87b5996c4c93e7e17f4d5876aa27d3feeac80e831addedf9baf9eb",
+    "bytes": 258513,
+    "trackedFiles": 99,
+    "trackedBytes": 1351451,
+    "rootDirectory": "fieldgrid-backoffice-lab-098d3ce"
+  },
+  "canonicalFiles": {
+    "component": "app/fieldgrid-design-lab.tsx",
+    "stylesheet": "app/globals.css",
+    "lockfile": "package-lock.json",
+    "package": "package.json"
+  },
+  "reproduction": {
+    "runFrom": "repository root",
+    "extractDirectory": "outputs/fieldflow-calm/prototype-source",
+    "extractCommands": [
+      "mkdir -p outputs/fieldflow-calm/prototype-source",
+      "tar -xzf docs/uiux/fieldflow-calm-handoff/evidence/prototype/fieldgrid-backoffice-lab-098d3ce41da66851675fe467eb9747ebff5bd4ae.tar.gz -C outputs/fieldflow-calm/prototype-source"
+    ],
+    "projectDirectory": "outputs/fieldflow-calm/prototype-source/fieldgrid-backoffice-lab-098d3ce",
+    "install": "npm ci",
+    "build": "npm run build",
+    "test": "npm test",
+    "rule": "Use the embedded archive as source authority. A remote clone is optional and may never be required for W00 reproduction."
+  },
+  "recordedRemoteForAuditOnly": "https://git.chatgpt-team.site/80c71cc3-21a8-462a-b5f3-4bd080a1405b/appgprj_6a9898b03208819184e24f65f11768c0.git"
+}

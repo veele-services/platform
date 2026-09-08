@@ -1,0 +1,102 @@
+/*
+ * Fieldflow Calm canonical visual-fixture tokens.
+ *
+ * Generated contractually from theme-derivation.json fixture `default`,
+ * expectedSemanticOutputSha256
+ * 5ef0276d8b38db6a1d7e47404f8b37562ad06e410d54f345f0819c43a6493b84.
+ * W00 injects this after the pinned prototype styles and before
+ * reference-normalization.css. Production implements the semantic values
+ * directly and never loads this capture-only bridge.
+ */
+
+body[data-concept="fieldflow"] {
+  --ff-root-background: #f5f7f6;
+  --ff-canvas: #f3f7f5;
+  --ff-surface: #ffffff;
+  --ff-surface-subtle: #f7faf8;
+  --ff-surface-elevated: #ffffff;
+  --ff-foreground: #123532;
+  --ff-text: #113b37;
+  --ff-text-muted: #5d716e;
+  --ff-muted-surface: #eef2f0;
+  --ff-primary: #07554e;
+  --ff-primary-hover: #064b45;
+  --ff-primary-pressed: #05413b;
+  --ff-primary-soft: #e6eeed;
+  --ff-primary-soft-hover: #d7e4e3;
+  --ff-text-on-primary: #ffffff;
+  --ff-text-on-primary-hover: #ffffff;
+  --ff-text-on-primary-pressed: #ffffff;
+  --ff-secondary-strong: #173b37;
+  --ff-secondary-soft: #eef3f1;
+  --ff-text-on-secondary: #173b37;
+  --ff-accent-strong: #15996e;
+  --ff-accent-hover: #128761;
+  --ff-accent-pressed: #107454;
+  --ff-accent-soft: #dff4e9;
+  --ff-text-on-accent: #081d3a;
+  --ff-text-on-accent-hover: #ffffff;
+  --ff-text-on-accent-pressed: #ffffff;
+  --ff-text-on-accent-soft: #084a43;
+  --ff-selection: #dff4e9;
+  --ff-selection-hover: #d5ede5;
+  --ff-selection-border: #15996e;
+  --ff-selection-hover-border: #15976d;
+  --ff-text-on-selection: #084a43;
+  --ff-border-subtle: #dce6e2;
+  --ff-line: #dce7e3;
+  --ff-border-control: #7a918c;
+  --ff-focus-ring: #169b73;
+  --ff-focus-ring-offset: #ffffff;
+  --ff-sidebar-bg-start: #074b46;
+  --ff-sidebar-bg-mid: #063a37;
+  --ff-sidebar-bg-end: #052e2d;
+  --ff-sidebar-text: #e9faf5;
+  --ff-sidebar-muted: #a6c5bf;
+  --ff-sidebar-active-bg: #d9f6e8;
+  --ff-sidebar-active-hover: #d9f6e8;
+  --ff-sidebar-active-text: #083f35;
+  --ff-sidebar-active-hover-text: #083f35;
+  --ff-sidebar-active-indicator: #25b77f;
+  --ff-sidebar-active-indicator-hover: #25b77f;
+  --ff-native-status-bar-background: #f3f7f5;
+  --ff-native-safe-area-background: #f3f7f5;
+  --ff-font-body: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  --ff-font-heading:
+    "Aptos Display", "Segoe UI Variable Display", "Segoe UI", sans-serif;
+
+  /* Bridge only the variables consumed by the immutable prototype. */
+  --background: var(--ff-root-background);
+  --foreground: var(--ff-foreground);
+  --card: var(--ff-surface);
+  --card-foreground: var(--ff-foreground);
+  --popover: var(--ff-surface-elevated);
+  --popover-foreground: var(--ff-foreground);
+  --primary: var(--ff-primary);
+  --primary-foreground: var(--ff-text-on-primary);
+  --secondary: var(--ff-secondary-soft);
+  --secondary-foreground: var(--ff-text-on-secondary);
+  --muted: var(--ff-muted-surface);
+  --muted-foreground: var(--ff-text-muted);
+  --accent: var(--ff-accent-soft);
+  --accent-foreground: var(--ff-text-on-accent-soft);
+  --border: var(--ff-border-subtle);
+  --input: var(--ff-border-control);
+  --ring: var(--ff-focus-ring);
+  --app-bg: var(--ff-canvas);
+  --panel: var(--ff-surface);
+  --panel-2: var(--ff-surface-subtle);
+  --text: var(--ff-text);
+  --muted-text: var(--ff-text-muted);
+  --line: var(--ff-line);
+  --accent-color: var(--ff-accent-strong);
+  --accent-contrast: var(--ff-text-on-accent);
+  --nav-bg: var(--ff-sidebar-bg-start);
+  --nav-text: var(--ff-sidebar-text);
+  --nav-muted: var(--ff-sidebar-muted);
+  --nav-active: var(--ff-sidebar-active-indicator);
+  --sidebar-bg: var(--ff-sidebar-bg-start);
+  --sidebar-text: var(--ff-sidebar-text);
+  --font-body: var(--ff-font-body);
+  --font-display: var(--ff-font-heading);
+}

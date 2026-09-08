@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { listAuditLog, listRoles } from "@/app/actions/settings";
+import { listAuditLog } from "@/app/actions/settings";
+import { listTenantRoles } from "@/app/actions/tenant-roles";
 import { ActiviteitslogView } from "@/components/settings/ActiviteitslogView";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 
@@ -33,7 +34,7 @@ export default async function ActiviteitslogPage({ searchParams }: Props) {
 
   const [{ entries, total }, roles] = await Promise.all([
     listAuditLog({ page, search, module, dateFrom, dateTo, roleId }),
-    listRoles().catch(() => []),
+    listTenantRoles().catch(() => []),
   ]);
 
   return (

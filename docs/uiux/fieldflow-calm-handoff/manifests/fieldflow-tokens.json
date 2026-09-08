@@ -1,0 +1,750 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm",
+  "status": "approved",
+  "prototype": {
+    "sourceManifest": "evidence/prototype/source-manifest.json",
+    "embeddedArchive": "evidence/prototype/fieldgrid-backoffice-lab-098d3ce41da66851675fe467eb9747ebff5bd4ae.tar.gz",
+    "commit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
+    "url": "https://fieldgrid-backoffice-lab.famgoldenbelt.chatgpt.site",
+    "variant": "fieldflow",
+    "canonicalViewport": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "canonicalVisualFixture": {
+    "id": "fieldflow-calm-ci-v1",
+    "scope": "visual-ci-only",
+    "rawBrandThemeSha256": "9ca02c8def0805d87b21681edc909c2fc209793224e4c2568e75cf3a1e4d48e1",
+    "rawBrandTheme": {
+      "brandName": "Fieldgrid",
+      "platformName": "Fieldgrid",
+      "logoUrl": null,
+      "logoStoragePath": null,
+      "faviconUrl": null,
+      "faviconStoragePath": null,
+      "splashUrl": null,
+      "splashStoragePath": null,
+      "primaryColor": "#07554E",
+      "secondaryColor": "#173B37",
+      "accentColor": "#15996E",
+      "backgroundColor": "#F5F7F6",
+      "surfaceColor": "#FFFFFF",
+      "textColor": "#123532",
+      "mutedColor": "#5D716E",
+      "sidebarBackgroundColor": "#074B46",
+      "sidebarTextColor": "#E9FAF5",
+      "sidebarAccentColor": "#169A6C",
+      "fontFamily": "system",
+      "headingFontFamily": "system",
+      "borderRadius": "md",
+      "density": "comfortable",
+      "emailFooterText": "Dit is een automatisch bericht van Fieldgrid.",
+      "emailSignature": "Met vriendelijke groet,\nFieldgrid"
+    },
+    "rule": "This immutable comfortable-density fixture is used only for accessibility-normalized prototype pixel parity. It does not claim to equal FIELDGRID_DEFAULT_BRAND_THEME and does not mutate production platform settings. Color/font/radius variants retain its composition; compact and spacious may differ only on density.geometryAxes and require their own geometry snapshots."
+  },
+  "brandThemeMapping": {
+    "brandName": ["identity.brandName", "metadata.applicationName"],
+    "platformName": ["identity.platformName", "internal.attributionName"],
+    "logoUrl": ["identity.logo.resolvedUrl"],
+    "logoStoragePath": ["identity.logo.ownedStoragePath"],
+    "faviconUrl": ["identity.favicon.resolvedUrl"],
+    "faviconStoragePath": ["identity.favicon.ownedStoragePath"],
+    "splashUrl": ["identity.splash.resolvedUrl"],
+    "splashStoragePath": ["identity.splash.ownedStoragePath"],
+    "primaryColor": ["brand.primary", "action.primary", "link"],
+    "secondaryColor": ["brand.secondary"],
+    "accentColor": ["brand.accentStrong", "selection.accent"],
+    "backgroundColor": ["canvas", "appBackground"],
+    "surfaceColor": ["surface", "panel", "popover"],
+    "textColor": ["foreground", "text"],
+    "mutedColor": ["mutedForeground", "mutedText"],
+    "sidebarBackgroundColor": ["sidebar.background"],
+    "sidebarTextColor": ["sidebar.foreground", "sidebar.mutedDerived"],
+    "sidebarAccentColor": [
+      "sidebar.activeIndicatorBase",
+      "sidebar.activeBackgroundDerived",
+      "sidebar.activeForegroundDerived"
+    ],
+    "fontFamily": ["font.body"],
+    "headingFontFamily": ["font.heading"],
+    "borderRadius": ["radii.preset"],
+    "density": ["density.preset"],
+    "emailFooterText": ["communication.email.footer"],
+    "emailSignature": ["communication.email.signature"],
+    "derivedRules": {
+      "foregrounds": "choose deterministic accessible foregrounds for primary, accent, sidebar-active and focus contexts",
+      "softSurfaces": "derive soft brand/selection surfaces without reusing muted text as a background",
+      "boundaries": "derive control borders independently from subtle decorative borders",
+      "fixed": "page gutters, section/container gaps, responsive breakpoints, status meaning, planboard palette meaning and interaction never change; density may alter only density.geometryAxes"
+    }
+  },
+  "principles": [
+    "desktop-first, intrinsically responsive",
+    "calm spacing before decorative density",
+    "one primary action per region",
+    "progressive disclosure for secondary and destructive actions",
+    "semantic status is never tenant-brand-controlled",
+    "all interaction is keyboard, pointer and touch operable"
+  ],
+  "colors": {
+    "canonical": {
+      "background": "#F5F7F6",
+      "foreground": "#123532",
+      "card": "#FFFFFF",
+      "popover": "#FFFFFF",
+      "primary": "#07554E",
+      "primaryForeground": "#FFFFFF",
+      "secondary": "#EEF3F1",
+      "secondaryForeground": "#173B37",
+      "muted": "#EEF2F0",
+      "mutedForeground": "#5D716E",
+      "accent": "#DFF4E9",
+      "accentForeground": "#084A43",
+      "destructive": "#C54141",
+      "border": "#DCE6E2",
+      "input": "#7A918C",
+      "ring": "#169B73",
+      "appBackground": "#F3F7F5",
+      "panel": "#FFFFFF",
+      "panelSecondary": "#F7FAF8",
+      "text": "#113B37",
+      "mutedText": "#5D716E",
+      "prototypeMutedText": "#667C78",
+      "line": "#DCE7E3",
+      "brandAccent": "#15996E",
+      "sidebarBackgroundStart": "#074B46",
+      "sidebarBackgroundMid": "#063A37",
+      "sidebarBackgroundEnd": "#052E2D",
+      "sidebarText": "#E9FAF5",
+      "sidebarMuted": "#A6C5BF",
+      "sidebarActiveBackground": "#D9F6E8",
+      "sidebarActiveHover": "#D9F6E8",
+      "sidebarActiveText": "#083F35",
+      "sidebarActiveHoverText": "#083F35",
+      "sidebarActiveIndicator": "#25B77F",
+      "sidebarActiveIndicatorHover": "#25B77F"
+    },
+    "semantic": {
+      "success": {
+        "background": "#E4F4EC",
+        "border": "#15996E",
+        "foreground": "#0F513C",
+        "icon": "#0F513C"
+      },
+      "warning": {
+        "background": "#FFF0DE",
+        "border": "#C76516",
+        "foreground": "#74400F",
+        "icon": "#74400F"
+      },
+      "danger": {
+        "background": "#FBE8E8",
+        "border": "#C54141",
+        "foreground": "#7F2727",
+        "icon": "#7F2727"
+      },
+      "info": {
+        "background": "#E7EFFF",
+        "border": "#3E73CE",
+        "foreground": "#244E91",
+        "icon": "#244E91"
+      },
+      "violet": {
+        "background": "#F0EBFB",
+        "border": "#765ACD",
+        "foreground": "#51388E",
+        "icon": "#51388E"
+      },
+      "locked": {
+        "background": "#EDF1F0",
+        "border": "#607571",
+        "foreground": "#344A47",
+        "icon": "#344A47"
+      },
+      "live": {
+        "background": "#E4F4EC",
+        "border": "#15996E",
+        "foreground": "#0F513C",
+        "icon": "#0F513C"
+      },
+      "conflict": {
+        "background": "#FBE8E8",
+        "border": "#C54141",
+        "foreground": "#7F2727",
+        "icon": "#7F2727"
+      },
+      "priorityLow": {
+        "background": "#EAF4F1",
+        "border": "#3F7468",
+        "foreground": "#244C44",
+        "icon": "#244C44"
+      },
+      "priorityNormal": {
+        "background": "#E7EFFF",
+        "border": "#3E73CE",
+        "foreground": "#244E91",
+        "icon": "#244E91"
+      },
+      "priorityHigh": {
+        "background": "#FFF0DE",
+        "border": "#C76516",
+        "foreground": "#74400F",
+        "icon": "#74400F"
+      },
+      "priorityUrgent": {
+        "background": "#FBE8E8",
+        "border": "#C54141",
+        "foreground": "#7F2727",
+        "icon": "#7F2727"
+      }
+    },
+    "rules": {
+      "minimumTextContrast": 4.5,
+      "minimumLargeTextContrast": 3,
+      "minimumUiContrast": 3,
+      "focusRingWidthPx": 3,
+      "focusRingOffsetPx": 2,
+      "statusRequiresTextOrIcon": true,
+      "tenantMayOverrideSemanticColors": false
+    }
+  },
+  "typography": {
+    "body": {
+      "canonicalStack": [
+        "Aptos",
+        "Segoe UI Variable",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "allowedTenantAliases": ["inter", "poppins", "system"],
+      "basePx": 16,
+      "lineHeight": 1.45
+    },
+    "display": {
+      "canonicalStack": [
+        "Aptos Display",
+        "Segoe UI Variable Display",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "allowedTenantAliases": ["inter", "poppins", "system"],
+      "weight": 600,
+      "letterSpacingEm": -0.025
+    },
+    "pageTitle": {
+      "desktopWeight": 620,
+      "desktopLetterSpacingEm": -0.045,
+      "desktopLineHeight": 1.03,
+      "mobilePx": 32,
+      "mobileLineHeight": 1.05
+    },
+    "scalePx": {
+      "caption": 11,
+      "label": 13,
+      "body": 16,
+      "bodyLarge": 16,
+      "titleSmall": 18,
+      "title": 21,
+      "pageTitleMin": 35,
+      "pageTitleMax": 48
+    },
+    "rules": {
+      "minimumBodyPx": 14,
+      "minimumInteractiveLabelPx": 13,
+      "fontLoading": "next/font or self-hosted; display swap; no remote runtime dependency",
+      "tenantFontsMayChangeMetrics": true,
+      "geometryMustRemainStable": true
+    }
+  },
+  "spacing": {
+    "unitPx": 4,
+    "scalePx": [4, 8, 12, 16, 20, 24, 28, 32, 40, 48],
+    "pageGutter": "clamp(28px, 3.2vw, 54px)",
+    "pageGutterMobilePx": 17,
+    "pageMaxWidthPx": 1640,
+    "sectionGapPx": 30,
+    "sectionGapMobilePx": 22,
+    "clusterGapPx": 22,
+    "clusterGapMobilePx": 16,
+    "panelPaddingPx": 26,
+    "panelPaddingMobilePx": 18,
+    "panelRadiusMobilePx": 16,
+    "fieldGapPx": 16,
+    "labelControlGapPx": 8,
+    "containerMinimumSeparationPx": 16,
+    "textToBorderMinimumPx": 12,
+    "rule": "No direct child text may touch a border; use a named spacing token instead of arbitrary margins."
+  },
+  "radii": {
+    "canonical": {
+      "panelPx": 22,
+      "cardPx": 18,
+      "controlPx": 13,
+      "badgePx": 999,
+      "dialogPx": 24
+    },
+    "tenantVariants": {
+      "sm": {
+        "panelPx": 16,
+        "cardPx": 14,
+        "controlPx": 10,
+        "dialogPx": 18
+      },
+      "md": {
+        "panelPx": 22,
+        "cardPx": 18,
+        "controlPx": 13,
+        "dialogPx": 24
+      },
+      "lg": {
+        "panelPx": 28,
+        "cardPx": 22,
+        "controlPx": 16,
+        "dialogPx": 30
+      }
+    }
+  },
+  "shadows": {
+    "panel": "0 16px 42px rgba(24, 67, 58, 0.09)",
+    "soft": "0 7px 22px rgba(23, 58, 51, 0.07)",
+    "premium": "0 18px 44px rgba(25, 74, 61, 0.075)",
+    "focus": "0 0 0 2px var(--ff-focus-ring-offset), 0 0 0 5px var(--ff-focus-ring)"
+  },
+  "layout": {
+    "sidebarWidthByRangePx": {
+      "compactDesktop861To1180": 228,
+      "desktop1181To1460": 228,
+      "desktop1461To1919": 252,
+      "wide1920Plus": 252
+    },
+    "utilityBarPx": 70,
+    "mobileHeaderPx": 66,
+    "compactContentBreakMaxPx": 1100,
+    "headingMinHeightPx": 170,
+    "headingMinHeightCompactPx": 204,
+    "headingRowGapCompactPx": 20,
+    "headingMinHeightMobilePx": 148,
+    "headingPaddingTopPx": 38,
+    "headingPaddingBottomPx": 32,
+    "headingPaddingTopMobilePx": 31,
+    "headingPaddingBottomMobilePx": 25,
+    "panelHeadingMinHeightPx": 84,
+    "metricCardMinHeightPx": 158,
+    "metricCardMinHeightMobilePx": 132,
+    "toolbarMinHeightPx": 78,
+    "toolbarMinHeightCompactPx": 116,
+    "toolbarRowGapCompactPx": 10,
+    "toolbarColumnGapCompactPx": 14,
+    "tableHeaderHeightPx": 50,
+    "tableRowHeightPx": 74,
+    "touchTargetMinPx": 44,
+    "contentGridMinColumnPx": 280
+  },
+  "components": {
+    "button": {
+      "heightPx": 44,
+      "minWidthIconPx": 44,
+      "horizontalPaddingPx": 16,
+      "gapPx": 8,
+      "variants": [
+        "primary",
+        "secondary",
+        "quiet",
+        "destructive",
+        "outline",
+        "link"
+      ],
+      "states": [
+        "default",
+        "hover",
+        "active",
+        "focus-visible",
+        "disabled",
+        "loading"
+      ]
+    },
+    "input": {
+      "heightPx": 44,
+      "horizontalPaddingPx": 14,
+      "textareaMinHeightPx": 112,
+      "states": [
+        "default",
+        "hover",
+        "focus-visible",
+        "invalid",
+        "disabled",
+        "read-only"
+      ]
+    },
+    "panel": {
+      "paddingPx": 26,
+      "radiusPx": 22,
+      "border": "1px solid color-mix(in srgb, var(--ff-line) 78%, transparent)",
+      "shadow": "premium"
+    },
+    "metricCard": {
+      "minHeightPx": 158,
+      "paddingPx": 26,
+      "iconBoxPx": 48,
+      "valueSizePx": 29
+    },
+    "table": {
+      "headerHeightPx": 50,
+      "rowHeightPx": 74,
+      "cellPaddingYPx": 13,
+      "cellPaddingXPx": 17,
+      "desktopMinWidthPolicy": "horizontal scroll only when columns cannot be prioritized",
+      "mobilePattern": "semantic table becomes cards; no clipped table"
+    },
+    "sheet": {
+      "width": "min(500px, 94vw)",
+      "headerPaddingPx": 25,
+      "bodyPaddingPx": 25,
+      "footerPaddingPx": 25,
+      "bodyGapPx": 23,
+      "titlePx": 24,
+      "fieldsetPaddingPx": 19,
+      "fieldsetGapPx": 15
+    },
+    "dialog": {
+      "width": "min(840px, 94vw)",
+      "headerPadding": "29px 33px 21px",
+      "bodyMinHeightPx": 400,
+      "bodyPaddingPx": 33,
+      "fieldGapXYPx": [21, 23],
+      "footerPadding": "19px 33px",
+      "titlePx": 25
+    },
+    "dossierHero": {
+      "minHeightPx": 180,
+      "paddingPx": 29,
+      "gapPx": 25,
+      "identityTitlePx": 30
+    },
+    "statusStrip": {
+      "minHeightPx": 86,
+      "itemPadding": "17px 21px"
+    },
+    "miniCard": {
+      "minHeightPx": 112,
+      "paddingPx": 17,
+      "gapPx": 13
+    }
+  },
+  "density": {
+    "canonical": "comfortable",
+    "geometryAxes": [
+      "componentInternalGap",
+      "controlHeight",
+      "tableRowMinHeight",
+      "planboardGeometry"
+    ],
+    "axisFields": {
+      "componentInternalGap": [
+        "buttonGapPx",
+        "sheetBodyGapPx",
+        "sheetFieldsetGapPx",
+        "dialogFieldColumnGapPx",
+        "dialogFieldRowGapPx",
+        "dossierHeroGapPx",
+        "miniCardGapPx"
+      ],
+      "controlHeight": ["controlHeightPx"],
+      "tableRowMinHeight": ["tableRowMinHeightPx"],
+      "planboardGeometry": [
+        "rowHeightPx",
+        "blockHeightPx",
+        "blockTopPx",
+        "queueCardMinHeightPx"
+      ]
+    },
+    "fixedAcrossDensities": [
+      "pageGutter",
+      "sectionGap",
+      "clusterGap",
+      "responsiveBreakpoints",
+      "minimumPointerTarget",
+      "informationHierarchy"
+    ],
+    "resolutionRule": "Use the integer values below directly. Runtime multiplication, interpolation, clamping or independent rounding is forbidden; unspecified geometry remains equal to comfortable.",
+    "variants": {
+      "compact": {
+        "componentInternalGapPx": {
+          "buttonGapPx": 7,
+          "sheetBodyGapPx": 21,
+          "sheetFieldsetGapPx": 14,
+          "dialogFieldColumnGapPx": 19,
+          "dialogFieldRowGapPx": 21,
+          "dossierHeroGapPx": 23,
+          "miniCardGapPx": 12
+        },
+        "controlHeightPx": 44,
+        "minimumPointerTargetPx": 44,
+        "tableRowMinHeightPx": 68,
+        "planboardGeometryPx": {
+          "rowHeightPx": 78,
+          "blockHeightPx": 58,
+          "blockTopPx": 10,
+          "queueCardMinHeightPx": 128
+        }
+      },
+      "comfortable": {
+        "componentInternalGapPx": {
+          "buttonGapPx": 8,
+          "sheetBodyGapPx": 23,
+          "sheetFieldsetGapPx": 15,
+          "dialogFieldColumnGapPx": 21,
+          "dialogFieldRowGapPx": 23,
+          "dossierHeroGapPx": 25,
+          "miniCardGapPx": 13
+        },
+        "controlHeightPx": 44,
+        "minimumPointerTargetPx": 44,
+        "tableRowMinHeightPx": 74,
+        "planboardGeometryPx": {
+          "rowHeightPx": 98,
+          "blockHeightPx": 70,
+          "blockTopPx": 14,
+          "queueCardMinHeightPx": 142
+        }
+      },
+      "spacious": {
+        "componentInternalGapPx": {
+          "buttonGapPx": 9,
+          "sheetBodyGapPx": 25,
+          "sheetFieldsetGapPx": 16,
+          "dialogFieldColumnGapPx": 23,
+          "dialogFieldRowGapPx": 25,
+          "dossierHeroGapPx": 27,
+          "miniCardGapPx": 14
+        },
+        "controlHeightPx": 48,
+        "minimumPointerTargetPx": 44,
+        "tableRowMinHeightPx": 82,
+        "planboardGeometryPx": {
+          "rowHeightPx": 108,
+          "blockHeightPx": 78,
+          "blockTopPx": 15,
+          "queueCardMinHeightPx": 156
+        }
+      }
+    },
+    "rule": "Density may alter only the exact fields grouped under the four named geometry axes. It never changes page/section/container spacing, responsive composition, hierarchy or the 44px minimum rendered pointer target; remove global class-name rewriting such as tenant-admin-compact."
+  },
+  "responsive": {
+    "mandatoryEvidenceWidthsPx": [320, 390, 430, 768, 1024, 1280, 1440, 1920],
+    "ranges": {
+      "phone": {
+        "minPx": 320,
+        "maxPx": 560
+      },
+      "tabletPortrait": {
+        "minPx": 561,
+        "maxPx": 860
+      },
+      "compactDesktop": {
+        "minPx": 861,
+        "maxPx": 1180
+      },
+      "desktop": {
+        "minPx": 1181,
+        "maxPx": 1919
+      },
+      "wide": {
+        "minPx": 1920
+      }
+    },
+    "rules": {
+      "phoneAndTabletPortrait": [
+        "single-column forms",
+        "66px header opens one safe-area bottom navigation Sheet from a 44px trigger",
+        "page header exposes one 44px More actions trigger when authorized actions exist",
+        "toolbar is two rows: full-width search first, result count plus filter and More actions triggers second; never a horizontal toolbar scroller",
+        "tables become prioritized cards",
+        "dossier and settings navigation render one labelled Radix Select and do not render the desktop index or tablist",
+        "planboard renders queue cards before the agenda and Plan or Move opens the non-drag wizard; timeline renders only after the explicit Timeline toggle"
+      ],
+      "compactDesktop": [
+        "sidebar is 228px and visible on first render; the user toggle collapses it to exactly 72px",
+        "forms and dossiers use exactly one content column",
+        "settings index is one named keyboard-scrollable horizontal index",
+        "website studio renders only canvas inline and keeps separate library and properties side Sheets closed on first render",
+        "planboard keeps queue closed in a side Sheet and renders one named locally scrollable canvas"
+      ],
+      "desktopAndWide": [
+        "persistent sidebar",
+        "forms use exactly two columns",
+        "page toolbar is exactly one row with overflow actions in the labelled More actions menu",
+        "full planboard canvas; queue is closed in its side Sheet at 1181–1279 and is inline at exactly 300px from 1280"
+      ],
+      "wide": [
+        "content remains max-width bounded",
+        "line lengths do not expand indefinitely",
+        "planboard expands the visible window rightward in whole-hour increments while preserving the selected hour width and text scale"
+      ]
+    }
+  },
+  "planboard": {
+    "modes": ["board", "day", "week", "month", "map"],
+    "timeZone": "Europe/Amsterdam",
+    "defaultVisibleHours": {
+      "start": "08:00",
+      "end": "19:00"
+    },
+    "snapMinutes": 15,
+    "staffColumnWidthPx": 228,
+    "boardMinWidthPx": 1260,
+    "visibleHourCount": 11,
+    "referenceTimeCanvasWidthPx": 1032,
+    "referenceHourWidthPx": 93.8181818182,
+    "defaultHourWidthPx": 93.8181818182,
+    "userZoomHourWidthsPx": {
+      "compact": 56,
+      "normal": 80,
+      "detail": 120
+    },
+    "widthFormula": "timeCanvasWidth = visibleHourCount * selectedHourWidth; boardWidth = staffColumnWidth + timeCanvasWidth; canonical first render uses referenceHourWidth",
+    "rowHeightPx": 98,
+    "compactRowHeightPx": 78,
+    "blockHeightPx": 70,
+    "compactBlockHeightPx": 58,
+    "blockTopPx": 14,
+    "blockRadiusPx": 12,
+    "blockLeadingBorderPx": 4,
+    "queueWidthPx": 300,
+    "queueMinHeightPx": 690,
+    "queueCardMinHeightPx": 142,
+    "compactQueueCardMinHeightPx": 128,
+    "employeesVisibleInReference": 6,
+    "palette": {
+      "mint": {
+        "background": "#DCF5E9",
+        "border": "#174C3C",
+        "foreground": "#174C3C"
+      },
+      "blue": {
+        "background": "#E3EDFD",
+        "border": "#2C62A9",
+        "foreground": "#2C62A9"
+      },
+      "aqua": {
+        "background": "#DFF3F1",
+        "border": "#1D6F73",
+        "foreground": "#1D6F73"
+      },
+      "peach": {
+        "background": "#FAE8D9",
+        "border": "#994E20",
+        "foreground": "#994E20"
+      },
+      "yellow": {
+        "background": "#F7EDC8",
+        "border": "#805A0A",
+        "foreground": "#805A0A"
+      },
+      "rose": {
+        "background": "#F9E0E5",
+        "border": "#A84355",
+        "foreground": "#A84355"
+      },
+      "lilac": {
+        "background": "#ECE4F8",
+        "border": "#7654A9",
+        "foreground": "#7654A9"
+      },
+      "orange": {
+        "background": "#F9E4D2",
+        "border": "#934B10",
+        "foreground": "#934B10"
+      }
+    },
+    "axes": {
+      "horizontal": "hours",
+      "vertical": "employees"
+    },
+    "dragFlows": ["queue-to-board", "board-to-board", "board-to-queue"],
+    "dragEnabledAtMinWidthPx": 861,
+    "dropStates": [
+      "idle",
+      "valid",
+      "conflict",
+      "saving",
+      "saved",
+      "rolled-back"
+    ],
+    "keyboard": {
+      "place": ["Enter", "Space"],
+      "moveQuarterHour": ["ArrowLeft", "ArrowRight"],
+      "moveHour": ["Shift+ArrowLeft", "Shift+ArrowRight"],
+      "changeEmployee": ["ArrowUp", "ArrowDown"]
+    },
+    "mobile": {
+      "rangeMaxPx": 860,
+      "default": "queue-before-agenda",
+      "alternate": "explicit-toggle-keyboard-timeline",
+      "nonDragAlternativeRequired": true,
+      "actions": [
+        "plan",
+        "move",
+        "replace employee",
+        "set exact date and time",
+        "unassign one employee",
+        "release whole assignment",
+        "confirm",
+        "cancel",
+        "undo"
+      ]
+    }
+  },
+  "motion": {
+    "durationMs": {
+      "fast": 120,
+      "normal": 180,
+      "slow": 260
+    },
+    "easing": {
+      "standard": "cubic-bezier(0.2, 0, 0, 1)"
+    },
+    "reducedMotion": "remove transforms and nonessential transitions; keep instant state feedback"
+  },
+  "customizationBoundary": {
+    "tenantControlled": [
+      "brand name",
+      "logo",
+      "favicon",
+      "splash image",
+      "primary brand color",
+      "secondary brand color",
+      "accent brand color",
+      "background color",
+      "surface color",
+      "text color",
+      "muted color",
+      "sidebar background",
+      "sidebar text",
+      "sidebar accent",
+      "body font",
+      "heading font",
+      "approved radius preset",
+      "approved density preset",
+      "email footer",
+      "email signature"
+    ],
+    "structurallyFixed": [
+      "information architecture",
+      "component hierarchy",
+      "responsive breakpoints and behavior",
+      "semantic status meanings",
+      "minimum contrast",
+      "focus behavior",
+      "touch target minima",
+      "planboard axes and interactions",
+      "permission behavior",
+      "loading, empty and error state placement"
+    ],
+    "pixelParityRule": "The hashed fieldflow-calm-ci-v1 fixture—not FIELDGRID_DEFAULT_BRAND_THEME—is compared to the accessibility-normalized reference pixels. Real color/font/radius variants retain the canonical composition; each approved density has its own deterministic geometry snapshot for density.geometryAxes while all density.fixedAcrossDensities remain identical."
+  }
+}

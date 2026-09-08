@@ -48,7 +48,7 @@ test("document downloads sign only tenant-validated storage paths", () => {
 test("document deletes remove only tenant-validated storage paths", () => {
   const body = functionBlock(documents, "deleteDocument");
 
-  assert.match(body, /requirePermission\("documents", "write"\)/u);
+  assert.match(body, /requirePermission\("documents", "delete"\)/u);
   assert.match(body, /const tenantId = await requireCurrentTenantModule\("documents"\)/u);
   assert.match(body, /isDocumentEntityInTenant\(\{[\s\S]*tenantId,[\s\S]*\}\)/u);
   assert.match(body, /const storagePath = getSafeDocumentStoragePath\(doc\.storagePath, tenantId\)/u);

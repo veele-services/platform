@@ -1,7 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
 import {
+  customersTable,
   db,
+  invoicesTable,
+  isTenantModuleEnabled,
   nativePushDeviceTokensTable,
+  organizationSettingsTable,
   pool,
   pushSubscriptionsTable,
 } from "@workspace/db";
@@ -10,7 +14,7 @@ import {
   sanitizeCustomerPortalHref,
   sanitizePersonnelPortalHref,
 } from "@workspace/db/portal-routes";
-import { sendEmailWithResult } from "./email";
+import { sendEmailWithResult, sendTemplatedEmailWithResult } from "./email";
 import { logger as defaultLogger } from "./logger";
 import { sendFcmPush } from "./native-push";
 import {
@@ -40,6 +44,7 @@ type QueueRow = {
   max_attempts: number;
   rate_limit_key: string | null;
   delivery_key: string;
+  created_at: Date;
   attempt_id: string;
 };
 
@@ -145,6 +150,7 @@ const DEFAULT_CONFIG: WorkerConfig = {
 
 const QUEUE_ID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 
 function normalizeQueueIds(queueIds?: string[]): string[] | undefined {
   if (queueIds === undefined) return undefined;
@@ -237,6 +243,183 @@ function toRecord(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return {};
+}
+
+type PaymentReminderQueueContext =
+  | { kind: "not_applicable" }
+  | { kind: "invalid" }
+  | {
+      kind: "valid";
+      invoiceId: string;
+      customerId: string;
+      recipientEmail: string;
+      invoiceNumber: string;
+      dueDate: string;
+      herinneringDagen: number;
+      templateKey: "invoice_payment_reminder";
+      templateVariables: {
+        customerName: string;
+        invoiceNumber: string;
+        totalAmount: string;
+        dueDate: string;
+        invoiceId: string;
+        invoiceUrl: string;
+      };
+    };
+
+function paymentReminderQueueContext(
+  item: QueueRow,
+): PaymentReminderQueueContext {
+  if (item.event_key !== "payment_reminder") {
+    return { kind: "not_applicable" };
+  }
+
+  const payload = toRecord(item.payload);
+  const invoiceId = payload["invoiceId"];
+  const invoiceNumber = payload["invoiceNumber"];
+  const dueDate = payload["dueDate"];
+  const herinneringDagen = payload["herinneringDagen"];
+  const templateVariables = toRecord(payload["templateVariables"]);
+  const customerName = templateVariables["customerName"];
+  const totalAmount = templateVariables["totalAmount"];
+  const invoiceUrl = templateVariables["invoiceUrl"];
+  if (
+    payload["fieldgridPurpose"] !== "invoice_payment_reminder" ||
+    payload["templateKey"] !== "invoice_payment_reminder" ||
+    item.channel !== "email" ||
+    item.recipient_type !== "customer" ||
+    typeof invoiceId !== "string" ||
+    !QUEUE_ID_RE.test(invoiceId) ||
+    !item.customer_id ||
+    !QUEUE_ID_RE.test(item.customer_id) ||
+    !item.recipient_email ||
+    typeof invoiceNumber !== "string" ||
+    invoiceNumber.length > 200 ||
+    typeof dueDate !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(dueDate) ||
+    typeof herinneringDagen !== "number" ||
+    !Number.isInteger(herinneringDagen) ||
+    herinneringDagen < 0 ||
+    herinneringDagen > 3650 ||
+    typeof customerName !== "string" ||
+    customerName.length > 500 ||
+    typeof totalAmount !== "string" ||
+    totalAmount.length > 100 ||
+    typeof invoiceUrl !== "string" ||
+    invoiceUrl.length > 2048 ||
+    templateVariables["invoiceId"] !== invoiceId ||
+    templateVariables["invoiceNumber"] !== invoiceNumber ||
+    templateVariables["dueDate"] !== dueDate
+  ) {
+    return { kind: "invalid" };
+  }
+
+  return {
+    kind: "valid",
+    invoiceId,
+    customerId: item.customer_id,
+    recipientEmail: item.recipient_email,
+    invoiceNumber: invoiceNumber.slice(0, 200),
+    dueDate,
+    herinneringDagen,
+    templateKey: "invoice_payment_reminder",
+    templateVariables: {
+      customerName,
+      invoiceNumber,
+      totalAmount,
+      dueDate,
+      invoiceId,
+      invoiceUrl,
+    },
+  };
+}
+
+type NotificationTransactionClient = {
+  query(
+    text: string,
+    values?: unknown[],
+  ): Promise<{ rowCount: number | null }>;
+};
+
+async function finalizePaymentReminderDelivery(
+  client: NotificationTransactionClient,
+  item: QueueRow,
+): Promise<void> {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "invalid") {
+    throw new Error("payment_reminder_finalization_payload_invalid");
+  }
+  if (paymentReminder.kind !== "valid") return;
+
+  const invoiceUpdate = await client.query(
+    `UPDATE invoices
+     SET last_reminder_sent_at = now(),
+         updated_at = now()
+     WHERE id = $1::uuid
+       AND tenant_id = $2::uuid
+       AND customer_id = $3::uuid
+       AND (
+         last_reminder_sent_at IS NULL
+         OR last_reminder_sent_at < $4::timestamptz
+       )`,
+    [
+      paymentReminder.invoiceId,
+      item.tenant_id,
+      paymentReminder.customerId,
+      item.created_at,
+    ],
+  );
+  await client.query(
+    `INSERT INTO audit_log (
+       tenant_id, user_id, action, resource, resource_id, metadata
+     ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb)`,
+    [
+      item.tenant_id,
+      SYSTEM_ACTOR_UUID,
+      "payment_reminder_sent",
+      "invoices",
+      paymentReminder.invoiceId,
+      JSON.stringify({
+        queueId: item.id,
+        invoiceNumber: paymentReminder.invoiceNumber,
+        dueDate: paymentReminder.dueDate,
+        herinneringDagen: paymentReminder.herinneringDagen,
+        invoiceTimestampUpdated: invoiceUpdate.rowCount === 1,
+      }),
+    ],
+  );
+}
+
+async function refreshEmailDispatchCounters(
+  client: NotificationTransactionClient,
+  item: QueueRow,
+): Promise<void> {
+  if (!item.dispatch_id || item.channel !== "email") return;
+
+  const dispatchLock = await client.query(
+    `SELECT id FROM notification_dispatches
+     WHERE id = $1 AND tenant_id = $2
+     FOR UPDATE`,
+    [item.dispatch_id, item.tenant_id],
+  );
+  if (dispatchLock.rowCount !== 1) return;
+
+  await client.query(
+    `UPDATE notification_dispatches dispatch
+     SET email_success_count = counters.success_count,
+         email_failed_count = counters.failed_count
+     FROM (
+       SELECT
+         count(*) FILTER (WHERE status = 'sent')::integer AS success_count,
+         count(*) FILTER (
+           WHERE status IN ('failed', 'skipped', 'partial')
+         )::integer AS failed_count
+       FROM notification_delivery_queue
+       WHERE dispatch_id = $1 AND tenant_id = $2 AND channel = 'email'
+     ) counters
+     WHERE dispatch.id = $1 AND dispatch.tenant_id = $2`,
+    [item.dispatch_id, item.tenant_id],
+  );
 }
 
 function errorMessage(error: unknown): string {
@@ -379,6 +562,7 @@ async function claimQueueItems(
         q.max_attempts,
         q.rate_limit_key,
         q.delivery_key,
+        q.created_at,
         q.current_attempt_id
     `,
       [
@@ -607,32 +791,10 @@ async function completeQueueItem(
       throw new Error("notification_queue_finalization_not_owned");
     }
 
-    if (item.dispatch_id && item.channel === "email") {
-      const dispatchLock = await client.query(
-        `SELECT id FROM notification_dispatches
-         WHERE id = $1 AND tenant_id = $2
-         FOR UPDATE`,
-        [item.dispatch_id, item.tenant_id],
-      );
-      if (dispatchLock.rowCount === 1) {
-        await client.query(
-          `UPDATE notification_dispatches dispatch
-           SET email_success_count = counters.success_count,
-               email_failed_count = counters.failed_count
-           FROM (
-             SELECT
-               count(*) FILTER (WHERE status = 'sent')::integer AS success_count,
-               count(*) FILTER (
-                 WHERE status IN ('failed', 'skipped', 'partial')
-               )::integer AS failed_count
-             FROM notification_delivery_queue
-             WHERE dispatch_id = $1 AND tenant_id = $2 AND channel = 'email'
-           ) counters
-           WHERE dispatch.id = $1 AND dispatch.tenant_id = $2`,
-          [item.dispatch_id, item.tenant_id],
-        );
-      }
+    if (outcome.status === "sent") {
+      await finalizePaymentReminderDelivery(client, item);
     }
+    await refreshEmailDispatchCounters(client, item);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -644,9 +806,79 @@ async function completeQueueItem(
 
 type LifecycleDecision = { allowed: true } | { allowed: false; reason: string };
 
+async function checkPaymentReminderLifecycle(
+  item: QueueRow,
+): Promise<LifecycleDecision | null> {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "not_applicable") return null;
+  if (paymentReminder.kind === "invalid") {
+    return { allowed: false, reason: "payment_reminder_payload_invalid" };
+  }
+
+  const [source] = await db
+    .select({ id: invoicesTable.id })
+    .from(invoicesTable)
+    .innerJoin(
+      customersTable,
+      and(
+        eq(customersTable.id, invoicesTable.customerId),
+        eq(customersTable.tenantId, item.tenant_id),
+      ),
+    )
+    .leftJoin(
+      organizationSettingsTable,
+      eq(organizationSettingsTable.tenantId, item.tenant_id),
+    )
+    .where(
+      and(
+        eq(invoicesTable.id, paymentReminder.invoiceId),
+        eq(invoicesTable.tenantId, item.tenant_id),
+        eq(invoicesTable.customerId, paymentReminder.customerId),
+        eq(invoicesTable.status, "sent"),
+        eq(customersTable.isActive, true),
+        eq(customersTable.status, "active"),
+        sql`lower(${customersTable.contactEmail}) = lower(${paymentReminder.recipientEmail})`,
+        sql`coalesce(${organizationSettingsTable.notifBetalingHerinnering}, true)`,
+        lte(
+          invoicesTable.dueDate,
+          sql<string>`(
+            (current_timestamp at time zone 'Europe/Amsterdam')::date
+            - coalesce(${organizationSettingsTable.notifHerinneringDagen}, 7)
+          )`,
+        ),
+        or(
+          isNull(invoicesTable.lastReminderSentAt),
+          and(
+            lt(invoicesTable.lastReminderSentAt, item.created_at),
+            lt(
+              invoicesTable.lastReminderSentAt,
+              sql<Date>`current_timestamp - (
+                coalesce(${organizationSettingsTable.notifHerinneringDagen}, 7)
+                * interval '1 day'
+              )`,
+            ),
+          ),
+        ),
+      ),
+    )
+    .limit(1);
+  const financeEnabled = source
+    ? await isTenantModuleEnabled(item.tenant_id, "finance")
+    : false;
+
+  return source && financeEnabled
+    ? { allowed: true }
+    : { allowed: false, reason: "payment_reminder_source_ineligible" };
+}
+
 async function checkDeliveryLifecycle(
   item: QueueRow,
 ): Promise<LifecycleDecision> {
+  const paymentReminderLifecycle = await checkPaymentReminderLifecycle(item);
+  if (paymentReminderLifecycle && !paymentReminderLifecycle.allowed) {
+    return paymentReminderLifecycle;
+  }
+
   const managementRecipientUserId =
     item.recipient_type === "management" &&
     typeof item.payload?.["recipientUserId"] === "string" &&
@@ -889,7 +1121,20 @@ async function deliverEmailItem(
     );
   }
 
-  if (!item.subject || !item.html) {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "invalid") {
+    return failureOutcome(
+      item,
+      config,
+      false,
+      "Ongeldige betalingsherinnering-payload.",
+    );
+  }
+
+  if (
+    paymentReminder.kind === "not_applicable" &&
+    (!item.subject || !item.html)
+  ) {
     return failureOutcome(
       item,
       config,
@@ -898,14 +1143,23 @@ async function deliverEmailItem(
     );
   }
 
-  const result = await sendEmailWithResult({
-    to: item.recipient_email,
-    subject: item.subject,
-    html: item.html,
-    tenantId: item.tenant_id,
-    purpose: "notification_worker",
-    idempotencyKey: item.delivery_key,
-  });
+  const result =
+    paymentReminder.kind === "valid"
+      ? await sendTemplatedEmailWithResult({
+          to: item.recipient_email,
+          tenantId: item.tenant_id,
+          templateKey: paymentReminder.templateKey,
+          variables: paymentReminder.templateVariables,
+          idempotencyKey: item.delivery_key,
+        })
+      : await sendEmailWithResult({
+          to: item.recipient_email,
+          subject: item.subject!,
+          html: item.html!,
+          tenantId: item.tenant_id,
+          purpose: "notification_worker",
+          idempotencyKey: item.delivery_key,
+        });
 
   if (result.success) {
     return {
@@ -1360,6 +1614,149 @@ export async function processNotificationQueue(
   return result;
 }
 
+export async function confirmDeliveredNotifications(options: {
+  queueIds: string[];
+  reason: string;
+  logger?: WorkerLogger;
+}): Promise<{ ok: true; reviewed: number; confirmedDelivered: number }> {
+  const log = options.logger ?? defaultLogger;
+  const queueIds = normalizeQueueIds(options.queueIds);
+  if (!queueIds || queueIds.length > 100) {
+    throw new Error("notification_confirmation_requires_exact_queue_ids");
+  }
+  const reason = options.reason.trim();
+  if (reason.length < 10 || reason.length > 500) {
+    throw new Error("notification_confirmation_requires_bounded_review_reason");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const candidates = await client.query<QueueRow>(
+      `SELECT
+         queue.id,
+         queue.tenant_id,
+         queue.event_key,
+         queue.dispatch_id,
+         queue.channel,
+         queue.recipient_type,
+         queue.personnel_id,
+         queue.customer_id,
+         queue.recipient_email,
+         queue.subject,
+         queue.title,
+         queue.body,
+         queue.html,
+         queue.payload,
+         queue.response,
+         queue.attempts,
+         queue.max_attempts,
+         queue.rate_limit_key,
+         queue.delivery_key,
+         queue.created_at,
+         queue.current_attempt_id AS attempt_id
+       FROM notification_delivery_queue queue
+       WHERE queue.id = ANY($1::uuid[])
+         AND queue.channel IN ('email', 'push')
+         AND queue.status = 'outcome_pending'
+         AND queue.current_attempt_id IS NOT NULL
+       ORDER BY queue.id
+       FOR UPDATE`,
+      [queueIds],
+    );
+    if (candidates.rows.length !== queueIds.length) {
+      throw new Error(
+        "notification_confirmation_requires_outcome_pending_items",
+      );
+    }
+
+    for (const item of candidates.rows) {
+      const attempt = await client.query(
+        `UPDATE notification_delivery_attempts
+         SET status = 'sent',
+             error = NULL,
+             response = COALESCE(response, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $4::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             finished_at = now()
+         WHERE id = $1::uuid
+           AND queue_id = $2::uuid
+           AND tenant_id = $3::uuid
+           AND status = 'outcome_pending'`,
+        [item.attempt_id, item.id, item.tenant_id, reason],
+      );
+      if (attempt.rowCount !== 1) {
+        throw new Error("notification_confirmation_attempt_not_pending");
+      }
+
+      const queue = await client.query(
+        `UPDATE notification_delivery_queue
+         SET status = 'sent',
+             locked_at = NULL,
+             locked_by = NULL,
+             processing_started_at = NULL,
+             delivery_started_at = NULL,
+             last_error = NULL,
+             error_details = COALESCE(error_details, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $3::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             response = COALESCE(response, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $3::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             sent_at = COALESCE(sent_at, now()),
+             terminal_attempt_id = $2::uuid,
+             updated_at = now()
+         WHERE id = $1::uuid
+           AND status = 'outcome_pending'
+           AND current_attempt_id = $2::uuid`,
+        [item.id, item.attempt_id, reason],
+      );
+      if (queue.rowCount !== 1) {
+        throw new Error("notification_confirmation_queue_not_pending");
+      }
+
+      await finalizePaymentReminderDelivery(client, item);
+      await refreshEmailDispatchCounters(client, item);
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  log.info(
+    {
+      reviewed: queueIds.length,
+      confirmedDelivered: queueIds.length,
+    },
+    "notification-worker: providerbevestigde afleveringen afgerond",
+  );
+
+  return {
+    ok: true,
+    reviewed: queueIds.length,
+    confirmedDelivered: queueIds.length,
+  };
+}
+
 export async function retryFailedNotifications(options: {
   queueIds: string[];
   reason: string;
@@ -1390,8 +1787,9 @@ export async function retryFailedNotifications(options: {
         FROM notification_delivery_queue
         WHERE id = ANY($1::uuid[])
           AND channel IN ('email', 'push')
+          AND attempts < 20
           AND (
-            status IN ('failed', 'partial')
+            status IN ('failed', 'skipped', 'partial')
             OR (status = 'outcome_pending' AND $3::boolean = true)
           )
         FOR UPDATE SKIP LOCKED
@@ -1414,7 +1812,7 @@ export async function retryFailedNotifications(options: {
                 'reviewedAt', now()
               )
             ),
-          max_attempts = GREATEST(q.max_attempts, q.attempts + 1),
+          max_attempts = LEAST(20, GREATEST(q.max_attempts, q.attempts + 1)),
           updated_at = now()
       FROM candidates c
       WHERE q.id = c.id

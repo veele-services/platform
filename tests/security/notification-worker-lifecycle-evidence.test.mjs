@@ -26,7 +26,15 @@ const workerRoute = readFileSync(
   "artifacts/api-server/src/routes/notification-worker.ts",
   "utf8",
 );
+const paymentRemindersRoute = readFileSync(
+  "artifacts/api-server/src/routes/payment-reminders.ts",
+  "utf8",
+);
 const emailService = readFileSync("lib/db/src/email-service.ts", "utf8");
+const emailHelper = readFileSync(
+  "artifacts/api-server/src/lib/email.ts",
+  "utf8",
+);
 
 test("worker rechecks tenant, module, event and recipient lifecycle after claim", () => {
   for (const signal of [
@@ -62,12 +70,143 @@ test("claim, attempt evidence and terminal finalization are transactionally coup
   assert.match(migration, /notification_delivery_queue_evidence_match/u);
 });
 
+test("payment reminders recheck source state and record delivery only on durable success", () => {
+  for (const signal of [
+    "payment_reminder_payload_invalid",
+    "payment_reminder_source_ineligible",
+    "fieldgridPurpose",
+    "invoice_payment_reminder",
+    "isTenantModuleEnabled",
+    "Europe/Amsterdam",
+  ]) {
+    assert.match(worker, new RegExp(signal.replaceAll("$", "\\$"), "u"));
+  }
+  assert.match(
+    worker,
+    /lower\(\$\{customersTable\.contactEmail\}\) = lower\(\$\{paymentReminder\.recipientEmail\}\)/u,
+  );
+  assert.match(
+    worker,
+    /eq\(invoicesTable\.id, paymentReminder\.invoiceId\)[\s\S]*eq\(invoicesTable\.tenantId, item\.tenant_id\)[\s\S]*eq\(invoicesTable\.customerId, paymentReminder\.customerId\)[\s\S]*eq\(invoicesTable\.status, "sent"\)/u,
+  );
+  assert.match(
+    worker,
+    /isNull\(invoicesTable\.lastReminderSentAt\)[\s\S]*lt\(invoicesTable\.lastReminderSentAt, item\.created_at\)/u,
+  );
+  assert.match(
+    worker,
+    /lt\([\s\S]*invoicesTable\.lastReminderSentAt,[\s\S]*current_timestamp - \([\s\S]*notifHerinneringDagen/u,
+  );
+  assert.match(worker, /isTenantModuleEnabled\(item\.tenant_id, "finance"\)/u);
+  assert.match(worker, /sendTemplatedEmailWithResult/u);
+  assert.match(worker, /variables: paymentReminder\.templateVariables/u);
+  assert.match(emailHelper, /sendTemplatedEmail\(/u);
+  assert.match(emailHelper, /templateVariables: EmailTemplateVariables/u);
+  assert.match(
+    worker,
+    /async function finalizePaymentReminderDelivery[\s\S]*UPDATE invoices[\s\S]*SET last_reminder_sent_at = now\(\)[\s\S]*INSERT INTO audit_log/u,
+  );
+  assert.match(
+    worker,
+    /if \(outcome\.status === "sent"\) \{\s*await finalizePaymentReminderDelivery\(client, item\);\s*\}/u,
+  );
+  assert.match(worker, /"payment_reminder_sent"/u);
+  assert.match(
+    worker,
+    /invoiceTimestampUpdated: invoiceUpdate\.rowCount === 1/u,
+  );
+  assert.match(runtime, /runtime-payment-reminder-success/u);
+  assert.match(runtime, /runtime-payment-reminder-failed/u);
+  assert.match(runtime, /runtime-payment-reminder-skipped-recovery/u);
+  assert.match(runtime, /callPaymentReminderCron/u);
+  assert.match(runtime, /runtime-payment-reminder-cron-recovered/u);
+  assert.match(runtime, /runtime-payment-reminder-outcome-pending/u);
+  assert.match(
+    runtime,
+    /runtime-payment-reminder-outcome-pending-not-retried/u,
+  );
+  assert.match(runtime, /failedAfterCronRecovery\.max_attempts, 6/u);
+  assert.match(runtime, /skippedAfterCronRecovery\.max_attempts, 6/u);
+  assert.match(runtime, /failedAfterCronRecovery\.terminal_attempt_id, null/u);
+  assert.match(runtime, /skippedAfterCronRecovery\.terminal_attempt_id, null/u);
+  assert.match(runtime, /outcomePendingSecondRun\.claimed, 0/u);
+  assert.match(runtime, /outcomePendingRedeliveries, 0/u);
+  assert.match(runtime, /confirmDeliveredReminder/u);
+  assert.match(runtime, /confirmedReminderState\.status, "sent"/u);
+  assert.match(runtime, /confirmedReminderState\.terminal_attempt_id/u);
+  assert.match(runtime, /confirmedReminderRedeliveries, 0/u);
+  assert.match(runtime, /runtime-payment-reminder-exhausted-skipped-recovery/u);
+  assert.match(runtime, /exhaustedSkippedLifecycleDisabled\.queued, 0/u);
+  assert.match(
+    runtime,
+    /exhaustedSkippedRecovery\.reduce\([\s\S]*result\.queued[\s\S]*\),\s*1/u,
+  );
+  assert.match(runtime, /recoverySuperseded/u);
+  assert.match(runtime, /replacementQueueId/u);
+  assert.match(workerRoute, /\/admin\/notification-worker\/confirm-delivered/u);
+  assert.match(workerRoute, /confirmedDelivered !== true/u);
+  assert.match(
+    worker,
+    /export async function confirmDeliveredNotifications[\s\S]*queue\.status = 'outcome_pending'[\s\S]*UPDATE notification_delivery_attempts[\s\S]*SET status = 'sent'[\s\S]*UPDATE notification_delivery_queue[\s\S]*terminal_attempt_id = \$2::uuid[\s\S]*await finalizePaymentReminderDelivery\(client, item\)/u,
+  );
+  assert.match(
+    paymentRemindersRoute,
+    /targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`/u,
+  );
+  assert.match(paymentRemindersRoute, /terminalAttemptId: null/u);
+  assert.match(
+    paymentRemindersRoute,
+    /maxAttempts: sql<number>`least\(\s*20,\s*greatest\([\s\S]*notificationDeliveryQueueTable\.maxAttempts[\s\S]*notificationDeliveryQueueTable\.attempts\} \+ 5/u,
+  );
+  assert.match(
+    paymentRemindersRoute,
+    /setWhere: and\([\s\S]*inArray\(notificationDeliveryQueueTable\.status, \[\s*"failed",\s*"skipped",\s*\]\)[\s\S]*lt\(notificationDeliveryQueueTable\.attempts, 20\)/u,
+  );
+  assert.match(runtime, /runtime-payment-reminder-cap-15/u);
+  assert.match(runtime, /runtime-payment-reminder-cap-16/u);
+  assert.match(runtime, /runtime-payment-reminder-cap-20/u);
+  assert.match(runtime, /exhaustedManualRetry\.requeued, 0/u);
+  assert.match(
+    worker,
+    /AND attempts < 20[\s\S]*status IN \('failed', 'skipped', 'partial'\)/u,
+  );
+  assert.match(
+    worker,
+    /max_attempts = LEAST\(20, GREATEST\(q\.max_attempts, q\.attempts \+ 1\)\)/u,
+  );
+  assert.match(runtime, /externalEligibleInvoices\.rows\[0\]\.count/u);
+  const firstGlobalCronIndex = runtime.indexOf(
+    "lockOrderCron = callPaymentReminderCron()",
+  );
+  const firstExternalPreflightIndex = runtime.indexOf(
+    "await assertNoExternalEligibleReminderInvoices()",
+  );
+  assert.ok(
+    firstExternalPreflightIndex >= 0 &&
+      firstExternalPreflightIndex < firstGlobalCronIndex,
+  );
+  assert.match(runtime, /lockOrderQueueIdsBeforeCron/u);
+  assert.match(runtime, /lockOrderQueueIdsAfterCron/u);
+  assert.match(runtime, /payload->>'invoiceId'=any\(\$2::text\[\]\)/u);
+  assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
+  assert.match(runtime, /Herstartbestendige tenantinhoud/u);
+  assert.match(runtime, /runtime-payment-reminder-cross-tenant/u);
+  assert.match(runtime, /payment_reminder_source_ineligible/u);
+  const updateIndex = worker.indexOf("UPDATE invoices");
+  const auditIndex = worker.indexOf("INSERT INTO audit_log", updateIndex);
+  const commitIndex = worker.indexOf('client.query("COMMIT")', auditIndex);
+  assert.ok(
+    updateIndex >= 0 && updateIndex < auditIndex && auditIndex < commitIndex,
+  );
+});
+
 test("uncertain provider effects never become an automatic blind redelivery", () => {
   assert.match(worker, /delivery_started_at IS NOT NULL/u);
   assert.match(worker, /provider_outcome_unknown/u);
   assert.match(worker, /status = 'outcome_pending'/u);
   assert.match(worker, /queueIds: string\[\]/u);
   assert.match(worker, /confirmedNoDelivery/u);
+  assert.match(worker, /status IN \('failed', 'skipped', 'partial'\)/u);
   assert.doesNotMatch(
     worker,
     /WHERE status IN \('failed', 'outcome_pending', 'partial'\)/u,
@@ -86,10 +225,7 @@ test("dispatch counters follow eventual durable e-mail outcomes", () => {
     /SELECT id FROM notification_dispatches[\s\S]*FOR UPDATE/u,
   );
   assert.match(worker, /count\(\*\) FILTER \(WHERE status = 'sent'\)/u);
-  assert.match(
-    worker,
-    /status IN \('failed', 'skipped', 'partial'\)/u,
-  );
+  assert.match(worker, /status IN \('failed', 'skipped', 'partial'\)/u);
   assert.match(worker, /dispatch\.tenant_id = \$2/u);
   assert.match(runtime, /runtime-dispatch-eventual-success/u);
   assert.match(runtime, /runtime-dispatch-eventual-failure/u);

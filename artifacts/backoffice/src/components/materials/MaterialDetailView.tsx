@@ -28,6 +28,7 @@ import {
   TenantDetailLayout,
   TenantDetailSectionNav,
   TenantPageShell,
+  TenantConfirmDialog,
   TenantWorkbenchPanel,
 } from "@/components/tenant-ui";
 
@@ -67,10 +68,12 @@ export function MaterialDetailView({
   material,
   options,
   canWrite,
+  canArchive,
 }: {
   material: MaterialDetail;
   options: MaterialManagementOptions;
   canWrite: boolean;
+  canArchive: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -130,26 +133,36 @@ export function MaterialDetailView({
   );
 
   const actions =
-    canWrite && !material.archivedAt ? (
+    (canWrite || canArchive) && !material.archivedAt ? (
       <>
-        <EditMaterialSheet
+        {canWrite ? <EditMaterialSheet
           material={material}
           options={options}
           pending={pending}
           onSubmit={handleUpdate}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending}
-          onClick={() =>
-            run(() => archiveMaterial(material.id), "Materiaal gearchiveerd.")
-          }
-          className="text-amber-700"
-        >
-          <Archive className="h-4 w-4" />
-          Archiveer
-        </Button>
+        /> : null}
+        {canArchive ? (
+          <TenantConfirmDialog
+            title="Materiaal archiveren?"
+            description={`Weet u zeker dat u ${material.name} wilt archiveren?`}
+            confirmLabel="Archiveren"
+            destructive
+            onConfirm={() =>
+              run(() => archiveMaterial(material.id), "Materiaal gearchiveerd.")
+            }
+            trigger={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                className="min-h-11 text-amber-700"
+              >
+                <Archive className="h-4 w-4" />
+                Archiveer
+              </Button>
+            }
+          />
+        ) : null}
       </>
     ) : null;
 

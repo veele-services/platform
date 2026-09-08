@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm risk lifecycle",
+  "stateModel": [
+    "OPEN",
+    "MITIGATED",
+    "VERIFIED_LOCAL",
+    "VERIFIED_STAGING",
+    "CLOSED"
+  ],
+  "evidenceContract": {
+    "schemaVersion": 3,
+    "sharedIndexContract": "acceptance.json#evidenceContract.indexSchema",
+    "claimFields": ["commit", "index"],
+    "stateRequirements": {
+      "MITIGATED": [
+        "commit",
+        "index",
+        "codePaths+blobSha256",
+        "typed risk-bound commands passed with exitCode 0",
+        "machine-readable runtime report+sha256+zero failures",
+        "verified Git ancestry and successful GitHub Actions provenance"
+      ],
+      "VERIFIED_LOCAL": [
+        "one live independent exact-HEAD APPROVED GitHub review"
+      ],
+      "VERIFIED_STAGING": [
+        "machine-readable staging report+sha256+zero failures",
+        "live functional-security exact-HEAD reviewer",
+        "live visual-a11y exact-HEAD reviewer"
+      ],
+      "CLOSED": ["residualRisk in index", "closureDecision in index"]
+    }
+  },
+  "rule": "Risk wording and required closure remain canonical in 10-RISICOREGISTER.md. Every P0/P1 risk must be CLOSED before global promotion; states may not be skipped and every evidence claim uses the hashed, subject-bound index contract from acceptance.json.",
+  "riskCount": 50,
+  "risks": [
+    {
+      "id": "R-001",
+      "priority": "P0",
+      "ownerWorkPackage": "W00",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-002",
+      "priority": "P0",
+      "ownerWorkPackage": "W00",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-003",
+      "priority": "P0",
+      "ownerWorkPackage": "W00",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-004",
+      "priority": "P0",
+      "ownerWorkPackage": "W07",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-005",
+      "priority": "P0",
+      "ownerWorkPackage": "W03",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-006",
+      "priority": "P0",
+      "ownerWorkPackage": "W03",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-007",
+      "priority": "P0",
+      "ownerWorkPackage": "W03",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-008",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-009",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-010",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-011",
+      "priority": "P0",
+      "ownerWorkPackage": "W02",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-012",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-013",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-014",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-015",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-016",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-017",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-018",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-019",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-020",
+      "priority": "P0",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-021",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-022",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-023",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-024",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-025",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-026",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-027",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-028",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-029",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-030",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-031",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-032",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-033",
+      "priority": "P0",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-034",
+      "priority": "P0",
+      "ownerWorkPackage": "W12",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-035",
+      "priority": "P0",
+      "ownerWorkPackage": "W12",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-036",
+      "priority": "P1",
+      "ownerWorkPackage": "W07",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-037",
+      "priority": "P1",
+      "ownerWorkPackage": "W06",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-038",
+      "priority": "P1",
+      "ownerWorkPackage": "W02",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-039",
+      "priority": "P1",
+      "ownerWorkPackage": "W02",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-040",
+      "priority": "P1",
+      "ownerWorkPackage": "W02",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-041",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-042",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-043",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-044",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-045",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-046",
+      "priority": "P1",
+      "ownerWorkPackage": "W01",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-047",
+      "priority": "P1",
+      "ownerWorkPackage": "W05",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-048",
+      "priority": "P1",
+      "ownerWorkPackage": "W07",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-049",
+      "priority": "P1",
+      "ownerWorkPackage": "W11",
+      "state": "OPEN"
+    },
+    {
+      "id": "R-050",
+      "priority": "P1",
+      "ownerWorkPackage": "W08",
+      "state": "OPEN"
+    }
+  ]
+}

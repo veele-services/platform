@@ -1,0 +1,2706 @@
+{
+  "schemaVersion": 3,
+  "name": "Fieldflow Calm tenant backoffice route contract",
+  "contractLayers": {
+    "presentationComposition": {
+      "status": "fieldflowNewContract",
+      "fields": [
+        "title",
+        "archetype",
+        "prototypePattern",
+        "capabilityIds",
+        "primaryActionIds",
+        "secondaryActionIds",
+        "destructiveActionIds",
+        "responsiveProfile",
+        "responsivePattern",
+        "notes"
+      ],
+      "rule": "These fields describe layout and progressive disclosure only. Capability and action arrays contain only exact production-inventory IDs; labels, availability gates and behavior are never duplicated here."
+    },
+    "existingProduction": {
+      "status": "existingProduction",
+      "manifest": "production-inventory.json",
+      "rule": "This machine-readable inventory is the only authority for preserved features, executable actions, permissions, modules, flags, plan entitlements and source symbols."
+    },
+    "implementationRule": "Render every existingProduction capability and every production action exactly once on its owning route; IDs retain production-inventory order, and actions retain kind, placement and gates. New business behavior requires a separate approved product contract."
+  },
+  "statePolicy": {
+    "effectiveStateSet": "union(always, byArchetype[route.archetype], route.requiredStates, mutationStates when production inventory contains a mutation)",
+    "always": ["loading", "empty", "error", "permission-denied"],
+    "byArchetype": {
+      "list": ["filtered-empty"],
+      "inbox": ["filtered-empty"],
+      "editor": ["validation-error", "submitting", "success"],
+      "settings-form": ["validation-error", "submitting", "success"],
+      "wizard": ["validation-error", "submitting", "success"],
+      "auth": ["validation-error", "submitting", "success"]
+    },
+    "mutationStates": ["saving", "success", "mutation-error"]
+  },
+  "responsiveCompositionPolicy": {
+    "authority": "viewport selects the application shell; the route responsiveProfile then selects its composition. A route may use a container query inside that composition, but may not invent a conflicting viewport breakpoint.",
+    "viewportRangesPx": {
+      "phone": [320, 560],
+      "tabletPortrait": [561, 860],
+      "compactDesktop": [861, 1180],
+      "desktop": [1181, 1919],
+      "wide": [1920, null]
+    },
+    "componentThresholdsPx": {
+      "inlinePlanboardQueueViewportMin": 1280,
+      "threePaneWebsiteStudioViewportMin": 1280,
+      "safeTwoColumnFieldContainerMin": 584,
+      "desktopDataViewViewportMin": 861
+    },
+    "profiles": {
+      "dashboard-grid": {
+        "summary": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+        "mobileMax860": "one task column; KPI 1 column through 560 then 2; actions remain reachable",
+        "compact861To1180": "two KPI columns; primary panels stack; no squeezed side rail",
+        "desktop1181Plus": "four KPI columns; two-column sections only where reading order remains clear"
+      },
+      "planboard": {
+        "summary": "mobile agenda plus non-drag wizard; 861–1279 collapsible queue and locally scrolling board; inline queue from 1280",
+        "mobileMax860": "agenda is default; queue precedes agenda; explicit timeline; all placement through touch-safe non-drag flow",
+        "compact861To1180": "full board with sticky axes and locally scrolling time canvas; queue is collapsible or Sheet",
+        "desktop1181Plus": "full board; queue remains collapsible through 1279 and is inline from 1280"
+      },
+      "data-view": {
+        "summary": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+        "mobileMax860": "record cards with complete data/action parity and filters in Sheet",
+        "compact861To1180": "semantic table; local horizontal overflow only after column prioritization",
+        "desktop1181Plus": "full semantic table and toolbar; no page-level horizontal overflow"
+      },
+      "dossier": {
+        "summary": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+        "mobileMax860": "single column; section selector; actions in safe-area bottom Sheet",
+        "compact861To1180": "single main column; secondary/detail actions in Sheet or floating trigger",
+        "desktop1181Plus": "main dossier plus sticky action rail; subordinate tables may use data-view profile"
+      },
+      "inbox": {
+        "summary": "mobile list-first cards and detail route/Sheet; compact stacked list/detail; desktop inbox plus preview",
+        "mobileMax860": "list-first cards; open selected item in route or full-height Sheet",
+        "compact861To1180": "stacked list and detail; no narrow permanent preview",
+        "desktop1181Plus": "inbox plus preview when both panes retain useful width"
+      },
+      "editor": {
+        "summary": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+        "mobileMax860": "single column; sticky actions do not obscure content; secondary controls in Sheets",
+        "compact861To1180": "one or two safe columns; secondary panels collapsible",
+        "desktop1181Plus": "multi-panel only when every panel retains its contracted minimum width"
+      },
+      "website-studio": {
+        "summary": "single canvas plus Sheets through 860; canvas with drawers from 861–1279; three panes from 1280",
+        "mobileMax860": "canvas primary; library and properties are full-height Sheets/tabs",
+        "compact861To1180": "canvas primary; both side panels are collapsible drawers",
+        "desktop1181Plus": "drawers through 1279; library + canvas + properties from 1280"
+      },
+      "settings-form": {
+        "summary": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+        "mobileMax860": "one column with labels above fields and non-obscuring actions",
+        "compact861To1180": "one or two columns only when the field container is at least 584px",
+        "desktop1181Plus": "two columns for related short fields; long/complex fields span the row"
+      },
+      "settings-index": {
+        "summary": "drawer/select through 860; horizontal index at 861–1180; sticky left index from 1181",
+        "mobileMax860": "section Select or navigation Sheet",
+        "compact861To1180": "keyboard-scrollable horizontal section index",
+        "desktop1181Plus": "sticky left section index"
+      },
+      "article": {
+        "summary": "one readable column on mobile; related metadata stacks at compact widths; bounded main plus optional rail on desktop",
+        "mobileMax860": "single readable column",
+        "compact861To1180": "bounded readable column; metadata below",
+        "desktop1181Plus": "bounded readable main; optional related-content rail"
+      },
+      "wizard": {
+        "summary": "one-column full-height/bottom Sheet on mobile; centered scrollable step Dialog on desktop",
+        "mobileMax860": "one-column, safe-area aware step flow without horizontal stepper",
+        "compact861To1180": "centered or side step Dialog with internal scroll",
+        "desktop1181Plus": "centered step Dialog; summary and actions remain visible"
+      },
+      "auth": {
+        "summary": "single accessible card at every width; one-column form and host-resolved branding",
+        "mobileMax860": "single card within 17px gutters and safe areas; keyboard cannot obscure action",
+        "compact861To1180": "bounded single card",
+        "desktop1181Plus": "bounded single card with optional nonessential brand panel"
+      },
+      "single-purpose": {
+        "summary": "one bounded task surface at every width; print and phone output fit without page overflow",
+        "mobileMax860": "single bounded task surface",
+        "compact861To1180": "single bounded task surface",
+        "desktop1181Plus": "single bounded task surface"
+      }
+    }
+  },
+  "generatedAgainst": {
+    "platformBaseCommit": "ba81cc18aaf8aa2d93d292c0def49d5c997307dc",
+    "uiuxMasterObservedCommit": "ba81cc18aaf8aa2d93d292c0def49d5c997307dc",
+    "mainObservedCommit": "f2483186c1e49b4ecda341dc56931e6dc1194247",
+    "prototypeCommit": "098d3ce41da66851675fe467eb9747ebff5bd4ae",
+    "routeSourceDigestSha256": "4c8f5302325d0e37041ea44291c63ab8bb1a301511d010909b7c8b49ea5aa277",
+    "rule": "This is a source snapshot, not proof that the observed branches remain current. W00 must fetch, synchronize and regenerate/review the inventory before implementation."
+  },
+  "routeCounts": {
+    "tenantDashboardPages": 75,
+    "authPages": 4,
+    "total": 79
+  },
+  "globalRequirements": [
+    "Every source page stays represented; deleting or silently redirecting functionality fails the gate.",
+    "Read and write permissions are enforced server-side; hidden UI is not authorization.",
+    "Every mutation has pending, success and recoverable error feedback.",
+    "Every list provides meaningful empty, filtered-empty, loading and failure states.",
+    "Every destructive action uses AlertDialog and states consequence and target.",
+    "Every create/edit flow uses a Sheet or step Dialog according to complexity.",
+    "All visible copy is Dutch unless it is tenant-authored content.",
+    "All user-facing surfaces use effective tenant branding without cross-tenant cache leakage.",
+    "All routes meet the mandatory viewport and keyboard acceptance matrix."
+  ],
+  "routes": [
+    {
+      "id": "tenant-home",
+      "surface": "tenant",
+      "route": "/",
+      "source": "artifacts/backoffice/src/app/(dashboard)/page.tsx",
+      "title": "Operationeel dashboard",
+      "domain": "dashboard",
+      "archetype": "dashboard",
+      "permission": "dashboard:read",
+      "workPackage": "W05",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-home.capability.01",
+        "tenant-home.capability.02",
+        "tenant-home.capability.03",
+        "tenant-home.capability.04"
+      ],
+      "primaryActionIds": ["tenant-home.open-attention"],
+      "secondaryActionIds": [
+        "tenant-home.open-planning",
+        "tenant-home.open-assignments",
+        "tenant-home.open-invoices"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-planning",
+      "surface": "tenant",
+      "route": "/planning",
+      "source": "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+      "title": "Planning",
+      "domain": "planning",
+      "archetype": "planboard",
+      "permission": "planning:read; planning:write gates mutations",
+      "workPackage": "W06",
+      "prototypePattern": "planboard",
+      "capabilityIds": [
+        "tenant-planning.capability.01",
+        "tenant-planning.capability.02",
+        "tenant-planning.capability.03",
+        "tenant-planning.capability.04",
+        "tenant-planning.capability.05",
+        "tenant-planning.capability.06",
+        "tenant-planning.capability.07"
+      ],
+      "primaryActionIds": [
+        "tenant-planning.create-assignment-day",
+        "tenant-planning.schedule",
+        "tenant-planning.create-assignment-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-planning.navigate-period",
+        "tenant-planning.change-view",
+        "tenant-planning.open-map",
+        "tenant-planning.filter",
+        "tenant-planning.display",
+        "tenant-planning.undo",
+        "tenant-planning.calculate-route",
+        "tenant-planning.apply-route-time",
+        "tenant-planning.reshift"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "conflict",
+        "saving",
+        "stale-revision",
+        "rollback",
+        "offline"
+      ],
+      "responsivePattern": "mobile agenda plus non-drag wizard; 861–1279 collapsible queue and locally scrolling board; inline queue from 1280",
+      "notes": [
+        "The default production board must not make day/week/month modes unreachable.",
+        "Snap interval is 15 minutes for Fieldflow; do not reinterpret the existing 90-minute default-duration setting as snap."
+      ],
+      "responsiveProfile": "planboard"
+    },
+    {
+      "id": "tenant-assignments",
+      "surface": "tenant",
+      "route": "/assignments",
+      "source": "artifacts/backoffice/src/app/(dashboard)/assignments/page.tsx",
+      "title": "Opdrachten",
+      "domain": "assignments",
+      "archetype": "list",
+      "permission": "assignments:read; assignments:write gates mutations",
+      "workPackage": "W05",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-assignments.capability.01",
+        "tenant-assignments.capability.02",
+        "tenant-assignments.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-assignments.create",
+        "tenant-assignments.create-submit",
+        "tenant-assignments.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-assignments.filter",
+        "tenant-assignments.display",
+        "tenant-assignments.open",
+        "tenant-assignments.edit"
+      ],
+      "destructiveActionIds": [
+        "tenant-assignments.cancel-one",
+        "tenant-assignments.cancel-selected"
+      ],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-assignments-id",
+      "surface": "tenant",
+      "route": "/assignments/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx",
+      "title": "Opdrachtdossier",
+      "domain": "assignments",
+      "archetype": "detail",
+      "permission": "assignments:read plus tab/action permissions",
+      "workPackage": "W05",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-assignments-id.capability.01",
+        "tenant-assignments-id.capability.02",
+        "tenant-assignments-id.capability.03",
+        "tenant-assignments-id.capability.04",
+        "tenant-assignments-id.capability.05"
+      ],
+      "primaryActionIds": [
+        "tenant-assignments-id.edit",
+        "tenant-assignments-id.interest-start",
+        "tenant-assignments-id.edit-submit",
+        "tenant-assignments-id.quote-create",
+        "tenant-assignments-id.report-submit",
+        "tenant-assignments-id.invoice-create"
+      ],
+      "secondaryActionIds": [
+        "tenant-assignments-id.transition-status",
+        "tenant-assignments-id.assign-personnel",
+        "tenant-assignments-id.add-task",
+        "tenant-assignments-id.interest-remind",
+        "tenant-assignments-id.interest-mark-candidate",
+        "tenant-assignments-id.recalculate-capacity",
+        "tenant-assignments-id.quote",
+        "tenant-assignments-id.report",
+        "tenant-assignments-id.invoice",
+        "tenant-assignments-id.upload-document",
+        "tenant-assignments-id.direct-approve",
+        "tenant-assignments-id.document-download"
+      ],
+      "destructiveActionIds": [
+        "tenant-assignments-id.remove-personnel",
+        "tenant-assignments-id.remove-task",
+        "tenant-assignments-id.document-delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change",
+        "signed-lock"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-assignments-id-inventory",
+      "surface": "tenant",
+      "route": "/assignments/[id]/inventory",
+      "source": "artifacts/backoffice/src/app/(dashboard)/assignments/[id]/inventory/page.tsx",
+      "title": "Opdrachtinventaris",
+      "domain": "inventory",
+      "archetype": "detail",
+      "permission": "inventory:view; attach/approve permissions gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-assignments-id-inventory.capability.01",
+        "tenant-assignments-id-inventory.capability.02",
+        "tenant-assignments-id-inventory.capability.03"
+      ],
+      "primaryActionIds": ["tenant-assignments-id-inventory.attach"],
+      "secondaryActionIds": [
+        "tenant-assignments-id-inventory.approve",
+        "tenant-assignments-id-inventory.reject",
+        "tenant-assignments-id-inventory.back"
+      ],
+      "destructiveActionIds": ["tenant-assignments-id-inventory.detach"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-customers",
+      "surface": "tenant",
+      "route": "/customers",
+      "source": "artifacts/backoffice/src/app/(dashboard)/customers/page.tsx",
+      "title": "Klanten",
+      "domain": "customers",
+      "archetype": "list",
+      "permission": "customers:read; customers:write gates mutations",
+      "workPackage": "W05",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-customers.capability.01",
+        "tenant-customers.capability.02",
+        "tenant-customers.capability.03",
+        "tenant-customers.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-customers.create",
+        "tenant-customers.create-submit",
+        "tenant-customers.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-customers.filter",
+        "tenant-customers.display",
+        "tenant-customers.export-csv",
+        "tenant-customers.export-pdf",
+        "tenant-customers.bulk-status",
+        "tenant-customers.row-status",
+        "tenant-customers.edit"
+      ],
+      "destructiveActionIds": ["tenant-customers.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-customers-id",
+      "surface": "tenant",
+      "route": "/customers/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/customers/[id]/page.tsx",
+      "title": "Klantdossier",
+      "domain": "customers",
+      "archetype": "detail",
+      "permission": "customers:read plus related-domain permissions",
+      "workPackage": "W05",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-customers-id.capability.01",
+        "tenant-customers-id.capability.02",
+        "tenant-customers-id.capability.03",
+        "tenant-customers-id.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-customers-id.edit",
+        "tenant-customers-id.object-create-submit",
+        "tenant-customers-id.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-customers-id.regeocode",
+        "tenant-customers-id.portal-invite",
+        "tenant-customers-id.contact-create",
+        "tenant-customers-id.contact-edit",
+        "tenant-customers-id.object-create",
+        "tenant-customers-id.document-upload",
+        "tenant-customers-id.note-create",
+        "tenant-customers-id.note-update",
+        "tenant-customers-id.dossier-note",
+        "tenant-customers-id.dossier-task-create",
+        "tenant-customers-id.dossier-task-complete",
+        "tenant-customers-id.dossier-reviewed",
+        "tenant-customers-id.document-download"
+      ],
+      "destructiveActionIds": [
+        "tenant-customers-id.contact-delete",
+        "tenant-customers-id.note-delete",
+        "tenant-customers-id.document-delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-objects",
+      "surface": "tenant",
+      "route": "/objects",
+      "source": "artifacts/backoffice/src/app/(dashboard)/objects/page.tsx",
+      "title": "Objecten en locaties",
+      "domain": "objects",
+      "archetype": "list",
+      "permission": "objects:read; objects:write gates mutations",
+      "workPackage": "W05",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-objects.capability.01",
+        "tenant-objects.capability.02",
+        "tenant-objects.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-objects.create",
+        "tenant-objects.create-submit",
+        "tenant-objects.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-objects.filter",
+        "tenant-objects.display",
+        "tenant-objects.bulk-status",
+        "tenant-objects.row-status",
+        "tenant-objects.edit"
+      ],
+      "destructiveActionIds": ["tenant-objects.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-objects-id",
+      "surface": "tenant",
+      "route": "/objects/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx",
+      "title": "Objectdossier",
+      "domain": "objects",
+      "archetype": "detail",
+      "permission": "objects:read plus related-domain/security permissions",
+      "workPackage": "W05",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-objects-id.capability.01",
+        "tenant-objects-id.capability.02",
+        "tenant-objects-id.capability.03",
+        "tenant-objects-id.capability.04",
+        "tenant-objects-id.capability.05"
+      ],
+      "primaryActionIds": [
+        "tenant-objects-id.edit",
+        "tenant-objects-id.contact-add",
+        "tenant-objects-id.security-manage",
+        "tenant-objects-id.security-request-otp",
+        "tenant-objects-id.security-verify-otp",
+        "tenant-objects-id.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-objects-id.regeocode",
+        "tenant-objects-id.status",
+        "tenant-objects-id.personnel-link",
+        "tenant-objects-id.contact-update",
+        "tenant-objects-id.security-read-records",
+        "tenant-objects-id.security-lock",
+        "tenant-objects-id.dossier-note",
+        "tenant-objects-id.dossier-task-create",
+        "tenant-objects-id.dossier-task-complete",
+        "tenant-objects-id.dossier-reviewed"
+      ],
+      "destructiveActionIds": [
+        "tenant-objects-id.personnel-unlink",
+        "tenant-objects-id.contact-delete",
+        "tenant-objects-id.delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-personnel",
+      "surface": "tenant",
+      "route": "/personnel",
+      "source": "artifacts/backoffice/src/app/(dashboard)/personnel/page.tsx",
+      "title": "Medewerkers",
+      "domain": "personnel",
+      "archetype": "list",
+      "permission": "personnel:read; personnel:write gates mutations",
+      "workPackage": "W05",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-personnel.capability.01",
+        "tenant-personnel.capability.02",
+        "tenant-personnel.capability.03",
+        "tenant-personnel.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-personnel.create",
+        "tenant-personnel.create-submit",
+        "tenant-personnel.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-personnel.filter",
+        "tenant-personnel.display",
+        "tenant-personnel.bulk-status",
+        "tenant-personnel.row-status",
+        "tenant-personnel.edit"
+      ],
+      "destructiveActionIds": ["tenant-personnel.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-personnel-id",
+      "surface": "tenant",
+      "route": "/personnel/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx",
+      "title": "Medewerkersdossier",
+      "domain": "personnel",
+      "archetype": "detail",
+      "permission": "personnel:read plus dossier and related-domain permissions",
+      "workPackage": "W05",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-personnel-id.capability.01",
+        "tenant-personnel-id.capability.02",
+        "tenant-personnel-id.capability.03",
+        "tenant-personnel-id.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-personnel-id.edit",
+        "tenant-personnel-id.availability-save-windows",
+        "tenant-personnel-id.leave-add",
+        "tenant-personnel-id.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-personnel-id.activate",
+        "tenant-personnel-id.leave-update",
+        "tenant-personnel-id.leave-approve",
+        "tenant-personnel-id.portal-invite",
+        "tenant-personnel-id.portal-reset",
+        "tenant-personnel-id.document-upload",
+        "tenant-personnel-id.dossier-note",
+        "tenant-personnel-id.dossier-task-create",
+        "tenant-personnel-id.dossier-task-complete",
+        "tenant-personnel-id.dossier-reviewed",
+        "tenant-personnel-id.portal-email",
+        "tenant-personnel-id.document-download"
+      ],
+      "destructiveActionIds": [
+        "tenant-personnel-id.leave-delete",
+        "tenant-personnel-id.leave-reject",
+        "tenant-personnel-id.portal-block",
+        "tenant-personnel-id.portal-reset-revoke",
+        "tenant-personnel-id.document-delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-personnel-id-materials",
+      "surface": "tenant",
+      "route": "/personnel/[id]/materials",
+      "source": "artifacts/backoffice/src/app/(dashboard)/personnel/[id]/materials/page.tsx",
+      "title": "Medewerkermaterialen",
+      "domain": "materials",
+      "archetype": "detail",
+      "permission": "personnel:read and materials:view",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-personnel-id-materials.capability.01",
+        "tenant-personnel-id-materials.capability.02"
+      ],
+      "primaryActionIds": [],
+      "secondaryActionIds": [
+        "tenant-personnel-id-materials.open-material",
+        "tenant-personnel-id-materials.manage-register",
+        "tenant-personnel-id-materials.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-personnel-verlof",
+      "surface": "tenant",
+      "route": "/personnel/verlof",
+      "source": "artifacts/backoffice/src/app/(dashboard)/personnel/verlof/page.tsx",
+      "title": "Verlof en beschikbaarheid",
+      "domain": "personnel",
+      "archetype": "inbox",
+      "permission": "personnel:read; availability permissions gate mutations",
+      "workPackage": "W05",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-personnel-verlof.capability.01",
+        "tenant-personnel-verlof.capability.02"
+      ],
+      "primaryActionIds": ["tenant-personnel-verlof.approve"],
+      "secondaryActionIds": ["tenant-personnel-verlof.reject"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile list-first cards and detail route/Sheet; compact stacked list/detail; desktop inbox plus preview",
+      "notes": [],
+      "responsiveProfile": "inbox"
+    },
+    {
+      "id": "tenant-materials",
+      "surface": "tenant",
+      "route": "/materials",
+      "source": "artifacts/backoffice/src/app/(dashboard)/materials/page.tsx",
+      "title": "Materialen",
+      "domain": "materials",
+      "archetype": "list",
+      "permission": "materials:view; manage/adjust/transfer gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-materials.capability.01",
+        "tenant-materials.capability.02",
+        "tenant-materials.capability.03",
+        "tenant-materials.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-materials.create",
+        "tenant-materials.create-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-materials.filter",
+        "tenant-materials.edit",
+        "tenant-materials.adjust",
+        "tenant-materials.transfer",
+        "tenant-materials.open-dashboard"
+      ],
+      "destructiveActionIds": ["tenant-materials.archive"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-materials-id",
+      "surface": "tenant",
+      "route": "/materials/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/materials/[id]/page.tsx",
+      "title": "Materiaaldossier",
+      "domain": "materials",
+      "archetype": "detail",
+      "permission": "materials:view; manage/adjust/transfer gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-materials-id.capability.01",
+        "tenant-materials-id.capability.02",
+        "tenant-materials-id.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-materials-id.edit",
+        "tenant-materials-id.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-materials-id.attach-document",
+        "tenant-materials-id.document-download"
+      ],
+      "destructiveActionIds": [
+        "tenant-materials-id.archive",
+        "tenant-materials-id.document-delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-materials-dashboard",
+      "surface": "tenant",
+      "route": "/materials/dashboard",
+      "source": "artifacts/backoffice/src/app/(dashboard)/materials/dashboard/page.tsx",
+      "title": "Materialendashboard",
+      "domain": "materials",
+      "archetype": "dashboard",
+      "permission": "materials:view",
+      "workPackage": "W07",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-materials-dashboard.capability.01",
+        "tenant-materials-dashboard.capability.02",
+        "tenant-materials-dashboard.capability.03"
+      ],
+      "primaryActionIds": [],
+      "secondaryActionIds": [
+        "tenant-materials-dashboard.export-risk",
+        "tenant-materials-dashboard.export-customer-usage",
+        "tenant-materials-dashboard.open-material"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-inventory",
+      "surface": "tenant",
+      "route": "/inventory",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/page.tsx",
+      "title": "Bedrijfsmiddelen",
+      "domain": "inventory",
+      "archetype": "list",
+      "permission": "inventory:view; update/manage gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-inventory.capability.01",
+        "tenant-inventory.capability.02",
+        "tenant-inventory.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-inventory.create",
+        "tenant-inventory.create-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-inventory.filter",
+        "tenant-inventory.edit",
+        "tenant-inventory.qr",
+        "tenant-inventory.open-dashboard"
+      ],
+      "destructiveActionIds": ["tenant-inventory.archive"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-inventory-id",
+      "surface": "tenant",
+      "route": "/inventory/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/page.tsx",
+      "title": "Bedrijfsmiddeldossier",
+      "domain": "inventory",
+      "archetype": "detail",
+      "permission": "inventory:view; update/manage gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-inventory-id.capability.01",
+        "tenant-inventory-id.capability.02",
+        "tenant-inventory-id.capability.03",
+        "tenant-inventory-id.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-inventory-id.edit",
+        "tenant-inventory-id.edit-submit"
+      ],
+      "secondaryActionIds": [
+        "tenant-inventory-id.qr",
+        "tenant-inventory-id.issues",
+        "tenant-inventory-id.document",
+        "tenant-inventory-id.document-control-download"
+      ],
+      "destructiveActionIds": [
+        "tenant-inventory-id.archive",
+        "tenant-inventory-id.document-control-delete"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-inventory-id-qr",
+      "surface": "tenant",
+      "route": "/inventory/[id]/qr",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/[id]/qr/page.tsx",
+      "title": "QR-code bedrijfsmiddel",
+      "domain": "inventory",
+      "archetype": "detail",
+      "permission": "inventory:view; rotate permission gates mutation",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-inventory-id-qr.capability.01",
+        "tenant-inventory-id-qr.capability.02"
+      ],
+      "primaryActionIds": ["tenant-inventory-id-qr.print"],
+      "secondaryActionIds": ["tenant-inventory-id-qr.back"],
+      "destructiveActionIds": ["tenant-inventory-id-qr.rotate"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "one bounded task surface at every width; print and phone output fit without page overflow",
+      "notes": [],
+      "responsiveProfile": "single-purpose"
+    },
+    {
+      "id": "tenant-inventory-dashboard",
+      "surface": "tenant",
+      "route": "/inventory/dashboard",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/dashboard/page.tsx",
+      "title": "Bedrijfsmiddelendashboard",
+      "domain": "inventory",
+      "archetype": "dashboard",
+      "permission": "inventory:view",
+      "workPackage": "W07",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-inventory-dashboard.capability.01",
+        "tenant-inventory-dashboard.capability.02",
+        "tenant-inventory-dashboard.capability.03"
+      ],
+      "primaryActionIds": [],
+      "secondaryActionIds": [
+        "tenant-inventory-dashboard.export-status",
+        "tenant-inventory-dashboard.export-usage",
+        "tenant-inventory-dashboard.open-issue"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-inventory-issues",
+      "surface": "tenant",
+      "route": "/inventory/issues",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/issues/page.tsx",
+      "title": "Inventarismeldingen",
+      "domain": "inventory",
+      "archetype": "inbox",
+      "permission": "inventory:view; resolve/maintenance permissions gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-inventory-issues.capability.01",
+        "tenant-inventory-issues.capability.02",
+        "tenant-inventory-issues.capability.03"
+      ],
+      "primaryActionIds": ["tenant-inventory-issues.open"],
+      "secondaryActionIds": ["tenant-inventory-issues.filter-status"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile list-first cards and detail route/Sheet; compact stacked list/detail; desktop inbox plus preview",
+      "notes": [],
+      "responsiveProfile": "inbox"
+    },
+    {
+      "id": "tenant-inventory-issues-id",
+      "surface": "tenant",
+      "route": "/inventory/issues/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/inventory/issues/[id]/page.tsx",
+      "title": "Inventarismelding",
+      "domain": "inventory",
+      "archetype": "detail",
+      "permission": "inventory:view; resolve/maintenance permissions gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-inventory-issues-id.capability.01",
+        "tenant-inventory-issues-id.capability.02",
+        "tenant-inventory-issues-id.capability.03"
+      ],
+      "primaryActionIds": ["tenant-inventory-issues-id.status"],
+      "secondaryActionIds": [
+        "tenant-inventory-issues-id.maintenance",
+        "tenant-inventory-issues-id.evidence",
+        "tenant-inventory-issues-id.open-item",
+        "tenant-inventory-issues-id.document-download"
+      ],
+      "destructiveActionIds": ["tenant-inventory-issues-id.document-delete"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-quotes",
+      "surface": "tenant",
+      "route": "/quotes",
+      "source": "artifacts/backoffice/src/app/(dashboard)/quotes/page.tsx",
+      "title": "Offertes",
+      "domain": "finance",
+      "archetype": "list",
+      "permission": "quotes:read; quotes:write/approve gate mutations",
+      "workPackage": "W08",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-quotes.capability.01",
+        "tenant-quotes.capability.02",
+        "tenant-quotes.capability.03"
+      ],
+      "primaryActionIds": ["tenant-quotes.open"],
+      "secondaryActionIds": [
+        "tenant-quotes.filter",
+        "tenant-quotes.export",
+        "tenant-quotes.pdf"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-quotes-id",
+      "surface": "tenant",
+      "route": "/quotes/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/quotes/[id]/page.tsx",
+      "title": "Offertedossier",
+      "domain": "finance",
+      "archetype": "detail",
+      "permission": "quotes:read; quotes:write/approve gate mutations",
+      "workPackage": "W08",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-quotes-id.capability.01",
+        "tenant-quotes-id.capability.02",
+        "tenant-quotes-id.capability.03"
+      ],
+      "primaryActionIds": ["tenant-quotes-id.send", "tenant-quotes-id.approve"],
+      "secondaryActionIds": ["tenant-quotes-id.reject", "tenant-quotes-id.pdf"],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-reports",
+      "surface": "tenant",
+      "route": "/reports",
+      "source": "artifacts/backoffice/src/app/(dashboard)/reports/page.tsx",
+      "title": "Rapporten",
+      "domain": "reports",
+      "archetype": "list",
+      "permission": "reports:read; submit/review/approve gate mutations",
+      "workPackage": "W08",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-reports.capability.01",
+        "tenant-reports.capability.02",
+        "tenant-reports.capability.03"
+      ],
+      "primaryActionIds": ["tenant-reports.open"],
+      "secondaryActionIds": ["tenant-reports.filter"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-reports-id",
+      "surface": "tenant",
+      "route": "/reports/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/reports/[id]/page.tsx",
+      "title": "Rapportdossier",
+      "domain": "reports",
+      "archetype": "detail",
+      "permission": "reports:read; submit/review/approve gate mutations",
+      "workPackage": "W08",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-reports-id.capability.01",
+        "tenant-reports-id.capability.02",
+        "tenant-reports-id.capability.03",
+        "tenant-reports-id.capability.04"
+      ],
+      "primaryActionIds": ["tenant-reports-id.approve"],
+      "secondaryActionIds": [
+        "tenant-reports-id.reject",
+        "tenant-reports-id.pdf",
+        "tenant-reports-id.open-invoice",
+        "tenant-reports-id.material-usage-approve"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "signed-lock"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-invoices",
+      "surface": "tenant",
+      "route": "/invoices",
+      "source": "artifacts/backoffice/src/app/(dashboard)/invoices/page.tsx",
+      "title": "Facturen en betalingen",
+      "domain": "finance",
+      "archetype": "list",
+      "permission": "invoices:read; invoices:write gates mutations",
+      "workPackage": "W08",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-invoices.capability.01",
+        "tenant-invoices.capability.02",
+        "tenant-invoices.capability.03",
+        "tenant-invoices.capability.04"
+      ],
+      "primaryActionIds": ["tenant-invoices.collective-create"],
+      "secondaryActionIds": [
+        "tenant-invoices.remind-overdue",
+        "tenant-invoices.export",
+        "tenant-invoices.open",
+        "tenant-invoices.pdf",
+        "tenant-invoices.payment-link"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-invoices-id",
+      "surface": "tenant",
+      "route": "/invoices/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/invoices/[id]/page.tsx",
+      "title": "Factuurdossier",
+      "domain": "finance",
+      "archetype": "detail",
+      "permission": "invoices:read; invoices:write gates mutations",
+      "workPackage": "W08",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-invoices-id.capability.01",
+        "tenant-invoices-id.capability.02",
+        "tenant-invoices-id.capability.03",
+        "tenant-invoices-id.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-invoices-id.finalize",
+        "tenant-invoices-id.send",
+        "tenant-invoices-id.mark-paid"
+      ],
+      "secondaryActionIds": [
+        "tenant-invoices-id.payment-link",
+        "tenant-invoices-id.email",
+        "tenant-invoices-id.pdf"
+      ],
+      "destructiveActionIds": ["tenant-invoices-id.cancel"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-documents",
+      "surface": "tenant",
+      "route": "/documents",
+      "source": "artifacts/backoffice/src/app/(dashboard)/documents/page.tsx",
+      "title": "Documenten",
+      "domain": "documents",
+      "archetype": "list",
+      "permission": "documents:read; documents:write gates mutations",
+      "workPackage": "W07",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-documents.capability.01",
+        "tenant-documents.capability.02",
+        "tenant-documents.capability.03",
+        "tenant-documents.capability.04"
+      ],
+      "primaryActionIds": ["tenant-documents.upload"],
+      "secondaryActionIds": [
+        "tenant-documents.filter",
+        "tenant-documents.download"
+      ],
+      "destructiveActionIds": ["tenant-documents.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-tickets",
+      "surface": "tenant",
+      "route": "/tickets",
+      "source": "artifacts/backoffice/src/app/(dashboard)/tickets/page.tsx",
+      "title": "Tickets en verzoeken",
+      "domain": "communication",
+      "archetype": "inbox",
+      "permission": "tickets:read; tickets:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-tickets.capability.01",
+        "tenant-tickets.capability.02",
+        "tenant-tickets.capability.03"
+      ],
+      "primaryActionIds": ["tenant-tickets.open"],
+      "secondaryActionIds": ["tenant-tickets.filter"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile list-first cards and detail route/Sheet; compact stacked list/detail; desktop inbox plus preview",
+      "notes": [],
+      "responsiveProfile": "inbox"
+    },
+    {
+      "id": "tenant-tickets-kind-id",
+      "surface": "tenant",
+      "route": "/tickets/[kind]/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/tickets/[kind]/[id]/page.tsx",
+      "title": "Ticketdossier",
+      "domain": "communication",
+      "archetype": "detail",
+      "permission": "tickets:read; tickets:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-tickets-kind-id.capability.01",
+        "tenant-tickets-kind-id.capability.02",
+        "tenant-tickets-kind-id.capability.03"
+      ],
+      "primaryActionIds": ["tenant-tickets-kind-id.reply"],
+      "secondaryActionIds": [
+        "tenant-tickets-kind-id.status",
+        "tenant-tickets-kind-id.assignment",
+        "tenant-tickets-kind-id.record-read"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-news",
+      "surface": "tenant",
+      "route": "/news",
+      "source": "artifacts/backoffice/src/app/(dashboard)/news/page.tsx",
+      "title": "Nieuws en berichten",
+      "domain": "communication",
+      "archetype": "list",
+      "permission": "news:read; news:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-news.capability.01",
+        "tenant-news.capability.02",
+        "tenant-news.capability.03",
+        "tenant-news.capability.04"
+      ],
+      "primaryActionIds": ["tenant-news.create", "tenant-news.publish"],
+      "secondaryActionIds": ["tenant-news.save", "tenant-news.upload-hero"],
+      "destructiveActionIds": ["tenant-news.archive"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-website",
+      "surface": "tenant",
+      "route": "/website",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/page.tsx",
+      "title": "Websitebeheer",
+      "domain": "website",
+      "archetype": "dashboard",
+      "permission": "website:read; granular website permissions",
+      "workPackage": "W09",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-website.capability.01",
+        "tenant-website.capability.02",
+        "tenant-website.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-website.initialize",
+        "tenant-website.manage-pages"
+      ],
+      "secondaryActionIds": ["tenant-website.open-section"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-website-pages",
+      "surface": "tenant",
+      "route": "/website/pages",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/pages/page.tsx",
+      "title": "Webpagina’s",
+      "domain": "website",
+      "archetype": "list",
+      "permission": "website_pages:read; website_pages:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-website-pages.capability.01",
+        "tenant-website-pages.capability.02",
+        "tenant-website-pages.capability.03"
+      ],
+      "primaryActionIds": ["tenant-website-pages.create"],
+      "secondaryActionIds": [
+        "tenant-website-pages.open",
+        "tenant-website-pages.open-overview"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-website-pages-id",
+      "surface": "tenant",
+      "route": "/website/pages/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/pages/[id]/page.tsx",
+      "title": "Webpagina-editor",
+      "domain": "website",
+      "archetype": "editor",
+      "permission": "website_pages:read; website_pages:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-website-pages-id.capability.01",
+        "tenant-website-pages-id.capability.02",
+        "tenant-website-pages-id.capability.03",
+        "tenant-website-pages-id.capability.04"
+      ],
+      "primaryActionIds": ["tenant-website-pages-id.save-page"],
+      "secondaryActionIds": [
+        "tenant-website-pages-id.add-section",
+        "tenant-website-pages-id.save-section",
+        "tenant-website-pages-id.reorder-section",
+        "tenant-website-pages-id.review"
+      ],
+      "destructiveActionIds": ["tenant-website-pages-id.delete-section"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change",
+        "unsaved-changes"
+      ],
+      "responsivePattern": "single canvas plus Sheets through 860; canvas with drawers from 861–1279; three panes from 1280",
+      "notes": [],
+      "responsiveProfile": "website-studio"
+    },
+    {
+      "id": "tenant-website-blog",
+      "surface": "tenant",
+      "route": "/website/blog",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/blog/page.tsx",
+      "title": "Blog",
+      "domain": "website",
+      "archetype": "list",
+      "permission": "website_blog:read; website_blog:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-website-blog.capability.01",
+        "tenant-website-blog.capability.02",
+        "tenant-website-blog.capability.03"
+      ],
+      "primaryActionIds": ["tenant-website-blog.create"],
+      "secondaryActionIds": [
+        "tenant-website-blog.open",
+        "tenant-website-blog.save-taxonomy",
+        "tenant-website-blog.manage-taxonomy"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-website-blog-new",
+      "surface": "tenant",
+      "route": "/website/blog/new",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/blog/new/page.tsx",
+      "title": "Nieuw blogbericht",
+      "domain": "website",
+      "archetype": "editor",
+      "permission": "website_blog:read/write; publish gates publication",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-website-blog-new.capability.01",
+        "tenant-website-blog-new.capability.02",
+        "tenant-website-blog-new.capability.03"
+      ],
+      "primaryActionIds": ["tenant-website-blog-new.save"],
+      "secondaryActionIds": [],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-website-blog-id",
+      "surface": "tenant",
+      "route": "/website/blog/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/blog/[id]/page.tsx",
+      "title": "Blogbericht-editor",
+      "domain": "website",
+      "archetype": "editor",
+      "permission": "website_blog:read; write/publish gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-website-blog-id.capability.01",
+        "tenant-website-blog-id.capability.02",
+        "tenant-website-blog-id.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-website-blog-id.save",
+        "tenant-website-blog-id.publish"
+      ],
+      "secondaryActionIds": [],
+      "destructiveActionIds": ["tenant-website-blog-id.archive"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change",
+        "unsaved-changes"
+      ],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-website-forms",
+      "surface": "tenant",
+      "route": "/website/forms",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/forms/page.tsx",
+      "title": "Websiteformulieren",
+      "domain": "website",
+      "archetype": "editor",
+      "permission": "website_forms:read; website_forms:write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-website-forms.capability.01",
+        "tenant-website-forms.capability.02",
+        "tenant-website-forms.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-website-forms.add",
+        "tenant-website-forms.save"
+      ],
+      "secondaryActionIds": ["tenant-website-forms.open-overview"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-website-submissions",
+      "surface": "tenant",
+      "route": "/website/submissions",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/submissions/page.tsx",
+      "title": "Formulierinzendingen",
+      "domain": "website",
+      "archetype": "inbox",
+      "permission": "website_submissions:read; write gates status",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-website-submissions.capability.01",
+        "tenant-website-submissions.capability.02",
+        "tenant-website-submissions.capability.03",
+        "tenant-website-submissions.capability.04"
+      ],
+      "primaryActionIds": ["tenant-website-submissions.open"],
+      "secondaryActionIds": ["tenant-website-submissions.filter"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile list-first cards and detail route/Sheet; compact stacked list/detail; desktop inbox plus preview",
+      "notes": [],
+      "responsiveProfile": "inbox"
+    },
+    {
+      "id": "tenant-website-submissions-id",
+      "surface": "tenant",
+      "route": "/website/submissions/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/submissions/[id]/page.tsx",
+      "title": "Formulierinzending",
+      "domain": "website",
+      "archetype": "detail",
+      "permission": "website_submissions:read; write/customers:write gate mutations",
+      "workPackage": "W09",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-website-submissions-id.capability.01",
+        "tenant-website-submissions-id.capability.02",
+        "tenant-website-submissions-id.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-website-submissions-id.progress",
+        "tenant-website-submissions-id.convert"
+      ],
+      "secondaryActionIds": [
+        "tenant-website-submissions-id.read",
+        "tenant-website-submissions-id.spam",
+        "tenant-website-submissions-id.retry-notification",
+        "tenant-website-submissions-id.open-customer"
+      ],
+      "destructiveActionIds": [
+        "tenant-website-submissions-id.archive",
+        "tenant-website-submissions-id.redact"
+      ],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-website-navigation",
+      "surface": "tenant",
+      "route": "/website/navigation",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/navigation/page.tsx",
+      "title": "Websitenavigatie",
+      "domain": "website",
+      "archetype": "editor",
+      "permission": "website_navigation:read; write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-website-navigation.capability.01",
+        "tenant-website-navigation.capability.02",
+        "tenant-website-navigation.capability.03"
+      ],
+      "primaryActionIds": ["tenant-website-navigation.save"],
+      "secondaryActionIds": [
+        "tenant-website-navigation.add",
+        "tenant-website-navigation.reorder",
+        "tenant-website-navigation.review",
+        "tenant-website-navigation.open-overview"
+      ],
+      "destructiveActionIds": ["tenant-website-navigation.remove"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "concurrent-change",
+        "unsaved-changes"
+      ],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-website-redirects",
+      "surface": "tenant",
+      "route": "/website/redirects",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/redirects/page.tsx",
+      "title": "Websiteredirects",
+      "domain": "website",
+      "archetype": "list",
+      "permission": "website_navigation:read; write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-website-redirects.capability.01",
+        "tenant-website-redirects.capability.02",
+        "tenant-website-redirects.capability.03"
+      ],
+      "primaryActionIds": [
+        "tenant-website-redirects.add",
+        "tenant-website-redirects.save"
+      ],
+      "secondaryActionIds": ["tenant-website-redirects.open-overview"],
+      "destructiveActionIds": ["tenant-website-redirects.remove"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-website-settings",
+      "surface": "tenant",
+      "route": "/website/settings",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/settings/page.tsx",
+      "title": "Website-instellingen",
+      "domain": "website",
+      "archetype": "settings-form",
+      "permission": "website_settings:read; write gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-website-settings.capability.01",
+        "tenant-website-settings.capability.02",
+        "tenant-website-settings.capability.03",
+        "tenant-website-settings.capability.04"
+      ],
+      "primaryActionIds": ["tenant-website-settings.save"],
+      "secondaryActionIds": ["tenant-website-settings.open-overview"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-website-review",
+      "surface": "tenant",
+      "route": "/website/review",
+      "source": "artifacts/backoffice/src/app/(dashboard)/website/review/page.tsx",
+      "title": "Publicatiecontrole",
+      "domain": "website",
+      "archetype": "detail",
+      "permission": "website_pages/blog:read; publish gates mutations",
+      "workPackage": "W09",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-website-review.capability.01",
+        "tenant-website-review.capability.02",
+        "tenant-website-review.capability.03",
+        "tenant-website-review.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-website-review.prepare",
+        "tenant-website-review.activate"
+      ],
+      "secondaryActionIds": [
+        "tenant-website-review.preview",
+        "tenant-website-review.include-page"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-settings",
+      "surface": "tenant",
+      "route": "/settings",
+      "source": "artifacts/backoffice/src/app/(dashboard)/settings/page.tsx",
+      "title": "Instellingen",
+      "domain": "settings",
+      "archetype": "settings-index",
+      "permission": "settings:read plus section permissions",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-settings.capability.01",
+        "tenant-settings.capability.02",
+        "tenant-settings.capability.03"
+      ],
+      "primaryActionIds": ["tenant-settings.open"],
+      "secondaryActionIds": [],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "drawer/select through 860; horizontal index at 861–1180; sticky left index from 1181",
+      "notes": [],
+      "responsiveProfile": "settings-index"
+    },
+    {
+      "id": "tenant-instellingen-organisatie",
+      "surface": "tenant",
+      "route": "/instellingen/organisatie",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/organisatie/page.tsx",
+      "title": "Organisatie",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-organisatie.capability.01",
+        "tenant-instellingen-organisatie.capability.02",
+        "tenant-instellingen-organisatie.capability.03",
+        "tenant-instellingen-organisatie.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-organisatie.save"],
+      "secondaryActionIds": ["tenant-instellingen-organisatie.logo"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-branding",
+      "surface": "tenant",
+      "route": "/instellingen/branding",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/branding/page.tsx",
+      "title": "Branding en thema",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; enterprise entitlement and settings:write gate tenant override",
+      "workPackage": "W01",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-branding.capability.01",
+        "tenant-instellingen-branding.capability.02",
+        "tenant-instellingen-branding.capability.03",
+        "tenant-instellingen-branding.capability.04",
+        "tenant-instellingen-branding.capability.05"
+      ],
+      "primaryActionIds": ["tenant-instellingen-branding.save"],
+      "secondaryActionIds": [
+        "tenant-instellingen-branding.upload-logo",
+        "tenant-instellingen-branding.upload-favicon",
+        "tenant-instellingen-branding.upload-splash"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "asset-uploading",
+        "asset-rejected",
+        "contrast-warning",
+        "entitlement-locked"
+      ],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-mail",
+      "surface": "tenant",
+      "route": "/instellingen/mail",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/mail/page.tsx",
+      "title": "E-mail",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-mail.capability.01",
+        "tenant-instellingen-mail.capability.02",
+        "tenant-instellingen-mail.capability.03",
+        "tenant-instellingen-mail.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-mail.save"],
+      "secondaryActionIds": ["tenant-instellingen-mail.test"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-facturen",
+      "surface": "tenant",
+      "route": "/instellingen/facturen",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/facturen/page.tsx",
+      "title": "Facturatie-instellingen",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-facturen.capability.01",
+        "tenant-instellingen-facturen.capability.02",
+        "tenant-instellingen-facturen.capability.03",
+        "tenant-instellingen-facturen.capability.04",
+        "tenant-instellingen-facturen.capability.05"
+      ],
+      "primaryActionIds": [
+        "tenant-instellingen-facturen.save-company",
+        "tenant-instellingen-facturen.save-numbering",
+        "tenant-instellingen-facturen.save-template",
+        "tenant-instellingen-facturen.save-payment"
+      ],
+      "secondaryActionIds": ["tenant-instellingen-facturen.test-pdf"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-notificaties",
+      "surface": "tenant",
+      "route": "/instellingen/notificaties",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/notificaties/page.tsx",
+      "title": "Notificaties",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-notificaties.capability.01",
+        "tenant-instellingen-notificaties.capability.02",
+        "tenant-instellingen-notificaties.capability.03",
+        "tenant-instellingen-notificaties.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-instellingen-notificaties.save-event",
+        "tenant-instellingen-notificaties.send-manual"
+      ],
+      "secondaryActionIds": [
+        "tenant-instellingen-notificaties.save-email-style"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-productervaring",
+      "surface": "tenant",
+      "route": "/instellingen/productervaring",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/productervaring/page.tsx",
+      "title": "Productervaring",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-productervaring.capability.01",
+        "tenant-instellingen-productervaring.capability.02",
+        "tenant-instellingen-productervaring.capability.03"
+      ],
+      "primaryActionIds": ["tenant-instellingen-productervaring.save"],
+      "secondaryActionIds": [],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-gebruikers",
+      "surface": "tenant",
+      "route": "/instellingen/gebruikers",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/gebruikers/page.tsx",
+      "title": "Gebruikers",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "users:read; users:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-gebruikers.capability.01",
+        "tenant-instellingen-gebruikers.capability.02",
+        "tenant-instellingen-gebruikers.capability.03",
+        "tenant-instellingen-gebruikers.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-gebruikers.invite"],
+      "secondaryActionIds": [
+        "tenant-instellingen-gebruikers.roles",
+        "tenant-instellingen-gebruikers.resend",
+        "tenant-instellingen-gebruikers.password-reset"
+      ],
+      "destructiveActionIds": ["tenant-instellingen-gebruikers.deactivate"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-instellingen-rollen",
+      "surface": "tenant",
+      "route": "/instellingen/rollen",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/rollen/page.tsx",
+      "title": "Rollen",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "roles:read; roles:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-rollen.capability.01",
+        "tenant-instellingen-rollen.capability.02",
+        "tenant-instellingen-rollen.capability.03",
+        "tenant-instellingen-rollen.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-rollen.create"],
+      "secondaryActionIds": [
+        "tenant-instellingen-rollen.open",
+        "tenant-instellingen-rollen.reset-system"
+      ],
+      "destructiveActionIds": ["tenant-instellingen-rollen.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-instellingen-rollen-id",
+      "surface": "tenant",
+      "route": "/instellingen/rollen/[id]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/rollen/[id]/page.tsx",
+      "title": "Roldetail",
+      "domain": "settings",
+      "archetype": "detail",
+      "permission": "roles:read; roles:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-instellingen-rollen-id.capability.01",
+        "tenant-instellingen-rollen-id.capability.02",
+        "tenant-instellingen-rollen-id.capability.03",
+        "tenant-instellingen-rollen-id.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-rollen-id.save"],
+      "secondaryActionIds": ["tenant-instellingen-rollen-id.toggle-permission"],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-settings-task-codes",
+      "surface": "tenant",
+      "route": "/settings/task-codes",
+      "source": "artifacts/backoffice/src/app/(dashboard)/settings/task-codes/page.tsx",
+      "title": "Taakcodes",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "taakcodes:read; taakcodes:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-settings-task-codes.capability.01",
+        "tenant-settings-task-codes.capability.02",
+        "tenant-settings-task-codes.capability.03"
+      ],
+      "primaryActionIds": ["tenant-settings-task-codes.create"],
+      "secondaryActionIds": [
+        "tenant-settings-task-codes.filter",
+        "tenant-settings-task-codes.edit",
+        "tenant-settings-task-codes.status"
+      ],
+      "destructiveActionIds": ["tenant-settings-task-codes.delete"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-settings-checklists",
+      "surface": "tenant",
+      "route": "/settings/checklists",
+      "source": "artifacts/backoffice/src/app/(dashboard)/settings/checklists/page.tsx",
+      "title": "Quality en checklists",
+      "domain": "settings",
+      "archetype": "editor",
+      "permission": "checklists:read; write/publish/review gate mutations",
+      "workPackage": "W07",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-settings-checklists.capability.01",
+        "tenant-settings-checklists.capability.02",
+        "tenant-settings-checklists.capability.03",
+        "tenant-settings-checklists.capability.04"
+      ],
+      "primaryActionIds": [
+        "tenant-settings-checklists.create",
+        "tenant-settings-checklists.publish"
+      ],
+      "secondaryActionIds": [
+        "tenant-settings-checklists.edit",
+        "tenant-settings-checklists.duplicate",
+        "tenant-settings-checklists.binding",
+        "tenant-settings-checklists.preview",
+        "tenant-settings-checklists.review",
+        "tenant-settings-checklists.binding-status",
+        "tenant-settings-checklists.upgrade-assignment",
+        "tenant-settings-checklists.retry-reconciliation",
+        "tenant-settings-checklists.waive-assignment"
+      ],
+      "destructiveActionIds": ["tenant-settings-checklists.archive"],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "concurrent-change",
+        "published-lock"
+      ],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-instellingen-kwalificaties",
+      "surface": "tenant",
+      "route": "/instellingen/kwalificaties",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/kwalificaties/page.tsx",
+      "title": "Kwalificaties",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-kwalificaties.capability.01",
+        "tenant-instellingen-kwalificaties.capability.02",
+        "tenant-instellingen-kwalificaties.capability.03"
+      ],
+      "primaryActionIds": ["tenant-instellingen-kwalificaties.create"],
+      "secondaryActionIds": [
+        "tenant-instellingen-kwalificaties.status",
+        "tenant-instellingen-kwalificaties.link",
+        "tenant-instellingen-kwalificaties.link-personnel",
+        "tenant-instellingen-kwalificaties.link-task-code"
+      ],
+      "destructiveActionIds": [
+        "tenant-instellingen-kwalificaties.unlink",
+        "tenant-instellingen-kwalificaties.delete",
+        "tenant-instellingen-kwalificaties.unlink-personnel",
+        "tenant-instellingen-kwalificaties.unlink-task-code"
+      ],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-instellingen-slim-plannen",
+      "surface": "tenant",
+      "route": "/instellingen/slim-plannen",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/slim-plannen/page.tsx",
+      "title": "Slim plannen",
+      "domain": "settings",
+      "archetype": "settings-form",
+      "permission": "settings/planning:read; write gates mutations",
+      "workPackage": "W06",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-instellingen-slim-plannen.capability.01",
+        "tenant-instellingen-slim-plannen.capability.02",
+        "tenant-instellingen-slim-plannen.capability.03",
+        "tenant-instellingen-slim-plannen.capability.04"
+      ],
+      "primaryActionIds": ["tenant-instellingen-slim-plannen.save"],
+      "secondaryActionIds": ["tenant-instellingen-slim-plannen.reset"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-instellingen-klanttypes",
+      "surface": "tenant",
+      "route": "/instellingen/klanttypes",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/klanttypes/page.tsx",
+      "title": "Klanttypes",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-klanttypes.capability.01",
+        "tenant-instellingen-klanttypes.capability.02",
+        "tenant-instellingen-klanttypes.capability.03"
+      ],
+      "primaryActionIds": ["tenant-instellingen-klanttypes.create"],
+      "secondaryActionIds": ["tenant-instellingen-klanttypes.edit"],
+      "destructiveActionIds": ["tenant-instellingen-klanttypes.status"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-instellingen-sectoren",
+      "surface": "tenant",
+      "route": "/instellingen/sectoren",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/sectoren/page.tsx",
+      "title": "Sectoren",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "settings:read; settings:write gates mutations",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-sectoren.capability.01",
+        "tenant-instellingen-sectoren.capability.02",
+        "tenant-instellingen-sectoren.capability.03"
+      ],
+      "primaryActionIds": ["tenant-instellingen-sectoren.create"],
+      "secondaryActionIds": ["tenant-instellingen-sectoren.edit"],
+      "destructiveActionIds": [
+        "tenant-instellingen-sectoren.status",
+        "tenant-instellingen-sectoren.delete"
+      ],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-instellingen-activiteitslog",
+      "surface": "tenant",
+      "route": "/instellingen/activiteitslog",
+      "source": "artifacts/backoffice/src/app/(dashboard)/instellingen/activiteitslog/page.tsx",
+      "title": "Activiteitslog",
+      "domain": "settings",
+      "archetype": "list",
+      "permission": "audit log read permission",
+      "workPackage": "W10",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-instellingen-activiteitslog.capability.01",
+        "tenant-instellingen-activiteitslog.capability.02",
+        "tenant-instellingen-activiteitslog.capability.03"
+      ],
+      "primaryActionIds": ["tenant-instellingen-activiteitslog.details"],
+      "secondaryActionIds": [
+        "tenant-instellingen-activiteitslog.filter",
+        "tenant-instellingen-activiteitslog.paginate"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-profile",
+      "surface": "tenant",
+      "route": "/profile",
+      "source": "artifacts/backoffice/src/app/(dashboard)/profile/page.tsx",
+      "title": "Mijn profiel",
+      "domain": "account",
+      "archetype": "settings-form",
+      "permission": "authenticated tenant user",
+      "workPackage": "W10",
+      "prototypePattern": "settings",
+      "capabilityIds": [
+        "tenant-profile.capability.01",
+        "tenant-profile.capability.02",
+        "tenant-profile.capability.03"
+      ],
+      "primaryActionIds": ["tenant-profile.save-name"],
+      "secondaryActionIds": ["tenant-profile.settings"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "single-column form through 860; one or safe two columns at compact desktop; two columns for related short fields on desktop",
+      "notes": [],
+      "responsiveProfile": "settings-form"
+    },
+    {
+      "id": "tenant-help",
+      "surface": "tenant",
+      "route": "/help",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/page.tsx",
+      "title": "Helpcentrum",
+      "domain": "support",
+      "archetype": "dashboard",
+      "permission": "kb:view; management controls permission-gated",
+      "workPackage": "W09",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-help.capability.01",
+        "tenant-help.capability.02",
+        "tenant-help.capability.03",
+        "tenant-help.capability.04"
+      ],
+      "primaryActionIds": ["tenant-help.search"],
+      "secondaryActionIds": [
+        "tenant-help.open-article",
+        "tenant-help.manage",
+        "tenant-help.ticket"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-help-slug",
+      "surface": "tenant",
+      "route": "/help/[slug]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/[slug]/page.tsx",
+      "title": "Help-artikel",
+      "domain": "support",
+      "archetype": "article",
+      "permission": "kb:view",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-help-slug.capability.01",
+        "tenant-help-slug.capability.02",
+        "tenant-help-slug.capability.03",
+        "tenant-help-slug.capability.04"
+      ],
+      "primaryActionIds": ["tenant-help-slug.feedback-helpful"],
+      "secondaryActionIds": [
+        "tenant-help-slug.copy-link",
+        "tenant-help-slug.open-related",
+        "tenant-help-slug.feedback-not-helpful",
+        "tenant-help-slug.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "one readable column on mobile; related metadata stacks at compact widths; bounded main plus optional rail on desktop",
+      "notes": [],
+      "responsiveProfile": "article"
+    },
+    {
+      "id": "tenant-help-beheer",
+      "surface": "tenant",
+      "route": "/help/beheer",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/beheer/page.tsx",
+      "title": "Helpbeheer",
+      "domain": "support",
+      "archetype": "list",
+      "permission": "kb:manage capability",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-help-beheer.capability.01",
+        "tenant-help-beheer.capability.02",
+        "tenant-help-beheer.capability.03"
+      ],
+      "primaryActionIds": ["tenant-help-beheer.create"],
+      "secondaryActionIds": [
+        "tenant-help-beheer.search",
+        "tenant-help-beheer.open",
+        "tenant-help-beheer.feedback",
+        "tenant-help-beheer.open-help"
+      ],
+      "destructiveActionIds": ["tenant-help-beheer.archive"],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-help-beheer-nieuw",
+      "surface": "tenant",
+      "route": "/help/beheer/nieuw",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/beheer/nieuw/page.tsx",
+      "title": "Nieuw help-artikel",
+      "domain": "support",
+      "archetype": "editor",
+      "permission": "kb:manage capability",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-help-beheer-nieuw.capability.01",
+        "tenant-help-beheer-nieuw.capability.02",
+        "tenant-help-beheer-nieuw.capability.03"
+      ],
+      "primaryActionIds": ["tenant-help-beheer-nieuw.save"],
+      "secondaryActionIds": [
+        "tenant-help-beheer-nieuw.upload-media",
+        "tenant-help-beheer-nieuw.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-help-beheer-articleId",
+      "surface": "tenant",
+      "route": "/help/beheer/[articleId]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/beheer/[articleId]/page.tsx",
+      "title": "Help-artikel bewerken",
+      "domain": "support",
+      "archetype": "editor",
+      "permission": "kb:manage capability",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-help-beheer-articleId.capability.01",
+        "tenant-help-beheer-articleId.capability.02",
+        "tenant-help-beheer-articleId.capability.03"
+      ],
+      "primaryActionIds": ["tenant-help-beheer-articleId.save"],
+      "secondaryActionIds": [
+        "tenant-help-beheer-articleId.upload-media",
+        "tenant-help-beheer-articleId.set-status",
+        "tenant-help-beheer-articleId.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found",
+        "concurrent-change"
+      ],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-help-beheer-feedback",
+      "surface": "tenant",
+      "route": "/help/beheer/feedback",
+      "source": "artifacts/backoffice/src/app/(dashboard)/help/beheer/feedback/page.tsx",
+      "title": "Helpinzichten",
+      "domain": "support",
+      "archetype": "dashboard",
+      "permission": "kb:manage capability",
+      "workPackage": "W09",
+      "prototypePattern": "dashboard",
+      "capabilityIds": [
+        "tenant-help-beheer-feedback.capability.01",
+        "tenant-help-beheer-feedback.capability.02",
+        "tenant-help-beheer-feedback.capability.03",
+        "tenant-help-beheer-feedback.capability.04"
+      ],
+      "primaryActionIds": [],
+      "secondaryActionIds": ["tenant-help-beheer-feedback.back"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile 1–2 KPI columns and one content column; compact 2 KPI columns and stacked primary panels; desktop 4 KPI columns and intentional 2-column sections",
+      "notes": [],
+      "responsiveProfile": "dashboard-grid"
+    },
+    {
+      "id": "tenant-roadmap",
+      "surface": "tenant",
+      "route": "/roadmap",
+      "source": "artifacts/backoffice/src/app/(dashboard)/roadmap/page.tsx",
+      "title": "Roadmap",
+      "domain": "product",
+      "archetype": "list",
+      "permission": "roadmap:view; contribution permissions gate mutations",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-roadmap.capability.01",
+        "tenant-roadmap.capability.02",
+        "tenant-roadmap.capability.03",
+        "tenant-roadmap.capability.04"
+      ],
+      "primaryActionIds": ["tenant-roadmap.create"],
+      "secondaryActionIds": ["tenant-roadmap.vote", "tenant-roadmap.open"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-roadmap-new",
+      "surface": "tenant",
+      "route": "/roadmap/new",
+      "source": "artifacts/backoffice/src/app/(dashboard)/roadmap/new/page.tsx",
+      "title": "Nieuw roadmapidee",
+      "domain": "product",
+      "archetype": "editor",
+      "permission": "roadmap:create permission",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-roadmap-new.capability.01",
+        "tenant-roadmap-new.capability.02"
+      ],
+      "primaryActionIds": ["tenant-roadmap-new.submit"],
+      "secondaryActionIds": ["tenant-roadmap-new.cancel"],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "mobile single-column editor with secondary panels in Sheets; compact central editor with collapsible panels; desktop task-appropriate multi-panel layout",
+      "notes": [],
+      "responsiveProfile": "editor"
+    },
+    {
+      "id": "tenant-roadmap-itemId",
+      "surface": "tenant",
+      "route": "/roadmap/[itemId]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/roadmap/[itemId]/page.tsx",
+      "title": "Roadmapitem",
+      "domain": "product",
+      "archetype": "detail",
+      "permission": "roadmap:view; contribution permissions gate mutations",
+      "workPackage": "W09",
+      "prototypePattern": "dossier",
+      "capabilityIds": [
+        "tenant-roadmap-itemId.capability.01",
+        "tenant-roadmap-itemId.capability.02",
+        "tenant-roadmap-itemId.capability.03"
+      ],
+      "primaryActionIds": ["tenant-roadmap-itemId.vote"],
+      "secondaryActionIds": [
+        "tenant-roadmap-itemId.comment",
+        "tenant-roadmap-itemId.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "mobile section selector and bottom action Sheet; compact single column plus detail Sheet; sticky action rail from 1181",
+      "notes": [],
+      "responsiveProfile": "dossier"
+    },
+    {
+      "id": "tenant-releases",
+      "surface": "tenant",
+      "route": "/releases",
+      "source": "artifacts/backoffice/src/app/(dashboard)/releases/page.tsx",
+      "title": "Releases",
+      "domain": "product",
+      "archetype": "list",
+      "permission": "releases:view",
+      "workPackage": "W09",
+      "prototypePattern": "list",
+      "capabilityIds": [
+        "tenant-releases.capability.01",
+        "tenant-releases.capability.02",
+        "tenant-releases.capability.03"
+      ],
+      "primaryActionIds": ["tenant-releases.open"],
+      "secondaryActionIds": [],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "cards through 860; semantic table with local overflow from 861; identical fields, selection and actions",
+      "notes": [],
+      "responsiveProfile": "data-view"
+    },
+    {
+      "id": "tenant-releases-slug",
+      "surface": "tenant",
+      "route": "/releases/[slug]",
+      "source": "artifacts/backoffice/src/app/(dashboard)/releases/[slug]/page.tsx",
+      "title": "Release-notities",
+      "domain": "product",
+      "archetype": "article",
+      "permission": "releases:view",
+      "workPackage": "W09",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-releases-slug.capability.01",
+        "tenant-releases-slug.capability.02",
+        "tenant-releases-slug.capability.03",
+        "tenant-releases-slug.capability.04"
+      ],
+      "primaryActionIds": [],
+      "secondaryActionIds": [
+        "tenant-releases-slug.record-read",
+        "tenant-releases-slug.open-media",
+        "tenant-releases-slug.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "not-found"
+      ],
+      "responsivePattern": "one readable column on mobile; related metadata stacks at compact widths; bounded main plus optional rail on desktop",
+      "notes": [],
+      "responsiveProfile": "article"
+    },
+    {
+      "id": "tenant-first-run",
+      "surface": "tenant",
+      "route": "/first-run",
+      "source": "artifacts/backoffice/src/app/(dashboard)/first-run/page.tsx",
+      "title": "Eerste configuratie",
+      "domain": "onboarding",
+      "archetype": "wizard",
+      "permission": "authenticated tenant admin with setup permissions",
+      "workPackage": "W10",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "tenant-first-run.capability.01",
+        "tenant-first-run.capability.02",
+        "tenant-first-run.capability.03",
+        "tenant-first-run.capability.04"
+      ],
+      "primaryActionIds": ["tenant-first-run.save", "tenant-first-run.finish"],
+      "secondaryActionIds": [
+        "tenant-first-run.complete-step",
+        "tenant-first-run.skip",
+        "tenant-first-run.open-organization",
+        "tenant-first-run.open-sectors",
+        "tenant-first-run.open-users",
+        "tenant-first-run.open-platform",
+        "tenant-first-run.open-customers",
+        "tenant-first-run.open-objects",
+        "tenant-first-run.open-assignments"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": ["loading", "empty", "error", "permission-denied"],
+      "responsivePattern": "one-column full-height/bottom Sheet on mobile; centered scrollable step Dialog on desktop",
+      "notes": [],
+      "responsiveProfile": "wizard"
+    },
+    {
+      "id": "auth-login",
+      "surface": "auth",
+      "route": "/login",
+      "source": "artifacts/backoffice/src/app/(auth)/login/page.tsx",
+      "title": "Inloggen",
+      "domain": "authentication",
+      "archetype": "auth",
+      "permission": "public host-resolved tenant",
+      "workPackage": "W10",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "auth-login.capability.01",
+        "auth-login.capability.02",
+        "auth-login.capability.03",
+        "auth-login.capability.04"
+      ],
+      "primaryActionIds": ["auth-login.submit"],
+      "secondaryActionIds": [
+        "auth-login.toggle-password",
+        "auth-login.forgot-password"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "submitting",
+        "invalid-credentials",
+        "rate-limited"
+      ],
+      "responsivePattern": "single accessible card at every width; one-column form and host-resolved branding",
+      "notes": [],
+      "responsiveProfile": "auth"
+    },
+    {
+      "id": "auth-profiel-instellen",
+      "surface": "auth",
+      "route": "/profiel-instellen",
+      "source": "artifacts/backoffice/src/app/(auth)/profiel-instellen/page.tsx",
+      "title": "Profiel instellen",
+      "domain": "authentication",
+      "archetype": "auth",
+      "permission": "authenticated user requiring profile",
+      "workPackage": "W10",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "auth-profiel-instellen.capability.01",
+        "auth-profiel-instellen.capability.02",
+        "auth-profiel-instellen.capability.03"
+      ],
+      "primaryActionIds": ["auth-profiel-instellen.save"],
+      "secondaryActionIds": ["auth-profiel-instellen.sign-out"],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "submitting"
+      ],
+      "responsivePattern": "single accessible card at every width; one-column form and host-resolved branding",
+      "notes": [],
+      "responsiveProfile": "auth"
+    },
+    {
+      "id": "auth-wachtwoord-vergeten",
+      "surface": "auth",
+      "route": "/wachtwoord-vergeten",
+      "source": "artifacts/backoffice/src/app/(auth)/wachtwoord-vergeten/page.tsx",
+      "title": "Wachtwoord vergeten",
+      "domain": "authentication",
+      "archetype": "auth",
+      "permission": "public host-resolved tenant",
+      "workPackage": "W10",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "auth-wachtwoord-vergeten.capability.01",
+        "auth-wachtwoord-vergeten.capability.02",
+        "auth-wachtwoord-vergeten.capability.03"
+      ],
+      "primaryActionIds": [
+        "auth-wachtwoord-vergeten.request",
+        "auth-wachtwoord-vergeten.verify"
+      ],
+      "secondaryActionIds": [
+        "auth-wachtwoord-vergeten.change-email",
+        "auth-wachtwoord-vergeten.back"
+      ],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "submitting",
+        "sent",
+        "rate-limited"
+      ],
+      "responsivePattern": "single accessible card at every width; one-column form and host-resolved branding",
+      "notes": [],
+      "responsiveProfile": "auth"
+    },
+    {
+      "id": "auth-reset-wachtwoord",
+      "surface": "auth",
+      "route": "/reset-wachtwoord",
+      "source": "artifacts/backoffice/src/app/(auth)/reset-wachtwoord/page.tsx",
+      "title": "Wachtwoord herstellen",
+      "domain": "authentication",
+      "archetype": "auth",
+      "permission": "valid recovery session",
+      "workPackage": "W10",
+      "prototypePattern": "form",
+      "capabilityIds": [
+        "auth-reset-wachtwoord.capability.01",
+        "auth-reset-wachtwoord.capability.02",
+        "auth-reset-wachtwoord.capability.03",
+        "auth-reset-wachtwoord.capability.04"
+      ],
+      "primaryActionIds": [
+        "auth-reset-wachtwoord.save",
+        "auth-reset-wachtwoord.activate"
+      ],
+      "secondaryActionIds": ["auth-reset-wachtwoord.cancel"],
+      "destructiveActionIds": [],
+      "requiredStates": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "submitting",
+        "invalid-session",
+        "expired-session"
+      ],
+      "responsivePattern": "single accessible card at every width; one-column form and host-resolved branding",
+      "notes": [],
+      "responsiveProfile": "auth"
+    }
+  ]
+}

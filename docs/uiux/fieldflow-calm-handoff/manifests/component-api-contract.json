@@ -1,0 +1,621 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm public component API contract",
+  "state": "CONTRACTED",
+  "authority": {
+    "rule": "These declarations are the complete public API for the two new canonical components. Existing production forms remain authoritative for entity fields, domain validation, permissions and mutations; the new components may orchestrate presentation and focus only.",
+    "sourceStateContract": "docs/uiux/fieldflow-calm-handoff/manifests/component-states.json",
+    "exportsMustMatchExactly": true,
+    "additionalPublicPropsAllowed": false
+  },
+  "generatedAgainst": {
+    "componentStatesManifest": "docs/uiux/fieldflow-calm-handoff/manifests/component-states.json",
+    "componentStatesManifestSha256": "93cdd99069cb058ccc69cd058a38993798702c53b5f61ab01256be8696fd1b90",
+    "componentStateIds": ["entity-wizard", "error-summary"]
+  },
+  "componentCount": 2,
+  "sharedTypes": {
+    "modulePath": "artifacts/backoffice/src/components/ui/form-error-summary.tsx",
+    "declarations": "import type { ReactElement } from \"react\";\n\nexport type FormErrorSource = \"client\" | \"server\";\n\nexport interface FormErrorSummaryItem {\n  readonly fieldId: string;\n  readonly controlId: string;\n  readonly label: string;\n  readonly message: string;\n  readonly code: string;\n  readonly order: number;\n  readonly source: FormErrorSource;\n}\n\nexport interface FormServerError {\n  readonly code: string;\n  readonly message: string;\n  readonly retryable: boolean;\n}\n\nexport type FormErrorControlFocusReason = \"single-invalid\" | \"summary-link\";\n\nexport interface FormErrorControlFocusRequest {\n  readonly controlId: string;\n  readonly fieldId: string;\n  readonly reason: FormErrorControlFocusReason;\n  readonly submissionAttempt: number;\n}\n\nexport type FormErrorFocusControl = (\n  request: FormErrorControlFocusRequest,\n) => boolean;\n\nexport type FormErrorFocusEvent =\n  | {\n      readonly target: \"summary\";\n      readonly reason: \"multiple-invalid\" | \"server-error\" | \"control-fallback\";\n      readonly summaryId: string;\n      readonly submissionAttempt: number;\n    }\n  | {\n      readonly target: \"control\";\n      readonly reason: FormErrorControlFocusReason;\n      readonly controlId: string;\n      readonly fieldId: string;\n      readonly submissionAttempt: number;\n    };",
+    "unions": {
+      "FormErrorSource": ["client", "server"],
+      "FormErrorControlFocusReason": ["single-invalid", "summary-link"],
+      "FormErrorFocusEventTarget": ["summary", "control"]
+    },
+    "errorSchemas": {
+      "FormErrorSummaryItem": {
+        "required": [
+          "fieldId",
+          "controlId",
+          "label",
+          "message",
+          "code",
+          "order",
+          "source"
+        ],
+        "constraints": [
+          "fieldId, controlId, label, message and code are non-empty strings",
+          "order is a finite non-negative integer and represents form DOM order",
+          "fieldId and controlId are unique within one errors array",
+          "message is safe Dutch user-facing copy and contains no stack, payload or secret"
+        ]
+      },
+      "FormServerError": {
+        "required": ["code", "message", "retryable"],
+        "constraints": [
+          "code and message are non-empty strings",
+          "message is safe Dutch user-facing copy",
+          "retryable is true only when repeating the same idempotent operation is safe"
+        ]
+      }
+    },
+    "focusCallbacks": {
+      "FormErrorFocusControl": {
+        "returnValue": "true only after the requested control was synchronously focused; false causes the caller to focus the summary as a deterministic fallback",
+        "sideEffects": "focus only; no mutation, navigation or validation"
+      },
+      "FormErrorFocusEvent": {
+        "delivery": "called after the requested target has been focused",
+        "sideEffects": "observational only"
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "entity-wizard",
+      "exportName": "EntityWizard",
+      "exportKind": "named-component",
+      "propsTypeName": "EntityWizardProps",
+      "modulePath": "artifacts/backoffice/src/components/tenant-ui/entity-wizard.tsx",
+      "declarationSha256": "c7daab0767a05c0ba7730b0114379be616c5e0466c22f052b90b73afb9443db7",
+      "exports": [
+        "EntityWizardPanel",
+        "EntityWizardStatus",
+        "EntityWizardStep",
+        "EntityWizardStepValidationResult",
+        "EntityWizardSubmitResult",
+        "EntityWizardCloseReason",
+        "EntityWizardOpenChangeEvent",
+        "EntityWizardPanelChangeEvent",
+        "EntityWizardStepValidationEvent",
+        "EntityWizardFocusRequest",
+        "EntityWizardRenderStepContext",
+        "EntityWizardRenderReviewContext",
+        "EntityWizardProps",
+        "EntityWizard"
+      ],
+      "declaration": "import type { ReactElement, ReactNode } from \"react\";\nimport type {\n  FormErrorFocusControl,\n  FormErrorSummaryItem,\n  FormServerError,\n} from \"@/components/ui/form-error-summary\";\n\nexport type EntityWizardPanel =\n  | { readonly kind: \"step\"; readonly stepId: string }\n  | { readonly kind: \"review\" };\n\nexport type EntityWizardStatus =\n  | \"idle\"\n  | \"validating-step\"\n  | \"submitting\"\n  | \"submit-error\"\n  | \"success\";\n\nexport interface EntityWizardStep {\n  readonly id: string;\n  readonly label: string;\n  readonly heading: string;\n  readonly description?: string;\n  readonly firstFieldControlId: string;\n  readonly reviewLabel: string;\n}\n\nexport type EntityWizardStepValidationResult =\n  | { readonly status: \"valid\" }\n  | { readonly status: \"invalid\"; readonly errors: readonly FormErrorSummaryItem[] };\n\nexport type EntityWizardSubmitResult<TEntityId extends string = string> =\n  | {\n      readonly status: \"success\";\n      readonly entityId: TEntityId;\n      readonly destinationHref: string;\n      readonly focusTargetId: string;\n    }\n  | {\n      readonly status: \"validation-error\";\n      readonly errors: readonly FormErrorSummaryItem[];\n    }\n  | { readonly status: \"server-error\"; readonly error: FormServerError }\n  | { readonly status: \"stale\"; readonly error: FormServerError };\n\nexport type EntityWizardCloseReason =\n  | \"cancel-button\"\n  | \"escape-key\"\n  | \"overlay-dismiss\"\n  | \"dirty-discard-confirmed\"\n  | \"success\";\n\nexport interface EntityWizardOpenChangeEvent {\n  readonly reason: \"trigger\" | EntityWizardCloseReason;\n  readonly dirty: boolean;\n}\n\nexport interface EntityWizardPanelChangeEvent {\n  readonly reason: \"back\" | \"next\" | \"edit\";\n  readonly from: EntityWizardPanel;\n  readonly to: EntityWizardPanel;\n}\n\nexport interface EntityWizardStepValidationEvent {\n  readonly stepId: string;\n  readonly result: EntityWizardStepValidationResult;\n}\n\nexport type EntityWizardFocusRequest =\n  | { readonly target: \"title\"; readonly wizardId: string }\n  | { readonly target: \"step-heading\"; readonly wizardId: string; readonly stepId: string }\n  | { readonly target: \"field\"; readonly wizardId: string; readonly controlId: string }\n  | { readonly target: \"review-heading\"; readonly wizardId: string }\n  | { readonly target: \"opener\"; readonly wizardId: string }\n  | { readonly target: \"success-destination\"; readonly wizardId: string; readonly focusTargetId: string };\n\nexport interface EntityWizardRenderStepContext {\n  readonly step: EntityWizardStep;\n  readonly status: EntityWizardStatus;\n  readonly disabled: boolean;\n  readonly errors: readonly FormErrorSummaryItem[];\n}\n\nexport interface EntityWizardRenderReviewContext {\n  readonly steps: readonly EntityWizardStep[];\n  readonly status: EntityWizardStatus;\n  readonly onEdit: (stepId: string) => void;\n}\n\nexport interface EntityWizardProps<TEntityId extends string = string> {\n  readonly id: string;\n  readonly title: string;\n  readonly description?: string;\n  readonly trigger: ReactElement;\n  readonly open: boolean;\n  readonly panel: EntityWizardPanel;\n  readonly dirty: boolean;\n  readonly status: EntityWizardStatus;\n  readonly steps: readonly EntityWizardStep[];\n  readonly errors: readonly FormErrorSummaryItem[];\n  readonly serverError?: FormServerError | null;\n  readonly submissionAttempt: number;\n  readonly renderStep: (context: EntityWizardRenderStepContext) => ReactNode;\n  readonly renderReview: (context: EntityWizardRenderReviewContext) => ReactNode;\n  readonly validateStep: (stepId: string) => Promise<EntityWizardStepValidationResult>;\n  readonly submit: () => Promise<EntityWizardSubmitResult<TEntityId>>;\n  readonly focusControl: FormErrorFocusControl;\n  readonly onOpenChange: (open: boolean, event: EntityWizardOpenChangeEvent) => void;\n  readonly onPanelChange: (panel: EntityWizardPanel, event: EntityWizardPanelChangeEvent) => void;\n  readonly onStepValidationResult: (event: EntityWizardStepValidationEvent) => void;\n  readonly onSubmitResult: (result: EntityWizardSubmitResult<TEntityId>) => void;\n  readonly onFocusRequest?: (request: EntityWizardFocusRequest) => void;\n  readonly className?: string;\n}\n\nexport declare function EntityWizard<TEntityId extends string = string>(\n  props: EntityWizardProps<TEntityId>,\n): ReactElement;",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "owner": "host"
+        },
+        {
+          "name": "trigger",
+          "type": "ReactElement",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "panel",
+          "type": "EntityWizardPanel",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "dirty",
+          "type": "boolean",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "status",
+          "type": "EntityWizardStatus",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "steps",
+          "type": "readonly EntityWizardStep[]",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "errors",
+          "type": "readonly FormErrorSummaryItem[]",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "serverError",
+          "type": "FormServerError | null",
+          "required": false,
+          "default": null,
+          "owner": "host"
+        },
+        {
+          "name": "submissionAttempt",
+          "type": "number",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "renderStep",
+          "type": "(context: EntityWizardRenderStepContext) => ReactNode",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "renderReview",
+          "type": "(context: EntityWizardRenderReviewContext) => ReactNode",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "validateStep",
+          "type": "(stepId: string) => Promise<EntityWizardStepValidationResult>",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "submit",
+          "type": "() => Promise<EntityWizardSubmitResult<TEntityId>>",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "focusControl",
+          "type": "FormErrorFocusControl",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onOpenChange",
+          "type": "(open: boolean, event: EntityWizardOpenChangeEvent) => void",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onPanelChange",
+          "type": "(panel: EntityWizardPanel, event: EntityWizardPanelChangeEvent) => void",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onStepValidationResult",
+          "type": "(event: EntityWizardStepValidationEvent) => void",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onSubmitResult",
+          "type": "(result: EntityWizardSubmitResult<TEntityId>) => void",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onFocusRequest",
+          "type": "(request: EntityWizardFocusRequest) => void",
+          "required": false,
+          "owner": "host"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "required": false,
+          "owner": "host"
+        }
+      ],
+      "stateOwnership": {
+        "hostControlled": [
+          "open",
+          "panel",
+          "dirty",
+          "status",
+          "steps",
+          "entity form values",
+          "errors",
+          "serverError",
+          "submissionAttempt",
+          "validation",
+          "mutation and navigation"
+        ],
+        "componentOwned": [
+          "captured opener element",
+          "dirty-close AlertDialog open state",
+          "focus scheduling",
+          "live-region announcement text",
+          "internal scroll position per panel"
+        ],
+        "forbiddenComponentOwnership": [
+          "entity field schema",
+          "business validation",
+          "tenant or permission decisions",
+          "Server Action invocation outside submit",
+          "entity identifiers"
+        ]
+      },
+      "events": [
+        {
+          "prop": "onOpenChange",
+          "payload": "EntityWizardOpenChangeEvent",
+          "rule": "Open is emitted for trigger; clean close emits immediately; dirty close opens the internal AlertDialog and emits false only after discard confirmation."
+        },
+        {
+          "prop": "onPanelChange",
+          "payload": "EntityWizardPanelChangeEvent",
+          "rule": "Back never validates; Next validates the current step and emits only after valid; Edit moves from review to the selected existing step."
+        },
+        {
+          "prop": "onStepValidationResult",
+          "payload": "EntityWizardStepValidationEvent",
+          "rule": "Called exactly once when validateStep settles and before a valid panel change; on invalid the host stores errors and increments submissionAttempt once so focus occurs after the summary is rendered."
+        },
+        {
+          "prop": "onSubmitResult",
+          "payload": "EntityWizardSubmitResult<TEntityId>",
+          "rule": "Called exactly once for each settled submit promise; success then requests close with reason success, while every error leaves values and panel intact."
+        },
+        {
+          "prop": "onFocusRequest",
+          "payload": "EntityWizardFocusRequest",
+          "rule": "Optional observer called after every contracted focus destination is applied."
+        }
+      ],
+      "eventSequences": {
+        "next-valid": [
+          "invoke validateStep for the active step exactly once",
+          "invoke onStepValidationResult with status valid",
+          "invoke onPanelChange with reason next",
+          "after the controlled panel changes, focus the new step heading exactly once"
+        ],
+        "next-invalid": [
+          "invoke validateStep for the active step exactly once",
+          "invoke onStepValidationResult with status invalid",
+          "do not invoke onPanelChange",
+          "host stores returned errors and increments submissionAttempt once",
+          "FormErrorSummary applies the contracted single/multiple error focus policy"
+        ],
+        "submit-success": [
+          "from review invoke submit exactly once",
+          "invoke onSubmitResult with status success",
+          "invoke onOpenChange(false) with reason success",
+          "host navigates only to destinationHref and focuses focusTargetId after the destination commits"
+        ],
+        "submit-error": [
+          "from review invoke submit exactly once",
+          "invoke onSubmitResult with validation-error, server-error or stale",
+          "do not invoke onOpenChange and do not change panel",
+          "host retains values and exposes returned errors through controlled props"
+        ],
+        "dirty-close": [
+          "open the component-owned AlertDialog without emitting onOpenChange(false)",
+          "cancel returns focus to the wizard close control",
+          "discard invokes onOpenChange(false) once with reason dirty-discard-confirmed",
+          "after controlled close restore the captured opener focus"
+        ]
+      },
+      "unions": {
+        "EntityWizardPanel": ["step", "review"],
+        "EntityWizardStatus": [
+          "idle",
+          "validating-step",
+          "submitting",
+          "submit-error",
+          "success"
+        ],
+        "EntityWizardStepValidationResult": ["valid", "invalid"],
+        "EntityWizardSubmitResult": [
+          "success",
+          "validation-error",
+          "server-error",
+          "stale"
+        ],
+        "EntityWizardCloseReason": [
+          "cancel-button",
+          "escape-key",
+          "overlay-dismiss",
+          "dirty-discard-confirmed",
+          "success"
+        ],
+        "EntityWizardOpenChangeReason": [
+          "trigger",
+          "cancel-button",
+          "escape-key",
+          "overlay-dismiss",
+          "dirty-discard-confirmed",
+          "success"
+        ],
+        "EntityWizardPanelChangeReason": ["back", "next", "edit"],
+        "EntityWizardFocusTarget": [
+          "title",
+          "step-heading",
+          "field",
+          "review-heading",
+          "opener",
+          "success-destination"
+        ]
+      },
+      "invariants": [
+        "steps contains at least two entries with unique non-empty id and firstFieldControlId values",
+        "trigger has exactly one semantically interactive React element accepted by the canonical DialogTrigger asChild contract",
+        "panel.stepId always references an existing step",
+        "submissionAttempt is a finite non-negative integer and increments exactly once for a failed current-step validation or final submit that returns field errors",
+        "status submitting disables Back, Next, Edit, Submit and dismiss; status validating-step disables repeated Next only",
+        "renderReview is called only for the review panel; submit is callable only from the review panel",
+        "success destinationHref is an internal tenant-safe route and focusTargetId exists after navigation",
+        "the component imports canonical Dialog, Sheet, AlertDialog and FormErrorSummary primitives; it implements no local focus trap or portal"
+      ],
+      "focusCallbacks": {
+        "focusControl": "used for one invalid field, error-summary links and the first field of a newly entered step; false falls back to the step heading or error summary",
+        "onFocusRequest": "observes title, step heading, field, review heading, opener and success destination focus after it happens"
+      },
+      "stateMapping": {
+        "closed": "open=false",
+        "step-one": "open=true; panel.kind=step; panel.stepId=steps[0].id; status=idle",
+        "intermediate-valid": "open=true; panel.kind=step; panel.stepId references a non-first step; status=idle; errors=[]",
+        "step-invalid": "open=true; panel.kind=step; errors.length>0; submissionAttempt increased for this validation result",
+        "review": "open=true; panel.kind=review; status=idle",
+        "submitting": "open=true; panel.kind=review; status=submitting",
+        "submit-error": "open=true; status=submit-error; values and panel unchanged; serverError is non-null",
+        "success": "open=true until controlled success close is accepted; status=success; settled result.status=success"
+      }
+    },
+    {
+      "id": "error-summary",
+      "exportName": "FormErrorSummary",
+      "exportKind": "named-component",
+      "propsTypeName": "FormErrorSummaryProps",
+      "modulePath": "artifacts/backoffice/src/components/ui/form-error-summary.tsx",
+      "sharedDeclarationSha256": "e4bba46caa0e4fc5fc5a09ca55295c8005e68d171e3107252e78e518d7decc4c",
+      "declarationSha256": "d1470f38674ddf0283a11831d811484cb1d70c9399f80542f3c8c2aca45b5e83",
+      "exports": [
+        "FormErrorSource",
+        "FormErrorSummaryItem",
+        "FormServerError",
+        "FormErrorControlFocusReason",
+        "FormErrorControlFocusRequest",
+        "FormErrorFocusControl",
+        "FormErrorFocusEvent",
+        "FormErrorSummaryProps",
+        "FormErrorSummary"
+      ],
+      "declaration": "export interface FormErrorSummaryProps {\n  readonly id: string;\n  readonly heading?: string;\n  readonly errors: readonly FormErrorSummaryItem[];\n  readonly serverError?: FormServerError | null;\n  readonly submissionAttempt: number;\n  readonly focusControl: FormErrorFocusControl;\n  readonly onFocusRequest?: (event: FormErrorFocusEvent) => void;\n  readonly onRetry?: () => void;\n  readonly retryPending?: boolean;\n  readonly className?: string;\n}\n\nexport declare function FormErrorSummary(\n  props: FormErrorSummaryProps,\n): ReactElement | null;",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "required": false,
+          "default": "Controleer de gemarkeerde velden",
+          "owner": "host"
+        },
+        {
+          "name": "errors",
+          "type": "readonly FormErrorSummaryItem[]",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "serverError",
+          "type": "FormServerError | null",
+          "required": false,
+          "default": null,
+          "owner": "host"
+        },
+        {
+          "name": "submissionAttempt",
+          "type": "number",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "focusControl",
+          "type": "FormErrorFocusControl",
+          "required": true,
+          "owner": "host"
+        },
+        {
+          "name": "onFocusRequest",
+          "type": "(event: FormErrorFocusEvent) => void",
+          "required": false,
+          "owner": "host"
+        },
+        {
+          "name": "onRetry",
+          "type": "() => void",
+          "required": false,
+          "owner": "host"
+        },
+        {
+          "name": "retryPending",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "owner": "host"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "required": false,
+          "owner": "host"
+        }
+      ],
+      "stateOwnership": {
+        "hostControlled": [
+          "errors",
+          "serverError",
+          "submissionAttempt",
+          "retryPending",
+          "retry operation"
+        ],
+        "componentOwned": [
+          "last handled submissionAttempt",
+          "summary DOM focus",
+          "summary link activation"
+        ],
+        "forbiddenComponentOwnership": [
+          "field validation",
+          "error translation",
+          "retry mutation",
+          "form values"
+        ]
+      },
+      "events": [
+        {
+          "prop": "focusControl",
+          "payload": "FormErrorControlFocusRequest",
+          "rule": "Called for the sole invalid field after a new failed attempt and for an activated summary link; false deterministically focuses the summary."
+        },
+        {
+          "prop": "onFocusRequest",
+          "payload": "FormErrorFocusEvent",
+          "rule": "Optional observer called after summary or field focus is applied."
+        },
+        {
+          "prop": "onRetry",
+          "payload": "void",
+          "rule": "Rendered and callable only when serverError.retryable is true; retryPending disables it and changes its accessible busy state."
+        }
+      ],
+      "unions": {
+        "FormErrorSource": ["client", "server"],
+        "FormErrorControlFocusReason": ["single-invalid", "summary-link"],
+        "FormErrorFocusEventTarget": ["summary", "control"],
+        "FormErrorFocusEventSummaryReason": [
+          "multiple-invalid",
+          "server-error",
+          "control-fallback"
+        ]
+      },
+      "errorSchemas": ["FormErrorSummaryItem", "FormServerError"],
+      "focusPolicy": {
+        "trigger": "Only a strictly increased submissionAttempt may initiate automatic focus; changing errors during the same attempt never does.",
+        "oneFieldError": "Call focusControl with reason single-invalid; when it returns false, focus the summary container.",
+        "multipleFieldErrors": "Focus the summary container with tabindex=-1.",
+        "serverError": "Focus the summary container; server error follows field errors in visual order.",
+        "linkActivation": "Prevent hash navigation, call focusControl with reason summary-link and fall back to summary when it returns false.",
+        "correction": "Never refocus while submissionAttempt is unchanged."
+      },
+      "renderingPolicy": {
+        "hidden": "Render null when errors is empty and serverError is null.",
+        "order": "Sort field errors by order ascending, then fieldId ascending.",
+        "duplicates": "Duplicate fieldId or controlId is a development error; production rendering keeps the first sorted entry and never lists a field twice.",
+        "semantics": "The container uses role=alert, aria-live=assertive, aria-atomic=true and aria-labelledby=<id>-heading; every field item is a button-style link with accessible name <label>: <message>."
+      },
+      "stateMapping": {
+        "hidden": "errors=[] and serverError=null; render null",
+        "validation-visible": "errors.length>0 after submissionAttempt increased",
+        "summary-focused": "two or more errors, a serverError, or a failed control focus fallback",
+        "field-link-focused": "focusControl returned true for an activated summary item",
+        "server-error": "serverError is non-null; retry is present only when retryable=true",
+        "corrected": "errors changed while submissionAttempt stayed equal; no automatic refocus"
+      },
+      "invariants": [
+        "id is unique in the rendered document",
+        "submissionAttempt is a finite non-negative integer",
+        "every controlId resolves to one enabled form control at the time of activation",
+        "onRetry is present if and only if a retryable server error is shown",
+        "field-level aria-describedby errors remain rendered; the summary never replaces them"
+      ]
+    }
+  ],
+  "compileContract": {
+    "fixtureCount": 4,
+    "fixtureDirectory": "artifacts/backoffice/src/components/tenant-ui/__contract__",
+    "compileCommand": "pnpm --filter @workspace/backoffice run typecheck",
+    "rules": [
+      "Each source string is materialized byte-for-byte at targetPath in W02/W04 and remains in TypeScript compilation.",
+      "No @ts-ignore, @ts-expect-error, any cast or skipLibCheck exception is allowed.",
+      "Changing either public declaration requires updating all four fixtures and this contract in the same reviewed contract change.",
+      "The existing production form named by existingFormSource supplies fields, validation and mutation; a fixture may only adapt it to the public orchestration API."
+    ],
+    "fixtures": [
+      {
+        "id": "entity-wizard-assignment-compile",
+        "entityKind": "assignment",
+        "routeId": "tenant-assignments",
+        "witnessRoute": "/assignments/FG-2048",
+        "existingFormSource": "artifacts/backoffice/src/components/assignments/AssignmentForm.tsx#AssignmentForm",
+        "targetPath": "artifacts/backoffice/src/components/tenant-ui/__contract__/assignment-wizard.contract.tsx",
+        "compileCommand": "pnpm --filter @workspace/backoffice run typecheck",
+        "requiredExports": [
+          "assignmentWizardContract",
+          "assignmentErrorSummaryContract"
+        ],
+        "sourceSha256": "cecd84a622cfc8ea77c684e00d0d286479815742f1c9a4492877ecde30b942c7",
+        "source": "import type { EntityWizardProps } from \"@/components/tenant-ui/entity-wizard\";\nimport type { FormErrorSummaryProps } from \"@/components/ui/form-error-summary\";\n\ntype AssignmentId = string & { readonly __entity: \"assignment\" };\n\nexport const assignmentWizardContract = {\n  id: \"assignment-create-wizard\",\n  title: \"Nieuwe opdracht\",\n  trigger: <button type=\"button\">Nieuwe opdracht</button>,\n  open: true,\n  panel: { kind: \"step\", stepId: \"basis\" },\n  dirty: false,\n  status: \"idle\",\n  steps: [\n    {\n      \"id\": \"basis\",\n      \"label\": \"Basis\",\n      \"heading\": \"Basisgegevens\",\n      \"firstFieldControlId\": \"title\",\n      \"reviewLabel\": \"Basisgegevens\"\n    },\n    {\n      \"id\": \"location\",\n      \"label\": \"Locatie\",\n      \"heading\": \"Klant en locatie\",\n      \"firstFieldControlId\": \"customerId\",\n      \"reviewLabel\": \"Klant en locatie\"\n    },\n    {\n      \"id\": \"planning\",\n      \"label\": \"Planning\",\n      \"heading\": \"Planning\",\n      \"firstFieldControlId\": \"scheduledDate\",\n      \"reviewLabel\": \"Planning\"\n    }\n  ],\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  renderStep: () => null,\n  renderReview: () => null,\n  validateStep: async () => ({ status: \"valid\" }),\n  submit: async () => ({\n    status: \"success\",\n    entityId: \"FG-2048\" as AssignmentId,\n    destinationHref: \"/assignments/FG-2048\",\n    focusTargetId: \"assignment-detail-heading\",\n  }),\n  focusControl: () => true,\n  onOpenChange: () => undefined,\n  onPanelChange: () => undefined,\n  onStepValidationResult: () => undefined,\n  onSubmitResult: () => undefined,\n} satisfies EntityWizardProps<AssignmentId>;\n\nexport const assignmentErrorSummaryContract = {\n  id: \"assignment-form-errors\",\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  focusControl: () => true,\n} satisfies FormErrorSummaryProps;\n"
+      },
+      {
+        "id": "entity-wizard-customer-compile",
+        "entityKind": "customer",
+        "routeId": "tenant-customers",
+        "witnessRoute": "/customers/customer-fixture-id",
+        "existingFormSource": "artifacts/backoffice/src/components/customers/CustomerForm.tsx#CustomerForm",
+        "targetPath": "artifacts/backoffice/src/components/tenant-ui/__contract__/customer-wizard.contract.tsx",
+        "compileCommand": "pnpm --filter @workspace/backoffice run typecheck",
+        "requiredExports": [
+          "customerWizardContract",
+          "customerErrorSummaryContract"
+        ],
+        "sourceSha256": "9382db8cf5777423ac3a84f6d300eec4eb4c548ac44f1ae8da05eaa4feaef75c",
+        "source": "import type { EntityWizardProps } from \"@/components/tenant-ui/entity-wizard\";\nimport type { FormErrorSummaryProps } from \"@/components/ui/form-error-summary\";\n\ntype CustomerId = string & { readonly __entity: \"customer\" };\n\nexport const customerWizardContract = {\n  id: \"customer-create-wizard\",\n  title: \"Nieuwe klant\",\n  trigger: <button type=\"button\">Nieuwe klant</button>,\n  open: true,\n  panel: { kind: \"step\", stepId: \"basis\" },\n  dirty: false,\n  status: \"idle\",\n  steps: [\n    {\n      \"id\": \"basis\",\n      \"label\": \"Basis\",\n      \"heading\": \"Klantgegevens\",\n      \"firstFieldControlId\": \"name\",\n      \"reviewLabel\": \"Klantgegevens\"\n    },\n    {\n      \"id\": \"contact\",\n      \"label\": \"Contact\",\n      \"heading\": \"Contactgegevens\",\n      \"firstFieldControlId\": \"contactName\",\n      \"reviewLabel\": \"Contactgegevens\"\n    }\n  ],\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  renderStep: () => null,\n  renderReview: () => null,\n  validateStep: async () => ({ status: \"valid\" }),\n  submit: async () => ({\n    status: \"success\",\n    entityId: \"customer-fixture-id\" as CustomerId,\n    destinationHref: \"/customers/customer-fixture-id\",\n    focusTargetId: \"customer-detail-heading\",\n  }),\n  focusControl: () => true,\n  onOpenChange: () => undefined,\n  onPanelChange: () => undefined,\n  onStepValidationResult: () => undefined,\n  onSubmitResult: () => undefined,\n} satisfies EntityWizardProps<CustomerId>;\n\nexport const customerErrorSummaryContract = {\n  id: \"customer-form-errors\",\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  focusControl: () => true,\n} satisfies FormErrorSummaryProps;\n"
+      },
+      {
+        "id": "entity-wizard-object-compile",
+        "entityKind": "object",
+        "routeId": "tenant-objects",
+        "witnessRoute": "/objects/object-fixture-id",
+        "existingFormSource": "artifacts/backoffice/src/components/objects/ObjectForm.tsx#ObjectForm",
+        "targetPath": "artifacts/backoffice/src/components/tenant-ui/__contract__/object-wizard.contract.tsx",
+        "compileCommand": "pnpm --filter @workspace/backoffice run typecheck",
+        "requiredExports": [
+          "objectWizardContract",
+          "objectErrorSummaryContract"
+        ],
+        "sourceSha256": "c7a79fe2b76e31ce74f72befd8d75c6d08c4a5eaf001a0fb812d093ef08e7b9a",
+        "source": "import type { EntityWizardProps } from \"@/components/tenant-ui/entity-wizard\";\nimport type { FormErrorSummaryProps } from \"@/components/ui/form-error-summary\";\n\ntype ObjectId = string & { readonly __entity: \"object\" };\n\nexport const objectWizardContract = {\n  id: \"object-create-wizard\",\n  title: \"Nieuw object\",\n  trigger: <button type=\"button\">Nieuw object</button>,\n  open: true,\n  panel: { kind: \"step\", stepId: \"basis\" },\n  dirty: false,\n  status: \"idle\",\n  steps: [\n    {\n      \"id\": \"basis\",\n      \"label\": \"Basis\",\n      \"heading\": \"Objectgegevens\",\n      \"firstFieldControlId\": \"object-customer\",\n      \"reviewLabel\": \"Objectgegevens\"\n    },\n    {\n      \"id\": \"location\",\n      \"label\": \"Locatie\",\n      \"heading\": \"Locatie en toegang\",\n      \"firstFieldControlId\": \"objectAddress\",\n      \"reviewLabel\": \"Locatie en toegang\"\n    }\n  ],\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  renderStep: () => null,\n  renderReview: () => null,\n  validateStep: async () => ({ status: \"valid\" }),\n  submit: async () => ({\n    status: \"success\",\n    entityId: \"object-fixture-id\" as ObjectId,\n    destinationHref: \"/objects/object-fixture-id\",\n    focusTargetId: \"object-detail-heading\",\n  }),\n  focusControl: () => true,\n  onOpenChange: () => undefined,\n  onPanelChange: () => undefined,\n  onStepValidationResult: () => undefined,\n  onSubmitResult: () => undefined,\n} satisfies EntityWizardProps<ObjectId>;\n\nexport const objectErrorSummaryContract = {\n  id: \"object-form-errors\",\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  focusControl: () => true,\n} satisfies FormErrorSummaryProps;\n"
+      },
+      {
+        "id": "entity-wizard-personnel-compile",
+        "entityKind": "personnel",
+        "routeId": "tenant-personnel",
+        "witnessRoute": "/personnel/personnel-fixture-id",
+        "existingFormSource": "artifacts/backoffice/src/components/personnel/PersonnelForm.tsx#PersonnelForm",
+        "targetPath": "artifacts/backoffice/src/components/tenant-ui/__contract__/personnel-wizard.contract.tsx",
+        "compileCommand": "pnpm --filter @workspace/backoffice run typecheck",
+        "requiredExports": [
+          "personnelWizardContract",
+          "personnelErrorSummaryContract"
+        ],
+        "sourceSha256": "134505ee20b4766df3973efa7126ba289145d07df45e3ddc9a5ef4abb315d099",
+        "source": "import type { EntityWizardProps } from \"@/components/tenant-ui/entity-wizard\";\nimport type { FormErrorSummaryProps } from \"@/components/ui/form-error-summary\";\n\ntype PersonnelId = string & { readonly __entity: \"personnel\" };\n\nexport const personnelWizardContract = {\n  id: \"personnel-create-wizard\",\n  title: \"Nieuwe medewerker\",\n  trigger: <button type=\"button\">Nieuwe medewerker</button>,\n  open: true,\n  panel: { kind: \"step\", stepId: \"profile\" },\n  dirty: false,\n  status: \"idle\",\n  steps: [\n    {\n      \"id\": \"profile\",\n      \"label\": \"Profiel\",\n      \"heading\": \"Profielgegevens\",\n      \"firstFieldControlId\": \"firstName\",\n      \"reviewLabel\": \"Profielgegevens\"\n    },\n    {\n      \"id\": \"employment\",\n      \"label\": \"Dienstverband\",\n      \"heading\": \"Dienstverband\",\n      \"firstFieldControlId\": \"personnelType\",\n      \"reviewLabel\": \"Dienstverband\"\n    },\n    {\n      \"id\": \"contract\",\n      \"label\": \"Contract\",\n      \"heading\": \"Contractgegevens\",\n      \"firstFieldControlId\": \"contractStartDate\",\n      \"reviewLabel\": \"Contractgegevens\"\n    }\n  ],\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  renderStep: () => null,\n  renderReview: () => null,\n  validateStep: async () => ({ status: \"valid\" }),\n  submit: async () => ({\n    status: \"success\",\n    entityId: \"personnel-fixture-id\" as PersonnelId,\n    destinationHref: \"/personnel/personnel-fixture-id\",\n    focusTargetId: \"personnel-detail-heading\",\n  }),\n  focusControl: () => true,\n  onOpenChange: () => undefined,\n  onPanelChange: () => undefined,\n  onStepValidationResult: () => undefined,\n  onSubmitResult: () => undefined,\n} satisfies EntityWizardProps<PersonnelId>;\n\nexport const personnelErrorSummaryContract = {\n  id: \"personnel-form-errors\",\n  errors: [],\n  serverError: null,\n  submissionAttempt: 0,\n  focusControl: () => true,\n} satisfies FormErrorSummaryProps;\n"
+      }
+    ]
+  }
+}

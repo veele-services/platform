@@ -1,0 +1,618 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fieldgrid.invalid/contracts/fieldflow-calm/verification-matrix.schema.json",
+  "title": "Fieldflow Calm deterministic verification matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "name",
+    "state",
+    "generatedAgainst",
+    "canonicalization",
+    "axisCatalogs",
+    "routeSubjectSets",
+    "axisSuites",
+    "requirementBindings",
+    "sharedFullCartesianMatrices",
+    "specialCoverageAssertions",
+    "evidenceBindingContract",
+    "totals",
+    "verificationPlanRootSha256"
+  ],
+  "properties": {
+    "$schema": { "const": "../reference/verification-matrix.schema.json" },
+    "schemaVersion": { "const": 1 },
+    "name": { "const": "Fieldflow Calm deterministic verification matrix" },
+    "state": {
+      "enum": ["CONTRACTED", "VERIFIED_LOCAL", "VERIFIED_STAGING", "RELEASED"]
+    },
+    "generatedAgainst": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptance",
+        "routes",
+        "productionInventory",
+        "componentStates",
+        "risks",
+        "captureContract",
+        "whitelabelSurfaces"
+      ],
+      "properties": {
+        "acceptance": { "$ref": "#/$defs/inputBinding" },
+        "routes": { "$ref": "#/$defs/inputBinding" },
+        "productionInventory": { "$ref": "#/$defs/inputBinding" },
+        "componentStates": { "$ref": "#/$defs/inputBinding" },
+        "risks": { "$ref": "#/$defs/inputBinding" },
+        "captureContract": { "$ref": "#/$defs/inputBinding" },
+        "whitelabelSurfaces": { "$ref": "#/$defs/inputBinding" }
+      }
+    },
+    "canonicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "encoding",
+        "inputSemanticHash",
+        "tupleFieldOrder",
+        "nullableFields",
+        "tupleId",
+        "streamHash",
+        "tupleIdStreamHash",
+        "subjectGeneratorOrder",
+        "requirementGeneratorOrder",
+        "requirementTupleFamilyOrder",
+        "subjectTupleRules",
+        "axisTupleRules",
+        "responsiveTupleRules",
+        "pairClosureAlgorithm",
+        "fullCartesianAlgorithm",
+        "sharedMatrixGeneratorOrder",
+        "sharedMatrixTupleRules",
+        "selectorAlgorithm",
+        "verificationPlanRootSerialization"
+      ],
+      "properties": {
+        "algorithm": { "const": "fieldflow-verification-tuple-jsonl-v1" },
+        "encoding": { "const": "UTF-8" },
+        "inputSemanticHash": { "type": "string", "minLength": 1 },
+        "tupleFieldOrder": {
+          "type": "array",
+          "minItems": 23,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "nullableFields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "tupleId": { "type": "string", "minLength": 1 },
+        "streamHash": { "type": "string", "minLength": 1 },
+        "tupleIdStreamHash": { "type": "string", "minLength": 1 },
+        "subjectGeneratorOrder": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "requirementGeneratorOrder": { "type": "string", "minLength": 1 },
+        "requirementTupleFamilyOrder": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "subjectTupleRules": {
+          "type": "array",
+          "minItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "axisTupleRules": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "responsiveTupleRules": {
+          "type": "array",
+          "minItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "pairClosureAlgorithm": {
+          "type": "array",
+          "minItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "fullCartesianAlgorithm": { "type": "string", "minLength": 1 },
+        "sharedMatrixGeneratorOrder": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sharedMatrixTupleRules": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "selectorAlgorithm": { "type": "string", "minLength": 1 },
+        "verificationPlanRootSerialization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "algorithm",
+            "requirementLineFieldOrder",
+            "sharedMatrixLineFieldOrder",
+            "rule"
+          ],
+          "properties": {
+            "algorithm": {
+              "const": "fieldflow-verification-plan-root-jsonl-v1"
+            },
+            "requirementLineFieldOrder": { "$ref": "#/$defs/stringIds" },
+            "sharedMatrixLineFieldOrder": { "$ref": "#/$defs/stringIds" },
+            "rule": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "axisCatalogs": { "$ref": "#/$defs/axisCatalogs" },
+    "routeSubjectSets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/routeSubjectSet" }
+    },
+    "axisSuites": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/axisSuite" }
+    },
+    "requirementBindings": {
+      "type": "array",
+      "minItems": 145,
+      "maxItems": 145,
+      "items": { "$ref": "#/$defs/requirementBinding" }
+    },
+    "sharedFullCartesianMatrices": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/sharedMatrix" }
+    },
+    "specialCoverageAssertions": { "type": "object", "minProperties": 4 },
+    "evidenceBindingContract": { "$ref": "#/$defs/evidenceBindingContract" },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirements",
+        "routeSubjectSets",
+        "axisSuites",
+        "requirementTuples",
+        "sharedFullCartesianMatrices",
+        "sharedFullCartesianTuples",
+        "allPlannedTuples"
+      ],
+      "properties": {
+        "requirements": { "const": 145 },
+        "routeSubjectSets": { "type": "integer", "minimum": 1 },
+        "axisSuites": { "type": "integer", "minimum": 1 },
+        "requirementTuples": { "type": "integer", "minimum": 145 },
+        "sharedFullCartesianMatrices": { "const": 3 },
+        "sharedFullCartesianTuples": { "type": "integer", "minimum": 1 },
+        "allPlannedTuples": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "verificationPlanRootSha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "tupleId": { "type": "string", "pattern": "^FFVT-[0-9a-f]{64}$" },
+    "rowId": { "type": "string", "pattern": "^FFVA-[0-9a-f]{64}$" },
+    "stringIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "inputBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "semanticSha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "semanticSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "axisCatalogs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "roles",
+        "inputs",
+        "states",
+        "viewportZoomProfiles",
+        "densities",
+        "motion",
+        "contrastModes",
+        "tenantBrands"
+      ],
+      "properties": {
+        "roles": { "$ref": "#/$defs/stringIds" },
+        "inputs": { "$ref": "#/$defs/stringIds" },
+        "states": { "$ref": "#/$defs/stringIds" },
+        "viewportZoomProfiles": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": { "$ref": "#/$defs/viewportProfile" }
+        },
+        "densities": { "$ref": "#/$defs/stringIds" },
+        "motion": { "$ref": "#/$defs/stringIds" },
+        "contrastModes": { "$ref": "#/$defs/stringIds" },
+        "tenantBrands": { "$ref": "#/$defs/stringIds" }
+      }
+    },
+    "viewportProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "width", "height", "zoomPercent"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "zoomPercent": { "type": "integer", "minimum": 100 }
+      }
+    },
+    "routeSubjectSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "selectors",
+        "selectorSemantics",
+        "includeGlobals",
+        "routeIds",
+        "capabilityIds",
+        "actionIds",
+        "counts",
+        "resolvedSubjectsSha256"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^routes-[0-9a-f]{16}$" },
+        "selectors": { "$ref": "#/$defs/stringIds" },
+        "selectorSemantics": { "const": "exact-or-terminal-prefix-star-v1" },
+        "includeGlobals": { "type": "boolean" },
+        "routeIds": { "$ref": "#/$defs/stringIds" },
+        "capabilityIds": { "$ref": "#/$defs/stringIds" },
+        "actionIds": { "$ref": "#/$defs/stringIds" },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["routes", "capabilities", "actions"],
+          "properties": {
+            "routes": { "type": "integer", "minimum": 1 },
+            "capabilities": { "type": "integer", "minimum": 0 },
+            "actions": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "resolvedSubjectsSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "axisValueMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "input",
+        "state",
+        "viewportZoomProfile",
+        "density",
+        "motion",
+        "contrastMode",
+        "tenantBrand"
+      ],
+      "properties": {
+        "role": { "$ref": "#/$defs/stringIds" },
+        "input": { "$ref": "#/$defs/stringIds" },
+        "state": { "$ref": "#/$defs/stringIds" },
+        "viewportZoomProfile": { "$ref": "#/$defs/stringIds" },
+        "density": { "$ref": "#/$defs/stringIds" },
+        "motion": { "$ref": "#/$defs/stringIds" },
+        "contrastMode": { "$ref": "#/$defs/stringIds" },
+        "tenantBrand": { "$ref": "#/$defs/stringIds" }
+      }
+    },
+    "axisRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "input",
+        "state",
+        "viewportZoomProfile",
+        "density",
+        "motion",
+        "contrastMode",
+        "tenantBrand"
+      ],
+      "properties": {
+        "role": { "type": "string" },
+        "input": { "type": "string" },
+        "state": { "type": "string" },
+        "viewportZoomProfile": { "type": "string" },
+        "density": { "type": "string" },
+        "motion": { "type": "string" },
+        "contrastMode": { "type": "string" },
+        "tenantBrand": { "type": "string" }
+      }
+    },
+    "axisSuite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "algorithm",
+        "axisOrder",
+        "values",
+        "defaultRow",
+        "rowCount",
+        "rowIdStreamSha256",
+        "rowPayloadStreamSha256",
+        "firstRowId",
+        "lastRowId",
+        "pairCoverage"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^axis-[0-9a-f]{16}$" },
+        "algorithm": {
+          "const": "lexicographic-default-filled-pair-closure-v1"
+        },
+        "axisOrder": { "$ref": "#/$defs/stringIds" },
+        "values": { "$ref": "#/$defs/axisValueMap" },
+        "defaultRow": { "$ref": "#/$defs/axisRow" },
+        "rowCount": { "type": "integer", "minimum": 1 },
+        "rowIdStreamSha256": { "$ref": "#/$defs/sha256" },
+        "rowPayloadStreamSha256": { "$ref": "#/$defs/sha256" },
+        "firstRowId": { "$ref": "#/$defs/rowId" },
+        "lastRowId": { "$ref": "#/$defs/rowId" },
+        "pairCoverage": { "type": "string", "minLength": 1 }
+      }
+    },
+    "localSubjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "componentIds",
+        "componentCaseIds",
+        "surfaceIds",
+        "surfaceTargetIds",
+        "riskIds"
+      ],
+      "properties": {
+        "componentIds": { "$ref": "#/$defs/stringIds" },
+        "componentCaseIds": { "$ref": "#/$defs/stringIds" },
+        "surfaceIds": { "$ref": "#/$defs/stringIds" },
+        "surfaceTargetIds": { "$ref": "#/$defs/stringIds" },
+        "riskIds": { "$ref": "#/$defs/stringIds" }
+      }
+    },
+    "tuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "family",
+        "requirementId",
+        "matrixId",
+        "subjectType",
+        "routeId",
+        "capabilityId",
+        "actionId",
+        "componentId",
+        "componentCaseId",
+        "surfaceId",
+        "surfaceTargetId",
+        "riskId",
+        "role",
+        "input",
+        "state",
+        "viewportWidth",
+        "viewportHeight",
+        "zoomPercent",
+        "density",
+        "motion",
+        "contrastMode",
+        "tenantBrand"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "family": { "type": "string", "minLength": 1 },
+        "requirementId": { "type": ["string", "null"] },
+        "matrixId": { "type": ["string", "null"] },
+        "subjectType": { "type": "string", "minLength": 1 },
+        "routeId": { "type": ["string", "null"] },
+        "capabilityId": { "type": ["string", "null"] },
+        "actionId": { "type": ["string", "null"] },
+        "componentId": { "type": ["string", "null"] },
+        "componentCaseId": { "type": ["string", "null"] },
+        "surfaceId": { "type": ["string", "null"] },
+        "surfaceTargetId": { "type": ["string", "null"] },
+        "riskId": { "type": ["string", "null"] },
+        "role": { "type": "string", "minLength": 1 },
+        "input": { "type": "string", "minLength": 1 },
+        "state": { "type": "string", "minLength": 1 },
+        "viewportWidth": { "type": "integer", "minimum": 1 },
+        "viewportHeight": { "type": "integer", "minimum": 1 },
+        "zoomPercent": { "type": "integer", "minimum": 100 },
+        "density": { "type": "string", "minLength": 1 },
+        "motion": { "type": "string", "minLength": 1 },
+        "contrastMode": { "type": "string", "minLength": 1 },
+        "tenantBrand": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tupleSummary": {
+      "type": "object",
+      "required": [
+        "tupleCount",
+        "tupleIdStreamSha256",
+        "tuplePayloadStreamSha256",
+        "firstTupleId",
+        "lastTupleId",
+        "firstTuple",
+        "lastTuple"
+      ],
+      "properties": {
+        "tupleCount": { "type": "integer", "minimum": 1 },
+        "tupleIdStreamSha256": { "$ref": "#/$defs/sha256" },
+        "tuplePayloadStreamSha256": { "$ref": "#/$defs/sha256" },
+        "firstTupleId": { "$ref": "#/$defs/tupleId" },
+        "lastTupleId": { "$ref": "#/$defs/tupleId" },
+        "firstTuple": { "$ref": "#/$defs/tuple" },
+        "lastTuple": { "$ref": "#/$defs/tuple" }
+      }
+    },
+    "requirementBinding": {
+      "allOf": [
+        { "$ref": "#/$defs/tupleSummary" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requirementId",
+            "priority",
+            "category",
+            "verification",
+            "workPackage",
+            "routeSubjectSetId",
+            "axisSuiteId",
+            "localSubjects",
+            "sharedMatrixIds",
+            "familyCounts",
+            "tupleCount",
+            "tupleIdStreamSha256",
+            "tuplePayloadStreamSha256",
+            "firstTupleId",
+            "lastTupleId",
+            "firstTuple",
+            "lastTuple"
+          ],
+          "properties": {
+            "requirementId": {
+              "type": "string",
+              "pattern": "^FFC-[A-Z0-9]+-[0-9]{3}$"
+            },
+            "priority": { "enum": ["P0", "P1"] },
+            "category": { "type": "string", "minLength": 1 },
+            "verification": { "type": "string", "minLength": 1 },
+            "workPackage": { "type": "string", "pattern": "^W[0-9]{2}$" },
+            "routeSubjectSetId": {
+              "type": "string",
+              "pattern": "^routes-[0-9a-f]{16}$"
+            },
+            "axisSuiteId": {
+              "type": "string",
+              "pattern": "^axis-[0-9a-f]{16}$"
+            },
+            "localSubjects": { "$ref": "#/$defs/localSubjects" },
+            "sharedMatrixIds": { "$ref": "#/$defs/stringIds" },
+            "familyCounts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subjectCoverage",
+                "axisPairClosure",
+                "responsiveRouteWidthFull"
+              ],
+              "properties": {
+                "subjectCoverage": { "type": "integer", "minimum": 1 },
+                "axisPairClosure": { "type": "integer", "minimum": 1 },
+                "responsiveRouteWidthFull": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "tupleCount": { "type": "integer", "minimum": 1 },
+            "tupleIdStreamSha256": { "$ref": "#/$defs/sha256" },
+            "tuplePayloadStreamSha256": { "$ref": "#/$defs/sha256" },
+            "firstTupleId": { "$ref": "#/$defs/tupleId" },
+            "lastTupleId": { "$ref": "#/$defs/tupleId" },
+            "firstTuple": { "$ref": "#/$defs/tuple" },
+            "lastTuple": { "$ref": "#/$defs/tuple" }
+          }
+        }
+      ]
+    },
+    "sharedMatrix": {
+      "allOf": [
+        { "$ref": "#/$defs/tupleSummary" },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "purpose",
+            "requirementIds",
+            "axisOrder",
+            "axisValues",
+            "subjectBindings",
+            "algorithm"
+          ],
+          "properties": {
+            "id": { "type": "string", "pattern": "^whitelabel-[a-z-]+-full$" },
+            "purpose": { "type": "string", "minLength": 1 },
+            "requirementIds": { "$ref": "#/$defs/stringIds" },
+            "axisOrder": { "$ref": "#/$defs/stringIds" },
+            "axisValues": { "type": "object", "minProperties": 9 },
+            "subjectBindings": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["surfaceTargetId", "routeId"],
+                "properties": {
+                  "surfaceTargetId": { "type": "string", "minLength": 1 },
+                  "routeId": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "algorithm": { "const": "lexicographic-full-cartesian-v1" }
+          }
+        }
+      ]
+    },
+    "evidenceBindingContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "matrixReferenceFields",
+        "requirementCoverageFields",
+        "sharedMatrixCoverageFields",
+        "shardFields",
+        "assertionReportFields",
+        "assertionFields",
+        "testIdFormat",
+        "rules"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "matrixReferenceFields": { "$ref": "#/$defs/stringIds" },
+        "requirementCoverageFields": { "$ref": "#/$defs/stringIds" },
+        "sharedMatrixCoverageFields": { "$ref": "#/$defs/stringIds" },
+        "shardFields": { "$ref": "#/$defs/stringIds" },
+        "assertionReportFields": { "$ref": "#/$defs/stringIds" },
+        "assertionFields": { "$ref": "#/$defs/stringIds" },
+        "testIdFormat": { "type": "string", "minLength": 1 },
+        "rules": {
+          "type": "array",
+          "minItems": 8,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

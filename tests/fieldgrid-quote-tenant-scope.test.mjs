@@ -60,8 +60,31 @@ test("quote creation and expiry processing stay tenant-scoped", () => {
 
   const expiryBody = section(quotes, "processExpiredQuotes");
   assert.match(expiryBody, /requireCurrentTenantId\(\)/u);
-  assert.match(expiryBody, /innerJoin\(assignmentsTable, eq\(quotesTable\.assignmentId, assignmentsTable\.id\)\)/u);
+  assert.match(
+    expiryBody,
+    /innerJoin\([\s\S]*?assignmentsTable,[\s\S]*?eq\(quotesTable\.assignmentId, assignmentsTable\.id\),[\s\S]*?eq\(quotesTable\.tenantId, assignmentsTable\.tenantId\)/u,
+  );
+  assert.match(expiryBody, /eq\(quotesTable\.tenantId, tenantId\)/u);
   assert.match(expiryBody, /eq\(assignmentsTable\.tenantId, tenantId\)/u);
+  assert.match(expiryBody, /eq\(customersTable\.id, claimed\.customerId\)/u);
+  assert.match(expiryBody, /eq\(customersTable\.tenantId, tenantId\)/u);
+  assert.match(
+    expiryBody,
+    /eq\(quotesTable\.id, q\.id\)[\s\S]*?eq\(quotesTable\.tenantId, tenantId\)[\s\S]*?eq\(quotesTable\.status, "sent"\)[\s\S]*?lt\(quotesTable\.validityDate, today\)[\s\S]*?\.returning\(\{ customerId: quotesTable\.customerId \}\)/u,
+  );
+  assert.match(expiryBody, /if \(!claimed\) continue;[\s\S]*?expired\+\+/u);
+  assert.doesNotMatch(expiryBody, /expired: expirableQuotes\.length/u);
+
+  const claimIndex = expiryBody.indexOf(".update(quotesTable)");
+  const recipientIndex = expiryBody.indexOf(".from(customersTable)");
+  const emailIndex = expiryBody.indexOf("await sendEmailWithResult({");
+  assert.ok(claimIndex >= 0 && claimIndex < recipientIndex);
+  assert.ok(recipientIndex < emailIndex);
+  assert.match(
+    expiryBody,
+    /const emailResult = await sendEmailWithResult\([\s\S]*?if \(emailResult\.success\) notified\+\+;/u,
+  );
+  assert.match(quotes, /function todayString\(\): string \{\s*return amsterdamDateKey\(\);/u);
 });
 
 test("quote summary uses qualified quote columns after tenant join", () => {

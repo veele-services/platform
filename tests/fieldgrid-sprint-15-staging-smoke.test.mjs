@@ -167,6 +167,7 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
   assertContains(
     route,
     [
+      "isRequestHostPlatformHost(request)",
       "requirePlatformAdminFromRequest(request)",
       "buildPlatformStagingSmokeDashboard",
       "Authenticatie vereist",
@@ -180,6 +181,7 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
     [
       "createClientFromRequest(request)",
       "getCurrentPlatformUserFromRequest",
+      "isRequestHostPlatformHost",
       "requirePlatformAdminFromRequest",
     ],
     "platform route-handler auth",

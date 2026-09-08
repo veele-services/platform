@@ -1,0 +1,4481 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm component and overlay state contract",
+  "state": "CONTRACTED",
+  "stateModel": [
+    "CONTRACTED",
+    "IMPLEMENTED",
+    "VERIFIED_LOCAL",
+    "VERIFIED_STAGING"
+  ],
+  "componentCount": 30,
+  "proofPolicy": {
+    "rule": "This manifest specifies required behavior and future evidence targets. A target path is not evidence. No component may advance beyond CONTRACTED until implementation paths, immutable artifacts with sha256 hashes, automated assertions and an independent review are recorded in acceptance.json.",
+    "runtimeArtifactRoot": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states",
+    "requiredArtifactSuffixes": [
+      ".visual.png",
+      ".axe.json",
+      ".computed.json",
+      ".interaction.json"
+    ],
+    "forbiddenClaims": [
+      "an expected screenshot path presented as an existing output",
+      "a source-level regex presented as runtime focus proof",
+      "a closed overlay presented as proof of its open, error or pending states",
+      "a default theme capture presented as proof of every tenant theme axis",
+      "a settled post-placement screenshot presented as proof of an active pointer drag, touch flow or keyboard positioning interaction"
+    ]
+  },
+  "sourceEvidenceContract": {
+    "repositorySource": {
+      "type": "repositorySource",
+      "requiredFields": ["type", "sourcePath", "symbol"],
+      "pathRule": "sourcePath is a safe repository-relative path to an existing TypeScript or TSX source file; symbol is one exact named AST declaration in that file"
+    },
+    "prototypeArchivePath": {
+      "type": "prototypeArchivePath",
+      "requiredFields": [
+        "type",
+        "prototypeArchivePath",
+        "archiveManifest",
+        "symbol"
+      ],
+      "pathRule": "prototypeArchivePath is resolved only inside the immutable archive identified by archiveManifest and is never resolved as a repository sourcePath"
+    }
+  },
+  "viewports": {
+    "desktop": {
+      "width": 1440,
+      "height": 1000,
+      "input": "fine-pointer-and-keyboard"
+    },
+    "compactDesktop": {
+      "width": 1024,
+      "height": 768,
+      "input": "fine-pointer-and-keyboard"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "input": "coarse-pointer-and-keyboard"
+    },
+    "minimumCoverage": [320, 390, 430, 768, 1024, 1280, 1440, 1920],
+    "zoomCoverage": { "width": 1024, "height": 768, "browserZoomPercent": 200 }
+  },
+  "globalAxes": {
+    "density": ["compact", "comfortable", "spacious"],
+    "theme": [
+      "canonical-light",
+      "tenant-light",
+      "tenant-dark",
+      "tenant-saturated-red",
+      "tenant-bright-yellow",
+      "tenant-monochrome",
+      "tenant-low-contrast-corrected"
+    ],
+    "motion": ["no-preference", "reduce"],
+    "contrastMode": ["normal", "forced-colors"],
+    "permissions": ["allowed", "read-only", "hidden-or-forbidden"]
+  },
+  "globalMinimums": {
+    "interactiveTargetPx": { "width": 44, "height": 44 },
+    "mobileFormFontPx": 16,
+    "interactiveLabelFontPx": 13,
+    "normalTextContrast": 4.5,
+    "largeTextContrast": 3,
+    "uiBoundaryAndFocusContrast": 3,
+    "adjacentCompactTargetGapPx": 8,
+    "focusOutlinePx": 3,
+    "focusOutlineOffsetPx": 2
+  },
+  "captureFixtureContract": {
+    "rule": "Each fixture starts from a fresh authenticated tenant context with deterministic data, fixed Europe/Amsterdam time, reduced motion for visual capture and no prior overlay, toast, storage or focus state. Interaction traces additionally run with normal motion and keyboard or coarse pointer as declared.",
+    "selectors": {
+      "component": "[data-ff-component]",
+      "state": "[data-ff-state]",
+      "density": "[data-ff-density]",
+      "theme": "[data-ff-theme]"
+    },
+    "requiredComputedMeasurements": [
+      "bounding rectangle",
+      "computed font size",
+      "foreground/background/border/focus colors",
+      "accessible name and role",
+      "document and local scroll widths",
+      "active element before open, after open, after Escape and after close"
+    ]
+  },
+  "caseExecutionMatrix": {
+    "state": "CONTRACTED",
+    "baseCaptureCaseCount": 60,
+    "definitionCountRule": "The manifest keeps exactly 60 base capture-case definitions: 29 paired desktop/mobile component cases plus two desktop-only active planboard interaction cases. The runner expands every definition over this matrix; expansion never creates or renames a capture case.",
+    "viewportExpansion": {
+      "mobile": {
+        "captureCaseViewport": "mobile",
+        "runAtWidths": [320, 390, 430, 768],
+        "appliesTo": "every-matching-capture-case"
+      },
+      "desktop": {
+        "captureCaseViewport": "desktop",
+        "runAtWidths": [1024, 1280, 1440, 1920],
+        "appliesTo": "every-matching-capture-case"
+      }
+    },
+    "zoomExpansion": {
+      "appliesTo": "every-capture-case",
+      "width": 1024,
+      "height": 768,
+      "browserZoomPercent": 200,
+      "effectiveCssViewportWidth": 512
+    },
+    "derivedExecutionCount": 300,
+    "axisCoverage": {
+      "schemaVersion": 1,
+      "rule": "The 300 canonical viewport/zoom component runs are a required subset of this axis suite. Every critical execution unit is expanded over the full Cartesian product of its five applicable viewport/zoom profiles and every theme, density, motion, contrast and permission value. Every remaining component capture case uses the deterministic pair-closure algorithm, including one canonical-default seed for each applicable viewport/zoom profile. No axis value, pair or critical tuple may be sampled away.",
+      "axisOrder": [
+        "viewportZoomProfile",
+        "theme",
+        "density",
+        "motion",
+        "contrastMode",
+        "permissionProfile"
+      ],
+      "viewportZoomProfiles": [
+        {
+          "id": "mobile-320x568-z100",
+          "profileSet": "mobile",
+          "width": 320,
+          "height": 568,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 320
+        },
+        {
+          "id": "mobile-390x844-z100",
+          "profileSet": "mobile",
+          "width": 390,
+          "height": 844,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 390
+        },
+        {
+          "id": "mobile-430x932-z100",
+          "profileSet": "mobile",
+          "width": 430,
+          "height": 932,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 430
+        },
+        {
+          "id": "mobile-768x1024-z100",
+          "profileSet": "mobile",
+          "width": 768,
+          "height": 1024,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 768
+        },
+        {
+          "id": "desktop-1024x768-z100",
+          "profileSet": "desktop",
+          "width": 1024,
+          "height": 768,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 1024
+        },
+        {
+          "id": "desktop-1280x800-z100",
+          "profileSet": "desktop",
+          "width": 1280,
+          "height": 800,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 1280
+        },
+        {
+          "id": "desktop-1440x1000-z100",
+          "profileSet": "desktop",
+          "width": 1440,
+          "height": 1000,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 1440
+        },
+        {
+          "id": "desktop-1920x1080-z100",
+          "profileSet": "desktop",
+          "width": 1920,
+          "height": 1080,
+          "browserZoomPercent": 100,
+          "effectiveCssViewportWidth": 1920
+        },
+        {
+          "id": "shared-1024x768-z200",
+          "profileSet": "shared",
+          "width": 1024,
+          "height": 768,
+          "browserZoomPercent": 200,
+          "effectiveCssViewportWidth": 512
+        }
+      ],
+      "viewportZoomProfileSets": {
+        "mobile": [
+          "mobile-320x568-z100",
+          "mobile-390x844-z100",
+          "mobile-430x932-z100",
+          "mobile-768x1024-z100",
+          "shared-1024x768-z200"
+        ],
+        "desktop": [
+          "desktop-1024x768-z100",
+          "desktop-1280x800-z100",
+          "desktop-1440x1000-z100",
+          "desktop-1920x1080-z100",
+          "shared-1024x768-z200"
+        ]
+      },
+      "axisBindings": {
+        "theme": "globalAxes.theme",
+        "density": "globalAxes.density",
+        "motion": "globalAxes.motion",
+        "contrastMode": "globalAxes.contrastMode",
+        "permissionProfile": "globalAxes.permissions"
+      },
+      "criticalFullCartesian": {
+        "algorithm": "lexicographic-cartesian-product-v1",
+        "runsPerExecutionUnit": 1260,
+        "scopes": [
+          {
+            "id": "shell",
+            "routeIds": ["tenant-home"],
+            "executionUnits": [
+              {
+                "type": "capture-case",
+                "id": "mobile-nav-desktop-equivalent",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "mobile-nav-mobile-lifecycle",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "command-palette-desktop-search",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "command-palette-mobile-search",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "toast-desktop-state-stack",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "toast-mobile-state-stack",
+                "viewportZoomProfileSet": "mobile"
+              }
+            ],
+            "derivedRunCount": 7560,
+            "derivedDistinctAxisCombinationCount": 2268
+          },
+          {
+            "id": "branding-editor",
+            "routeIds": ["tenant-instellingen-branding"],
+            "executionUnits": [
+              {
+                "type": "capture-case",
+                "id": "input-desktop-validation",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "input-mobile-validation",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "select-desktop-open",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "select-mobile-open",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "textarea-desktop-validation",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "textarea-mobile-validation",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "combobox-desktop-search",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "combobox-mobile-search",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "entity-wizard-desktop-flow",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "entity-wizard-mobile-flow",
+                "viewportZoomProfileSet": "mobile"
+              }
+            ],
+            "derivedRunCount": 12600,
+            "derivedDistinctAxisCombinationCount": 2268
+          },
+          {
+            "id": "planboard",
+            "routeIds": ["tenant-planning"],
+            "executionUnits": [
+              {
+                "type": "capture-case",
+                "id": "planboard-placement-pointer-desktop-active-matrix",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "planboard-placement-keyboard-desktop-active-matrix",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "cross-component-journey",
+                "id": "mobile-planboard-non-drag",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "cross-component-journey",
+                "id": "mobile-planboard-timeline-keyboard",
+                "viewportZoomProfileSet": "mobile"
+              }
+            ],
+            "derivedRunCount": 5040,
+            "derivedDistinctAxisCombinationCount": 2268
+          },
+          {
+            "id": "permissions",
+            "routeIds": [
+              "tenant-instellingen-gebruikers",
+              "tenant-instellingen-rollen",
+              "tenant-instellingen-rollen-id"
+            ],
+            "executionUnits": [
+              {
+                "type": "capture-case",
+                "id": "checkbox-desktop-state-matrix",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "checkbox-mobile-state-matrix",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "switch-desktop-state-matrix",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "switch-mobile-state-matrix",
+                "viewportZoomProfileSet": "mobile"
+              },
+              {
+                "type": "capture-case",
+                "id": "forbidden-desktop-permissions",
+                "viewportZoomProfileSet": "desktop"
+              },
+              {
+                "type": "capture-case",
+                "id": "forbidden-mobile-permissions",
+                "viewportZoomProfileSet": "mobile"
+              }
+            ],
+            "derivedRunCount": 7560,
+            "derivedDistinctAxisCombinationCount": 2268
+          }
+        ],
+        "executionUnitCount": 26,
+        "componentCaptureCaseCount": 24,
+        "crossComponentJourneyCount": 2,
+        "derivedDistinctScopeAxisCombinationCount": 9072,
+        "derivedRunCount": 32760,
+        "derivedTupleSetSha256": "a3726ce72f63495bce477f7863e6b69477be657efc577c74e5dda96ebb290f69"
+      },
+      "remainingCasePairwise": {
+        "algorithm": "ordered-axis-pair-closure-v1",
+        "appliesTo": "every-component-capture-case-not-bound-to-a-critical-scope",
+        "axisPairIteration": "axisOrder left-to-right; for every unordered axis pair enumerate left values then right values in declared order",
+        "otherAxisIndexFormula": "(leftValueIndex*17 + rightValueIndex*31 + leftAxisIndex*7 + rightAxisIndex*11 + currentAxisIndex*13 + pairOrdinal) modulo currentAxisDomainLength",
+        "deduplicationKey": "axis values joined in axisOrder with U+007C",
+        "baselineSeed": {
+          "mode": "one-row-per-applicable-viewport-zoom-profile",
+          "theme": "canonical-light",
+          "density": "comfortable",
+          "motion": "no-preference",
+          "contrastMode": "normal",
+          "permissionProfile": "allowed"
+        },
+        "requiredPairCoverage": "every-value-pair-for-every-unordered-axis-pair-per-case",
+        "remainingComponentCaptureCaseCount": 36,
+        "derivedRowsPerCase": 182,
+        "derivedPairCoverageAssertionsPerCase": 192,
+        "derivedPairCoverageAssertionCount": 6912,
+        "derivedRunCount": 6552,
+        "derivedTupleSetSha256": "3947856046a483a74013718b801c0cf09f7735a242ec09e1122a90fbc8187e48"
+      },
+      "baseViewportZoomRunCount": 300,
+      "derivedRequiredAxisRunCount": 39312,
+      "derivedRequiredTupleSetSha256": "a84129927d5e6f8e6c959db1fa2a7ffff36fb01874d454d5d4b0bfe1ce82fa60"
+    },
+    "longContentFixture": {
+      "id": "long-content-nl-v1",
+      "locale": "nl-NL",
+      "tenantName": {
+        "value": "Koninklijke Vastgoedservice Noord-Holland en Omstreken BV NL",
+        "expectedCodePointLength": 60
+      },
+      "entityName": {
+        "value": "Periodieke inspectie en onderhoud van collectieve verwarmingsinstallatie in appartementencomplex VvE",
+        "expectedCodePointLength": 100
+      },
+      "validationError": {
+        "lines": [
+          "Voer een geldig Nederlands rekeningnummer in.",
+          "Controleer ook de tenaamstelling van de contracthouder."
+        ],
+        "expectedLineCount": 2
+      },
+      "addresses": [
+        "Burgemeester Van Walsumweg 123-III links, 3011 MZ Rotterdam, Zuid-Holland, Nederland",
+        "Professor Doctor Dorgelolaan 45, gebouw De Groene Toren, verdieping 18, 5613 AM Eindhoven"
+      ],
+      "amounts": ["€ 1.234.567,89", "−€ 987.654.321,00"],
+      "runs": [
+        { "width": 320, "height": 568, "browserZoomPercent": 100 },
+        { "width": 768, "height": 1024, "browserZoomPercent": 100 },
+        { "width": 1024, "height": 768, "browserZoomPercent": 200 },
+        { "width": 1920, "height": 1080, "browserZoomPercent": 100 }
+      ],
+      "requiredOutcomes": [
+        "no-document-horizontal-overflow",
+        "no-critical-text-clipping",
+        "full-value-remains-programmatically-available",
+        "wrapping-preserves-reading-and-focus-order",
+        "primary-and-row-actions-remain-operable"
+      ]
+    },
+    "mobileKeyboardSafeAreaFixture": {
+      "id": "mobile-keyboard-safe-area-v1",
+      "runAtWidths": [320, 390, 430, 768],
+      "requiredComponentIds": [
+        "input",
+        "textarea",
+        "select",
+        "combobox",
+        "filter-sheet",
+        "detail-sheet",
+        "dialog",
+        "entity-wizard",
+        "command-palette",
+        "popover",
+        "error-summary"
+      ],
+      "virtualKeyboardState": "visible",
+      "visualViewportRequired": true,
+      "safeAreaInsetsRequired": ["top", "right", "bottom", "left"],
+      "nullRectPolicy": "fail",
+      "rectAssertions": [
+        {
+          "subject": "stickyFooterRect.bottom",
+          "operator": "<=",
+          "reference": "visualViewportRect.bottom-minus-safeAreaInsets.bottom"
+        },
+        {
+          "subject": "activeControlRect.top",
+          "operator": ">=",
+          "reference": "visualViewportRect.top-plus-safeAreaInsets.top"
+        },
+        {
+          "subject": "activeControlRect.bottom",
+          "operator": "<=",
+          "reference": "stickyFooterRect.top"
+        },
+        {
+          "subject": "activeErrorTextRect.bottom",
+          "operator": "<=",
+          "reference": "stickyFooterRect.top"
+        },
+        {
+          "subject": "overlayRect.left",
+          "operator": ">=",
+          "reference": "visualViewportRect.left-plus-safeAreaInsets.left"
+        },
+        {
+          "subject": "overlayRect.right",
+          "operator": "<=",
+          "reference": "visualViewportRect.right-minus-safeAreaInsets.right"
+        },
+        {
+          "subject": "document.scrollWidth",
+          "operator": "<=",
+          "reference": "document.clientWidth"
+        }
+      ]
+    },
+    "portalCoverage": {
+      "portalRoot": "body[data-concept=\"fieldflow\"]",
+      "existingBaselinePortalKinds": ["Dialog", "Sheet"],
+      "requiredAdditionalPortalKinds": [
+        "DropdownMenu",
+        "Select",
+        "Combobox",
+        "Popover",
+        "Tooltip",
+        "AlertDialog",
+        "CommandPalette",
+        "Toast"
+      ],
+      "requiredOpenPortalKinds": [
+        "Dialog",
+        "Sheet",
+        "DropdownMenu",
+        "Select",
+        "Combobox",
+        "Popover",
+        "Tooltip",
+        "AlertDialog",
+        "CommandPalette",
+        "Toast"
+      ],
+      "portalKindToComponentIds": {
+        "Dialog": ["dialog", "entity-wizard"],
+        "Sheet": ["filter-sheet", "detail-sheet", "mobile-nav"],
+        "DropdownMenu": ["row-action-dropdown-menu"],
+        "Select": ["select"],
+        "Combobox": ["combobox"],
+        "Popover": ["popover"],
+        "Tooltip": ["tooltip"],
+        "AlertDialog": ["alert-dialog"],
+        "CommandPalette": ["command-palette"],
+        "Toast": ["toast"]
+      },
+      "requiredComputedTokens": [
+        "--ff-primary",
+        "--ff-sidebar-active-bg",
+        "--muted-text",
+        "--input",
+        "--ff-focus"
+      ],
+      "requiredMeasurements": [
+        "open-content-rect",
+        "interactive-target-rects",
+        "computed-theme-tokens",
+        "focus-trap-or-managed-focus",
+        "escape-order",
+        "exact-return-focus"
+      ]
+    }
+  },
+  "crossComponentJourneys": [
+    {
+      "id": "mobile-planboard-non-drag",
+      "state": "CONTRACTED",
+      "route": "/planning",
+      "viewports": [320, 390, 430, 768],
+      "inputModes": ["touch"],
+      "presentation": "fullscreen-wizard",
+      "componentIds": [
+        "button",
+        "label",
+        "combobox",
+        "radio-group",
+        "date-time",
+        "alert-dialog",
+        "toast",
+        "error-summary"
+      ],
+      "requiredActions": [
+        "plan",
+        "exact-time",
+        "move",
+        "replace-employee",
+        "unassign-one-employee",
+        "release-whole-assignment",
+        "conflict-review",
+        "confirm",
+        "cancel",
+        "undo"
+      ],
+      "requiredStates": [
+        "wizard-open",
+        "validation-error",
+        "conflict",
+        "unassign-review",
+        "unassign-pending",
+        "unassign-success",
+        "release-team-impact",
+        "release-confirmation",
+        "release-cancelled",
+        "release-pending",
+        "release-success",
+        "release-rollback",
+        "undo-complete"
+      ],
+      "requiredAssertions": [
+        "Unassign removes exactly the selected employee while preserving the assignment moment and every other active staffing link.",
+        "Release is pre-start only, lists every affected active team member before confirmation, and cancel performs zero writes.",
+        "Confirmed release atomically removes every active staffing link, changes scheduled to plannable, clears scheduledDate/start/end, never changes actual timestamps, and exposes version-safe undo.",
+        "A failed unassign or release restores the complete before-snapshot for every affected assignment and staffing row."
+      ],
+      "focusContract": {
+        "entry": "Tapping Plan or Verplaats opens the full-screen wizard and focuses its title, then the first task field.",
+        "error": "One invalid field receives focus; more than one focuses FormErrorSummary; conflict review focuses its heading and safe action.",
+        "success": "Successful planning focuses the updated agenda item and announces exact employee, date and time.",
+        "rollback": "Failure restores the exact prior queue/agenda snapshot and focus to the initiating item or surviving action.",
+        "cancel": "Cancel or safe Escape returns to the exact Plan or Verplaats opener without mutation.",
+        "undo": "Undo restores the prior snapshot and returns focus to the restored item context."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "mobileFormFontPx": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "acceptanceIds": [
+        "FFC-PB-008",
+        "FFC-PB-023",
+        "FFC-A11Y-002",
+        "FFC-A11Y-005",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010",
+        "FFC-RSP-009"
+      ],
+      "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/cross-component/mobile-planboard-non-drag"
+    },
+    {
+      "id": "mobile-planboard-timeline-keyboard",
+      "state": "CONTRACTED",
+      "route": "/planning",
+      "viewports": [320, 390, 430, 768],
+      "inputModes": ["keyboard"],
+      "presentation": "explicit-toggle-timeline-grid",
+      "componentIds": ["button", "date-time", "toast", "error-summary"],
+      "requiredActions": [
+        "open-timeline",
+        "select-queue-item",
+        "move-by-raster",
+        "move-by-hour",
+        "change-employee",
+        "confirm",
+        "cancel",
+        "undo"
+      ],
+      "requiredStates": [
+        "timeline-open",
+        "item-selected",
+        "position-preview",
+        "invalid-position",
+        "confirm-pending",
+        "success",
+        "cancelled",
+        "undo-complete"
+      ],
+      "focusContract": {
+        "entry": "Activating the explicit Timeline toggle opens the timeline, focuses its named keyboard instructions and then the selected queue item or current gridcell.",
+        "error": "Invalid movement stays on the active gridcell and announces reason plus available correction.",
+        "success": "Confirm focuses the moved block and announces employee, date and exact time.",
+        "rollback": "Mutation failure restores the prior block and active gridcell without moving focus to body.",
+        "cancel": "Escape exits movement mode before closing the timeline and restores the originating item.",
+        "undo": "Undo restores the prior position and focuses the restored block."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "mobileFormFontPx": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "acceptanceIds": [
+        "FFC-PB-024",
+        "FFC-A11Y-002",
+        "FFC-A11Y-004",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010"
+      ],
+      "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/cross-component/mobile-planboard-timeline-keyboard"
+    }
+  ],
+  "components": [
+    {
+      "id": "button",
+      "name": "Button",
+      "category": "primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "rest",
+        "focus-visible",
+        "pressed",
+        "disabled",
+        "pending",
+        "destructive",
+        "icon-only"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/button.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/button.tsx",
+          "symbol": "Button"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/button.tsx",
+          "symbol": "buttonVariants"
+        }
+      ],
+      "witnessRoutes": ["/", "/assignments", "/settings"],
+      "states": [
+        "rest",
+        "hover",
+        "focus-visible",
+        "pressed",
+        "disabled",
+        "pending",
+        "destructive",
+        "icon-only"
+      ],
+      "stateRules": [
+        "Variants primary, secondary, quiet, outline, destructive, link and icon share one geometry contract.",
+        "Pending replaces or augments the label with an action-specific verb, disables duplicate submission and retains width.",
+        "Disabled is not the sole explanation for an unavailable permission or business rule."
+      ],
+      "focusContract": {
+        "entry": "native tab order",
+        "escape": "not-applicable",
+        "return": "focus remains on the button after synchronous activation and on the logical action after async completion"
+      },
+      "responsiveContract": {
+        "desktop": "labelled 44px control; icon-only controls use the separate IconButton contract",
+        "mobile": "44x44 minimum; primary form actions are full width; icon-only actions are reserved for the one declared 44px toolbar or page-header trigger and always have an accessible name"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "primary",
+          "primaryForeground",
+          "secondary",
+          "secondaryForeground",
+          "destructive",
+          "destructiveForeground",
+          "ring",
+          "borderControl"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-009",
+        "FFC-A11Y-002",
+        "FFC-A11Y-003",
+        "FFC-A11Y-010",
+        "FFC-BRAND-009",
+        "FFC-BRAND-011"
+      ],
+      "captureCases": [
+        {
+          "id": "button-desktop-state-matrix",
+          "viewport": "desktop",
+          "fixture": "button/all-variants",
+          "states": [
+            "rest",
+            "hover",
+            "focus-visible",
+            "pressed",
+            "disabled",
+            "pending",
+            "destructive",
+            "icon-only"
+          ],
+          "interaction": "Tab through every enabled variant and activate pending/destructive examples.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/button/desktop-state-matrix"
+        },
+        {
+          "id": "button-mobile-state-matrix",
+          "viewport": "mobile",
+          "fixture": "button/all-variants",
+          "states": [
+            "rest",
+            "focus-visible",
+            "pressed",
+            "disabled",
+            "pending",
+            "destructive",
+            "icon-only"
+          ],
+          "interaction": "Tap each enabled variant and assert every hit rectangle is at least 44x44.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/button/mobile-state-matrix"
+        }
+      ]
+    },
+    {
+      "id": "input",
+      "name": "Input",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "empty",
+        "populated",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "required",
+        "invalid",
+        "autofill"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/input.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/input.tsx",
+          "symbol": "Input"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+          "symbol": "FormControl"
+        }
+      ],
+      "witnessRoutes": [
+        "/customers?create=1",
+        "/assignments?create=1",
+        "/settings"
+      ],
+      "states": [
+        "empty",
+        "populated",
+        "hover",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "required",
+        "invalid",
+        "autofill"
+      ],
+      "stateRules": [
+        "A visible label is always present; placeholder is never the only name.",
+        "Invalid sets aria-invalid and references help plus error text without replacing the value.",
+        "Browser autofill preserves readable foreground, background and focus treatment."
+      ],
+      "focusContract": {
+        "entry": "label click and native tab focus the input",
+        "escape": "does not clear a value",
+        "return": "exactly one invalid field focuses that control; more than one invalid field focuses FormErrorSummary; activating a summary link focuses the exact linked control, never body"
+      },
+      "responsiveContract": {
+        "desktop": "44px minimum, label above field, width constrained by form grid",
+        "mobile": "single-column, 44px minimum and computed font at least 16px to prevent Safari zoom"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-RSP-003",
+        "FFC-A11Y-005",
+        "FFC-A11Y-010",
+        "FFC-BRAND-009"
+      ],
+      "captureCases": [
+        {
+          "id": "input-desktop-validation",
+          "viewport": "desktop",
+          "fixture": "form/input-states",
+          "states": [
+            "empty",
+            "populated",
+            "hover",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "required",
+            "invalid",
+            "autofill"
+          ],
+          "interaction": "Submit invalid fixture, verify associations, then correct value without layout shift.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/input/desktop-validation"
+        },
+        {
+          "id": "input-mobile-validation",
+          "viewport": "mobile",
+          "fixture": "form/input-states",
+          "states": [
+            "empty",
+            "populated",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "required",
+            "invalid",
+            "autofill"
+          ],
+          "interaction": "Focus with mobile keyboard emulation, exercise populated, read-only and deterministic autofill states, then verify 16px font, visibility above sticky actions and retained value after error.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/input/mobile-validation"
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "name": "Select",
+      "category": "form-overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed-empty",
+        "closed-selected",
+        "open",
+        "item-focused",
+        "item-selected",
+        "disabled",
+        "invalid",
+        "long-list-scroll"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/select.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+          "symbol": "SelectTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+          "symbol": "SelectContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+          "symbol": "SelectItem"
+        }
+      ],
+      "witnessRoutes": ["/assignments?create=1", "/settings", "/planning"],
+      "states": [
+        "closed-empty",
+        "closed-selected",
+        "open",
+        "item-focused",
+        "item-selected",
+        "disabled",
+        "invalid",
+        "long-list-scroll"
+      ],
+      "stateRules": [
+        "Trigger, items and scroll controls retain 44px hit areas.",
+        "Arrow keys move active item, Enter selects, Escape closes without changing the prior value and typeahead works.",
+        "Portal inherits the active tenant theme and remains within viewport bounds."
+      ],
+      "focusContract": {
+        "entry": "Tab focuses trigger; Enter, Space, ArrowDown or ArrowUp opens",
+        "escape": "closes and preserves prior selection",
+        "return": "focus returns to trigger on selection or dismissal"
+      },
+      "responsiveContract": {
+        "desktop": "anchored popover, collision-aware and max available height",
+        "mobile": "anchored Radix listbox matches the trigger width, remains inside 16px viewport margins and stays above the on-screen keyboard"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "popover",
+          "popoverForeground",
+          "accent",
+          "accentForeground",
+          "borderControl",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-DS-012",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "select-desktop-open",
+          "viewport": "desktop",
+          "fixture": "form/select-states",
+          "states": [
+            "closed-empty",
+            "closed-selected",
+            "open",
+            "item-focused",
+            "item-selected",
+            "disabled",
+            "invalid",
+            "long-list-scroll"
+          ],
+          "interaction": "Open with keyboard, typeahead, select one item, reopen and Escape.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/select/desktop-open"
+        },
+        {
+          "id": "select-mobile-open",
+          "viewport": "mobile",
+          "fixture": "form/select-states",
+          "states": [
+            "closed-empty",
+            "closed-selected",
+            "open",
+            "item-focused",
+            "item-selected",
+            "disabled",
+            "invalid",
+            "long-list-scroll"
+          ],
+          "interaction": "Capture empty, selected and disabled triggers; tap enabled trigger, scroll options, select and reopen/Escape while asserting portal bounds and theme inheritance.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/select/mobile-open"
+        }
+      ]
+    },
+    {
+      "id": "textarea",
+      "name": "Textarea",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "empty",
+        "populated",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "required",
+        "invalid",
+        "long-content"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/textarea.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/textarea.tsx",
+          "symbol": "Textarea"
+        }
+      ],
+      "witnessRoutes": ["/assignments?create=1", "/settings", "/news"],
+      "states": [
+        "empty",
+        "populated",
+        "focus-visible",
+        "disabled",
+        "read-only",
+        "required",
+        "invalid",
+        "long-content"
+      ],
+      "stateRules": [
+        "Visible label and described help/error are mandatory.",
+        "Long content scrolls internally only after a useful minimum height and never loses the caret behind sticky actions.",
+        "Invalid state retains content."
+      ],
+      "focusContract": {
+        "entry": "label click and native tab",
+        "escape": "does not clear content",
+        "return": "failed submit focuses summary or this field when first invalid"
+      },
+      "responsiveContract": {
+        "desktop": "minimum 112px canonical height with tokenized padding",
+        "mobile": "single-column, 16px font and enough bottom scroll padding for keyboard/sticky footer"
+      },
+      "minimums": {
+        "targetPx": [44, 112],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-010",
+        "FFC-RSP-003",
+        "FFC-A11Y-005",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "textarea-desktop-validation",
+          "viewport": "desktop",
+          "fixture": "form/textarea-states",
+          "states": [
+            "empty",
+            "populated",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "required",
+            "invalid",
+            "long-content"
+          ],
+          "interaction": "Submit invalid, enter multiline content and verify caret/focus and retained text.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/textarea/desktop-validation"
+        },
+        {
+          "id": "textarea-mobile-validation",
+          "viewport": "mobile",
+          "fixture": "form/textarea-states",
+          "states": [
+            "empty",
+            "populated",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "required",
+            "invalid",
+            "long-content"
+          ],
+          "interaction": "Emulate on-screen keyboard, enter long content, exercise disabled and read-only variants and prove footer does not obscure caret or error.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/textarea/mobile-validation"
+        }
+      ]
+    },
+    {
+      "id": "checkbox",
+      "name": "Checkbox",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "unchecked",
+        "checked",
+        "indeterminate",
+        "focus-visible",
+        "disabled-unchecked",
+        "disabled-checked",
+        "invalid"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/checkbox.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/checkbox.tsx",
+          "symbol": "Checkbox"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/settings"],
+      "states": [
+        "unchecked",
+        "checked",
+        "indeterminate",
+        "focus-visible",
+        "disabled-unchecked",
+        "disabled-checked",
+        "invalid"
+      ],
+      "stateRules": [
+        "The visible 20px box sits inside a non-overlapping 44px labelled hit area.",
+        "Checked and indeterminate are exposed by state and icon, not color alone.",
+        "Group validation references a fieldset error."
+      ],
+      "focusContract": {
+        "entry": "Tab reaches one native Radix root and label click toggles",
+        "escape": "not-applicable",
+        "return": "focus remains after toggle and bulk selection"
+      },
+      "responsiveContract": {
+        "desktop": "44px hit area without inflating table row beyond canonical geometry",
+        "mobile": "44px hit area including card selection label"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "visualControlPx": [20, 20],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "primary",
+          "primaryForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-A11Y-002",
+        "FFC-A11Y-004",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "checkbox-desktop-state-matrix",
+          "viewport": "desktop",
+          "fixture": "form/checkbox-states",
+          "states": [
+            "unchecked",
+            "checked",
+            "indeterminate",
+            "focus-visible",
+            "disabled-unchecked",
+            "disabled-checked",
+            "invalid"
+          ],
+          "interaction": "Toggle with label, Space and bulk-select path; verify state announcement.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/checkbox/desktop-state-matrix"
+        },
+        {
+          "id": "checkbox-mobile-state-matrix",
+          "viewport": "mobile",
+          "fixture": "form/checkbox-states",
+          "states": [
+            "unchecked",
+            "checked",
+            "indeterminate",
+            "focus-visible",
+            "disabled-unchecked",
+            "disabled-checked",
+            "invalid"
+          ],
+          "interaction": "Tap box and full label; exercise both disabled values and assert 44px non-overlapping hit rectangles.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/checkbox/mobile-state-matrix"
+        }
+      ]
+    },
+    {
+      "id": "switch",
+      "name": "Switch",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "off",
+        "on",
+        "focus-visible",
+        "disabled-off",
+        "disabled-on",
+        "pending",
+        "error-restored"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/switch.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/switch.tsx",
+          "symbol": "Switch"
+        }
+      ],
+      "witnessRoutes": ["/settings", "/settings/checklists"],
+      "states": [
+        "off",
+        "on",
+        "focus-visible",
+        "disabled-off",
+        "disabled-on",
+        "pending",
+        "error-restored"
+      ],
+      "stateRules": [
+        "A persistent visible label describes the setting and current state is exposed through checked semantics.",
+        "Pending cannot silently imply success; failure restores prior state and announces error.",
+        "The visual 44x24 track has a 44x44 hit area."
+      ],
+      "focusContract": {
+        "entry": "Tab and label activation",
+        "escape": "not-applicable",
+        "return": "focus remains on switch through optimistic save and rollback"
+      },
+      "responsiveContract": {
+        "desktop": "label and switch align without shrinking either target",
+        "mobile": "setting row is a two-column grid with wrapping label and 44px switch target; the complete label remains tappable"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "visualControlPx": [44, 24],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": ["primary", "surface", "input", "ring", "destructive"]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "switch-desktop-state-matrix",
+          "viewport": "desktop",
+          "fixture": "form/switch-states",
+          "states": [
+            "off",
+            "on",
+            "focus-visible",
+            "disabled-off",
+            "disabled-on",
+            "pending",
+            "error-restored"
+          ],
+          "interaction": "Toggle by keyboard, observe pending, force error and verify state/focus rollback.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/switch/desktop-state-matrix"
+        },
+        {
+          "id": "switch-mobile-state-matrix",
+          "viewport": "mobile",
+          "fixture": "form/switch-states",
+          "states": [
+            "off",
+            "on",
+            "focus-visible",
+            "disabled-off",
+            "disabled-on",
+            "pending",
+            "error-restored"
+          ],
+          "interaction": "Tap label and switch, exercise both disabled values, force pending/error rollback and assert target geometry plus announcement.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/switch/mobile-state-matrix"
+        }
+      ]
+    },
+    {
+      "id": "data-view-row",
+      "name": "DataView row",
+      "category": "data-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "rest",
+        "selected",
+        "bulk-selected",
+        "pending-action",
+        "updated",
+        "read-only"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+          "symbol": "FieldgridDataView"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/objects", "/personnel"],
+      "states": [
+        "rest",
+        "hover",
+        "focus-within",
+        "selected",
+        "bulk-selected",
+        "pending-action",
+        "updated",
+        "read-only"
+      ],
+      "stateRules": [
+        "Identity link is the only row-open target; row itself is not a nested interactive control.",
+        "Selection, pending and update status use semantics plus visible non-color signals.",
+        "Every visible column header and action remains reachable at 200% zoom through a named local scroller."
+      ],
+      "focusContract": {
+        "entry": "Tab enters row controls in source order",
+        "escape": "closes an open row menu only",
+        "return": "menu action or dialog returns to the originating row action; refreshed data retains logical row focus"
+      },
+      "responsiveContract": {
+        "desktop": "50px header, 74px comfortable row and sticky header in named local scroller",
+        "mobile": "row is replaced by the equivalent DataView card, not horizontally clipped"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "rowHeightPx": 74,
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderSubtle",
+          "selection",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-013",
+        "FFC-RSP-002",
+        "FFC-RSP-004",
+        "FFC-A11Y-002",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "data-view-row-desktop",
+          "viewport": "desktop",
+          "fixture": "data-view/row-states",
+          "states": [
+            "rest",
+            "hover",
+            "focus-within",
+            "selected",
+            "bulk-selected",
+            "pending-action",
+            "updated",
+            "read-only"
+          ],
+          "interaction": "Sort, select one/all, open row action and preserve focus after deterministic refresh.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/data-view-row/desktop"
+        },
+        {
+          "id": "data-view-row-mobile-parity",
+          "viewport": "mobile",
+          "fixture": "data-view/row-to-card-parity",
+          "states": [
+            "rest",
+            "selected",
+            "bulk-selected",
+            "pending-action",
+            "updated",
+            "read-only"
+          ],
+          "interaction": "Assert desktop row is absent and every field, single/bulk selection, pending/update outcome and action maps exactly once to the mobile card.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/data-view-row/mobile-parity"
+        }
+      ]
+    },
+    {
+      "id": "data-view-card",
+      "name": "DataView card",
+      "category": "data-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "rest",
+        "selected",
+        "pending-action",
+        "updated",
+        "read-only",
+        "long-content"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+          "symbol": "FieldgridDataView"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/objects", "/personnel"],
+      "states": [
+        "rest",
+        "focus-within",
+        "selected",
+        "pending-action",
+        "updated",
+        "read-only",
+        "long-content"
+      ],
+      "stateRules": [
+        "Card contains identity, status, priority where applicable, no more than three primary metadata lines, selection and the same action menu as desktop.",
+        "Primary detail link and action controls are siblings, never nested.",
+        "Critical values wrap or have an accessible expansion; ellipsis is not the sole representation."
+      ],
+      "focusContract": {
+        "entry": "Tab reaches selection, identity and action menu in visual order",
+        "escape": "closes card menu",
+        "return": "returns to the exact card action after menu/dialog dismissal"
+      },
+      "responsiveContract": {
+        "desktop": "card is absent from product layout and parity is checked against row data",
+        "mobile": "minimum 120px calm card with 16px padding and 12px gap; one content column"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "cardMinHeightPx": 120,
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderSubtle",
+          "selection",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-013",
+        "FFC-RSP-004",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "data-view-card-desktop-parity",
+          "viewport": "desktop",
+          "fixture": "data-view/row-to-card-parity",
+          "states": [
+            "rest",
+            "selected",
+            "pending-action",
+            "updated",
+            "read-only",
+            "long-content"
+          ],
+          "interaction": "Record the authoritative row fields/actions plus selection, pending/update, read-only and long-content outcomes used to assert card parity; card remains absent from product layout.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/data-view-card/desktop-parity"
+        },
+        {
+          "id": "data-view-card-mobile",
+          "viewport": "mobile",
+          "fixture": "data-view/card-states",
+          "states": [
+            "rest",
+            "focus-within",
+            "selected",
+            "pending-action",
+            "updated",
+            "read-only",
+            "long-content"
+          ],
+          "interaction": "Navigate all card controls, select, open menu and verify long Dutch data without page overflow.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/data-view-card/mobile"
+        }
+      ]
+    },
+    {
+      "id": "row-action-dropdown-menu",
+      "name": "RowAction DropdownMenu",
+      "category": "overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open-first-item-focused",
+        "keyboard-navigation",
+        "disabled-item",
+        "destructive-separated",
+        "action-selected",
+        "collision-flipped"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/tenant-ui/tenant-action-menu.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-action-menu.tsx",
+          "symbol": "TenantActionMenu"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+          "symbol": "DropdownMenuContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+          "symbol": "DropdownMenuItem"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/objects", "/personnel"],
+      "states": [
+        "closed",
+        "open-first-item-focused",
+        "keyboard-navigation",
+        "disabled-item",
+        "destructive-separated",
+        "action-selected",
+        "collision-flipped"
+      ],
+      "stateRules": [
+        "Order is Open, Edit, duplicate/version where evidenced, separator, archive/delete.",
+        "Permission-inapplicable actions are hidden; business-disabled actions explain why.",
+        "Every item and trigger uses at least a 44px hit area."
+      ],
+      "focusContract": {
+        "entry": "44px labelled kebab trigger; Enter, Space or ArrowDown opens",
+        "escape": "closes without executing",
+        "return": "focus returns to originating row/card trigger after Escape, outside dismissal or child dialog close"
+      },
+      "responsiveContract": {
+        "desktop": "anchored to row end and collision-aware",
+        "mobile": "the card kebab always opens a safe-area bottom Sheet; action order and permission filtering are identical to desktop"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "popover",
+          "popoverForeground",
+          "accent",
+          "accentForeground",
+          "destructive",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "row-action-menu-desktop-open",
+          "viewport": "desktop",
+          "fixture": "data-view/row-action-menu",
+          "states": [
+            "closed",
+            "open-first-item-focused",
+            "keyboard-navigation",
+            "disabled-item",
+            "destructive-separated",
+            "collision-flipped",
+            "action-selected"
+          ],
+          "interaction": "Open from last visible row, use arrows, skip disabled item, select an action, reopen, Escape and verify exact focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/row-action-dropdown-menu/desktop-open"
+        },
+        {
+          "id": "row-action-menu-mobile-open",
+          "viewport": "mobile",
+          "fixture": "data-view/card-action-menu",
+          "states": [
+            "closed",
+            "open-first-item-focused",
+            "keyboard-navigation",
+            "disabled-item",
+            "destructive-separated",
+            "action-selected",
+            "collision-flipped"
+          ],
+          "interaction": "Open from cards at opposing viewport edges with touch and keyboard, verify collision flip, select an action, reopen and Escape; verify 44px items and exact focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/row-action-dropdown-menu/mobile-open"
+        }
+      ]
+    },
+    {
+      "id": "filter-sheet",
+      "name": "Filter Sheet",
+      "category": "overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open-clean",
+        "open-dirty",
+        "applying",
+        "apply-error",
+        "applied",
+        "reset",
+        "long-content-scroll"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/tenant-ui/tenant-filter-drawer.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-filter-drawer.tsx",
+          "symbol": "TenantFilterDrawer"
+        },
+        {
+          "type": "prototypeArchivePath",
+          "prototypeArchivePath": "app/fieldgrid-design-lab.tsx",
+          "archiveManifest": "docs/uiux/fieldflow-calm-handoff/evidence/prototype/source-manifest.json",
+          "symbol": "FilterSheet"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/objects", "/personnel"],
+      "states": [
+        "closed",
+        "open-clean",
+        "open-dirty",
+        "applying",
+        "apply-error",
+        "applied",
+        "reset",
+        "long-content-scroll"
+      ],
+      "stateRules": [
+        "Trigger shows active filter count and remains the return-focus target.",
+        "Apply is explicit and closes only after accepted local validation; server-backed filter failure retains selections.",
+        "Reset changes draft filters predictably; closing dirty state restores prior applied filters unless user applied."
+      ],
+      "focusContract": {
+        "entry": "open moves focus to Sheet title or first field after title is announced",
+        "escape": "closes safely and discards un-applied draft",
+        "return": "focus returns to Filters trigger on every close path"
+      },
+      "responsiveContract": {
+        "desktop": "right Sheet uses width min(500px, 94vw)",
+        "mobile": "safe-area bottom Sheet within 16px side margins, max 100dvh, with footer and active fields above the keyboard"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "background",
+          "foreground",
+          "surface",
+          "borderControl",
+          "ring",
+          "primary",
+          "primaryForeground"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-RSP-009",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "filter-sheet-desktop-open",
+          "viewport": "desktop",
+          "fixture": "overlay/filter-sheet",
+          "states": [
+            "closed",
+            "open-clean",
+            "open-dirty",
+            "applying",
+            "apply-error",
+            "applied",
+            "reset",
+            "long-content-scroll"
+          ],
+          "interaction": "Capture closed, open, edit filters, force apply error, reset, apply and reopen; record focus/scroll lock.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/filter-sheet/desktop-open"
+        },
+        {
+          "id": "filter-sheet-mobile-open",
+          "viewport": "mobile",
+          "fixture": "overlay/filter-sheet",
+          "states": [
+            "closed",
+            "open-clean",
+            "open-dirty",
+            "applying",
+            "apply-error",
+            "applied",
+            "reset",
+            "long-content-scroll"
+          ],
+          "interaction": "Capture closed, open with touch, show keyboard on final field, force apply error, reset, then apply successfully and reopen; verify safe-area footer and exact focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/filter-sheet/mobile-open"
+        }
+      ]
+    },
+    {
+      "id": "detail-sheet",
+      "name": "Detail Sheet",
+      "category": "overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open-loading",
+        "open-loaded",
+        "open-long-content",
+        "open-read-only",
+        "open-error",
+        "nested-menu-or-select"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-drawer.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-drawer.tsx",
+          "symbol": "TenantDetailDrawer"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-responsive-actions.tsx",
+          "symbol": "TenantDetailResponsiveActions"
+        },
+        {
+          "type": "prototypeArchivePath",
+          "prototypeArchivePath": "app/fieldgrid-design-lab.tsx",
+          "archiveManifest": "docs/uiux/fieldflow-calm-handoff/evidence/prototype/source-manifest.json",
+          "symbol": "DetailSheet"
+        }
+      ],
+      "witnessRoutes": [
+        "/customers/[id]",
+        "/assignments/[id]",
+        "/objects/[id]",
+        "/personnel/[id]"
+      ],
+      "states": [
+        "closed",
+        "open-loading",
+        "open-loaded",
+        "open-long-content",
+        "open-read-only",
+        "open-error",
+        "nested-menu-or-select"
+      ],
+      "stateRules": [
+        "Sheet is for quick inspection/actions and never replaces the canonical deep detail route.",
+        "Title, description, current status and available actions are permission-aware.",
+        "Loading and error retain stable header/footer geometry."
+      ],
+      "focusContract": {
+        "entry": "focus enters title context then first meaningful action, never the close icon by accident",
+        "escape": "closes unless a nested overlay owns Escape",
+        "return": "returns to exact originating row/card/action; nested overlay returns inside the Sheet first"
+      },
+      "responsiveContract": {
+        "desktop": "right Sheet uses width min(500px, 94vw); responsive action rail remains separate",
+        "mobile": "safe-area bottom Sheet within 16px side margins and max 100dvh, with one internal vertical scroller"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "background",
+          "foreground",
+          "surface",
+          "mutedForeground",
+          "borderSubtle",
+          "ring",
+          "statusFixed"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-RSP-005",
+        "FFC-RSP-009",
+        "FFC-A11Y-006",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "detail-sheet-desktop-open",
+          "viewport": "desktop",
+          "fixture": "overlay/detail-sheet",
+          "states": [
+            "closed",
+            "open-loading",
+            "open-loaded",
+            "open-long-content",
+            "open-read-only",
+            "open-error",
+            "nested-menu-or-select"
+          ],
+          "interaction": "Capture closed, open from data row, exercise nested select, Escape in correct order and verify exact return focus; repeat the geometry assertion at compactDesktop.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/detail-sheet/desktop-open"
+        },
+        {
+          "id": "detail-sheet-mobile-open",
+          "viewport": "mobile",
+          "fixture": "overlay/detail-sheet",
+          "states": [
+            "closed",
+            "open-loading",
+            "open-loaded",
+            "open-long-content",
+            "open-read-only",
+            "open-error",
+            "nested-menu-or-select"
+          ],
+          "interaction": "Capture closed, open from card, scroll to final action, open nested control, close and verify safe-area/focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/detail-sheet/mobile-open"
+        }
+      ]
+    },
+    {
+      "id": "dialog",
+      "name": "Dialog",
+      "category": "overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open",
+        "open-scrollable",
+        "nested-select",
+        "pending",
+        "recoverable-error",
+        "success-close"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+          "symbol": "DialogContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+          "symbol": "DialogTitle"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+          "symbol": "DialogDescription"
+        }
+      ],
+      "witnessRoutes": ["/settings", "/assignments", "/customers"],
+      "states": [
+        "closed",
+        "open",
+        "open-scrollable",
+        "nested-select",
+        "pending",
+        "recoverable-error",
+        "success-close"
+      ],
+      "stateRules": [
+        "Every Dialog has a programmatic title and meaningful description.",
+        "Content and footer remain reachable at 200% zoom and with mobile keyboard.",
+        "Outside click and Escape are disabled only for a documented irreversible pending step."
+      ],
+      "focusContract": {
+        "entry": "Radix autofocuses the first meaningful control or explicitly referenced heading",
+        "escape": "closes when safe; nested overlay closes first",
+        "return": "returns to opener for cancel, Escape, outside dismissal and successful completion"
+      },
+      "responsiveContract": {
+        "desktop": "centered Dialog uses width min(840px, 94vw) and max-height calc(100dvh - 32px), with one internal body scroller",
+        "mobile": "transforms to a safe-area bottom Sheet within 16px side margins and max 100dvh, with stacked footer"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "background",
+          "foreground",
+          "surface",
+          "popover",
+          "borderSubtle",
+          "ring",
+          "overlay"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-RSP-008",
+        "FFC-RSP-009",
+        "FFC-A11Y-006",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "dialog-desktop-lifecycle",
+          "viewport": "desktop",
+          "fixture": "overlay/dialog",
+          "states": [
+            "closed",
+            "open",
+            "open-scrollable",
+            "nested-select",
+            "pending",
+            "recoverable-error",
+            "success-close"
+          ],
+          "interaction": "Capture closed, open, cycle focus, nested-select Escape, Dialog Escape, reopen, pending/error/success and focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/dialog/desktop-lifecycle"
+        },
+        {
+          "id": "dialog-mobile-lifecycle",
+          "viewport": "mobile",
+          "fixture": "overlay/dialog",
+          "states": [
+            "closed",
+            "open",
+            "open-scrollable",
+            "nested-select",
+            "pending",
+            "recoverable-error",
+            "success-close"
+          ],
+          "interaction": "Capture closed, open with keyboard/touch, emulate keyboard, reach footer, force pending and recoverable error, then complete successfully; verify no overflow, obscured focus or incorrect return-focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/dialog/mobile-lifecycle"
+        }
+      ]
+    },
+    {
+      "id": "alert-dialog",
+      "name": "AlertDialog",
+      "category": "destructive-overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open-destructive",
+        "cancel-focused",
+        "confirm-focused",
+        "confirm-pending",
+        "confirm-error",
+        "confirmed-closed"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+          "symbol": "AlertDialogContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+          "symbol": "AlertDialogAction"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+          "symbol": "AlertDialogCancel"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-confirm-dialog.tsx",
+          "symbol": "TenantConfirmDialog"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/objects", "/settings"],
+      "states": [
+        "closed",
+        "open-destructive",
+        "cancel-focused",
+        "confirm-focused",
+        "confirm-pending",
+        "confirm-error",
+        "confirmed-closed"
+      ],
+      "stateRules": [
+        "Title names the target and description states irreversible consequence.",
+        "Cancel is the initial safe focus unless a documented non-destructive confirmation requires otherwise.",
+        "Outside click never confirms and pending cannot be double-submitted."
+      ],
+      "focusContract": {
+        "entry": "safe Cancel receives initial focus",
+        "escape": "cancels before mutation; pending dismissal follows documented mutation safety",
+        "return": "cancel/error returns to opener; success returns to nearest surviving logical control when the opener was deleted"
+      },
+      "responsiveContract": {
+        "desktop": "centered dialog with separated destructive action",
+        "mobile": "centered within 16px margins; two full-width 44px actions stack with destructive action first and Cancel second, while Cancel receives initial focus"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "background",
+          "foreground",
+          "destructive",
+          "destructiveForeground",
+          "borderControl",
+          "ring",
+          "overlay"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-A11Y-006",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "alert-dialog-desktop-destructive",
+          "viewport": "desktop",
+          "fixture": "overlay/alert-dialog",
+          "states": [
+            "closed",
+            "open-destructive",
+            "cancel-focused",
+            "confirm-focused",
+            "confirm-pending",
+            "confirm-error",
+            "confirmed-closed"
+          ],
+          "interaction": "Capture closed, open from row action, verify safe initial focus, cancel/return, reopen, force error, confirm and restore logical focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/alert-dialog/desktop-destructive"
+        },
+        {
+          "id": "alert-dialog-mobile-destructive",
+          "viewport": "mobile",
+          "fixture": "overlay/alert-dialog",
+          "states": [
+            "closed",
+            "open-destructive",
+            "cancel-focused",
+            "confirm-focused",
+            "confirm-pending",
+            "confirm-error",
+            "confirmed-closed"
+          ],
+          "interaction": "Capture closed, open from card menu, verify target/consequence and safe cancel, reopen, force confirm error, then confirm successfully; verify surviving logical focus and 44px stacked actions above safe area.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/alert-dialog/mobile-destructive"
+        }
+      ]
+    },
+    {
+      "id": "entity-wizard",
+      "name": "EntityWizard",
+      "category": "form-overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "step-one",
+        "intermediate-valid",
+        "step-invalid",
+        "review",
+        "submitting",
+        "submit-error",
+        "success"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/tenant-ui/entity-wizard.tsx",
+      "implementationStatus": "new-target",
+      "sourceEvidence": [
+        {
+          "type": "prototypeArchivePath",
+          "prototypeArchivePath": "app/fieldgrid-design-lab.tsx",
+          "archiveManifest": "docs/uiux/fieldflow-calm-handoff/evidence/prototype/source-manifest.json",
+          "symbol": "EntityWizard"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/assignments/AssignmentForm.tsx",
+          "symbol": "AssignmentForm",
+          "authority": "existing form behavior only"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/customers/CustomerForm.tsx",
+          "symbol": "CustomerForm",
+          "authority": "existing form behavior only"
+        }
+      ],
+      "witnessRoutes": [
+        "/assignments?create=1",
+        "/customers?create=1",
+        "/objects?create=1",
+        "/personnel?create=1"
+      ],
+      "states": [
+        "closed",
+        "step-one",
+        "intermediate-valid",
+        "step-invalid",
+        "review",
+        "submitting",
+        "submit-error",
+        "success"
+      ],
+      "stateRules": [
+        "Progress exposes current step, total and title; decorative progress is aria-hidden.",
+        "Back retains accepted input; Next validates current step; Review is read-only summary with edit links.",
+        "Closing dirty wizard requires an AlertDialog; server error retains all values and current step."
+      ],
+      "focusContract": {
+        "entry": "focus moves to wizard title then first field in step",
+        "escape": "clean wizard closes; dirty wizard opens unsaved-change AlertDialog",
+        "return": "cancel returns to opener; step change focuses step heading; invalid focuses summary then first invalid field; success returns to new entity context"
+      },
+      "responsiveContract": {
+        "desktop": "centered Dialog uses width min(840px, 94vw) and max-height calc(100dvh - 32px); form is one column at 861–1180 and exactly two columns from 1181px, with each field at least 280px",
+        "mobile": "safe-area bottom Sheet within 16px side margins and max 100dvh, single column, sticky footer and keyboard-visible active field"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "background",
+          "foreground",
+          "surface",
+          "mutedForeground",
+          "primary",
+          "primaryForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-010",
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-RSP-003",
+        "FFC-RSP-009",
+        "FFC-A11Y-005",
+        "FFC-A11Y-006",
+        "FFC-A11Y-007"
+      ],
+      "captureCases": [
+        {
+          "id": "entity-wizard-desktop-flow",
+          "viewport": "desktop",
+          "fixture": "form/entity-wizard",
+          "states": [
+            "closed",
+            "step-one",
+            "intermediate-valid",
+            "step-invalid",
+            "review",
+            "submitting",
+            "submit-error",
+            "success"
+          ],
+          "interaction": "Capture closed, complete forward/back flow, cause validation and server error, verify retention, review/edit and successful focus destination.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/entity-wizard/desktop-flow"
+        },
+        {
+          "id": "entity-wizard-mobile-flow",
+          "viewport": "mobile",
+          "fixture": "form/entity-wizard",
+          "states": [
+            "closed",
+            "step-one",
+            "intermediate-valid",
+            "step-invalid",
+            "review",
+            "submitting",
+            "submit-error",
+            "success"
+          ],
+          "interaction": "Capture closed, complete forward/back with touch and mobile keyboard, open dirty-close AlertDialog, force retained submit error, then complete successfully; verify safe footer and every focus destination.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/entity-wizard/mobile-flow"
+        }
+      ]
+    },
+    {
+      "id": "command-palette",
+      "name": "Command palette",
+      "category": "navigation-overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open-empty",
+        "querying",
+        "results",
+        "active-result",
+        "no-results",
+        "recent-results",
+        "permission-filtered",
+        "navigating"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/navigation/GlobalCommandPalette.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/navigation/GlobalCommandPalette.tsx",
+          "symbol": "GlobalCommandPalette"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+          "symbol": "CommandDialog"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+          "symbol": "CommandInput"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+          "symbol": "CommandList"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+          "symbol": "CommandItem"
+        }
+      ],
+      "witnessRoutes": ["/", "/customers", "/planning"],
+      "states": [
+        "closed",
+        "open-empty",
+        "querying",
+        "results",
+        "active-result",
+        "no-results",
+        "recent-results",
+        "permission-filtered",
+        "navigating"
+      ],
+      "stateRules": [
+        "Ctrl/Cmd+K toggles globally without stealing shortcuts from text editing contexts.",
+        "Results are permission-filtered before render and active result is announced.",
+        "No-results and recent results are distinct; private route labels are never leaked."
+      ],
+      "focusContract": {
+        "entry": "shortcut or trigger opens and focuses search input",
+        "escape": "clears active nested state then closes palette",
+        "return": "dismissal returns to invoking control or prior active element; selection moves focus to destination main heading"
+      },
+      "responsiveContract": {
+        "desktop": "centered command Dialog, max available height and keyboard-first",
+        "mobile": "one 44px search trigger in the navigation Sheet opens a safe-area bottom Sheet within 16px side margins; results are 44px"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "popover",
+          "popoverForeground",
+          "accent",
+          "accentForeground",
+          "mutedForeground",
+          "ring",
+          "overlay"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "command-palette-desktop-search",
+          "viewport": "desktop",
+          "fixture": "navigation/command-palette",
+          "states": [
+            "closed",
+            "open-empty",
+            "recent-results",
+            "querying",
+            "results",
+            "active-result",
+            "no-results",
+            "permission-filtered",
+            "navigating"
+          ],
+          "interaction": "Capture closed, open with Ctrl+K, search, arrow through results, Escape/return, reopen and navigate to a result.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/command-palette/desktop-search"
+        },
+        {
+          "id": "command-palette-mobile-search",
+          "viewport": "mobile",
+          "fixture": "navigation/command-palette",
+          "states": [
+            "closed",
+            "open-empty",
+            "recent-results",
+            "querying",
+            "results",
+            "active-result",
+            "no-results",
+            "permission-filtered",
+            "navigating"
+          ],
+          "interaction": "Capture closed, open from mobile route with recent results, type with keyboard emulation, exercise no-results and permission filtering, then select and navigate; verify destination heading focus and no overflow.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/command-palette/mobile-search"
+        }
+      ]
+    },
+    {
+      "id": "mobile-nav",
+      "name": "Mobile navigation",
+      "category": "navigation-overlay-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "current-route",
+        "group-expanded",
+        "group-collapsed",
+        "permission-filtered",
+        "tenant-brand-fallback"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/layout/Sidebar.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/layout/Sidebar.tsx",
+          "symbol": "Sidebar"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/layout/DashboardHeader.tsx",
+          "symbol": "DashboardHeader"
+        }
+      ],
+      "witnessRoutes": ["/", "/planning", "/settings"],
+      "states": [
+        "closed",
+        "open",
+        "current-route",
+        "group-expanded",
+        "group-collapsed",
+        "long-scroll",
+        "permission-filtered",
+        "tenant-brand-fallback"
+      ],
+      "stateRules": [
+        "At 860px and below the persistent sidebar is absent and one labelled menu trigger controls the Sheet.",
+        "Current route uses aria-current and every permission-hidden module is absent from DOM.",
+        "Whitelabel logo/name fallback is accessible and tenant-facing Fieldgrid copy is absent when custom branding is enabled."
+      ],
+      "focusContract": {
+        "entry": "menu trigger opens; focus enters Sheet title/navigation before first route",
+        "escape": "closes Sheet",
+        "return": "Escape, outside dismissal and close button return to menu trigger; route activation moves focus to destination main heading"
+      },
+      "responsiveContract": {
+        "desktop": "mobile Sheet and trigger are absent; persistent sidebar is the equivalent capture assertion",
+        "mobile": "66px header with one 44px navigation trigger; that trigger opens a bottom Sheet within 16px side margins, max 100dvh, safe-area and independently scrollable navigation"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "sidebarBackground",
+          "sidebarForeground",
+          "sidebarMuted",
+          "sidebarActiveBackground",
+          "sidebarActiveForeground",
+          "ring",
+          "brandAssets"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-RSP-001",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004",
+        "FFC-BRAND-012",
+        "FFC-BRAND-013"
+      ],
+      "captureCases": [
+        {
+          "id": "mobile-nav-desktop-equivalent",
+          "viewport": "desktop",
+          "fixture": "navigation/mobile-nav",
+          "states": [
+            "closed",
+            "current-route",
+            "group-expanded",
+            "group-collapsed",
+            "permission-filtered",
+            "tenant-brand-fallback"
+          ],
+          "interaction": "Assert mobile trigger/Sheet are absent, persistent navigation parity and branded current route remain available.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/mobile-nav/desktop-equivalent"
+        },
+        {
+          "id": "mobile-nav-mobile-lifecycle",
+          "viewport": "mobile",
+          "fixture": "navigation/mobile-nav",
+          "states": [
+            "closed",
+            "open",
+            "current-route",
+            "group-expanded",
+            "group-collapsed",
+            "long-scroll",
+            "permission-filtered",
+            "tenant-brand-fallback"
+          ],
+          "interaction": "Open, tab/scroll all items, collapse group, Escape/return, reopen and navigate; verify whitelabel fallback.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/mobile-nav/mobile-lifecycle"
+        }
+      ]
+    },
+    {
+      "id": "toast",
+      "name": "Toast",
+      "category": "feedback-overlay",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "success",
+        "info",
+        "warning",
+        "error",
+        "pending",
+        "action-undo",
+        "stacked",
+        "dismissed"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/sonner.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/sonner.tsx",
+          "symbol": "Toaster"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/app/layout.tsx",
+          "symbol": "RootLayout"
+        }
+      ],
+      "witnessRoutes": ["/planning", "/assignments", "/customers"],
+      "states": [
+        "success",
+        "info",
+        "warning",
+        "error",
+        "pending",
+        "action-undo",
+        "stacked",
+        "dismissed"
+      ],
+      "stateRules": [
+        "Inline state is authoritative; toast is supplemental and never the sole validation/error channel.",
+        "Tone uses icon/title/text in addition to color and timeout pauses on hover/focus.",
+        "Mobile placement never covers sticky actions, planboard controls or safe area."
+      ],
+      "focusContract": {
+        "entry": "toast never steals focus; action is reachable through documented toast navigation",
+        "escape": "when toast action/close owns focus, Escape dismisses only that toast",
+        "return": "after action or dismissal focus returns to prior logical context without jumping to body"
+      },
+      "responsiveContract": {
+        "desktop": "bottom-right stack max 420px and clear of detail action rail",
+        "mobile": "full available width within 16px margins, offset above sticky actions and safe area"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderSubtle",
+          "primary",
+          "primaryForeground",
+          "statusFixed"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-A11Y-004",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004",
+        "FFC-BRAND-007"
+      ],
+      "captureCases": [
+        {
+          "id": "toast-desktop-state-stack",
+          "viewport": "desktop",
+          "fixture": "feedback/toast",
+          "states": [
+            "success",
+            "info",
+            "warning",
+            "error",
+            "pending",
+            "action-undo",
+            "stacked",
+            "dismissed"
+          ],
+          "interaction": "Trigger deterministic stack, focus Undo, pause timeout, execute and dismiss without focus theft.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/toast/desktop-state-stack"
+        },
+        {
+          "id": "toast-mobile-state-stack",
+          "viewport": "mobile",
+          "fixture": "feedback/toast",
+          "states": [
+            "success",
+            "info",
+            "warning",
+            "error",
+            "pending",
+            "action-undo",
+            "stacked",
+            "dismissed"
+          ],
+          "interaction": "Trigger every feedback variant above the sticky mobile footer, stack and dismiss, focus/tap Undo and verify no covered controls, focus theft or safe-area collision.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/toast/mobile-state-stack"
+        }
+      ]
+    },
+    {
+      "id": "error-summary",
+      "name": "Error summary",
+      "category": "feedback-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "hidden",
+        "validation-visible",
+        "summary-focused",
+        "field-link-focused",
+        "server-error",
+        "corrected"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/form-error-summary.tsx",
+      "implementationStatus": "new-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/assignments/AssignmentForm.tsx",
+          "symbol": "AssignmentForm",
+          "authority": "existing validation behavior only"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/customers/CustomerForm.tsx",
+          "symbol": "CustomerForm",
+          "authority": "existing validation behavior only"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/app/(dashboard)/error.tsx",
+          "symbol": "DashboardError",
+          "authority": "existing page-error focus behavior"
+        }
+      ],
+      "witnessRoutes": [
+        "/assignments?create=1",
+        "/customers?create=1",
+        "/settings"
+      ],
+      "states": [
+        "hidden",
+        "validation-visible",
+        "summary-focused",
+        "field-link-focused",
+        "server-error",
+        "corrected"
+      ],
+      "stateRules": [
+        "Summary appears only after a failed submit and lists each invalid field once with a link to the field.",
+        "Field errors remain directly associated and are not replaced by summary.",
+        "Server error uses safe Dutch copy, retains input and offers retry where safe."
+      ],
+      "focusContract": {
+        "entry": "exactly one invalid field focuses that control; more than one invalid field focuses the FormErrorSummary container with tabindex -1",
+        "escape": "not-applicable",
+        "return": "a summary link focuses the exact invalid control; correction does not unexpectedly refocus summary"
+      },
+      "responsiveContract": {
+        "desktop": "full form width before first section",
+        "mobile": "single-column, wraps long errors and remains visible above sticky footer/keyboard"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "dangerSurface",
+          "dangerForeground",
+          "dangerBorder",
+          "ring",
+          "link"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-010",
+        "FFC-DS-014",
+        "FFC-A11Y-005",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "error-summary-desktop-invalid",
+          "viewport": "desktop",
+          "fixture": "feedback/error-summary",
+          "states": [
+            "hidden",
+            "validation-visible",
+            "summary-focused",
+            "field-link-focused",
+            "server-error",
+            "corrected"
+          ],
+          "interaction": "Assert hidden before submit, submit three invalid fields, verify one summary entry each, follow links, correct one and force server error.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/error-summary/desktop-invalid"
+        },
+        {
+          "id": "error-summary-mobile-invalid",
+          "viewport": "mobile",
+          "fixture": "feedback/error-summary",
+          "states": [
+            "hidden",
+            "validation-visible",
+            "summary-focused",
+            "field-link-focused",
+            "server-error",
+            "corrected"
+          ],
+          "interaction": "Assert hidden before submit, submit with keyboard visible, follow first/last error links, correct one error and prove summary/fields/footer remain unobscured.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/error-summary/mobile-invalid"
+        }
+      ]
+    },
+    {
+      "id": "empty",
+      "name": "Empty state",
+      "category": "feedback-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "first-use-empty",
+        "no-data-empty",
+        "filtered-empty",
+        "search-no-results",
+        "empty-with-primary-action",
+        "read-only-empty"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+          "symbol": "Empty"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+          "symbol": "EmptyTitle"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+          "symbol": "EmptyDescription"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+          "symbol": "EmptyContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+          "symbol": "FieldgridDataView"
+        }
+      ],
+      "witnessRoutes": ["/customers", "/assignments", "/documents"],
+      "states": [
+        "first-use-empty",
+        "no-data-empty",
+        "filtered-empty",
+        "search-no-results",
+        "empty-with-primary-action",
+        "read-only-empty"
+      ],
+      "stateRules": [
+        "Title names the state, description explains cause and only an allowed relevant action is shown.",
+        "Filtered empty includes current context and Filters wissen.",
+        "Read-only users do not see an unusable create action."
+      ],
+      "focusContract": {
+        "entry": "normal document order; primary action is first interactive child",
+        "escape": "not-applicable",
+        "return": "filter reset retains focus on reset/result context and announces result count"
+      },
+      "responsiveContract": {
+        "desktop": "calm centered state within the owning panel, not an artificial full-page card",
+        "mobile": "16px internal padding minimum, wrapping text and a full-width primary action whenever that state has an authorized primary action"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderSubtle",
+          "primary",
+          "primaryForeground"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-014",
+        "FFC-RSP-004",
+        "FFC-A11Y-002",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "empty-desktop-variants",
+          "viewport": "desktop",
+          "fixture": "feedback/empty",
+          "states": [
+            "first-use-empty",
+            "no-data-empty",
+            "filtered-empty",
+            "search-no-results",
+            "empty-with-primary-action",
+            "read-only-empty"
+          ],
+          "interaction": "Activate Filters wissen and allowed primary action; verify result announcement and permission filtering.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/empty/desktop-variants"
+        },
+        {
+          "id": "empty-mobile-variants",
+          "viewport": "mobile",
+          "fixture": "feedback/empty",
+          "states": [
+            "first-use-empty",
+            "no-data-empty",
+            "filtered-empty",
+            "search-no-results",
+            "empty-with-primary-action",
+            "read-only-empty"
+          ],
+          "interaction": "Exercise first-use, no-data, filtered, search and read-only variants; verify wrapping, full-width 44px action and transition from filtered-empty to results without overflow.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/empty/mobile-variants"
+        }
+      ]
+    },
+    {
+      "id": "loading",
+      "name": "Loading state",
+      "category": "feedback-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "page-initial",
+        "list-initial",
+        "detail-initial",
+        "planboard-initial",
+        "filter-refresh",
+        "mutation-pending",
+        "reduced-motion"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+          "symbol": "DashboardPageSkeleton"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+          "symbol": "DataListPageSkeleton"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+          "symbol": "DetailPageSkeleton"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+          "symbol": "PlanningPageSkeleton"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/skeleton.tsx",
+          "symbol": "Skeleton"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+          "symbol": "FieldgridDataView"
+        }
+      ],
+      "witnessRoutes": ["/", "/customers", "/customers/[id]", "/planning"],
+      "states": [
+        "page-initial",
+        "list-initial",
+        "detail-initial",
+        "planboard-initial",
+        "filter-refresh",
+        "mutation-pending",
+        "reduced-motion"
+      ],
+      "stateRules": [
+        "Skeleton geometry uses the same Fieldflow shell, grid and tokens as loaded content.",
+        "Skeletons are aria-hidden; one owning region exposes aria-busy and one concise status.",
+        "Refresh retains old data and focus; mutation pending affects only the owning action."
+      ],
+      "focusContract": {
+        "entry": "no skeleton is focusable",
+        "escape": "not-applicable",
+        "return": "resolved content does not reset focus; route load focuses main heading only after navigation"
+      },
+      "responsiveContract": {
+        "desktop": "matches exact four-column/dashboard, table, detail and planboard geometry",
+        "mobile": "matches card/single-column/agenda geometry; no old max-w-7xl fallback or layout shift"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "targetScope": "interactive retry or cancel controls only; skeletons remain non-interactive",
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3,
+        "cumulativeLayoutShiftMax": 0.01
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "canvas",
+          "surface",
+          "skeleton",
+          "borderSubtle",
+          "mutedForeground"
+        ],
+        "motion": ["no-preference", "reduce"]
+      },
+      "acceptanceIds": [
+        "FFC-DS-014",
+        "FFC-DS-015",
+        "FFC-RSP-001",
+        "FFC-A11Y-007",
+        "FFC-A11Y-009",
+        "FFC-BRAND-009"
+      ],
+      "captureCases": [
+        {
+          "id": "loading-desktop-archetypes",
+          "viewport": "desktop",
+          "fixture": "feedback/loading-archetypes",
+          "states": [
+            "page-initial",
+            "list-initial",
+            "detail-initial",
+            "planboard-initial",
+            "filter-refresh",
+            "mutation-pending",
+            "reduced-motion"
+          ],
+          "interaction": "Resolve each deterministic loader and measure geometry/CLS/focus before and after.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/loading/desktop-archetypes"
+        },
+        {
+          "id": "loading-mobile-archetypes",
+          "viewport": "mobile",
+          "fixture": "feedback/loading-archetypes",
+          "states": [
+            "page-initial",
+            "list-initial",
+            "detail-initial",
+            "planboard-initial",
+            "filter-refresh",
+            "mutation-pending",
+            "reduced-motion"
+          ],
+          "interaction": "Resolve card/agenda loaders and assert no focusable skeleton, page overflow or content shift.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/loading/mobile-archetypes"
+        }
+      ]
+    },
+    {
+      "id": "forbidden",
+      "name": "Forbidden state",
+      "category": "feedback-page",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "route-forbidden",
+        "direct-url-forbidden",
+        "read-only-partial",
+        "hidden-navigation",
+        "return-to-dashboard"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/layout/ForbiddenPage.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/layout/ForbiddenPage.tsx",
+          "symbol": "ForbiddenPage"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/lib/navigation/route-registry.ts",
+          "symbol": "routeIsVisibleForPermissions"
+        }
+      ],
+      "witnessRoutes": ["/planning", "/invoices", "/settings"],
+      "states": [
+        "route-forbidden",
+        "direct-url-forbidden",
+        "read-only-partial",
+        "hidden-navigation",
+        "return-to-dashboard"
+      ],
+      "stateRules": [
+        "Forbidden copy is human Dutch and exposes no resource/action identifier or existence of another tenant record.",
+        "Navigation, tabs, command results and action menus hide inaccessible destinations before interaction.",
+        "Read-only pages show data only when read is allowed and omit write controls rather than rendering dead UI."
+      ],
+      "focusContract": {
+        "entry": "direct navigation focuses forbidden heading/main region",
+        "escape": "not-applicable",
+        "return": "Terug naar dashboard navigates and focuses destination main heading"
+      },
+      "responsiveContract": {
+        "desktop": "centered within Fieldflow workspace without duplicate shell title",
+        "mobile": "single calm panel, wrapped copy and one 44px full-width return action"
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "canvas",
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "dangerSurface",
+          "dangerForeground",
+          "primary",
+          "ring"
+        ],
+        "permissions": ["read-only", "hidden-or-forbidden"]
+      },
+      "acceptanceIds": [
+        "FFC-DS-014",
+        "FFC-A11Y-002",
+        "FFC-A11Y-004",
+        "FFC-A11Y-010",
+        "FFC-BRAND-009"
+      ],
+      "captureCases": [
+        {
+          "id": "forbidden-desktop-permissions",
+          "viewport": "desktop",
+          "fixture": "feedback/forbidden",
+          "states": [
+            "route-forbidden",
+            "direct-url-forbidden",
+            "read-only-partial",
+            "hidden-navigation",
+            "return-to-dashboard"
+          ],
+          "interaction": "Open direct forbidden URL for restricted persona, inspect all navigation surfaces and return to dashboard.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/forbidden/desktop-permissions"
+        },
+        {
+          "id": "forbidden-mobile-permissions",
+          "viewport": "mobile",
+          "fixture": "feedback/forbidden",
+          "states": [
+            "route-forbidden",
+            "direct-url-forbidden",
+            "read-only-partial",
+            "hidden-navigation",
+            "return-to-dashboard"
+          ],
+          "interaction": "Repeat through mobile nav and direct URL; verify no leaked labels/actions and logical destination focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/forbidden/mobile-permissions"
+        }
+      ]
+    },
+    {
+      "id": "label",
+      "name": "Label",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "rest",
+        "associated-control-focused",
+        "required",
+        "invalid-associated",
+        "disabled-associated",
+        "long-wrapped"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/label.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/label.tsx",
+          "symbol": "Label"
+        }
+      ],
+      "witnessRoutes": ["/assignments?create=1", "/settings", "/first-run"],
+      "states": [
+        "rest",
+        "hover",
+        "associated-control-focused",
+        "required",
+        "invalid-associated",
+        "disabled-associated",
+        "long-wrapped"
+      ],
+      "stateRules": [
+        "Every visible label is programmatically associated with exactly one control or names a fieldset through legend.",
+        "Required and invalid meaning is exposed in text and semantics, never by color or an asterisk alone.",
+        "Activating the label focuses or toggles the full associated 44px control target without creating a second tab stop."
+      ],
+      "focusContract": {
+        "entry": "Label itself is not in the tab order; pointer activation moves focus to the associated control.",
+        "escape": "not-applicable",
+        "return": "Focus remains on the associated control after label activation, validation and correction."
+      },
+      "responsiveContract": {
+        "desktop": "Label remains above its control with an 8px token gap and wraps without colliding with help text.",
+        "mobile": "Label wraps at 320px without truncation; association and full control hit area remain intact above the on-screen keyboard."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "targetScope": "associated control activation rectangle",
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": ["foreground", "mutedForeground", "destructive", "ring"]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-RSP-003",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-005",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "label-desktop-association",
+          "viewport": "desktop",
+          "fixture": "form/label-states",
+          "states": [
+            "rest",
+            "hover",
+            "associated-control-focused",
+            "required",
+            "invalid-associated",
+            "disabled-associated",
+            "long-wrapped"
+          ],
+          "interaction": "Activate every label, inspect its exact control association, submit invalid and verify wrapped Dutch copy and focus without layout shift.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/label/desktop-association"
+        },
+        {
+          "id": "label-mobile-association",
+          "viewport": "mobile",
+          "fixture": "form/label-states",
+          "states": [
+            "rest",
+            "associated-control-focused",
+            "required",
+            "invalid-associated",
+            "disabled-associated",
+            "long-wrapped"
+          ],
+          "interaction": "Tap long and short labels at 320px-equivalent content width and verify exact control focus/toggle, wrapping and 44px target geometry.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/label/mobile-association"
+        }
+      ]
+    },
+    {
+      "id": "combobox",
+      "name": "Combobox",
+      "category": "form-overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed-empty",
+        "closed-selected",
+        "open",
+        "search-focused",
+        "querying",
+        "active-option",
+        "option-selected",
+        "no-results",
+        "disabled",
+        "disabled-option",
+        "invalid",
+        "long-options-scroll"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/combobox.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/combobox.tsx",
+          "symbol": "Combobox"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+          "symbol": "CommandInput"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+          "symbol": "PopoverContent"
+        }
+      ],
+      "witnessRoutes": ["/assignments?create=1", "/documents", "/settings"],
+      "states": [
+        "closed-empty",
+        "closed-selected",
+        "open",
+        "search-focused",
+        "querying",
+        "active-option",
+        "option-selected",
+        "no-results",
+        "disabled",
+        "disabled-option",
+        "invalid",
+        "long-options-scroll"
+      ],
+      "stateRules": [
+        "Trigger exposes combobox role, expanded state, accessible name and the current value without relying on placeholder text.",
+        "Search, arrow navigation, selection, no-results and disabled options use canonical Command plus Popover semantics.",
+        "Portal inherits the active tenant theme; long labels and descriptions remain discoverable without hiding critical identity behind ellipsis."
+      ],
+      "focusContract": {
+        "entry": "Tab focuses the trigger; Enter, Space, ArrowDown or ArrowUp opens and moves focus to the search field or active option.",
+        "escape": "First Escape closes the Combobox without changing the prior value.",
+        "return": "Selection, Escape and outside dismissal return focus to the same trigger; invalid submit follows the shared form-error focus rule."
+      },
+      "responsiveContract": {
+        "desktop": "Popover matches trigger width, flips on collision and uses a named internal results scroller.",
+        "mobile": "A full-height safe-area bottom Sheet opens within 16px side margins; search, final option and actions remain above keyboard and safe area."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "popover",
+          "popoverForeground",
+          "accent",
+          "accentForeground",
+          "mutedForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-DS-012",
+        "FFC-RSP-003",
+        "FFC-RSP-007",
+        "FFC-RSP-009",
+        "FFC-A11Y-002",
+        "FFC-A11Y-005",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "combobox-desktop-search",
+          "viewport": "desktop",
+          "fixture": "form/combobox-states",
+          "states": [
+            "closed-empty",
+            "closed-selected",
+            "open",
+            "search-focused",
+            "querying",
+            "active-option",
+            "option-selected",
+            "no-results",
+            "disabled",
+            "disabled-option",
+            "invalid",
+            "long-options-scroll"
+          ],
+          "interaction": "Open by keyboard, search, traverse enabled options, skip a disabled option, select, reopen, force no-results and Escape with exact focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/combobox/desktop-search"
+        },
+        {
+          "id": "combobox-mobile-search",
+          "viewport": "mobile",
+          "fixture": "form/combobox-states",
+          "states": [
+            "closed-empty",
+            "closed-selected",
+            "open",
+            "search-focused",
+            "querying",
+            "active-option",
+            "option-selected",
+            "no-results",
+            "disabled",
+            "disabled-option",
+            "invalid",
+            "long-options-scroll"
+          ],
+          "interaction": "Open with touch and keyboard, type with keyboard emulation, scroll long options, select and reopen/Escape while measuring portal, target and focus geometry.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/combobox/mobile-search"
+        }
+      ]
+    },
+    {
+      "id": "radio-group",
+      "name": "RadioGroup",
+      "category": "form-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "unselected",
+        "selected",
+        "focus-visible",
+        "keyboard-navigation",
+        "disabled-group",
+        "disabled-option",
+        "required",
+        "invalid",
+        "long-label"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/radio-group.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/radio-group.tsx",
+          "symbol": "RadioGroup"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/radio-group.tsx",
+          "symbol": "RadioGroupItem"
+        }
+      ],
+      "witnessRoutes": ["/instellingen/branding", "/settings", "/first-run"],
+      "states": [
+        "unselected",
+        "selected",
+        "focus-visible",
+        "keyboard-navigation",
+        "disabled-group",
+        "disabled-option",
+        "required",
+        "invalid",
+        "long-label"
+      ],
+      "stateRules": [
+        "A visible fieldset legend names the group and every option has one programmatically associated visible label.",
+        "Arrow keys move and select within one roving tab stop; disabled options are skipped and state is not color-only.",
+        "Required and invalid feedback belongs to the group and is referenced without duplicating an error on each item."
+      ],
+      "focusContract": {
+        "entry": "Tab enters the selected item or first enabled item; label activation selects its item.",
+        "escape": "not-applicable and never clears the current selection.",
+        "return": "Focus stays on the newly selected item; failed submit follows the shared one-error versus summary rule."
+      },
+      "responsiveContract": {
+        "desktop": "Options stack vertically and every labelled row has a 44px target.",
+        "mobile": "Options stack vertically, long labels wrap and the full non-overlapping row remains tappable."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "visualControlPx": [20, 20],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "foreground",
+          "mutedForeground",
+          "primary",
+          "primaryForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-RSP-003",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-004",
+        "FFC-A11Y-005",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "radio-group-desktop-states",
+          "viewport": "desktop",
+          "fixture": "form/radio-group-states",
+          "states": [
+            "unselected",
+            "selected",
+            "focus-visible",
+            "keyboard-navigation",
+            "disabled-group",
+            "disabled-option",
+            "required",
+            "invalid",
+            "long-label"
+          ],
+          "interaction": "Enter the group, traverse by arrows, skip disabled option, select by label and submit invalid while inspecting group semantics and focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/radio-group/desktop-states"
+        },
+        {
+          "id": "radio-group-mobile-states",
+          "viewport": "mobile",
+          "fixture": "form/radio-group-states",
+          "states": [
+            "unselected",
+            "selected",
+            "focus-visible",
+            "keyboard-navigation",
+            "disabled-group",
+            "disabled-option",
+            "required",
+            "invalid",
+            "long-label"
+          ],
+          "interaction": "Tap every enabled labelled row, navigate with keyboard and verify wrapping, error association and non-overlapping 44px targets.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/radio-group/mobile-states"
+        }
+      ]
+    },
+    {
+      "id": "date-time",
+      "name": "Date/Time fields",
+      "category": "form-composition",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "date-empty",
+        "date-populated",
+        "time-empty",
+        "time-partial",
+        "range-valid",
+        "range-invalid",
+        "required",
+        "disabled",
+        "pending",
+        "server-error-retained",
+        "amsterdam-context"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/time-range-field.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/time-range-field.tsx",
+          "symbol": "TimeRangeField"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/input.tsx",
+          "symbol": "Input"
+        }
+      ],
+      "witnessRoutes": [
+        "/assignments?create=1",
+        "/planning",
+        "/personnel/[id]"
+      ],
+      "states": [
+        "date-empty",
+        "date-populated",
+        "time-empty",
+        "time-partial",
+        "range-valid",
+        "range-invalid",
+        "required",
+        "disabled",
+        "pending",
+        "server-error-retained",
+        "amsterdam-context"
+      ],
+      "stateRules": [
+        "Date and time controls have visible Dutch labels, explicit Europe/Amsterdam context where ambiguity affects scheduling and deterministic serialized values.",
+        "Start/end validation is shared with the server; invalid ordering and missing required values retain both inputs.",
+        "Native pickers are enhancements only: keyboard entry, error association and 15-minute planning values remain operable without relying on picker UI."
+      ],
+      "focusContract": {
+        "entry": "Tab follows date, start and end source order; their labels focus the exact control.",
+        "escape": "Closes only an open native or canonical picker and never clears accepted values.",
+        "return": "One invalid field receives focus; more than one invalid field focuses FormErrorSummary; a summary link returns to the exact date/time control."
+      },
+      "responsiveContract": {
+        "desktop": "Related start/end fields use one column at 861–1180 and exactly two columns from 1181px, without changing source order.",
+        "mobile": "Date/start/end stack in one column, use 16px font and stay visible above the on-screen keyboard and sticky wizard actions."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPxDesktop": 14,
+        "fontPxMobile": 16,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderControl",
+          "ring",
+          "destructive"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-010",
+        "FFC-RSP-003",
+        "FFC-RSP-007",
+        "FFC-RSP-009",
+        "FFC-A11Y-002",
+        "FFC-A11Y-005",
+        "FFC-A11Y-007",
+        "FFC-A11Y-010",
+        "FFC-PB-005",
+        "FFC-PB-018",
+        "FFC-PB-020"
+      ],
+      "captureCases": [
+        {
+          "id": "date-time-desktop-validation",
+          "viewport": "desktop",
+          "fixture": "form/date-time-states",
+          "states": [
+            "date-empty",
+            "date-populated",
+            "time-empty",
+            "time-partial",
+            "range-valid",
+            "range-invalid",
+            "required",
+            "disabled",
+            "pending",
+            "server-error-retained",
+            "amsterdam-context"
+          ],
+          "interaction": "Enter date/start/end by keyboard, trigger required and invalid-order feedback, submit pending/server error and verify serialized values, labels, context and retained focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/date-time/desktop-validation"
+        },
+        {
+          "id": "date-time-mobile-validation",
+          "viewport": "mobile",
+          "fixture": "form/date-time-states",
+          "states": [
+            "date-empty",
+            "date-populated",
+            "time-empty",
+            "time-partial",
+            "range-valid",
+            "range-invalid",
+            "required",
+            "disabled",
+            "pending",
+            "server-error-retained",
+            "amsterdam-context"
+          ],
+          "interaction": "Enter every value with mobile keyboard/picker emulation, trigger and correct errors, then verify 16px text, retained values and no footer or safe-area obstruction.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/date-time/mobile-validation"
+        }
+      ]
+    },
+    {
+      "id": "popover",
+      "name": "Popover",
+      "category": "overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "open",
+        "trigger-focused",
+        "content-focused",
+        "collision-flipped",
+        "long-content",
+        "nested-control",
+        "dismissed"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/popover.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+          "symbol": "Popover"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+          "symbol": "PopoverTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+          "symbol": "PopoverContent"
+        }
+      ],
+      "witnessRoutes": ["/planning", "/assignments", "/settings"],
+      "states": [
+        "closed",
+        "open",
+        "trigger-focused",
+        "content-focused",
+        "collision-flipped",
+        "long-content",
+        "nested-control",
+        "dismissed"
+      ],
+      "stateRules": [
+        "Popover is reserved for non-modal contextual controls or detail and has a labelled trigger plus a programmatic content name when context is not sufficient.",
+        "Body-level portal inherits the active tenant theme, stays inside available viewport space and uses one named internal scroller for long content.",
+        "Nested controls own their first Escape; outside dismissal never commits a destructive or dirty action."
+      ],
+      "focusContract": {
+        "entry": "Enter, Space or pointer activation opens; focus either remains on the trigger for read-only content or moves to the first interactive child by explicit contract.",
+        "escape": "Closes the innermost nested control first and then the Popover without applying an implicit action.",
+        "return": "Every dismissal path returns focus to the exact trigger unless selection deliberately moves focus to a documented destination."
+      },
+      "responsiveContract": {
+        "desktop": "Anchored content flips on block-axis collision, shifts on inline-axis collision and never exceeds available height or 500px useful width.",
+        "mobile": "Anchored content remains within 16px viewport margins and above keyboard and safe area; interaction-heavy or long content must use the separate Sheet component at authoring time."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "popover",
+          "popoverForeground",
+          "surface",
+          "borderSubtle",
+          "ring",
+          "overlay"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-011",
+        "FFC-DS-012",
+        "FFC-RSP-007",
+        "FFC-RSP-009",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "popover-desktop-lifecycle",
+          "viewport": "desktop",
+          "fixture": "overlay/popover-states",
+          "states": [
+            "closed",
+            "open",
+            "trigger-focused",
+            "content-focused",
+            "collision-flipped",
+            "long-content",
+            "nested-control",
+            "dismissed"
+          ],
+          "interaction": "Open from edge and center triggers, traverse nested controls, exercise collision and long scroll, Escape in order and verify exact focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/popover/desktop-lifecycle"
+        },
+        {
+          "id": "popover-mobile-lifecycle",
+          "viewport": "mobile",
+          "fixture": "overlay/popover-states",
+          "states": [
+            "closed",
+            "open",
+            "trigger-focused",
+            "content-focused",
+            "collision-flipped",
+            "long-content",
+            "nested-control",
+            "dismissed"
+          ],
+          "interaction": "Open with touch and keyboard near every viewport edge, show keyboard for nested input, dismiss and verify bounds, safe area, theme and focus return.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/popover/mobile-lifecycle"
+        }
+      ]
+    },
+    {
+      "id": "tooltip",
+      "name": "Tooltip",
+      "category": "overlay-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "closed",
+        "delayed-open",
+        "open-keyboard",
+        "content-associated",
+        "dismissed",
+        "disabled-trigger-wrapper",
+        "long-content",
+        "reduced-motion"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+          "symbol": "TooltipProvider"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+          "symbol": "Tooltip"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+          "symbol": "TooltipTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+          "symbol": "TooltipContent"
+        }
+      ],
+      "witnessRoutes": ["/planning", "/customers", "/settings"],
+      "states": [
+        "closed",
+        "delayed-open",
+        "open-pointer",
+        "open-keyboard",
+        "content-associated",
+        "dismissed",
+        "disabled-trigger-wrapper",
+        "long-content",
+        "reduced-motion"
+      ],
+      "stateRules": [
+        "Tooltip is supplementary: the trigger always has its own accessible name and no task depends on discovering tooltip text.",
+        "Pointer and keyboard exposure show identical concise content; content is non-interactive and associated without duplicate screenreader speech.",
+        "Touch operation remains complete when Tooltip never opens, and reduced motion removes transition without delaying availability."
+      ],
+      "focusContract": {
+        "entry": "Tab focuses the labelled trigger and may expose supplementary content without moving focus.",
+        "escape": "Closes only the visible Tooltip while focus remains on the trigger.",
+        "return": "Focus never enters Tooltip content and remains on the trigger after dismissal or activation."
+      },
+      "responsiveContract": {
+        "desktop": "Collision-aware concise content appears on hover and focus without covering the trigger or adjacent required information.",
+        "mobile": "No information or action relies on Tooltip; any programmatically opened content stays within 16px bounds and the trigger remains 44x44."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": ["popover", "popoverForeground", "borderSubtle", "ring"]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-003",
+        "FFC-A11Y-006",
+        "FFC-A11Y-009",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "tooltip-desktop-lifecycle",
+          "viewport": "desktop",
+          "fixture": "overlay/tooltip-states",
+          "states": [
+            "closed",
+            "delayed-open",
+            "open-pointer",
+            "open-keyboard",
+            "content-associated",
+            "dismissed",
+            "disabled-trigger-wrapper",
+            "long-content",
+            "reduced-motion"
+          ],
+          "interaction": "Open by pointer and focus, inspect association and collision, Escape, then repeat with disabled wrapper, long Dutch content and reduced motion.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/tooltip/desktop-lifecycle"
+        },
+        {
+          "id": "tooltip-mobile-supplementary",
+          "viewport": "mobile",
+          "fixture": "overlay/tooltip-states",
+          "states": [
+            "closed",
+            "delayed-open",
+            "open-pointer",
+            "open-keyboard",
+            "content-associated",
+            "dismissed",
+            "disabled-trigger-wrapper",
+            "long-content",
+            "reduced-motion"
+          ],
+          "interaction": "Prove the trigger's name and full action without Tooltip, then open through keyboard emulation and verify viewport bounds, dismissal and unchanged focus.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/tooltip/mobile-supplementary"
+        }
+      ]
+    },
+    {
+      "id": "tabs",
+      "name": "Tabs",
+      "category": "navigation-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "first-active",
+        "other-active",
+        "trigger-focused",
+        "keyboard-navigation",
+        "disabled-tab",
+        "overflow-scroll",
+        "inactive-hidden",
+        "long-label"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/tabs.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+          "symbol": "Tabs"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+          "symbol": "TabsList"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+          "symbol": "TabsTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+          "symbol": "TabsContent"
+        }
+      ],
+      "witnessRoutes": ["/assignments/[id]", "/customers/[id]", "/settings"],
+      "states": [
+        "first-active",
+        "other-active",
+        "trigger-focused",
+        "keyboard-navigation",
+        "disabled-tab",
+        "overflow-scroll",
+        "inactive-hidden",
+        "long-label"
+      ],
+      "stateRules": [
+        "Tablist, tab and tabpanel relationships are complete; exactly one tab is selected and inactive panels are absent from the accessibility tree.",
+        "Arrow/Home/End navigation uses roving focus, skips disabled tabs and activation follows one documented automatic or manual policy.",
+        "Tabs only switch peer content; route navigation remains links and mobile selector transformations preserve the same panel identity and permission filtering."
+      ],
+      "focusContract": {
+        "entry": "Tab enters the active trigger; arrows, Home and End move within the tablist according to orientation.",
+        "escape": "not-applicable and never resets the active panel.",
+        "return": "Activation keeps focus on the selected trigger; returning from panel actions restores their own logical context, not the tablist by force."
+      },
+      "responsiveContract": {
+        "desktop": "The complete tablist uses one named local horizontal scroller with a visible overflow affordance and no document overflow.",
+        "mobile": "The generic Tabs component uses one named keyboard-scrollable tablist; dossier and settings section navigation use their separately contracted labelled Select, every trigger remains 44px and inactive panels stay hidden."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "primary",
+          "selection",
+          "borderSubtle",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-RSP-005",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-010",
+        "FFC-BRAND-004"
+      ],
+      "captureCases": [
+        {
+          "id": "tabs-desktop-navigation",
+          "viewport": "desktop",
+          "fixture": "navigation/tabs-states",
+          "states": [
+            "first-active",
+            "other-active",
+            "trigger-focused",
+            "keyboard-navigation",
+            "disabled-tab",
+            "overflow-scroll",
+            "inactive-hidden",
+            "long-label"
+          ],
+          "interaction": "Traverse by Tab, arrows, Home and End, skip disabled, activate another tab and verify exact tabpanel relations and hidden inactive content.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/tabs/desktop-navigation"
+        },
+        {
+          "id": "tabs-mobile-navigation",
+          "viewport": "mobile",
+          "fixture": "navigation/tabs-states",
+          "states": [
+            "first-active",
+            "other-active",
+            "trigger-focused",
+            "keyboard-navigation",
+            "disabled-tab",
+            "overflow-scroll",
+            "inactive-hidden",
+            "long-label"
+          ],
+          "interaction": "Use touch and keyboard on long labels/sets, operate local scroll or selector and prove complete panel parity without page overflow.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/tabs/mobile-navigation"
+        }
+      ]
+    },
+    {
+      "id": "accordion-collapsible",
+      "name": "Accordion/Collapsible",
+      "category": "disclosure-primitive",
+      "state": "CONTRACTED",
+      "parityRequiredStates": [
+        "collapsed",
+        "expanded",
+        "trigger-focused",
+        "keyboard-navigation",
+        "disabled-item",
+        "long-content",
+        "nested-control",
+        "reduced-motion"
+      ],
+      "implementationTarget": "artifacts/backoffice/src/components/ui/accordion.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+          "symbol": "Accordion"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+          "symbol": "AccordionTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+          "symbol": "AccordionContent"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+          "symbol": "Collapsible"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+          "symbol": "CollapsibleTrigger"
+        },
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+          "symbol": "CollapsibleContent"
+        }
+      ],
+      "witnessRoutes": ["/settings", "/help/[slug]", "/first-run"],
+      "states": [
+        "collapsed",
+        "expanded",
+        "trigger-focused",
+        "keyboard-navigation",
+        "disabled-item",
+        "long-content",
+        "nested-control",
+        "reduced-motion"
+      ],
+      "stateRules": [
+        "Every disclosure trigger exposes expanded state and controls exactly one named content region; heading level follows page hierarchy.",
+        "Accordion keyboard navigation is complete and disabled items are skipped; Collapsible remains an ordinary button plus controlled region.",
+        "Collapsed content is absent from tab and accessibility order, while reduced motion preserves immediate state and all nested controls."
+      ],
+      "focusContract": {
+        "entry": "Tab reaches the first enabled trigger; Accordion arrows/Home/End move among triggers and Collapsible uses normal tab order.",
+        "escape": "Closes an owned nested overlay first; disclosure itself changes only through its trigger unless the surrounding task explicitly contracts Escape.",
+        "return": "Expanding or collapsing keeps focus on the trigger; a nested control returns to its own opener inside expanded content."
+      },
+      "responsiveContract": {
+        "desktop": "Trigger label, indicator and optional metadata keep hierarchy and 44px geometry; long content stays in document flow.",
+        "mobile": "Full-width triggers wrap without overlap; expanded long content and nested controls remain reachable without page-level horizontal overflow."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 14,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "surface",
+          "foreground",
+          "mutedForeground",
+          "borderSubtle",
+          "selection",
+          "ring"
+        ]
+      },
+      "acceptanceIds": [
+        "FFC-DS-003",
+        "FFC-DS-012",
+        "FFC-RSP-007",
+        "FFC-A11Y-002",
+        "FFC-A11Y-006",
+        "FFC-A11Y-009",
+        "FFC-A11Y-010"
+      ],
+      "captureCases": [
+        {
+          "id": "accordion-collapsible-desktop",
+          "viewport": "desktop",
+          "fixture": "disclosure/accordion-collapsible-states",
+          "states": [
+            "collapsed",
+            "expanded",
+            "trigger-focused",
+            "keyboard-navigation",
+            "disabled-item",
+            "long-content",
+            "nested-control",
+            "reduced-motion"
+          ],
+          "interaction": "Navigate all triggers, skip disabled, expand long content, enter/exit nested control, collapse and repeat with reduced motion while inspecting relationships.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/accordion-collapsible/desktop"
+        },
+        {
+          "id": "accordion-collapsible-mobile",
+          "viewport": "mobile",
+          "fixture": "disclosure/accordion-collapsible-states",
+          "states": [
+            "collapsed",
+            "expanded",
+            "trigger-focused",
+            "keyboard-navigation",
+            "disabled-item",
+            "long-content",
+            "nested-control",
+            "reduced-motion"
+          ],
+          "interaction": "Operate by touch and keyboard with long wrapped labels/content, verify 44px triggers, hidden collapsed content and no document overflow.",
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/accordion-collapsible/mobile"
+        }
+      ]
+    },
+    {
+      "id": "planboard-placement-interaction",
+      "name": "Planboard placement interaction",
+      "category": "planboard-interaction-composition",
+      "state": "CONTRACTED",
+      "implementationTarget": "artifacts/backoffice/src/components/assignments/PlanningBoardView.tsx",
+      "implementationStatus": "existing-target",
+      "sourceEvidence": [
+        {
+          "type": "repositorySource",
+          "sourcePath": "artifacts/backoffice/src/components/assignments/PlanningBoardView.tsx",
+          "symbol": "PlanningBoardView"
+        }
+      ],
+      "witnessRoutes": ["/planning"],
+      "states": [
+        "pointer-drag-active-valid",
+        "pointer-drag-active-warning",
+        "pointer-drag-active-blocked",
+        "drag-ghost-visible",
+        "target-highlight-valid",
+        "target-highlight-warning",
+        "target-highlight-blocked",
+        "typed-warning-reason",
+        "typed-blocked-reason",
+        "pointer-offset-retained",
+        "keyboard-position-preview",
+        "keyboard-invalid-position"
+      ],
+      "parityRequiredStates": [],
+      "interactionModeParityContract": {
+        "directMobileCaptureRequired": false,
+        "touchDragRequired": false,
+        "desktopOnlyInputModes": ["pointer", "keyboard"],
+        "mobileWidths": [320, 390, 430, 768],
+        "mappings": [
+          {
+            "desktopProofClaim": "active-pointer-drag",
+            "mobileJourneyId": "mobile-planboard-non-drag",
+            "equivalence": "functional-placement-without-drag",
+            "evidenceInterchangeable": false
+          },
+          {
+            "desktopProofClaim": "active-keyboard-placement",
+            "mobileJourneyId": "mobile-planboard-timeline-keyboard",
+            "equivalence": "same-grid-keyboard-positioning",
+            "evidenceInterchangeable": false
+          }
+        ],
+        "rule": "Desktop active drag and keyboard frames remain their own evidence. Mobile functional parity is proved only by the referenced non-drag touch journey and the keyboard journey exposed through the explicit Timeline toggle; neither journey may be relabelled as pointer-drag evidence."
+      },
+      "stateRules": [
+        "Pointer evidence is captured while the pointer is still down and the drag is active: source, ghost, highlighted target, snapped time and evaluation state remain visible in one frame.",
+        "Valid, warning and blocked are three distinct semantic states. Warning and blocked expose a typed reason object and visible text/icon treatment; color alone and an untyped sentence are insufficient.",
+        "Dragging an existing block retains the exact grab offset through preview. The pointer probe grabs 45 minutes after block start and therefore previews 10:00 when the pointer is at 10:45 on a 15-minute raster.",
+        "Keyboard movement exposes a position preview before confirmation and an invalid-position state that retains the active gridcell and announces its typed reason.",
+        "No active-interaction claim may be satisfied by a settled post-placement or undo screenshot; no mutation occurs before pointer release or explicit keyboard confirmation."
+      ],
+      "focusContract": {
+        "entry": "Pointer starts on the full movable block hitarea; keyboard Enter or Space selects the focused queue item or movable block and names the positioning instructions.",
+        "escape": "Escape cancels active pointer or keyboard intent without mutation and restores the exact source block or queue item as the focus context.",
+        "return": "Valid confirmation focuses the placed block; warning first focuses explicit confirmation; blocked or invalid placement stays on the active target and announces the typed reason plus correction."
+      },
+      "responsiveContract": {
+        "desktop": "At 1024, 1280, 1440 and 1920 px, active pointer drag and keyboard positioning keep ghost, target highlight, status label, typed reason and snapped times visible without page overflow.",
+        "mobile": "This component has no touch-drag capture case: 320, 390, 430 and 768 px render queue cards before the agenda and use the separately contracted full-screen non-drag wizard; the keyboard timeline appears only after the explicit Timeline toggle."
+      },
+      "minimums": {
+        "targetPx": [44, 44],
+        "itemTargetPx": [44, 44],
+        "fontPx": 13,
+        "textContrast": 4.5,
+        "uiContrast": 3
+      },
+      "axes": {
+        "density": ["compact", "comfortable", "spacious"],
+        "themeTokens": [
+          "planboardValidBackground",
+          "planboardValidBorder",
+          "warningBackground",
+          "warningBorder",
+          "dangerBackground",
+          "dangerBorder",
+          "foreground",
+          "ring"
+        ]
+      },
+      "acceptanceIds": ["FFC-PB-003", "FFC-PB-006", "FFC-PB-007", "FFC-PB-010"],
+      "captureCases": [
+        {
+          "id": "planboard-placement-pointer-desktop-active-matrix",
+          "viewport": "desktop",
+          "fixture": "planboard/desktop-active-pointer-placement-v1",
+          "inputMode": "pointer",
+          "proofClass": "active-interaction",
+          "proofClaims": [
+            "active-pointer-drag",
+            "drag-ghost",
+            "target-highlight",
+            "typed-planning-reason",
+            "pointer-offset"
+          ],
+          "excludedProofClaims": [
+            "touch-placement-flow",
+            "settled-post-placement-as-active-interaction"
+          ],
+          "states": [
+            "pointer-drag-active-valid",
+            "pointer-drag-active-warning",
+            "pointer-drag-active-blocked",
+            "drag-ghost-visible",
+            "target-highlight-valid",
+            "target-highlight-warning",
+            "target-highlight-blocked",
+            "typed-warning-reason",
+            "typed-blocked-reason",
+            "pointer-offset-retained"
+          ],
+          "interaction": "Hold the existing FG-2048 block 45 minutes after its start, cross deterministic valid, warning and blocked targets without releasing, and capture every active frame before cancelling with Escape.",
+          "interactionFrames": [
+            {
+              "id": "active-valid",
+              "evaluationState": "valid",
+              "targetPersonnelFixtureId": "personnel-valid",
+              "expectedTypedReasons": [],
+              "requiredVisuals": [
+                "source-active",
+                "drag-ghost",
+                "target-highlight-valid",
+                "status-label-valid",
+                "preview-time-10:00-11:30"
+              ],
+              "mutationCountBeforeRelease": 0
+            },
+            {
+              "id": "active-warning",
+              "evaluationState": "warning",
+              "targetPersonnelFixtureId": "personnel-availability-unknown",
+              "expectedTypedReasons": [
+                {
+                  "code": "unknown_availability",
+                  "severity": "warning",
+                  "label": "Beschikbaarheid niet ingesteld"
+                }
+              ],
+              "requiredVisuals": [
+                "source-active",
+                "drag-ghost",
+                "target-highlight-warning",
+                "status-label-warning",
+                "typed-reason-text"
+              ],
+              "mutationCountBeforeRelease": 0
+            },
+            {
+              "id": "active-blocked",
+              "evaluationState": "blocked",
+              "targetPersonnelFixtureId": "personnel-overlap",
+              "expectedTypedReasons": [
+                {
+                  "code": "already_booked",
+                  "severity": "block",
+                  "label": "Al ingepland op dit tijdstip"
+                }
+              ],
+              "requiredVisuals": [
+                "source-active",
+                "drag-ghost",
+                "target-highlight-blocked",
+                "status-label-blocked",
+                "typed-reason-text"
+              ],
+              "mutationCountBeforeRelease": 0
+            }
+          ],
+          "pointerOffsetProbe": {
+            "assignmentFixtureId": "FG-2048",
+            "sourceStartMinutes": 540,
+            "sourceDurationMinutes": 90,
+            "grabOffsetMinutes": 45,
+            "targetPointerMinutes": 645,
+            "gridStepMinutes": 15,
+            "expectedPreviewStartMinutes": 600,
+            "expectedPreviewEndMinutes": 690,
+            "maximumDeltaMinutes": 0
+          },
+          "settledPostPlacementEligible": false,
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/planboard-placement-interaction/pointer-desktop-active-matrix"
+        },
+        {
+          "id": "planboard-placement-keyboard-desktop-active-matrix",
+          "viewport": "desktop",
+          "fixture": "planboard/desktop-active-keyboard-placement-v1",
+          "inputMode": "keyboard",
+          "proofClass": "active-interaction",
+          "proofClaims": [
+            "active-keyboard-placement",
+            "position-preview",
+            "invalid-position",
+            "typed-planning-reason"
+          ],
+          "excludedProofClaims": [
+            "pointer-drag",
+            "touch-placement-flow",
+            "settled-post-placement-as-active-interaction"
+          ],
+          "states": ["keyboard-position-preview", "keyboard-invalid-position"],
+          "interaction": "Select FG-2062 with Enter, move right by one 15-minute raster step and down by one employee to capture the valid preview, then move onto the deterministic overlap cell to capture invalid-position before Escape.",
+          "interactionFrames": [
+            {
+              "id": "position-preview",
+              "evaluationState": "valid",
+              "activePersonnelFixtureId": "personnel-valid",
+              "previewStartMinutes": 615,
+              "previewEndMinutes": 765,
+              "expectedTypedReasons": [],
+              "requiredAnnouncements": [
+                "Rayan Akachar",
+                "10:15–12:45",
+                "Geldige positie"
+              ],
+              "mutationCountBeforeConfirm": 0
+            },
+            {
+              "id": "invalid-position",
+              "evaluationState": "blocked",
+              "activePersonnelFixtureId": "personnel-overlap",
+              "previewStartMinutes": 615,
+              "previewEndMinutes": 765,
+              "expectedTypedReasons": [
+                {
+                  "code": "already_booked",
+                  "severity": "block",
+                  "label": "Al ingepland op dit tijdstip"
+                }
+              ],
+              "requiredAnnouncements": [
+                "Ongeldige positie",
+                "Al ingepland op dit tijdstip",
+                "Gebruik pijltjestoetsen om te corrigeren"
+              ],
+              "mutationCountBeforeConfirm": 0,
+              "focusRemainsOnActiveGridcell": true
+            }
+          ],
+          "settledPostPlacementEligible": false,
+          "evidenceTargetPrefix": "docs/uiux/fieldflow-calm-handoff/evidence/implementation/component-states/planboard-placement-interaction/keyboard-desktop-active-matrix"
+        }
+      ]
+    }
+  ]
+}

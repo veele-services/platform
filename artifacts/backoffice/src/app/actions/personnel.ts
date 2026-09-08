@@ -1385,7 +1385,7 @@ export async function setPersonnelAuthBan(
 }
 
 export async function deletePersonnel(id: string): Promise<ActionResult> {
-  await requirePermission("personnel", "write");
+  await requirePermission("personnel", "delete");
   const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();

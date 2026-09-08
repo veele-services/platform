@@ -3,8 +3,8 @@
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Lock, Pencil, Plus, RotateCcw, Shield, Trash2, Users } from "lucide-react";
-import { createRole, deleteRole, resetSystemRolesToDefault } from "@/app/actions/settings";
-import type { RolePlanCapabilities, RoleRow } from "@/app/actions/settings";
+import { createTenantRole, deleteTenantRole, resetTenantSystemRolesToTemplates } from "@/app/actions/tenant-roles";
+import type { TenantRolePlanCapabilities, TenantRoleRow } from "@/app/actions/tenant-roles";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -18,12 +18,13 @@ import { TenantActionMenu } from "@/components/tenant-ui/tenant-action-menu";
 import { TenantConfirmDialog } from "@/components/tenant-ui/tenant-confirm-dialog";
 
 interface Props {
-  roles: RoleRow[];
+  roles: TenantRoleRow[];
   canWrite: boolean;
-  capabilities: RolePlanCapabilities;
+  canDelete: boolean;
+  capabilities: TenantRolePlanCapabilities;
 }
 
-export function RollenView({ roles: initialRoles, canWrite, capabilities }: Props) {
+export function RollenView({ roles: initialRoles, canWrite, canDelete, capabilities }: Props) {
   const router = useRouter();
   const [roles, setRoles] = useState(initialRoles);
   const [createOpen, setCreateOpen] = useState(false);
@@ -35,7 +36,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
   const [isResetting, startResetTransition] = useTransition();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const deleteTarget = roles.find((role) => role.id === deleteTargetId);
 
@@ -43,7 +44,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createRole({ name: name.trim(), description: desc.trim() || null });
+      const result = await createTenantRole({ name: name.trim(), description: desc.trim() || null });
       if (result.success && result.data) {
         setCreateOpen(false);
         router.push(`/instellingen/rollen/${result.data.id}`);
@@ -56,7 +57,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
   function handleResetDefaults() {
     setResetError(null);
     startResetTransition(async () => {
-      const result = await resetSystemRolesToDefault();
+      const result = await resetTenantSystemRolesToTemplates();
       if (result.success) {
         router.refresh();
       } else {
@@ -65,18 +66,23 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
     });
   }
 
-  function handleDeleteConfirm() {
-    if (!deleteTargetId) return;
+  async function handleDeleteConfirm(): Promise<boolean> {
+    if (!deleteTargetId) return false;
     setDeleteError(null);
-    startDeleteTransition(async () => {
-      const result = await deleteRole(deleteTargetId);
+    setIsDeleting(true);
+    try {
+      const result = await deleteTenantRole(deleteTargetId);
       if (result.success) {
         setRoles((prev) => prev.filter((role) => role.id !== deleteTargetId));
         setDeleteTargetId(null);
+        return true;
       } else {
         setDeleteError((result as { message?: string }).message ?? "Verwijderen mislukt.");
+        return false;
       }
-    });
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   return (
@@ -92,7 +98,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
         </div>
       )}
 
-      {canWrite && (
+      {(canWrite || capabilities.canResetSystemRoles) && (
         <div className="flex flex-wrap justify-end gap-2">
           {capabilities.canResetSystemRoles && (
             <TenantConfirmDialog
@@ -108,7 +114,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
               }
             />
           )}
-          {capabilities.customRoles && (
+          {canWrite && capabilities.customRoles && (
             <CreateRoleSheet
               open={createOpen}
               onOpenChange={setCreateOpen}
@@ -175,7 +181,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
                         href: `/instellingen/rollen/${role.id}`,
                         icon: <Pencil className="h-3.5 w-3.5" />,
                       },
-                      ...(canWrite && capabilities.customRoles && !role.isSystem
+                      ...(canDelete && capabilities.customRoles && !role.isSystem
                         ? [{
                             id: "delete",
                             label: "Rol verwijderen",

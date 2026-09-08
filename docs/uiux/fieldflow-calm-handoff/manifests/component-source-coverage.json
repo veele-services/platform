@@ -1,0 +1,3881 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm component source coverage",
+  "state": "CONTRACTED",
+  "sourceRoots": [
+    "artifacts/backoffice/src/components/ui",
+    "artifacts/backoffice/src/components/tenant-ui"
+  ],
+  "namedExportPolicy": "Direct exported declarations and explicit named export specifiers are included; unnamed export-star declarations are excluded.",
+  "exportKey": "sourcePath#exportName",
+  "exportCount": 299,
+  "classificationCounts": {
+    "state-owner": 132,
+    "composite": 122,
+    "non-visual": 45
+  },
+  "classificationContract": {
+    "state-owner": "Exactly one componentStateId owns the exported runtime UI state matrix.",
+    "composite": "One or more componentStateIds plus a real witness route and composition contract cover the exported runtime UI.",
+    "non-visual": "Only compile-time types, state/context helpers and variant recipes without their own DOM may use this classification; a concrete reason is mandatory."
+  },
+  "exports": [
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-action-menu.tsx",
+      "exportName": "TenantActionMenu",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-action-menu.tsx",
+      "exportName": "TenantActionMenuItem",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantActionMenuItem is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-action-menu.tsx",
+      "exportName": "TenantActionMenuProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantActionMenuProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-confirm-dialog.tsx",
+      "exportName": "TenantConfirmDialog",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-confirm-dialog.tsx",
+      "exportName": "TenantConfirmDialogProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantConfirmDialogProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-data-table.tsx",
+      "exportName": "TenantDataTable",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "data-view-card",
+          "checkbox",
+          "row-action-dropdown-menu"
+        ],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantDataTable composeert desktoprows, mobiele cards, selectie en rijacties uit één dataprojectie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-data-table.tsx",
+      "exportName": "TenantDataTableColumn",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDataTableColumn is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-data-table.tsx",
+      "exportName": "TenantDataTableProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDataTableProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-drawer.tsx",
+      "exportName": "TenantDetailDrawer",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-drawer.tsx",
+      "exportName": "TenantDetailDrawerProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailDrawerProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailActionPanel",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet", "tabs", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "TenantDetailLayout structureert dossierheader, secties en acties rond detail-, tab- en buttonstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailActionPanelProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailActionPanelProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailHeader",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet", "tabs", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "TenantDetailLayout structureert dossierheader, secties en acties rond detail-, tab- en buttonstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailHeaderProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailHeaderProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailLayout",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet", "tabs", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "TenantDetailLayout structureert dossierheader, secties en acties rond detail-, tab- en buttonstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailLayoutProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailLayoutProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-layout.tsx",
+      "exportName": "TenantDetailMetaItem",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailMetaItem is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-responsive-actions.tsx",
+      "exportName": "TenantDetailResponsiveActions",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-responsive-actions.tsx",
+      "exportName": "TenantDetailResponsiveActionsProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailResponsiveActionsProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-section-nav.tsx",
+      "exportName": "TenantDetailSectionNav",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["tabs", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Sectienavigatie gebruikt tabsemantiek en gelabelde navigatiecontrols voor dossierankers."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-section-nav.tsx",
+      "exportName": "TenantDetailSectionNavItem",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailSectionNavItem is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-detail-section-nav.tsx",
+      "exportName": "TenantDetailSectionNavProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantDetailSectionNavProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-filter-drawer.tsx",
+      "exportName": "TenantFilterDrawer",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["filter-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-filter-drawer.tsx",
+      "exportName": "TenantFilterDrawerProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantFilterDrawerProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-header.tsx",
+      "exportName": "TenantPageBreadcrumb",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantPageBreadcrumb is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-header.tsx",
+      "exportName": "TenantPageHeader",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantPageHeader combineert breadcrumb/context en primaire acties met responsive navigatiestates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-header.tsx",
+      "exportName": "TenantPageHeaderProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantPageHeaderProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-shell.tsx",
+      "exportName": "TenantPageSection",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "data-view-card",
+          "empty",
+          "loading"
+        ],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantPageShell/Section bepaalt rustige paginageometrie rond data-, empty- en loadingstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-shell.tsx",
+      "exportName": "TenantPageSectionProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantPageSectionProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-shell.tsx",
+      "exportName": "TenantPageShell",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "data-view-card",
+          "empty",
+          "loading"
+        ],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantPageShell/Section bepaalt rustige paginageometrie rond data-, empty- en loadingstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-page-shell.tsx",
+      "exportName": "TenantPageShellProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantPageShellProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantActiveFilter",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantActiveFilter is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantActiveFilters",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "filter-sheet", "button"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantToolbar composeert zoeken, filters en acties met dezelfde desktop/mobile controls."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantActiveFiltersProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantActiveFiltersProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantToolbar",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "filter-sheet", "button"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantToolbar composeert zoeken, filters en acties met dezelfde desktop/mobile controls."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantToolbarProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantToolbarProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantToolbarSearch",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "filter-sheet", "button"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "TenantToolbar composeert zoeken, filters en acties met dezelfde desktop/mobile controls."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-toolbar.tsx",
+      "exportName": "TenantToolbarSearchProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantToolbarSearchProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantCommandBar",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "detail-sheet",
+          "command-palette",
+          "button"
+        ],
+        "witness": {
+          "routes": ["/planning"],
+          "contract": "TenantWorkbench combineert commandbar, conflictstrip, werkpaneel en detailcontext zonder state te dupliceren."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantCommandBarProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantCommandBarProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantConflictStrip",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "detail-sheet",
+          "command-palette",
+          "button"
+        ],
+        "witness": {
+          "routes": ["/planning"],
+          "contract": "TenantWorkbench combineert commandbar, conflictstrip, werkpaneel en detailcontext zonder state te dupliceren."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantConflictStripItem",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantConflictStripItem is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantConflictStripProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantConflictStripProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantWorkbenchLayout",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "detail-sheet",
+          "command-palette",
+          "button"
+        ],
+        "witness": {
+          "routes": ["/planning"],
+          "contract": "TenantWorkbench combineert commandbar, conflictstrip, werkpaneel en detailcontext zonder state te dupliceren."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantWorkbenchLayoutProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantWorkbenchLayoutProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantWorkbenchPanel",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": [
+          "data-view-row",
+          "detail-sheet",
+          "command-palette",
+          "button"
+        ],
+        "witness": {
+          "routes": ["/planning"],
+          "contract": "TenantWorkbench combineert commandbar, conflictstrip, werkpaneel en detailcontext zonder state te dupliceren."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/tenant-ui/tenant-workbench.tsx",
+      "exportName": "TenantWorkbenchPanelProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "TenantWorkbenchPanelProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+      "exportName": "Accordion",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+      "exportName": "AccordionContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+      "exportName": "AccordionItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/accordion.tsx",
+      "exportName": "AccordionTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialog",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogAction",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogCancel",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogOverlay",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert-dialog.tsx",
+      "exportName": "AlertDialogTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert.tsx",
+      "exportName": "Alert",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["toast", "error-summary"],
+        "witness": {
+          "routes": ["/"],
+          "contract": "Inline waarschuwing combineert de feedbackstatus en blijvende foutcontext van Toast en FormErrorSummary."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert.tsx",
+      "exportName": "AlertDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["toast", "error-summary"],
+        "witness": {
+          "routes": ["/"],
+          "contract": "Inline waarschuwing combineert de feedbackstatus en blijvende foutcontext van Toast en FormErrorSummary."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/alert.tsx",
+      "exportName": "AlertTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["toast", "error-summary"],
+        "witness": {
+          "routes": ["/"],
+          "contract": "Inline waarschuwing combineert de feedbackstatus en blijvende foutcontext van Toast en FormErrorSummary."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/avatar.tsx",
+      "exportName": "Avatar",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Avatar, afbeelding en fallback zijn presentatiedelen van dezelfde row/card-entiteitsprojectie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/avatar.tsx",
+      "exportName": "AvatarFallback",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Avatar, afbeelding en fallback zijn presentatiedelen van dezelfde row/card-entiteitsprojectie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/avatar.tsx",
+      "exportName": "AvatarImage",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Avatar, afbeelding en fallback zijn presentatiedelen van dezelfde row/card-entiteitsprojectie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/badge.tsx",
+      "exportName": "Badge",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/assignments"],
+          "contract": "Badge projecteert status in row en card zonder een zelfstandige interactieve lifecycle."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/badge.tsx",
+      "exportName": "BadgeProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "BadgeProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/badge.tsx",
+      "exportName": "badgeVariants",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "variant",
+        "reason": "badgeVariants is een class-variantrecept zonder eigen DOM, bediening of focuslifecycle."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "Breadcrumb",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbEllipsis",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbLink",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbList",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbPage",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/breadcrumb.tsx",
+      "exportName": "BreadcrumbSeparator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["mobile-nav", "button"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "Breadcrumb is een navigatiecompositie met gelabelde links en compacte buttongeometrie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/bulk-action-bar.tsx",
+      "exportName": "BulkActionBar",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["checkbox", "button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Bulkacties volgen selectie uit DataView-rijen en gebruiken canonieke checkbox- en buttonstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button-group.tsx",
+      "exportName": "ButtonGroup",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "ButtonGroup groepeert Button-controls; alle interactiestates blijven eigendom van Button."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button-group.tsx",
+      "exportName": "ButtonGroupSeparator",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "ButtonGroup groepeert Button-controls; alle interactiestates blijven eigendom van Button."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button-group.tsx",
+      "exportName": "ButtonGroupText",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "ButtonGroup groepeert Button-controls; alle interactiestates blijven eigendom van Button."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button-group.tsx",
+      "exportName": "buttonGroupVariants",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "variant",
+        "reason": "buttonGroupVariants is een class-variantrecept zonder eigen DOM, bediening of focuslifecycle."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button.tsx",
+      "exportName": "Button",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["button"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button.tsx",
+      "exportName": "ButtonProps",
+      "exportKind": "type",
+      "declarationKind": "interface",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "ButtonProps is uitsluitend een compile-time interface; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/button.tsx",
+      "exportName": "buttonVariants",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "variant",
+        "reason": "buttonVariants is een class-variantrecept zonder eigen DOM, bediening of focuslifecycle."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+      "exportName": "DashboardPageSkeleton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+      "exportName": "DataListPageSkeleton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+      "exportName": "DetailPageSkeleton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/canonical-page-skeletons.tsx",
+      "exportName": "PlanningPageSkeleton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "Card",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "CardContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "CardDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "CardFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "CardHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/card.tsx",
+      "exportName": "CardTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Card en zijn slots vormen de structurele onderlaag van de responsive DataView-card."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/checkbox-adapter.tsx",
+      "exportName": "CheckboxAdapter",
+      "exportKind": "value",
+      "declarationKind": "external-reexport",
+      "via": "module-reexport",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["checkbox"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/checkbox-adapter.tsx",
+      "exportName": "CheckboxAdapterChangeEvent",
+      "exportKind": "type",
+      "declarationKind": "external-reexport",
+      "via": "module-reexport",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "CheckboxAdapterChangeEvent is uitsluitend een compile-time external-reexport; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/checkbox.tsx",
+      "exportName": "Checkbox",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["checkbox"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+      "exportName": "Collapsible",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+      "exportName": "CollapsibleContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/collapsible.tsx",
+      "exportName": "CollapsibleTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["accordion-collapsible"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/combobox.tsx",
+      "exportName": "Combobox",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["combobox"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/combobox.tsx",
+      "exportName": "ComboboxOption",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "ComboboxOption is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "Command",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandDialog",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandEmpty",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandInput",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandList",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandSeparator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/command.tsx",
+      "exportName": "CommandShortcut",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["command-palette"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenu",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuCheckboxItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuLabel",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuRadioGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuRadioItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuSeparator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuShortcut",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuSub",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuSubContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuSubTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/context-menu.tsx",
+      "exportName": "ContextMenuTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "ContextMenu deelt open/close, focus, item- en submenucontracten met het canonieke rijactiemenu."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "Dialog",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogClose",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogOverlay",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dialog.tsx",
+      "exportName": "DialogTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["dialog"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "Drawer",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerClose",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerOverlay",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/drawer.tsx",
+      "exportName": "DrawerTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenu",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuCheckboxItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuLabel",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuRadioGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuRadioItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuSeparator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuShortcut",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuSub",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuSubContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuSubTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenuTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["row-action-dropdown-menu"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "Empty",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "EmptyContent",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "EmptyDescription",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "EmptyHeader",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "EmptyMedia",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/empty.tsx",
+      "exportName": "EmptyTitle",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["empty"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "Field",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldContent",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldDescription",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldError",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldGroup",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldLabel",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldLegend",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldSeparator",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldSet",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/field.tsx",
+      "exportName": "FieldTitle",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Field-slots componeren label, control, beschrijving en foutterugkoppeling zonder eigen mutatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+      "exportName": "FieldgridDataView",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+      "exportName": "FieldgridDataViewColumn",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "FieldgridDataViewColumn is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/fieldgrid-data-view.tsx",
+      "exportName": "FieldgridDataViewProps",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "declaration",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "FieldgridDataViewProps is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-actions.tsx",
+      "exportName": "FormActions",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "toast", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "FormActions combineert submit/cancel-controls met pending, succes en foutfeedback."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-actions.tsx",
+      "exportName": "FormActionStatus",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "FormActionStatus is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-grid.tsx",
+      "exportName": "FormGrid",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "FormGrid bepaalt alleen de responsive geometrie rond gelabelde controls."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-grid.tsx",
+      "exportName": "FormGridItem",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "FormGrid bepaalt alleen de responsive geometrie rond gelabelde controls."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-grid.tsx",
+      "exportName": "formGridVariants",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "variant",
+        "reason": "formGridVariants is een class-variantrecept zonder eigen DOM, bediening of focuslifecycle."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form-section.tsx",
+      "exportName": "FormSection",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "accordion-collapsible"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "FormSection groepeert gelabelde velden en kan disclosuregedrag van Accordion/Collapsible toepassen."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "Form",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormControl",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormField",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormLabel",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "FormMessage",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["label", "input", "error-summary"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "Form-slots verbinden label, control, beschrijving en fout met één toegankelijk validatiecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/form.tsx",
+      "exportName": "useFormField",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "helper",
+        "reason": "useFormField is een state-/contexthelper zonder eigen DOM; de consumercomponenten bezitten de zichtbare states."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/hover-card.tsx",
+      "exportName": "HoverCard",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["popover", "tooltip"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "HoverCard gebruikt dezelfde gethematiseerde floating-layer-, focus- en collisionregels als Popover/Tooltip."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/hover-card.tsx",
+      "exportName": "HoverCardContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["popover", "tooltip"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "HoverCard gebruikt dezelfde gethematiseerde floating-layer-, focus- en collisionregels als Popover/Tooltip."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/hover-card.tsx",
+      "exportName": "HoverCardTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["popover", "tooltip"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "HoverCard gebruikt dezelfde gethematiseerde floating-layer-, focus- en collisionregels als Popover/Tooltip."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroup",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroupAddon",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroupButton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroupInput",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroupText",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input-group.tsx",
+      "exportName": "InputGroupTextarea",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "textarea"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "InputGroup combineert controls en addons terwijl Input/Textarea/Button hun eigen states behouden."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/input.tsx",
+      "exportName": "Input",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["input"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "Item",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemActions",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemContent",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemDescription",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemFooter",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemGroup",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemHeader",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemMedia",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemSeparator",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/item.tsx",
+      "exportName": "ItemTitle",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Item-slots vormen een generieke entiteitsprojectie die als DataView-row of -card wordt ingezet."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/kbd.tsx",
+      "exportName": "Kbd",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["command-palette", "tooltip"],
+        "witness": {
+          "routes": ["/"],
+          "contract": "Kbd visualiseert sneltoetsinstructies binnen CommandPalette en Tooltip zonder eigen inputstate."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/kbd.tsx",
+      "exportName": "KbdGroup",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["command-palette", "tooltip"],
+        "witness": {
+          "routes": ["/"],
+          "contract": "Kbd visualiseert sneltoetsinstructies binnen CommandPalette en Tooltip zonder eigen inputstate."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/label.tsx",
+      "exportName": "Label",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["label"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "Pagination",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationEllipsis",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationLink",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationNext",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/pagination.tsx",
+      "exportName": "PaginationPrevious",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button", "data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Pagination bestuurt de DataView met canonieke link/button-focus-, disabled- en current-page-states."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+      "exportName": "Popover",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["popover"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+      "exportName": "PopoverAnchor",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["popover"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+      "exportName": "PopoverContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["popover"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/popover.tsx",
+      "exportName": "PopoverTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["popover"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/progress.tsx",
+      "exportName": "Progress",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["loading"],
+        "witness": {
+          "routes": ["/assignments"],
+          "contract": "Progress is determinate loadingfeedback en valt onder het Loading-statecontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/prompt-dialog.tsx",
+      "exportName": "PromptDialog",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["dialog", "input", "button", "error-summary"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "PromptDialog composeert Dialog, gelabelde Input, acties en validatiefout zonder parallelle overlayregels."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/prompt-dialog.tsx",
+      "exportName": "PromptField",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "PromptField is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/radio-group.tsx",
+      "exportName": "RadioGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["radio-group"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/radio-group.tsx",
+      "exportName": "RadioGroupItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["radio-group"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/scroll-area.tsx",
+      "exportName": "ScrollArea",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet", "data-view-card"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "ScrollArea levert begrensde contentscroll binnen detail-sheet en card zonder paginafocus te verliezen."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/scroll-area.tsx",
+      "exportName": "ScrollBar",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet", "data-view-card"],
+        "witness": {
+          "routes": ["/customers/[id]"],
+          "contract": "ScrollArea levert begrensde contentscroll binnen detail-sheet en card zonder paginafocus te verliezen."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select-adapter.tsx",
+      "exportName": "SelectAdapter",
+      "exportKind": "value",
+      "declarationKind": "external-reexport",
+      "via": "module-reexport",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select-adapter.tsx",
+      "exportName": "SelectAdapterChangeEvent",
+      "exportKind": "type",
+      "declarationKind": "external-reexport",
+      "via": "module-reexport",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "SelectAdapterChangeEvent is uitsluitend een compile-time external-reexport; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "Select",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectLabel",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectScrollDownButton",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectScrollUpButton",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectSeparator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/select.tsx",
+      "exportName": "SelectValue",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["select"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/separator.tsx",
+      "exportName": "Separator",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["tabs", "accordion-collapsible"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "Separator is een structureel, semantisch scheidingselement binnen disclosure- en tabcomposities."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "Sheet",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetClose",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetOverlay",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetPortal",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sheet.tsx",
+      "exportName": "SheetTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["detail-sheet"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/skeleton.tsx",
+      "exportName": "Skeleton",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/sonner.tsx",
+      "exportName": "Toaster",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/spinner.tsx",
+      "exportName": "Spinner",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["loading"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/status-badge.tsx",
+      "exportName": "StatusBadge",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row", "data-view-card"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "StatusBadge projecteert dezelfde statusbetekenis in row en card met tekst én kleur."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/switch.tsx",
+      "exportName": "Switch",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["switch"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "Table",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableBody",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableCaption",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableCell",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableFooter",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableHead",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableHeader",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/table.tsx",
+      "exportName": "TableRow",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["data-view-row"],
+        "witness": {
+          "routes": ["/customers"],
+          "contract": "Table en zijn semantische slots zijn de desktoponderlaag van de DataView-rowpresentatie."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+      "exportName": "Tabs",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tabs"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+      "exportName": "TabsContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tabs"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+      "exportName": "TabsList",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tabs"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tabs.tsx",
+      "exportName": "TabsTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tabs"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tag-input.tsx",
+      "exportName": "TagInput",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "declaration",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["input", "button", "error-summary"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "TagInput composeert tekstinvoer en verwijderbuttons onder hetzelfde validatie- en targetcontract."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/textarea.tsx",
+      "exportName": "Textarea",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["textarea"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/time-range-field.tsx",
+      "exportName": "TimeRangeField",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["date-time"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "Toast",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastAction",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastActionElement",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "ToastActionElement is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastClose",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastDescription",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastProps",
+      "exportKind": "type",
+      "declarationKind": "type-alias",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "type",
+        "reason": "ToastProps is uitsluitend een compile-time type-alias; het exporteert geen runtime DOM, control of zichtbare state."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastProvider",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastTitle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toast.tsx",
+      "exportName": "ToastViewport",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["toast"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toggle-group.tsx",
+      "exportName": "ToggleGroup",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["radio-group", "button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "ToggleGroup projecteert enkelvoudige/meervoudige selectie via RadioGroup- en Button-interactiestates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toggle-group.tsx",
+      "exportName": "ToggleGroupItem",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["radio-group", "button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "ToggleGroup projecteert enkelvoudige/meervoudige selectie via RadioGroup- en Button-interactiestates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toggle.tsx",
+      "exportName": "Toggle",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["button"],
+        "witness": {
+          "routes": ["/settings"],
+          "contract": "Toggle is een pressed/unpressed Button-compositie en erft target-, focus- en disabledstates."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/toggle.tsx",
+      "exportName": "toggleVariants",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "variant",
+        "reason": "toggleVariants is een class-variantrecept zonder eigen DOM, bediening of focuslifecycle."
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+      "exportName": "Tooltip",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tooltip"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+      "exportName": "TooltipContent",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tooltip"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+      "exportName": "TooltipProvider",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tooltip"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/tooltip.tsx",
+      "exportName": "TooltipTrigger",
+      "exportKind": "value",
+      "declarationKind": "variable",
+      "via": "named-export",
+      "classification": "state-owner",
+      "classificationContract": {
+        "componentStateIds": ["tooltip"]
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/unsaved-changes-guard.tsx",
+      "exportName": "UnsavedChangesGuard",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "composite",
+      "classificationContract": {
+        "componentStateIds": ["alert-dialog", "button"],
+        "witness": {
+          "routes": ["/customers?create=1"],
+          "contract": "UnsavedChangesGuard presenteert verliesbevestiging uitsluitend via AlertDialog en canonieke acties."
+        }
+      }
+    },
+    {
+      "sourcePath": "artifacts/backoffice/src/components/ui/unsaved-changes-guard.tsx",
+      "exportName": "useUnsavedChangesGuard",
+      "exportKind": "value",
+      "declarationKind": "function",
+      "via": "named-export",
+      "classification": "non-visual",
+      "classificationContract": {
+        "nonVisualKind": "helper",
+        "reason": "useUnsavedChangesGuard is een state-/contexthelper zonder eigen DOM; de consumercomponenten bezitten de zichtbare states."
+      }
+    }
+  ]
+}

@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "name": "Fieldflow Calm whitelabel surface inventory",
+  "sourceAuthority": {
+    "themeResolver": "lib/db/src/tenant-branding.ts#getTenantBranding",
+    "themeCssVariables": "lib/db/src/tenant-branding.ts#getTenantBrandingCssVariables",
+    "rule": "This inventory fixes every user-visible branding surface and its authority. An included surface must consume the effective host/tenant theme and produce immutable runtime evidence; a separate-contract or excluded surface may not be claimed as Fieldflow Calm runtime whitelabel coverage."
+  },
+  "surfaceCount": 11,
+  "surfaces": [
+    {
+      "id": "tenant-backoffice",
+      "scope": "included",
+      "themeSource": "effective-platform-or-entitled-tenant-brand-theme",
+      "inheritance": "server-resolved before first paint; one root token scope also inherited by body-level portals",
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(dashboard)/layout.tsx",
+        "artifacts/backoffice/src/app/layout.tsx",
+        "artifacts/backoffice/src/components/theme/BrandThemeForm.tsx",
+        "lib/db/src/tenant-branding.ts"
+      ],
+      "evidenceTargets": [
+        "desktop-shell",
+        "mobile-shell",
+        "radix-portal",
+        "theme-switch-a-to-b",
+        "broken-logo-fallback"
+      ],
+      "acceptanceIds": ["FFC-BRAND-004", "FFC-BRAND-005", "FFC-BRAND-013"]
+    },
+    {
+      "id": "tenant-auth",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme",
+      "inheritance": "all login, forgot-password, reset-password and profile-setup states resolve the same host identity before first paint",
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/(auth)/layout.tsx",
+        "artifacts/backoffice/src/app/(auth)/login/page.tsx",
+        "artifacts/backoffice/src/app/(auth)/wachtwoord-vergeten/page.tsx",
+        "artifacts/backoffice/src/app/(auth)/reset-wachtwoord/page.tsx",
+        "artifacts/backoffice/src/app/(auth)/profiel-instellen/page.tsx",
+        "lib/db/src/tenant-branding.ts"
+      ],
+      "evidenceTargets": [
+        "login-metadata",
+        "login-form",
+        "forgot-password",
+        "reset-password",
+        "profile-setup"
+      ],
+      "acceptanceIds": ["FFC-BRAND-013", "FFC-BRAND-017"]
+    },
+    {
+      "id": "customer-portal-web",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme",
+      "inheritance": "root, authenticated shell and every auth/onboarding state share resolved metadata, assets, typography and semantic tokens",
+      "sourcePaths": [
+        "artifacts/klant-pwa/src/app/layout.tsx",
+        "artifacts/klant-pwa/src/app/(app)/layout.tsx",
+        "artifacts/klant-pwa/src/app/(auth)/login/page.tsx",
+        "artifacts/klant-pwa/src/app/(auth)/wachtwoord-vergeten/page.tsx",
+        "artifacts/klant-pwa/src/app/(auth)/reset-wachtwoord/page.tsx",
+        "artifacts/klant-pwa/src/app/(onboarding)/wachtwoord-wijzigen/page.tsx"
+      ],
+      "evidenceTargets": [
+        "root-metadata",
+        "authenticated-shell",
+        "auth-flows",
+        "onboarding",
+        "tenant-switch-a-to-b",
+        "font-radius-density-responsive",
+        "brand-asset-edge-responsive",
+        "portal-overlay-responsive"
+      ],
+      "acceptanceIds": [
+        "FFC-BRAND-005",
+        "FFC-BRAND-010",
+        "FFC-BRAND-011",
+        "FFC-BRAND-012",
+        "FFC-BRAND-013",
+        "FFC-BRAND-017"
+      ]
+    },
+    {
+      "id": "personnel-portal-web",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme",
+      "inheritance": "root, authenticated shell and every auth/onboarding state share resolved metadata, assets, typography and semantic tokens",
+      "sourcePaths": [
+        "artifacts/personeel-pwa/src/app/layout.tsx",
+        "artifacts/personeel-pwa/src/app/(app)/layout.tsx",
+        "artifacts/personeel-pwa/src/app/(auth)/login/page.tsx",
+        "artifacts/personeel-pwa/src/app/(auth)/wachtwoord-vergeten/page.tsx",
+        "artifacts/personeel-pwa/src/app/(auth)/reset-wachtwoord/page.tsx",
+        "artifacts/personeel-pwa/src/app/(onboarding)/wachtwoord-wijzigen/page.tsx"
+      ],
+      "evidenceTargets": [
+        "root-metadata",
+        "authenticated-shell",
+        "auth-flows",
+        "onboarding",
+        "tenant-switch-a-to-b",
+        "font-radius-density-responsive",
+        "brand-asset-edge-responsive",
+        "portal-overlay-responsive"
+      ],
+      "acceptanceIds": [
+        "FFC-BRAND-005",
+        "FFC-BRAND-010",
+        "FFC-BRAND-011",
+        "FFC-BRAND-012",
+        "FFC-BRAND-013",
+        "FFC-BRAND-017"
+      ]
+    },
+    {
+      "id": "customer-pwa-install",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme-with-versioned-assets",
+      "inheritance": "manifest, generated icon sizes, maskable safe-area and splash URLs carry an immutable theme revision and reject unowned redirect targets",
+      "sourcePaths": [
+        "artifacts/klant-pwa/src/app/manifest.ts",
+        "artifacts/klant-pwa/src/app/api/pwa/icon/route.ts",
+        "artifacts/klant-pwa/src/app/api/pwa/splash/route.ts",
+        "artifacts/klant-pwa/src/lib/pwa-branding.ts",
+        "artifacts/klant-pwa/public/manifest.json",
+        "artifacts/klant-pwa/public/favicon.svg",
+        "artifacts/klant-pwa/public/sw.js"
+      ],
+      "evidenceTargets": [
+        "manifest-name-and-colors",
+        "icon-192",
+        "icon-512",
+        "maskable-safe-area",
+        "splash",
+        "cache-revision",
+        "asset-mode-inherit-asset-none",
+        "standalone-responsive-offline"
+      ],
+      "acceptanceIds": ["FFC-BRAND-013", "FFC-BRAND-017", "FFC-BRAND-019"]
+    },
+    {
+      "id": "personnel-pwa-install",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme-with-versioned-assets",
+      "inheritance": "manifest, generated icon sizes, maskable safe-area and splash URLs carry an immutable theme revision and reject unowned redirect targets",
+      "sourcePaths": [
+        "artifacts/personeel-pwa/src/app/manifest.ts",
+        "artifacts/personeel-pwa/src/app/api/pwa/icon/route.ts",
+        "artifacts/personeel-pwa/src/app/api/pwa/splash/route.ts",
+        "artifacts/personeel-pwa/src/lib/pwa-branding.ts",
+        "artifacts/personeel-pwa/public/manifest.json",
+        "artifacts/personeel-pwa/public/favicon.ico",
+        "artifacts/personeel-pwa/public/favicon.svg",
+        "artifacts/personeel-pwa/public/icon-192.png",
+        "artifacts/personeel-pwa/public/icon-512.png",
+        "artifacts/personeel-pwa/public/sw.js",
+        "artifacts/personeel-pwa/public/icons/notification-icon.png",
+        "artifacts/personeel-pwa/public/icons/notification-badge.png"
+      ],
+      "evidenceTargets": [
+        "manifest-name-and-colors",
+        "icon-192",
+        "icon-512",
+        "maskable-safe-area",
+        "splash",
+        "push-icon-and-badge",
+        "cache-revision",
+        "asset-mode-inherit-asset-none",
+        "standalone-responsive-offline"
+      ],
+      "acceptanceIds": ["FFC-BRAND-013", "FFC-BRAND-017", "FFC-BRAND-019"]
+    },
+    {
+      "id": "email",
+      "scope": "included",
+      "themeSource": "effective-tenant-brand-theme-at-send-time",
+      "inheritance": "central templates, OTP and queued notifications use one escaped renderer, canonical verified tenant-host links and one resolved sender/attribution policy; historical sent content is immutable",
+      "sourcePaths": [
+        "artifacts/backoffice/src/lib/email.ts",
+        "artifacts/backoffice/src/lib/tenant-application-origin.ts",
+        "artifacts/klant-pwa/src/lib/email.ts",
+        "artifacts/personeel-pwa/src/lib/email.ts",
+        "artifacts/api-server/src/lib/email.ts",
+        "lib/db/src/email-templates.ts",
+        "lib/db/src/email-service.ts",
+        "lib/db/src/email-provider-resolution.ts",
+        "artifacts/api-server/src/lib/notification-worker.ts"
+      ],
+      "evidenceTargets": [
+        "central-template",
+        "tenant-template-override",
+        "otp",
+        "queued-notification",
+        "plain-text-fallback",
+        "provider-attribution",
+        "canonical-host-links"
+      ],
+      "acceptanceIds": ["FFC-BRAND-013", "FFC-BRAND-014", "FFC-BRAND-018"]
+    },
+    {
+      "id": "pdf-and-exports",
+      "scope": "included",
+      "themeSource": "legal-document-profile-or-effective-tenant-brand-theme-per-document-policy",
+      "inheritance": "final invoices retain immutable legal snapshots; quotes and reports snapshot the applicable presentation profile at issuance; owned assets only",
+      "sourcePaths": [
+        "artifacts/backoffice/src/app/actions/invoices.ts",
+        "artifacts/backoffice/src/app/api/invoices/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/api/invoices/batches/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/api/invoices/test-pdf/route.ts",
+        "artifacts/backoffice/src/app/api/quotes/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/api/reports/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/backoffice-api/invoices/batches/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/backoffice-api/invoices/test-pdf/route.ts",
+        "artifacts/backoffice/src/app/backoffice-api/quotes/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/app/backoffice-api/reports/[id]/pdf/route.ts",
+        "artifacts/backoffice/src/lib/invoice-pdf.ts",
+        "artifacts/backoffice/src/lib/pdf-style.ts",
+        "artifacts/backoffice/src/lib/quote-pdf.ts",
+        "artifacts/klant-pwa/src/app/api/factuur/[id]/pdf/route.ts",
+        "artifacts/klant-pwa/src/app/api/offerte/[id]/pdf/route.ts",
+        "artifacts/klant-pwa/src/app/api/verzamelfactuur/[id]/pdf/route.ts",
+        "artifacts/klant-pwa/src/lib/invoice-pdf.ts",
+        "artifacts/klant-pwa/src/lib/pdf-style.ts",
+        "artifacts/klant-pwa/src/lib/quote-pdf.ts"
+      ],
+      "evidenceTargets": [
+        "invoice-legal-snapshot",
+        "quote-snapshot",
+        "report-snapshot",
+        "batch-invoice-snapshot",
+        "test-pdf-preview",
+        "customer-download-parity",
+        "owned-logo-fetch"
+      ],
+      "acceptanceIds": ["FFC-BRAND-013", "FFC-BRAND-014", "FFC-BRAND-018"]
+    },
+    {
+      "id": "public-website",
+      "scope": "separate-contract",
+      "themeSource": "versioned-website-publication-theme-v1",
+      "inheritance": "never silently inherits the backoffice theme; an explicit versioned website inheritance policy is required in the website publication contract",
+      "sourcePaths": [
+        "lib/shared-ui/src/website-renderer.tsx",
+        "lib/website-core/src/publication.ts",
+        "lib/db/src/website-public-runtime.ts",
+        "lib/db/src/website-publication-service.ts",
+        "docs/website-module-data-model.md",
+        "docs/website-module-preview-publication.md",
+        "docs/website-module-runtime.md"
+      ],
+      "evidenceTargets": [
+        "publication-version",
+        "website-theme",
+        "logo-and-favicon-media",
+        "metadata",
+        "contrast"
+      ],
+      "acceptanceIds": ["FFC-BRAND-019"]
+    },
+    {
+      "id": "personnel-capacitor-runtime-chrome",
+      "scope": "included",
+      "themeSource": "effective-host-resolved-brand-theme-with-safe-native-fallback",
+      "inheritance": "the embedded web runtime keeps the personnel portal theme; after tenant resolution the native StatusBar receives a contrast-safe derived color while safe-area and system icon appearance remain legible",
+      "sourcePaths": [
+        "artifacts/personeel-pwa/capacitor.config.ts",
+        "artifacts/personeel-pwa/src/components/CapacitorRuntimeBridge.tsx",
+        "artifacts/personeel-pwa/src/app/layout.tsx",
+        "artifacts/personeel-pwa/src/app/(app)/layout.tsx",
+        "lib/db/src/tenant-branding.ts"
+      ],
+      "evidenceTargets": [
+        "embedded-web-theme",
+        "runtime-status-bar-color",
+        "status-bar-icon-contrast",
+        "safe-area",
+        "cold-start-fallback-before-tenant-resolution"
+      ],
+      "acceptanceIds": ["FFC-BRAND-004", "FFC-BRAND-013", "FFC-BRAND-019"]
+    },
+    {
+      "id": "native-android-build-assets",
+      "scope": "excluded",
+      "themeSource": "compile-time-android-flavor",
+      "inheritance": "launcher name, package, icon, operating-system splash, notification small-icon resource and channel identity are build artifacts and cannot be claimed as runtime tenant whitelabeling; they must use an approved neutral/non-misleading flavor identity",
+      "sourcePaths": [
+        "artifacts/personeel-pwa/android/app/src/main/AndroidManifest.xml",
+        "artifacts/personeel-pwa/capacitor.config.ts",
+        "artifacts/personeel-pwa/android/app/src/main/res/values/styles.xml",
+        "artifacts/personeel-pwa/android/app/src/fieldgrid/res/values/brand_colors.xml",
+        "artifacts/personeel-pwa/android/app/src/veele/res/values/brand_colors.xml",
+        "docs/deployment/capacitor-personeel.md"
+      ],
+      "evidenceTargets": [],
+      "acceptanceIds": ["FFC-BRAND-019"]
+    }
+  ]
+}

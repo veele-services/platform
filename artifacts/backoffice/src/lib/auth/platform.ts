@@ -100,7 +100,7 @@ function getCookieValueFromRequest(
   return null;
 }
 
-function isRequestHostPlatformHost(request: Request): boolean {
+export function isRequestHostPlatformHost(request: Request): boolean {
   return isParsedPlatformHost(readBackofficeRequestHost(request.headers));
 }
 
