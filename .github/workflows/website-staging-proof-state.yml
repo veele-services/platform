@@ -143,6 +143,7 @@ jobs:
           pnpm --filter @workspace/db exec tsx \
             ../../scripts/fieldgrid-website-staging-proof-state.mts --check
           pnpm --filter @workspace/db exec tsx --test \
+            ../../tests/domain/fieldgrid-database-connection-purpose.test.ts \
             ../../tests/domain/fieldgrid-website-custom-health-refresh.test.ts \
             ../../tests/domain/fieldgrid-website-staging-proof-state.test.ts
           node --test tests/security/website-staging-proof-state-source.test.mjs
@@ -181,8 +182,9 @@ jobs:
       - name: Prepare managed proof with migration-admin connection
         if: inputs.operation == 'prepare-managed'
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
           FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
           FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION: ${{ inputs.confirmation }}
         run: |

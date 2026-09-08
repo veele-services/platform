@@ -4,6 +4,7 @@ import {
   CUSTOM_PROOF_HOST,
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
+  managedProofDomainBindingRequired,
   validateWebsiteStagingProofStateConfig,
 } from "../../scripts/fieldgrid-website-staging-proof-state.mts";
 
@@ -21,6 +22,38 @@ function options(
   } as const;
 }
 
+test("managed proof retries an incomplete expected-domain binding and rejects collisions", () => {
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: null,
+      canonicalDomainStatus: null,
+    }),
+    true,
+  );
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: MANAGED_PROOF_HOST,
+      canonicalDomainStatus: "pending",
+    }),
+    true,
+  );
+  assert.equal(
+    managedProofDomainBindingRequired({
+      canonicalHostname: MANAGED_PROOF_HOST,
+      canonicalDomainStatus: "active",
+    }),
+    false,
+  );
+  assert.throws(
+    () =>
+      managedProofDomainBindingRequired({
+        canonicalHostname: "different.staging.fieldgrid.nl",
+        canonicalDomainStatus: "active",
+      }),
+    /different domain/u,
+  );
+});
+
 function baseEnvironment() {
   return {
     APP_ENV: "staging",
@@ -28,6 +61,9 @@ function baseEnvironment() {
     GITHUB_REF_NAME: "main",
     GITHUB_SHA: sha,
     DATABASE_URL: "postgresql://staging.invalid/fieldgrid",
+    FIELDGRID_MIGRATION_DATABASE_URL:
+      "postgresql://migration.staging.invalid/fieldgrid",
+    FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
     WEBSITE_MANAGED_ACCEPTANCE_URL: MANAGED_PROOF_URL,
     WEBSITE_CUSTOM_ACCEPTANCE_URL: `https://${CUSTOM_PROOF_HOST}/`,
     FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: actor,
@@ -65,6 +101,13 @@ test("prepare-managed is exact-main, explicit and independent of custom routing"
     }).join(";"),
     /must run from main/u,
   );
+  assert.match(
+    validateWebsiteStagingProofStateConfig(options("prepare-managed"), {
+      ...baseEnvironment(),
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: undefined,
+    }).join(";"),
+    /migration connection purpose/u,
+  );
 });
 
 test("complete-custom requires an unambiguous route for the exact staging SHA", () => {
@@ -82,6 +125,8 @@ test("complete-custom requires an unambiguous route for the exact staging SHA", 
     GITHUB_REF_NAME: "staging",
     FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION:
       "website-staging-complete-custom",
+    FIELDGRID_MIGRATION_DATABASE_URL: undefined,
+    FIELDGRID_DATABASE_CONNECTION_PURPOSE: undefined,
     FIELDGRID_CUSTOM_ROUTE_KEY: exactRoute.routeKey,
     FIELDGRID_CUSTOM_EXPECTED_HOST: CUSTOM_PROOF_HOST,
     FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: JSON.stringify([exactRoute]),
@@ -100,6 +145,13 @@ test("complete-custom requires an unambiguous route for the exact staging SHA", 
       FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: undefined,
     }).join(";"),
     /automation actor is required/u,
+  );
+  assert.match(
+    validateWebsiteStagingProofStateConfig(options("complete-custom"), {
+      ...environment,
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
+    }).join(";"),
+    /runtime connection purpose/u,
   );
   assert.match(
     validateWebsiteStagingProofStateConfig(options("complete-custom"), {

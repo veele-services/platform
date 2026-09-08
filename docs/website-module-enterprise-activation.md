@@ -63,14 +63,19 @@ active platform owner or admin. The first `prepare-managed` run may omit it; in
 that case the script fails closed unless the database contains exactly one
 active owner/admin, then writes that UUID to the short-lived fixture artifact.
 Set the secret to that exact value before continuing. `prepare-managed` alone
-uses the existing migration-admin `DATABASE_URL` secret. `complete-custom`,
+uses the runtime URL only to validate the distinct project/principal contract,
+then selects the existing migration-admin `DATABASE_URL` secret through the
+step-scoped migration connection purpose. `complete-custom`,
 `verify` and `rollback-custom` use only the least-privilege
 `FIELDGRID_RUNTIME_DATABASE_URL` secret. Every database step installs and
 checks the pinned Supabase Root 2021 CA from
 `FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64` and requires TLS `verify-full`;
 certificate, connection strings and passwords are never uploaded.
 
-Configure the proof URLs and automation-actor secret before `prepare-managed`.
+Configure the proof URLs and runtime-database secret before `prepare-managed`.
+Configure the automation actor before that run when its UUID is already known;
+otherwise set it immediately from the successful short-lived fixture before
+any post-prepare action.
 Configure the website/marketing unit names, ports and health URLs only after the
 first application promotion has completed on the existing four-service gate.
 Enable the recurring custom-health refresher only in the deployment that has
