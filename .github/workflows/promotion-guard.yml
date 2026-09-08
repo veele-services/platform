@@ -21,10 +21,12 @@ env:
 jobs:
   enforce-release-flow:
     name: Enforce release flow
-    runs-on: self-hosted
+    # Pull-request code is untrusted until merged. Keep it away from the
+    # persistent deploy host and its staging filesystem.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -73,7 +75,7 @@ jobs:
         run: corepack enable
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -81,7 +83,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate Fieldgrid release signals
+      # Contract-only checks are appropriate on PRs. Runtime evidence is
+      # enforced by the controlled promotion and pre-activation paths.
+      - name: Validate Fieldgrid release contracts (static)
         run: |
           pnpm fieldgrid:migration-order-check:check
           pnpm fieldgrid:test-layers:check

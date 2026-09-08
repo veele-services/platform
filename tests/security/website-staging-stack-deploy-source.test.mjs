@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
+  readlinkSync,
   readFileSync,
   rmSync,
+  statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,6 +22,77 @@ import {
 } from "../../scripts/fieldgrid-sudo-nopasswd-policy.mjs";
 
 const read = (path) => readFileSync(path, "utf8");
+const envTransactionLibrary = join(
+  process.cwd(),
+  "scripts",
+  "fieldgrid-website-env-transaction.sh",
+);
+
+function environmentTransactionFixture(t, withPreviousRelease) {
+  const root = mkdtempSync(join(tmpdir(), "fieldgrid-website-env-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const base = join(root, "stack");
+  const shared = join(base, "shared");
+  const release = join(base, "releases", "candidate");
+  const candidateDirectory = join(release, ".fieldgrid-candidate-env");
+  const current = join(base, "current");
+  mkdirSync(candidateDirectory, { recursive: true });
+  mkdirSync(shared, { recursive: true });
+  const websiteCandidate = join(candidateDirectory, "website.env");
+  const marketingCandidate = join(candidateDirectory, "marketing.env");
+  writeFileSync(
+    websiteCandidate,
+    "DATABASE_URL=postgresql://candidate-user:candidate-secret@localhost/candidate\n",
+    { mode: 0o600 },
+  );
+  writeFileSync(marketingCandidate, "FORM_TOKEN=candidate-form-secret\n", {
+    mode: 0o600,
+  });
+
+  let previousRelease = "";
+  if (withPreviousRelease) {
+    previousRelease = join(base, "releases", "previous");
+    mkdirSync(previousRelease, { recursive: true });
+    writeFileSync(join(shared, "website.env"), "DATABASE_URL=old-runtime\n", {
+      mode: 0o640,
+    });
+    writeFileSync(join(shared, "marketing.env"), "FORM_TOKEN=old-form\n", {
+      mode: 0o640,
+    });
+    symlinkSync(previousRelease, current);
+  }
+
+  return {
+    base,
+    candidateDirectory,
+    current,
+    previousRelease,
+    release,
+    shared,
+  };
+}
+
+function runEnvironmentTransaction(fixture, script) {
+  return execFileSync(
+    "bash",
+    [
+      "-c",
+      `set -euo pipefail
+source "$FIELDGRID_TEST_TRANSACTION_LIB"
+fieldgrid_env_transaction_init "$FIELDGRID_TEST_BASE" "$FIELDGRID_TEST_RELEASE" test-run ""
+${script}`,
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        FIELDGRID_TEST_BASE: fixture.base,
+        FIELDGRID_TEST_RELEASE: fixture.release,
+        FIELDGRID_TEST_TRANSACTION_LIB: envTransactionLibrary,
+      },
+    },
+  );
+}
 
 test("website stack workflow is manual, exact-ref and staging-only", () => {
   const workflow = read(".github/workflows/website-staging-stack-deploy.yml");
@@ -35,6 +112,46 @@ test("website stack workflow is manual, exact-ref and staging-only", () => {
   assert.doesNotMatch(workflow, /\bgh\s+api\b/u);
   assert.match(workflow, /test "\$remote" = "\$expected"/u);
   assert.doesNotMatch(workflow, /\bpush:|git push|heads\/production/u);
+});
+
+test("website stack installs and persists only the pinned database CA", () => {
+  const workflow = read(".github/workflows/website-staging-stack-deploy.yml");
+
+  assert.match(
+    workflow,
+    /FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64:\s*\$\{\{\s*secrets\.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64\s*\}\}/u,
+  );
+  assert.match(
+    workflow,
+    /--install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64/u,
+  );
+  assert.match(workflow, /DB_SSL:\s*"true"/u);
+  assert.match(workflow, /DB_SSL_REJECT_UNAUTHORIZED:\s*"true"/u);
+  assert.match(workflow, /PGSSLMODE:\s*verify-full/u);
+  assert.match(
+    workflow,
+    /certificate_destination="\$certificate_directory\/supabase-root-2021-ca\.crt"/u,
+  );
+  assert.match(
+    workflow,
+    /mktemp "\$certificate_directory\/\.supabase-root-2021-ca\.XXXXXX"/u,
+  );
+  assert.match(
+    workflow,
+    /install -m 600 "\$FIELDGRID_DATABASE_SSL_ROOT_CERT" "\$certificate_temp"/u,
+  );
+  assert.match(
+    workflow,
+    /mv -f "\$certificate_temp" "\$certificate_destination"/u,
+  );
+  assert.match(
+    workflow,
+    /printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\\n'[\s\S]*"\$certificate_destination" >> "\$GITHUB_ENV"/u,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /(?:echo|printf)[^\n]*FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64[^\n]*\$/u,
+  );
 });
 
 test("website stack bootstrap pins and validates the service Node", () => {
@@ -211,25 +328,46 @@ test("Caddy validation uses the service environment and no repository token", ()
 
 test("deploy script isolates secrets and has explicit rollback", () => {
   const script = read("scripts/fieldgrid-website-staging-stack-deploy.sh");
+  const transaction = read("scripts/fieldgrid-website-env-transaction.sh");
   const websiteEnvironment = script.slice(
     script.indexOf("printf 'APP_ENV=staging"),
-    script.indexOf('} > "$BASE_DIR/shared/website.env"'),
+    script.indexOf('} > "$FIELDGRID_ENV_WEBSITE_CANDIDATE"'),
   );
   const marketingEnvironment = script.slice(
-    script.indexOf('} > "$BASE_DIR/shared/website.env"'),
-    script.indexOf('} > "$BASE_DIR/shared/marketing.env"'),
+    script.indexOf('} > "$FIELDGRID_ENV_WEBSITE_CANDIDATE"'),
+    script.indexOf('} > "$FIELDGRID_ENV_MARKETING_CANDIDATE"'),
   );
 
   assert.match(websiteEnvironment, /DATABASE_URL/u);
+  assert.match(websiteEnvironment, /DB_SSL=%s/u);
+  assert.match(websiteEnvironment, /DB_SSL_REJECT_UNAUTHORIZED=%s/u);
+  assert.match(websiteEnvironment, /PGSSLMODE=%s/u);
+  assert.match(websiteEnvironment, /FIELDGRID_DATABASE_SSL_ROOT_CERT=%s/u);
   assert.match(websiteEnvironment, /NEXT_TELEMETRY_DISABLED/u);
   assert.doesNotMatch(websiteEnvironment, /COREPACK_HOME/u);
   assert.doesNotMatch(marketingEnvironment, /DATABASE_URL/u);
+  assert.doesNotMatch(
+    marketingEnvironment,
+    /DB_SSL|PGSSLMODE|FIELDGRID_DATABASE_SSL_ROOT_CERT/u,
+  );
   assert.match(marketingEnvironment, /NEXT_TELEMETRY_DISABLED/u);
   assert.doesNotMatch(marketingEnvironment, /COREPACK_HOME/u);
   assert.match(script, /COREPACK_HOME_PATH="\$BASE_DIR\/shared\/corepack"/u);
   assert.match(script, /export COREPACK_HOME="\$COREPACK_HOME_PATH"/u);
   assert.match(script, /corepack install --global pnpm@11\.5\.2/u);
   assert.match(script, /SERVICE_NODE_PATH="\/usr\/bin\/node"/u);
+  assert.match(
+    script,
+    /FIELDGRID_DATABASE_SSL_ROOT_CERT" = "\$BASE_DIR\/shared\/supabase-root-2021-ca\.crt"/u,
+  );
+  assert.match(
+    script,
+    /stat -c '%a' "\$FIELDGRID_DATABASE_SSL_ROOT_CERT"\)" = "600"/u,
+  );
+  assert.match(
+    script,
+    /fieldgrid-database-root-cert\.mjs" \\\n+  --check \\\n+  --file "\$FIELDGRID_DATABASE_SSL_ROOT_CERT"/u,
+  );
   assert.match(script, /BUILD_NODE_PATH="\$\(command -v node \|\| true\)"/u);
   assert.match(
     script,
@@ -261,6 +399,36 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   assert.match(script, /trap rollback ERR EXIT/u);
   assert.match(script, /trap - ERR EXIT/u);
   assert.match(script, /release-restored/u);
+  assert.match(script, /fieldgrid_env_transaction_begin/u);
+  assert.match(script, /fieldgrid_env_transaction_restore/u);
+  assert.match(script, /fieldgrid_env_transaction_finalize/u);
+  assert.match(transaction, /chmod 600 "\$backup"/u);
+  assert.match(transaction, /chmod 640 "\$path"/u);
+  assert.match(
+    transaction,
+    /fieldgrid_env_backup_one "\$FIELDGRID_ENV_WEBSITE_TARGET" website/u,
+  );
+  assert.match(
+    transaction,
+    /fieldgrid_env_backup_one "\$FIELDGRID_ENV_MARKETING_TARGET" marketing/u,
+  );
+  assert.ok(
+    script.indexOf("fieldgrid_env_transaction_restore") <
+      script.indexOf(
+        'sudo systemctl restart "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"',
+      ),
+    "both runtime environments must be restored before rollback restart",
+  );
+  assert.ok(
+    script.indexOf("fieldgrid_env_transaction_finalize") >
+      script.indexOf('retry_curl "$MARKETING_PUBLIC_HEALTH_URL"'),
+    "environment backups must survive all public health checks",
+  );
+  assert.ok(
+    script.indexOf("fieldgrid_env_transaction_finalize") >
+      script.indexOf("sudo systemctl reload caddy"),
+    "environment backups must survive Caddy validation and reload",
+  );
   assert.match(script, /require_preprovisioned_asset/u);
   assert.doesNotMatch(script, /SUDOERS_TARGET/u);
   assert.doesNotMatch(
@@ -312,6 +480,99 @@ test("deploy script isolates secrets and has explicit rollback", () => {
   );
   assert.match(script, /productionChanged": false/u);
   assert.doesNotMatch(script, /\/var\/www\/veele\/production/u);
+});
+
+test("website environment transaction commits both candidates together", (t) => {
+  const fixture = environmentTransactionFixture(t, true);
+  const output = runEnvironmentTransaction(
+    fixture,
+    `fieldgrid_env_transaction_begin
+test "$(stat -c '%a' "$FIELDGRID_ENV_TRANSACTION_DIR/website.backup")" = 600
+test "$(stat -c '%a' "$FIELDGRID_ENV_TRANSACTION_DIR/marketing.backup")" = 600
+ln -s "$FIELDGRID_TEST_RELEASE" "$FIELDGRID_TEST_BASE/.current.new"
+mv -Tf "$FIELDGRID_TEST_BASE/.current.new" "$FIELDGRID_TEST_BASE/current"
+fieldgrid_env_transaction_finalize`,
+  );
+
+  assert.equal(readlinkSync(fixture.current), fixture.release);
+  assert.match(
+    readFileSync(join(fixture.shared, "website.env"), "utf8"),
+    /candidate-user/u,
+  );
+  assert.match(
+    readFileSync(join(fixture.shared, "marketing.env"), "utf8"),
+    /candidate-form-secret/u,
+  );
+  assert.equal(
+    statSync(join(fixture.shared, "website.env")).mode & 0o777,
+    0o640,
+  );
+  assert.equal(
+    statSync(join(fixture.shared, "marketing.env")).mode & 0o777,
+    0o640,
+  );
+  assert.equal(
+    existsSync(join(fixture.shared, ".env-transaction-test-run")),
+    false,
+  );
+  assert.equal(existsSync(fixture.candidateDirectory), false);
+  assert.doesNotMatch(output, /candidate-secret|candidate-form-secret/u);
+});
+
+test("website environment transaction restores both old files before release rollback", (t) => {
+  const fixture = environmentTransactionFixture(t, true);
+  const output = runEnvironmentTransaction(
+    fixture,
+    `fieldgrid_env_transaction_begin
+ln -s "$FIELDGRID_TEST_RELEASE" "$FIELDGRID_TEST_BASE/.current.new"
+mv -Tf "$FIELDGRID_TEST_BASE/.current.new" "$FIELDGRID_TEST_BASE/current"
+fieldgrid_env_transaction_restore
+test "$(cat "$FIELDGRID_TEST_BASE/shared/website.env")" = DATABASE_URL=old-runtime
+test "$(cat "$FIELDGRID_TEST_BASE/shared/marketing.env")" = FORM_TOKEN=old-form
+ln -s "$FIELDGRID_TEST_BASE/releases/previous" "$FIELDGRID_TEST_BASE/.current.rollback"
+mv -Tf "$FIELDGRID_TEST_BASE/.current.rollback" "$FIELDGRID_TEST_BASE/current"`,
+  );
+
+  assert.equal(readlinkSync(fixture.current), fixture.previousRelease);
+  assert.equal(
+    readFileSync(join(fixture.shared, "website.env"), "utf8"),
+    "DATABASE_URL=old-runtime\n",
+  );
+  assert.equal(
+    readFileSync(join(fixture.shared, "marketing.env"), "utf8"),
+    "FORM_TOKEN=old-form\n",
+  );
+  assert.equal(
+    statSync(join(fixture.shared, "website.env")).mode & 0o777,
+    0o640,
+  );
+  assert.equal(
+    statSync(join(fixture.shared, "marketing.env")).mode & 0o777,
+    0o640,
+  );
+  assert.doesNotMatch(output, /candidate-secret|candidate-form-secret/u);
+});
+
+test("first website release failure removes both newly published environments", (t) => {
+  const fixture = environmentTransactionFixture(t, false);
+  const output = runEnvironmentTransaction(
+    fixture,
+    `fieldgrid_env_transaction_begin
+test "$(stat -c '%a' "$FIELDGRID_ENV_TRANSACTION_DIR/website.absent")" = 600
+test "$(stat -c '%a' "$FIELDGRID_ENV_TRANSACTION_DIR/marketing.absent")" = 600
+ln -s "$FIELDGRID_TEST_RELEASE" "$FIELDGRID_TEST_BASE/current"
+fieldgrid_env_transaction_restore
+rm -f "$FIELDGRID_TEST_BASE/current"`,
+  );
+
+  assert.equal(existsSync(fixture.current), false);
+  assert.equal(existsSync(join(fixture.shared, "website.env")), false);
+  assert.equal(existsSync(join(fixture.shared, "marketing.env")), false);
+  assert.equal(
+    existsSync(join(fixture.shared, ".env-transaction-test-run")),
+    false,
+  );
+  assert.doesNotMatch(output, /candidate-secret|candidate-form-secret/u);
 });
 
 test("service Node preflight accepts the exact executable and Node 24", (t) => {

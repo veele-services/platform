@@ -849,7 +849,7 @@ const reviewedRawFileDigests = new Map([
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-smoke.ts",
-    "17a1f0a55b266d4c556d",
+    "ddaff83a962faf068c74",
   ],
   [
     "artifacts/backoffice/src/app/actions/platform-tenants.ts",

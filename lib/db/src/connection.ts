@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "./runtime-env";
-import { assertDatabaseEnvironmentIsolation } from "./database-environment";
+import { databaseConnectionConfig } from "./database-environment";
 import * as schema from "./schema";
 
 const { Pool } = pg;
@@ -14,7 +14,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-assertDatabaseEnvironmentIsolation();
+const runtimeDatabaseConnection = databaseConnectionConfig("runtime");
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool(runtimeDatabaseConnection);
 export const db = drizzle(pool, { schema });

@@ -1053,6 +1053,8 @@ function buildStagingPromotionGate(input: {
     evidenceDirectories: [
       "artifacts/staging-smoke",
       "artifacts/migration-smoke",
+      "artifacts/phase2e-staging-preflight",
+      "artifacts/runtime-safety-harness/reports",
       "artifacts/platform-admin-final-gate",
       "artifacts/final-gate",
       "artifacts/staging-promotion-gate",

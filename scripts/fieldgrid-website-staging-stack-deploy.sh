@@ -13,6 +13,7 @@ MARKETING_UNIT_SOURCE="$SYSTEMD_DIR/veele-staging-marketing.service"
 SUDOERS_SOURCE="$REPO_ROOT/ops/sudoers/veele-staging-website-stack"
 SUDO_POLICY_CHECKER="$SCRIPT_DIR/fieldgrid-sudo-nopasswd-policy.mjs"
 SERVICE_NODE_PREFLIGHT="$SCRIPT_DIR/fieldgrid-service-node-preflight.mjs"
+ENV_TRANSACTION_LIB="$SCRIPT_DIR/fieldgrid-website-env-transaction.sh"
 SERVICE_NODE_PATH="/usr/bin/node"
 
 MODE=""
@@ -61,7 +62,8 @@ check_contract() {
     "$CADDY_VALIDATION_UNIT_SOURCE" \
     "$SUDOERS_SOURCE" \
     "$SUDO_POLICY_CHECKER" \
-    "$SERVICE_NODE_PREFLIGHT"; do
+    "$SERVICE_NODE_PREFLIGHT" \
+    "$ENV_TRANSACTION_LIB"; do
     [ -f "$file" ] || fail "required deployment asset is missing: $file"
     if grep -Eiq 'production|eedbf033ec08a12411760acf8ea7f5d5acf8cc20' "$file"; then
       fail "staging deployment asset contains a production marker"
@@ -128,6 +130,11 @@ if [ "$MODE" = "check" ]; then
 fi
 [ "$MODE" = "run" ] || fail "use --check or --run"
 
+# shellcheck source=scripts/fieldgrid-website-env-transaction.sh
+# The sourced library is verified and tested separately.
+# shellcheck disable=SC1091
+source "$ENV_TRANSACTION_LIB"
+
 BUILD_NODE_PATH="$(command -v node || true)"
 [ -n "$BUILD_NODE_PATH" ] ||
   fail "root bootstrap is required: build Node is unavailable"
@@ -149,7 +156,9 @@ for name in APP_ENV TARGET_ENVIRONMENT WEBSITE_SERVICE_NAME WEBSITE_PORT \
   MARKETING_PUBLIC_HEALTH_URL NEXT_PUBLIC_MARKETING_SITE_URL \
   FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON FIELDGRID_CUSTOM_ROUTE_KEY \
   FIELDGRID_CUSTOM_RELEASE_ID FIELDGRID_CUSTOM_EXPECTED_HOST DATABASE_URL \
-  NEXT_PUBLIC_SUPABASE_URL EXPECTED_SUPABASE_PROJECT_REF; do
+  DB_SSL DB_SSL_REJECT_UNAUTHORIZED PGSSLMODE \
+  FIELDGRID_DATABASE_SSL_ROOT_CERT NEXT_PUBLIC_SUPABASE_URL \
+  EXPECTED_SUPABASE_PROJECT_REF; do
   required_value "$name"
 done
 
@@ -164,6 +173,18 @@ done
   fail "MARKETING_SERVICE_NAME does not match the reviewed unit"
 [ "$WEBSITE_PORT" = "3305" ] || fail "WEBSITE_PORT must be 3305"
 [ "$MARKETING_PORT" = "3306" ] || fail "MARKETING_PORT must be 3306"
+[ "$DB_SSL" = "true" ] || fail "DB_SSL must be true"
+[ "$DB_SSL_REJECT_UNAUTHORIZED" = "true" ] ||
+  fail "DB_SSL_REJECT_UNAUTHORIZED must be true"
+[ "$PGSSLMODE" = "verify-full" ] || fail "PGSSLMODE must be verify-full"
+[ "$FIELDGRID_DATABASE_SSL_ROOT_CERT" = "$BASE_DIR/shared/supabase-root-2021-ca.crt" ] ||
+  fail "database root certificate must use the website stack shared path"
+if [ ! -f "$FIELDGRID_DATABASE_SSL_ROOT_CERT" ] ||
+  [ -L "$FIELDGRID_DATABASE_SSL_ROOT_CERT" ]; then
+  fail "database root certificate must be a regular file"
+fi
+[ "$(stat -c '%a' "$FIELDGRID_DATABASE_SSL_ROOT_CERT")" = "600" ] ||
+  fail "database root certificate permissions must be 0600"
 [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]] ||
   fail "--expected-sha must be a full lowercase commit SHA"
 [ "$FIELDGRID_CUSTOM_RELEASE_ID" = "git-commit:$EXPECTED_SHA" ] ||
@@ -173,6 +194,10 @@ if [ -z "$SOURCE_DIR" ] || [ ! -e "$SOURCE_DIR/.git" ]; then
 fi
 [ "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_SHA" ] ||
   fail "source checkout differs from exact staging"
+"$SERVICE_NODE_PATH" "$SOURCE_DIR/scripts/fieldgrid-database-root-cert.mjs" \
+  --check \
+  --file "$FIELDGRID_DATABASE_SSL_ROOT_CERT" ||
+  fail "database root certificate validation failed"
 
 assert_release_marker() {
   local marker="$1"
@@ -244,6 +269,23 @@ RUN_KEY="${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_ATTEMPT:-1}"
 RELEASE="$BASE_DIR/releases/$(date -u +%Y%m%d%H%M%S)-${RUN_KEY}-${EXPECTED_SHA:0:7}"
 PREVIOUS_CURRENT=""
 ACTIVATED="0"
+DEPLOY_COMMITTED="0"
+fieldgrid_env_transaction_init \
+  "$BASE_DIR" \
+  "$RELEASE" \
+  "$RUN_KEY" \
+  "veele-deploy" || fail "runtime environment transaction initialization failed"
+
+if [ -e "$BASE_DIR/current" ] && [ ! -L "$BASE_DIR/current" ]; then
+  fail "existing website stack current path must be a symlink"
+fi
+if [ -L "$BASE_DIR/current" ]; then
+  PREVIOUS_CURRENT="$(readlink "$BASE_DIR/current")"
+  case "$PREVIOUS_CURRENT" in
+    "$BASE_DIR"/releases/*) ;;
+    *) fail "existing website stack release is outside the release directory" ;;
+  esac
+fi
 
 require_preprovisioned_asset() {
   local source="$1"
@@ -333,22 +375,51 @@ JSON
 
 rollback() {
   local code="$?"
+  local environment_status="environment-not-published"
+  local release_status="activation-not-changed"
   trap - ERR EXIT
   set +e
-  rollback_status="not-needed"
-  if [ "$ACTIVATED" = "1" ]; then
-    if [ -n "$PREVIOUS_CURRENT" ]; then
-      ln -s "$PREVIOUS_CURRENT" "$BASE_DIR/.current.rollback.$$"
-      mv -Tf "$BASE_DIR/.current.rollback.$$" "$BASE_DIR/current"
-      sudo systemctl restart "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"
-      rollback_status="${rollback_status}+release-restored"
-    else
-      rm -f "$BASE_DIR/current"
-      sudo systemctl stop "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"
-      rollback_status="${rollback_status}+first-release-removed"
-    fi
+  if [ "$DEPLOY_COMMITTED" = "1" ]; then
+    exit "$code"
   fi
-  write_evidence "failed" "$rollback_status"
+
+  if [ "${FIELDGRID_ENV_TRANSACTION_STARTED:-0}" = "1" ]; then
+    if fieldgrid_env_transaction_restore; then
+      environment_status="environments-restored"
+    else
+      environment_status="environment-restore-failed"
+    fi
+  elif fieldgrid_env_transaction_cleanup_unpublished; then
+    environment_status="environment-candidates-removed"
+  else
+    environment_status="environment-candidate-cleanup-failed"
+  fi
+
+  if [ "$ACTIVATED" = "1" ] && [ "$environment_status" = "environments-restored" ]; then
+    if [ -n "$PREVIOUS_CURRENT" ]; then
+      if ln -s "$PREVIOUS_CURRENT" "$BASE_DIR/.current.rollback.$$" &&
+        mv -Tf "$BASE_DIR/.current.rollback.$$" "$BASE_DIR/current"; then
+        if sudo systemctl restart "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"; then
+          release_status="release-restored"
+        else
+          release_status="release-restored-restart-failed"
+        fi
+      else
+        rm -f "$BASE_DIR/.current.rollback.$$"
+        release_status="release-restore-failed"
+      fi
+    else
+      if rm -f "$BASE_DIR/current" &&
+        sudo systemctl stop "$WEBSITE_SERVICE_NAME" "$MARKETING_SERVICE_NAME"; then
+        release_status="first-release-removed"
+      else
+        release_status="first-release-removal-failed"
+      fi
+    fi
+  elif [ "$ACTIVATED" = "1" ]; then
+    release_status="restart-skipped-unrestored-environment"
+  fi
+  write_evidence "failed" "$environment_status+$release_status"
   exit "$code"
 }
 trap rollback ERR EXIT
@@ -384,6 +455,7 @@ for next_runtime in \
     fail "built Next.js runtime is missing: $next_runtime"
 done
 
+mkdir -m 700 "$FIELDGRID_ENV_CANDIDATE_DIR"
 {
   printf 'APP_ENV=staging\n'
   printf 'TARGET_ENVIRONMENT=staging\n'
@@ -393,10 +465,15 @@ done
   printf 'PORT=3305\n'
   printf 'NEXT_TELEMETRY_DISABLED=1\n'
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+  printf 'DB_SSL=%s\n' "$DB_SSL"
+  printf 'DB_SSL_REJECT_UNAUTHORIZED=%s\n' "$DB_SSL_REJECT_UNAUTHORIZED"
+  printf 'PGSSLMODE=%s\n' "$PGSSLMODE"
+  printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' \
+    "$FIELDGRID_DATABASE_SSL_ROOT_CERT"
   printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
   printf "FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON='%s'\n" \
     "$FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON"
-} > "$BASE_DIR/shared/website.env"
+} > "$FIELDGRID_ENV_WEBSITE_CANDIDATE"
 {
   printf 'APP_ENV=staging\n'
   printf 'NODE_ENV=production\n'
@@ -409,19 +486,18 @@ done
   printf 'FIELDGRID_CUSTOM_RELEASE_ID=%s\n' "$FIELDGRID_CUSTOM_RELEASE_ID"
   printf 'FIELDGRID_CUSTOM_EXPECTED_HOST=%s\n' \
     "$FIELDGRID_CUSTOM_EXPECTED_HOST"
-} > "$BASE_DIR/shared/marketing.env"
-chmod 640 "$BASE_DIR/shared/website.env" "$BASE_DIR/shared/marketing.env"
-chgrp veele-deploy "$BASE_DIR/shared/website.env" "$BASE_DIR/shared/marketing.env"
+} > "$FIELDGRID_ENV_MARKETING_CANDIDATE"
+chmod 600 \
+  "$FIELDGRID_ENV_WEBSITE_CANDIDATE" \
+  "$FIELDGRID_ENV_MARKETING_CANDIDATE"
 chown -R github-runner:veele-deploy "$RELEASE"
 chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
+chmod 600 \
+  "$FIELDGRID_ENV_WEBSITE_CANDIDATE" \
+  "$FIELDGRID_ENV_MARKETING_CANDIDATE"
 
-if [ -L "$BASE_DIR/current" ]; then
-  PREVIOUS_CURRENT="$(readlink "$BASE_DIR/current")"
-  case "$PREVIOUS_CURRENT" in
-    "$BASE_DIR"/releases/*) ;;
-    *) fail "existing website stack release is outside the release directory" ;;
-  esac
-fi
+fieldgrid_env_transaction_begin ||
+  fail "failed to publish the paired website runtime environments"
 ln -s "$RELEASE" "$BASE_DIR/.current.new.$$"
 mv -Tf "$BASE_DIR/.current.new.$$" "$BASE_DIR/current"
 ACTIVATED="1"
@@ -451,6 +527,9 @@ assert_release_marker \
   "$BASE_DIR/current/.fieldgrid-release-sha" \
   "website stack"
 write_evidence "passed" "not-needed"
+fieldgrid_env_transaction_finalize ||
+  fail "failed to finalize the paired website runtime environments"
+DEPLOY_COMMITTED="1"
 trap - ERR EXIT
 
 mapfile -t old_releases < <(

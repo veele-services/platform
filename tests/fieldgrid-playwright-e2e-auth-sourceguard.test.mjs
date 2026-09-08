@@ -770,8 +770,12 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.notEqual(playwrightJobStart, -1);
   assert.ok(requiredJobStart > playwrightJobStart);
   const playwrightJob = source.slice(playwrightJobStart, requiredJobStart);
-  const pnpmSetupIndex = playwrightJob.indexOf("pnpm/action-setup@v4");
-  const nodeSetupIndex = playwrightJob.indexOf("actions/setup-node@v4");
+  const pnpmSetupIndex = playwrightJob.indexOf(
+    "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+  );
+  const nodeSetupIndex = playwrightJob.indexOf(
+    "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+  );
   assert.notEqual(pnpmSetupIndex, -1);
   assert.notEqual(nodeSetupIndex, -1);
   assert.ok(
