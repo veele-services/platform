@@ -1787,6 +1787,7 @@ export async function retryFailedNotifications(options: {
         FROM notification_delivery_queue
         WHERE id = ANY($1::uuid[])
           AND channel IN ('email', 'push')
+          AND attempts < 20
           AND (
             status IN ('failed', 'skipped', 'partial')
             OR (status = 'outcome_pending' AND $3::boolean = true)
@@ -1811,7 +1812,7 @@ export async function retryFailedNotifications(options: {
                 'reviewedAt', now()
               )
             ),
-          max_attempts = GREATEST(q.max_attempts, q.attempts + 1),
+          max_attempts = LEAST(20, GREATEST(q.max_attempts, q.attempts + 1)),
           updated_at = now()
       FROM candidates c
       WHERE q.id = c.id

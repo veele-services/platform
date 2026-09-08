@@ -1306,6 +1306,37 @@ try {
     maxAttempts: 20,
     label: "runtime-payment-reminder-cap-20",
   });
+  await client.query(
+    `update public.notification_delivery_attempts set status='skipped' where id=$1`,
+    [boundary20Reminder.terminalAttemptId],
+  );
+  await client.query(
+    `update public.notification_delivery_queue set status='skipped' where id=$1`,
+    [boundary20Reminder.queue.id],
+  );
+  const exhaustedManualRetry = await callAdminApi(
+    "/api/admin/notification-worker/retry-failed",
+    {
+      queueIds: [boundary20Reminder.queue.id],
+      reason: "Poging twintig blijft bewust terminal en wordt niet heropend.",
+    },
+  );
+  assert.equal(exhaustedManualRetry.reviewed, 1);
+  assert.equal(exhaustedManualRetry.requeued, 0);
+  const exhaustedManualRetryState = await queueState(
+    boundary20Reminder.queue.id,
+  );
+  assert.equal(exhaustedManualRetryState.status, "skipped");
+  assert.equal(exhaustedManualRetryState.attempts, 20);
+  assert.equal(exhaustedManualRetryState.max_attempts, 20);
+  await client.query(
+    `update public.notification_delivery_attempts set status='failed' where id=$1`,
+    [boundary20Reminder.terminalAttemptId],
+  );
+  await client.query(
+    `update public.notification_delivery_queue set status='failed' where id=$1`,
+    [boundary20Reminder.queue.id],
+  );
 
   const skippedReminderInvoice = await createReminderInvoice();
   const skippedReminder = await enqueuePaymentReminder({

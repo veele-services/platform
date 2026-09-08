@@ -157,6 +157,15 @@ test("payment reminders recheck source state and record delivery only on durable
   assert.match(runtime, /runtime-payment-reminder-cap-15/u);
   assert.match(runtime, /runtime-payment-reminder-cap-16/u);
   assert.match(runtime, /runtime-payment-reminder-cap-20/u);
+  assert.match(runtime, /exhaustedManualRetry\.requeued, 0/u);
+  assert.match(
+    worker,
+    /AND attempts < 20[\s\S]*status IN \('failed', 'skipped', 'partial'\)/u,
+  );
+  assert.match(
+    worker,
+    /max_attempts = LEAST\(20, GREATEST\(q\.max_attempts, q\.attempts \+ 1\)\)/u,
+  );
   assert.match(runtime, /externalEligibleInvoices\.rows\[0\]\.count/u);
   assert.match(runtime, /payload->>'invoiceId'=any\(\$2::text\[\]\)/u);
   assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
