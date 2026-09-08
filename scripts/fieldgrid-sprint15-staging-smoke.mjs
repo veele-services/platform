@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,11 +7,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 
-export const SPRINT15_STAGING_SMOKE_VERSION = "sprint-15-staging-smoke-v1";
+export const SPRINT15_STAGING_SMOKE_VERSION = "sprint-15-staging-smoke-v2";
 export const DEFAULT_STAGING_SMOKE_API_URL =
   "https://staging.fieldgrid.nl/api/platform/staging-smoke";
 export const DEFAULT_STAGING_PILOT_TENANT_SLUG = "field-demo";
 export const DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
+export const CANONICAL_STAGING_RELEASE_SHA_MARKER =
+  "/var/www/veele/staging/current/.fieldgrid-release-sha";
 const REQUIRED_LIVE_SMOKE_TARGET_IDS = [
   "FG-LIVE-HOST",
   "FG-LIVE-MODULES",
@@ -20,6 +22,70 @@ const REQUIRED_LIVE_SMOKE_TARGET_IDS = [
   "FG-LIVE-PERSONNEL-PLANNING",
   "FG-LIVE-STORAGE-PDF",
 ];
+const FULL_SHA_PATTERN = /^[0-9a-f]{40}$/u;
+
+export function assertExpectedStagingSha(value) {
+  if (typeof value !== "string" || !FULL_SHA_PATTERN.test(value)) {
+    throw new Error(
+      "A lowercase 40-character --expected-staging SHA is required for a live snapshot.",
+    );
+  }
+  return value;
+}
+
+async function readCanonicalStagingReleaseSha() {
+  try {
+    const value = (
+      await readFile(CANONICAL_STAGING_RELEASE_SHA_MARKER, "utf8")
+    ).trim();
+    return FULL_SHA_PATTERN.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveStagingReleaseIdentity(
+  dashboard,
+  expectedStaging,
+  { readCanonicalMarker = readCanonicalStagingReleaseSha } = {},
+) {
+  assertExpectedStagingSha(expectedStaging);
+  const apiValue = dashboard?.environment?.releaseSha;
+  const apiReleaseSha = FULL_SHA_PATTERN.test(apiValue ?? "") ? apiValue : null;
+  const canonicalMarkerSha = await readCanonicalMarker();
+
+  if (apiValue != null && apiReleaseSha === null) {
+    throw new Error("The staging API returned a malformed release SHA.");
+  }
+  if (
+    apiReleaseSha &&
+    canonicalMarkerSha &&
+    apiReleaseSha !== canonicalMarkerSha
+  ) {
+    throw new Error(
+      "The staging API and canonical release marker disagree on the deployed SHA.",
+    );
+  }
+  const deployedStagingSha = apiReleaseSha ?? canonicalMarkerSha;
+  if (deployedStagingSha !== expectedStaging) {
+    throw new Error(
+      "The deployed staging release SHA differs from the expected staging SHA.",
+    );
+  }
+
+  return {
+    expectedStagingSha: expectedStaging,
+    deployedStagingSha,
+    apiReleaseSha,
+    canonicalMarkerSha,
+    source:
+      apiReleaseSha && canonicalMarkerSha
+        ? "api-and-canonical-marker"
+        : apiReleaseSha
+          ? "api"
+          : "canonical-marker-bootstrap",
+  };
+}
 
 function pilotTenantSlug(env = process.env) {
   return (
@@ -149,6 +215,8 @@ export function parseArgs(argv = process.argv.slice(2)) {
     apiUrl:
       process.env.FIELDGRID_STAGING_SMOKE_API_URL ||
       DEFAULT_STAGING_SMOKE_API_URL,
+    expectedStaging:
+      process.env.FIELDGRID_STAGING_SMOKE_EXPECTED_SHA?.trim() ?? "",
     outDir: join(repoRoot, "artifacts", "staging-smoke"),
   };
 
@@ -170,6 +238,9 @@ export function parseArgs(argv = process.argv.slice(2)) {
         break;
       case "--api-url":
         options.apiUrl = nextValue();
+        break;
+      case "--expected-staging":
+        options.expectedStaging = nextValue();
         break;
       case "--out":
       case "--out-dir":
@@ -315,9 +386,11 @@ export async function runReadOnlySnapshot(
   options = parseArgs([]),
   env = process.env,
 ) {
+  const expectedStaging = assertExpectedStagingSha(options.expectedStaging);
   const headers = authHeaders(env);
   const startedAt = new Date();
-  const response = await fetch(options.apiUrl, { headers });
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const response = await fetchImpl(options.apiUrl, { headers });
   const finishedAt = new Date();
   const body = await response.text();
   let dashboard = null;
@@ -328,6 +401,21 @@ export async function runReadOnlySnapshot(
     dashboard = { error: body.slice(0, 500) };
   }
 
+  let releaseIdentity = null;
+  if (response.ok) {
+    try {
+      releaseIdentity = await resolveStagingReleaseIdentity(
+        dashboard,
+        expectedStaging,
+        options.releaseIdentityDependencies,
+      );
+    } catch {
+      releaseIdentity = null;
+    }
+  }
+  const deployedStagingSha = releaseIdentity?.deployedStagingSha ?? null;
+  const releaseMatches = deployedStagingSha === expectedStaging;
+  const passed = response.ok && releaseMatches;
   const report = {
     version: SPRINT15_STAGING_SMOKE_VERSION,
     createdAt: finishedAt.toISOString(),
@@ -335,13 +423,18 @@ export async function runReadOnlySnapshot(
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
     apiUrl: options.apiUrl,
-    status: response.ok ? "pass" : "fail",
+    expectedStagingSha: expectedStaging,
+    deployedStagingSha,
+    releaseIdentity,
+    status: passed ? "pass" : "fail",
     httpStatus: response.status,
     summary: {
-      status: response.ok ? "pass" : "fail",
-      message: response.ok
-        ? "Read-only staging smoke snapshot opgehaald."
-        : "Read-only staging smoke snapshot faalde.",
+      status: passed ? "pass" : "fail",
+      message: !response.ok
+        ? "Read-only staging smoke snapshot faalde."
+        : releaseMatches
+          ? "Read-only staging smoke snapshot is aan de verwachte staging SHA gebonden."
+          : "De live staging release SHA wijkt af van de verwachte staging SHA.",
     },
     checks: Array.isArray(dashboard?.checks)
       ? dashboard.checks.map((check) => check.id).filter(Boolean)
@@ -359,7 +452,7 @@ export async function runReadOnlySnapshot(
 }
 
 function usage() {
-  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL      Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_COOKIE       Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER       Optional bearer token for the read-only API\n  FIELDGRID_STAGING_PILOT_TENANT_SLUG  Defaults to ${DEFAULT_STAGING_PILOT_TENANT_SLUG}\n  FIELDGRID_MUTATING_SMOKE_CONFIRM     Must be ${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE} before any future mutating runner exists\n`;
+  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only --expected-staging SHA\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL      Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_EXPECTED_SHA Exact currently deployed staging SHA (required for a live snapshot)\n  FIELDGRID_STAGING_SMOKE_COOKIE       Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER       Optional bearer token for the read-only API\n  FIELDGRID_STAGING_PILOT_TENANT_SLUG  Defaults to ${DEFAULT_STAGING_PILOT_TENANT_SLUG}\n  FIELDGRID_MUTATING_SMOKE_CONFIRM     Must be ${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE} before any future mutating runner exists\n`;
 }
 
 function printPlan(plan) {

@@ -6,6 +6,7 @@ import {
   withHostOnlyCookieOptions,
 } from "@/lib/supabase/session-cookies";
 import { requiresBackofficeProfileName } from "@/lib/auth/backoffice-profile";
+import { isStagingSmokeAutomationRequest } from "@/lib/auth/staging-smoke-path";
 import {
   BACKOFFICE_BASE_PATH,
   backofficePath,
@@ -45,7 +46,12 @@ function loginUrlWithNext(request: NextRequest): URL {
 }
 
 function safeBackofficeDestination(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
     return BACKOFFICE_BASE_PATH;
   }
   return backofficePath(value);
@@ -57,7 +63,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const normalizedPathname = stripBackofficeBasePath(pathname);
-  const isLoginPage  = normalizedPathname === "/login";
+  if (isStagingSmokeAutomationRequest(request.method, normalizedPathname)) {
+    // This exact read-only route performs its own platform-admin or timing-safe
+    // automation authentication. No other protected route bypasses middleware.
+    return NextResponse.next({ request });
+  }
+  const isLoginPage = normalizedPathname === "/login";
   const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
   const isProfileSetupPage = normalizedPathname === "/profiel-instellen";
   const isPublicPage =
@@ -72,7 +83,8 @@ export async function middleware(request: NextRequest) {
   }
 
   let supabaseResponse = NextResponse.next({ request });
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
 
   const supabase = createServerClient(url, key, {
     cookieOptions: createSupabaseCookieOptions(host),
@@ -86,7 +98,11 @@ export async function middleware(request: NextRequest) {
         );
         supabaseResponse = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, withHostOnlyCookieOptions(options)),
+          supabaseResponse.cookies.set(
+            name,
+            value,
+            withHostOnlyCookieOptions(options),
+          ),
         );
         Object.entries(responseHeaders).forEach(([header, value]) =>
           supabaseResponse.headers.set(header, value),
@@ -95,16 +111,22 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const authClient = process.env.FIELDGRID_E2E_AUTH_ENABLED === "true"
-    ? createFieldgridE2EAuthClient(supabase, { cookies: request.cookies, headers: request.headers })
-    : supabase;
+  const authClient =
+    process.env.FIELDGRID_E2E_AUTH_ENABLED === "true"
+      ? createFieldgridE2EAuthClient(supabase, {
+          cookies: request.cookies,
+          headers: request.headers,
+        })
+      : supabase;
 
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
   if (user && requiresBackofficeProfileName(user) && !isProfileSetupPage) {
-    return NextResponse.redirect(proxyAwareUrl(backofficePath("/profiel-instellen"), request));
+    return NextResponse.redirect(
+      proxyAwareUrl(backofficePath("/profiel-instellen"), request),
+    );
   }
 
   if (user && !requiresBackofficeProfileName(user) && isProfileSetupPage) {

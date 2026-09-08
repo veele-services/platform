@@ -168,6 +168,7 @@ export type PlatformStagingPromotionGate = {
 export type PlatformStagingSmokeDashboard = {
   generatedAt: string;
   environment: {
+    releaseSha: string | null;
     platformHost: string;
     stagingHost: string;
     pilotTenantSlug: string;
