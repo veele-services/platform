@@ -150,6 +150,14 @@ test("live runtime and migration connections are distinct and TLS verified", () 
       }),
     /principals and secrets must be distinct/u,
   );
+  assert.throws(
+    () =>
+      databaseConnectionConfig("migration", {
+        ...environment,
+        DATABASE_URL: `postgresql://fieldgrid_runtime_app.${productionProject}:runtime-password@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+      }),
+    /does not match/u,
+  );
 });
 
 test("live runtime connections require the exact least-privilege role", () => {

@@ -48,6 +48,8 @@ type ProofEnvironment = Record<string, string | undefined> & {
   GITHUB_SHA?: string;
   FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION?: string;
   FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?: string;
+  FIELDGRID_DATABASE_CONNECTION_PURPOSE?: string;
+  FIELDGRID_MIGRATION_DATABASE_URL?: string;
   FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON?: string;
   FIELDGRID_CUSTOM_ROUTE_KEY?: string;
   FIELDGRID_CUSTOM_EXPECTED_HOST?: string;
@@ -70,6 +72,11 @@ type RuntimeTenant = {
   host: string;
   slug: string;
   planKey: string;
+};
+
+type ManagedProofSiteDomain = {
+  canonicalHostname: string | null;
+  canonicalDomainStatus: string | null;
 };
 
 type ProofEvidence = {
@@ -170,6 +177,18 @@ export function validateWebsiteStagingProofStateConfig(
   }
   if (!environment.DATABASE_URL?.trim())
     errors.push("DATABASE_URL is required");
+  const connectionPurpose =
+    environment.FIELDGRID_DATABASE_CONNECTION_PURPOSE?.trim();
+  if (options.mode === "prepare-managed") {
+    if (connectionPurpose !== "migration") {
+      errors.push("prepare-managed requires the migration connection purpose");
+    }
+    if (!environment.FIELDGRID_MIGRATION_DATABASE_URL?.trim()) {
+      errors.push("prepare-managed requires the migration database URL");
+    }
+  } else if (connectionPurpose && connectionPurpose !== "runtime") {
+    errors.push(`${options.mode} requires the runtime connection purpose`);
+  }
   if (
     !exactHttpsRoot(
       environment.WEBSITE_MANAGED_ACCEPTANCE_URL,
@@ -245,6 +264,8 @@ function safeErrorCode(error: unknown): string {
   if (/actor/iu.test(message)) return "automation_actor_invalid";
   if (/health/iu.test(message)) return "custom_health_invalid";
   if (/public/iu.test(message)) return "public_verification_failed";
+  if (/database|principal|credential|certificate|\btls\b/iu.test(message))
+    return "database_configuration_invalid";
   return "proof_state_failed";
 }
 
@@ -422,6 +443,21 @@ function sectionNeedsUpdate(
   );
 }
 
+export function managedProofDomainBindingRequired(
+  site: ManagedProofSiteDomain,
+): boolean {
+  if (
+    site.canonicalHostname !== null &&
+    site.canonicalHostname !== MANAGED_PROOF_HOST
+  ) {
+    throw new Error("Managed proof website is bound to a different domain");
+  }
+  return (
+    site.canonicalHostname !== MANAGED_PROOF_HOST ||
+    site.canonicalDomainStatus !== "active"
+  );
+}
+
 async function ensureManagedProof(
   dbModule: DatabaseModule,
   actorUserId: string,
@@ -469,17 +505,23 @@ async function ensureManagedProof(
       settings.defaultSeo.title = "Fieldgrid managed website acceptatie";
       settings.defaultSeo.description =
         "Controleerbare staging-publicatie van de beheerde Fieldgrid website-module.";
-      const initialized = await dbModule.initializeManagedWebsite({
+      await dbModule.initializeManagedWebsite({
         tenantId: tenant.tenantId,
         actorUserId,
         templateKey: "trust_conversion",
         settings,
       });
       siteCreated = true;
+      overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+    }
+    if (!overview.site) {
+      throw new Error("Managed proof website initialization is missing");
+    }
+    if (managedProofDomainBindingRequired(overview.site)) {
       await dbModule.bindPrimaryTenantDomainToWebsite({
         tenantId: tenant.tenantId,
-        siteId: initialized.siteId,
-        expectedAuthoringRevision: initialized.authoringRevision,
+        siteId: overview.site.id,
+        expectedAuthoringRevision: overview.site.authoringRevision,
         actorUserId,
         reason: "Staging acceptatie koppelt het beheerde proof-domein.",
       });
@@ -995,10 +1037,8 @@ async function writePrincipalFixtures(
 }
 
 async function run(options: ProofOptions, environment: ProofEnvironment) {
-  const errors = validateWebsiteStagingProofStateConfig(options, environment);
-  if (errors.length > 0) throw new Error(errors.join("\n"));
-  const dbModule = await import("../lib/db/src/index.ts");
   const startedAt = new Date().toISOString();
+  let dbModule: DatabaseModule | null = null;
   const evidence: ProofEvidence = {
     schemaVersion: 1,
     contract: WEBSITE_STAGING_PROOF_STATE_VERSION,
@@ -1022,6 +1062,9 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
     errorCode: null,
   };
   try {
+    const errors = validateWebsiteStagingProofStateConfig(options, environment);
+    if (errors.length > 0) throw new Error(errors.join("\n"));
+    dbModule = await import("../lib/db/src/index.ts");
     const actorUserId = await resolveAutomationActor(
       dbModule.pool,
       environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID,
@@ -1111,11 +1154,14 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
     throw error;
   } finally {
     evidence.completedAt = new Date().toISOString();
-    await writeJson(
-      join(options.evidenceDir, `${options.mode}.json`),
-      evidence,
-    );
-    await dbModule.pool.end();
+    try {
+      await writeJson(
+        join(options.evidenceDir, `${options.mode}.json`),
+        evidence,
+      );
+    } finally {
+      await dbModule?.pool.end();
+    }
   }
 }
 
