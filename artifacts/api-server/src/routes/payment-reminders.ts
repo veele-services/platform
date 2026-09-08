@@ -131,6 +131,10 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       }
 
       const queueItem = await db.transaction(async (tx) => {
+        // The queue's unique cycle key is the concurrency arbiter. Do not hold
+        // an invoice row lock while the upsert acquires the queue lock: worker
+        // finalization locks the queue before updating this invoice, so the
+        // opposite order could deadlock when the cron and worker overlap.
         const [currentInvoice] = await tx
           .select({
             invoiceNumber: invoicesTable.invoiceNumber,
@@ -156,7 +160,6 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
               eq(invoicesTable.status, "sent"),
             ),
           )
-          .for("update")
           .limit(1);
         if (!currentInvoice?.customerEmail) return null;
 

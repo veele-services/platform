@@ -69,8 +69,9 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
   assert.doesNotMatch(source, /customerTenantId/u);
   assert.match(
     source,
-    /eq\(invoicesTable\.id, invoice\.id\)[\s\S]*eq\(invoicesTable\.tenantId, invoiceTenantId\)[\s\S]*\.for\("update"\)/u,
+    /eq\(invoicesTable\.id, invoice\.id\)[\s\S]*eq\(invoicesTable\.tenantId, invoiceTenantId\)/u,
   );
+  assert.doesNotMatch(source, /\.for\("update"\)/u);
   assert.match(
     source,
     /eq\(invoicesTable\.customerId, customersTable\.id\)[\s\S]*eq\(customersTable\.tenantId, invoiceTenantId\)/u,
@@ -110,12 +111,14 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
   );
   assert.doesNotMatch(source, /sendEmailWithResult/u);
   assert.doesNotMatch(source, /\.set\(\{ lastReminderSentAt:/u);
-  assertOrdered(
+  assert.match(
     source,
-    '.for("update")',
-    ".insert(notificationDeliveryQueueTable)",
-    "payment reminder outbox enqueue",
+    /unique cycle key is the concurrency arbiter[\s\S]*opposite order could deadlock/u,
   );
+  const runtime = read("scripts/fieldgrid-notification-worker-runtime.mts");
+  assert.match(runtime, /queueWaitObserved/u);
+  assert.match(runtime, /SET LOCAL lock_timeout = '1s'/u);
+  assert.match(runtime, /lockOrderCronResult\.queued, 0/u);
 });
 
 test("changed best-effort notification IIFEs terminate in an explicit catch", () => {

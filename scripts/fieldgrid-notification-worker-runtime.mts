@@ -154,6 +154,7 @@ async function createReminderInvoice() {
   );
   return {
     id,
+    assignmentId,
     invoiceNumber,
     dueDate: String(result.rows[0].due_date),
   };
@@ -1212,6 +1213,83 @@ try {
   assert.equal(reminderPrerequisites.rows[0].enabled_modules, 2);
   const reminderEmail = String(reminderPrerequisites.rows[0].contact_email);
   originalReminderEmail = reminderEmail;
+
+  const lockOrderInvoice = await createReminderInvoice();
+  const lockOrderQueue = await enqueuePaymentReminder({
+    invoiceId: lockOrderInvoice.id,
+    invoiceNumber: lockOrderInvoice.invoiceNumber,
+    dueDate: lockOrderInvoice.dueDate,
+    recipientEmail: reminderEmail,
+  });
+  const queueBlocker = await connect();
+  const concurrentInvoiceWriter = await connect();
+  let queueLockReleased = false;
+  let lockOrderCron: Promise<AdminApiResponse> | null = null;
+  try {
+    await queueBlocker.query("BEGIN");
+    await queueBlocker.query(
+      `select id from public.notification_delivery_queue where id=$1 for update`,
+      [lockOrderQueue.id],
+    );
+
+    lockOrderCron = callPaymentReminderCron();
+    const waitDeadline = Date.now() + 5_000;
+    let queueWaitObserved = false;
+    while (Date.now() < waitDeadline) {
+      const waits = await client.query(
+        `select count(*)::int as count
+         from pg_stat_activity
+         where datname=current_database()
+           and pid<>pg_backend_pid()
+           and wait_event_type='Lock'
+           and query ilike '%notification_delivery_queue%'`,
+      );
+      if (waits.rows[0].count > 0) {
+        queueWaitObserved = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.equal(
+      queueWaitObserved,
+      true,
+      "De cron moet aantoonbaar op de queue-lock wachten voor de lock-orderproef.",
+    );
+
+    await concurrentInvoiceWriter.query("BEGIN");
+    await concurrentInvoiceWriter.query("SET LOCAL lock_timeout = '1s'");
+    await concurrentInvoiceWriter.query(
+      `update public.invoices set updated_at=updated_at where id=$1 and tenant_id=$2`,
+      [lockOrderInvoice.id, tenantA],
+    );
+    await concurrentInvoiceWriter.query("ROLLBACK");
+
+    await queueBlocker.query("ROLLBACK");
+    queueLockReleased = true;
+    const lockOrderCronResult = await lockOrderCron;
+    assert.equal(lockOrderCronResult.queued, 0);
+    assert.equal(lockOrderCronResult.skipped, 1);
+    await client.query(
+      `delete from public.notification_delivery_queue where id=$1`,
+      [lockOrderQueue.id],
+    );
+    await client.query(`delete from public.invoices where id=$1`, [
+      lockOrderInvoice.id,
+    ]);
+    await client.query(`delete from public.assignments where id=$1`, [
+      lockOrderInvoice.assignmentId,
+    ]);
+  } finally {
+    if (!queueLockReleased) {
+      await queueBlocker.query("ROLLBACK").catch(() => {});
+    }
+    await concurrentInvoiceWriter.query("ROLLBACK").catch(() => {});
+    await queueBlocker.end();
+    await concurrentInvoiceWriter.end();
+    if (!queueLockReleased && lockOrderCron) {
+      await lockOrderCron.catch(() => {});
+    }
+  }
 
   const sentReminderInvoice = await createReminderInvoice();
   const sentReminder = await enqueuePaymentReminder({
