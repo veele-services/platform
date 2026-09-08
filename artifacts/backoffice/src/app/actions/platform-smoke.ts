@@ -54,6 +54,20 @@ const STAGING_MUTATING_SMOKE_CONFIRM_VALUE =
   process.env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() ||
   DEFAULT_STAGING_MUTATING_SMOKE_CONFIRM_VALUE;
 const STAGING_MUTATING_SMOKE_CONFIRM = `FIELDGRID_MUTATING_SMOKE_CONFIRM=${STAGING_MUTATING_SMOKE_CONFIRM_VALUE}`;
+const RELEASE_SHA_PATTERN = /^[0-9a-f]{40}$/u;
+
+async function readDeployedReleaseSha(): Promise<string | null> {
+  try {
+    const value = (
+      await readFile(join(process.cwd(), ".fieldgrid-release-sha"), "utf8")
+    ).trim();
+    return RELEASE_SHA_PATTERN.test(value) ? value : null;
+  } catch {
+    // The API exposes only a validated commit identity, never marker paths or
+    // filesystem errors. A missing/invalid marker is fail-closed downstream.
+    return null;
+  }
+}
 
 function makeCheck(input: PlatformSmokeCheck): PlatformSmokeCheck {
   return input;
@@ -1059,42 +1073,44 @@ function buildStagingPromotionGate(input: {
 }
 
 export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
-  const [snapshot] = await db
-    .select({
-      tenants: sql<number>`(SELECT count(*) FROM ${tenantsTable})::int`,
-      activeTenants: sql<number>`(SELECT count(*) FROM ${tenantsTable} WHERE status IN ('trial', 'active') AND is_active = true)::int`,
-      pilotTenants: sql<number>`(
+  const [deployedReleaseSha, [snapshot]] = await Promise.all([
+    readDeployedReleaseSha(),
+    db
+      .select({
+        tenants: sql<number>`(SELECT count(*) FROM ${tenantsTable})::int`,
+        activeTenants: sql<number>`(SELECT count(*) FROM ${tenantsTable} WHERE status IN ('trial', 'active') AND is_active = true)::int`,
+        pilotTenants: sql<number>`(
         SELECT count(*)
         FROM ${tenantsTable}
         WHERE slug = ${STAGING_PILOT_TENANT_SLUG}
           AND status IN ('trial', 'active')
           AND is_active = true
       )::int`,
-      tenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved')::int`,
-      verifiedTenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved' AND verification_status = 'verified')::int`,
-      activeTenantUsers: sql<number>`(SELECT count(*) FROM ${tenantUsersTable} WHERE status = 'active')::int`,
-      activePlatformUsers: sql<number>`(SELECT count(*) FROM ${platformUsersTable} WHERE status = 'active')::int`,
-      moduleCatalog: sql<number>`(SELECT count(*) FROM ${modulesTable})::int`,
-      tenantsWithEnabledModules: sql<number>`(SELECT count(DISTINCT tenant_id) FROM ${tenantModulesTable} WHERE is_enabled = true)::int`,
-      enabledTenantModules: sql<number>`(SELECT count(*) FROM ${tenantModulesTable} WHERE is_enabled = true)::int`,
-      tenantSectors: sql<number>`(SELECT count(*) FROM ${tenantSectorsTable} WHERE is_enabled = true)::int`,
-      tenantSectorSettings: sql<number>`(SELECT count(*) FROM ${tenantSectorSettingsTable})::int`,
-      tenantRegions: sql<number>`(SELECT count(*) FROM ${tenantRegionsTable} WHERE is_active = true)::int`,
-      documents: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL)::int`,
-      tenantPrefixedDocuments: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path LIKE 'tenant/%')::int`,
-      legacyDocumentPaths: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path NOT LIKE 'tenant/%')::int`,
-      reports: sql<number>`(SELECT count(*) FROM ${reportsTable} WHERE tenant_id IS NOT NULL)::int`,
-      quotes: sql<number>`(SELECT count(*) FROM ${quotesTable} WHERE tenant_id IS NOT NULL)::int`,
-      invoices: sql<number>`(SELECT count(*) FROM ${invoicesTable} WHERE tenant_id IS NOT NULL)::int`,
-      activeSupportGrants: sql<number>`(
+        tenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved')::int`,
+        verifiedTenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved' AND verification_status = 'verified')::int`,
+        activeTenantUsers: sql<number>`(SELECT count(*) FROM ${tenantUsersTable} WHERE status = 'active')::int`,
+        activePlatformUsers: sql<number>`(SELECT count(*) FROM ${platformUsersTable} WHERE status = 'active')::int`,
+        moduleCatalog: sql<number>`(SELECT count(*) FROM ${modulesTable})::int`,
+        tenantsWithEnabledModules: sql<number>`(SELECT count(DISTINCT tenant_id) FROM ${tenantModulesTable} WHERE is_enabled = true)::int`,
+        enabledTenantModules: sql<number>`(SELECT count(*) FROM ${tenantModulesTable} WHERE is_enabled = true)::int`,
+        tenantSectors: sql<number>`(SELECT count(*) FROM ${tenantSectorsTable} WHERE is_enabled = true)::int`,
+        tenantSectorSettings: sql<number>`(SELECT count(*) FROM ${tenantSectorSettingsTable})::int`,
+        tenantRegions: sql<number>`(SELECT count(*) FROM ${tenantRegionsTable} WHERE is_active = true)::int`,
+        documents: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL)::int`,
+        tenantPrefixedDocuments: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path LIKE 'tenant/%')::int`,
+        legacyDocumentPaths: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path NOT LIKE 'tenant/%')::int`,
+        reports: sql<number>`(SELECT count(*) FROM ${reportsTable} WHERE tenant_id IS NOT NULL)::int`,
+        quotes: sql<number>`(SELECT count(*) FROM ${quotesTable} WHERE tenant_id IS NOT NULL)::int`,
+        invoices: sql<number>`(SELECT count(*) FROM ${invoicesTable} WHERE tenant_id IS NOT NULL)::int`,
+        activeSupportGrants: sql<number>`(
         SELECT count(*) FROM ${supportAccessGrantsTable}
         WHERE revoked_at IS NULL
           AND starts_at <= now()
           AND expires_at > now()
       )::int`,
-      supportAuditEvents: sql<number>`(SELECT count(*) FROM ${supportAccessAuditLogTable})::int`,
-      auditEvents: sql<number>`(SELECT count(*) FROM ${auditLogTable})::int`,
-      downloadAuditEvents: sql<number>`(
+        supportAuditEvents: sql<number>`(SELECT count(*) FROM ${supportAccessAuditLogTable})::int`,
+        auditEvents: sql<number>`(SELECT count(*) FROM ${auditLogTable})::int`,
+        downloadAuditEvents: sql<number>`(
         (SELECT count(*) FROM ${auditLogTable}
           WHERE lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%download%'
              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
@@ -1104,16 +1120,17 @@ export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStag
              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%signed%')
       )::int`,
-      migrationHistoryTables: sql<number>`(
+        migrationHistoryTables: sql<number>`(
         SELECT count(*)
         FROM pg_catalog.pg_class c
         INNER JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'drizzle'
           AND c.relname IN ('__drizzle_migrations', 'veele_sql_migrations')
       )::int`,
-    })
-    .from(tenantsTable)
-    .limit(1);
+      })
+      .from(tenantsTable)
+      .limit(1),
+  ]);
 
   const totals = {
     tenants: countValue(snapshot?.tenants),
@@ -1332,6 +1349,7 @@ export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStag
   return {
     generatedAt,
     environment: {
+      releaseSha: deployedReleaseSha,
       platformHost,
       stagingHost,
       pilotTenantSlug: STAGING_PILOT_TENANT_SLUG,
