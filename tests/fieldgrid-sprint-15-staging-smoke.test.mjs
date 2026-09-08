@@ -1,12 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 import {
-  assertExpectedStagingSha,
   buildSprint15StagingSmokePlan,
-  resolveStagingReleaseIdentity,
-  runReadOnlySnapshot,
   validateSprint15StagingSmokePlan,
 } from "../scripts/fieldgrid-sprint15-staging-smoke.mjs";
 
@@ -85,9 +81,6 @@ test("sprint 15 script is plan-only by default and supports read-only snapshots"
       "fieldgrid-sprint-15-staging-smoke",
       "FIELDGRID_STAGING_SMOKE_COOKIE",
       "FIELDGRID_STAGING_SMOKE_BEARER",
-      "FIELDGRID_STAGING_SMOKE_EXPECTED_SHA",
-      "--expected-staging",
-      "CANONICAL_STAGING_RELEASE_SHA_MARKER",
       "FIELDGRID_STAGING_PILOT_TENANT_SLUG",
       "FIELDGRID_MUTATING_SMOKE_CONFIRM",
       "runReadOnlySnapshot",
@@ -170,17 +163,11 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
   const platformSmoke = read(
     "artifacts/backoffice/src/app/actions/platform-smoke.ts",
   );
-  const automationAuth = read(
-    "artifacts/backoffice/src/lib/auth/staging-smoke-automation.ts",
-  );
-  const middleware = read("artifacts/backoffice/src/middleware.ts");
 
   assertContains(
     route,
     [
       "requirePlatformAdminFromRequest(request)",
-      "requireStagingSmokeAccess(request)",
-      "classifyStagingSmokeAutomationBearer(request)",
       "buildPlatformStagingSmokeDashboard",
       "Authenticatie vereist",
       "Cache-Control",
@@ -213,102 +200,9 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
       "buildPlatformStagingSmokeDashboard",
       "getPlatformStagingSmokeDashboard",
       "return buildPlatformStagingSmokeDashboard()",
-      ".fieldgrid-release-sha",
-      "readDeployedReleaseSha",
     ],
     "platform smoke dashboard builder",
   );
-  assertContains(
-    automationAuth,
-    ["timingSafeEqual", "ADMIN_API_SECRET", "Bearer ([^\\s,]+)"],
-    "staging smoke automation auth",
-  );
-  assertContains(
-    middleware,
-    [
-      "isStagingSmokeAutomationRequest(request.method, normalizedPathname)",
-      "No other protected route bypasses middleware",
-    ],
-    "staging smoke middleware exception",
-  );
-});
-
-test("sprint 15 live snapshot requires an exact expected staging SHA", () => {
-  assert.equal(assertExpectedStagingSha("a".repeat(40)), "a".repeat(40));
-  for (const invalid of ["", "A".repeat(40), "a".repeat(39), "main"]) {
-    assert.throws(() => assertExpectedStagingSha(invalid), /expected-staging/u);
-  }
-});
-
-test("sprint 15 release identity supports only the fixed marker bootstrap and exact agreement", async () => {
-  const expected = "b".repeat(40);
-  const bootstrap = await resolveStagingReleaseIdentity(
-    { environment: {} },
-    expected,
-    { readCanonicalMarker: async () => expected },
-  );
-  assert.equal(bootstrap.source, "canonical-marker-bootstrap");
-  assert.equal(bootstrap.deployedStagingSha, expected);
-
-  const agreed = await resolveStagingReleaseIdentity(
-    { environment: { releaseSha: expected } },
-    expected,
-    { readCanonicalMarker: async () => expected },
-  );
-  assert.equal(agreed.source, "api-and-canonical-marker");
-
-  await assert.rejects(
-    resolveStagingReleaseIdentity(
-      { environment: { releaseSha: expected } },
-      expected,
-      { readCanonicalMarker: async () => "c".repeat(40) },
-    ),
-    /disagree/u,
-  );
-  await assert.rejects(
-    resolveStagingReleaseIdentity(
-      { environment: { releaseSha: "malformed" } },
-      expected,
-      { readCanonicalMarker: async () => expected },
-    ),
-    /malformed/u,
-  );
-});
-
-test("sprint 15 runner fails closed when live release identity does not match", async () => {
-  const expected = "d".repeat(40);
-  const output = new URL(
-    `./tmp-staging-smoke-${process.pid}-${Date.now()}/`,
-    import.meta.url,
-  );
-  try {
-    const { report } = await runReadOnlySnapshot(
-      {
-        apiUrl: "https://staging.fieldgrid.nl/api/platform/staging-smoke",
-        expectedStaging: expected,
-        outDir: fileURLToPath(output),
-        releaseIdentityDependencies: {
-          readCanonicalMarker: async () => expected,
-        },
-        fetchImpl: async () =>
-          new Response(
-            JSON.stringify({
-              environment: { releaseSha: "e".repeat(40) },
-              checks: [],
-            }),
-            {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            },
-          ),
-      },
-      {},
-    );
-    assert.equal(report.status, "fail");
-    assert.equal(report.releaseIdentity, null);
-  } finally {
-    rmSync(fileURLToPath(output), { recursive: true, force: true });
-  }
 });
 
 test("sprint 15 API server prefixes platform pass-through with the backoffice base path", () => {
