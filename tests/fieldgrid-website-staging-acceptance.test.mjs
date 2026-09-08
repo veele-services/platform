@@ -13,7 +13,7 @@ const validInput = {
   websiteHealthUrl: "https://website.staging.fieldgrid.nl/healthz",
   marketingHealthUrl:
     "https://veeleservices-origin.staging.fieldgrid.nl/healthz",
-  managedUrl: "https://managed-proof.staging.fieldgrid.nl/",
+  managedUrl: "https://managed-proof-w00-v2.staging.fieldgrid.nl/",
   customUrl: "https://veeleservices.staging.fieldgrid.nl/",
 };
 const validEnvironment = {
@@ -31,9 +31,11 @@ test("website staging acceptance requires exact staging-only inputs", () => {
     [],
   );
   assert.equal(
-    safeStagingUrl("https://managed-proof.staging.fieldgrid.nl/", "managed")
-      .hostname,
-    "managed-proof.staging.fieldgrid.nl",
+    safeStagingUrl(
+      "https://managed-proof-w00-v2.staging.fieldgrid.nl/",
+      "managed",
+    ).hostname,
+    "managed-proof-w00-v2.staging.fieldgrid.nl",
   );
 });
 
