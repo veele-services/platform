@@ -33,6 +33,21 @@ minimumReleaseAgeExclude:
   # this setting guards against does not apply to our own packages.
   - "@replit/*"
   - stripe-replit-sync
+  # Time-bounded emergency exceptions for the 2026-09-08 security releases.
+  # Keep these version-specific and remove them after 2026-09-09T21:00:00Z.
+  - next@15.5.24
+  - eslint-config-next@15.5.24
+  - "@next/env@15.5.24"
+  - "@next/eslint-plugin-next@15.5.24"
+  - "@next/swc-darwin-arm64@15.5.24"
+  - "@next/swc-darwin-x64@15.5.24"
+  - "@next/swc-linux-arm64-gnu@15.5.24"
+  - "@next/swc-linux-arm64-musl@15.5.24"
+  - "@next/swc-linux-x64-gnu@15.5.24"
+  - "@next/swc-linux-x64-musl@15.5.24"
+  - "@next/swc-win32-arm64-msvc@15.5.24"
+  - "@next/swc-win32-x64-msvc@15.5.24"
+  - "@xmldom/xmldom@0.9.12"
 
 packages:
   - artifacts/*
@@ -79,6 +94,7 @@ allowBuilds:
 overrides:
   # Finding 8: constrain vulnerable transitive ranges to their first compatible
   # release that closes known advisories in the locked graph.
+  "@xmldom/xmldom": "0.9.12"
   "body-parser@2.2.2": "2.3.0"
   "brace-expansion@1.1.16": "1.1.18"
   "brace-expansion@2.1.2": "2.1.4"
