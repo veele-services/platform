@@ -79,6 +79,7 @@ allowBuilds:
 overrides:
   # Finding 8: constrain vulnerable transitive ranges to their first compatible
   # release that closes known advisories in the locked graph.
+  "@xmldom/xmldom": "0.9.12"
   "body-parser@2.2.2": "2.3.0"
   "brace-expansion@1.1.16": "1.1.18"
   "brace-expansion@2.1.2": "2.1.4"
@@ -86,11 +87,12 @@ overrides:
   "browserslist@4.28.2": "4.28.7"
   "dompurify@3.4.7": "3.4.13"
   "fast-uri@3.1.2": "3.1.6"
-  "js-yaml@4.1.1": "4.3.1"
-  "js-yaml@4.3.0": "4.3.1"
+  "js-yaml@4.1.1": "4.3.2"
+  "js-yaml@4.3.0": "4.3.2"
+  "js-yaml@4.3.1": "4.3.2"
   "linkify-it@5.0.0": "5.0.2"
   "nanoid@3.3.12": "3.3.18"
-  "next>sharp": "0.35.0"
+  "next>sharp": "0.35.4"
   "postcss@8.4.31": "8.5.26"
   "postcss@8.5.14": "8.5.26"
   "qs@6.15.1": "6.16.0"
