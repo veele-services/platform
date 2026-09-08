@@ -69,10 +69,8 @@ async function validateLiveAuthSubject(token: VerifiedAccessToken): Promise<bool
   const [subject] = rowsFrom<{
     raw_app_meta_data: Record<string, unknown> | null;
   }>(await db.execute(sql`
-    SELECT raw_app_meta_data
-    FROM auth.users
-    WHERE id = ${token.sub}::uuid
-    LIMIT 1
+    SELECT auth_subject.raw_app_meta_data
+    FROM app_private.fieldgrid_auth_user_snapshot(${token.sub}::uuid) auth_subject
   `));
   if (!subject) return false;
 

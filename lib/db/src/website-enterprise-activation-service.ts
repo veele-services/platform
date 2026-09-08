@@ -1,6 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lookup } from "node:dns/promises";
-import { request as httpsRequest } from "node:https";
 import type { PoolClient } from "pg";
 import { z } from "zod/v4";
 import {
@@ -8,7 +6,6 @@ import {
   FIELDGRID_CUSTOM_WEBSITE_ROUTE_REGISTRY,
   WEBSITE_PUBLICATION_SCHEMA_VERSION,
   customWebsiteHealthEvidenceMatches,
-  customWebsiteOriginAddressesArePublic,
   evaluateWebsiteActivationPreflight,
   serializeWebsitePublication,
   websiteActivationCommandSchema,
@@ -24,6 +21,7 @@ import {
 } from "@workspace/website-core";
 import { pool } from "./connection";
 import { configuredFieldgridCustomWebsiteRouteRegistry } from "./website-public-runtime";
+import { requestCustomWebsiteHealthEvidence } from "./website-custom-health";
 
 const uuidSchema = z.string().uuid();
 const actorSchema = z.string().uuid();
@@ -588,85 +586,6 @@ export async function registerPlatformWebsiteDeployment(
   });
 }
 
-async function requestHealthEvidence(
-  registration: Extract<
-    ReturnType<CustomWebsiteRouteRegistry["resolve"]>,
-    { status: "routable" }
-  >,
-  identity: CustomWebsiteRouteIdentity,
-): Promise<CustomWebsiteHealthEvidence> {
-  if (!registration) throw new Error("Custom website route is not routable");
-  const origin = new URL(registration.upstreamOrigin);
-  const addresses = await lookup(origin.hostname, {
-    all: true,
-    verbatim: true,
-  });
-  const addressValues = addresses.map((address) => address.address);
-  if (!customWebsiteOriginAddressesArePublic(addressValues)) {
-    throw new Error("Custom website route resolved to a non-public address");
-  }
-  const selected = addresses[0]!;
-  const path = new URL(identity.healthPath, `${origin.origin}/`);
-
-  const raw = await new Promise<string>((resolvePromise, rejectPromise) => {
-    const request = httpsRequest(
-      {
-        protocol: "https:",
-        hostname: origin.hostname,
-        port: 443,
-        method: "GET",
-        path: `${path.pathname}${path.search}`,
-        servername: origin.hostname,
-        rejectUnauthorized: true,
-        headers: {
-          Accept: "application/json",
-          Host: origin.hostname,
-          "User-Agent": "Fieldgrid-Website-Health/1",
-        },
-        lookup(_hostname, _options, callback) {
-          callback(null, selected.address, selected.family);
-        },
-      },
-      (response) => {
-        if (response.statusCode !== 200) {
-          response.resume();
-          rejectPromise(
-            new Error("Custom website health endpoint did not return HTTP 200"),
-          );
-          return;
-        }
-        let body = "";
-        response.setEncoding("utf8");
-        response.on("data", (chunk: string) => {
-          body += chunk;
-          if (body.length > 32_768) {
-            request.destroy(
-              new Error("Custom website health response is too large"),
-            );
-          }
-        });
-        response.on("end", () => resolvePromise(body));
-      },
-    );
-    request.setTimeout(8_000, () =>
-      request.destroy(new Error("Custom website health request timed out")),
-    );
-    request.on("error", rejectPromise);
-    request.end();
-  });
-
-  let evidence: unknown;
-  try {
-    evidence = JSON.parse(raw);
-  } catch {
-    throw new Error("Custom website health endpoint returned invalid JSON");
-  }
-  if (!customWebsiteHealthEvidenceMatches(evidence, identity)) {
-    throw new Error("Custom website health evidence does not match deployment");
-  }
-  return evidence;
-}
-
 export async function checkPlatformWebsiteDeploymentHealth(
   rawInput: z.input<typeof deploymentCommandSchema>,
 ): Promise<{ checkedAt: string; status: "healthy" }> {
@@ -688,7 +607,10 @@ export async function checkPlatformWebsiteDeploymentHealth(
     if (!registration || registration.status !== "routable") {
       throw new Error("Custom website route is not routable");
     }
-    const evidence = await requestHealthEvidence(registration, identity);
+    const evidence = await requestCustomWebsiteHealthEvidence(
+      registration,
+      identity,
+    );
     const checkedAt = new Date();
     await inTransaction(async (client) => {
       const current = await loadDeployment(
@@ -707,7 +629,11 @@ export async function checkPlatformWebsiteDeploymentHealth(
         `UPDATE public.website_custom_deployments
          SET last_checked_at = $4,
              last_health = $5::jsonb,
-             status = CASE WHEN approved_at IS NULL THEN 'draft' ELSE 'ready' END,
+             status = CASE
+               WHEN status = 'active' THEN 'active'
+               WHEN approved_at IS NULL THEN 'draft'
+               ELSE 'ready'
+             END,
              updated_at = now()
          WHERE tenant_id = $1 AND site_id = $2 AND id = $3`,
         [

@@ -1,0 +1,1160 @@
+#!/usr/bin/env node
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+export const WEBSITE_STAGING_PROOF_STATE_VERSION =
+  "fieldgrid-website-staging-proof-state-v1";
+export const WEBSITE_STAGING_PROOF_MARKER =
+  "FIELDGRID_WEBSITE_STAGING_PROOF_V1";
+export const MANAGED_PROOF_HOST = "managed-proof.staging.fieldgrid.nl";
+export const MANAGED_PROOF_URL = `https://${MANAGED_PROOF_HOST}/`;
+export const MANAGED_PROOF_SLUG = "managed-proof";
+export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
+export const CUSTOM_PROOF_HOST = "veeleservices.staging.fieldgrid.nl";
+export const CUSTOM_PROOF_URL = `https://${CUSTOM_PROOF_HOST}/`;
+
+const PROVIDER_KEY = "fieldgrid_vps";
+const HEALTH_PATH = "/api/health";
+const REQUEST_TIMEOUT_MS = 10_000;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+const CORE_STAGING_BASE_DIR = "/var/www/veele/staging";
+const WEBSITE_STACK_STAGING_BASE_DIR = "/var/www/veele/website-stack-staging";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+const CHANGE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/# -]{2,159}$/u;
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+type ProofMode =
+  | "check"
+  | "prepare-managed"
+  | "complete-custom"
+  | "verify"
+  | "rollback-custom";
+
+type ProofOptions = {
+  mode: ProofMode;
+  expectedSha: string;
+  changeReference: string;
+  evidenceDir: string;
+};
+
+type ProofEnvironment = Record<string, string | undefined> & {
+  APP_ENV?: string;
+  TARGET_ENVIRONMENT?: string;
+  GITHUB_REF_NAME?: string;
+  GITHUB_SHA?: string;
+  FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION?: string;
+  FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?: string;
+  FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON?: string;
+  FIELDGRID_CUSTOM_ROUTE_KEY?: string;
+  FIELDGRID_CUSTOM_EXPECTED_HOST?: string;
+  WEBSITE_MANAGED_ACCEPTANCE_URL?: string;
+  WEBSITE_CUSTOM_ACCEPTANCE_URL?: string;
+  DATABASE_URL?: string;
+};
+
+type Queryable = {
+  query<T extends Record<string, unknown> = Record<string, unknown>>(
+    text: string,
+    values?: unknown[],
+  ): Promise<{ rows: T[]; rowCount: number | null }>;
+};
+
+type DatabaseModule = typeof import("../lib/db/src/index.ts");
+
+type RuntimeTenant = {
+  tenantId: string;
+  host: string;
+  slug: string;
+  planKey: string;
+};
+
+type ProofEvidence = {
+  schemaVersion: 1;
+  contract: typeof WEBSITE_STAGING_PROOF_STATE_VERSION;
+  environment: "staging";
+  mode: Exclude<ProofMode, "check">;
+  expectedSha: string;
+  status: "passed" | "failed";
+  startedAt: string;
+  completedAt: string;
+  managed: {
+    host: typeof MANAGED_PROOF_HOST;
+    deliveryMode: "managed_cms" | null;
+    active: boolean;
+  };
+  custom: {
+    host: typeof CUSTOM_PROOF_HOST;
+    releaseId: string | null;
+    deliveryMode: "custom_nextjs" | null;
+    active: boolean;
+  };
+  errorCode: string | null;
+};
+
+function parseArgs(argv: string[]): ProofOptions {
+  const options: ProofOptions = {
+    mode: "check",
+    expectedSha: "",
+    changeReference: "",
+    evidenceDir: join(repoRoot, "artifacts", "website-staging-proof-state"),
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--check") options.mode = "check";
+    else if (argument === "--prepare-managed") options.mode = "prepare-managed";
+    else if (argument === "--complete-custom") options.mode = "complete-custom";
+    else if (argument === "--verify") options.mode = "verify";
+    else if (argument === "--rollback-custom") options.mode = "rollback-custom";
+    else if (argument === "--expected-sha")
+      options.expectedSha = argv[++index] ?? "";
+    else if (argument === "--change-reference")
+      options.changeReference = argv[++index] ?? "";
+    else if (argument === "--evidence-dir")
+      options.evidenceDir = resolve(argv[++index] ?? "");
+    else throw new Error(`Unknown argument: ${argument}`);
+  }
+  return options;
+}
+
+function expectedConfirmation(mode: ProofMode): string | null {
+  if (mode === "prepare-managed") return "website-staging-prepare-managed";
+  if (mode === "complete-custom") return "website-staging-complete-custom";
+  if (mode === "rollback-custom") return "website-staging-rollback-custom";
+  if (mode === "verify") return "website-staging-read-only";
+  return null;
+}
+
+function exactHttpsRoot(value: string | undefined, expected: string): boolean {
+  try {
+    const url = new URL(value ?? "");
+    return (
+      url.href === expected &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      !url.search &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function validateWebsiteStagingProofStateConfig(
+  options: ProofOptions,
+  environment: ProofEnvironment = process.env,
+): string[] {
+  if (options.mode === "check") return [];
+  const errors: string[] = [];
+  if (!SHA_PATTERN.test(options.expectedSha))
+    errors.push("expected SHA must be an exact lowercase commit SHA");
+  if (!CHANGE_REFERENCE_PATTERN.test(options.changeReference))
+    errors.push("change reference is missing or invalid");
+  if (environment.APP_ENV !== "staging") errors.push("APP_ENV must be staging");
+  if (environment.TARGET_ENVIRONMENT !== "staging")
+    errors.push("TARGET_ENVIRONMENT must be staging");
+  const expectedRef = options.mode === "prepare-managed" ? "main" : "staging";
+  if (environment.GITHUB_REF_NAME !== expectedRef)
+    errors.push(`${options.mode} must run from ${expectedRef}`);
+  if (environment.GITHUB_SHA !== options.expectedSha)
+    errors.push("checkout SHA differs from the expected SHA");
+  if (
+    environment.FIELDGRID_WEBSITE_STAGING_PROOF_CONFIRMATION !==
+    expectedConfirmation(options.mode)
+  ) {
+    errors.push(`confirmation does not authorize ${options.mode}`);
+  }
+  if (!environment.DATABASE_URL?.trim())
+    errors.push("DATABASE_URL is required");
+  if (
+    !exactHttpsRoot(
+      environment.WEBSITE_MANAGED_ACCEPTANCE_URL,
+      MANAGED_PROOF_URL,
+    )
+  ) {
+    errors.push(`managed acceptance URL must be ${MANAGED_PROOF_URL}`);
+  }
+  if (
+    !exactHttpsRoot(environment.WEBSITE_CUSTOM_ACCEPTANCE_URL, CUSTOM_PROOF_URL)
+  ) {
+    errors.push(`custom acceptance URL must be ${CUSTOM_PROOF_URL}`);
+  }
+
+  const actor =
+    environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?.trim() ?? "";
+  if (actor && !UUID_PATTERN.test(actor)) {
+    errors.push("automation actor must be a UUID");
+  }
+  if (options.mode !== "prepare-managed" && !UUID_PATTERN.test(actor)) {
+    errors.push("automation actor is required after prepare-managed");
+  }
+
+  if (["complete-custom", "verify", "rollback-custom"].includes(options.mode)) {
+    if (environment.FIELDGRID_CUSTOM_EXPECTED_HOST !== CUSTOM_PROOF_HOST) {
+      errors.push("custom expected host differs from the reviewed proof host");
+    }
+    if (
+      !/^[A-Za-z0-9][A-Za-z0-9._-]{1,239}$/u.test(
+        environment.FIELDGRID_CUSTOM_ROUTE_KEY ?? "",
+      )
+    ) {
+      errors.push("custom route key is missing or invalid");
+    }
+    try {
+      const routes = JSON.parse(
+        environment.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON ?? "",
+      ) as unknown;
+      if (!Array.isArray(routes)) throw new Error("not an array");
+      const exact = routes.filter(
+        (route) =>
+          route &&
+          typeof route === "object" &&
+          (route as Record<string, unknown>)["providerKey"] === PROVIDER_KEY &&
+          (route as Record<string, unknown>)["routeKey"] ===
+            environment.FIELDGRID_CUSTOM_ROUTE_KEY &&
+          (route as Record<string, unknown>)["releaseId"] ===
+            `git-commit:${options.expectedSha}` &&
+          (route as Record<string, unknown>)["healthPath"] === HEALTH_PATH &&
+          (route as Record<string, unknown>)["status"] === "routable" &&
+          Array.isArray((route as Record<string, unknown>)["expectedHosts"]) &&
+          (
+            (route as Record<string, unknown>)["expectedHosts"] as unknown[]
+          ).includes(CUSTOM_PROOF_HOST),
+      );
+      if (exact.length !== 1)
+        errors.push("exact custom route identity is missing or ambiguous");
+    } catch {
+      errors.push("custom route registry is invalid");
+    }
+  }
+  return errors;
+}
+
+function safeErrorCode(error: unknown): string {
+  const raw =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+  if (/^[A-Za-z0-9_.:-]{1,80}$/u.test(raw)) return raw;
+  const message = error instanceof Error ? error.message : String(error);
+  if (/collision/iu.test(message)) return "proof_state_collision";
+  if (/actor/iu.test(message)) return "automation_actor_invalid";
+  if (/health/iu.test(message)) return "custom_health_invalid";
+  if (/public/iu.test(message)) return "public_verification_failed";
+  return "proof_state_failed";
+}
+
+async function writeJson(path: string, value: unknown): Promise<void> {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await chmod(path, 0o600);
+}
+
+async function resolveAutomationActor(
+  queryable: Queryable,
+  configuredActor: string | undefined,
+): Promise<string> {
+  const requested = configuredActor?.trim() ?? "";
+  const result = await queryable.query<{
+    user_id: string;
+    role: string;
+    status: string;
+  }>(
+    `SELECT user_id, role, status
+     FROM public.platform_users
+     WHERE status = 'active' AND role IN ('owner', 'admin')
+       AND ($1::uuid IS NULL OR user_id = $1::uuid)
+     ORDER BY CASE WHEN role = 'owner' THEN 0 ELSE 1 END, user_id`,
+    [requested || null],
+  );
+  if (requested) {
+    if (result.rows.length !== 1 || result.rows[0]?.user_id !== requested) {
+      throw new Error(
+        "Configured automation actor is not an active platform owner/admin",
+      );
+    }
+    return requested;
+  }
+  if (result.rows.length !== 1) {
+    throw new Error(
+      "Prepare-managed requires exactly one active platform owner/admin when no actor is configured",
+    );
+  }
+  return result.rows[0]!.user_id;
+}
+
+async function resolveRuntimeTenant(
+  queryable: Queryable,
+  host: string,
+): Promise<RuntimeTenant> {
+  const result = await queryable.query<{
+    tenant_id: string;
+    slug: string;
+    plan_key: string;
+    is_active: boolean;
+    tenant_status: string;
+    domain_type: string;
+    is_primary: boolean;
+    verification_status: string;
+    disabled_at: Date | string | null;
+  }>(
+    `SELECT tenant.id AS tenant_id, tenant.slug, tenant.plan_key,
+            tenant.is_active, tenant.status AS tenant_status,
+            domain.type AS domain_type, domain.is_primary,
+            domain.verification_status, domain.disabled_at
+     FROM public.tenant_domains AS domain
+     JOIN public.tenants AS tenant ON tenant.id = domain.tenant_id
+     WHERE domain.domain = $1`,
+    [host],
+  );
+  if (result.rows.length !== 1) {
+    throw new Error(`Runtime host collision or missing binding: ${host}`);
+  }
+  const row = result.rows[0]!;
+  if (
+    !row.is_active ||
+    !["trial", "active"].includes(row.tenant_status) ||
+    row.domain_type !== "fieldgrid_subdomain" ||
+    !row.is_primary ||
+    !["verified", "active"].includes(row.verification_status) ||
+    row.disabled_at
+  ) {
+    throw new Error(
+      `Runtime host settings are not active and verified: ${host}`,
+    );
+  }
+  return {
+    tenantId: row.tenant_id,
+    host,
+    slug: row.slug,
+    planKey: row.plan_key,
+  };
+}
+
+async function findManagedProofTenant(
+  queryable: Queryable,
+): Promise<RuntimeTenant | null> {
+  const result = await queryable.query<{
+    tenant_id: string;
+    slug: string;
+    plan_key: string;
+    domain: string;
+    marker: string | null;
+  }>(
+    `SELECT tenant.id AS tenant_id, tenant.slug, tenant.plan_key,
+            domain.domain,
+            provisioning.metadata ->> 'automationMarker' AS marker
+     FROM public.tenants AS tenant
+     LEFT JOIN public.tenant_domains AS domain
+       ON domain.tenant_id = tenant.id AND domain.is_primary = true
+     LEFT JOIN LATERAL (
+       SELECT run.metadata
+       FROM public.tenant_provisioning_runs AS run
+       WHERE run.tenant_id = tenant.id
+         AND run.status = 'succeeded'
+         AND run.metadata ->> 'automationMarker' = $3
+       ORDER BY run.completed_at DESC NULLS LAST, run.id
+       LIMIT 1
+     ) AS provisioning ON true
+     WHERE tenant.slug = $1 OR domain.domain = $2`,
+    [MANAGED_PROOF_SLUG, MANAGED_PROOF_HOST, WEBSITE_STAGING_PROOF_MARKER],
+  );
+  if (result.rows.length === 0) return null;
+  if (result.rows.length !== 1)
+    throw new Error("Managed proof tenant collision");
+  const row = result.rows[0]!;
+  if (
+    row.slug !== MANAGED_PROOF_SLUG ||
+    row.domain !== MANAGED_PROOF_HOST ||
+    row.plan_key !== "enterprise" ||
+    row.marker !== WEBSITE_STAGING_PROOF_MARKER
+  ) {
+    throw new Error("Managed proof tenant collision with unowned state");
+  }
+  return resolveRuntimeTenant(queryable, MANAGED_PROOF_HOST);
+}
+
+function reviewedProofSection(
+  section: Record<string, unknown>,
+  isHomepage: boolean,
+): Record<string, unknown> {
+  const isProofHero = isHomepage && section["type"] === "hero";
+  const rawContent = section["content"];
+  const content =
+    rawContent && typeof rawContent === "object" && !Array.isArray(rawContent)
+      ? { ...(rawContent as Record<string, unknown>) }
+      : rawContent;
+  if (isProofHero && content && typeof content === "object") {
+    Object.assign(content, {
+      eyebrow: "Fieldgrid website-module",
+      title: "Een heldere website, veilig beheerd vanuit Fieldgrid",
+      subtitle:
+        "Deze acceptatiesite toont de beheerde publicatieroute met rustige vormgeving, duidelijke navigatie en een veilige technische basis.",
+      badges: ["Veilig gepubliceerd", "Geschikt voor mobiel"],
+    });
+  }
+  return {
+    id: section["id"],
+    type: section["type"],
+    schemaVersion: section["schemaVersion"],
+    variant: section["variant"],
+    visible: isProofHero,
+    requiresReview: false,
+    content,
+  };
+}
+
+function sectionNeedsUpdate(
+  current: Record<string, unknown>,
+  desired: Record<string, unknown>,
+): boolean {
+  return (
+    current["visible"] !== desired["visible"] ||
+    current["requiresReview"] === true ||
+    JSON.stringify(current["content"]) !== JSON.stringify(desired["content"])
+  );
+}
+
+async function ensureManagedProof(
+  dbModule: DatabaseModule,
+  actorUserId: string,
+  expectedSha: string,
+  changeReference: string,
+): Promise<RuntimeTenant> {
+  const { pool } = dbModule;
+  let tenant = await findManagedProofTenant(pool);
+  let createdTenant: { tenantId: string; runId: string } | null = null;
+  let siteCreated = false;
+  try {
+    if (!tenant) {
+      const provisioned = await dbModule.provisionTenant({
+        name: "Fieldgrid Managed Website Acceptatie",
+        slug: MANAGED_PROOF_SLUG,
+        planKey: "enterprise",
+        primaryDomain: MANAGED_PROOF_HOST,
+        requestedBy: actorUserId,
+        ownerEmail: null,
+        moduleKeys: ["website"],
+        metadata: {
+          automationMarker: WEBSITE_STAGING_PROOF_MARKER,
+          environment: "staging",
+          expectedSha,
+          changeReference,
+        },
+      });
+      createdTenant = {
+        tenantId: provisioned.tenantId,
+        runId: provisioned.runId,
+      };
+      tenant = await findManagedProofTenant(pool);
+      if (!tenant || tenant.tenantId !== provisioned.tenantId) {
+        throw new Error(
+          "Managed proof tenant did not resolve after provisioning",
+        );
+      }
+    }
+
+    let overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+    if (!overview.site) {
+      const settings = dbModule.createInitialWebsiteSettings(
+        "Fieldgrid Managed Website Acceptatie",
+      );
+      settings.defaultSeo.title = "Fieldgrid managed website acceptatie";
+      settings.defaultSeo.description =
+        "Controleerbare staging-publicatie van de beheerde Fieldgrid website-module.";
+      const initialized = await dbModule.initializeManagedWebsite({
+        tenantId: tenant.tenantId,
+        actorUserId,
+        templateKey: "trust_conversion",
+        settings,
+      });
+      siteCreated = true;
+      await dbModule.bindPrimaryTenantDomainToWebsite({
+        tenantId: tenant.tenantId,
+        siteId: initialized.siteId,
+        expectedAuthoringRevision: initialized.authoringRevision,
+        actorUserId,
+        reason: "Staging acceptatie koppelt het beheerde proof-domein.",
+      });
+      overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+    }
+    if (
+      !overview.site ||
+      overview.site.canonicalHostname !== MANAGED_PROOF_HOST ||
+      overview.site.canonicalDomainStatus !== "active"
+    ) {
+      throw new Error("Managed proof website domain is not exactly active");
+    }
+
+    let pages = await dbModule.listWebsitePages(tenant.tenantId);
+    if (!pages || pages.siteId !== overview.site.id) {
+      throw new Error("Managed proof website pages are missing");
+    }
+    for (const pageSummary of pages.pages) {
+      let page = await dbModule.getWebsitePage(tenant.tenantId, pageSummary.id);
+      if (!page) throw new Error("Managed proof page disappeared");
+      for (const section of page.sections) {
+        const current = section as unknown as Record<string, unknown>;
+        const desired = reviewedProofSection(current, page.isHomepage);
+        if (!sectionNeedsUpdate(current, desired)) continue;
+        const updated = await dbModule.updateWebsiteSection({
+          tenantId: tenant.tenantId,
+          siteId: page.siteId,
+          pageId: page.id,
+          actorUserId,
+          expectedAuthoringRevision: page.siteAuthoringRevision,
+          expectedPageRevision: page.authoringRevision,
+          expectedSectionRevision: section.authoringRevision,
+          section: desired as never,
+        });
+        page = {
+          ...page,
+          siteAuthoringRevision: updated.siteAuthoringRevision,
+          authoringRevision: updated.pageAuthoringRevision,
+          sections: page.sections.map((candidate) =>
+            candidate.id === section.id
+              ? ({
+                  ...candidate,
+                  ...desired,
+                  authoringRevision: updated.sectionAuthoringRevision!,
+                } as typeof candidate)
+              : candidate,
+          ),
+        };
+      }
+      if (page.status === "draft") {
+        await dbModule.includeWebsitePageInPublication({
+          tenantId: tenant.tenantId,
+          siteId: page.siteId,
+          pageId: page.id,
+          actorUserId,
+          expectedAuthoringRevision: page.siteAuthoringRevision,
+          expectedPageRevision: page.authoringRevision,
+        });
+      }
+    }
+
+    const review = await dbModule.getWebsitePublicationReview({
+      tenantId: tenant.tenantId,
+      siteId: overview.site.id,
+    });
+    const errorCodes = review.diagnostics
+      .filter((diagnostic) => diagnostic.severity === "error")
+      .map((diagnostic) => diagnostic.code);
+    if (!review.canPreparePublication || errorCodes.length > 0) {
+      throw new Error(
+        `Managed proof publication review failed: ${errorCodes.join(",")}`,
+      );
+    }
+
+    overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+    if (
+      !overview.site ||
+      overview.site.deliveryMode !== "managed_cms" ||
+      overview.site.status !== "active" ||
+      review.activePublication?.sourceRevision !== review.authoringRevision
+    ) {
+      const ready =
+        review.readyPublication &&
+        review.readyPublication.sourceRevision === review.authoringRevision &&
+        review.readyPublication.targetDeliveryRevision ===
+          review.deliveryRevision + 1
+          ? review.readyPublication
+          : await dbModule.createManagedWebsitePublication({
+              tenantId: tenant.tenantId,
+              siteId: review.siteId,
+              actorUserId,
+              expectedAuthoringRevision: review.authoringRevision,
+              reason:
+                "Staging acceptatie bereidt de beheerde proof-publicatie voor.",
+            });
+      await dbModule.activateManagedWebsitePublication({
+        tenantId: tenant.tenantId,
+        siteId: review.siteId,
+        publicationId: ready.id,
+        actorUserId,
+        expectedAuthoringRevision: review.authoringRevision,
+        expectedDeliveryRevision: review.deliveryRevision,
+        reason: "Staging acceptatie activeert de gereviewde proof-publicatie.",
+      });
+    }
+
+    overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+    if (
+      !overview.site ||
+      overview.site.status !== "active" ||
+      overview.site.deliveryMode !== "managed_cms" ||
+      overview.site.canonicalHostname !== MANAGED_PROOF_HOST ||
+      !overview.site.activePublicationHash ||
+      overview.site.draftPageCount !== 0
+    ) {
+      throw new Error("Managed proof website is not fully active");
+    }
+    return assertManagedProof(dbModule);
+  } catch (error) {
+    if (createdTenant && !siteCreated) {
+      await dbModule
+        .rollbackProvisionedTenant({
+          tenantId: createdTenant.tenantId,
+          runId: createdTenant.runId,
+          requestedBy: actorUserId,
+          reason: "Automatische rollback vóór website-initialisatie.",
+        })
+        .catch(() => undefined);
+    }
+    throw error;
+  }
+}
+
+async function assertManagedProof(
+  dbModule: DatabaseModule,
+): Promise<RuntimeTenant> {
+  const tenant = await findManagedProofTenant(dbModule.pool);
+  if (!tenant) throw new Error("Managed proof tenant is missing");
+  const overview = await dbModule.getWebsiteAdminOverview(tenant.tenantId);
+  if (
+    !overview.site ||
+    overview.site.status !== "active" ||
+    overview.site.deliveryMode !== "managed_cms" ||
+    overview.site.canonicalHostname !== MANAGED_PROOF_HOST ||
+    overview.site.canonicalDomainStatus !== "active" ||
+    !overview.site.activePublicationHash ||
+    overview.site.draftPageCount !== 0
+  ) {
+    throw new Error("Managed proof website settings are not exact");
+  }
+  const review = await dbModule.getWebsitePublicationReview({
+    tenantId: tenant.tenantId,
+    siteId: overview.site.id,
+  });
+  if (
+    review.activePublication?.sourceRevision !== review.authoringRevision ||
+    review.diagnostics.some((diagnostic) => diagnostic.severity === "error")
+  ) {
+    throw new Error(
+      "Managed proof publication is not the current authoring state",
+    );
+  }
+  const pages = await dbModule.listWebsitePages(tenant.tenantId);
+  if (!pages || pages.siteId !== overview.site.id || pages.pages.length === 0) {
+    throw new Error("Managed proof pages are missing");
+  }
+  let visibleHomepageHeroes = 0;
+  for (const summary of pages.pages) {
+    const page = await dbModule.getWebsitePage(tenant.tenantId, summary.id);
+    if (!page || page.status !== "published") {
+      throw new Error("Managed proof pages are not all published");
+    }
+    for (const section of page.sections) {
+      const current = section as unknown as Record<string, unknown>;
+      const desired = reviewedProofSection(current, page.isHomepage);
+      if (sectionNeedsUpdate(current, desired)) {
+        throw new Error(
+          "Managed proof sections differ from reviewed proof content",
+        );
+      }
+      if (page.isHomepage && section.type === "hero" && section.visible) {
+        visibleHomepageHeroes += 1;
+      }
+    }
+  }
+  if (visibleHomepageHeroes !== 1) {
+    throw new Error("Managed proof requires exactly one visible homepage hero");
+  }
+  return tenant;
+}
+
+async function fetchMode(url: string, expectedMode: string): Promise<void> {
+  const response = await fetch(url, {
+    redirect: "error",
+    headers: { Accept: "text/html" },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (
+    response.status !== 200 ||
+    response.headers.get("x-fieldgrid-website-delivery") !== expectedMode
+  ) {
+    await response.body?.cancel();
+    throw new Error(`Public proof did not resolve as ${expectedMode}`);
+  }
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    throw new Error("Public proof response exceeds the bounded size");
+  }
+  if (!response.body) throw new Error("Public proof response has no body");
+  const reader = response.body.getReader();
+  let bytes = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (bytes > MAX_RESPONSE_BYTES) {
+        await reader.cancel();
+        throw new Error("Public proof response exceeds the bounded size");
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function assertExactReleaseMarkers(expectedSha: string): Promise<void> {
+  for (const baseDirectory of [
+    CORE_STAGING_BASE_DIR,
+    WEBSITE_STACK_STAGING_BASE_DIR,
+  ]) {
+    const actual = (
+      await readFile(
+        join(baseDirectory, "current", ".fieldgrid-release-sha"),
+        "utf8",
+      )
+    ).trim();
+    if (actual !== expectedSha) {
+      throw new Error(
+        "Core and website stack must both run the exact staging SHA",
+      );
+    }
+  }
+}
+
+async function resolveCustomSite(dbModule: DatabaseModule): Promise<{
+  tenant: RuntimeTenant;
+  siteId: string;
+}> {
+  const tenant = await resolveRuntimeTenant(dbModule.pool, CUSTOM_PROOF_HOST);
+  const delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+  if (
+    !delivery.site ||
+    delivery.site.canonicalHostname !== CUSTOM_PROOF_HOST ||
+    !delivery.site.canonicalDomainActive ||
+    !delivery.site.tenantActive ||
+    delivery.site.tenantPlanKey !== "enterprise" ||
+    !delivery.site.websiteEntitled
+  ) {
+    throw new Error("Custom proof tenant/site settings are not exact");
+  }
+  return { tenant, siteId: delivery.site.id };
+}
+
+function exactCustomRegistration(
+  dbModule: DatabaseModule,
+  expectedSha: string,
+  environment: ProofEnvironment,
+) {
+  const registry =
+    dbModule.configuredFieldgridCustomWebsiteRouteRegistry(environment);
+  const releaseId = `git-commit:${expectedSha}`;
+  const registrations = registry.registrations.filter(
+    (candidate) =>
+      candidate.status === "routable" &&
+      candidate.providerKey === PROVIDER_KEY &&
+      candidate.routeKey === environment.FIELDGRID_CUSTOM_ROUTE_KEY &&
+      candidate.releaseId === releaseId &&
+      candidate.healthPath === HEALTH_PATH &&
+      candidate.expectedHosts.includes(CUSTOM_PROOF_HOST),
+  );
+  if (registrations.length !== 1) {
+    throw new Error("Exact custom proof registration is missing or ambiguous");
+  }
+  return registrations[0]!;
+}
+
+async function ensureCustomProof(
+  dbModule: DatabaseModule,
+  actorUserId: string,
+  expectedSha: string,
+  changeReference: string,
+  environment: ProofEnvironment,
+): Promise<{ releaseId: string; activated: boolean }> {
+  await assertManagedProof(dbModule);
+  const { tenant, siteId } = await resolveCustomSite(dbModule);
+  const registration = exactCustomRegistration(
+    dbModule,
+    expectedSha,
+    environment,
+  );
+  const releaseId = registration.releaseId;
+  let delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+  let deployment = delivery.deployments.find(
+    (candidate) =>
+      candidate.providerKey === registration.providerKey &&
+      candidate.routeKey === registration.routeKey &&
+      candidate.releaseId === registration.releaseId &&
+      candidate.expectedHost === CUSTOM_PROOF_HOST &&
+      candidate.healthPath === registration.healthPath,
+  );
+  if (!deployment) {
+    const registered = await dbModule.registerPlatformWebsiteDeployment({
+      tenantId: tenant.tenantId,
+      siteId,
+      actorUserId,
+      providerKey: registration.providerKey,
+      routeKey: registration.routeKey,
+      releaseId: registration.releaseId,
+      expectedHost: CUSTOM_PROOF_HOST,
+      healthPath: registration.healthPath,
+      changeReference,
+    });
+    delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+    deployment = delivery.deployments.find(
+      (candidate) => candidate.id === registered.id,
+    );
+  }
+  if (!deployment)
+    throw new Error("Custom deployment registration disappeared");
+
+  const alreadyActive =
+    delivery.site?.deliveryMode === "custom_nextjs" &&
+    delivery.site.activeTargetId === deployment.id &&
+    deployment.releaseId === releaseId;
+  if (alreadyActive) {
+    await assertCustomProof(dbModule, expectedSha, environment);
+    await fetchMode(CUSTOM_PROOF_URL, "custom_nextjs");
+    return { releaseId, activated: false };
+  }
+
+  const checkedAt = deployment.lastCheckedAt
+    ? new Date(deployment.lastCheckedAt).getTime()
+    : 0;
+  if (
+    deployment?.healthStatus !== "healthy" ||
+    !Number.isFinite(checkedAt) ||
+    Date.now() - checkedAt > 4 * 60 * 1_000
+  ) {
+    await dbModule.checkPlatformWebsiteDeploymentHealth({
+      tenantId: tenant.tenantId,
+      siteId,
+      deploymentId: deployment.id,
+      actorUserId,
+      changeReference,
+      reason: "Staging acceptatie controleert de exacte custom release.",
+    });
+    delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+    deployment = delivery.deployments.find(
+      (candidate) => candidate.id === deployment!.id,
+    )!;
+  }
+  if (!deployment.approvedAt) {
+    await dbModule.approvePlatformWebsiteDeployment({
+      tenantId: tenant.tenantId,
+      siteId,
+      deploymentId: deployment.id,
+      actorUserId,
+      changeReference,
+      reason: "Staging acceptatie keurt de exact gecontroleerde release goed.",
+    });
+  }
+
+  delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+  if (!delivery.site) throw new Error("Custom website site disappeared");
+  const activation = await dbModule.activatePlatformWebsiteDeployment({
+    tenantId: tenant.tenantId,
+    siteId,
+    deploymentId: deployment.id,
+    actorUserId,
+    expectedDeliveryRevision: delivery.site.deliveryRevision,
+    expectedMode: delivery.site.deliveryMode,
+    expectedTargetId: delivery.site.activeTargetId,
+    changeReference,
+    reason: "Staging acceptatie activeert de exacte custom Next.js release.",
+  });
+  if (activation.status !== "succeeded" || !activation.deliveryRevision) {
+    throw new Error("Custom website activation preflight was blocked");
+  }
+
+  try {
+    await fetchMode(CUSTOM_PROOF_URL, "custom_nextjs");
+  } catch (error) {
+    const rollback = await dbModule.rollbackPlatformWebsiteDelivery({
+      tenantId: tenant.tenantId,
+      siteId,
+      expectedDeliveryRevision: activation.deliveryRevision,
+      expectedMode: "custom_nextjs",
+      expectedTargetId: deployment.id,
+      actorUserId,
+      changeReference,
+      reason: "Automatische rollback na mislukte publieke custom verificatie.",
+    });
+    if (rollback.status !== "succeeded") {
+      throw new Error("Custom public verification and exact rollback failed");
+    }
+    throw error;
+  }
+  return { releaseId, activated: true };
+}
+
+async function assertCustomProof(
+  dbModule: DatabaseModule,
+  expectedSha: string,
+  environment: ProofEnvironment,
+): Promise<string> {
+  const { tenant } = await resolveCustomSite(dbModule);
+  const registration = exactCustomRegistration(
+    dbModule,
+    expectedSha,
+    environment,
+  );
+  const delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+  const deployment = delivery.deployments.find(
+    (candidate) =>
+      candidate.releaseId === registration.releaseId &&
+      candidate.routeKey === registration.routeKey &&
+      candidate.expectedHost === CUSTOM_PROOF_HOST,
+  );
+  const checkedAt = deployment?.lastCheckedAt
+    ? new Date(deployment.lastCheckedAt).getTime()
+    : 0;
+  if (
+    !delivery.site ||
+    delivery.site.deliveryMode !== "custom_nextjs" ||
+    delivery.site.activeTargetId !== deployment?.id ||
+    deployment?.status !== "active" ||
+    deployment.healthStatus !== "healthy" ||
+    !Number.isFinite(checkedAt) ||
+    Date.now() - checkedAt > 5 * 60 * 1_000
+  ) {
+    throw new Error("Exact custom proof delivery is not active and fresh");
+  }
+  return registration.releaseId;
+}
+
+async function rollbackCustomProof(
+  dbModule: DatabaseModule,
+  actorUserId: string,
+  expectedSha: string,
+  changeReference: string,
+  environment: ProofEnvironment,
+): Promise<void> {
+  const { tenant, siteId } = await resolveCustomSite(dbModule);
+  const registration = exactCustomRegistration(
+    dbModule,
+    expectedSha,
+    environment,
+  );
+  const delivery = await dbModule.getPlatformWebsiteDelivery(tenant.tenantId);
+  if (!delivery.site) throw new Error("Custom website site is missing");
+  if (delivery.site.deliveryMode !== "custom_nextjs") return;
+  const deployment = delivery.deployments.find(
+    (candidate) =>
+      candidate.id === delivery.site?.activeTargetId &&
+      candidate.providerKey === registration.providerKey &&
+      candidate.routeKey === registration.routeKey &&
+      candidate.releaseId === registration.releaseId &&
+      candidate.expectedHost === CUSTOM_PROOF_HOST &&
+      candidate.healthPath === registration.healthPath,
+  );
+  if (!deployment) {
+    throw new Error("Refusing to rollback a different custom release");
+  }
+  const rollback = await dbModule.rollbackPlatformWebsiteDelivery({
+    tenantId: tenant.tenantId,
+    siteId,
+    expectedDeliveryRevision: delivery.site.deliveryRevision,
+    expectedMode: "custom_nextjs",
+    expectedTargetId: deployment.id,
+    actorUserId,
+    changeReference,
+    reason: "Expliciete staging-only rollback van de custom proof-delivery.",
+  });
+  if (rollback.status !== "succeeded") {
+    throw new Error("Explicit custom proof rollback was blocked");
+  }
+}
+
+async function writePrincipalFixtures(
+  dbModule: DatabaseModule,
+  managed: RuntimeTenant,
+  actorUserId: string,
+  expectedSha: string,
+  evidenceDir: string,
+): Promise<void> {
+  const demo = await resolveRuntimeTenant(dbModule.pool, FIELD_DEMO_HOST);
+  if (demo.tenantId === managed.tenantId) {
+    throw new Error("Principal fixture tenants must be distinct");
+  }
+  await writeJson(join(evidenceDir, "w00-principal-fixtures.json"), {
+    schemaVersion: 1,
+    contract: "fieldgrid-w00-principal-fixtures-v1",
+    environment: "staging",
+    expectedMainSha: expectedSha,
+    automationActorUserId: actorUserId,
+    tenants: [
+      { host: FIELD_DEMO_HOST, tenantId: demo.tenantId },
+      { host: MANAGED_PROOF_HOST, tenantId: managed.tenantId },
+    ],
+  });
+}
+
+async function run(options: ProofOptions, environment: ProofEnvironment) {
+  const errors = validateWebsiteStagingProofStateConfig(options, environment);
+  if (errors.length > 0) throw new Error(errors.join("\n"));
+  const dbModule = await import("../lib/db/src/index.ts");
+  const startedAt = new Date().toISOString();
+  const evidence: ProofEvidence = {
+    schemaVersion: 1,
+    contract: WEBSITE_STAGING_PROOF_STATE_VERSION,
+    environment: "staging",
+    mode: options.mode as Exclude<ProofMode, "check">,
+    expectedSha: options.expectedSha,
+    status: "failed",
+    startedAt,
+    completedAt: startedAt,
+    managed: {
+      host: MANAGED_PROOF_HOST,
+      deliveryMode: null,
+      active: false,
+    },
+    custom: {
+      host: CUSTOM_PROOF_HOST,
+      releaseId: null,
+      deliveryMode: null,
+      active: false,
+    },
+    errorCode: null,
+  };
+  try {
+    const actorUserId = await resolveAutomationActor(
+      dbModule.pool,
+      environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID,
+    );
+    if (options.mode === "prepare-managed") {
+      const managed = await ensureManagedProof(
+        dbModule,
+        actorUserId,
+        options.expectedSha,
+        options.changeReference,
+      );
+      await fetchMode(MANAGED_PROOF_URL, "managed_cms");
+      await writePrincipalFixtures(
+        dbModule,
+        managed,
+        actorUserId,
+        options.expectedSha,
+        options.evidenceDir,
+      );
+      evidence.managed = {
+        host: MANAGED_PROOF_HOST,
+        deliveryMode: "managed_cms",
+        active: true,
+      };
+    } else if (options.mode === "complete-custom") {
+      await fetchMode(MANAGED_PROOF_URL, "managed_cms");
+      await assertExactReleaseMarkers(options.expectedSha);
+      const custom = await ensureCustomProof(
+        dbModule,
+        actorUserId,
+        options.expectedSha,
+        options.changeReference,
+        environment,
+      );
+      evidence.managed = {
+        host: MANAGED_PROOF_HOST,
+        deliveryMode: "managed_cms",
+        active: true,
+      };
+      evidence.custom = {
+        host: CUSTOM_PROOF_HOST,
+        releaseId: custom.releaseId,
+        deliveryMode: "custom_nextjs",
+        active: true,
+      };
+    } else if (options.mode === "verify") {
+      await assertExactReleaseMarkers(options.expectedSha);
+      await assertManagedProof(dbModule);
+      const releaseId = await assertCustomProof(
+        dbModule,
+        options.expectedSha,
+        environment,
+      );
+      await Promise.all([
+        fetchMode(MANAGED_PROOF_URL, "managed_cms"),
+        fetchMode(CUSTOM_PROOF_URL, "custom_nextjs"),
+      ]);
+      evidence.managed = {
+        host: MANAGED_PROOF_HOST,
+        deliveryMode: "managed_cms",
+        active: true,
+      };
+      evidence.custom = {
+        host: CUSTOM_PROOF_HOST,
+        releaseId,
+        deliveryMode: "custom_nextjs",
+        active: true,
+      };
+    } else if (options.mode === "rollback-custom") {
+      await rollbackCustomProof(
+        dbModule,
+        actorUserId,
+        options.expectedSha,
+        options.changeReference,
+        environment,
+      );
+      evidence.managed = {
+        host: MANAGED_PROOF_HOST,
+        deliveryMode: "managed_cms",
+        active: true,
+      };
+    }
+    evidence.status = "passed";
+    return evidence;
+  } catch (error) {
+    evidence.errorCode = safeErrorCode(error);
+    throw error;
+  } finally {
+    evidence.completedAt = new Date().toISOString();
+    await writeJson(
+      join(options.evidenceDir, `${options.mode}.json`),
+      evidence,
+    );
+    await dbModule.pool.end();
+  }
+}
+
+async function main(): Promise<void> {
+  const options = parseArgs(process.argv.slice(2));
+  if (options.mode === "check") {
+    const managedHost: string = MANAGED_PROOF_HOST;
+    const customHost: string = CUSTOM_PROOF_HOST;
+    const managedSlug: string = MANAGED_PROOF_SLUG;
+    if (
+      managedHost === customHost ||
+      managedSlug === "managed" ||
+      !managedHost.startsWith(`${managedSlug}.`)
+    ) {
+      throw new Error("Website staging proof constants are unsafe");
+    }
+    console.log(`${WEBSITE_STAGING_PROOF_STATE_VERSION}: contract valid`);
+    return;
+  }
+  const evidence = await run(options, process.env);
+  console.log(
+    JSON.stringify({
+      status: evidence.status,
+      mode: evidence.mode,
+      expectedSha: evidence.expectedSha,
+      managed: evidence.managed.active,
+      custom: evidence.custom.active,
+    }),
+  );
+}
+
+const isMain =
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isMain) {
+  main().catch((error) => {
+    console.error(
+      `${WEBSITE_STAGING_PROOF_STATE_VERSION}: ${safeErrorCode(error)}`,
+    );
+    process.exitCode = 1;
+  });
+}

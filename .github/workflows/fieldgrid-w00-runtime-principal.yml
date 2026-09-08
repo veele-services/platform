@@ -1,0 +1,139 @@
+name: Fieldgrid W00 runtime principal
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Describe the canonical endpoint or apply/rotate and verify the runtime principal
+        required: true
+        default: describe
+        type: choice
+        options:
+          - describe
+          - apply
+      confirm:
+        description: For apply, type fieldgrid-w00-runtime-principal-staging-v1
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldgrid-w00-runtime-principal-staging
+  cancel-in-progress: false
+
+jobs:
+  runtime-principal:
+    if: >-
+      ${{
+        (inputs.action == 'describe' && github.ref == 'refs/heads/main') ||
+        (inputs.action == 'apply' && github.ref == 'refs/heads/staging')
+      }}
+    runs-on: [self-hosted, linux, x64, veele]
+    environment:
+      name: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      FIELDGRID_RUNTIME_EXPECTED_SHA: ${{ github.sha }}
+      FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM: ${{ inputs.confirm }}
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+
+    steps:
+      - name: Checkout exact authorized SHA
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pnpm 11.5.2
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11.5.2
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Verify exact toolchain and checkout
+        env:
+          FIELDGRID_RUNTIME_ACTION: ${{ inputs.action }}
+        run: |
+          set -euo pipefail
+          test "$(node --version | cut -d. -f1)" = "v24"
+          test "$(pnpm --version)" = "11.5.2"
+          test "$(git rev-parse HEAD)" = "$FIELDGRID_RUNTIME_EXPECTED_SHA"
+          case "$FIELDGRID_RUNTIME_ACTION" in
+            describe) expected_ref='refs/remotes/origin/main' ;;
+            apply) expected_ref='refs/remotes/origin/staging' ;;
+            *) exit 1 ;;
+          esac
+          test "$(git rev-parse "$expected_ref")" = "$FIELDGRID_RUNTIME_EXPECTED_SHA"
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-runtime-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Derive secret-free runtime descriptor
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          descriptor_file="$RUNNER_TEMP/fieldgrid-runtime-descriptor.json"
+          node scripts/fieldgrid-w00-runtime-principal.mjs --describe > "$descriptor_file"
+          chmod 0600 "$descriptor_file"
+          test "$(stat -c '%a' "$descriptor_file")" = '600'
+          node -e 'const fs=require("node:fs");const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,"utf8"));process.stdout.write(`FIELDGRID_STAGING_DATABASE_POOLER_HOST=${d.host}\n`)' "$descriptor_file" >> "$GITHUB_ENV"
+          cat "$descriptor_file"
+
+      - name: Upload secret-free runtime descriptor
+        if: ${{ inputs.action == 'describe' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldgrid-runtime-descriptor-${{ github.sha }}
+          path: ${{ runner.temp }}/fieldgrid-runtime-descriptor.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Require explicit apply confirmation
+        if: ${{ inputs.action == 'apply' && inputs.confirm != 'fieldgrid-w00-runtime-principal-staging-v1' }}
+        run: |
+          echo 'Exact runtime-principal apply confirmation is required.'
+          exit 1
+
+      - name: Apply or rotate runtime principal
+        if: ${{ inputs.action == 'apply' }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-w00-runtime-principal.mjs --apply
+
+      - name: Prove exact runtime capabilities
+        if: ${{ inputs.action == 'apply' }}
+        env:
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-w00-runtime-principal-gate.mjs --strict

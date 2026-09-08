@@ -11,6 +11,10 @@ import {
   writeJsonArtifact,
   writeTextArtifact,
 } from "./fieldgrid-runtime-safety-lib.mjs";
+import {
+  W00_RUNTIME_POLICY_PROFILE,
+  verifyW00AclClosure,
+} from "./fieldgrid-w00-db-acl-closure.mjs";
 
 const ACTORS = {
   tenantAPlanner: {
@@ -1164,6 +1168,108 @@ async function databaseDependencyAudit(client) {
   });
 }
 
+async function w00ServerOnlyTenantConfigurationAclIsClosed(client) {
+  const details = await verifyW00AclClosure(client, {
+    policyProfile: W00_RUNTIME_POLICY_PROFILE,
+  });
+
+  const detected = [];
+  const expectRuntimeProfileFailure = async (
+    label,
+    sql,
+    expectedMessage,
+    proveDrift,
+  ) => {
+    await client.query("begin");
+    try {
+      await client.query(sql);
+      await proveDrift();
+      let caught = null;
+      try {
+        await verifyW00AclClosure(client, {
+          policyProfile: W00_RUNTIME_POLICY_PROFILE,
+        });
+      } catch (error) {
+        caught = error;
+      }
+      assert(
+        caught instanceof Error && caught.message === expectedMessage,
+        "W00 runtime-profile drift did not trigger the expected rejection.",
+        {
+          label,
+          actualMessage: caught instanceof Error ? caught.message : null,
+          expectedMessage,
+        },
+      );
+    } finally {
+      await client.query("rollback").catch(() => {});
+    }
+    const clean = await verifyW00AclClosure(client, {
+      policyProfile: W00_RUNTIME_POLICY_PROFILE,
+    });
+    nodeAssert.deepEqual(clean, details);
+    detected.push(label);
+  };
+
+  await expectRuntimeProfileFailure(
+    "runtime-data-extra-truncate",
+    "grant truncate on table public.tenant_domains to fieldgrid_runtime_data",
+    "The W00 runtime table privilege profile is not exact.",
+    async () => {
+      const drift = await client.query(`
+        select role_name,
+          pg_catalog.has_table_privilege(
+            role_name, 'public.tenant_domains', 'TRUNCATE'
+          ) as permitted
+        from unnest(array[
+          'fieldgrid_runtime_app', 'fieldgrid_runtime_data'
+        ]) role_name
+        order by role_name
+      `);
+      assert(
+        drift.rows.length === 2 && drift.rows.every((row) => row.permitted),
+        "Runtime TRUNCATE drift fixture was not effective.",
+        { drift: drift.rows },
+      );
+    },
+  );
+  await expectRuntimeProfileFailure(
+    "runtime-data-rogue-login-member",
+    `create role fieldgrid_w00_rogue_runtime_login login;
+     grant fieldgrid_runtime_data to fieldgrid_w00_rogue_runtime_login
+       with inherit true, set false, admin false`,
+    "The W00 runtime role membership topology is not exact.",
+    async () => {
+      const drift = await client.query(`
+        select
+          role_row.rolcanlogin as can_login,
+          pg_catalog.pg_has_role(
+            role_row.oid, 'fieldgrid_runtime_data', 'USAGE'
+          ) as inherits_runtime_data,
+          pg_catalog.has_table_privilege(
+            role_row.oid, 'public.organization_settings', 'SELECT'
+          ) as can_select_settings
+        from pg_catalog.pg_roles role_row
+        where role_row.rolname = 'fieldgrid_w00_rogue_runtime_login'
+      `);
+      assert(
+        drift.rows.length === 1 &&
+          drift.rows[0].can_login &&
+          drift.rows[0].inherits_runtime_data &&
+          drift.rows[0].can_select_settings,
+        "Rogue runtime member drift fixture was not effective.",
+        { drift: drift.rows },
+      );
+    },
+  );
+
+  return result(
+    "rls-w00-server-only-tenant-configuration-acl-closure",
+    "passed",
+    { ...details, detected },
+  );
+}
+
 async function runChecks() {
   const client = await connect();
   try {
@@ -1182,6 +1288,7 @@ async function runChecks() {
       await personnelCannotSelfApproveOrMutateCoworkerEvidence(client),
       await securityDefinerPrivilegesAreMinimal(client),
       await databaseDependencyAudit(client),
+      await w00ServerOnlyTenantConfigurationAclIsClosed(client),
     ];
   } finally {
     await client.end();
@@ -1241,6 +1348,7 @@ async function main() {
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
       "rls-security-definer-execute-privileges-minimal": "database function ACL invariant",
       "rls-database-function-policy-dependency-audit": "database dependency audit",
+      "rls-w00-server-only-tenant-configuration-acl-closure": "server-only tenant configuration ACL invariant",
     },
     limitations: [
       "Uses local PostgreSQL 17 and GUC-backed auth.uid()/auth.jwt() Supabase shims.",

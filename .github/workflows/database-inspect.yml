@@ -18,6 +18,9 @@ permissions:
 jobs:
   inspect:
     name: Inspect ${{ inputs.target }} database
+    if: >-
+      (inputs.target == 'staging' && github.ref == 'refs/heads/staging') ||
+      (inputs.target == 'production' && github.ref == 'refs/heads/production')
     runs-on: [self-hosted, linux, x64, veele]
     environment:
       name: ${{ inputs.target }}
@@ -27,20 +30,78 @@ jobs:
       APP_URL: ${{ vars.APP_URL }}
       EXPECTED_SUPABASE_PROJECT_REF: ${{ inputs.target == 'staging' && 'olyfmekyqozxrbrwwszu' || vars.SUPABASE_PROJECT_REF }}
       FORBIDDEN_SUPABASE_PROJECT_REF: ${{ inputs.target == 'production' && 'olyfmekyqozxrbrwwszu' || '' }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       REPORT_DIR: ${{ github.workspace }}/database-inspection/${{ inputs.target }}
+      EXPECTED_SOURCE_BRANCH: ${{ inputs.target }}
+      EXPECTED_SOURCE_SHA: ${{ github.sha }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable protected source before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SOURCE_BRANCH" = "${GITHUB_REF_NAME}"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          node --input-type=module -e '
+            const branch = process.env.EXPECTED_SOURCE_BRANCH;
+            const expected = process.env.EXPECTED_SOURCE_SHA;
+            if (!new Set(["staging", "production"]).has(branch)) {
+              throw new Error("Database inspection source branch is invalid");
+            }
+            if (!/^[a-f0-9]{40}$/u.test(expected ?? "")) {
+              throw new Error("Database inspection source SHA is invalid");
+            }
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) {
+              throw new Error(`Protected ref lookup failed with HTTP ${response.status}`);
+            }
+            if ((await response.json()).object?.sha !== expected) {
+              throw new Error("Database inspection source is not the exact protected head");
+            }
+          '
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
 
       - name: Check runtime
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           node -v
           pnpm -v
-          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
+          node scripts/fieldgrid-environment-isolation-preflight.mjs \
+            --validate \
+            --require-migration-database
 
       - name: Install dependencies
         run: |
@@ -48,12 +109,14 @@ jobs:
           pnpm install --frozen-lockfile --prod=false
 
       - name: Inspect database metadata
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           pnpm --filter @workspace/db run inspect
 
       - name: Upload inspection report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: database-inspection-${{ inputs.target }}-${{ github.run_id }}
           path: database-inspection/${{ inputs.target }}

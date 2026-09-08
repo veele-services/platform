@@ -50,7 +50,10 @@ test("worker rechecks tenant, module, event and recipient lifecycle after claim"
   assert.match(worker, /await checkDeliveryLifecycle\(item\)/u);
   assert.match(worker, /await markDeliveryStarted\(item, workerId\)/u);
   assert.match(worker, /customer_portal_preferences/u);
-  assert.match(worker, /JOIN auth\.users auth_user/u);
+  assert.match(
+    worker,
+    /JOIN LATERAL app_private\.fieldgrid_auth_user_snapshot\(tenant_user\.user_id\)\s+auth_user ON true/u,
+  );
   assert.match(worker, /lower\(auth_user\.email\) = lower\(\$8::text\)/u);
 });
 

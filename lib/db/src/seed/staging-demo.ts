@@ -14,7 +14,10 @@
 import type { PoolClient } from "pg";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "../runtime-env";
-import { assertDatabaseEnvironmentIsolation } from "../database-environment";
+import {
+  assertDatabaseEnvironmentIsolation,
+  databaseConnectionConfig,
+} from "../database-environment";
 
 const { Pool } = pg;
 
@@ -1743,7 +1746,7 @@ async function main() {
   requireStagingSafety();
 
   const dryRun = process.argv.includes("--dry-run");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(databaseConnectionConfig("migration"));
   const client = await pool.connect();
 
   try {

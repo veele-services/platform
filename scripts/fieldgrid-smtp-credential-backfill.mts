@@ -5,7 +5,10 @@ import {
   assertEmailEncryptionKeyConfigured,
   encryptTenantSmtpPassword,
 } from "../lib/db/src/email-secret-crypto.ts";
-import { assertDatabaseEnvironmentIsolation } from "../lib/db/src/database-environment.ts";
+import {
+  assertDatabaseEnvironmentIsolation,
+  databaseConnectionConfig,
+} from "../lib/db/src/database-environment.ts";
 
 const dbRequire = createRequire(
   new URL("../lib/db/package.json", import.meta.url),
@@ -160,9 +163,6 @@ export function assertSmtpCredentialBackfillTarget(
 
 async function main(): Promise<void> {
   const mode = process.argv.includes("--apply") ? "apply" : "check";
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl)
-    throw new Error("DATABASE_URL is required for SMTP credential backfill.");
   assertSmtpCredentialBackfillTarget(mode);
   if (
     mode === "apply" &&
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = new Pool(databaseConnectionConfig("migration"));
   const client = await pool.connect();
   try {
     if (mode === "apply") {

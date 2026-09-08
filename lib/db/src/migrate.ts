@@ -18,7 +18,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "./runtime-env";
-import { assertDatabaseEnvironmentIsolation } from "./database-environment";
+import { databaseConnectionConfig } from "./database-environment";
 
 const { Client, Pool } = pg;
 
@@ -52,12 +52,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 loadDbRuntimeEnv();
-
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required for database migrations.");
-}
-assertDatabaseEnvironmentIsolation();
 
 const mode = parseMode(
   process.argv[2] ?? process.env.DB_MIGRATION_MODE ?? "migrate",
@@ -103,16 +97,7 @@ function parseMode(value: string): Mode {
 }
 
 function connectionConfig(): pg.ClientConfig {
-  const config: pg.ClientConfig = { connectionString: databaseUrl };
-  const sslMode = process.env.DB_SSL ?? process.env.PGSSLMODE;
-
-  if (sslMode && !["0", "false", "disable"].includes(sslMode.toLowerCase())) {
-    config.ssl = {
-      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true",
-    };
-  }
-
-  return config;
+  return databaseConnectionConfig("migration");
 }
 
 function sha256(input: string): string {

@@ -43,18 +43,22 @@ jobs:
       FIELDGRID_WEBSITE_FORM_ID: ${{ vars.FIELDGRID_WEBSITE_FORM_ID }}
       FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON: ${{ vars.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON }}
       FIELDGRID_CUSTOM_ROUTE_KEY: ${{ vars.FIELDGRID_CUSTOM_ROUTE_KEY }}
-      FIELDGRID_CUSTOM_RELEASE_ID: git-commit:${{ inputs.expected_staging_sha }}
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      FIELDGRID_CUSTOM_RELEASE_ID: git-commit:${{ github.sha }}
       FIELDGRID_CUSTOM_EXPECTED_HOST: ${{ vars.FIELDGRID_CUSTOM_EXPECTED_HOST }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       APP_URL: ${{ vars.APP_URL }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
 
     steps:
       - name: Checkout exact staging release
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.expected_staging_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -63,7 +67,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          expected="${{ inputs.expected_staging_sha }}"
+          expected="$EXPECTED_STAGING_SHA"
           checkout="$(git rev-parse HEAD)"
           remote="$(
             node --input-type=module -e '
@@ -88,8 +92,21 @@ jobs:
               process.stdout.write(sha);
             '
           )"
+          test "$GITHUB_SHA" = "$EXPECTED_STAGING_SHA"
+          test "$checkout" = "$GITHUB_SHA"
           test "$checkout" = "$expected"
           test "$remote" = "$expected"
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-supabase-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
 
       - name: Validate staging stack contract
         run: |
@@ -97,20 +114,42 @@ jobs:
           node scripts/fieldgrid-environment-isolation-preflight.mjs --validate
           bash scripts/fieldgrid-website-staging-stack-deploy.sh --check
 
+      - name: Install website runtime database root certificate
+        run: |
+          set -euo pipefail
+          certificate_directory="$WEBSITE_STACK_BASE_DIR/shared"
+          certificate_destination="$certificate_directory/supabase-root-2021-ca.crt"
+          mkdir -p "$certificate_directory"
+          certificate_temp="$(mktemp "$certificate_directory/.supabase-root-2021-ca.XXXXXX")"
+          trap 'rm -f "$certificate_temp"' EXIT
+          install -m 600 "$FIELDGRID_DATABASE_SSL_ROOT_CERT" "$certificate_temp"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --check \
+            --file "$certificate_temp"
+          mv -f "$certificate_temp" "$certificate_destination"
+          certificate_temp=""
+          chmod 600 "$certificate_destination"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --check \
+            --file "$certificate_destination"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' \
+            "$certificate_destination" >> "$GITHUB_ENV"
+          trap - EXIT
+
       - name: Deploy staging website stack
         run: |
           set -euo pipefail
           bash scripts/fieldgrid-website-staging-stack-deploy.sh \
             --run \
             --source-dir "$GITHUB_WORKSPACE" \
-            --expected-sha "${{ inputs.expected_staging_sha }}" \
+            --expected-sha "$EXPECTED_STAGING_SHA" \
             --evidence-file "$GITHUB_WORKSPACE/artifacts/website-staging-stack/deploy.json"
 
       - name: Upload secret-free deployment evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: website-staging-stack-${{ github.run_id }}-${{ inputs.expected_staging_sha }}
+          name: website-staging-stack-${{ github.run_id }}-${{ github.sha }}
           path: artifacts/website-staging-stack/
           if-no-files-found: warn
           retention-days: 14

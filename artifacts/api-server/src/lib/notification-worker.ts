@@ -941,7 +941,8 @@ async function checkDeliveryLifecycle(
        WHEN $4::text = 'management' AND NOT EXISTS (
          SELECT 1
          FROM tenant_users tenant_user
-         JOIN auth.users auth_user ON auth_user.id = tenant_user.user_id
+         JOIN LATERAL app_private.fieldgrid_auth_user_snapshot(tenant_user.user_id)
+           auth_user ON true
          WHERE tenant_user.tenant_id = $1
            AND tenant_user.user_id = $7
            AND tenant_user.status = 'active'

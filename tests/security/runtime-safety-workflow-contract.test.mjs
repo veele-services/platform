@@ -35,6 +35,7 @@ test("exact-head workflow exposes required Linux PR validation groups", () => {
     "postgres17-migration-smoke",
     "db-integration-tenant-ab",
     "rls-security",
+    "w00-db-acl-hardening",
     "phase-b-previous-release-database-compatibility",
     "api-runtime",
   ]) {

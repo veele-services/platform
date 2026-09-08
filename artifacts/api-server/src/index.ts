@@ -1,4 +1,6 @@
 import app from "./app";
+import { pool } from "@workspace/db";
+import { createCustomWebsiteHealthRefresher } from "./lib/custom-website-health-refresher";
 import { logger } from "./lib/logger";
 import { isFcmConfigured } from "./lib/native-push";
 
@@ -59,11 +61,41 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
+// Configuration is validated before the listener becomes healthy. When the
+// staging-only refresher is enabled, an invalid actor or route registry is a
+// startup error rather than a silently stale custom website.
+const customWebsiteHealthRefresher = createCustomWebsiteHealthRefresher();
+const server = app.listen(port, () => {
+  logger.info({ port }, "Server listening");
+  customWebsiteHealthRefresher.start();
+});
+
+server.on("error", (err) => {
+  logger.error({ err }, "Error listening on port");
+  process.exit(1);
+});
+
+let shutdownStarted = false;
+async function shutdown(signal: "SIGINT" | "SIGTERM"): Promise<void> {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  logger.info({ signal }, "Server shutdown started");
+  try {
+    await customWebsiteHealthRefresher.stop();
+    await new Promise<void>((resolvePromise, rejectPromise) => {
+      server.close((error) => {
+        if (error) rejectPromise(error);
+        else resolvePromise();
+      });
+    });
+    await pool.end();
+    logger.info({ signal }, "Server shutdown completed");
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err, signal }, "Server shutdown failed");
     process.exit(1);
   }
+}
 
-  logger.info({ port }, "Server listening");
-});
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
