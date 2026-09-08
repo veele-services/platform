@@ -32,9 +32,9 @@ test("independent oracle pins the protected Fieldflow Calm contract root", () =>
   );
   assert.equal(manifest.schemaVersion, 2);
   assert.deepEqual(manifest.lineage, {
-    sequence: 1,
+    sequence: 2,
     previousRootSha256:
-      "a392990a3317941ec7fde1ab298dd4cd638c1da181d2865ff48aaf44c46bf788",
+      "6a95d9976b3923141ec9b9b8f7480538c72924dd20febf307a70f48ae2eebef8",
   });
   assert.equal(manifest.trustPolicy.executionBranch, "main");
   assert.equal(manifest.trustPolicy.environmentBranchPolicy, "main");
