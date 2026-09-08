@@ -10,6 +10,7 @@ import {
   taskCodesTable,
   auditLogTable,
   organizationSettingsTable,
+  amsterdamDateKey,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type QuoteStatus,
@@ -19,7 +20,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { sendEmail, buildQuoteExpiredEmail } from "@/lib/email";
+import { sendEmailWithResult, buildQuoteExpiredEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
 import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { toPlatformInvoiceMetadataDto } from "@/lib/security/safe-dtos";
@@ -110,7 +111,7 @@ type SnapshotTaskLineItemRow = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return amsterdamDateKey();
 }
 
 function isExpired(status: string, validityDate: string): boolean {
@@ -834,14 +835,18 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
       quoteNumber:   quotesTable.quoteNumber,
       assignmentId:  quotesTable.assignmentId,
       amount:        quotesTable.amount,
-      customerName:  customersTable.name,
-      customerEmail: customersTable.contactEmail,
     })
     .from(quotesTable)
-    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
+    .innerJoin(
+      assignmentsTable,
+      and(
+        eq(quotesTable.assignmentId, assignmentsTable.id),
+        eq(quotesTable.tenantId, assignmentsTable.tenantId),
+      ),
+    )
     .where(
       and(
+        eq(quotesTable.tenantId, tenantId),
         eq(assignmentsTable.tenantId, tenantId),
         eq(quotesTable.status, "sent"),
         lt(quotesTable.validityDate, today),
@@ -855,37 +860,62 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
   const [orgSettings] = await db
     .select({ notifEnabled: organizationSettingsTable.notifOfferteVerlopen })
     .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
-  for (const q of expirableQuotes) {
-    await db
-      .update(quotesTable)
-      .set({ status: "expired" })
-      .where(eq(quotesTable.id, q.id));
-  }
-
+  let expired = 0;
   let notified = 0;
 
-  if (orgSettings?.notifEnabled) {
-    for (const q of expirableQuotes) {
-      if (!q.customerEmail) continue;
+  for (const q of expirableQuotes) {
+    const [claimed] = await db
+      .update(quotesTable)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(quotesTable.id, q.id),
+          eq(quotesTable.tenantId, tenantId),
+          eq(quotesTable.status, "sent"),
+          lt(quotesTable.validityDate, today),
+        ),
+      )
+      .returning({ customerId: quotesTable.customerId });
+    if (!claimed) continue;
+
+    expired++;
+
+    if (orgSettings?.notifEnabled) {
+      const [customer] = await db
+        .select({
+          name:  customersTable.name,
+          email: customersTable.contactEmail,
+        })
+        .from(customersTable)
+        .where(
+          and(
+            eq(customersTable.id, claimed.customerId),
+            eq(customersTable.tenantId, tenantId),
+          ),
+        )
+        .limit(1);
+      if (!customer?.email) continue;
+
       const { subject, html } = buildQuoteExpiredEmail({
-        customerName: q.customerName ?? "",
+        customerName: customer.name,
         quoteNumber:  q.quoteNumber,
         amount:       q.amount ?? "0",
       });
-      await sendEmail({
-        to: q.customerEmail,
+      const emailResult = await sendEmailWithResult({
+        to: customer.email,
         subject,
         html,
         tenantId,
         purpose: "quote_expired",
       });
-      notified++;
+      if (emailResult.success) notified++;
     }
   }
 
   revalidatePath("/quotes");
 
-  return { success: true, data: { expired: expirableQuotes.length, notified } };
+  return { success: true, data: { expired, notified } };
 }

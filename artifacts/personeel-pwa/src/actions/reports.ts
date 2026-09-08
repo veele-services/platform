@@ -956,12 +956,13 @@ export async function submitMyReport(
       const [orgSettings] = await db
         .select({ emailAfzender: organizationSettingsTable.emailAfzender })
         .from(organizationSettingsTable)
+        .where(eq(organizationSettingsTable.tenantId, identity.tenantId))
         .limit(1);
       if (orgSettings?.emailAfzender) {
         const [assignment] = await db
           .select({ title: assignmentsTable.title })
           .from(assignmentsTable)
-          .where(eq(assignmentsTable.id, assignmentId))
+          .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)))
           .limit(1);
         const { subject, html } = buildReportSubmittedEmail({
           personnelName:   `${person?.firstName ?? ""} ${person?.lastName ?? ""}`.trim(),
@@ -976,7 +977,14 @@ export async function submitMyReport(
           purpose: "report_submitted",
         });
       }
-    })();
+    })().catch((notificationError: unknown) => {
+      console.error(
+        "Rapportnotificatie kon niet worden voorbereid",
+        notificationError instanceof Error
+          ? notificationError.message
+          : "Onbekende notificatiefout",
+      );
+    });
 
     revalidatePath("/opdrachten");
     revalidatePath(`/opdrachten/${assignmentId}`);

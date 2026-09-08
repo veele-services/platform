@@ -4,7 +4,10 @@ import {
   type EmailTemplateVariables,
   type RenderedEmail,
 } from "@workspace/db/email-templates";
-import { sendTransactionalEmail } from "@workspace/db/email-service";
+import {
+  sendTemplatedEmail,
+  sendTransactionalEmail,
+} from "@workspace/db/email-service";
 import { logger } from "./logger";
 
 function siteUrl(): string {
@@ -75,6 +78,40 @@ export async function sendEmailWithResult(opts: {
   };
 }
 
+export async function sendTemplatedEmailWithResult(opts: {
+  to: string | string[];
+  tenantId: string;
+  templateKey: EmailTemplateKey;
+  variables: EmailTemplateVariables;
+  idempotencyKey: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  providerMessageId?: string | null;
+  providerType?: string;
+  deliveryEffect: "not_attempted" | "accepted" | "unknown";
+}> {
+  const result = await sendTemplatedEmail({
+    to: opts.to,
+    tenantId: opts.tenantId,
+    templateKey: opts.templateKey,
+    variables: opts.variables,
+    triggeredByType: "system",
+    idempotencyKey: opts.idempotencyKey,
+  });
+  if (!result.success) {
+    const msg = result.error ?? "E-mailprovider niet geconfigureerd";
+    logger.warn({ templateKey: opts.templateKey }, msg);
+    return { success: false, error: msg, deliveryEffect: result.deliveryEffect };
+  }
+  return {
+    success: true,
+    providerMessageId: result.providerMessageId ?? null,
+    providerType: result.providerType,
+    deliveryEffect: result.deliveryEffect,
+  };
+}
+
 function renderPreview(templateKey: EmailTemplateKey, variables: EmailTemplateVariables): RenderedEmail {
   return renderEmailTemplatePreview({ templateKey, variables });
 }
@@ -104,13 +141,17 @@ export function buildPaymentReminderEmail(opts: {
   totalAmount: string;
   dueDate: string;
   invoiceId: string;
-}): RenderedEmail {
-  return renderPreview("invoice_payment_reminder", {
+}): RenderedEmail & { templateVariables: EmailTemplateVariables } {
+  const templateVariables: EmailTemplateVariables = {
     customerName: opts.customerName,
     invoiceNumber: opts.invoiceNumber,
     totalAmount: formatAmount(opts.totalAmount),
     dueDate: opts.dueDate,
     invoiceId: opts.invoiceId,
     invoiceUrl: `${siteUrl()}/klant/facturen`,
-  });
+  };
+  return {
+    ...renderPreview("invoice_payment_reminder", templateVariables),
+    templateVariables,
+  };
 }

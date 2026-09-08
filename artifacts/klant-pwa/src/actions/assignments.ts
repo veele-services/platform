@@ -734,6 +734,7 @@ export async function approveQuote(
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
       .from(organizationSettingsTable)
+      .where(eq(organizationSettingsTable.tenantId, identity.tenantId))
       .limit(1);
     if (!orgSettings?.emailAfzender) return;
 
@@ -778,7 +779,12 @@ export async function approveQuote(
       tenantId: identity.tenantId,
       purpose: "quote_decision_received",
     });
-  })();
+  })().catch((error: unknown) => {
+    console.error(
+      "Offerte-acceptatienotificatie kon niet worden voorbereid",
+      error instanceof Error ? error.message : "Onbekende notificatiefout",
+    );
+  });
 
   revalidatePath("/opdrachten");
   revalidatePath(`/opdrachten/${assignmentId}`);
@@ -919,6 +925,7 @@ export async function rejectQuote(
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
       .from(organizationSettingsTable)
+      .where(eq(organizationSettingsTable.tenantId, identity.tenantId))
       .limit(1);
     if (!orgSettings?.emailAfzender) return;
 
@@ -963,7 +970,12 @@ export async function rejectQuote(
       tenantId: identity.tenantId,
       purpose: "quote_decision_received",
     });
-  })();
+  })().catch((error: unknown) => {
+    console.error(
+      "Offerte-afwijzingsnotificatie kon niet worden voorbereid",
+      error instanceof Error ? error.message : "Onbekende notificatiefout",
+    );
+  });
 
   revalidatePath("/opdrachten");
   revalidatePath(`/opdrachten/${assignmentId}`);

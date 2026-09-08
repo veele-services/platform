@@ -6,6 +6,7 @@ import {
   requireAdminSecret,
 } from "../lib/admin-api";
 import {
+  confirmDeliveredNotifications,
   processNotificationQueue,
   retryFailedNotifications,
 } from "../lib/notification-worker";
@@ -63,6 +64,59 @@ router.post(
       res.json(result);
     } catch (err) {
       req.log.error({ err }, "notification-worker: onverwachte fout");
+      res.status(500).json({ error: "Interne fout" });
+    }
+  },
+);
+
+router.post(
+  "/admin/notification-worker/confirm-delivered",
+  async (req: Request, res: Response) => {
+    if (!requireAdminSecret(req, res, "notification-worker-confirm-delivered"))
+      return;
+
+    const queueIds = req.body?.queueIds;
+    const reason = req.body?.reason;
+    if (
+      req.body?.confirmedDelivered !== true ||
+      !Array.isArray(queueIds) ||
+      queueIds.length === 0 ||
+      queueIds.length > 100 ||
+      queueIds.some((id) => typeof id !== "string" || !QUEUE_ID_RE.test(id)) ||
+      typeof reason !== "string" ||
+      reason.trim().length < 10 ||
+      reason.trim().length > 500
+    ) {
+      res.status(400).json({
+        error:
+          "Exacte queueIds, een beoordelingsreden en expliciete bezorgbevestiging zijn verplicht.",
+      });
+      return;
+    }
+
+    try {
+      const result = await confirmDeliveredNotifications({
+        queueIds,
+        reason,
+        logger: req.log,
+      });
+      res.json(result);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message ===
+          "notification_confirmation_requires_outcome_pending_items"
+      ) {
+        res.status(409).json({
+          error:
+            "Alle geselecteerde meldingen moeten nog op providerbevestiging wachten.",
+        });
+        return;
+      }
+      req.log.error(
+        { err },
+        "notification-worker-confirm-delivered: onverwachte fout",
+      );
       res.status(500).json({ error: "Interne fout" });
     }
   },

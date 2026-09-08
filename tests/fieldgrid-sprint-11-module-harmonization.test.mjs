@@ -75,8 +75,8 @@ test("Sprint 11 gives background jobs the shared module guard", () => {
     ],
     "job module guard",
   );
-  assertIncludes(reminders, ["requireJobTenantModule(invoice.customerTenantId, \"finance\")", "moduleDisabled++"], "payment reminder job");
-  assertIncludes(expiredQuotes, ["requireJobTenantModule(q.customerTenantId, \"finance\")", "moduleDisabled++"], "expired quote job");
+  assertIncludes(reminders, ["const invoiceTenantId = invoice.tenantId", "requireJobTenantModule", "invoiceTenantId", "moduleDisabled++"], "payment reminder job");
+  assertIncludes(expiredQuotes, ["const quoteTenantId = q.tenantId", "requireJobTenantModule", "quoteTenantId", "moduleDisabled++"], "expired quote job");
 });
 
 test("Sprint 11 exposes module dependency inspection in platform-admin", () => {
