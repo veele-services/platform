@@ -5,11 +5,15 @@ import {
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
   managedProofDomainBindingRequired,
+  selectAutomationActor,
+  selectDefaultAutomationActor,
   validateWebsiteStagingProofStateConfig,
 } from "../../scripts/fieldgrid-website-staging-proof-state.mts";
 
 const sha = "a".repeat(40);
 const actor = "10000000-0000-4000-8000-000000000001";
+const UUID_PATTERN_FOR_TEST =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/iu;
 
 function options(
   mode: "prepare-managed" | "complete-custom" | "verify" | "rollback-custom",
@@ -107,6 +111,78 @@ test("prepare-managed is exact-main, explicit and independent of custom routing"
       FIELDGRID_DATABASE_CONNECTION_PURPOSE: undefined,
     }).join(";"),
     /migration connection purpose/u,
+  );
+});
+
+test("actorless prepare prefers one admin and only falls back to one owner", () => {
+  const owner = "10000000-0000-4000-8000-000000000010";
+  const ownerTwo = "10000000-0000-4000-8000-000000000011";
+  const admin = "10000000-0000-4000-8000-000000000020";
+  const adminTwo = "10000000-0000-4000-8000-000000000021";
+
+  assert.equal(
+    selectDefaultAutomationActor([
+      { user_id: admin, role: "admin" },
+      { user_id: owner, role: "owner" },
+      { user_id: ownerTwo, role: "owner" },
+    ]),
+    admin,
+  );
+  assert.equal(
+    selectDefaultAutomationActor([{ user_id: owner, role: "owner" }]),
+    owner,
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: admin, role: "admin" },
+        { user_id: adminTwo, role: "admin" },
+        { user_id: owner, role: "owner" },
+      ]),
+    /exactly one active platform admin/u,
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: owner, role: "owner" },
+        { user_id: ownerTwo, role: "owner" },
+      ]),
+    /exactly one active platform owner/u,
+  );
+  assert.throws(
+    () => selectDefaultAutomationActor([]),
+    (error: unknown) => {
+      assert.match(String(error), /exactly one active platform owner/u);
+      assert.doesNotMatch(String(error), UUID_PATTERN_FOR_TEST);
+      return true;
+    },
+  );
+  assert.throws(
+    () =>
+      selectDefaultAutomationActor([
+        { user_id: "should-not-be-selected", role: "support" },
+      ]),
+    /exactly one active platform owner/u,
+  );
+});
+
+test("a configured active owner or admin remains the exact actor", () => {
+  assert.equal(
+    selectAutomationActor([{ user_id: actor, role: "owner" }], actor),
+    actor,
+  );
+  assert.throws(
+    () =>
+      selectAutomationActor(
+        [
+          {
+            user_id: "10000000-0000-4000-8000-000000000099",
+            role: "admin",
+          },
+        ],
+        actor,
+      ),
+    /not an active platform owner\/admin/u,
   );
 });
 

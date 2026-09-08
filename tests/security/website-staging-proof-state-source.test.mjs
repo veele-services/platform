@@ -120,7 +120,29 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     script,
     /options\.mode !== "prepare-managed" && !UUID_PATTERN\.test\(actor\)/u,
   );
-  assert.match(script, /if \(result\.rows\.length !== 1\)/u);
+  assert.match(
+    script,
+    /WHERE status = 'active' AND role IN \('owner', 'admin'\)/u,
+  );
+  const actorResolver = script.slice(
+    script.indexOf("async function resolveAutomationActor"),
+    script.indexOf("async function resolveRuntimeTenant"),
+  );
+  assert.match(
+    actorResolver,
+    /return selectAutomationActor\(result\.rows, requested\)/u,
+  );
+  assert.match(actorResolver, /candidates\.length !== 1/u);
+  assert.match(actorResolver, /const admins = candidates\.filter/u);
+  assert.match(actorResolver, /if \(admins\.length === 1\)/u);
+  assert.match(actorResolver, /if \(admins\.length > 1\)/u);
+  assert.match(actorResolver, /if \(owners\.length !== 1\)/u);
+  assert.doesNotMatch(actorResolver, /\bLIMIT\s+1\b/iu);
+  assert.doesNotMatch(actorResolver, /auth\.users|email/iu);
+  assert.match(
+    script,
+    /await resolveAutomationActor\(dbModule\.pool, actorUserId\);/u,
+  );
   assert.match(workflow, /prepare-managed/u);
   assert.match(workflow, /complete-custom/u);
   assert.match(workflow, /sleep 370/u);
