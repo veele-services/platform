@@ -145,8 +145,47 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
       "- name: Prove durable custom health after six-minute soak",
     ),
   );
+  const prepareStep = workflow.slice(
+    workflow.indexOf(
+      "- name: Prepare managed proof with migration-admin connection",
+    ),
+    workflow.indexOf(
+      "- name: Complete, verify or rollback with runtime connection",
+    ),
+  );
+  assert.match(
+    prepareStep,
+    /DATABASE_URL: \$\{\{ secrets\.FIELDGRID_RUNTIME_DATABASE_URL \}\}/u,
+  );
+  assert.match(
+    prepareStep,
+    /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+  );
+  assert.match(
+    prepareStep,
+    /FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration/u,
+  );
+  assert.equal(
+    (workflow.match(/FIELDGRID_DATABASE_CONNECTION_PURPOSE/gu) ?? []).length,
+    1,
+  );
+  assert.match(workflow, /fieldgrid-database-connection-purpose\.test\.ts/u);
+  assert.doesNotMatch(
+    prepareStep,
+    /\n\s+DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+  );
   assert.doesNotMatch(runtimeStep, /secrets\.DATABASE_URL/u);
   assert.doesNotMatch(runtimeStep, /FIELDGRID_MIGRATION_DATABASE_URL/u);
+  assert.doesNotMatch(runtimeStep, /FIELDGRID_DATABASE_CONNECTION_PURPOSE/u);
+  assert.doesNotMatch(
+    read(".github/workflows/deploy.yml"),
+    /FIELDGRID_DATABASE_CONNECTION_PURPOSE/u,
+  );
+  assert.ok(
+    script.indexOf("const evidence: ProofEvidence") <
+      script.indexOf('await import("../lib/db/src/index.ts")'),
+    "proof evidence must be initialized before the database bootstrap",
+  );
   assert.match(workflow, /scripts\/fieldgrid-database-root-cert\.mjs/u);
   assert.match(workflow, /DB_SSL_REJECT_UNAUTHORIZED: "true"/u);
   assert.match(workflow, /PGSSLMODE: verify-full/u);
