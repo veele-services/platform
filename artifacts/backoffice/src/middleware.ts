@@ -63,9 +63,15 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const normalizedPathname = stripBackofficeBasePath(pathname);
-  if (isStagingSmokeAutomationRequest(request.method, normalizedPathname)) {
-    // This exact read-only route performs its own platform-admin or timing-safe
-    // automation authentication. No other protected route bypasses middleware.
+  if (
+    isStagingSmokeAutomationRequest(
+      request.method,
+      normalizedPathname,
+      request.headers.get("authorization"),
+    )
+  ) {
+    // Bearer-bearing requests to this exact read-only route authenticate in the
+    // route. Cookie-authenticated calls still traverse normal session refresh.
     return NextResponse.next({ request });
   }
   const isLoginPage = normalizedPathname === "/login";

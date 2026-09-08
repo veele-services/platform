@@ -56,12 +56,10 @@ const STAGING_MUTATING_SMOKE_CONFIRM_VALUE =
 const STAGING_MUTATING_SMOKE_CONFIRM = `FIELDGRID_MUTATING_SMOKE_CONFIRM=${STAGING_MUTATING_SMOKE_CONFIRM_VALUE}`;
 const RELEASE_SHA_PATTERN = /^[0-9a-f]{40}$/u;
 
-export async function readDeployedReleaseSha(
-  workingDirectory = process.cwd(),
-): Promise<string | null> {
+async function readDeployedReleaseSha(): Promise<string | null> {
   try {
     const value = (
-      await readFile(join(workingDirectory, ".fieldgrid-release-sha"), "utf8")
+      await readFile(join(process.cwd(), ".fieldgrid-release-sha"), "utf8")
     ).trim();
     return RELEASE_SHA_PATTERN.test(value) ? value : null;
   } catch {

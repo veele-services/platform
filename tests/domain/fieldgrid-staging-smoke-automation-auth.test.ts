@@ -67,20 +67,32 @@ test("staging smoke automation bearer fails closed outside an exact staging envi
 
 test("middleware exemption is exact to normalized GET/HEAD staging-smoke requests", () => {
   assert.equal(
-    isStagingSmokeAutomationRequest("GET", "/api/platform/staging-smoke"),
+    isStagingSmokeAutomationRequest(
+      "GET",
+      "/api/platform/staging-smoke",
+      `Bearer ${secret}`,
+    ),
     true,
   );
   assert.equal(
-    isStagingSmokeAutomationRequest("HEAD", "/api/platform/staging-smoke"),
+    isStagingSmokeAutomationRequest(
+      "HEAD",
+      "/api/platform/staging-smoke",
+      "Basic malformed",
+    ),
     true,
   );
-  for (const [method, path] of [
-    ["POST", "/api/platform/staging-smoke"],
-    ["GET", "/api/platform/staging-smoke/extra"],
-    ["GET", "/platform/staging-smoke"],
-    ["GET", "/api/platform/security/export"],
-    ["GET", "/"],
+  for (const [method, path, authorization] of [
+    ["GET", "/api/platform/staging-smoke", null],
+    ["POST", "/api/platform/staging-smoke", `Bearer ${secret}`],
+    ["GET", "/api/platform/staging-smoke/extra", `Bearer ${secret}`],
+    ["GET", "/platform/staging-smoke", `Bearer ${secret}`],
+    ["GET", "/api/platform/security/export", `Bearer ${secret}`],
+    ["GET", "/", `Bearer ${secret}`],
   ]) {
-    assert.equal(isStagingSmokeAutomationRequest(method, path), false);
+    assert.equal(
+      isStagingSmokeAutomationRequest(method, path, authorization),
+      false,
+    );
   }
 });
