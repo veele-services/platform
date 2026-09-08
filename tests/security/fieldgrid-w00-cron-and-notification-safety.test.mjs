@@ -66,12 +66,20 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
     source,
     /requireJobTenantModule\(\s*invoiceTenantId,\s*"finance",?\s*\)/u,
   );
+  assert.match(
+    source,
+    /requireJobTenantModule\(invoiceTenantId, "notifications"\)/u,
+  );
   assert.doesNotMatch(source, /customerTenantId/u);
   assert.match(
     source,
     /eq\(invoicesTable\.id, invoice\.id\)[\s\S]*eq\(invoicesTable\.tenantId, invoiceTenantId\)/u,
   );
-  assert.doesNotMatch(source, /\.for\("update"\)/u);
+  const invoiceSnapshot = source.slice(
+    source.indexOf("const [currentInvoice]"),
+    source.indexOf("const [settings]"),
+  );
+  assert.doesNotMatch(invoiceSnapshot, /\.for\("update"\)/u);
   assert.match(
     source,
     /eq\(invoicesTable\.customerId, customersTable\.id\)[\s\S]*eq\(customersTable\.tenantId, invoiceTenantId\)/u,
@@ -79,6 +87,14 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
   assert.match(
     source,
     /eq\(organizationSettingsTable\.tenantId, invoiceTenantId\)[\s\S]*\.for\("share"\)/u,
+  );
+  assert.match(
+    source,
+    /eq\(tenantsTable\.isActive, true\)[\s\S]*inArray\(tenantsTable\.status, \["trial", "active"\]\)[\s\S]*eq\(customersTable\.isActive, true\)[\s\S]*eq\(customersTable\.status, "active"\)[\s\S]*customerPortalPreferencesTable\.emailNotifications/u,
+  );
+  assert.match(
+    source,
+    /notificationEventSettingsTable\.eventKey, "payment_reminder"[\s\S]*notificationEventSettingsTable\.emailEnabled, true/u,
   );
   assert.match(
     source,
@@ -96,9 +112,14 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
     source,
     /const cycleKey = `payment-reminder:\$\{invoiceTenantId\}:\$\{invoice\.id\}:\$\{currentInvoice\.lastReminderSentAt\?\.getTime\(\) \?\? "initial"\}`/u,
   );
+  assert.match(source, /idempotencyKey: cycleKey,[\s\S]*deliveryKey,/u);
   assert.match(
     source,
-    /idempotencyKey: cycleKey,[\s\S]*deliveryKey: cycleKey/u,
+    /eq\(notificationDeliveryQueueTable\.idempotencyKey, cycleKey\)[\s\S]*eq\(notificationDeliveryQueueTable\.status, "skipped"\)[\s\S]*gte\(notificationDeliveryQueueTable\.attempts, 20\)[\s\S]*\.for\("update"\)/u,
+  );
+  assert.match(
+    source,
+    /idempotencyKey: `\$\{cycleKey\}:exhausted:\$\{exhaustedSkipped\.id\}`[\s\S]*recoverySuperseded[\s\S]*const deliveryKey = exhaustedSkipped[\s\S]*`\$\{cycleKey\}:recovery:\$\{exhaustedSkipped\.id\}`/u,
   );
   assert.match(
     source,

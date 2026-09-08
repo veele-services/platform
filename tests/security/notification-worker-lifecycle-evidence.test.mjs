@@ -135,6 +135,14 @@ test("payment reminders recheck source state and record delivery only on durable
   assert.match(runtime, /confirmedReminderState\.status, "sent"/u);
   assert.match(runtime, /confirmedReminderState\.terminal_attempt_id/u);
   assert.match(runtime, /confirmedReminderRedeliveries, 0/u);
+  assert.match(runtime, /runtime-payment-reminder-exhausted-skipped-recovery/u);
+  assert.match(runtime, /exhaustedSkippedLifecycleDisabled\.queued, 0/u);
+  assert.match(
+    runtime,
+    /exhaustedSkippedRecovery\.reduce\([\s\S]*result\.queued[\s\S]*\),\s*1/u,
+  );
+  assert.match(runtime, /recoverySuperseded/u);
+  assert.match(runtime, /replacementQueueId/u);
   assert.match(workerRoute, /\/admin\/notification-worker\/confirm-delivered/u);
   assert.match(workerRoute, /confirmedDelivered !== true/u);
   assert.match(

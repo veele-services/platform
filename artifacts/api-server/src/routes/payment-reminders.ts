@@ -5,10 +5,13 @@ import {
   db,
   invoicesTable,
   customersTable,
+  customerPortalPreferencesTable,
   notificationDeliveryQueueTable,
+  notificationEventSettingsTable,
   organizationSettingsTable,
+  tenantsTable,
 } from "@workspace/db";
-import { eq, and, inArray, lte, or, isNull, lt, sql } from "drizzle-orm";
+import { eq, and, gte, inArray, lte, or, isNull, lt, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { buildPaymentReminderEmail } from "../lib/email";
 import { requireJobTenantModule } from "../lib/module-guards";
@@ -120,11 +123,11 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         skipped++;
         continue;
       }
-      const moduleGuard = await requireJobTenantModule(
-        invoiceTenantId,
-        "finance",
-      );
-      if (!moduleGuard.allowed) {
+      const [financeModuleGuard, notificationModuleGuard] = await Promise.all([
+        requireJobTenantModule(invoiceTenantId, "finance"),
+        requireJobTenantModule(invoiceTenantId, "notifications"),
+      ]);
+      if (!financeModuleGuard.allowed || !notificationModuleGuard.allowed) {
         moduleDisabled++;
         skipped++;
         continue;
@@ -153,11 +156,26 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
               eq(customersTable.tenantId, invoiceTenantId),
             ),
           )
+          .innerJoin(
+            tenantsTable,
+            and(
+              eq(tenantsTable.id, invoiceTenantId),
+              eq(tenantsTable.isActive, true),
+              inArray(tenantsTable.status, ["trial", "active"]),
+            ),
+          )
+          .leftJoin(
+            customerPortalPreferencesTable,
+            eq(customerPortalPreferencesTable.customerId, customersTable.id),
+          )
           .where(
             and(
               eq(invoicesTable.id, invoice.id),
               eq(invoicesTable.tenantId, invoiceTenantId),
               eq(invoicesTable.status, "sent"),
+              eq(customersTable.isActive, true),
+              eq(customersTable.status, "active"),
+              sql`coalesce(${customerPortalPreferencesTable.emailNotifications}, true)`,
             ),
           )
           .limit(1);
@@ -173,6 +191,21 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
           .for("share")
           .limit(1);
         if (!(settings?.notifEnabled ?? true)) return null;
+
+        const [eventSetting] = await tx
+          .select({
+            emailEnabled: notificationEventSettingsTable.emailEnabled,
+          })
+          .from(notificationEventSettingsTable)
+          .where(
+            and(
+              eq(notificationEventSettingsTable.eventKey, "payment_reminder"),
+              eq(notificationEventSettingsTable.emailEnabled, true),
+            ),
+          )
+          .for("share")
+          .limit(1);
+        if (!eventSetting?.emailEnabled) return null;
 
         const herinneringDagen = settings?.herinneringDagen ?? 7;
         const claimedAt = new Date();
@@ -203,6 +236,52 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
           invoiceId: invoice.id,
         });
         const cycleKey = `payment-reminder:${invoiceTenantId}:${invoice.id}:${currentInvoice.lastReminderSentAt?.getTime() ?? "initial"}`;
+        const [exhaustedSkipped] = await tx
+          .select({ id: notificationDeliveryQueueTable.id })
+          .from(notificationDeliveryQueueTable)
+          .where(
+            and(
+              eq(notificationDeliveryQueueTable.idempotencyKey, cycleKey),
+              eq(notificationDeliveryQueueTable.status, "skipped"),
+              gte(notificationDeliveryQueueTable.attempts, 20),
+            ),
+          )
+          .for("update")
+          .limit(1);
+
+        if (exhaustedSkipped) {
+          // A skipped attempt never reached the provider. Preserve its complete
+          // delivery evidence, but release the logical cycle key so a corrected
+          // reversible lifecycle condition can create a fresh delivery record.
+          await tx
+            .update(notificationDeliveryQueueTable)
+            .set({
+              idempotencyKey: `${cycleKey}:exhausted:${exhaustedSkipped.id}`,
+              errorDetails: sql<Record<string, unknown>>`coalesce(
+                ${notificationDeliveryQueueTable.errorDetails},
+                '{}'::jsonb
+              ) || jsonb_build_object(
+                'recoverySuperseded',
+                jsonb_build_object(
+                  'canonicalCycleKey', cast(${cycleKey} as text),
+                  'reviewedAt', cast(${claimedAt.toISOString()} as text)
+                )
+              )`,
+              updatedAt: claimedAt,
+            })
+            .where(
+              and(
+                eq(notificationDeliveryQueueTable.id, exhaustedSkipped.id),
+                eq(notificationDeliveryQueueTable.idempotencyKey, cycleKey),
+                eq(notificationDeliveryQueueTable.status, "skipped"),
+                gte(notificationDeliveryQueueTable.attempts, 20),
+              ),
+            );
+        }
+
+        const deliveryKey = exhaustedSkipped
+          ? `${cycleKey}:recovery:${exhaustedSkipped.id}`
+          : cycleKey;
         const [enqueued] = await tx
           .insert(notificationDeliveryQueueTable)
           .values({
@@ -226,7 +305,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
             },
             status: "pending",
             idempotencyKey: cycleKey,
-            deliveryKey: cycleKey,
+            deliveryKey,
           })
           .onConflictDoUpdate({
             target: notificationDeliveryQueueTable.idempotencyKey,
@@ -275,6 +354,22 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
             ),
           })
           .returning({ id: notificationDeliveryQueueTable.id });
+
+        if (exhaustedSkipped && enqueued) {
+          await tx
+            .update(notificationDeliveryQueueTable)
+            .set({
+              errorDetails: sql<Record<string, unknown>>`coalesce(
+                ${notificationDeliveryQueueTable.errorDetails},
+                '{}'::jsonb
+              ) || jsonb_build_object(
+                'replacementQueueId',
+                cast(${enqueued.id} as text)
+              )`,
+              updatedAt: claimedAt,
+            })
+            .where(eq(notificationDeliveryQueueTable.id, exhaustedSkipped.id));
+        }
 
         return enqueued ?? null;
       });

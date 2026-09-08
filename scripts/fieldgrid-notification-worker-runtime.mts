@@ -223,6 +223,17 @@ async function queueState(id: string) {
   return result.rows[0];
 }
 
+async function paymentReminderQueueState(id: string) {
+  const result = await client.query(
+    `select status, attempts, max_attempts, delivery_key, delivery_started_at,
+            current_attempt_id, terminal_attempt_id, response, last_error,
+            idempotency_key, error_details
+     from public.notification_delivery_queue where id = $1`,
+    [id],
+  );
+  return result.rows[0];
+}
+
 async function attempts(id: string) {
   const result = await client.query(
     `select status, attempt_no, delivery_key, provider_message_id, response
@@ -1725,6 +1736,190 @@ try {
   });
   assert.equal(confirmedReminderSecondRun.claimed, 0);
   assert.equal(confirmedReminderRedeliveries, 0);
+
+  await client.query(
+    `update public.notification_delivery_attempts set status='skipped' where id=$1`,
+    [boundary20Reminder.terminalAttemptId],
+  );
+  await client.query(
+    `update public.notification_delivery_queue set status='skipped' where id=$1`,
+    [boundary20Reminder.queue.id],
+  );
+  const exhaustedSkippedOriginal = await paymentReminderQueueState(
+    boundary20Reminder.queue.id,
+  );
+  const exhaustedSkippedPreferenceBefore = await client.query(
+    `select email_notifications, push_notifications
+     from public.customer_portal_preferences where customer_id=$1`,
+    [FIXTURE.customers.a],
+  );
+  const exhaustedSkippedQueueIdsBefore = new Set(
+    (
+      await client.query(
+        `select id from public.notification_delivery_queue
+         where event_key='payment_reminder'`,
+      )
+    ).rows.map((row) => String(row.id)),
+  );
+  try {
+    await client.query(
+      `insert into public.customer_portal_preferences
+         (customer_id, email_notifications, push_notifications)
+       values ($1, false, false)
+       on conflict (customer_id) do update set email_notifications=false`,
+      [FIXTURE.customers.a],
+    );
+    await assertNoExternalEligibleReminderInvoices();
+    const exhaustedSkippedLifecycleDisabled = await callPaymentReminderCron();
+    assert.equal(exhaustedSkippedLifecycleDisabled.queued, 0);
+    assert.equal(exhaustedSkippedLifecycleDisabled.skipped, 1);
+    const disabledState = await paymentReminderQueueState(
+      boundary20Reminder.queue.id,
+    );
+    assert.equal(disabledState.status, "skipped");
+    assert.equal(disabledState.attempts, 20);
+    assert.equal(
+      disabledState.idempotency_key,
+      boundary20Reminder.queue.cycleKey,
+    );
+    assert.equal(
+      disabledState.delivery_key,
+      exhaustedSkippedOriginal.delivery_key,
+    );
+
+    await client.query(
+      `update public.customer_portal_preferences
+       set email_notifications=true where customer_id=$1`,
+      [FIXTURE.customers.a],
+    );
+    const exhaustedSkippedRecovery = await Promise.all([
+      callPaymentReminderCron(),
+      callPaymentReminderCron(),
+    ]);
+    assert.equal(
+      exhaustedSkippedRecovery.reduce(
+        (total, result) => total + Number(result.queued),
+        0,
+      ),
+      1,
+    );
+    assert.equal(
+      exhaustedSkippedRecovery.reduce(
+        (total, result) => total + Number(result.skipped),
+        0,
+      ),
+      1,
+    );
+
+    const replacementResult = await client.query(
+      `select id from public.notification_delivery_queue
+       where idempotency_key=$1`,
+      [boundary20Reminder.queue.cycleKey],
+    );
+    assert.equal(replacementResult.rowCount, 1);
+    const replacementQueueId = String(replacementResult.rows[0].id);
+    assert.notEqual(replacementQueueId, boundary20Reminder.queue.id);
+    const exhaustedSkippedAfterRecovery = await paymentReminderQueueState(
+      boundary20Reminder.queue.id,
+    );
+    const replacementBeforeDelivery =
+      await paymentReminderQueueState(replacementQueueId);
+    assert.equal(exhaustedSkippedAfterRecovery.status, "skipped");
+    assert.equal(exhaustedSkippedAfterRecovery.attempts, 20);
+    assert.equal(
+      exhaustedSkippedAfterRecovery.terminal_attempt_id,
+      boundary20Reminder.terminalAttemptId,
+    );
+    assert.equal(
+      exhaustedSkippedAfterRecovery.delivery_key,
+      exhaustedSkippedOriginal.delivery_key,
+    );
+    assert.equal(
+      exhaustedSkippedAfterRecovery.idempotency_key,
+      `${boundary20Reminder.queue.cycleKey}:exhausted:${boundary20Reminder.queue.id}`,
+    );
+    assert.equal(
+      exhaustedSkippedAfterRecovery.error_details.recoverySuperseded
+        .canonicalCycleKey,
+      boundary20Reminder.queue.cycleKey,
+    );
+    assert.equal(
+      exhaustedSkippedAfterRecovery.error_details.replacementQueueId,
+      replacementQueueId,
+    );
+    assert.equal(replacementBeforeDelivery.status, "pending");
+    assert.equal(replacementBeforeDelivery.attempts, 0);
+    assert.equal(replacementBeforeDelivery.max_attempts, 5);
+    assert.equal(
+      replacementBeforeDelivery.idempotency_key,
+      boundary20Reminder.queue.cycleKey,
+    );
+    assert.equal(
+      replacementBeforeDelivery.delivery_key,
+      `${boundary20Reminder.queue.cycleKey}:recovery:${boundary20Reminder.queue.id}`,
+    );
+
+    const exhaustedSkippedDuplicateRecovery = await callPaymentReminderCron();
+    assert.equal(exhaustedSkippedDuplicateRecovery.queued, 0);
+    assert.equal(exhaustedSkippedDuplicateRecovery.skipped, 1);
+    const replacementDelivery = await runEmail({
+      workerId: "runtime-payment-reminder-exhausted-skipped-recovery",
+      queueIds: [replacementQueueId],
+    });
+    assert.equal(replacementDelivery.sent, 1);
+    assert.equal((await queueState(replacementQueueId)).status, "sent");
+    const exhaustedSkippedEvidence = await attempts(
+      boundary20Reminder.queue.id,
+    );
+    assert.equal(exhaustedSkippedEvidence.length, 20);
+    assert.equal(exhaustedSkippedEvidence.at(-1)?.status, "skipped");
+    const replacementEvidence = await client.query(
+      `select
+         invoice.last_reminder_sent_at,
+         count(audit.id)::int as audit_count,
+         max(audit.metadata->>'queueId') as queue_id
+       from public.invoices invoice
+       left join public.audit_log audit
+         on audit.tenant_id=invoice.tenant_id
+        and audit.resource_id=invoice.id::text
+        and audit.action='payment_reminder_sent'
+       where invoice.id=$1 and invoice.tenant_id=$2
+       group by invoice.last_reminder_sent_at`,
+      [boundary20Reminder.invoice.id, tenantA],
+    );
+    assert.ok(replacementEvidence.rows[0].last_reminder_sent_at);
+    assert.equal(replacementEvidence.rows[0].audit_count, 1);
+    assert.equal(replacementEvidence.rows[0].queue_id, replacementQueueId);
+  } finally {
+    if (exhaustedSkippedPreferenceBefore.rows[0]) {
+      await client.query(
+        `update public.customer_portal_preferences
+         set email_notifications=$2, push_notifications=$3
+         where customer_id=$1`,
+        [
+          FIXTURE.customers.a,
+          exhaustedSkippedPreferenceBefore.rows[0].email_notifications,
+          exhaustedSkippedPreferenceBefore.rows[0].push_notifications,
+        ],
+      );
+    } else {
+      await client.query(
+        `delete from public.customer_portal_preferences where customer_id=$1`,
+        [FIXTURE.customers.a],
+      );
+    }
+    const exhaustedSkippedQueueIdsAfter = (
+      await client.query(
+        `select id from public.notification_delivery_queue
+         where event_key='payment_reminder'`,
+      )
+    ).rows.map((row) => String(row.id));
+    for (const queueId of exhaustedSkippedQueueIdsAfter) {
+      if (!exhaustedSkippedQueueIdsBefore.has(queueId)) {
+        createdQueueIds.push(queueId);
+      }
+    }
+  }
 
   const templateOverrideId = randomUUID();
   createdTemplateOverrideIds.push(templateOverrideId);
