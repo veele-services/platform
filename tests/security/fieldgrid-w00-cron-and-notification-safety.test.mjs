@@ -101,10 +101,13 @@ test("payment reminder cron creates one tenant-bound durable outbox item per cyc
   );
   assert.match(
     source,
-    /\.onConflictDoUpdate\(\{[\s\S]*target: notificationDeliveryQueueTable\.idempotencyKey[\s\S]*targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`[\s\S]*status: "retry"[\s\S]*maxAttempts:[\s\S]*setWhere: inArray\(notificationDeliveryQueueTable\.status,[\s\S]*"failed"[\s\S]*"skipped"/u,
+    /\.onConflictDoUpdate\(\{[\s\S]*target: notificationDeliveryQueueTable\.idempotencyKey[\s\S]*targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`[\s\S]*status: "retry"[\s\S]*maxAttempts: sql<number>`least\([\s\S]*20,[\s\S]*setWhere: and\([\s\S]*"failed"[\s\S]*"skipped"[\s\S]*lt\(notificationDeliveryQueueTable\.attempts, 20\)/u,
   );
   assert.match(source, /queued\+\+;/u);
-  assert.match(source, /res\.json\(\{ ok: true, queued, skipped, moduleDisabled \}\)/u);
+  assert.match(
+    source,
+    /res\.json\(\{ ok: true, queued, skipped, moduleDisabled \}\)/u,
+  );
   assert.doesNotMatch(source, /sendEmailWithResult/u);
   assert.doesNotMatch(source, /\.set\(\{ lastReminderSentAt:/u);
   assertOrdered(

@@ -246,7 +246,42 @@ async function runEmail(options: Record<string, unknown> = {}) {
   });
 }
 
-async function callPaymentReminderCron() {
+async function createFailedPaymentReminderAtAttemptLimit(input: {
+  recipientEmail: string;
+  maxAttempts: number;
+  label: string;
+}) {
+  const invoice = await createReminderInvoice();
+  const queue = await enqueuePaymentReminder({
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    dueDate: invoice.dueDate,
+    recipientEmail: input.recipientEmail,
+    maxAttempts: input.maxAttempts,
+  });
+  for (let attemptNo = 1; attemptNo < input.maxAttempts; attemptNo += 1) {
+    const retryResult = await runEmail({
+      workerId: `${input.label}-retry-${attemptNo}`,
+      queueIds: [queue.id],
+      deliveryOverride: async () => providerFailure("retry"),
+    });
+    assert.equal(retryResult.retried, 1);
+  }
+  const failureResult = await runEmail({
+    workerId: `${input.label}-failed-${input.maxAttempts}`,
+    queueIds: [queue.id],
+    deliveryOverride: async () => providerFailure("failed"),
+  });
+  assert.equal(failureResult.failed, 1);
+  const state = await queueState(queue.id);
+  assert.equal(state.status, "failed");
+  assert.equal(state.attempts, input.maxAttempts);
+  assert.equal(state.max_attempts, input.maxAttempts);
+  assert.ok(state.terminal_attempt_id);
+  return { invoice, queue, terminalAttemptId: state.terminal_attempt_id };
+}
+
+async function ensureApiServer() {
   if (!apiServer) {
     const { default: app } = await import("../artifacts/api-server/src/app.ts");
     apiServer = app.listen(0, "127.0.0.1");
@@ -255,25 +290,49 @@ async function callPaymentReminderCron() {
     assert.ok(address && typeof address !== "string");
     apiBaseUrl = `http://127.0.0.1:${(address as AddressInfo).port}`;
   }
-
   assert.ok(apiBaseUrl);
-  const response = await fetch(`${apiBaseUrl}/api/admin/payment-reminders`, {
+  return apiBaseUrl;
+}
+
+type AdminApiResponse = {
+  ok?: boolean;
+  queued?: number;
+  skipped?: number;
+  reviewed?: number;
+  confirmedDelivered?: number;
+  [key: string]: unknown;
+};
+
+async function callAdminApi(
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<AdminApiResponse> {
+  const baseUrl = await ensureApiServer();
+  const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${runtimeAdminApiSecret}`,
       connection: "close",
+      ...(body ? { "content-type": "application/json" } : {}),
     },
+    body: body ? JSON.stringify(body) : undefined,
   });
-  const body = (await response.json()) as {
-    ok?: boolean;
-    queued?: number;
-    skipped?: number;
-    moduleDisabled?: number;
-    error?: string;
-  };
-  assert.equal(response.status, 200, JSON.stringify(body));
-  assert.equal(body.ok, true);
-  return body;
+  const responseBody = (await response.json()) as AdminApiResponse;
+  assert.equal(response.status, 200, JSON.stringify(responseBody));
+  assert.equal(responseBody.ok, true);
+  return responseBody;
+}
+
+async function callPaymentReminderCron() {
+  return callAdminApi("/api/admin/payment-reminders");
+}
+
+async function confirmDeliveredReminder(queueId: string) {
+  return callAdminApi("/api/admin/notification-worker/confirm-delivered", {
+    queueIds: [queueId],
+    reason: "Provider bevestigde de aflevering in het leveringsdashboard.",
+    confirmedDelivered: true,
+  });
 }
 
 async function makeStaleProcessing(queueId: string, deliveryStarted: boolean) {
@@ -1232,6 +1291,22 @@ try {
   assert.equal(failedReminderEvidence.rows[0].last_reminder_sent_at, null);
   assert.equal(failedReminderEvidence.rows[0].audit_count, 0);
 
+  const boundary15Reminder = await createFailedPaymentReminderAtAttemptLimit({
+    recipientEmail: reminderEmail,
+    maxAttempts: 15,
+    label: "runtime-payment-reminder-cap-15",
+  });
+  const boundary16Reminder = await createFailedPaymentReminderAtAttemptLimit({
+    recipientEmail: reminderEmail,
+    maxAttempts: 16,
+    label: "runtime-payment-reminder-cap-16",
+  });
+  const boundary20Reminder = await createFailedPaymentReminderAtAttemptLimit({
+    recipientEmail: reminderEmail,
+    maxAttempts: 20,
+    label: "runtime-payment-reminder-cap-20",
+  });
+
   const skippedReminderInvoice = await createReminderInvoice();
   const skippedReminder = await enqueuePaymentReminder({
     invoiceId: skippedReminderInvoice.id,
@@ -1298,6 +1373,32 @@ try {
   assert.equal(failedBeforeCronRecovery.max_attempts, 1);
   assert.ok(failedBeforeCronRecovery.terminal_attempt_id);
 
+  const externalEligibleInvoices = await client.query(
+    `select count(*)::int as count
+     from public.invoices invoice
+     left join public.organization_settings settings
+       on settings.tenant_id=invoice.tenant_id
+     where invoice.status='sent'
+       and invoice.id <> all($1::uuid[])
+       and coalesce(settings.notif_betaling_herinnering, true)
+       and invoice.due_date <= (
+         (current_timestamp at time zone 'Europe/Amsterdam')::date
+         - coalesce(settings.notif_herinnering_dagen, 7)
+       )
+       and (
+         invoice.last_reminder_sent_at is null
+         or invoice.last_reminder_sent_at < current_timestamp - (
+           coalesce(settings.notif_herinnering_dagen, 7) * interval '1 day'
+         )
+       )`,
+    [createdInvoiceIds],
+  );
+  assert.equal(
+    externalEligibleInvoices.rows[0].count,
+    0,
+    "De globale cronproef vereist een exclusieve disposable fixture zonder beïnvloedbare bestaande facturen.",
+  );
+
   const paymentQueueIdsBeforeCron = new Set(
     (
       await client.query(
@@ -1316,8 +1417,9 @@ try {
   for (const queueId of paymentQueueIdsAfterCron) {
     if (!paymentQueueIdsBeforeCron.has(queueId)) createdQueueIds.push(queueId);
   }
-  assert.ok((cronRecovery.queued ?? 0) >= 2);
-  assert.ok((cronRecovery.skipped ?? 0) >= 1);
+  assert.equal(cronRecovery.queued, 4);
+  assert.equal(cronRecovery.skipped, 2);
+  assert.equal(cronRecovery.moduleDisabled, 0);
 
   const failedAfterCronRecovery = await queueState(failedReminder.id);
   assert.equal(failedAfterCronRecovery.status, "retry");
@@ -1332,6 +1434,21 @@ try {
   assert.equal(skippedAfterCronRecovery.max_attempts, 6);
   assert.equal(skippedAfterCronRecovery.terminal_attempt_id, null);
   assert.equal(skippedAfterCronRecovery.last_error, null);
+
+  for (const boundary of [boundary15Reminder, boundary16Reminder]) {
+    const recoveredBoundary = await queueState(boundary.queue.id);
+    assert.equal(recoveredBoundary.status, "retry");
+    assert.equal(recoveredBoundary.max_attempts, 20);
+    assert.equal(recoveredBoundary.terminal_attempt_id, null);
+  }
+  const exhaustedBoundary = await queueState(boundary20Reminder.queue.id);
+  assert.equal(exhaustedBoundary.status, "failed");
+  assert.equal(exhaustedBoundary.attempts, 20);
+  assert.equal(exhaustedBoundary.max_attempts, 20);
+  assert.equal(
+    exhaustedBoundary.terminal_attempt_id,
+    boundary20Reminder.terminalAttemptId,
+  );
 
   const outcomePendingAfterCronRecovery = await queueState(
     outcomePendingReminder.id,
@@ -1382,9 +1499,14 @@ try {
 
   const recoveredReminderResult = await runEmail({
     workerId: "runtime-payment-reminder-cron-recovered",
-    queueIds: [failedReminder.id, skippedReminder.id],
+    queueIds: [
+      failedReminder.id,
+      skippedReminder.id,
+      boundary15Reminder.queue.id,
+      boundary16Reminder.queue.id,
+    ],
   });
-  assert.equal(recoveredReminderResult.sent, 2);
+  assert.equal(recoveredReminderResult.sent, 4);
   assert.equal((await queueState(failedReminder.id)).status, "sent");
   assert.equal((await queueState(skippedReminder.id)).status, "sent");
   const recoveredReminderEvidence = await client.query(
@@ -1392,9 +1514,17 @@ try {
      from public.invoices
      where tenant_id=$1 and id=any($2::uuid[])
      order by id`,
-    [tenantA, [failedReminderInvoice.id, skippedReminderInvoice.id]],
+    [
+      tenantA,
+      [
+        failedReminderInvoice.id,
+        skippedReminderInvoice.id,
+        boundary15Reminder.invoice.id,
+        boundary16Reminder.invoice.id,
+      ],
+    ],
   );
-  assert.equal(recoveredReminderEvidence.rowCount, 2);
+  assert.equal(recoveredReminderEvidence.rowCount, 4);
   assert.ok(
     recoveredReminderEvidence.rows.every(
       (row) => row.last_reminder_sent_at instanceof Date,
@@ -1415,6 +1545,53 @@ try {
   );
   assert.equal(unknownReminderEvidence.rows[0].last_reminder_sent_at, null);
   assert.equal(unknownReminderEvidence.rows[0].audit_count, 0);
+
+  const confirmedReminder = await confirmDeliveredReminder(
+    outcomePendingReminder.id,
+  );
+  assert.equal(confirmedReminder.reviewed, 1);
+  assert.equal(confirmedReminder.confirmedDelivered, 1);
+  const confirmedReminderState = await queueState(outcomePendingReminder.id);
+  assert.equal(confirmedReminderState.status, "sent");
+  assert.equal(confirmedReminderState.attempts, 1);
+  assert.equal(confirmedReminderState.max_attempts, 5);
+  assert.equal(
+    confirmedReminderState.terminal_attempt_id,
+    confirmedReminderState.current_attempt_id,
+  );
+  assert.equal((await attempts(outcomePendingReminder.id))[0].status, "sent");
+  const confirmedReminderEvidence = await client.query(
+    `select
+       invoice.last_reminder_sent_at,
+       count(audit.id)::int as audit_count,
+       max(audit.metadata->>'queueId') as queue_id
+     from public.invoices invoice
+     left join public.audit_log audit
+       on audit.tenant_id=invoice.tenant_id
+      and audit.resource_id=invoice.id::text
+      and audit.action='payment_reminder_sent'
+     where invoice.id=$1 and invoice.tenant_id=$2
+     group by invoice.last_reminder_sent_at`,
+    [outcomePendingReminderInvoice.id, tenantA],
+  );
+  assert.ok(confirmedReminderEvidence.rows[0].last_reminder_sent_at);
+  assert.equal(confirmedReminderEvidence.rows[0].audit_count, 1);
+  assert.equal(
+    confirmedReminderEvidence.rows[0].queue_id,
+    outcomePendingReminder.id,
+  );
+
+  let confirmedReminderRedeliveries = 0;
+  const confirmedReminderSecondRun = await runEmail({
+    workerId: "runtime-payment-reminder-confirmed-not-redelivered",
+    queueIds: [outcomePendingReminder.id],
+    deliveryOverride: async () => {
+      confirmedReminderRedeliveries += 1;
+      return delivered();
+    },
+  });
+  assert.equal(confirmedReminderSecondRun.claimed, 0);
+  assert.equal(confirmedReminderRedeliveries, 0);
 
   const templateOverrideId = randomUUID();
   createdTemplateOverrideIds.push(templateOverrideId);
@@ -1634,8 +1811,13 @@ try {
   }
   await client
     .query(
-      `delete from public.notification_delivery_queue where id=any($1::uuid[])`,
-      [createdQueueIds],
+      `delete from public.notification_delivery_queue
+       where id=any($1::uuid[])
+          or (
+            event_key='payment_reminder'
+            and payload->>'invoiceId'=any($2::text[])
+          )`,
+      [createdQueueIds, createdInvoiceIds],
     )
     .catch(() => {});
   await client

@@ -104,7 +104,11 @@ test("payment reminders recheck source state and record delivery only on durable
   assert.match(emailHelper, /templateVariables: EmailTemplateVariables/u);
   assert.match(
     worker,
-    /if \(outcome\.status === "sent"\)[\s\S]*UPDATE invoices[\s\S]*SET last_reminder_sent_at = now\(\)[\s\S]*INSERT INTO audit_log/u,
+    /async function finalizePaymentReminderDelivery[\s\S]*UPDATE invoices[\s\S]*SET last_reminder_sent_at = now\(\)[\s\S]*INSERT INTO audit_log/u,
+  );
+  assert.match(
+    worker,
+    /if \(outcome\.status === "sent"\) \{\s*await finalizePaymentReminderDelivery\(client, item\);\s*\}/u,
   );
   assert.match(worker, /"payment_reminder_sent"/u);
   assert.match(
@@ -127,6 +131,16 @@ test("payment reminders recheck source state and record delivery only on durable
   assert.match(runtime, /skippedAfterCronRecovery\.terminal_attempt_id, null/u);
   assert.match(runtime, /outcomePendingSecondRun\.claimed, 0/u);
   assert.match(runtime, /outcomePendingRedeliveries, 0/u);
+  assert.match(runtime, /confirmDeliveredReminder/u);
+  assert.match(runtime, /confirmedReminderState\.status, "sent"/u);
+  assert.match(runtime, /confirmedReminderState\.terminal_attempt_id/u);
+  assert.match(runtime, /confirmedReminderRedeliveries, 0/u);
+  assert.match(workerRoute, /\/admin\/notification-worker\/confirm-delivered/u);
+  assert.match(workerRoute, /confirmedDelivered !== true/u);
+  assert.match(
+    worker,
+    /export async function confirmDeliveredNotifications[\s\S]*queue\.status = 'outcome_pending'[\s\S]*UPDATE notification_delivery_attempts[\s\S]*SET status = 'sent'[\s\S]*UPDATE notification_delivery_queue[\s\S]*terminal_attempt_id = \$2::uuid[\s\S]*await finalizePaymentReminderDelivery\(client, item\)/u,
+  );
   assert.match(
     paymentRemindersRoute,
     /targetWhere: sql`\$\{notificationDeliveryQueueTable\.idempotencyKey\} is not null`/u,
@@ -134,12 +148,17 @@ test("payment reminders recheck source state and record delivery only on durable
   assert.match(paymentRemindersRoute, /terminalAttemptId: null/u);
   assert.match(
     paymentRemindersRoute,
-    /maxAttempts: sql<number>`greatest\([\s\S]*notificationDeliveryQueueTable\.maxAttempts[\s\S]*notificationDeliveryQueueTable\.attempts\} \+ 5/u,
+    /maxAttempts: sql<number>`least\(\s*20,\s*greatest\([\s\S]*notificationDeliveryQueueTable\.maxAttempts[\s\S]*notificationDeliveryQueueTable\.attempts\} \+ 5/u,
   );
   assert.match(
     paymentRemindersRoute,
-    /setWhere: inArray\(notificationDeliveryQueueTable\.status, \[\s*"failed",\s*"skipped",\s*\]\)/u,
+    /setWhere: and\([\s\S]*inArray\(notificationDeliveryQueueTable\.status, \[\s*"failed",\s*"skipped",\s*\]\)[\s\S]*lt\(notificationDeliveryQueueTable\.attempts, 20\)/u,
   );
+  assert.match(runtime, /runtime-payment-reminder-cap-15/u);
+  assert.match(runtime, /runtime-payment-reminder-cap-16/u);
+  assert.match(runtime, /runtime-payment-reminder-cap-20/u);
+  assert.match(runtime, /externalEligibleInvoices\.rows\[0\]\.count/u);
+  assert.match(runtime, /payload->>'invoiceId'=any\(\$2::text\[\]\)/u);
   assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
   assert.match(runtime, /Herstartbestendige tenantinhoud/u);
   assert.match(runtime, /runtime-payment-reminder-cross-tenant/u);

@@ -254,16 +254,22 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
               lastError: null,
               errorDetails: {},
               response: {},
-              maxAttempts: sql<number>`greatest(
-                ${notificationDeliveryQueueTable.maxAttempts},
-                ${notificationDeliveryQueueTable.attempts} + 5
+              maxAttempts: sql<number>`least(
+                20,
+                greatest(
+                  ${notificationDeliveryQueueTable.maxAttempts},
+                  ${notificationDeliveryQueueTable.attempts} + 5
+                )
               )`,
               updatedAt: claimedAt,
             },
-            setWhere: inArray(notificationDeliveryQueueTable.status, [
-              "failed",
-              "skipped",
-            ]),
+            setWhere: and(
+              inArray(notificationDeliveryQueueTable.status, [
+                "failed",
+                "skipped",
+              ]),
+              lt(notificationDeliveryQueueTable.attempts, 20),
+            ),
           })
           .returning({ id: notificationDeliveryQueueTable.id });
 
@@ -277,7 +283,10 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       queued++;
     }
 
-    req.log.info({ queued, skipped, moduleDisabled }, "payment-reminders: klaar");
+    req.log.info(
+      { queued, skipped, moduleDisabled },
+      "payment-reminders: klaar",
+    );
     res.json({ ok: true, queued, skipped, moduleDisabled });
   } catch (err) {
     req.log.error({ err }, "payment-reminders: onverwachte fout");

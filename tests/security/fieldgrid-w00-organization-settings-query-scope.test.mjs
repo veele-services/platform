@@ -458,11 +458,11 @@ const reviewedScopeDigests = new Map([
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:leftJoin:1",
-    "ae1412d09ca5862c5364",
+    "36e4564de45c382a4a14",
   ],
   [
     "artifacts/api-server/src/routes/payment-reminders.ts#<module>:organization_settings:from:1",
-    "ae1412d09ca5862c5364",
+    "36e4564de45c382a4a14",
   ],
   [
     "artifacts/backoffice/src/app/actions/knowledgebase.ts#getTenantKnowledgebaseAuthoringState:organization_settings:from:1",

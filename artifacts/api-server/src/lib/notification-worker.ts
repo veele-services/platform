@@ -14,10 +14,7 @@ import {
   sanitizeCustomerPortalHref,
   sanitizePersonnelPortalHref,
 } from "@workspace/db/portal-routes";
-import {
-  sendEmailWithResult,
-  sendTemplatedEmailWithResult,
-} from "./email";
+import { sendEmailWithResult, sendTemplatedEmailWithResult } from "./email";
 import { logger as defaultLogger } from "./logger";
 import { sendFcmPush } from "./native-push";
 import {
@@ -335,6 +332,94 @@ function paymentReminderQueueContext(
       invoiceUrl,
     },
   };
+}
+
+type NotificationTransactionClient = {
+  query(
+    text: string,
+    values?: unknown[],
+  ): Promise<{ rowCount: number | null }>;
+};
+
+async function finalizePaymentReminderDelivery(
+  client: NotificationTransactionClient,
+  item: QueueRow,
+): Promise<void> {
+  const paymentReminder = paymentReminderQueueContext(item);
+  if (paymentReminder.kind === "invalid") {
+    throw new Error("payment_reminder_finalization_payload_invalid");
+  }
+  if (paymentReminder.kind !== "valid") return;
+
+  const invoiceUpdate = await client.query(
+    `UPDATE invoices
+     SET last_reminder_sent_at = now(),
+         updated_at = now()
+     WHERE id = $1::uuid
+       AND tenant_id = $2::uuid
+       AND customer_id = $3::uuid
+       AND (
+         last_reminder_sent_at IS NULL
+         OR last_reminder_sent_at < $4::timestamptz
+       )`,
+    [
+      paymentReminder.invoiceId,
+      item.tenant_id,
+      paymentReminder.customerId,
+      item.created_at,
+    ],
+  );
+  await client.query(
+    `INSERT INTO audit_log (
+       tenant_id, user_id, action, resource, resource_id, metadata
+     ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb)`,
+    [
+      item.tenant_id,
+      SYSTEM_ACTOR_UUID,
+      "payment_reminder_sent",
+      "invoices",
+      paymentReminder.invoiceId,
+      JSON.stringify({
+        queueId: item.id,
+        invoiceNumber: paymentReminder.invoiceNumber,
+        dueDate: paymentReminder.dueDate,
+        herinneringDagen: paymentReminder.herinneringDagen,
+        invoiceTimestampUpdated: invoiceUpdate.rowCount === 1,
+      }),
+    ],
+  );
+}
+
+async function refreshEmailDispatchCounters(
+  client: NotificationTransactionClient,
+  item: QueueRow,
+): Promise<void> {
+  if (!item.dispatch_id || item.channel !== "email") return;
+
+  const dispatchLock = await client.query(
+    `SELECT id FROM notification_dispatches
+     WHERE id = $1 AND tenant_id = $2
+     FOR UPDATE`,
+    [item.dispatch_id, item.tenant_id],
+  );
+  if (dispatchLock.rowCount !== 1) return;
+
+  await client.query(
+    `UPDATE notification_dispatches dispatch
+     SET email_success_count = counters.success_count,
+         email_failed_count = counters.failed_count
+     FROM (
+       SELECT
+         count(*) FILTER (WHERE status = 'sent')::integer AS success_count,
+         count(*) FILTER (
+           WHERE status IN ('failed', 'skipped', 'partial')
+         )::integer AS failed_count
+       FROM notification_delivery_queue
+       WHERE dispatch_id = $1 AND tenant_id = $2 AND channel = 'email'
+     ) counters
+     WHERE dispatch.id = $1 AND dispatch.tenant_id = $2`,
+    [item.dispatch_id, item.tenant_id],
+  );
 }
 
 function errorMessage(error: unknown): string {
@@ -707,77 +792,9 @@ async function completeQueueItem(
     }
 
     if (outcome.status === "sent") {
-      const paymentReminder = paymentReminderQueueContext(item);
-      if (paymentReminder.kind === "invalid") {
-        throw new Error("payment_reminder_finalization_payload_invalid");
-      }
-      if (paymentReminder.kind === "valid") {
-        const invoiceUpdate = await client.query(
-          `UPDATE invoices
-           SET last_reminder_sent_at = now(),
-               updated_at = now()
-           WHERE id = $1::uuid
-             AND tenant_id = $2::uuid
-             AND customer_id = $3::uuid
-             AND (
-               last_reminder_sent_at IS NULL
-               OR last_reminder_sent_at < $4::timestamptz
-             )`,
-          [
-            paymentReminder.invoiceId,
-            item.tenant_id,
-            paymentReminder.customerId,
-            item.created_at,
-          ],
-        );
-        await client.query(
-          `INSERT INTO audit_log (
-             tenant_id, user_id, action, resource, resource_id, metadata
-           ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb)`,
-          [
-            item.tenant_id,
-            SYSTEM_ACTOR_UUID,
-            "payment_reminder_sent",
-            "invoices",
-            paymentReminder.invoiceId,
-            JSON.stringify({
-              queueId: item.id,
-              invoiceNumber: paymentReminder.invoiceNumber,
-              dueDate: paymentReminder.dueDate,
-              herinneringDagen: paymentReminder.herinneringDagen,
-              invoiceTimestampUpdated: invoiceUpdate.rowCount === 1,
-            }),
-          ],
-        );
-      }
+      await finalizePaymentReminderDelivery(client, item);
     }
-
-    if (item.dispatch_id && item.channel === "email") {
-      const dispatchLock = await client.query(
-        `SELECT id FROM notification_dispatches
-         WHERE id = $1 AND tenant_id = $2
-         FOR UPDATE`,
-        [item.dispatch_id, item.tenant_id],
-      );
-      if (dispatchLock.rowCount === 1) {
-        await client.query(
-          `UPDATE notification_dispatches dispatch
-           SET email_success_count = counters.success_count,
-               email_failed_count = counters.failed_count
-           FROM (
-             SELECT
-               count(*) FILTER (WHERE status = 'sent')::integer AS success_count,
-               count(*) FILTER (
-                 WHERE status IN ('failed', 'skipped', 'partial')
-               )::integer AS failed_count
-             FROM notification_delivery_queue
-             WHERE dispatch_id = $1 AND tenant_id = $2 AND channel = 'email'
-           ) counters
-           WHERE dispatch.id = $1 AND dispatch.tenant_id = $2`,
-          [item.dispatch_id, item.tenant_id],
-        );
-      }
-    }
+    await refreshEmailDispatchCounters(client, item);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -1595,6 +1612,149 @@ export async function processNotificationQueue(
   );
 
   return result;
+}
+
+export async function confirmDeliveredNotifications(options: {
+  queueIds: string[];
+  reason: string;
+  logger?: WorkerLogger;
+}): Promise<{ ok: true; reviewed: number; confirmedDelivered: number }> {
+  const log = options.logger ?? defaultLogger;
+  const queueIds = normalizeQueueIds(options.queueIds);
+  if (!queueIds || queueIds.length > 100) {
+    throw new Error("notification_confirmation_requires_exact_queue_ids");
+  }
+  const reason = options.reason.trim();
+  if (reason.length < 10 || reason.length > 500) {
+    throw new Error("notification_confirmation_requires_bounded_review_reason");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const candidates = await client.query<QueueRow>(
+      `SELECT
+         queue.id,
+         queue.tenant_id,
+         queue.event_key,
+         queue.dispatch_id,
+         queue.channel,
+         queue.recipient_type,
+         queue.personnel_id,
+         queue.customer_id,
+         queue.recipient_email,
+         queue.subject,
+         queue.title,
+         queue.body,
+         queue.html,
+         queue.payload,
+         queue.response,
+         queue.attempts,
+         queue.max_attempts,
+         queue.rate_limit_key,
+         queue.delivery_key,
+         queue.created_at,
+         queue.current_attempt_id AS attempt_id
+       FROM notification_delivery_queue queue
+       WHERE queue.id = ANY($1::uuid[])
+         AND queue.channel IN ('email', 'push')
+         AND queue.status = 'outcome_pending'
+         AND queue.current_attempt_id IS NOT NULL
+       ORDER BY queue.id
+       FOR UPDATE`,
+      [queueIds],
+    );
+    if (candidates.rows.length !== queueIds.length) {
+      throw new Error(
+        "notification_confirmation_requires_outcome_pending_items",
+      );
+    }
+
+    for (const item of candidates.rows) {
+      const attempt = await client.query(
+        `UPDATE notification_delivery_attempts
+         SET status = 'sent',
+             error = NULL,
+             response = COALESCE(response, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $4::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             finished_at = now()
+         WHERE id = $1::uuid
+           AND queue_id = $2::uuid
+           AND tenant_id = $3::uuid
+           AND status = 'outcome_pending'`,
+        [item.attempt_id, item.id, item.tenant_id, reason],
+      );
+      if (attempt.rowCount !== 1) {
+        throw new Error("notification_confirmation_attempt_not_pending");
+      }
+
+      const queue = await client.query(
+        `UPDATE notification_delivery_queue
+         SET status = 'sent',
+             locked_at = NULL,
+             locked_by = NULL,
+             processing_started_at = NULL,
+             delivery_started_at = NULL,
+             last_error = NULL,
+             error_details = COALESCE(error_details, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $3::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             response = COALESCE(response, '{}'::jsonb) ||
+               jsonb_build_object(
+                 'manualDeliveryConfirmation',
+                 jsonb_build_object(
+                   'reason', $3::text,
+                   'confirmedAt', now()
+                 )
+               ),
+             sent_at = COALESCE(sent_at, now()),
+             terminal_attempt_id = $2::uuid,
+             updated_at = now()
+         WHERE id = $1::uuid
+           AND status = 'outcome_pending'
+           AND current_attempt_id = $2::uuid`,
+        [item.id, item.attempt_id, reason],
+      );
+      if (queue.rowCount !== 1) {
+        throw new Error("notification_confirmation_queue_not_pending");
+      }
+
+      await finalizePaymentReminderDelivery(client, item);
+      await refreshEmailDispatchCounters(client, item);
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  log.info(
+    {
+      reviewed: queueIds.length,
+      confirmedDelivered: queueIds.length,
+    },
+    "notification-worker: providerbevestigde afleveringen afgerond",
+  );
+
+  return {
+    ok: true,
+    reviewed: queueIds.length,
+    confirmedDelivered: queueIds.length,
+  };
 }
 
 export async function retryFailedNotifications(options: {
