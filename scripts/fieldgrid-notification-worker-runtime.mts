@@ -328,6 +328,34 @@ async function callPaymentReminderCron() {
   return callAdminApi("/api/admin/payment-reminders");
 }
 
+async function assertNoExternalEligibleReminderInvoices() {
+  const externalEligibleInvoices = await client.query(
+    `select count(*)::int as count
+     from public.invoices invoice
+     left join public.organization_settings settings
+       on settings.tenant_id=invoice.tenant_id
+     where invoice.status='sent'
+       and invoice.id <> all($1::uuid[])
+       and coalesce(settings.notif_betaling_herinnering, true)
+       and invoice.due_date <= (
+         (current_timestamp at time zone 'Europe/Amsterdam')::date
+         - coalesce(settings.notif_herinnering_dagen, 7)
+       )
+       and (
+         invoice.last_reminder_sent_at is null
+         or invoice.last_reminder_sent_at < current_timestamp - (
+           coalesce(settings.notif_herinnering_dagen, 7) * interval '1 day'
+         )
+       )`,
+    [createdInvoiceIds],
+  );
+  assert.equal(
+    externalEligibleInvoices.rows[0].count,
+    0,
+    "De globale cronproef vereist een exclusieve disposable fixture zonder beïnvloedbare bestaande facturen.",
+  );
+}
+
 async function confirmDeliveredReminder(queueId: string) {
   return callAdminApi("/api/admin/notification-worker/confirm-delivered", {
     queueIds: [queueId],
@@ -1221,6 +1249,15 @@ try {
     dueDate: lockOrderInvoice.dueDate,
     recipientEmail: reminderEmail,
   });
+  await assertNoExternalEligibleReminderInvoices();
+  const lockOrderQueueIdsBeforeCron = new Set(
+    (
+      await client.query(
+        `select id from public.notification_delivery_queue
+         where event_key='payment_reminder'`,
+      )
+    ).rows.map((row) => String(row.id)),
+  );
   const queueBlocker = await connect();
   const concurrentInvoiceWriter = await connect();
   let queueLockReleased = false;
@@ -1288,6 +1325,17 @@ try {
     await concurrentInvoiceWriter.end();
     if (!queueLockReleased && lockOrderCron) {
       await lockOrderCron.catch(() => {});
+    }
+    const lockOrderQueueIdsAfterCron = (
+      await client.query(
+        `select id from public.notification_delivery_queue
+         where event_key='payment_reminder'`,
+      )
+    ).rows.map((row) => String(row.id));
+    for (const queueId of lockOrderQueueIdsAfterCron) {
+      if (!lockOrderQueueIdsBeforeCron.has(queueId)) {
+        createdQueueIds.push(queueId);
+      }
     }
   }
 
@@ -1482,31 +1530,7 @@ try {
   assert.equal(failedBeforeCronRecovery.max_attempts, 1);
   assert.ok(failedBeforeCronRecovery.terminal_attempt_id);
 
-  const externalEligibleInvoices = await client.query(
-    `select count(*)::int as count
-     from public.invoices invoice
-     left join public.organization_settings settings
-       on settings.tenant_id=invoice.tenant_id
-     where invoice.status='sent'
-       and invoice.id <> all($1::uuid[])
-       and coalesce(settings.notif_betaling_herinnering, true)
-       and invoice.due_date <= (
-         (current_timestamp at time zone 'Europe/Amsterdam')::date
-         - coalesce(settings.notif_herinnering_dagen, 7)
-       )
-       and (
-         invoice.last_reminder_sent_at is null
-         or invoice.last_reminder_sent_at < current_timestamp - (
-           coalesce(settings.notif_herinnering_dagen, 7) * interval '1 day'
-         )
-       )`,
-    [createdInvoiceIds],
-  );
-  assert.equal(
-    externalEligibleInvoices.rows[0].count,
-    0,
-    "De globale cronproef vereist een exclusieve disposable fixture zonder beïnvloedbare bestaande facturen.",
-  );
+  await assertNoExternalEligibleReminderInvoices();
 
   const paymentQueueIdsBeforeCron = new Set(
     (

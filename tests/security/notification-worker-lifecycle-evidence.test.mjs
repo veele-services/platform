@@ -167,6 +167,18 @@ test("payment reminders recheck source state and record delivery only on durable
     /max_attempts = LEAST\(20, GREATEST\(q\.max_attempts, q\.attempts \+ 1\)\)/u,
   );
   assert.match(runtime, /externalEligibleInvoices\.rows\[0\]\.count/u);
+  const firstGlobalCronIndex = runtime.indexOf(
+    "lockOrderCron = callPaymentReminderCron()",
+  );
+  const firstExternalPreflightIndex = runtime.indexOf(
+    "await assertNoExternalEligibleReminderInvoices()",
+  );
+  assert.ok(
+    firstExternalPreflightIndex >= 0 &&
+      firstExternalPreflightIndex < firstGlobalCronIndex,
+  );
+  assert.match(runtime, /lockOrderQueueIdsBeforeCron/u);
+  assert.match(runtime, /lockOrderQueueIdsAfterCron/u);
   assert.match(runtime, /payload->>'invoiceId'=any\(\$2::text\[\]\)/u);
   assert.match(runtime, /runtime-payment-reminder-fresh-process-template/u);
   assert.match(runtime, /Herstartbestendige tenantinhoud/u);
