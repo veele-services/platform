@@ -428,6 +428,13 @@ test("the required unit lane binds every migration stage to the lock-holding cli
     "\nasync function runSqlMigrations(",
     drizzleStart,
   );
+  const lockStart = source.indexOf("async function withDatabaseMigrationLock");
+  const lockEnd = source.indexOf(
+    "\nasync function existingPublicTables(",
+    lockStart,
+  );
+  const sqlStart = source.indexOf("async function runSqlMigrations(");
+  const sqlEnd = source.indexOf("\nasync function baseline():", sqlStart);
   const migrateStart = source.indexOf(
     "async function migrate(): Promise<void> {",
   );
@@ -437,13 +444,41 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   );
 
   assert.ok(drizzleStart >= 0 && drizzleEnd > drizzleStart);
+  assert.ok(lockStart >= 0 && lockEnd > lockStart);
+  assert.ok(sqlStart >= 0 && sqlEnd > sqlStart);
   assert.ok(migrateStart >= 0 && migrateEnd > migrateStart);
 
   const drizzleRunner = source.slice(drizzleStart, drizzleEnd);
+  const lockRunner = source.slice(lockStart, lockEnd);
+  const sqlRunner = source.slice(sqlStart, sqlEnd);
   const migrateRunner = source.slice(migrateStart, migrateEnd);
   assert.match(drizzleRunner, /client: pg\.Client/u);
   assert.match(drizzleRunner, /const db = drizzle\(client\);/u);
   assert.doesNotMatch(drizzleRunner, /\bPool\b|connectionConfig\(|\.end\(/u);
+  assert.match(lockRunner, /return withMigrationSessionLock\(\{/u);
+  assert.match(lockRunner, /pg_catalog\.pg_advisory_lock/u);
+  assert.match(lockRunner, /pg_catalog\.pg_advisory_unlock/u);
+  assert.match(lockRunner, /\[databaseMigrationSessionLock\]/u);
+  assert.match(lockRunner, /return result\.rows\[0\]\?\.unlocked === true;/u);
+  assert.match(lockRunner, /\n    run,\n/u);
+
+  const orderedSqlCallbacks = [
+    "await runSqlMigrationTransaction(",
+    "client,",
+    "() => client.query(migration.sql)",
+    "() => recordSqlMigration(client, migration, false)",
+    "prepareMigration: async () =>",
+    "await sqlMigrationIsRecorded(client, migration)",
+  ];
+  let previousSqlIndex = -1;
+  for (const callback of orderedSqlCallbacks) {
+    const callbackIndex = sqlRunner.indexOf(callback, previousSqlIndex + 1);
+    assert.ok(
+      callbackIndex > previousSqlIndex,
+      `SQL migration callback is missing or out of order: ${callback}`,
+    );
+    previousSqlIndex = callbackIndex;
+  }
 
   const orderedStages = [
     "await withDatabaseMigrationLock(client, async () => {",
