@@ -137,6 +137,20 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   ]) {
     assert.match(script, new RegExp(code, "u"));
   }
+  for (const reason of [
+    "field_demo_owner_not_found",
+    "field_demo_owner_ambiguous",
+    "field_demo_owner_deleted",
+    "field_demo_owner_banned",
+    "field_demo_owner_anonymous",
+    "field_demo_owner_email_unconfirmed",
+    "field_demo_owner_password_unset",
+    "field_demo_owner_audience_invalid",
+    "field_demo_owner_role_invalid",
+    "field_demo_owner_id_invalid",
+  ]) {
+    assert.match(script, new RegExp(reason, "u"));
+  }
   assert.match(script, /reader\.read\(\)/u);
   assert.match(script, /await reader\.cancel\(\)/u);
   assert.match(script, /\.fieldgrid-release-sha/u);
@@ -221,6 +235,10 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(script, /plan\.is_active = true/u);
   assert.match(script, /FROM auth\.users/u);
   assert.match(script, /email_confirmed_at IS NOT NULL/u);
+  assert.match(
+    script,
+    /coalesce\(length\(encrypted_password\), 0\) > 0 AS password_set/u,
+  );
   assert.match(script, /length\(owner\.encrypted_password\) > 0/u);
   assert.match(script, /owner\.is_anonymous = false/u);
   assert.match(script, /owner\.aud = 'authenticated'/u);
@@ -247,6 +265,9 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   );
   assert.match(script, /failureStage: ProofFailureStage \| null/u);
   assert.match(script, /hostRole: ProofHostRole/u);
+  assert.match(script, /failureReason: ProofFailureReason \| null/u);
+  assert.match(script, /evidence\.failureReason = safeFailureReason\(error\)/u);
+  assert.match(script, /console\.error\(formatSafeProofStateError\(error\)\)/u);
   assert.match(workflow, /prepare-managed/u);
   assert.match(workflow, /complete-custom/u);
   assert.match(workflow, /sleep 370/u);
