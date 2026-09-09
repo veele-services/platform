@@ -3,8 +3,6 @@ import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { createClient, isAuthRetryableFetchError } from "@supabase/supabase-js";
-
 import { generateInternalAuthPassword } from "../lib/db/src/credential-recovery.ts";
 import {
   FIELD_DEMO_OWNER_EMAIL,
@@ -300,24 +298,17 @@ export function fieldDemoOwnerRepairCandidateIsExact(
 }
 
 export function fieldDemoOwnerCreateOutcome(
-  userCreated: boolean,
-  error: unknown,
+  response: Pick<Response, "ok" | "status">,
 ): FieldDemoOwnerCreateOutcome {
-  if (!error && userCreated) return "accepted";
-  if (isAuthRetryableFetchError(error)) return "uncertain";
-  const status =
-    typeof error === "object" &&
-    error !== null &&
-    typeof (error as { status?: unknown }).status === "number"
-      ? (error as { status: number }).status
-      : null;
+  if (response.ok && response.status >= 200 && response.status < 300) {
+    return "accepted";
+  }
   if (
-    status !== null &&
-    status >= 400 &&
-    status < 500 &&
-    status !== 408 &&
-    status !== 425 &&
-    status !== 429
+    response.status >= 400 &&
+    response.status < 500 &&
+    response.status !== 408 &&
+    response.status !== 425 &&
+    response.status !== 429
   ) {
     return "rejected";
   }
@@ -520,22 +511,21 @@ function createReservedOwner(
   return async () => {
     let password = generateInternalAuthPassword();
     try {
-      const supabase = createClient(
-        environment.NEXT_PUBLIC_SUPABASE_URL!.trim(),
-        environment.SUPABASE_SERVICE_ROLE_KEY!.trim(),
+      const serviceCredential = environment.SUPABASE_SERVICE_ROLE_KEY!.trim();
+      const response = await fieldDemoOwnerRepairFetch(
+        new URL("/auth/v1/admin/users", FIELD_DEMO_OWNER_REPAIR_SUPABASE_URL),
         {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false,
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            apikey: serviceCredential,
+            authorization: `Bearer ${serviceCredential}`,
+            "content-type": "application/json",
           },
-          global: { fetch: fieldDemoOwnerRepairFetch },
+          body: JSON.stringify(reservedFieldDemoOwnerAttributes(password)),
         },
       );
-      const { data, error } = await supabase.auth.admin.createUser(
-        reservedFieldDemoOwnerAttributes(password),
-      );
-      return fieldDemoOwnerCreateOutcome(Boolean(data.user), error);
+      return fieldDemoOwnerCreateOutcome(response);
     } catch {
       return "uncertain";
     } finally {

@@ -108,7 +108,15 @@ jobs:
           printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
 
       - name: Validate owner repair contract without credentials
-        run: pnpm fieldgrid:staging-field-demo-owner-repair:check
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-field-demo-owner-repair.mts \
+            --check
+          pnpm --filter @workspace/db exec tsx --test \
+            ../../tests/domain/fieldgrid-staging-field-demo-owner-repair.test.ts
+          node --test \
+            tests/security/fieldgrid-staging-field-demo-owner-repair-source.test.mjs
 
       - name: Reverify exact main immediately before owner repair
         env:

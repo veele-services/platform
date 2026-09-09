@@ -2,14 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  AuthApiError,
-  AuthRetryableFetchError,
-  AuthUnknownError,
-  createClient,
-  isAuthRetryableFetchError,
-} from "@supabase/supabase-js";
-
-import {
   FIELD_DEMO_OWNER_REPAIR_CONFIRMATION,
   FIELD_DEMO_OWNER_REPAIR_PROJECT_REF,
   FIELD_DEMO_OWNER_REPAIR_SUPABASE_URL,
@@ -241,43 +233,28 @@ test("a timeout-after-commit is never retried and succeeds through post-read", a
   assert.equal(creates, 1);
 });
 
-test("the pinned auth adapter classifies transient returned errors as uncertain", () => {
-  assert.equal(fieldDemoOwnerCreateOutcome(true, null), "accepted");
-  assert.equal(fieldDemoOwnerCreateOutcome(false, null), "uncertain");
+test("the Auth HTTP adapter distinguishes definitive and uncertain outcomes", () => {
   assert.equal(
-    fieldDemoOwnerCreateOutcome(
-      false,
-      new AuthRetryableFetchError("bounded retryable error", 0),
-    ),
-    "uncertain",
+    fieldDemoOwnerCreateOutcome({ ok: true, status: 200 }),
+    "accepted",
   );
   assert.equal(
-    fieldDemoOwnerCreateOutcome(
-      false,
-      new AuthUnknownError(
-        "bounded unknown response",
-        new Error("untrusted response detail"),
-      ),
-    ),
-    "uncertain",
+    fieldDemoOwnerCreateOutcome({ ok: true, status: 201 }),
+    "accepted",
   );
   assert.equal(
-    fieldDemoOwnerCreateOutcome(
-      false,
-      new AuthApiError("bounded server error", 503, "unexpected_failure"),
-    ),
-    "uncertain",
-  );
-  assert.equal(
-    fieldDemoOwnerCreateOutcome(
-      false,
-      new AuthApiError("bounded duplicate", 422, "user_already_exists"),
-    ),
+    fieldDemoOwnerCreateOutcome({ ok: false, status: 422 }),
     "rejected",
   );
+  for (const status of [0, 301, 408, 425, 429, 500, 503]) {
+    assert.equal(
+      fieldDemoOwnerCreateOutcome({ ok: false, status }),
+      "uncertain",
+    );
+  }
 });
 
-test("transport exceptions are sanitized before the pinned auth adapter can log them", async () => {
+test("transport exceptions are converted to a bounded response without logging", async () => {
   const logged: unknown[][] = [];
   const originalConsoleError = console.error;
   console.error = (...values: unknown[]) => {
@@ -287,27 +264,16 @@ test("transport exceptions are sanitized before the pinned auth adapter can log 
     const throwingFetch = (async () => {
       throw new Error("services@fieldgrid.nl provider token-shaped detail");
     }) as typeof fetch;
-    const supabase = createClient(
-      "https://owner-repair-test.supabase.co",
-      "s".repeat(48),
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false,
-        },
-        global: {
-          fetch: (input, init) =>
-            fieldDemoOwnerRepairFetch(input, init, throwingFetch),
-        },
-      },
+    const response = await fieldDemoOwnerRepairFetch(
+      new URL("https://owner-repair-test.supabase.co/auth/v1/admin/users"),
+      { method: "POST" },
+      throwingFetch,
     );
-    const { data, error } = await supabase.auth.admin.createUser(
-      reservedFieldDemoOwnerAttributes("p".repeat(32)),
-    );
-    assert.equal(data.user, null);
-    assert.equal(isAuthRetryableFetchError(error), true);
-    assert.equal(fieldDemoOwnerCreateOutcome(false, error), "uncertain");
+    assert.equal(response.status, 503);
+    assert.equal(fieldDemoOwnerCreateOutcome(response), "uncertain");
+    assert.deepEqual(await response.json(), {
+      error: "field_demo_owner_transport_unavailable",
+    });
     assert.deepEqual(logged, []);
   } finally {
     console.error = originalConsoleError;

@@ -10,14 +10,15 @@ const workflow = readFileSync(
   ".github/workflows/fieldgrid-staging-field-demo-owner-repair.yml",
   "utf8",
 ).replaceAll("\r\n", "\n");
-const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-
 test("field-demo owner repair is a fixed staging-only create operation", () => {
   assert.match(script, /fieldgrid-staging-field-demo-owner-repair-v1/u);
   assert.match(script, /olyfmekyqozxrbrwwszu/u);
   assert.match(script, /https:\/\/olyfmekyqozxrbrwwszu\.supabase\.co/u);
   assert.match(script, /FIELD_DEMO_OWNER_EMAIL/u);
-  assert.match(script, /auth\.admin\.createUser/u);
+  assert.match(script, /\/auth\/v1\/admin\/users/u);
+  assert.match(script, /method: "POST"/u);
+  assert.match(script, /apikey: serviceCredential/u);
+  assert.match(script, /authorization: `Bearer \$\{serviceCredential\}`/u);
   assert.match(script, /generateInternalAuthPassword/u);
   assert.match(script, /email_confirm: true/u);
   assert.match(script, /portal: "tenant-admin"/u);
@@ -29,6 +30,7 @@ test("field-demo owner repair is a fixed staging-only create operation", () => {
   assert.doesNotMatch(script, /\.listUsers\s*\(/u);
   assert.doesNotMatch(script, /\.updateUserById\s*\(/u);
   assert.doesNotMatch(script, /\.deleteUser\s*\(/u);
+  assert.doesNotMatch(script, /@supabase\/supabase-js/u);
   assert.doesNotMatch(script, /platform_role/u);
   assert.doesNotMatch(script, /tenant_id/u);
   assert.doesNotMatch(script, /role:\s*"(?:owner|admin|service_role)"/u);
@@ -64,14 +66,10 @@ test("owner repair proves exact absence, identity and zero platform privilege", 
 
 test("provider failures and evidence stay bounded and secret-free", () => {
   assert.match(script, /catch \{\n\s+return "uncertain";/u);
-  assert.match(script, /isAuthRetryableFetchError\(error\)/u);
-  assert.match(script, /status >= 400/u);
-  assert.match(script, /status < 500/u);
-  assert.match(
-    script,
-    /fieldDemoOwnerCreateOutcome\(Boolean\(data\.user\), error\)/u,
-  );
-  assert.match(script, /fetch: fieldDemoOwnerRepairFetch/u);
+  assert.match(script, /response\.status >= 400/u);
+  assert.match(script, /response\.status < 500/u);
+  assert.match(script, /return fieldDemoOwnerCreateOutcome\(response\)/u);
+  assert.match(script, /await fieldDemoOwnerRepairFetch/u);
   assert.match(script, /field_demo_owner_transport_unavailable/u);
   assert.match(script, /password = ""/u);
   assert.match(script, /safeFieldDemoOwnerRepairErrorCode/u);
@@ -144,12 +142,4 @@ test("repair workflow binds the privileged step to exact protected main", () => 
   assert.doesNotMatch(workflow, /path: .*create-missing\.json/u);
   assert.match(script, /RUN_NUMBER_PATTERN/u);
   assert.match(script, /create-missing-\$\{runId\}-\$\{runAttempt\}\.json/u);
-});
-
-test("the root check pins the already reviewed Supabase SDK version", () => {
-  assert.equal(packageJson.devDependencies["@supabase/supabase-js"], "2.106.2");
-  assert.match(
-    packageJson.scripts["fieldgrid:staging-field-demo-owner-repair:check"],
-    /fieldgrid-staging-field-demo-owner-repair/u,
-  );
 });
