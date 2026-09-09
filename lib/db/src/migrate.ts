@@ -19,6 +19,10 @@ import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { loadDbRuntimeEnv } from "./runtime-env";
 import { databaseConnectionConfig } from "./database-environment";
+import {
+  runSqlMigrationTransaction,
+  withMigrationSessionLock,
+} from "./migration-transaction-retry";
 
 const { Client, Pool } = pg;
 
@@ -67,6 +71,7 @@ const baselineManifestPath = path.join(sqlMigrationsDir, "baseline.json");
 const drizzleSchema = "drizzle";
 const drizzleMigrationsTable = "__drizzle_migrations";
 const sqlMigrationsTable = "veele_sql_migrations";
+const databaseMigrationSessionLock = "fieldgrid:database-migrations:v1";
 
 const legacySqlPrerequisites = `
   DO $$
@@ -258,6 +263,27 @@ async function ensureLegacySqlPrerequisites(client: pg.Client): Promise<void> {
   await client.query(legacySqlPrerequisites);
 }
 
+async function withDatabaseMigrationLock<T>(
+  client: pg.Client,
+  run: () => Promise<T>,
+): Promise<T> {
+  return withMigrationSessionLock({
+    acquire: () =>
+      client.query(
+        "select pg_catalog.pg_advisory_lock(pg_catalog.hashtextextended($1::text, 0))",
+        [databaseMigrationSessionLock],
+      ),
+    release: async () => {
+      const result = await client.query<{ unlocked: boolean }>(
+        "select pg_catalog.pg_advisory_unlock(pg_catalog.hashtextextended($1::text, 0)) as unlocked",
+        [databaseMigrationSessionLock],
+      );
+      return result.rows[0]?.unlocked === true;
+    },
+    run,
+  });
+}
+
 async function existingPublicTables(
   client: pg.Client,
   tableNames: string[],
@@ -423,6 +449,23 @@ async function recordSqlMigration(
   migration: SqlMigration,
   baselined: boolean,
 ): Promise<void> {
+  if (await sqlMigrationIsRecorded(client, migration)) {
+    return;
+  }
+
+  await client.query(
+    `
+      insert into ${drizzleSchema}.${sqlMigrationsTable} (name, hash, baselined)
+      values ($1, $2, $3)
+    `,
+    [migration.name, migration.hash, baselined],
+  );
+}
+
+async function sqlMigrationIsRecorded(
+  client: pg.Client,
+  migration: SqlMigration,
+): Promise<boolean> {
   const existing = await client.query<{ hash: string }>(
     `select hash from ${drizzleSchema}.${sqlMigrationsTable} where name = $1`,
     [migration.name],
@@ -435,16 +478,10 @@ async function recordSqlMigration(
       );
     }
 
-    return;
+    return true;
   }
 
-  await client.query(
-    `
-      insert into ${drizzleSchema}.${sqlMigrationsTable} (name, hash, baselined)
-      values ($1, $2, $3)
-    `,
-    [migration.name, migration.hash, baselined],
-  );
+  return false;
 }
 
 async function runDrizzleGeneratedMigrations(): Promise<void> {
@@ -467,18 +504,7 @@ async function runSqlMigrations(
   migrations: SqlMigration[],
 ): Promise<void> {
   for (const migration of migrations) {
-    const existing = await client.query<{ hash: string }>(
-      `select hash from ${drizzleSchema}.${sqlMigrationsTable} where name = $1`,
-      [migration.name],
-    );
-
-    if (existing.rows.length > 0) {
-      if (existing.rows[0].hash !== migration.hash) {
-        throw new Error(
-          `SQL migration ${migration.name} is already recorded with a different hash.`,
-        );
-      }
-
+    if (await sqlMigrationIsRecorded(client, migration)) {
       console.log(`[db:migrate] SQL skipped: ${migration.name}`);
       continue;
     }
@@ -493,14 +519,26 @@ async function runSqlMigrations(
     }
 
     console.log(`[db:migrate] SQL applying: ${migration.name}`);
-    await client.query("begin");
-    try {
-      await client.query(migration.sql);
-      await recordSqlMigration(client, migration, false);
-      await client.query("commit");
-    } catch (error) {
-      await client.query("rollback");
-      throw error;
+    const result = await runSqlMigrationTransaction(
+      client,
+      () => client.query(migration.sql),
+      () => recordSqlMigration(client, migration, false),
+      {
+        prepareMigration: async () =>
+          (await sqlMigrationIsRecorded(client, migration))
+            ? "already-applied"
+            : "apply",
+        onDeadlockRetry: ({ sqlState, nextAttempt, maxAttempts, delayMs }) => {
+          console.warn(
+            `[db:migrate] SQL deadlock retry: ${migration.name} (SQLSTATE ${sqlState}, attempt ${nextAttempt}/${maxAttempts}, delay ${delayMs}ms).`,
+          );
+        },
+      },
+    );
+    if (result === "already-applied") {
+      console.log(
+        `[db:migrate] SQL skipped after transaction recheck: ${migration.name}`,
+      );
     }
   }
 }
@@ -519,10 +557,12 @@ async function baseline(): Promise<void> {
   const client = await createClient();
 
   try {
-    await ensureHistoryTables(client);
-    await assertCanBaseline(client, expectedTables);
-    await baselineDrizzleMigrations(client, drizzleMigrations);
-    await baselineSqlMigrations(client, sqlMigrations);
+    await withDatabaseMigrationLock(client, async () => {
+      await ensureHistoryTables(client);
+      await assertCanBaseline(client, expectedTables);
+      await baselineDrizzleMigrations(client, drizzleMigrations);
+      await baselineSqlMigrations(client, sqlMigrations);
+    });
   } finally {
     await client.end();
   }
@@ -536,22 +576,19 @@ async function migrate(): Promise<void> {
   const expectedTables =
     expectedTablesFromGeneratedMigrations(drizzleMigrations);
 
-  const preflightClient = await createClient();
-  try {
-    await ensureHistoryTables(preflightClient);
-    await assertNoUnbaselinedExistingSchema(preflightClient, expectedTables);
-  } finally {
-    await preflightClient.end();
-  }
-
-  console.log("[db:migrate] Applying Drizzle generated migrations.");
-  await runDrizzleGeneratedMigrations();
-
   const client = await createClient();
   try {
-    await ensureHistoryTables(client);
-    await ensureLegacySqlPrerequisites(client);
-    await runSqlMigrations(client, sqlMigrations);
+    await withDatabaseMigrationLock(client, async () => {
+      await ensureHistoryTables(client);
+      await assertNoUnbaselinedExistingSchema(client, expectedTables);
+
+      console.log("[db:migrate] Applying Drizzle generated migrations.");
+      await runDrizzleGeneratedMigrations();
+
+      await ensureHistoryTables(client);
+      await ensureLegacySqlPrerequisites(client);
+      await runSqlMigrations(client, sqlMigrations);
+    });
   } finally {
     await client.end();
   }
