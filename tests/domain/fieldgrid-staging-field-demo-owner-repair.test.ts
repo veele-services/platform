@@ -11,6 +11,7 @@ import {
   fieldDemoOwnerRepairCandidateIsSafe,
   fieldDemoOwnerRepairFetch,
   formatSafeFieldDemoOwnerRepairError,
+  loadFieldDemoOwnerRepairCandidates,
   repairMissingFieldDemoOwner,
   reservedFieldDemoOwnerAttributes,
   safeFieldDemoOwnerRepairErrorCode,
@@ -136,6 +137,30 @@ test("reserved owner create attributes are fixed and least privileged", () => {
   assert.throws(
     () => reservedFieldDemoOwnerAttributes("too-short"),
     /password is invalid/u,
+  );
+});
+
+test("owner lookup preserves exact JSON boolean metadata types", async () => {
+  let capturedSql = "";
+  const candidates = await loadFieldDemoOwnerRepairCandidates({
+    async query<T extends Record<string, unknown>>(text: string) {
+      capturedSql = text;
+      return { rows: [] as T[], rowCount: 0 };
+    },
+  });
+
+  assert.deepEqual(candidates, []);
+  assert.match(
+    capturedSql,
+    /\(raw_app_meta_data -> 'credential_activation_pending'\)\s+IS NOT DISTINCT FROM 'true'::jsonb AS activation_pending/u,
+  );
+  assert.match(
+    capturedSql,
+    /\(raw_app_meta_data -> 'backoffice_profile_name_required'\)\s+IS NOT DISTINCT FROM 'true'::jsonb AS profile_name_required/u,
+  );
+  assert.doesNotMatch(
+    capturedSql,
+    /raw_app_meta_data ->> '(?:credential_activation_pending|backoffice_profile_name_required)'/u,
   );
 });
 

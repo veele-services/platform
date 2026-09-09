@@ -456,10 +456,10 @@ const OWNER_CANDIDATE_QUERY = `SELECT id::text AS user_id,
        raw_app_meta_data ->> 'fieldgrid_environment'
          AS repair_environment,
        raw_app_meta_data ->> 'portal' AS portal,
-       (raw_app_meta_data ->> 'credential_activation_pending')
-         IS NOT DISTINCT FROM 'true' AS activation_pending,
-       (raw_app_meta_data ->> 'backoffice_profile_name_required')
-         IS NOT DISTINCT FROM 'true' AS profile_name_required,
+       (raw_app_meta_data -> 'credential_activation_pending')
+         IS NOT DISTINCT FROM 'true'::jsonb AS activation_pending,
+       (raw_app_meta_data -> 'backoffice_profile_name_required')
+         IS NOT DISTINCT FROM 'true'::jsonb AS profile_name_required,
        (SELECT COUNT(*)::integer
           FROM auth.identities AS identity
          WHERE identity.user_id = auth_user.id
