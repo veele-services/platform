@@ -39,6 +39,12 @@ const PROTECTED_SHA_WORKFLOWS = [
     branch: "main",
   },
   {
+    path: ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
+    input: "expected_main_sha",
+    binding: "EXPECTED_MAIN_SHA",
+    branch: "main",
+  },
+  {
     path: ".github/workflows/fieldgrid-staging-field-demo-domain-repair.yml",
     input: "expected_main_sha",
     binding: "EXPECTED_MAIN_SHA",
