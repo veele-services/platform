@@ -10,14 +10,18 @@ import {
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
   MANAGED_PROOF_SLUG,
+  WEBSITE_STAGING_PROOF_STATE_VERSION,
   WEBSITE_STAGING_PROOF_MARKER,
   decideFieldDemoFixture,
   ensureFieldDemoFixture,
+  fieldDemoOwnerFailureReason,
   fieldDemoProvisioningRunIsExact,
   fieldDemoProvisioningRunOwnershipIsExact,
+  formatSafeProofStateError,
   managedProofCandidateErrorCode,
   managedProofDomainBindingRequired,
   safeErrorCode,
+  safeFailureReason,
   selectAutomationActor,
   selectDefaultAutomationActor,
   selectFieldDemoOwnerUser,
@@ -32,6 +36,16 @@ const UUID_PATTERN_FOR_TEST =
 const fieldDemoTenantId = "10000000-0000-4000-8000-000000000040";
 const fieldDemoRunId = "10000000-0000-4000-8000-000000000041";
 const fieldDemoOwnerUserId = "10000000-0000-4000-8000-000000000043";
+const exactFieldDemoOwnerCandidate = {
+  user_id: fieldDemoOwnerUserId,
+  is_deleted: false,
+  is_banned: false,
+  is_anonymous: false,
+  email_confirmed: true,
+  password_set: true,
+  authenticated_audience: true,
+  authenticated_role: true,
+};
 const exactFieldDemoPresence = {
   slug_match_count: 1,
   domain_match_count: 1,
@@ -284,24 +298,72 @@ test("field-demo post-provision evidence binds exact metadata and ownership", ()
   }
 });
 
-test("field-demo resolves exactly one valid reserved pilot owner identity", () => {
+test("field-demo reports one bounded reason for every invalid owner state", () => {
   assert.equal(
-    selectFieldDemoOwnerUser([{ user_id: fieldDemoOwnerUserId }]),
+    selectFieldDemoOwnerUser([exactFieldDemoOwnerCandidate]),
     fieldDemoOwnerUserId,
   );
-  assert.throws(() => selectFieldDemoOwnerUser([]), /exactly one valid/u);
-  assert.throws(
-    () =>
-      selectFieldDemoOwnerUser([
-        { user_id: fieldDemoOwnerUserId },
-        { user_id: actor },
-      ]),
-    /exactly one valid/u,
+  assert.equal(
+    fieldDemoOwnerFailureReason([exactFieldDemoOwnerCandidate]),
+    null,
   );
-  assert.throws(
-    () => selectFieldDemoOwnerUser([{ user_id: "not-a-uuid" }]),
-    /exactly one valid/u,
-  );
+
+  const cases = [
+    [[], "field_demo_owner_not_found"],
+    [
+      [exactFieldDemoOwnerCandidate, { ...exactFieldDemoOwnerCandidate }],
+      "field_demo_owner_ambiguous",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, is_deleted: true }],
+      "field_demo_owner_deleted",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, is_banned: true }],
+      "field_demo_owner_banned",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, is_anonymous: true }],
+      "field_demo_owner_anonymous",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, email_confirmed: false }],
+      "field_demo_owner_email_unconfirmed",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, password_set: false }],
+      "field_demo_owner_password_unset",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, authenticated_audience: false }],
+      "field_demo_owner_audience_invalid",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, authenticated_role: false }],
+      "field_demo_owner_role_invalid",
+    ],
+    [
+      [{ ...exactFieldDemoOwnerCandidate, user_id: "not-a-uuid" }],
+      "field_demo_owner_id_invalid",
+    ],
+  ] as const;
+
+  for (const [candidates, expectedReason] of cases) {
+    assert.equal(fieldDemoOwnerFailureReason(candidates), expectedReason);
+    let caught: unknown;
+    try {
+      selectFieldDemoOwnerUser(candidates);
+    } catch (error) {
+      caught = error;
+    }
+    assert.ok(caught instanceof Error);
+    assert.match(caught.message, /exactly one valid/u);
+    assert.equal(safeFailureReason(caught), expectedReason);
+    assert.equal(
+      formatSafeProofStateError(caught),
+      `${WEBSITE_STAGING_PROOF_STATE_VERSION}: field_demo_owner_invalid:${expectedReason}`,
+    );
+  }
 });
 
 function provisioningRunFixture(overrides: Record<string, unknown> = {}) {
@@ -413,7 +475,7 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
     current_step: "owner_invite_pending",
   });
   const testDouble = fieldDemoDatabaseDouble([
-    [{ user_id: fieldDemoOwnerUserId }],
+    [exactFieldDemoOwnerCandidate],
     [{ slug_match_count: 0, domain_match_count: 0 }],
     [],
     [pendingRun],
@@ -455,17 +517,31 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
   assert.equal(testDouble.rollbackInputs.length, 0);
 });
 
-test("field-demo performs no mutation without one usable reserved owner", async () => {
-  const testDouble = fieldDemoDatabaseDouble([[]]);
+test("field-demo performs no mutation for every invalid owner state", async () => {
+  const ownerRows = [
+    [],
+    [exactFieldDemoOwnerCandidate, { ...exactFieldDemoOwnerCandidate }],
+    [{ ...exactFieldDemoOwnerCandidate, is_deleted: true }],
+    [{ ...exactFieldDemoOwnerCandidate, is_banned: true }],
+    [{ ...exactFieldDemoOwnerCandidate, is_anonymous: true }],
+    [{ ...exactFieldDemoOwnerCandidate, email_confirmed: false }],
+    [{ ...exactFieldDemoOwnerCandidate, password_set: false }],
+    [{ ...exactFieldDemoOwnerCandidate, authenticated_audience: false }],
+    [{ ...exactFieldDemoOwnerCandidate, authenticated_role: false }],
+    [{ ...exactFieldDemoOwnerCandidate, user_id: "not-a-uuid" }],
+  ];
 
-  await assert.rejects(
-    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
-    /exactly one valid reserved pilot owner/u,
-  );
-  assert.deepEqual(testDouble.events, ["query-0"]);
-  assert.equal(testDouble.provisionInputs.length, 0);
-  assert.equal(testDouble.completionInputs.length, 0);
-  assert.equal(testDouble.rollbackInputs.length, 0);
+  for (const rows of ownerRows) {
+    const testDouble = fieldDemoDatabaseDouble([rows]);
+    await assert.rejects(
+      ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+      /exactly one valid reserved pilot owner/u,
+    );
+    assert.deepEqual(testDouble.events, ["query-0"]);
+    assert.equal(testDouble.provisionInputs.length, 0);
+    assert.equal(testDouble.completionInputs.length, 0);
+    assert.equal(testDouble.rollbackInputs.length, 0);
+  }
 });
 
 test("field-demo rolls back its exact tenant when owner completion fails", async () => {
@@ -476,7 +552,7 @@ test("field-demo rolls back its exact tenant when owner completion fails", async
   });
   const testDouble = fieldDemoDatabaseDouble(
     [
-      [{ user_id: fieldDemoOwnerUserId }],
+      [exactFieldDemoOwnerCandidate],
       [{ slug_match_count: 0, domain_match_count: 0 }],
       [],
       [pendingRun],
@@ -505,7 +581,7 @@ test("field-demo rolls back its exact tenant when the final owner-role check fai
     current_step: "owner_invite_pending",
   });
   const testDouble = fieldDemoDatabaseDouble([
-    [{ user_id: fieldDemoOwnerUserId }],
+    [exactFieldDemoOwnerCandidate],
     [{ slug_match_count: 0, domain_match_count: 0 }],
     [],
     [pendingRun],
@@ -646,8 +722,14 @@ test("managed proof candidates require one exact automation-owned identity", () 
 test("proof evidence does not trust arbitrary external error codes", () => {
   const error = Object.assign(new Error("opaque failure"), {
     code: "credential-shaped-token",
+    failureReason: "field_demo_owner_password_unset",
   });
   assert.equal(safeErrorCode(error), "proof_state_failed");
+  assert.equal(safeFailureReason(error), null);
+  assert.equal(
+    formatSafeProofStateError(error),
+    `${WEBSITE_STAGING_PROOF_STATE_VERSION}: proof_state_failed`,
+  );
 });
 
 test("actorless prepare prefers one admin and only falls back to one owner", () => {
