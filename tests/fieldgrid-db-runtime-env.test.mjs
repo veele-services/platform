@@ -173,7 +173,7 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
       "await ensureHistoryTables(client);",
       "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
       'console.log("[db:migrate] Applying Drizzle generated migrations.");',
-      "await runDrizzleGeneratedMigrations();",
+      "await runDrizzleGeneratedMigrations(client);",
       "await runSqlMigrations(client, sqlMigrations);",
     ],
     "migrate function session-lock scope",
@@ -204,5 +204,19 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
           "await runSqlMigrations(client, sqlMigrations);",
         ),
     "the session lock should cover generated and hand-written migrations",
+  );
+  assertContains(
+    migrate,
+    [
+      "async function runDrizzleGeneratedMigrations(",
+      "client: pg.Client,",
+      "const db = drizzle(client);",
+    ],
+    "single-session Drizzle migration",
+  );
+  assert.doesNotMatch(
+    migrate,
+    /new Pool\(connectionConfig\(\)\)/u,
+    "the lock-holding migration runner must not require a second database connection",
   );
 });

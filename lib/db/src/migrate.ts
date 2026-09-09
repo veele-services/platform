@@ -24,7 +24,7 @@ import {
   withMigrationSessionLock,
 } from "./migration-transaction-retry";
 
-const { Client, Pool } = pg;
+const { Client } = pg;
 
 type Mode = "migrate" | "baseline";
 
@@ -484,19 +484,13 @@ async function sqlMigrationIsRecorded(
   return false;
 }
 
-async function runDrizzleGeneratedMigrations(): Promise<void> {
-  const pool = new Pool(connectionConfig());
-  const db = drizzle(pool);
-
-  try {
-    await migrateDrizzle(db, {
-      migrationsFolder: generatedMigrationsDir,
-      migrationsSchema: drizzleSchema,
-      migrationsTable: drizzleMigrationsTable,
-    });
-  } finally {
-    await pool.end();
-  }
+async function runDrizzleGeneratedMigrations(client: pg.Client): Promise<void> {
+  const db = drizzle(client);
+  await migrateDrizzle(db, {
+    migrationsFolder: generatedMigrationsDir,
+    migrationsSchema: drizzleSchema,
+    migrationsTable: drizzleMigrationsTable,
+  });
 }
 
 async function runSqlMigrations(
@@ -583,7 +577,7 @@ async function migrate(): Promise<void> {
       await assertNoUnbaselinedExistingSchema(client, expectedTables);
 
       console.log("[db:migrate] Applying Drizzle generated migrations.");
-      await runDrizzleGeneratedMigrations();
+      await runDrizzleGeneratedMigrations(client);
 
       await ensureHistoryTables(client);
       await ensureLegacySqlPrerequisites(client);
