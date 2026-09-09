@@ -119,6 +119,8 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     "field_demo_identity_collision",
     "field_demo_primary_domain_mismatch",
     "field_demo_plan_mismatch",
+    "field_demo_subscription_invalid",
+    "field_demo_owner_invalid",
     "field_demo_binding_invalid",
     "field_demo_settings_invalid",
     "field_demo_runtime_state_invalid",
@@ -185,7 +187,18 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   );
   assert.match(fieldDemoBootstrap, /if \(existing\) return existing;/u);
   assert.match(fieldDemoBootstrap, /await dbModule\.provisionTenant\(/u);
-  assert.match(fieldDemoBootstrap, /ownerEmail: null/u);
+  assert.match(fieldDemoBootstrap, /ownerEmail: FIELD_DEMO_OWNER_EMAIL/u);
+  assert.match(
+    fieldDemoBootstrap,
+    /await dbModule\.completeProvisionedTenantOwnerInvite\(/u,
+  );
+  assert.ok(
+    fieldDemoBootstrap.indexOf("fieldDemoProvisioningRunOwnershipIsExact") <
+      fieldDemoBootstrap.indexOf(
+        "await dbModule.completeProvisionedTenantOwnerInvite(",
+      ),
+    "owner completion must follow exact automation ownership verification",
+  );
   assert.doesNotMatch(fieldDemoBootstrap, /moduleKeys/u);
   for (const metadata of [
     "automationMarker",
@@ -201,6 +214,16 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(fieldDemoBootstrap, /rollbackProvisionedTenant/u);
   assert.match(fieldDemoBootstrap, /field_demo_rollback_failed/u);
   assert.doesNotMatch(fieldDemoBootstrap, /\.catch\(\(\) => undefined\)/u);
+  assert.match(script, /FROM public\.tenant_subscriptions AS subscription/u);
+  assert.match(script, /subscription\.status IN \('trial', 'active'\)/u);
+  assert.match(script, /plan\.key = 'enterprise'/u);
+  assert.match(script, /plan\.is_active = true/u);
+  assert.match(script, /FROM auth\.users/u);
+  assert.match(script, /email_confirmed_at IS NOT NULL/u);
+  assert.match(script, /deleted_at IS NULL/u);
+  assert.match(script, /banned_until IS NULL/u);
+  assert.match(script, /membership\.role = 'owner'/u);
+  assert.match(script, /membership\.status = 'active'/u);
   assert.match(script, /failureStage: ProofFailureStage \| null/u);
   assert.match(script, /hostRole: ProofHostRole/u);
   assert.match(workflow, /prepare-managed/u);

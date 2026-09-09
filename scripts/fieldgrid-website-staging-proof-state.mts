@@ -12,6 +12,7 @@ export const MANAGED_PROOF_URL = `https://${MANAGED_PROOF_HOST}/`;
 export const MANAGED_PROOF_SLUG = "managed-proof-w00-v2";
 export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
 export const FIELD_DEMO_SLUG = "field-demo";
+export const FIELD_DEMO_OWNER_EMAIL = "services@fieldgrid.nl";
 export const FIELD_DEMO_FIXTURE_VERSION =
   "fieldgrid-staging-field-demo-fixture-v1";
 export const FIELD_DEMO_FIXTURE_MARKER =
@@ -112,6 +113,9 @@ export type FieldDemoFixtureCandidate = {
   primary_domain_disabled_count: number;
   exact_domain_count: number;
   organization_settings_count: number;
+  active_subscription_count: number;
+  active_enterprise_subscription_count: number;
+  expected_owner_count: number;
 };
 
 export type FieldDemoFixturePresence = {
@@ -124,6 +128,8 @@ type FieldDemoFixtureErrorCode =
   | "field_demo_identity_collision"
   | "field_demo_primary_domain_mismatch"
   | "field_demo_plan_mismatch"
+  | "field_demo_subscription_invalid"
+  | "field_demo_owner_invalid"
   | "field_demo_binding_invalid"
   | "field_demo_settings_invalid"
   | "field_demo_runtime_state_invalid"
@@ -145,6 +151,9 @@ export type FieldDemoProvisioningRunCandidate = {
   plan_key: string;
   primary_domain: string | null;
   owner_email: string | null;
+  owner_user_id: string | null;
+  owner_invite_status: string;
+  current_step: string;
   requested_by: string | null;
   tenant_created_by: string | null;
 };
@@ -170,6 +179,7 @@ type ProofFailureStage =
   | "configuration"
   | "database_bootstrap"
   | "automation_actor"
+  | "field_demo_owner"
   | "field_demo_candidate"
   | "field_demo_provision"
   | "field_demo_post_provision"
@@ -506,6 +516,39 @@ async function resolveRuntimeTenant(
   };
 }
 
+export function selectFieldDemoOwnerUser(
+  candidates: ReadonlyArray<{ user_id: string }>,
+): string {
+  if (
+    candidates.length !== 1 ||
+    !UUID_PATTERN.test(candidates[0]?.user_id ?? "")
+  ) {
+    throw new ProofStateError(
+      "field_demo_owner_invalid",
+      "Field-demo requires exactly one valid reserved pilot owner",
+      "field_demo_owner",
+      "field_demo",
+    );
+  }
+  return candidates[0]!.user_id;
+}
+
+async function resolveFieldDemoOwnerUser(
+  queryable: Queryable,
+): Promise<string> {
+  const result = await queryable.query<{ user_id: string }>(
+    `SELECT id AS user_id
+     FROM auth.users
+     WHERE lower(email) = lower($1)
+       AND email_confirmed_at IS NOT NULL
+       AND deleted_at IS NULL
+       AND (banned_until IS NULL OR banned_until <= now())
+     ORDER BY id`,
+    [FIELD_DEMO_OWNER_EMAIL],
+  );
+  return selectFieldDemoOwnerUser(result.rows);
+}
+
 export function decideFieldDemoFixture(
   presence: FieldDemoFixturePresence,
   candidates: ReadonlyArray<FieldDemoFixtureCandidate>,
@@ -575,6 +618,21 @@ export function decideFieldDemoFixture(
     return {
       action: "reject",
       errorCode: "field_demo_plan_mismatch",
+    };
+  }
+  if (
+    candidate.active_subscription_count !== 1 ||
+    candidate.active_enterprise_subscription_count !== 1
+  ) {
+    return {
+      action: "reject",
+      errorCode: "field_demo_subscription_invalid",
+    };
+  }
+  if (candidate.expected_owner_count !== 1) {
+    return {
+      action: "reject",
+      errorCode: "field_demo_owner_invalid",
     };
   }
   if (candidate.organization_settings_count !== 1) {
@@ -657,18 +715,71 @@ async function assertFieldDemoPrerequisite(
       "field_demo",
     );
   }
-  const settings = await queryable.query<{
+  const invariants = await queryable.query<{
     organization_settings_count: number;
+    active_subscription_count: number;
+    active_enterprise_subscription_count: number;
+    expected_owner_count: number;
   }>(
-    `SELECT COUNT(*)::integer AS organization_settings_count
-     FROM public.organization_settings
-     WHERE tenant_id = $1`,
-    [runtime.tenantId],
+    `SELECT
+       (SELECT COUNT(*)::integer
+          FROM public.organization_settings AS settings
+         WHERE settings.tenant_id = $1) AS organization_settings_count,
+       (SELECT COUNT(*)::integer
+          FROM public.tenant_subscriptions AS subscription
+         WHERE subscription.tenant_id = $1
+           AND subscription.status IN ('trial', 'active'))
+         AS active_subscription_count,
+       (SELECT COUNT(*)::integer
+          FROM public.tenant_subscriptions AS subscription
+          JOIN public.plans AS plan ON plan.id = subscription.plan_id
+         WHERE subscription.tenant_id = $1
+           AND subscription.status IN ('trial', 'active')
+           AND plan.key = 'enterprise'
+           AND plan.is_active = true)
+         AS active_enterprise_subscription_count,
+       (SELECT COUNT(*)::integer
+          FROM public.tenant_users AS membership
+          JOIN auth.users AS owner ON owner.id = membership.user_id
+         WHERE membership.tenant_id = $1
+           AND membership.role = 'owner'
+           AND membership.status = 'active'
+           AND lower(owner.email) = lower($2)
+           AND owner.email_confirmed_at IS NOT NULL
+           AND owner.deleted_at IS NULL
+           AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
+         AS expected_owner_count`,
+    [runtime.tenantId, FIELD_DEMO_OWNER_EMAIL],
   );
+  if (invariants.rows.length !== 1) {
+    throw new ProofStateError(
+      "field_demo_runtime_state_invalid",
+      "Field-demo invariants are ambiguous",
+      failureStage,
+      "field_demo",
+    );
+  }
+  const invariant = invariants.rows[0]!;
   if (
-    settings.rows.length !== 1 ||
-    settings.rows[0]?.organization_settings_count !== 1
+    invariant.active_subscription_count !== 1 ||
+    invariant.active_enterprise_subscription_count !== 1
   ) {
+    throw new ProofStateError(
+      "field_demo_subscription_invalid",
+      "Field-demo active Enterprise subscription is not exact",
+      failureStage,
+      "field_demo",
+    );
+  }
+  if (invariant.expected_owner_count !== 1) {
+    throw new ProofStateError(
+      "field_demo_owner_invalid",
+      "Field-demo reserved pilot owner is not exact",
+      failureStage,
+      "field_demo",
+    );
+  }
+  if (invariant.organization_settings_count !== 1) {
     throw new ProofStateError(
       "field_demo_settings_invalid",
       "Field-demo organization settings are not exact",
@@ -716,7 +827,31 @@ async function findFieldDemoFixture(
             (SELECT COUNT(*)::integer
                FROM public.organization_settings AS settings
               WHERE settings.tenant_id = tenant.id)
-              AS organization_settings_count
+              AS organization_settings_count,
+            (SELECT COUNT(*)::integer
+               FROM public.tenant_subscriptions AS subscription
+              WHERE subscription.tenant_id = tenant.id
+                AND subscription.status IN ('trial', 'active'))
+              AS active_subscription_count,
+            (SELECT COUNT(*)::integer
+               FROM public.tenant_subscriptions AS subscription
+               JOIN public.plans AS plan ON plan.id = subscription.plan_id
+              WHERE subscription.tenant_id = tenant.id
+                AND subscription.status IN ('trial', 'active')
+                AND plan.key = 'enterprise'
+                AND plan.is_active = true)
+              AS active_enterprise_subscription_count,
+            (SELECT COUNT(*)::integer
+               FROM public.tenant_users AS membership
+               JOIN auth.users AS owner ON owner.id = membership.user_id
+              WHERE membership.tenant_id = tenant.id
+                AND membership.role = 'owner'
+                AND membership.status = 'active'
+                AND lower(owner.email) = lower($3)
+                AND owner.email_confirmed_at IS NOT NULL
+                AND owner.deleted_at IS NULL
+                AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
+              AS expected_owner_count
      FROM public.tenants AS tenant
      LEFT JOIN LATERAL (
        SELECT
@@ -739,7 +874,7 @@ async function findFieldDemoFixture(
      ) AS domains ON true
      WHERE tenant.slug = $1 OR domains.exact_domain_count > 0
      ORDER BY tenant.id`,
-    [FIELD_DEMO_SLUG, FIELD_DEMO_HOST],
+    [FIELD_DEMO_SLUG, FIELD_DEMO_HOST, FIELD_DEMO_OWNER_EMAIL],
   );
   const decision = decideFieldDemoFixture(presenceResult.rows[0]!, result.rows);
   if (decision.action === "provision") return null;
@@ -764,6 +899,7 @@ type FieldDemoProvisioningIdentity = {
   tenantId: string;
   runId: string;
   requestedBy: string;
+  ownerUserId: string;
   expectedSha: string;
   changeReference: string;
 };
@@ -795,7 +931,10 @@ export function fieldDemoProvisioningRunIsExact(
     candidate?.slug === FIELD_DEMO_SLUG &&
     candidate.plan_key === "enterprise" &&
     candidate.primary_domain === FIELD_DEMO_HOST &&
-    candidate.owner_email === null &&
+    candidate.owner_email === FIELD_DEMO_OWNER_EMAIL &&
+    candidate.owner_user_id === expected.ownerUserId &&
+    candidate.owner_invite_status === "sent" &&
+    candidate.current_step === "completed" &&
     candidate.expected_sha === expected.expectedSha &&
     candidate.change_reference === expected.changeReference
   );
@@ -814,6 +953,7 @@ async function findFieldDemoProvisioningRun(
             run.metadata ->> 'expectedSha' AS expected_sha,
             run.metadata ->> 'changeReference' AS change_reference,
             run.slug, run.plan_key, run.primary_domain, run.owner_email,
+            run.owner_user_id, run.owner_invite_status, run.current_step,
             run.requested_by, tenant.created_by AS tenant_created_by
      FROM public.tenant_provisioning_runs AS run
      JOIN public.tenants AS tenant ON tenant.id = run.tenant_id
@@ -823,12 +963,13 @@ async function findFieldDemoProvisioningRun(
   return result.rows.length === 1 ? result.rows[0]! : null;
 }
 
-async function ensureFieldDemoFixture(
+export async function ensureFieldDemoFixture(
   dbModule: DatabaseModule,
   actorUserId: string,
   expectedSha: string,
   changeReference: string,
 ): Promise<RuntimeTenant> {
+  const ownerUserId = await resolveFieldDemoOwnerUser(dbModule.pool);
   const existing = await findFieldDemoFixture(
     dbModule.pool,
     "field_demo_candidate",
@@ -843,7 +984,7 @@ async function ensureFieldDemoFixture(
       planKey: "enterprise",
       primaryDomain: FIELD_DEMO_HOST,
       requestedBy: actorUserId,
-      ownerEmail: null,
+      ownerEmail: FIELD_DEMO_OWNER_EMAIL,
       metadata: {
         automationMarker: FIELD_DEMO_FIXTURE_MARKER,
         automationContract: FIELD_DEMO_FIXTURE_VERSION,
@@ -857,6 +998,7 @@ async function ensureFieldDemoFixture(
       tenantId: result.tenantId,
       runId: result.runId,
       requestedBy: actorUserId,
+      ownerUserId,
       expectedSha,
       changeReference,
     };
@@ -871,6 +1013,27 @@ async function ensureFieldDemoFixture(
 
   let provisioningRun: FieldDemoProvisioningRunCandidate | null = null;
   try {
+    provisioningRun = await findFieldDemoProvisioningRun(
+      dbModule.pool,
+      provisioned,
+    );
+    if (
+      !fieldDemoProvisioningRunOwnershipIsExact(provisioningRun, provisioned)
+    ) {
+      throw new ProofStateError(
+        "field_demo_provisioning_verification_failed",
+        "Field-demo provisioning ownership is not exact",
+        "field_demo_post_provision",
+        "field_demo",
+      );
+    }
+    await dbModule.completeProvisionedTenantOwnerInvite({
+      tenantId: provisioned.tenantId,
+      runId: provisioned.runId,
+      ownerEmail: FIELD_DEMO_OWNER_EMAIL,
+      ownerUserId,
+      invitedBy: actorUserId,
+    });
     provisioningRun = await findFieldDemoProvisioningRun(
       dbModule.pool,
       provisioned,
