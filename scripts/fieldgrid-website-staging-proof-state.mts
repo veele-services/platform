@@ -138,6 +138,29 @@ type FieldDemoFixtureErrorCode =
   | "field_demo_provisioning_verification_failed"
   | "field_demo_rollback_failed";
 
+export type FieldDemoOwnerFailureReason =
+  | "field_demo_owner_not_found"
+  | "field_demo_owner_ambiguous"
+  | "field_demo_owner_deleted"
+  | "field_demo_owner_banned"
+  | "field_demo_owner_anonymous"
+  | "field_demo_owner_email_unconfirmed"
+  | "field_demo_owner_password_unset"
+  | "field_demo_owner_audience_invalid"
+  | "field_demo_owner_role_invalid"
+  | "field_demo_owner_id_invalid";
+
+export type FieldDemoOwnerCandidate = {
+  user_id: string;
+  is_deleted: boolean;
+  is_banned: boolean;
+  is_anonymous: boolean;
+  email_confirmed: boolean;
+  password_set: boolean;
+  authenticated_audience: boolean;
+  authenticated_role: boolean;
+};
+
 export type FieldDemoProvisioningRunCandidate = {
   run_id: string;
   tenant_id: string;
@@ -194,23 +217,27 @@ type ProofFailureStage =
   | "public_verification";
 
 type ProofHostRole = "field_demo" | "managed_proof" | "custom_proof" | null;
+type ProofFailureReason = FieldDemoOwnerFailureReason;
 
 class ProofStateError extends Error {
   readonly code: ProofStateErrorCode;
   readonly failureStage: ProofFailureStage | null;
   readonly hostRole: ProofHostRole;
+  readonly failureReason: ProofFailureReason | null;
 
   constructor(
     code: ProofStateErrorCode,
     message: string,
     failureStage: ProofFailureStage | null = null,
     hostRole: ProofHostRole = null,
+    failureReason: ProofFailureReason | null = null,
   ) {
     super(message);
     this.name = "ProofStateError";
     this.code = code;
     this.failureStage = failureStage;
     this.hostRole = hostRole;
+    this.failureReason = failureReason;
   }
 }
 
@@ -237,6 +264,7 @@ type ProofEvidence = {
   errorCode: string | null;
   failureStage: ProofFailureStage | null;
   hostRole: ProofHostRole;
+  failureReason: ProofFailureReason | null;
 };
 
 function parseArgs(argv: string[]): ProofOptions {
@@ -402,6 +430,17 @@ export function safeErrorCode(error: unknown): string {
   return "proof_state_failed";
 }
 
+export function safeFailureReason(error: unknown): ProofFailureReason | null {
+  return error instanceof ProofStateError ? error.failureReason : null;
+}
+
+export function formatSafeProofStateError(error: unknown): string {
+  const reason = safeFailureReason(error);
+  return `${WEBSITE_STAGING_PROOF_STATE_VERSION}: ${safeErrorCode(error)}${
+    reason ? `:${reason}` : ""
+  }`;
+}
+
 async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
@@ -517,18 +556,36 @@ async function resolveRuntimeTenant(
   };
 }
 
+export function fieldDemoOwnerFailureReason(
+  candidates: ReadonlyArray<FieldDemoOwnerCandidate>,
+): FieldDemoOwnerFailureReason | null {
+  if (candidates.length === 0) return "field_demo_owner_not_found";
+  if (candidates.length !== 1) return "field_demo_owner_ambiguous";
+  const candidate = candidates[0]!;
+  if (candidate.is_deleted) return "field_demo_owner_deleted";
+  if (candidate.is_banned) return "field_demo_owner_banned";
+  if (candidate.is_anonymous) return "field_demo_owner_anonymous";
+  if (!candidate.email_confirmed) return "field_demo_owner_email_unconfirmed";
+  if (!candidate.password_set) return "field_demo_owner_password_unset";
+  if (!candidate.authenticated_audience)
+    return "field_demo_owner_audience_invalid";
+  if (!candidate.authenticated_role) return "field_demo_owner_role_invalid";
+  if (!UUID_PATTERN.test(candidate.user_id))
+    return "field_demo_owner_id_invalid";
+  return null;
+}
+
 export function selectFieldDemoOwnerUser(
-  candidates: ReadonlyArray<{ user_id: string }>,
+  candidates: ReadonlyArray<FieldDemoOwnerCandidate>,
 ): string {
-  if (
-    candidates.length !== 1 ||
-    !UUID_PATTERN.test(candidates[0]?.user_id ?? "")
-  ) {
+  const failureReason = fieldDemoOwnerFailureReason(candidates);
+  if (failureReason) {
     throw new ProofStateError(
       "field_demo_owner_invalid",
       "Field-demo requires exactly one valid reserved pilot owner",
       "field_demo_owner",
       "field_demo",
+      failureReason,
     );
   }
   return candidates[0]!.user_id;
@@ -537,17 +594,19 @@ export function selectFieldDemoOwnerUser(
 async function resolveFieldDemoOwnerUser(
   queryable: Queryable,
 ): Promise<string> {
-  const result = await queryable.query<{ user_id: string }>(
-    `SELECT id AS user_id
+  const result = await queryable.query<FieldDemoOwnerCandidate>(
+    `SELECT id::text AS user_id,
+            deleted_at IS NOT NULL AS is_deleted,
+            (banned_until IS NOT NULL AND banned_until > now()) AS is_banned,
+            is_anonymous IS NOT FALSE AS is_anonymous,
+            email_confirmed_at IS NOT NULL AS email_confirmed,
+            coalesce(length(encrypted_password), 0) > 0 AS password_set,
+            aud IS NOT DISTINCT FROM 'authenticated'
+              AS authenticated_audience,
+            role IS NOT DISTINCT FROM 'authenticated'
+              AS authenticated_role
      FROM auth.users
      WHERE lower(email) = lower($1)
-       AND email_confirmed_at IS NOT NULL
-       AND length(encrypted_password) > 0
-       AND is_anonymous = false
-       AND aud = 'authenticated'
-       AND role = 'authenticated'
-       AND deleted_at IS NULL
-       AND (banned_until IS NULL OR banned_until <= now())
      ORDER BY id`,
     [FIELD_DEMO_OWNER_EMAIL],
   );
@@ -1970,6 +2029,7 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
     errorCode: null,
     failureStage: null,
     hostRole: null,
+    failureReason: null,
   };
   try {
     const errors = validateWebsiteStagingProofStateConfig(options, environment);
@@ -2103,6 +2163,7 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
       error instanceof ProofStateError && error.hostRole
         ? error.hostRole
         : hostRole;
+    evidence.failureReason = safeFailureReason(error);
     throw error;
   } finally {
     evidence.completedAt = new Date().toISOString();
@@ -2150,9 +2211,7 @@ const isMain =
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) {
   main().catch((error) => {
-    console.error(
-      `${WEBSITE_STAGING_PROOF_STATE_VERSION}: ${safeErrorCode(error)}`,
-    );
+    console.error(formatSafeProofStateError(error));
     process.exitCode = 1;
   });
 }
