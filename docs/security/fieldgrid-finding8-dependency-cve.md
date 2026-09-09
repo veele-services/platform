@@ -25,3 +25,9 @@ De audit schrijft reproduceerbaar bewijs naar `artifacts/dependency-security/`. 
 `main-exact-head-validation.yml` voert de policy en registry-signaturecontrole uit op `FIELDGRID_VALIDATION_SHA` en uploadt het bewijs ook bij een mislukking. Deze repository heeft GitHub Advanced Security/dependency review niet beschikbaar; daarom is de repository-onafhankelijke pnpm-gate autoritatief en wordt geen niet-ondersteunde GitHub-action fail-open gemaakt.
 
 Een Finding 8-run mag pas groen zijn als zowel het policyrapport als de registry-signaturecontrole slaagt.
+
+## Noodpatch 2026-09-08
+
+De live audit blokkeerde de staging-release op `GHSA-p293-qw3h-jr36` in Next.js, vier HIGH-advisories in de transitieve XML-parser, `GHSA-2883-xcg3-v3hh` in de YAML-parser en `GHSA-rgj7-g3m4-5g8c` in Sharp/libheif. De workspace pint daarom Next.js en de bijbehorende lintconfig op `15.5.24`, forceert `@xmldom/xmldom` op `0.9.12`, `js-yaml` op `4.3.2` en Sharp op `0.35.4`: de eerste releases waarin deze advisories zijn verholpen.
+
+De gepatchte packageversies waren bij adviserende publicatie al ouder dan 1440 minuten. Er is daarom geen `minimumReleaseAgeExclude` nodig: de supply-chainwachttijd, volledige dependencygraph en registry-signatures blijven zonder tijdelijke uitzondering fail-closed gecontroleerd.

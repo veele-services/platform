@@ -144,9 +144,17 @@ export function assertMigrationAdminUrl(value) {
   const parsed = parseBoundPostgresUrl(value, "migration-admin");
   const username = decodeURIComponent(parsed.username);
   const directHost = `db.${STAGING_PROJECT_REF}.supabase.co`;
+  if (
+    isStagingPoolerHost(parsed.hostname)
+    && parsed.port !== STAGING_POOLER_PORT
+  ) {
+    throw new Error(
+      "The migration-admin URL must use the Supavisor session pooler on port 5432.",
+    );
+  }
   const poolerBound = isStagingPoolerHost(parsed.hostname)
     && username.endsWith(`.${STAGING_PROJECT_REF}`)
-    && ["5432", "6543"].includes(parsed.port);
+    && parsed.port === STAGING_POOLER_PORT;
   const directBound = parsed.hostname === directHost
     && username === "postgres"
     && parsed.port === "5432";

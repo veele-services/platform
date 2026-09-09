@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   RUNTIME_ROLE,
+  assertMigrationAdminUrl,
   assertRuntimePassword,
   assertRuntimeUrlDescriptor,
   buildScramVerifier,
@@ -164,6 +165,19 @@ test("SCRAM provisioning and runtime endpoint validators are deterministic and s
   assert.equal(assertRuntimeUrlDescriptor(url, host).hostname, host);
   assert.throws(() => assertRuntimeUrlDescriptor(`${url}?sslmode=disable`, host));
   assert.throws(() => assertRuntimeUrlDescriptor(url, "pooler.example.test"));
+
+  const poolerAdminUrl = `postgresql://supabase_admin.olyfmekyqozxrbrwwszu:admin-password@${host}:5432/postgres`;
+  assert.equal(assertMigrationAdminUrl(poolerAdminUrl), poolerAdminUrl);
+  assert.throws(
+    () => assertMigrationAdminUrl(poolerAdminUrl.replace(":5432/", ":6543/")),
+    /session pooler on port 5432/u,
+  );
+  const directAdminUrl =
+    "postgresql://postgres:admin-password@db.olyfmekyqozxrbrwwszu.supabase.co:5432/postgres";
+  assert.equal(assertMigrationAdminUrl(directAdminUrl), directAdminUrl);
+  assert.throws(() =>
+    assertMigrationAdminUrl(directAdminUrl.replace(":5432/", ":6543/")),
+  );
 });
 
 test("runtime source capability inventory matches the migration manifest", () => {
