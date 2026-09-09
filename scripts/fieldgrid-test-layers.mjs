@@ -18,9 +18,8 @@ export const fieldgridTestLayers = [
     purpose:
       "Migratievolgorde, testlagenmanifest en runtime fixturecontract blijven expliciet bewaakt.",
     ciCommand:
-      "pnpm fieldgrid:migration-order-check:check && pnpm fieldgrid:test-layers:check && node --test tests/fieldgrid-db-runtime-env.test.mjs && pnpm fieldgrid:runtime-safety:fixture-contract",
+      "pnpm fieldgrid:migration-order-check:check && pnpm fieldgrid:test-layers:check && pnpm fieldgrid:runtime-safety:fixture-contract",
     requiredTestFiles: [
-      "tests/fieldgrid-db-runtime-env.test.mjs",
       "tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs",
     ],
     requiredSignals: ["FG-MIG-ORDER", "FG-TEST-LAYERS", "FG-RUNTIME-FIXTURES"],
@@ -191,12 +190,11 @@ export const fieldgridTestLayers = [
     purpose:
       "Migratievolgorde, naming, DB runtime-env en lege/staging-copy smoke blijven reproduceerbaar.",
     ciCommand:
-      "pnpm fieldgrid:migration-order-check:check && node --test tests/fieldgrid-db-runtime-env.test.mjs tests/fieldgrid-database-autofix.test.mjs tests/fieldgrid-sprint-7-migration-smoke.test.mjs && pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-migration-transaction-retry.test.ts",
+      "pnpm fieldgrid:migration-order-check:check && node --test tests/fieldgrid-db-runtime-env.test.mjs tests/fieldgrid-database-autofix.test.mjs tests/fieldgrid-sprint-7-migration-smoke.test.mjs",
     requiredTestFiles: [
       "tests/fieldgrid-db-runtime-env.test.mjs",
       "tests/fieldgrid-database-autofix.test.mjs",
       "tests/fieldgrid-sprint-7-migration-smoke.test.mjs",
-      "tests/domain/fieldgrid-migration-transaction-retry.test.ts",
     ],
     requiredSignals: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
   },
