@@ -2,10 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CUSTOM_PROOF_HOST,
+  FIELD_DEMO_FIXTURE_MARKER,
+  FIELD_DEMO_FIXTURE_VERSION,
+  FIELD_DEMO_HOST,
+  FIELD_DEMO_SLUG,
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
   MANAGED_PROOF_SLUG,
   WEBSITE_STAGING_PROOF_MARKER,
+  decideFieldDemoFixture,
+  fieldDemoProvisioningRunIsExact,
+  fieldDemoProvisioningRunOwnershipIsExact,
   managedProofCandidateErrorCode,
   managedProofDomainBindingRequired,
   safeErrorCode,
@@ -18,6 +25,27 @@ const sha = "a".repeat(40);
 const actor = "10000000-0000-4000-8000-000000000001";
 const UUID_PATTERN_FOR_TEST =
   /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/iu;
+
+const fieldDemoTenantId = "10000000-0000-4000-8000-000000000040";
+const fieldDemoRunId = "10000000-0000-4000-8000-000000000041";
+const exactFieldDemoPresence = {
+  slug_match_count: 1,
+  domain_match_count: 1,
+};
+const exactFieldDemoCandidate = {
+  tenant_id: fieldDemoTenantId,
+  slug: FIELD_DEMO_SLUG,
+  plan_key: "enterprise",
+  is_active: true,
+  tenant_status: "trial",
+  primary_domain_count: 1,
+  primary_domain: FIELD_DEMO_HOST,
+  primary_domain_type: "fieldgrid_subdomain",
+  primary_domain_verification_status: "verified",
+  primary_domain_disabled_count: 0,
+  exact_domain_count: 1,
+  organization_settings_count: 1,
+};
 
 function options(
   mode: "prepare-managed" | "complete-custom" | "verify" | "rollback-custom",
@@ -60,6 +88,140 @@ test("managed proof retries an incomplete expected-domain binding and rejects co
       }),
     /different domain/u,
   );
+});
+
+test("field-demo is provisioned only after exact slug and domain absence", () => {
+  assert.deepEqual(
+    decideFieldDemoFixture({ slug_match_count: 0, domain_match_count: 0 }, []),
+    { action: "provision" },
+  );
+  assert.deepEqual(
+    decideFieldDemoFixture(exactFieldDemoPresence, [exactFieldDemoCandidate]),
+    { action: "use-existing" },
+  );
+  assert.deepEqual(
+    decideFieldDemoFixture({ slug_match_count: 1, domain_match_count: 1 }, []),
+    { action: "reject", errorCode: "field_demo_binding_invalid" },
+  );
+});
+
+test("field-demo rejects collisions, partial identities and invalid state", () => {
+  const cases = [
+    {
+      presence: { slug_match_count: 0, domain_match_count: 1 },
+      candidates: [{ ...exactFieldDemoCandidate, slug: "occupied" }],
+      errorCode: "field_demo_identity_collision",
+    },
+    {
+      presence: { slug_match_count: 1, domain_match_count: 0 },
+      candidates: [
+        {
+          ...exactFieldDemoCandidate,
+          primary_domain: "other.staging.fieldgrid.nl",
+          exact_domain_count: 0,
+        },
+      ],
+      errorCode: "field_demo_primary_domain_mismatch",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, exact_domain_count: 0 },
+        {
+          ...exactFieldDemoCandidate,
+          tenant_id: "10000000-0000-4000-8000-000000000042",
+          slug: "occupied",
+        },
+      ],
+      errorCode: "field_demo_identity_ambiguous",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, primary_domain_count: 2 }],
+      errorCode: "field_demo_identity_ambiguous",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, plan_key: "starter" }],
+      errorCode: "field_demo_plan_mismatch",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, organization_settings_count: 0 },
+      ],
+      errorCode: "field_demo_settings_invalid",
+    },
+  ] as const;
+  for (const fixture of cases) {
+    assert.deepEqual(
+      decideFieldDemoFixture(fixture.presence, fixture.candidates),
+      { action: "reject", errorCode: fixture.errorCode },
+    );
+  }
+
+  for (const candidate of [
+    { ...exactFieldDemoCandidate, is_active: false },
+    { ...exactFieldDemoCandidate, tenant_status: "suspended" },
+    { ...exactFieldDemoCandidate, primary_domain_type: "custom_domain" },
+    {
+      ...exactFieldDemoCandidate,
+      primary_domain_verification_status: "pending",
+    },
+    { ...exactFieldDemoCandidate, primary_domain_disabled_count: 1 },
+  ]) {
+    assert.deepEqual(
+      decideFieldDemoFixture(exactFieldDemoPresence, [candidate]),
+      { action: "reject", errorCode: "field_demo_runtime_state_invalid" },
+    );
+  }
+});
+
+test("field-demo post-provision evidence binds exact metadata and ownership", () => {
+  const expected = {
+    tenantId: fieldDemoTenantId,
+    runId: fieldDemoRunId,
+    requestedBy: actor,
+    expectedSha: sha,
+    changeReference: "PR-449",
+  };
+  const exact = {
+    run_id: fieldDemoRunId,
+    tenant_id: fieldDemoTenantId,
+    status: "succeeded",
+    marker: FIELD_DEMO_FIXTURE_MARKER,
+    automation_contract: FIELD_DEMO_FIXTURE_VERSION,
+    environment: "staging",
+    staging_only: "true",
+    expected_sha: sha,
+    change_reference: "PR-449",
+    slug: FIELD_DEMO_SLUG,
+    plan_key: "enterprise",
+    primary_domain: FIELD_DEMO_HOST,
+    owner_email: null,
+    requested_by: actor,
+    tenant_created_by: actor,
+  };
+  assert.equal(fieldDemoProvisioningRunIsExact(exact, expected), true);
+  assert.equal(fieldDemoProvisioningRunOwnershipIsExact(exact, expected), true);
+  for (const candidate of [
+    { ...exact, marker: "operator-owned" },
+    { ...exact, automation_contract: "v0" },
+    { ...exact, environment: "production" },
+    { ...exact, staging_only: "false" },
+    { ...exact, expected_sha: "b".repeat(40) },
+    { ...exact, change_reference: "PR-else" },
+    { ...exact, slug: "other" },
+    { ...exact, primary_domain: "other.staging.fieldgrid.nl" },
+    { ...exact, plan_key: "starter" },
+    { ...exact, owner_email: "operator@example.invalid" },
+    {
+      ...exact,
+      requested_by: "10000000-0000-4000-8000-000000000099",
+    },
+  ]) {
+    assert.equal(fieldDemoProvisioningRunIsExact(candidate, expected), false);
+  }
 });
 
 function baseEnvironment() {

@@ -115,6 +115,16 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.doesNotMatch(operations, /managed\.staging\.fieldgrid\.nl/u);
   assert.match(script, /FIELDGRID_WEBSITE_STAGING_PROOF_W00_V2/u);
   for (const code of [
+    "field_demo_identity_ambiguous",
+    "field_demo_identity_collision",
+    "field_demo_primary_domain_mismatch",
+    "field_demo_plan_mismatch",
+    "field_demo_binding_invalid",
+    "field_demo_settings_invalid",
+    "field_demo_runtime_state_invalid",
+    "field_demo_provisioning_failed",
+    "field_demo_provisioning_verification_failed",
+    "field_demo_rollback_failed",
     "managed_proof_identity_ambiguous",
     "managed_proof_identity_mismatch",
     "managed_proof_plan_mismatch",
@@ -160,16 +170,39 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     runFunction.indexOf('} else if (options.mode === "complete-custom")'),
   );
   assert.ok(
-    prepareManagedBranch.indexOf(
-      "await resolveRuntimeTenant(dbModule.pool, FIELD_DEMO_HOST);",
-    ) < prepareManagedBranch.indexOf("await ensureManagedProof("),
-    "field-demo must be validated before managed-proof mutation",
+    prepareManagedBranch.indexOf("await ensureFieldDemoFixture(") <
+      prepareManagedBranch.indexOf("await ensureManagedProof("),
+    "field-demo must be ensured before managed-proof mutation",
   );
   assert.ok(
     prepareManagedBranch.indexOf("await ensureManagedProof(") <
       prepareManagedBranch.indexOf("await writePrincipalFixtures("),
     "principal fixtures must revalidate field-demo after managed-proof mutation",
   );
+  const fieldDemoBootstrap = script.slice(
+    script.indexOf("async function ensureFieldDemoFixture"),
+    script.indexOf("export function managedProofCandidateErrorCode"),
+  );
+  assert.match(fieldDemoBootstrap, /if \(existing\) return existing;/u);
+  assert.match(fieldDemoBootstrap, /await dbModule\.provisionTenant\(/u);
+  assert.match(fieldDemoBootstrap, /ownerEmail: null/u);
+  assert.doesNotMatch(fieldDemoBootstrap, /moduleKeys/u);
+  for (const metadata of [
+    "automationMarker",
+    "automationContract",
+    "environment",
+    "stagingOnly",
+    "expectedSha",
+    "changeReference",
+  ]) {
+    assert.match(fieldDemoBootstrap, new RegExp(`${metadata}[:,]`, "u"));
+  }
+  assert.match(fieldDemoBootstrap, /fieldDemoProvisioningRunIsExact/u);
+  assert.match(fieldDemoBootstrap, /rollbackProvisionedTenant/u);
+  assert.match(fieldDemoBootstrap, /field_demo_rollback_failed/u);
+  assert.doesNotMatch(fieldDemoBootstrap, /\.catch\(\(\) => undefined\)/u);
+  assert.match(script, /failureStage: ProofFailureStage \| null/u);
+  assert.match(script, /hostRole: ProofHostRole/u);
   assert.match(workflow, /prepare-managed/u);
   assert.match(workflow, /complete-custom/u);
   assert.match(workflow, /sleep 370/u);
