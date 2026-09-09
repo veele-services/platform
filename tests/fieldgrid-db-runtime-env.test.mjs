@@ -109,3 +109,114 @@ test("migration runner installs legacy updated-at helper before SQL migrations",
 
   assert.doesNotMatch(migrate, /SECURITY\s+DEFINER/iu);
 });
+
+test("migration runner retries only a fully rolled-back SQL deadlock", () => {
+  const migrate = read("lib/db/src/migrate.ts");
+  const retry = read("lib/db/src/migration-transaction-retry.ts");
+  const migrateFunctionStart = migrate.indexOf(
+    "async function migrate(): Promise<void> {",
+  );
+  const migrateFunctionEnd = migrate.indexOf(
+    '\nif (mode === "baseline") {',
+    migrateFunctionStart,
+  );
+  assert.ok(
+    migrateFunctionStart >= 0,
+    "migration runner should define migrate()",
+  );
+  assert.ok(
+    migrateFunctionEnd > migrateFunctionStart,
+    "migration runner should expose a bounded migrate() source region",
+  );
+  const migrateFunction = migrate.slice(
+    migrateFunctionStart,
+    migrateFunctionEnd,
+  );
+
+  assertContains(
+    migrate,
+    [
+      "runSqlMigrationTransaction,",
+      "withMigrationSessionLock,",
+      'const databaseMigrationSessionLock = "fieldgrid:database-migrations:v1";',
+      "pg_catalog.pg_advisory_lock",
+      "pg_catalog.pg_advisory_unlock",
+      "await withDatabaseMigrationLock(client, async () => {",
+      "await runSqlMigrationTransaction(",
+      "() => client.query(migration.sql)",
+      "() => recordSqlMigration(client, migration, false)",
+      "prepareMigration: async () =>",
+      "await sqlMigrationIsRecorded(client, migration)",
+      "SQL deadlock retry:",
+    ],
+    "migration retry integration",
+  );
+  assertContains(
+    retry,
+    [
+      'const migrationDeadlockSqlState = "40P01";',
+      'await client.query("rollback");',
+      "await options.prepareMigration?.()",
+      "if (!isDeadlock(error) || delayMs === undefined)",
+      "await wait(delayMs);",
+      "await recordMigration();",
+      'await client.query("commit");',
+      "throw new AggregateError(",
+      "export async function withMigrationSessionLock",
+    ],
+    "migration deadlock retry",
+  );
+  assertContains(
+    migrateFunction,
+    [
+      "await withDatabaseMigrationLock(client, async () => {",
+      "await ensureHistoryTables(client);",
+      "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
+      'console.log("[db:migrate] Applying Drizzle generated migrations.");',
+      "await runDrizzleGeneratedMigrations(client);",
+      "await runSqlMigrations(client, sqlMigrations);",
+    ],
+    "migrate function session-lock scope",
+  );
+  assert.ok(
+    retry.indexOf('await client.query("rollback");') <
+      retry.indexOf("if (!isDeadlock(error) || delayMs === undefined)"),
+    "a deadlocked transaction must be rolled back before retry classification",
+  );
+  assert.ok(
+    migrateFunction.indexOf(
+      "await withDatabaseMigrationLock(client, async () => {",
+    ) < migrateFunction.indexOf("await ensureHistoryTables(client);") &&
+      migrateFunction.indexOf("await ensureHistoryTables(client);") <
+        migrateFunction.indexOf(
+          "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
+        ) &&
+      migrateFunction.indexOf(
+        "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
+      ) <
+        migrateFunction.indexOf(
+          'console.log("[db:migrate] Applying Drizzle generated migrations.");',
+        ) &&
+      migrateFunction.indexOf(
+        'console.log("[db:migrate] Applying Drizzle generated migrations.");',
+      ) <
+        migrateFunction.indexOf(
+          "await runSqlMigrations(client, sqlMigrations);",
+        ),
+    "the session lock should cover generated and hand-written migrations",
+  );
+  assertContains(
+    migrate,
+    [
+      "async function runDrizzleGeneratedMigrations(",
+      "client: pg.Client,",
+      "const db = drizzle(client);",
+    ],
+    "single-session Drizzle migration",
+  );
+  assert.doesNotMatch(
+    migrate,
+    /new Pool\(connectionConfig\(\)\)/u,
+    "the lock-holding migration runner must not require a second database connection",
+  );
+});

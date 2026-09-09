@@ -155,6 +155,40 @@ test("required migration credential is distinct, queryless and project-bound", (
     }).environment,
     "staging",
   );
+  const directMigrationUrl = `postgresql://postgres:migration-direct-secret@db.${stagingProject}.supabase.co:5432/postgres`;
+  const directEndpointFixture = {
+    ...fixture,
+    DATABASE_URL: `postgresql://fieldgrid_runtime_app:runtime-secret@db.${stagingProject}.supabase.co:5432/postgres`,
+    FIELDGRID_MIGRATION_DATABASE_URL: directMigrationUrl,
+  };
+  assert.equal(
+    validateEnvironmentIsolation(directEndpointFixture, {
+      requireMigrationDatabase: true,
+    }).environment,
+    "staging",
+  );
+  for (const candidateEnvironment of [
+    {
+      ...fixture,
+      FIELDGRID_MIGRATION_DATABASE_URL:
+        fixture.FIELDGRID_MIGRATION_DATABASE_URL.replace(":5432/", ":6543/"),
+    },
+    {
+      ...directEndpointFixture,
+      FIELDGRID_MIGRATION_DATABASE_URL: directMigrationUrl.replace(
+        ":5432/",
+        ":6543/",
+      ),
+    },
+  ]) {
+    assert.throws(
+      () =>
+        validateEnvironmentIsolation(candidateEnvironment, {
+          requireMigrationDatabase: true,
+        }),
+      /session-affine on port 5432/u,
+    );
+  }
 
   const missing = { ...fixture };
   delete missing.FIELDGRID_MIGRATION_DATABASE_URL;

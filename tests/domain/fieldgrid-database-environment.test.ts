@@ -120,6 +120,31 @@ test("live runtime and migration connections are distinct and TLS verified", () 
   assert.equal(migration.ssl && migration.ssl.rejectUnauthorized, true);
   assert.match(migration.ssl && migration.ssl.ca, /BEGIN CERTIFICATE/u);
 
+  const directMigrationUrl = `postgresql://postgres:migration-password@db.${stagingProject}.supabase.co:5432/postgres`;
+  assert.equal(
+    databaseConnectionConfig("migration", {
+      ...environment,
+      FIELDGRID_MIGRATION_DATABASE_URL: directMigrationUrl,
+    }).connectionString,
+    directMigrationUrl,
+  );
+  assert.throws(
+    () =>
+      databaseConnectionConfig("migration", {
+        ...environment,
+        FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://supabase_admin.${stagingProject}:migration-password@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
+      }),
+    /session-affine on port 5432/u,
+  );
+  assert.throws(
+    () =>
+      databaseConnectionConfig("migration", {
+        ...environment,
+        FIELDGRID_MIGRATION_DATABASE_URL: `postgresql://postgres:migration-password@db.${stagingProject}.supabase.co:6543/postgres`,
+      }),
+    /session-affine on port 5432/u,
+  );
+
   const missingMigration = { ...environment };
   delete missingMigration.FIELDGRID_MIGRATION_DATABASE_URL;
   assert.throws(

@@ -5,6 +5,7 @@ import { isAbsolute } from "node:path";
 const PROJECT_REF_PATTERN = /^[a-z0-9]{8,64}$/u;
 const LOCAL_DATABASE_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
 const LIVE_RUNTIME_DATABASE_ROLE = "fieldgrid_runtime_app";
+const SUPABASE_SESSION_POOLER_PORT = "5432";
 
 type RuntimeEnvironment =
   | NodeJS.ProcessEnv
@@ -137,6 +138,18 @@ function assertDistinctDatabaseCredentials(
   }
 }
 
+function assertLiveMigrationSessionEndpoint(migrationUrl: string): void {
+  const parsed = parseUrl(migrationUrl, "FIELDGRID_MIGRATION_DATABASE_URL", [
+    "postgres:",
+    "postgresql:",
+  ]);
+  if (parsed.port !== SUPABASE_SESSION_POOLER_PORT) {
+    throw new Error(
+      "Live migration database endpoint must be session-affine on port 5432.",
+    );
+  }
+}
+
 function liveDatabaseCertificateAuthority(env: RuntimeEnvironment): string {
   const certificatePath = required(env, "FIELDGRID_DATABASE_SSL_ROOT_CERT");
   if (!isAbsolute(certificatePath)) {
@@ -214,6 +227,7 @@ function databaseUrlForPurpose(
   assertDatabaseEnvironmentIsolation(env);
 
   const migrationUrl = required(env, "FIELDGRID_MIGRATION_DATABASE_URL");
+  assertLiveMigrationSessionEndpoint(migrationUrl);
   assertDistinctDatabaseCredentials(runtimeUrl, migrationUrl);
   return migrationUrl;
 }
