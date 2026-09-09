@@ -2,15 +2,25 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CUSTOM_PROOF_HOST,
+  FIELD_DEMO_FIXTURE_MARKER,
+  FIELD_DEMO_FIXTURE_VERSION,
+  FIELD_DEMO_HOST,
+  FIELD_DEMO_OWNER_EMAIL,
+  FIELD_DEMO_SLUG,
   MANAGED_PROOF_HOST,
   MANAGED_PROOF_URL,
   MANAGED_PROOF_SLUG,
   WEBSITE_STAGING_PROOF_MARKER,
+  decideFieldDemoFixture,
+  ensureFieldDemoFixture,
+  fieldDemoProvisioningRunIsExact,
+  fieldDemoProvisioningRunOwnershipIsExact,
   managedProofCandidateErrorCode,
   managedProofDomainBindingRequired,
   safeErrorCode,
   selectAutomationActor,
   selectDefaultAutomationActor,
+  selectFieldDemoOwnerUser,
   validateWebsiteStagingProofStateConfig,
 } from "../../scripts/fieldgrid-website-staging-proof-state.mts";
 
@@ -18,6 +28,32 @@ const sha = "a".repeat(40);
 const actor = "10000000-0000-4000-8000-000000000001";
 const UUID_PATTERN_FOR_TEST =
   /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/iu;
+
+const fieldDemoTenantId = "10000000-0000-4000-8000-000000000040";
+const fieldDemoRunId = "10000000-0000-4000-8000-000000000041";
+const fieldDemoOwnerUserId = "10000000-0000-4000-8000-000000000043";
+const exactFieldDemoPresence = {
+  slug_match_count: 1,
+  domain_match_count: 1,
+};
+const exactFieldDemoCandidate = {
+  tenant_id: fieldDemoTenantId,
+  slug: FIELD_DEMO_SLUG,
+  plan_key: "enterprise",
+  is_active: true,
+  tenant_status: "trial",
+  primary_domain_count: 1,
+  primary_domain: FIELD_DEMO_HOST,
+  primary_domain_type: "fieldgrid_subdomain",
+  primary_domain_verification_status: "verified",
+  primary_domain_disabled_count: 0,
+  exact_domain_count: 1,
+  organization_settings_count: 1,
+  active_subscription_count: 1,
+  active_enterprise_subscription_count: 1,
+  expected_owner_count: 1,
+  expected_owner_management_role_count: 1,
+};
 
 function options(
   mode: "prepare-managed" | "complete-custom" | "verify" | "rollback-custom",
@@ -60,6 +96,438 @@ test("managed proof retries an incomplete expected-domain binding and rejects co
       }),
     /different domain/u,
   );
+});
+
+test("field-demo is provisioned only after exact slug and domain absence", () => {
+  assert.deepEqual(
+    decideFieldDemoFixture({ slug_match_count: 0, domain_match_count: 0 }, []),
+    { action: "provision" },
+  );
+  assert.deepEqual(
+    decideFieldDemoFixture(exactFieldDemoPresence, [exactFieldDemoCandidate]),
+    { action: "use-existing" },
+  );
+  assert.deepEqual(
+    decideFieldDemoFixture({ slug_match_count: 1, domain_match_count: 1 }, []),
+    { action: "reject", errorCode: "field_demo_binding_invalid" },
+  );
+});
+
+test("field-demo rejects collisions, partial identities and invalid state", () => {
+  const cases = [
+    {
+      presence: { slug_match_count: 0, domain_match_count: 1 },
+      candidates: [{ ...exactFieldDemoCandidate, slug: "occupied" }],
+      errorCode: "field_demo_identity_collision",
+    },
+    {
+      presence: { slug_match_count: 1, domain_match_count: 0 },
+      candidates: [
+        {
+          ...exactFieldDemoCandidate,
+          primary_domain: "other.staging.fieldgrid.nl",
+          exact_domain_count: 0,
+        },
+      ],
+      errorCode: "field_demo_primary_domain_mismatch",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, exact_domain_count: 0 },
+        {
+          ...exactFieldDemoCandidate,
+          tenant_id: "10000000-0000-4000-8000-000000000042",
+          slug: "occupied",
+        },
+      ],
+      errorCode: "field_demo_identity_ambiguous",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, primary_domain_count: 2 }],
+      errorCode: "field_demo_identity_ambiguous",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, plan_key: "starter" }],
+      errorCode: "field_demo_plan_mismatch",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, active_subscription_count: 0 },
+      ],
+      errorCode: "field_demo_subscription_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        {
+          ...exactFieldDemoCandidate,
+          active_enterprise_subscription_count: 0,
+        },
+      ],
+      errorCode: "field_demo_subscription_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, active_subscription_count: 2 },
+      ],
+      errorCode: "field_demo_subscription_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, expected_owner_count: 0 }],
+      errorCode: "field_demo_owner_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [{ ...exactFieldDemoCandidate, expected_owner_count: 2 }],
+      errorCode: "field_demo_owner_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        {
+          ...exactFieldDemoCandidate,
+          expected_owner_management_role_count: 0,
+        },
+      ],
+      errorCode: "field_demo_owner_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
+        { ...exactFieldDemoCandidate, organization_settings_count: 0 },
+      ],
+      errorCode: "field_demo_settings_invalid",
+    },
+  ] as const;
+  for (const fixture of cases) {
+    assert.deepEqual(
+      decideFieldDemoFixture(fixture.presence, fixture.candidates),
+      { action: "reject", errorCode: fixture.errorCode },
+    );
+  }
+
+  for (const candidate of [
+    { ...exactFieldDemoCandidate, is_active: false },
+    { ...exactFieldDemoCandidate, tenant_status: "suspended" },
+    { ...exactFieldDemoCandidate, primary_domain_type: "custom_domain" },
+    {
+      ...exactFieldDemoCandidate,
+      primary_domain_verification_status: "pending",
+    },
+    { ...exactFieldDemoCandidate, primary_domain_disabled_count: 1 },
+  ]) {
+    assert.deepEqual(
+      decideFieldDemoFixture(exactFieldDemoPresence, [candidate]),
+      { action: "reject", errorCode: "field_demo_runtime_state_invalid" },
+    );
+  }
+});
+
+test("field-demo post-provision evidence binds exact metadata and ownership", () => {
+  const expected = {
+    tenantId: fieldDemoTenantId,
+    runId: fieldDemoRunId,
+    requestedBy: actor,
+    ownerUserId: fieldDemoOwnerUserId,
+    expectedSha: sha,
+    changeReference: "PR-449",
+  };
+  const exact = {
+    run_id: fieldDemoRunId,
+    tenant_id: fieldDemoTenantId,
+    status: "succeeded",
+    marker: FIELD_DEMO_FIXTURE_MARKER,
+    automation_contract: FIELD_DEMO_FIXTURE_VERSION,
+    environment: "staging",
+    staging_only: "true",
+    expected_sha: sha,
+    change_reference: "PR-449",
+    slug: FIELD_DEMO_SLUG,
+    plan_key: "enterprise",
+    primary_domain: FIELD_DEMO_HOST,
+    owner_email: FIELD_DEMO_OWNER_EMAIL,
+    owner_user_id: fieldDemoOwnerUserId,
+    owner_invite_status: "accepted",
+    current_step: "completed",
+    requested_by: actor,
+    tenant_created_by: actor,
+  };
+  assert.equal(fieldDemoProvisioningRunIsExact(exact, expected), true);
+  assert.equal(fieldDemoProvisioningRunOwnershipIsExact(exact, expected), true);
+  for (const candidate of [
+    { ...exact, marker: "operator-owned" },
+    { ...exact, automation_contract: "v0" },
+    { ...exact, environment: "production" },
+    { ...exact, staging_only: "false" },
+    { ...exact, expected_sha: "b".repeat(40) },
+    { ...exact, change_reference: "PR-else" },
+    { ...exact, slug: "other" },
+    { ...exact, primary_domain: "other.staging.fieldgrid.nl" },
+    { ...exact, plan_key: "starter" },
+    { ...exact, owner_email: null },
+    { ...exact, owner_user_id: actor },
+    { ...exact, owner_invite_status: "pending" },
+    { ...exact, owner_invite_status: "sent" },
+    { ...exact, current_step: "owner_invite_pending" },
+    {
+      ...exact,
+      requested_by: "10000000-0000-4000-8000-000000000099",
+    },
+  ]) {
+    assert.equal(fieldDemoProvisioningRunIsExact(candidate, expected), false);
+  }
+});
+
+test("field-demo resolves exactly one valid reserved pilot owner identity", () => {
+  assert.equal(
+    selectFieldDemoOwnerUser([{ user_id: fieldDemoOwnerUserId }]),
+    fieldDemoOwnerUserId,
+  );
+  assert.throws(() => selectFieldDemoOwnerUser([]), /exactly one valid/u);
+  assert.throws(
+    () =>
+      selectFieldDemoOwnerUser([
+        { user_id: fieldDemoOwnerUserId },
+        { user_id: actor },
+      ]),
+    /exactly one valid/u,
+  );
+  assert.throws(
+    () => selectFieldDemoOwnerUser([{ user_id: "not-a-uuid" }]),
+    /exactly one valid/u,
+  );
+});
+
+function provisioningRunFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    run_id: fieldDemoRunId,
+    tenant_id: fieldDemoTenantId,
+    status: "succeeded",
+    marker: FIELD_DEMO_FIXTURE_MARKER,
+    automation_contract: FIELD_DEMO_FIXTURE_VERSION,
+    environment: "staging",
+    staging_only: "true",
+    expected_sha: sha,
+    change_reference: "PR-449",
+    slug: FIELD_DEMO_SLUG,
+    plan_key: "enterprise",
+    primary_domain: FIELD_DEMO_HOST,
+    owner_email: FIELD_DEMO_OWNER_EMAIL,
+    owner_user_id: fieldDemoOwnerUserId,
+    owner_invite_status: "accepted",
+    current_step: "completed",
+    requested_by: actor,
+    tenant_created_by: actor,
+    ...overrides,
+  };
+}
+
+function runtimeTenantFixture() {
+  return {
+    tenant_id: fieldDemoTenantId,
+    slug: FIELD_DEMO_SLUG,
+    plan_key: "enterprise",
+    is_active: true,
+    tenant_status: "trial",
+    domain_type: "fieldgrid_subdomain",
+    is_primary: true,
+    verification_status: "verified",
+    disabled_at: null,
+  };
+}
+
+function invariantFixture() {
+  return {
+    organization_settings_count: 1,
+    active_subscription_count: 1,
+    active_enterprise_subscription_count: 1,
+    expected_owner_count: 1,
+    expected_owner_management_role_count: 1,
+  };
+}
+
+type FieldDemoDatabaseModule = Parameters<typeof ensureFieldDemoFixture>[0];
+
+function fieldDemoDatabaseDouble(
+  queryRows: unknown[][],
+  options: { ownerCompletionFails?: boolean } = {},
+) {
+  const events: string[] = [];
+  const provisionInputs: Array<Record<string, unknown>> = [];
+  const completionInputs: Array<Record<string, unknown>> = [];
+  const rollbackInputs: Array<Record<string, unknown>> = [];
+  let queryIndex = 0;
+  const database = {
+    pool: {
+      async query() {
+        events.push(`query-${queryIndex}`);
+        const rows = queryRows[queryIndex];
+        queryIndex += 1;
+        if (!rows) throw new Error("Unexpected field-demo query");
+        return { rows, rowCount: rows.length };
+      },
+    },
+    async provisionTenant(input: Record<string, unknown>) {
+      events.push("provision");
+      provisionInputs.push(input);
+      return {
+        tenantId: fieldDemoTenantId,
+        runId: fieldDemoRunId,
+        slug: FIELD_DEMO_SLUG,
+        planKey: "enterprise",
+        primaryDomain: FIELD_DEMO_HOST,
+        ownerEmail: FIELD_DEMO_OWNER_EMAIL,
+      };
+    },
+    async completeProvisionedTenantOwnerInvite(input: Record<string, unknown>) {
+      events.push("complete-owner");
+      completionInputs.push(input);
+      if (options.ownerCompletionFails) {
+        throw new Error("Injected owner completion failure");
+      }
+    },
+    async rollbackProvisionedTenant(input: Record<string, unknown>) {
+      events.push("rollback");
+      rollbackInputs.push(input);
+    },
+  } as unknown as FieldDemoDatabaseModule;
+  return {
+    database,
+    events,
+    provisionInputs,
+    completionInputs,
+    rollbackInputs,
+  };
+}
+
+test("field-demo provisions, completes its owner and rechecks all invariants", async () => {
+  const pendingRun = provisioningRunFixture({
+    owner_user_id: null,
+    owner_invite_status: "pending",
+    current_step: "owner_invite_pending",
+  });
+  const testDouble = fieldDemoDatabaseDouble([
+    [{ user_id: fieldDemoOwnerUserId }],
+    [{ slug_match_count: 0, domain_match_count: 0 }],
+    [],
+    [pendingRun],
+    [provisioningRunFixture()],
+    [{ slug_match_count: 1, domain_match_count: 1 }],
+    [exactFieldDemoCandidate],
+    [runtimeTenantFixture()],
+    [invariantFixture()],
+  ]);
+
+  const result = await ensureFieldDemoFixture(
+    testDouble.database,
+    actor,
+    sha,
+    "PR-449",
+  );
+
+  assert.equal(result.tenantId, fieldDemoTenantId);
+  assert.deepEqual(
+    testDouble.events.filter((event) => !event.startsWith("query-")),
+    ["provision", "complete-owner"],
+  );
+  assert.equal(testDouble.events[0], "query-0");
+  assert.equal(
+    testDouble.provisionInputs[0]?.ownerEmail,
+    FIELD_DEMO_OWNER_EMAIL,
+  );
+  assert.equal("moduleKeys" in testDouble.provisionInputs[0]!, false);
+  assert.deepEqual(testDouble.completionInputs, [
+    {
+      tenantId: fieldDemoTenantId,
+      runId: fieldDemoRunId,
+      ownerEmail: FIELD_DEMO_OWNER_EMAIL,
+      ownerUserId: fieldDemoOwnerUserId,
+      invitedBy: actor,
+      ownerInviteStatus: "accepted",
+    },
+  ]);
+  assert.equal(testDouble.rollbackInputs.length, 0);
+});
+
+test("field-demo performs no mutation without one usable reserved owner", async () => {
+  const testDouble = fieldDemoDatabaseDouble([[]]);
+
+  await assert.rejects(
+    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+    /exactly one valid reserved pilot owner/u,
+  );
+  assert.deepEqual(testDouble.events, ["query-0"]);
+  assert.equal(testDouble.provisionInputs.length, 0);
+  assert.equal(testDouble.completionInputs.length, 0);
+  assert.equal(testDouble.rollbackInputs.length, 0);
+});
+
+test("field-demo rolls back its exact tenant when owner completion fails", async () => {
+  const pendingRun = provisioningRunFixture({
+    owner_user_id: null,
+    owner_invite_status: "pending",
+    current_step: "owner_invite_pending",
+  });
+  const testDouble = fieldDemoDatabaseDouble(
+    [
+      [{ user_id: fieldDemoOwnerUserId }],
+      [{ slug_match_count: 0, domain_match_count: 0 }],
+      [],
+      [pendingRun],
+    ],
+    { ownerCompletionFails: true },
+  );
+
+  await assert.rejects(
+    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+    /post-provision verification failed/u,
+  );
+  assert.deepEqual(
+    testDouble.events.filter((event) => !event.startsWith("query-")),
+    ["provision", "complete-owner", "rollback"],
+  );
+  assert.equal(testDouble.rollbackInputs.length, 1);
+  assert.equal(testDouble.rollbackInputs[0]?.tenantId, fieldDemoTenantId);
+  assert.equal(testDouble.rollbackInputs[0]?.runId, fieldDemoRunId);
+  assert.equal(testDouble.rollbackInputs[0]?.requestedBy, actor);
+});
+
+test("field-demo rolls back its exact tenant when the final owner-role check fails", async () => {
+  const pendingRun = provisioningRunFixture({
+    owner_user_id: null,
+    owner_invite_status: "pending",
+    current_step: "owner_invite_pending",
+  });
+  const testDouble = fieldDemoDatabaseDouble([
+    [{ user_id: fieldDemoOwnerUserId }],
+    [{ slug_match_count: 0, domain_match_count: 0 }],
+    [],
+    [pendingRun],
+    [provisioningRunFixture()],
+    [{ slug_match_count: 1, domain_match_count: 1 }],
+    [
+      {
+        ...exactFieldDemoCandidate,
+        expected_owner_management_role_count: 0,
+      },
+    ],
+  ]);
+
+  await assert.rejects(
+    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+    /fixture state is not exact/u,
+  );
+  assert.deepEqual(
+    testDouble.events.filter((event) => !event.startsWith("query-")),
+    ["provision", "complete-owner", "rollback"],
+  );
+  assert.equal(testDouble.rollbackInputs.length, 1);
 });
 
 function baseEnvironment() {
