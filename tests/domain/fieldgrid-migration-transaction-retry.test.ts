@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   runSqlMigrationTransaction,
@@ -413,4 +414,53 @@ test("a missing session lock fails closed after successful work", async () => {
     }),
     /session lock was not held/u,
   );
+});
+
+test("the required unit lane binds every migration stage to the lock-holding client", () => {
+  const source = readFileSync(
+    new URL("../../lib/db/src/migrate.ts", import.meta.url),
+    "utf8",
+  );
+  const drizzleStart = source.indexOf(
+    "async function runDrizzleGeneratedMigrations(",
+  );
+  const drizzleEnd = source.indexOf(
+    "\nasync function runSqlMigrations(",
+    drizzleStart,
+  );
+  const migrateStart = source.indexOf(
+    "async function migrate(): Promise<void> {",
+  );
+  const migrateEnd = source.indexOf(
+    '\nif (mode === "baseline") {',
+    migrateStart,
+  );
+
+  assert.ok(drizzleStart >= 0 && drizzleEnd > drizzleStart);
+  assert.ok(migrateStart >= 0 && migrateEnd > migrateStart);
+
+  const drizzleRunner = source.slice(drizzleStart, drizzleEnd);
+  const migrateRunner = source.slice(migrateStart, migrateEnd);
+  assert.match(drizzleRunner, /client: pg\.Client/u);
+  assert.match(drizzleRunner, /const db = drizzle\(client\);/u);
+  assert.doesNotMatch(drizzleRunner, /\bPool\b|connectionConfig\(|\.end\(/u);
+
+  const orderedStages = [
+    "await withDatabaseMigrationLock(client, async () => {",
+    "await ensureHistoryTables(client);",
+    "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
+    "await runDrizzleGeneratedMigrations(client);",
+    "await ensureLegacySqlPrerequisites(client);",
+    "await runSqlMigrations(client, sqlMigrations);",
+  ];
+  let previousIndex = -1;
+  for (const stage of orderedStages) {
+    const stageIndex = migrateRunner.indexOf(stage);
+    assert.ok(
+      stageIndex > previousIndex,
+      `migration stage is missing or out of order: ${stage}`,
+    );
+    previousIndex = stageIndex;
+  }
+  assert.match(migrateRunner, /finally \{\s+await client\.end\(\);\s+\}/u);
 });
