@@ -52,6 +52,7 @@ const exactFieldDemoCandidate = {
   active_subscription_count: 1,
   active_enterprise_subscription_count: 1,
   expected_owner_count: 1,
+  expected_owner_management_role_count: 1,
 };
 
 function options(
@@ -189,6 +190,16 @@ test("field-demo rejects collisions, partial identities and invalid state", () =
     {
       presence: exactFieldDemoPresence,
       candidates: [
+        {
+          ...exactFieldDemoCandidate,
+          expected_owner_management_role_count: 0,
+        },
+      ],
+      errorCode: "field_demo_owner_invalid",
+    },
+    {
+      presence: exactFieldDemoPresence,
+      candidates: [
         { ...exactFieldDemoCandidate, organization_settings_count: 0 },
       ],
       errorCode: "field_demo_settings_invalid",
@@ -242,7 +253,7 @@ test("field-demo post-provision evidence binds exact metadata and ownership", ()
     primary_domain: FIELD_DEMO_HOST,
     owner_email: FIELD_DEMO_OWNER_EMAIL,
     owner_user_id: fieldDemoOwnerUserId,
-    owner_invite_status: "sent",
+    owner_invite_status: "accepted",
     current_step: "completed",
     requested_by: actor,
     tenant_created_by: actor,
@@ -262,6 +273,7 @@ test("field-demo post-provision evidence binds exact metadata and ownership", ()
     { ...exact, owner_email: null },
     { ...exact, owner_user_id: actor },
     { ...exact, owner_invite_status: "pending" },
+    { ...exact, owner_invite_status: "sent" },
     { ...exact, current_step: "owner_invite_pending" },
     {
       ...exact,
@@ -308,7 +320,7 @@ function provisioningRunFixture(overrides: Record<string, unknown> = {}) {
     primary_domain: FIELD_DEMO_HOST,
     owner_email: FIELD_DEMO_OWNER_EMAIL,
     owner_user_id: fieldDemoOwnerUserId,
-    owner_invite_status: "sent",
+    owner_invite_status: "accepted",
     current_step: "completed",
     requested_by: actor,
     tenant_created_by: actor,
@@ -336,6 +348,7 @@ function invariantFixture() {
     active_subscription_count: 1,
     active_enterprise_subscription_count: 1,
     expected_owner_count: 1,
+    expected_owner_management_role_count: 1,
   };
 }
 
@@ -436,6 +449,7 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
       ownerEmail: FIELD_DEMO_OWNER_EMAIL,
       ownerUserId: fieldDemoOwnerUserId,
       invitedBy: actor,
+      ownerInviteStatus: "accepted",
     },
   ]);
   assert.equal(testDouble.rollbackInputs.length, 0);
@@ -482,6 +496,38 @@ test("field-demo rolls back its exact tenant when owner completion fails", async
   assert.equal(testDouble.rollbackInputs[0]?.tenantId, fieldDemoTenantId);
   assert.equal(testDouble.rollbackInputs[0]?.runId, fieldDemoRunId);
   assert.equal(testDouble.rollbackInputs[0]?.requestedBy, actor);
+});
+
+test("field-demo rolls back its exact tenant when the final owner-role check fails", async () => {
+  const pendingRun = provisioningRunFixture({
+    owner_user_id: null,
+    owner_invite_status: "pending",
+    current_step: "owner_invite_pending",
+  });
+  const testDouble = fieldDemoDatabaseDouble([
+    [{ user_id: fieldDemoOwnerUserId }],
+    [{ slug_match_count: 0, domain_match_count: 0 }],
+    [],
+    [pendingRun],
+    [provisioningRunFixture()],
+    [{ slug_match_count: 1, domain_match_count: 1 }],
+    [
+      {
+        ...exactFieldDemoCandidate,
+        expected_owner_management_role_count: 0,
+      },
+    ],
+  ]);
+
+  await assert.rejects(
+    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+    /fixture state is not exact/u,
+  );
+  assert.deepEqual(
+    testDouble.events.filter((event) => !event.startsWith("query-")),
+    ["provision", "complete-owner", "rollback"],
+  );
+  assert.equal(testDouble.rollbackInputs.length, 1);
 });
 
 function baseEnvironment() {

@@ -107,6 +107,7 @@ test("core staging deploy persists the exact health refresh and pooler bindings"
 
 test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   const script = read("scripts/fieldgrid-website-staging-proof-state.mts");
+  const provisioning = read("lib/db/src/tenant-provisioning.ts");
   const workflow = read(".github/workflows/website-staging-proof-state.yml");
   const operations = read("docs/website-module-enterprise-activation.md");
 
@@ -220,10 +221,30 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(script, /plan\.is_active = true/u);
   assert.match(script, /FROM auth\.users/u);
   assert.match(script, /email_confirmed_at IS NOT NULL/u);
+  assert.match(script, /length\(owner\.encrypted_password\) > 0/u);
+  assert.match(script, /owner\.is_anonymous = false/u);
+  assert.match(script, /owner\.aud = 'authenticated'/u);
+  assert.match(script, /owner\.role = 'authenticated'/u);
   assert.match(script, /deleted_at IS NULL/u);
   assert.match(script, /banned_until IS NULL/u);
   assert.match(script, /membership\.role = 'owner'/u);
   assert.match(script, /membership\.status = 'active'/u);
+  assert.match(script, /FROM public\.tenant_user_roles AS user_role/u);
+  assert.match(script, /template_role\.name = 'Management'/u);
+  assert.match(
+    script,
+    /FROM public\.tenant_role_permissions AS actual_permission/u,
+  );
+  assert.match(fieldDemoBootstrap, /ownerInviteStatus: "accepted"/u);
+  assert.match(provisioning, /ownerInviteStatus\?: "sent" \| "accepted"/u);
+  assert.match(
+    provisioning,
+    /const ownerInviteStatus = input\.ownerInviteStatus \?\? "sent"/u,
+  );
+  assert.match(
+    provisioning,
+    /inviteSentAt: ownerInviteStatus === "sent" \? new Date\(\) : null/u,
+  );
   assert.match(script, /failureStage: ProofFailureStage \| null/u);
   assert.match(script, /hostRole: ProofHostRole/u);
   assert.match(workflow, /prepare-managed/u);

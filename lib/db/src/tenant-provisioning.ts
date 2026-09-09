@@ -626,8 +626,10 @@ export async function completeProvisionedTenantOwnerInvite(input: {
   ownerEmail: string;
   ownerUserId: string;
   invitedBy: string;
+  ownerInviteStatus?: "sent" | "accepted";
 }): Promise<void> {
   const email = input.ownerEmail.trim().toLowerCase();
+  const ownerInviteStatus = input.ownerInviteStatus ?? "sent";
 
   await db.transaction(async (tx) => {
     const [tenant] = await tx
@@ -679,9 +681,9 @@ export async function completeProvisionedTenantOwnerInvite(input: {
         tenantId: input.tenantId,
         email,
         userId: input.ownerUserId,
-        status: "sent",
+        status: ownerInviteStatus,
         invitedBy: input.invitedBy,
-        inviteSentAt: new Date(),
+        inviteSentAt: ownerInviteStatus === "sent" ? new Date() : null,
         metadata: { runId: input.runId },
       })
       .onConflictDoUpdate({
@@ -691,9 +693,9 @@ export async function completeProvisionedTenantOwnerInvite(input: {
         ],
         set: {
           userId: input.ownerUserId,
-          status: "sent",
+          status: ownerInviteStatus,
           invitedBy: input.invitedBy,
-          inviteSentAt: new Date(),
+          inviteSentAt: ownerInviteStatus === "sent" ? new Date() : null,
           errorMessage: null,
           updatedAt: new Date(),
           metadata: { runId: input.runId },
@@ -705,7 +707,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
       .set({
         ownerEmail: email,
         ownerUserId: input.ownerUserId,
-        ownerInviteStatus: "sent",
+        ownerInviteStatus,
         currentStep: "completed",
         updatedAt: new Date(),
       })

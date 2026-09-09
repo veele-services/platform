@@ -116,6 +116,7 @@ export type FieldDemoFixtureCandidate = {
   active_subscription_count: number;
   active_enterprise_subscription_count: number;
   expected_owner_count: number;
+  expected_owner_management_role_count: number;
 };
 
 export type FieldDemoFixturePresence = {
@@ -541,6 +542,10 @@ async function resolveFieldDemoOwnerUser(
      FROM auth.users
      WHERE lower(email) = lower($1)
        AND email_confirmed_at IS NOT NULL
+       AND length(encrypted_password) > 0
+       AND is_anonymous = false
+       AND aud = 'authenticated'
+       AND role = 'authenticated'
        AND deleted_at IS NULL
        AND (banned_until IS NULL OR banned_until <= now())
      ORDER BY id`,
@@ -635,6 +640,12 @@ export function decideFieldDemoFixture(
       errorCode: "field_demo_owner_invalid",
     };
   }
+  if (candidate.expected_owner_management_role_count !== 1) {
+    return {
+      action: "reject",
+      errorCode: "field_demo_owner_invalid",
+    };
+  }
   if (candidate.organization_settings_count !== 1) {
     return {
       action: "reject",
@@ -720,6 +731,7 @@ async function assertFieldDemoPrerequisite(
     active_subscription_count: number;
     active_enterprise_subscription_count: number;
     expected_owner_count: number;
+    expected_owner_management_role_count: number;
   }>(
     `SELECT
        (SELECT COUNT(*)::integer
@@ -746,9 +758,56 @@ async function assertFieldDemoPrerequisite(
            AND membership.status = 'active'
            AND lower(owner.email) = lower($2)
            AND owner.email_confirmed_at IS NOT NULL
+           AND length(owner.encrypted_password) > 0
+           AND owner.is_anonymous = false
+           AND owner.aud = 'authenticated'
+           AND owner.role = 'authenticated'
            AND owner.deleted_at IS NULL
            AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
-         AS expected_owner_count`,
+         AS expected_owner_count,
+       (SELECT COUNT(*)::integer
+          FROM public.tenant_users AS membership
+          JOIN auth.users AS owner ON owner.id = membership.user_id
+         WHERE membership.tenant_id = $1
+           AND membership.role = 'owner'
+           AND membership.status = 'active'
+           AND lower(owner.email) = lower($2)
+           AND owner.email_confirmed_at IS NOT NULL
+           AND length(owner.encrypted_password) > 0
+           AND owner.is_anonymous = false
+           AND owner.aud = 'authenticated'
+           AND owner.role = 'authenticated'
+           AND owner.deleted_at IS NULL
+           AND (owner.banned_until IS NULL OR owner.banned_until <= now())
+           AND EXISTS (
+             SELECT 1
+             FROM public.tenant_user_roles AS user_role
+             JOIN public.tenant_roles AS tenant_role
+               ON tenant_role.id = user_role.tenant_role_id
+              AND tenant_role.tenant_id = user_role.tenant_id
+             JOIN public.roles AS template_role
+               ON template_role.id = tenant_role.template_role_id
+              AND template_role.name = 'Management'
+             WHERE user_role.tenant_id = membership.tenant_id
+               AND user_role.user_id = membership.user_id
+               AND EXISTS (
+                 SELECT 1
+                 FROM public.role_permissions AS expected_permission
+                 WHERE expected_permission.role_id = template_role.id
+               )
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM public.role_permissions AS expected_permission
+                 WHERE expected_permission.role_id = template_role.id
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM public.tenant_role_permissions AS actual_permission
+                     WHERE actual_permission.tenant_role_id = tenant_role.id
+                       AND actual_permission.permission_id =
+                         expected_permission.permission_id
+                   )
+               )
+           )) AS expected_owner_management_role_count`,
     [runtime.tenantId, FIELD_DEMO_OWNER_EMAIL],
   );
   if (invariants.rows.length !== 1) {
@@ -775,6 +834,14 @@ async function assertFieldDemoPrerequisite(
     throw new ProofStateError(
       "field_demo_owner_invalid",
       "Field-demo reserved pilot owner is not exact",
+      failureStage,
+      "field_demo",
+    );
+  }
+  if (invariant.expected_owner_management_role_count !== 1) {
+    throw new ProofStateError(
+      "field_demo_owner_invalid",
+      "Field-demo reserved pilot owner permissions are not exact",
       failureStage,
       "field_demo",
     );
@@ -849,9 +916,56 @@ async function findFieldDemoFixture(
                 AND membership.status = 'active'
                 AND lower(owner.email) = lower($3)
                 AND owner.email_confirmed_at IS NOT NULL
+                AND length(owner.encrypted_password) > 0
+                AND owner.is_anonymous = false
+                AND owner.aud = 'authenticated'
+                AND owner.role = 'authenticated'
                 AND owner.deleted_at IS NULL
                 AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
-              AS expected_owner_count
+              AS expected_owner_count,
+            (SELECT COUNT(*)::integer
+               FROM public.tenant_users AS membership
+               JOIN auth.users AS owner ON owner.id = membership.user_id
+              WHERE membership.tenant_id = tenant.id
+                AND membership.role = 'owner'
+                AND membership.status = 'active'
+                AND lower(owner.email) = lower($3)
+                AND owner.email_confirmed_at IS NOT NULL
+                AND length(owner.encrypted_password) > 0
+                AND owner.is_anonymous = false
+                AND owner.aud = 'authenticated'
+                AND owner.role = 'authenticated'
+                AND owner.deleted_at IS NULL
+                AND (owner.banned_until IS NULL OR owner.banned_until <= now())
+                AND EXISTS (
+                  SELECT 1
+                  FROM public.tenant_user_roles AS user_role
+                  JOIN public.tenant_roles AS tenant_role
+                    ON tenant_role.id = user_role.tenant_role_id
+                   AND tenant_role.tenant_id = user_role.tenant_id
+                  JOIN public.roles AS template_role
+                    ON template_role.id = tenant_role.template_role_id
+                   AND template_role.name = 'Management'
+                  WHERE user_role.tenant_id = membership.tenant_id
+                    AND user_role.user_id = membership.user_id
+                    AND EXISTS (
+                      SELECT 1
+                      FROM public.role_permissions AS expected_permission
+                      WHERE expected_permission.role_id = template_role.id
+                    )
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM public.role_permissions AS expected_permission
+                      WHERE expected_permission.role_id = template_role.id
+                        AND NOT EXISTS (
+                          SELECT 1
+                          FROM public.tenant_role_permissions AS actual_permission
+                          WHERE actual_permission.tenant_role_id = tenant_role.id
+                            AND actual_permission.permission_id =
+                              expected_permission.permission_id
+                        )
+                    )
+                )) AS expected_owner_management_role_count
      FROM public.tenants AS tenant
      LEFT JOIN LATERAL (
        SELECT
@@ -933,7 +1047,7 @@ export function fieldDemoProvisioningRunIsExact(
     candidate.primary_domain === FIELD_DEMO_HOST &&
     candidate.owner_email === FIELD_DEMO_OWNER_EMAIL &&
     candidate.owner_user_id === expected.ownerUserId &&
-    candidate.owner_invite_status === "sent" &&
+    candidate.owner_invite_status === "accepted" &&
     candidate.current_step === "completed" &&
     candidate.expected_sha === expected.expectedSha &&
     candidate.change_reference === expected.changeReference
@@ -1033,6 +1147,7 @@ export async function ensureFieldDemoFixture(
       ownerEmail: FIELD_DEMO_OWNER_EMAIL,
       ownerUserId,
       invitedBy: actorUserId,
+      ownerInviteStatus: "accepted",
     });
     provisioningRun = await findFieldDemoProvisioningRun(
       dbModule.pool,
