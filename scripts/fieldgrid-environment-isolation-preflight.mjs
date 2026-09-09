@@ -173,6 +173,18 @@ function assertDistinctDatabaseCredentials(runtimeUrl, migrationUrl) {
   }
 }
 
+function assertMigrationSessionEndpoint(migrationUrl) {
+  const parsed = parseUrl(migrationUrl, "FIELDGRID_MIGRATION_DATABASE_URL", [
+    "postgres:",
+    "postgresql:",
+  ]);
+  if (parsed.port !== "5432") {
+    throw new Error(
+      "FIELDGRID_MIGRATION_DATABASE_URL must be session-affine on port 5432.",
+    );
+  }
+}
+
 export function validateEnvironmentIsolation(
   env = process.env,
   { requireMigrationDatabase = false } = {},
@@ -266,6 +278,7 @@ export function validateEnvironmentIsolation(
     throw new Error("FIELDGRID_MIGRATION_DATABASE_URL is required.");
   }
   if (migrationDatabaseUrl) {
+    assertMigrationSessionEndpoint(migrationDatabaseUrl);
     assertDistinctDatabaseCredentials(
       required(env.DATABASE_URL, "DATABASE_URL"),
       migrationDatabaseUrl,
