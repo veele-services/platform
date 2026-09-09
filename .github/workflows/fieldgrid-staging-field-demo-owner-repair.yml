@@ -1,0 +1,169 @@
+name: Field-demo Staging Owner Repair
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: "Exact reviewed main SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "Type fieldgrid-staging-field-demo-owner-repair-v1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    name: Create only the missing reserved field-demo owner
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 15
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      REPAIR_CONFIRMATION: ${{ inputs.confirmation }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+
+    steps:
+      - name: Reject non-main owner repair dispatch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REPOSITORY" = "veele-services/platform"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-repair-v1"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+      - name: Checkout exact reviewed main source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable main source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          node --input-type=module -e '
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) throw new Error(`Main ref lookup failed with HTTP ${response.status}`);
+            const payload = await response.json();
+            if (payload.object?.sha !== process.env.EXPECTED_MAIN_SHA) {
+              throw new Error("Expected SHA is not the exact remote main head");
+            }
+          '
+
+      - name: Set up pnpm 11.5.2
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11.5.2
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Install exact pinned database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-owner-repair-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --check \
+            --file "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Validate owner repair contract without credentials
+        run: pnpm fieldgrid:staging-field-demo-owner-repair:check
+
+      - name: Reverify exact main immediately before owner repair
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`,
+              {
+                headers: {
+                  Accept: "application/vnd.github+json",
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) throw new Error(`Main ref recheck failed with HTTP ${response.status}`);
+            const payload = await response.json();
+            if (payload.object?.sha !== process.env.EXPECTED_MAIN_SHA) {
+              throw new Error("Remote main advanced before owner repair");
+            }
+          '
+
+      - name: Create and verify only the missing reserved owner
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+          FIELDGRID_FIELD_DEMO_OWNER_REPAIR_CONFIRMATION: ${{ inputs.confirmation }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-field-demo-owner-repair.mts \
+            --create-missing \
+            --expected-sha "$EXPECTED_MAIN_SHA"
+
+      - name: Upload secret-free repair evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: field-demo-owner-repair-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/field-demo-owner-repair/create-missing-${{ github.run_id }}-${{ github.run_attempt }}.json
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Remove temporary database root certificate
+        if: always()
+        run: |
+          set -euo pipefail
+          certificate_path="${FIELDGRID_DATABASE_SSL_ROOT_CERT:-}"
+          if [ -z "$certificate_path" ]; then
+            exit 0
+          fi
+          expected_path="$RUNNER_TEMP/fieldgrid-owner-repair-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          test "$certificate_path" = "$expected_path"
+          rm -f -- "$certificate_path"

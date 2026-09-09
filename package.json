@@ -28,6 +28,7 @@
     "fieldgrid:phase2e-staging-promote:check": "node scripts/fieldgrid-phase2e-staging-promote.mjs --check",
     "fieldgrid:website-staging-acceptance": "node scripts/fieldgrid-website-staging-acceptance.mjs",
     "fieldgrid:website-staging-acceptance:check": "node scripts/fieldgrid-website-staging-acceptance.mjs --check && node --test tests/fieldgrid-website-staging-acceptance.test.mjs",
+    "fieldgrid:staging-field-demo-owner-repair:check": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-staging-field-demo-owner-repair.mts --check && pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-staging-field-demo-owner-repair.test.ts && node --test tests/security/fieldgrid-staging-field-demo-owner-repair-source.test.mjs",
     "fieldgrid:website-staging-stack-deploy:check": "bash -n scripts/fieldgrid-website-staging-stack-deploy.sh scripts/fieldgrid-staging-wildcard-tls-bootstrap.sh && shellcheck scripts/fieldgrid-website-staging-stack-deploy.sh scripts/fieldgrid-staging-wildcard-tls-bootstrap.sh && bash scripts/fieldgrid-staging-wildcard-tls-bootstrap.sh --check && bash scripts/fieldgrid-website-staging-stack-deploy.sh --check && node --test tests/security/website-staging-stack-deploy-source.test.mjs",
     "fieldgrid:environment-isolation:check": "node --test tests/security/fieldgrid-environment-isolation-preflight.test.mjs && pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-tenant-environment.test.ts ../../tests/domain/fieldgrid-database-environment.test.ts ../../tests/domain/fieldgrid-tenant-application-origin.test.ts",
     "fieldgrid:mvp-sprint2-runtime-proof": "node scripts/fieldgrid-mvp-sprint2-runtime-proof.mjs",
@@ -204,6 +205,7 @@
   "private": true,
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
+    "@supabase/supabase-js": "2.106.2",
     "playwright": "1.55.1",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3",

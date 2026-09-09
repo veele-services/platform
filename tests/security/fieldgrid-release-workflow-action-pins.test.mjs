@@ -12,6 +12,7 @@ const RELEASE_WORKFLOWS = [
   ".github/workflows/fieldgrid-material-inventory-phase11.yml",
   ".github/workflows/fieldgrid-material-inventory-phase12.yml",
   ".github/workflows/fieldgrid-migration-smoke.yml",
+  ".github/workflows/fieldgrid-staging-field-demo-owner-repair.yml",
   ".github/workflows/fieldgrid-w00-runtime-principal.yml",
   ".github/workflows/main-exact-head-validation.yml",
   ".github/workflows/phase2e-staging-preflight.yml",
@@ -106,5 +107,5 @@ test("every release-critical action has an exact reviewed SHA and provenance lab
     }
   }
 
-  assert.equal(actionCount, 103);
+  assert.equal(actionCount, 107);
 });
