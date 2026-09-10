@@ -720,34 +720,34 @@ async function runCommand(command, args, options = {}) {
   });
 }
 
-const PYTHON_ZIP_COMMAND = String.raw`import sys
+const PYTHON_ZIP_COMMAND = String.raw`import os
+import sys
 import zipfile
 
-mode, archive_path, *rest = sys.argv[1:]
+mode = sys.argv[1]
+archive_path = os.environ["FIELDGRID_ZIP_ARCHIVE_PATH"]
+entry = os.environ.get("FIELDGRID_ZIP_ENTRY", "")
 with zipfile.ZipFile(archive_path) as archive:
     if mode == "list":
         sys.stdout.write("\n".join(archive.namelist()))
-    elif mode == "read" and len(rest) == 1:
-        sys.stdout.buffer.write(archive.read(rest[0]))
+    elif mode == "read" and entry:
+        sys.stdout.buffer.write(archive.read(entry))
     else:
         raise SystemExit("invalid zip operation")
 `;
 
-async function runZipCommand(args, options = {}) {
-  try {
-    return await runCommand("unzip", args, options);
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-    const [operation, archivePath, entry] = args;
-    const pythonArgs =
-      operation === "-Z1"
-        ? ["-c", PYTHON_ZIP_COMMAND, "list", archivePath]
-        : operation === "-p" && entry
-          ? ["-c", PYTHON_ZIP_COMMAND, "read", archivePath, entry]
-          : null;
-    if (!pythonArgs) throw error;
-    return await runCommand("python3", pythonArgs, options);
+async function runZipCommand(archivePath, operation, entry, options = {}) {
+  if (operation !== "list" && operation !== "read") {
+    throw new Error("Unsupported ZIP operation.");
   }
+  return await runCommand("python3", ["-c", PYTHON_ZIP_COMMAND, operation], {
+    ...options,
+    env: {
+      ...(options.env ?? process.env),
+      FIELDGRID_ZIP_ARCHIVE_PATH: archivePath,
+      FIELDGRID_ZIP_ENTRY: entry ?? "",
+    },
+  });
 }
 
 async function githubRefSha(branch, env = process.env) {
@@ -993,7 +993,7 @@ async function downloadRollbackDiagnostics(
   }
   const archivePath = join(tempDir, `rollback-diagnostics-${artifact.id}.zip`);
   await writeFile(archivePath, archiveBytes, { mode: 0o600 });
-  const listing = await runZipCommand(["-Z1", archivePath]);
+  const listing = await runZipCommand(archivePath, "list");
   const entries = listing.stdout.split(/\r?\n/u).filter(Boolean);
   if (
     entries.filter((entry) => entry === "deploy-health.json").length !== 1 ||
@@ -1005,11 +1005,11 @@ async function downloadRollbackDiagnostics(
   ) {
     throw new Error("Rollback diagnostics archive entries are invalid.");
   }
-  const extracted = await runZipCommand([
-    "-p",
+  const extracted = await runZipCommand(
     archivePath,
+    "read",
     "deploy-health.json",
-  ]);
+  );
   const bytes = Buffer.from(extracted.stdout, "utf8");
   if (bytes.length === 0 || bytes.length > 1024 * 1024) {
     throw new Error("Rollback deploy diagnostics has an invalid size.");

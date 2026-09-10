@@ -647,38 +647,42 @@ export function selectAuthenticatedPreflightArtifact(
   return artifact;
 }
 
-const PYTHON_ZIP_COMMAND = String.raw`import sys
+const PYTHON_ZIP_COMMAND = String.raw`import os
+import sys
 import zipfile
 
-mode, archive_path, *rest = sys.argv[1:]
+mode = sys.argv[1]
+archive_path = os.environ["FIELDGRID_ZIP_ARCHIVE_PATH"]
+entry = os.environ.get("FIELDGRID_ZIP_ENTRY", "")
 with zipfile.ZipFile(archive_path) as archive:
     if mode == "list":
         sys.stdout.write("\n".join(archive.namelist()))
-    elif mode == "read" and len(rest) == 1:
-        sys.stdout.buffer.write(archive.read(rest[0]))
+    elif mode == "read" and entry:
+        sys.stdout.buffer.write(archive.read(entry))
     else:
         raise SystemExit("invalid zip operation")
 `;
 
 function unzipResult(archivePath, args, { binary = false } = {}) {
-  const result = spawnSync("unzip", [args[0], archivePath, ...args.slice(1)], {
-    encoding: binary ? null : "utf8",
-    maxBuffer: binary ? MAX_PREFLIGHT_FILE_BYTES + 1 : 1024 * 1024,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  if (!result.error || result.error.code !== "ENOENT") return result;
-
   const [operation, entry] = args;
-  const pythonArgs =
-    operation === "-Z1"
-      ? ["-c", PYTHON_ZIP_COMMAND, "list", archivePath]
-      : operation === "-p" && entry
-        ? ["-c", PYTHON_ZIP_COMMAND, "read", archivePath, entry]
-        : null;
-  if (!pythonArgs) return result;
-  return spawnSync("python3", pythonArgs, {
+  const pythonOperation =
+    operation === "-Z1" ? "list" : operation === "-p" && entry ? "read" : null;
+  if (!pythonOperation) {
+    return {
+      error: new Error("Unsupported ZIP operation."),
+      status: null,
+      stdout: binary ? null : "",
+      stderr: "Unsupported ZIP operation.",
+    };
+  }
+  return spawnSync("python3", ["-c", PYTHON_ZIP_COMMAND, pythonOperation], {
     encoding: binary ? null : "utf8",
     maxBuffer: binary ? MAX_PREFLIGHT_FILE_BYTES + 1 : 1024 * 1024,
+    env: {
+      ...process.env,
+      FIELDGRID_ZIP_ARCHIVE_PATH: archivePath,
+      FIELDGRID_ZIP_ENTRY: entry ?? "",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
