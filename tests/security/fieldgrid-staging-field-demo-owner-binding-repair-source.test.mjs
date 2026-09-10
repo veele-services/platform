@@ -68,7 +68,7 @@ test("snapshot and classification prove the exact owner and Management binding",
   assert.match(script, /FROM public\.platform_users AS/u);
 });
 
-test("repair is a locked singular insert-only transaction", () => {
+test("repair and owner reconciliation are locked singular transactions", () => {
   assert.match(script, /BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE/u);
   assert.match(
     script,
@@ -96,13 +96,14 @@ test("repair is a locked singular insert-only transaction", () => {
   ]);
   assert.equal(
     [...script.matchAll(/\.rowCount !== 1/gu)].length,
-    2,
-    "each approved insert must affect exactly one row",
+    4,
+    "each approved insert or reconciliation update must affect exactly one row",
   );
-  assert.doesNotMatch(
+  assert.match(
     script,
-    /\b(?:UPDATE|DELETE\s+FROM)\s+(?:public|auth)\./iu,
+    /UPDATE public\.tenant_users[\s\S]*SET role = 'admin'[\s\S]*WHERE tenant_id = \$1[\s\S]*AND user_id = \$2[\s\S]*role = 'owner'[\s\S]*status = 'active'/u,
   );
+  assert.doesNotMatch(script, /\bDELETE\s+FROM\s+(?:public|auth)\./iu);
   assert.doesNotMatch(script, /\bON CONFLICT\b/iu);
   assert.doesNotMatch(script, /\bINSERT INTO\s+public\.audit_log\b/iu);
   assert.doesNotMatch(

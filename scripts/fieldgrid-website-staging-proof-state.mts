@@ -12,7 +12,7 @@ export const MANAGED_PROOF_URL = `https://${MANAGED_PROOF_HOST}/`;
 export const MANAGED_PROOF_SLUG = "managed-proof-w00-v2";
 export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
 export const FIELD_DEMO_SLUG = "field-demo";
-export const FIELD_DEMO_OWNER_EMAIL = "services@fieldgrid.nl";
+export const FIELD_DEMO_OWNER_EMAIL = "info@dgwebservices.nl";
 export const FIELD_DEMO_FIXTURE_VERSION =
   "fieldgrid-staging-field-demo-fixture-v1";
 export const FIELD_DEMO_FIXTURE_MARKER =

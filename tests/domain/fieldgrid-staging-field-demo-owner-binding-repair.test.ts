@@ -7,16 +7,21 @@ import {
   FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY,
   FIELD_DEMO_OWNER_BINDING_SUPABASE_URL,
   FIELD_DEMO_OWNER_BINDING_VERSION,
+  FIELD_DEMO_RETAINED_OWNER_ID,
+  FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
+  FIELD_DEMO_SUPERSEDED_OWNER_ID,
   classifyFieldDemoOwnerBinding,
   formatSafeFieldDemoOwnerBindingError,
   loadFieldDemoOwnerBindingSnapshot,
   repairFieldDemoOwnerBinding,
+  reconcileFieldDemoOwnerBinding,
   safeFieldDemoOwnerBindingErrorCode,
   safeFieldDemoOwnerBindingFailureReason,
   validateFieldDemoOwnerBindingConfig,
   type FieldDemoOwnerBindingFailureReason,
   type FieldDemoOwnerBindingSnapshot,
 } from "../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
+import { FIELD_DEMO_OWNER_EMAIL } from "../../scripts/fieldgrid-staging-field-demo-domain-repair.mts";
 
 const sha = "a".repeat(40);
 const tenantId = "10000000-0000-4000-8000-000000000081";
@@ -132,11 +137,17 @@ async function captureError(run: () => Promise<unknown>): Promise<unknown> {
 }
 
 test("owner-binding configuration is exact staging and exact main only", () => {
-  for (const mode of ["diagnose", "repair"] as const) {
+  for (const mode of ["diagnose", "repair", "reconcile"] as const) {
     assert.deepEqual(
       validateFieldDemoOwnerBindingConfig(
         { mode, expectedSha: sha },
-        validEnvironment,
+        mode === "reconcile"
+          ? {
+              ...validEnvironment,
+              FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION:
+                "fieldgrid-staging-field-demo-owner-reconcile-v1",
+            }
+          : validEnvironment,
       ),
       [],
     );
@@ -364,6 +375,78 @@ test("an exact owner binding is a read-once no-op", async () => {
   assert.equal(roleLinks, 0);
 });
 
+test("owner reconciliation retains the exact info owner and demotes only the superseded owner", async () => {
+  let demotions = 0;
+  const result = await reconcileFieldDemoOwnerBinding({
+    readTarget: async () => ({
+      tenantId,
+      retainedUser: {
+        id: FIELD_DEMO_RETAINED_OWNER_ID,
+        email: FIELD_DEMO_OWNER_EMAIL,
+      },
+      supersededUser: {
+        id: FIELD_DEMO_SUPERSEDED_OWNER_ID,
+        email: FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
+      },
+      ownerMemberships: [
+        {
+          userId: FIELD_DEMO_RETAINED_OWNER_ID,
+          role: "owner",
+          status: "active",
+        },
+        {
+          userId: FIELD_DEMO_SUPERSEDED_OWNER_ID,
+          role: "owner",
+          status: "active",
+        },
+      ],
+    }),
+    demoteSupersededOwner: async (receivedTenantId, receivedUserId) => {
+      assert.equal(receivedTenantId, tenantId);
+      assert.equal(receivedUserId, FIELD_DEMO_SUPERSEDED_OWNER_ID);
+      demotions += 1;
+    },
+    readSnapshot: async () => exactSnapshot,
+  });
+
+  assert.equal(result, "reconciled-retained-owner");
+  assert.equal(demotions, 1);
+});
+
+test("owner reconciliation fails closed for any identity or owner-shape mismatch", async () => {
+  let demotions = 0;
+  const error = await captureError(() =>
+    reconcileFieldDemoOwnerBinding({
+      readTarget: async () => ({
+        tenantId,
+        retainedUser: {
+          id: FIELD_DEMO_RETAINED_OWNER_ID,
+          email: "wrong@example.invalid",
+        },
+        supersededUser: {
+          id: FIELD_DEMO_SUPERSEDED_OWNER_ID,
+          email: FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
+        },
+        ownerMemberships: [],
+      }),
+      demoteSupersededOwner: async () => {
+        demotions += 1;
+      },
+      readSnapshot: async () => exactSnapshot,
+    }),
+  );
+
+  assert.equal(demotions, 0);
+  assert.equal(
+    safeFieldDemoOwnerBindingErrorCode(error),
+    "field_demo_owner_binding_precondition_invalid",
+  );
+  assert.equal(
+    safeFieldDemoOwnerBindingFailureReason(error),
+    "conflicting-owner-state",
+  );
+});
+
 test("missing membership and role invokes both exact callbacks once", async () => {
   let reads = 0;
   const calls: Array<{ kind: string; ids: string[] }> = [];
@@ -554,7 +637,7 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
   assert.equal(capturedSql, FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY);
   assert.deepEqual(capturedValues, [
     "field-demo",
-    "services@fieldgrid.nl",
+    FIELD_DEMO_OWNER_EMAIL,
     "field-demo.staging.fieldgrid.nl",
     "field-demo.fieldgrid.nl",
     "fieldgrid-staging-field-demo-owner-repair-v1",
