@@ -12,7 +12,7 @@ export const FIELD_DEMO_DOMAIN_REPAIR_SUPABASE_URL =
   "https://olyfmekyqozxrbrwwszu.supabase.co";
 export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
 export const FIELD_DEMO_SLUG = "field-demo";
-export const FIELD_DEMO_OWNER_EMAIL = "services@fieldgrid.nl";
+export const FIELD_DEMO_OWNER_EMAIL = "info@dgwebservices.nl";
 export const LEGACY_FIELD_DEMO_HOST = "field-demo.fieldgrid.nl";
 
 const DOMAIN_REPAIR_LOCK_KEY = "fieldgrid:staging:field-demo-domain-repair:v1";

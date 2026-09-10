@@ -4,18 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: "Diagnose only, or repair the exact missing owner bindings"
+        description: "Diagnose, repair bindings, or reconcile the exact field-demo owners"
         required: true
         type: choice
         options:
           - diagnose
           - repair
+          - reconcile
       expected_main_sha:
         description: "Exact reviewed main SHA"
         required: true
         type: string
       confirmation:
-        description: "Type fieldgrid-staging-field-demo-owner-binding-repair-v1"
+        description: "Type the operation-specific confirmation token"
         required: true
         type: string
 
@@ -51,10 +52,14 @@ jobs:
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
-          test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-binding-repair-v1"
+          if [ "$OWNER_BINDING_OPERATION" = "reconcile" ]; then
+            test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-reconcile-v1"
+          else
+            test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-binding-repair-v1"
+          fi
           [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
           case "$OWNER_BINDING_OPERATION" in
-            diagnose|repair) ;;
+            diagnose|repair|reconcile) ;;
             *) exit 1 ;;
           esac
 
@@ -177,10 +182,15 @@ jobs:
               ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
               --diagnose \
               --expected-sha "$EXPECTED_MAIN_SHA"
-          else
+          elif [ "$OWNER_BINDING_OPERATION" = "repair" ]; then
             pnpm --filter @workspace/db exec tsx \
               ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
               --repair \
+              --expected-sha "$EXPECTED_MAIN_SHA"
+          else
+            pnpm --filter @workspace/db exec tsx \
+              ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
+              --reconcile \
               --expected-sha "$EXPECTED_MAIN_SHA"
           fi
 

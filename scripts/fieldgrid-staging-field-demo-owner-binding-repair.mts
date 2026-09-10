@@ -14,6 +14,8 @@ export const FIELD_DEMO_OWNER_BINDING_VERSION =
   "fieldgrid-staging-field-demo-owner-binding-repair-v1";
 export const FIELD_DEMO_OWNER_BINDING_CONFIRMATION =
   "fieldgrid-staging-field-demo-owner-binding-repair-v1";
+export const FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION =
+  "fieldgrid-staging-field-demo-owner-reconcile-v1";
 export const FIELD_DEMO_OWNER_BINDING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
 export const FIELD_DEMO_OWNER_BINDING_SUPABASE_URL =
   "https://olyfmekyqozxrbrwwszu.supabase.co";
@@ -22,13 +24,18 @@ const OWNER_BINDING_LOCK_KEY =
   "fieldgrid:staging:field-demo-owner-binding-repair:v1";
 const OWNER_AUTH_REPAIR_VERSION =
   "fieldgrid-staging-field-demo-owner-repair-v1";
+export const FIELD_DEMO_RETAINED_OWNER_ID =
+  "cafccef6-ba37-4fe0-879e-55c566b6136e";
+export const FIELD_DEMO_SUPERSEDED_OWNER_EMAIL = "admin@veele-services.nl";
+export const FIELD_DEMO_SUPERSEDED_OWNER_ID =
+  "0095f960-d4f0-478b-b7d9-9cd483281e4e";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const RUN_NUMBER_PATTERN = /^[1-9][0-9]{0,19}$/u;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-type OwnerBindingMode = "check" | "diagnose" | "repair";
+type OwnerBindingMode = "check" | "diagnose" | "repair" | "reconcile";
 
 type OwnerBindingOptions = {
   mode: OwnerBindingMode;
@@ -170,11 +177,15 @@ type OwnerBindingEvidence = {
   schemaVersion: 1;
   contract: typeof FIELD_DEMO_OWNER_BINDING_VERSION;
   environment: "staging";
-  operation: "diagnose" | "repair";
+  operation: "diagnose" | "repair" | "reconcile";
   expectedMainSha: string;
   status: "passed" | "failed";
   observedState: FieldDemoOwnerBindingState | null;
-  result: "diagnosed" | FieldDemoOwnerBindingRepairResult | null;
+  result:
+    | "diagnosed"
+    | "reconciled-retained-owner"
+    | FieldDemoOwnerBindingRepairResult
+    | null;
   mutationAttempted: boolean;
   errorCode: OwnerBindingErrorCode | null;
   failureStage: OwnerBindingFailureStage;
@@ -209,12 +220,79 @@ type OwnerBindingRepairDependencies = {
   ) => Promise<void>;
 };
 
+type OwnerReconciliationDependencies = {
+  readTarget: () => Promise<{
+    tenantId: string;
+    retainedUser: { id: string; email: string };
+    supersededUser: { id: string; email: string };
+    ownerMemberships: Array<{
+      userId: string;
+      role: string;
+      status: string;
+    }>;
+  }>;
+  demoteSupersededOwner: (tenantId: string, userId: string) => Promise<void>;
+  readSnapshot: () => Promise<FieldDemoOwnerBindingSnapshot>;
+};
+
+export async function reconcileFieldDemoOwnerBinding(
+  dependencies: OwnerReconciliationDependencies,
+): Promise<"reconciled-retained-owner"> {
+  const target = await dependencies.readTarget();
+  if (
+    target.retainedUser.id !== FIELD_DEMO_RETAINED_OWNER_ID ||
+    target.retainedUser.email.toLowerCase() !== FIELD_DEMO_OWNER_EMAIL ||
+    target.supersededUser.id !== FIELD_DEMO_SUPERSEDED_OWNER_ID ||
+    target.supersededUser.email.toLowerCase() !==
+      FIELD_DEMO_SUPERSEDED_OWNER_EMAIL ||
+    target.ownerMemberships.length !== 2 ||
+    target.ownerMemberships.some(
+      (membership) =>
+        membership.role !== "owner" || membership.status !== "active",
+    ) ||
+    !target.ownerMemberships.some(
+      (membership) => membership.userId === FIELD_DEMO_RETAINED_OWNER_ID,
+    ) ||
+    !target.ownerMemberships.some(
+      (membership) => membership.userId === FIELD_DEMO_SUPERSEDED_OWNER_ID,
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "The exact retained and superseded owners are not the expected field-demo state.",
+      "owner_binding_precondition",
+      "conflicting-owner-state",
+    );
+  }
+
+  await dependencies.demoteSupersededOwner(
+    target.tenantId,
+    FIELD_DEMO_SUPERSEDED_OWNER_ID,
+  );
+  const postcondition = classifyFieldDemoOwnerBinding(
+    await dependencies.readSnapshot(),
+  );
+  if (postcondition.state !== "already-valid") {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_postcondition_invalid",
+      "Owner reconciliation did not leave exactly one valid retained owner.",
+      "owner_binding_postcondition",
+      postcondition.failureReason,
+    );
+  }
+  return "reconciled-retained-owner";
+}
+
 function parseArgs(argv: string[]): OwnerBindingOptions {
   let mode: OwnerBindingMode | null = null;
   let expectedSha = "";
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (["--check", "--diagnose", "--repair"].includes(argument ?? "")) {
+    if (
+      ["--check", "--diagnose", "--repair", "--reconcile"].includes(
+        argument ?? "",
+      )
+    ) {
       if (mode) throw new Error("Choose exactly one owner-binding operation.");
       mode = argument!.slice(2) as OwnerBindingMode;
       continue;
@@ -291,7 +369,9 @@ export function validateFieldDemoOwnerBindingConfig(
   }
   if (
     environment.FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION !==
-    FIELD_DEMO_OWNER_BINDING_CONFIRMATION
+    (options.mode === "reconcile"
+      ? FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION
+      : FIELD_DEMO_OWNER_BINDING_CONFIRMATION)
   ) {
     errors.push("confirmation does not authorize owner-binding operation");
   }
@@ -896,6 +976,162 @@ async function lockFieldDemoOwnerBindingRows(
   );
 }
 
+async function lockOwnerReconciliationRows(
+  queryable: Queryable,
+): Promise<void> {
+  await queryable.query(
+    `SELECT tenant.id FROM public.tenants AS tenant
+      WHERE tenant.slug = $1 ORDER BY tenant.id FOR UPDATE`,
+    [FIELD_DEMO_SLUG],
+  );
+  await queryable.query(
+    `SELECT auth_user.id FROM auth.users AS auth_user
+      WHERE auth_user.id = ANY($1::uuid[]) ORDER BY auth_user.id FOR UPDATE`,
+    [[FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID]],
+  );
+  await queryable.query(
+    `SELECT membership.id FROM public.tenant_users AS membership
+      WHERE membership.tenant_id IN (
+        SELECT tenant.id FROM public.tenants AS tenant WHERE tenant.slug = $1
+      ) ORDER BY membership.id FOR UPDATE`,
+    [FIELD_DEMO_SLUG],
+  );
+  await queryable.query(
+    `SELECT user_role.id FROM public.tenant_user_roles AS user_role
+      WHERE user_role.tenant_id IN (
+        SELECT tenant.id FROM public.tenants AS tenant WHERE tenant.slug = $1
+      ) AND user_role.user_id = ANY($2::uuid[])
+      ORDER BY user_role.id FOR UPDATE`,
+    [
+      FIELD_DEMO_SLUG,
+      [FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID],
+    ],
+  );
+}
+
+async function readOwnerReconciliationTarget(queryable: Queryable): Promise<{
+  tenantId: string;
+  retainedUser: { id: string; email: string };
+  supersededUser: { id: string; email: string };
+  ownerMemberships: Array<{
+    userId: string;
+    role: string;
+    status: string;
+  }>;
+}> {
+  const tenants = await queryable.query<{ tenant_id: string }>(
+    `SELECT id::text AS tenant_id FROM public.tenants WHERE slug = $1`,
+    [FIELD_DEMO_SLUG],
+  );
+  if (tenants.rowCount !== 1 || tenants.rows.length !== 1) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Field-demo tenant identity is not singular.",
+      "owner_binding_precondition",
+      "tenant-identity-invalid",
+    );
+  }
+  const tenantId = tenants.rows[0]!.tenant_id;
+  const users = await queryable.query<{
+    id: string;
+    email: string | null;
+    email_confirmed_at: string | null;
+    deleted_at: string | null;
+    is_anonymous: boolean | null;
+    aud: string | null;
+    role: string | null;
+  }>(
+    `SELECT id::text, email, email_confirmed_at, deleted_at,
+            is_anonymous, aud, role
+       FROM auth.users
+      WHERE id = ANY($1::uuid[])
+      ORDER BY id`,
+    [[FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID]],
+  );
+  const retainedUser = users.rows.find(
+    (user) => user.id === FIELD_DEMO_RETAINED_OWNER_ID,
+  );
+  const supersededUser = users.rows.find(
+    (user) => user.id === FIELD_DEMO_SUPERSEDED_OWNER_ID,
+  );
+  if (
+    users.rowCount !== 2 ||
+    !retainedUser ||
+    !supersededUser ||
+    retainedUser.email?.toLowerCase() !== FIELD_DEMO_OWNER_EMAIL ||
+    supersededUser.email?.toLowerCase() !== FIELD_DEMO_SUPERSEDED_OWNER_EMAIL ||
+    [retainedUser, supersededUser].some(
+      (user) =>
+        !user.email_confirmed_at ||
+        user.deleted_at !== null ||
+        user.is_anonymous === true ||
+        user.aud !== "authenticated" ||
+        user.role !== "authenticated",
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "The explicit owner identities do not match active authenticated users.",
+      "owner_binding_precondition",
+      "auth-owner-invalid",
+    );
+  }
+  const memberships = await queryable.query<{
+    user_id: string;
+    role: string;
+    status: string;
+  }>(
+    `SELECT user_id::text, role, status
+       FROM public.tenant_users
+      WHERE tenant_id = $1
+      ORDER BY user_id`,
+    [tenantId],
+  );
+  const ownerMemberships = memberships.rows
+    .filter((membership) => membership.role === "owner")
+    .map((membership) => ({
+      userId: membership.user_id,
+      role: membership.role,
+      status: membership.status,
+    }));
+  return {
+    tenantId,
+    retainedUser: {
+      id: retainedUser.id,
+      email: retainedUser.email!,
+    },
+    supersededUser: {
+      id: supersededUser.id,
+      email: supersededUser.email!,
+    },
+    ownerMemberships,
+  };
+}
+
+async function demoteSupersededOwner(
+  queryable: Queryable,
+  tenantId: string,
+  userId: string,
+): Promise<void> {
+  const result = await queryable.query(
+    `UPDATE public.tenant_users
+        SET role = 'admin', updated_at = now()
+      WHERE tenant_id = $1
+        AND user_id = $2
+        AND role = 'owner'
+        AND status = 'active'
+      RETURNING id`,
+    [tenantId, userId],
+  );
+  if (result.rowCount !== 1) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_mutation_failed",
+      "The superseded owner membership was not updated exactly once.",
+      "owner_binding_mutation",
+    );
+  }
+}
+
 async function createFieldDemoOwnerMembership(
   queryable: Queryable,
   tenantId: string,
@@ -976,7 +1212,7 @@ async function createFieldDemoManagementRoleLink(
 }
 
 function evidencePath(
-  operation: "diagnose" | "repair",
+  operation: "diagnose" | "repair" | "reconcile",
   environment: OwnerBindingEnvironment,
 ): string {
   const runId = environment.GITHUB_RUN_ID ?? "";
@@ -1010,7 +1246,9 @@ async function writeEvidence(
 async function runOwnerBindingOperation(
   options: OwnerBindingOptions,
   environment: OwnerBindingEnvironment,
-): Promise<"diagnosed" | FieldDemoOwnerBindingRepairResult> {
+): Promise<
+  "diagnosed" | "reconciled-retained-owner" | FieldDemoOwnerBindingRepairResult
+> {
   if (options.mode === "check") {
     throw new Error("Static checks cannot access the database.");
   }
@@ -1080,32 +1318,57 @@ async function runOwnerBindingOperation(
     }
 
     await acquireOwnerBindingLock(client);
-    await lockFieldDemoOwnerBindingRows(client);
-    failureStage = "owner_binding_precondition";
-    const result = await repairFieldDemoOwnerBinding({
-      readSnapshot: async () => {
-        const snapshot = await loadFieldDemoOwnerBindingSnapshot(client!);
-        if (observedState === null) {
-          observedState = classifyFieldDemoOwnerBinding(snapshot).state;
-        }
-        return snapshot;
-      },
-      createMembership: async (tenantId, userId) => {
-        failureStage = "owner_binding_mutation";
-        mutationAttempted = true;
-        await createFieldDemoOwnerMembership(client!, tenantId, userId);
-      },
-      createManagementRoleLink: async (tenantId, userId, managementRoleId) => {
-        failureStage = "owner_binding_mutation";
-        mutationAttempted = true;
-        await createFieldDemoManagementRoleLink(
-          client!,
+    let result: "reconciled-retained-owner" | FieldDemoOwnerBindingRepairResult;
+    if (operation === "reconcile") {
+      await lockOwnerReconciliationRows(client);
+      failureStage = "owner_binding_precondition";
+      result = await reconcileFieldDemoOwnerBinding({
+        readTarget: () => readOwnerReconciliationTarget(client!),
+        demoteSupersededOwner: async (tenantId, userId) => {
+          failureStage = "owner_binding_mutation";
+          mutationAttempted = true;
+          await demoteSupersededOwner(client!, tenantId, userId);
+        },
+        readSnapshot: async () => {
+          const snapshot = await loadFieldDemoOwnerBindingSnapshot(client!);
+          if (observedState === null) {
+            observedState = classifyFieldDemoOwnerBinding(snapshot).state;
+          }
+          return snapshot;
+        },
+      });
+    } else {
+      await lockFieldDemoOwnerBindingRows(client);
+      failureStage = "owner_binding_precondition";
+      result = await repairFieldDemoOwnerBinding({
+        readSnapshot: async () => {
+          const snapshot = await loadFieldDemoOwnerBindingSnapshot(client!);
+          if (observedState === null) {
+            observedState = classifyFieldDemoOwnerBinding(snapshot).state;
+          }
+          return snapshot;
+        },
+        createMembership: async (tenantId, userId) => {
+          failureStage = "owner_binding_mutation";
+          mutationAttempted = true;
+          await createFieldDemoOwnerMembership(client!, tenantId, userId);
+        },
+        createManagementRoleLink: async (
           tenantId,
           userId,
           managementRoleId,
-        );
-      },
-    });
+        ) => {
+          failureStage = "owner_binding_mutation";
+          mutationAttempted = true;
+          await createFieldDemoManagementRoleLink(
+            client!,
+            tenantId,
+            userId,
+            managementRoleId,
+          );
+        },
+      });
+    }
     failureStage = "owner_binding_postcondition";
     if (result === "already-valid") {
       await client.query("ROLLBACK");
@@ -1159,6 +1422,8 @@ async function main(): Promise<void> {
     if (
       FIELD_DEMO_OWNER_BINDING_CONFIRMATION !==
         FIELD_DEMO_OWNER_BINDING_VERSION ||
+      FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION !==
+        "fieldgrid-staging-field-demo-owner-reconcile-v1" ||
       !FIELD_DEMO_HOST.endsWith(".staging.fieldgrid.nl") ||
       !LEGACY_FIELD_DEMO_HOST.endsWith(".fieldgrid.nl")
     ) {
