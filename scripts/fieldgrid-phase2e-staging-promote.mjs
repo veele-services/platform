@@ -647,18 +647,31 @@ export function selectAuthenticatedPreflightArtifact(
   return artifact;
 }
 
-const PYTHON_ZIP_COMMAND = String.raw`import os
+export const PYTHON_ZIP_COMMAND = String.raw`import os
 import sys
 import zipfile
 
 mode = sys.argv[1]
 archive_path = os.environ["FIELDGRID_ZIP_ARCHIVE_PATH"]
 entry = os.environ.get("FIELDGRID_ZIP_ENTRY", "")
+max_bytes = int(os.environ["FIELDGRID_ZIP_MAX_BYTES"])
 with zipfile.ZipFile(archive_path) as archive:
     if mode == "list":
         sys.stdout.write("\n".join(archive.namelist()))
     elif mode == "read" and entry:
-        sys.stdout.buffer.write(archive.read(entry))
+        info = archive.getinfo(entry)
+        if info.file_size > max_bytes:
+            raise SystemExit("zip entry exceeds its bound")
+        total = 0
+        with archive.open(info) as source:
+            while True:
+                chunk = source.read(min(65536, max_bytes - total + 1))
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    raise SystemExit("zip entry exceeds its bound")
+                sys.stdout.buffer.write(chunk)
     else:
         raise SystemExit("invalid zip operation")
 `;
@@ -682,6 +695,7 @@ function unzipResult(archivePath, args, { binary = false } = {}) {
       ...process.env,
       FIELDGRID_ZIP_ARCHIVE_PATH: archivePath,
       FIELDGRID_ZIP_ENTRY: entry ?? "",
+      FIELDGRID_ZIP_MAX_BYTES: String(MAX_PREFLIGHT_FILE_BYTES),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

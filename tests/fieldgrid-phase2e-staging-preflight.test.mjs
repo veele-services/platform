@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -19,6 +20,7 @@ import {
   LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
   PAYMENT_INTENT_DIAGNOSTIC_QUERY,
   PAYMENT_INTENT_DIAGNOSTIC_VERSION,
+  PYTHON_ZIP_COMMAND,
   REALTIME_PUBLICATION,
   REALTIME_PUBLICATION_METADATA_VERSION,
   REQUIRED_SECRET_NAMES,
@@ -1582,6 +1584,55 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.match(script, /createHash\("sha256"\)\.update\(reportBytes\)/u);
   assert.match(script, /promotionPerformed: false/u);
   assert.doesNotMatch(script, /git", \["push"|gh pr merge|production/u);
+});
+
+test("portable ZIP fallback bounds decompressed evidence before emitting it", () => {
+  const directory = mkdtempSync(join(tmpdir(), "fieldgrid-phase2e-zip-"));
+  const archivePath = join(directory, "evidence.zip");
+  const createArchive = spawnSync(
+    "python3",
+    [
+      "-c",
+      String.raw`import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as archive:
+    archive.writestr("deploy-health.json", b'{"status":"ok"}')
+    archive.writestr("large.bin", b"x" * 4097)
+`,
+      archivePath,
+    ],
+    { encoding: "utf8" },
+  );
+  try {
+    assert.equal(
+      createArchive.status,
+      0,
+      createArchive.stderr || "python3 failed to create the ZIP fixture",
+    );
+
+    const runRead = (entry) =>
+      spawnSync("python3", ["-c", PYTHON_ZIP_COMMAND, "read"], {
+        encoding: null,
+        maxBuffer: 2 * 1024,
+        env: {
+          ...process.env,
+          FIELDGRID_ZIP_ARCHIVE_PATH: archivePath,
+          FIELDGRID_ZIP_ENTRY: entry,
+          FIELDGRID_ZIP_MAX_BYTES: "1024",
+        },
+      });
+
+    const small = runRead("deploy-health.json");
+    assert.equal(small.status, 0, small.stderr?.toString() ?? "");
+    assert.equal(small.stdout.toString(), '{"status":"ok"}');
+
+    const oversized = runRead("large.bin");
+    assert.notEqual(oversized.status, 0);
+    assert.match(oversized.stderr.toString(), /zip entry exceeds its bound/u);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("runner setup uses checksum-pinned PostgreSQL 17 packages without host privilege", () => {
