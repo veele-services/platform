@@ -240,9 +240,7 @@ export async function reconcileFieldDemoOwnerBinding(
 ): Promise<"reconciled-retained-owner"> {
   const target = await dependencies.readTarget();
   if (
-    target.retainedUser.id !== FIELD_DEMO_RETAINED_OWNER_ID ||
     target.retainedUser.email.toLowerCase() !== FIELD_DEMO_OWNER_EMAIL ||
-    target.supersededUser.id !== FIELD_DEMO_SUPERSEDED_OWNER_ID ||
     target.supersededUser.email.toLowerCase() !==
       FIELD_DEMO_SUPERSEDED_OWNER_EMAIL ||
     target.ownerMemberships.length !== 2 ||
@@ -251,10 +249,10 @@ export async function reconcileFieldDemoOwnerBinding(
         membership.role !== "owner" || membership.status !== "active",
     ) ||
     !target.ownerMemberships.some(
-      (membership) => membership.userId === FIELD_DEMO_RETAINED_OWNER_ID,
+      (membership) => membership.userId === target.retainedUser.id,
     ) ||
     !target.ownerMemberships.some(
-      (membership) => membership.userId === FIELD_DEMO_SUPERSEDED_OWNER_ID,
+      (membership) => membership.userId === target.supersededUser.id,
     )
   ) {
     throw new FieldDemoOwnerBindingError(
@@ -267,7 +265,7 @@ export async function reconcileFieldDemoOwnerBinding(
 
   await dependencies.demoteSupersededOwner(
     target.tenantId,
-    FIELD_DEMO_SUPERSEDED_OWNER_ID,
+    target.supersededUser.id,
   );
   const postcondition = classifyFieldDemoOwnerBinding(
     await dependencies.readSnapshot(),
@@ -986,8 +984,9 @@ async function lockOwnerReconciliationRows(
   );
   await queryable.query(
     `SELECT auth_user.id FROM auth.users AS auth_user
-      WHERE auth_user.id = ANY($1::uuid[]) ORDER BY auth_user.id FOR UPDATE`,
-    [[FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID]],
+      WHERE lower(auth_user.email) IN (lower($1), lower($2))
+      ORDER BY auth_user.id FOR UPDATE`,
+    [FIELD_DEMO_OWNER_EMAIL, FIELD_DEMO_SUPERSEDED_OWNER_EMAIL],
   );
   await queryable.query(
     `SELECT membership.id FROM public.tenant_users AS membership
@@ -1000,12 +999,9 @@ async function lockOwnerReconciliationRows(
     `SELECT user_role.id FROM public.tenant_user_roles AS user_role
       WHERE user_role.tenant_id IN (
         SELECT tenant.id FROM public.tenants AS tenant WHERE tenant.slug = $1
-      ) AND user_role.user_id = ANY($2::uuid[])
+      )
       ORDER BY user_role.id FOR UPDATE`,
-    [
-      FIELD_DEMO_SLUG,
-      [FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID],
-    ],
+    [FIELD_DEMO_SLUG],
   );
 }
 
@@ -1044,15 +1040,15 @@ async function readOwnerReconciliationTarget(queryable: Queryable): Promise<{
     `SELECT id::text, email, email_confirmed_at, deleted_at,
             is_anonymous, aud, role
        FROM auth.users
-      WHERE id = ANY($1::uuid[])
+      WHERE lower(email) IN (lower($1), lower($2))
       ORDER BY id`,
-    [[FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_SUPERSEDED_OWNER_ID]],
+    [FIELD_DEMO_OWNER_EMAIL, FIELD_DEMO_SUPERSEDED_OWNER_EMAIL],
   );
   const retainedUser = users.rows.find(
-    (user) => user.id === FIELD_DEMO_RETAINED_OWNER_ID,
+    (user) => user.email?.toLowerCase() === FIELD_DEMO_OWNER_EMAIL,
   );
   const supersededUser = users.rows.find(
-    (user) => user.id === FIELD_DEMO_SUPERSEDED_OWNER_ID,
+    (user) => user.email?.toLowerCase() === FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
   );
   if (
     users.rowCount !== 2 ||
