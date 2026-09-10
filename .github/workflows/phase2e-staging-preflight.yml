@@ -147,7 +147,8 @@ jobs:
           postgres --version
           initdb --version
           pg_restore --version
-          unzip -v >/dev/null
+          python3 --version
+          python3 -c 'import zipfile'
           systemctl --version
 
       - name: Install locked dependencies

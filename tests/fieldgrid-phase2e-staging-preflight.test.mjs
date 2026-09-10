@@ -1454,6 +1454,11 @@ test("manual workflow is staging-only and never promotes or uploads the database
     postgresSetup < runtimeCheck,
     "PostgreSQL 17 must be available before the preflight runtime check",
   );
+  assert.match(
+    workflow,
+    /python3 --version[\s\S]*python3 -c 'import zipfile'/u,
+    "the runner must provide the portable ZIP fallback used when unzip is unavailable",
+  );
   for (const secretName of REQUIRED_SECRET_NAMES) {
     const storedSecretName =
       secretName === "DATABASE_URL"
@@ -1475,6 +1480,8 @@ test("manual workflow is staging-only and never promotes or uploads the database
   );
 
   const script = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
+  assert.match(script, /async function runZipCommand/u);
+  assert.match(script, /PYTHON_ZIP_COMMAND/u);
   assert.match(script, /pg_dump/u);
   assert.match(script, /pg_restore/u);
   assert.match(script, /\.publication\.json/u);

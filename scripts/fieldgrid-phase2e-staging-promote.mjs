@@ -647,8 +647,36 @@ export function selectAuthenticatedPreflightArtifact(
   return artifact;
 }
 
+const PYTHON_ZIP_COMMAND = String.raw`import sys
+import zipfile
+
+mode, archive_path, *rest = sys.argv[1:]
+with zipfile.ZipFile(archive_path) as archive:
+    if mode == "list":
+        sys.stdout.write("\n".join(archive.namelist()))
+    elif mode == "read" and len(rest) == 1:
+        sys.stdout.buffer.write(archive.read(rest[0]))
+    else:
+        raise SystemExit("invalid zip operation")
+`;
+
 function unzipResult(archivePath, args, { binary = false } = {}) {
-  return spawnSync("unzip", [args[0], archivePath, ...args.slice(1)], {
+  const result = spawnSync("unzip", [args[0], archivePath, ...args.slice(1)], {
+    encoding: binary ? null : "utf8",
+    maxBuffer: binary ? MAX_PREFLIGHT_FILE_BYTES + 1 : 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (!result.error || result.error.code !== "ENOENT") return result;
+
+  const [operation, entry] = args;
+  const pythonArgs =
+    operation === "-Z1"
+      ? ["-c", PYTHON_ZIP_COMMAND, "list", archivePath]
+      : operation === "-p" && entry
+        ? ["-c", PYTHON_ZIP_COMMAND, "read", archivePath, entry]
+        : null;
+  if (!pythonArgs) return result;
+  return spawnSync("python3", pythonArgs, {
     encoding: binary ? null : "utf8",
     maxBuffer: binary ? MAX_PREFLIGHT_FILE_BYTES + 1 : 1024 * 1024,
     stdio: ["ignore", "pipe", "pipe"],

@@ -1552,6 +1552,11 @@ test("staging release paths separate runtime and migration principals with verif
   assert.match(promoter, /force: false/u);
   assert.match(promoter, /--preflight-run-id/u);
   assert.match(promoter, /--evidence-root/u);
+  assert.match(
+    promoter,
+    /PYTHON_ZIP_COMMAND[\s\S]*spawnSync\("python3"/u,
+    "promotion evidence must have a portable ZIP fallback when unzip is unavailable",
+  );
 });
 
 test("phase 4 dashboard surfaces staging promotion evidence", () => {
