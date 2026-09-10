@@ -211,7 +211,7 @@ select jsonb_build_object(
          and target_attribute.attnum = target_key.attnum
       )
     ) order by constraint_record.conname
-  ), '[]'::jsonb)
+  ), '[]'::jsonb))
 from pg_constraint constraint_record
 join pg_class source_relation on source_relation.oid = constraint_record.conrelid
 join pg_namespace source_namespace on source_namespace.oid = source_relation.relnamespace
