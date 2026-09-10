@@ -1652,6 +1652,11 @@ test("deployment receives the mandatory credential recovery secret", () => {
   assert.ok(occurrences.length >= 2);
   assert.match(deploy, /secrets\.FIELDGRID_CREDENTIAL_RECOVERY_SECRET/u);
   assert.match(deploy, /printf 'FIELDGRID_CREDENTIAL_RECOVERY_SECRET=%s\\n'/u);
+  assert.match(deploy, /deployment_mode:/u);
+  assert.match(deploy, /staging-recovery-only/u);
+  assert.match(deploy, /Verify reviewed recovery preflight before activation/u);
+  assert.match(deploy, /gh run download/u);
+  assert.match(deploy, /Bind custom routes to recovery candidate in runner environment/u);
 
   const packageJson = JSON.parse(read("package.json"));
   assert.equal(

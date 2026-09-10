@@ -11,8 +11,29 @@ on:
         description: "Type fieldgrid-staging-deploy-exact-sha"
         required: true
         type: string
+      deployment_mode:
+        description: "normal or staging-recovery"
+        required: false
+        default: normal
+        type: string
+      expected_active_staging_release_sha:
+        description: "Exact active rollback release SHA for staging recovery"
+        required: false
+        default: ""
+        type: string
+      rollback_deploy_run_id:
+        description: "Failed staging deploy run proving the rollback"
+        required: false
+        default: ""
+        type: string
+      recovery_preflight_run_id:
+        description: "Successful Phase 2E preflight run proving recovery inputs"
+        required: false
+        default: ""
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -33,6 +54,10 @@ jobs:
       TARGET_ENVIRONMENT: staging
       EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
       DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
+      DEPLOYMENT_MODE: ${{ inputs.deployment_mode || 'normal' }}
+      EXPECTED_ACTIVE_STAGING_RELEASE_SHA: ${{ inputs.expected_active_staging_release_sha }}
+      ROLLBACK_DEPLOY_RUN_ID: ${{ inputs.rollback_deploy_run_id }}
+      RECOVERY_PREFLIGHT_RUN_ID: ${{ inputs.recovery_preflight_run_id }}
       SERVICE_NAME: veele-staging
       BASE_DIR: /var/www/veele/staging
 
@@ -135,11 +160,24 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-          test "$GITHUB_REF" = "refs/heads/staging"
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
-          test "$DEPLOY_CONFIRMATION" = "fieldgrid-staging-deploy-exact-sha"
           [[ "$EXPECTED_STAGING_SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$GITHUB_SHA" = "$EXPECTED_STAGING_SHA"
+          if [ "$DEPLOYMENT_MODE" = "normal" ]; then
+            test "$GITHUB_REF" = "refs/heads/staging"
+            test "$DEPLOY_CONFIRMATION" = "fieldgrid-staging-deploy-exact-sha"
+            test "$GITHUB_SHA" = "$EXPECTED_STAGING_SHA"
+          elif [ "$DEPLOYMENT_MODE" = "staging-recovery" ]; then
+            test "$GITHUB_REF" = "refs/heads/main"
+            test "$DEPLOY_CONFIRMATION" = "staging-recovery-only"
+            [[ "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$ROLLBACK_DEPLOY_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+            [[ "$RECOVERY_PREFLIGHT_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+            test "$GITHUB_SHA" != "$EXPECTED_STAGING_SHA"
+            test "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" != "$EXPECTED_STAGING_SHA"
+          else
+            echo "Unknown deployment mode: $DEPLOYMENT_MODE" >&2
+            exit 1
+          fi
           read -r live_main live_staging < <(
             node --input-type=module -e '
               const expected = process.env.EXPECTED_STAGING_SHA ?? "";
@@ -171,7 +209,11 @@ jobs:
               process.stdout.write(`${refs[0]} ${refs[1]}`);
             '
           )
-          test "$live_main" = "$EXPECTED_STAGING_SHA"
+          if [ "$DEPLOYMENT_MODE" = "normal" ]; then
+            test "$live_main" = "$EXPECTED_STAGING_SHA"
+          else
+            test "$live_main" = "$GITHUB_SHA"
+          fi
           test "$live_staging" = "$EXPECTED_STAGING_SHA"
 
       - name: Checkout exact staging candidate
@@ -188,7 +230,11 @@ jobs:
           set -euo pipefail
           checkout="$(git rev-parse HEAD)"
           test "$checkout" = "$GITHUB_SHA"
-          test "$checkout" = "$EXPECTED_STAGING_SHA"
+          if [ "$DEPLOYMENT_MODE" = "normal" ]; then
+            test "$checkout" = "$EXPECTED_STAGING_SHA"
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+          fi
           read -r live_main live_staging < <(
             node --input-type=module -e '
               const refs = await Promise.all(
@@ -216,8 +262,68 @@ jobs:
               process.stdout.write(`${refs[0]} ${refs[1]}`);
             '
           )
-          test "$live_main" = "$EXPECTED_STAGING_SHA"
+          if [ "$DEPLOYMENT_MODE" = "normal" ]; then
+            test "$live_main" = "$EXPECTED_STAGING_SHA"
+          else
+            test "$live_main" = "$GITHUB_SHA"
+          fi
           test "$live_staging" = "$EXPECTED_STAGING_SHA"
+
+      - name: Verify reviewed recovery preflight before activation
+        if: env.DEPLOYMENT_MODE == 'staging-recovery'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_json="$(gh run view "$RECOVERY_PREFLIGHT_RUN_ID" --json conclusion,event,headSha,workflowName)"
+          RUN_JSON="$run_json" EXPECTED_MAIN_SHA="$GITHUB_SHA" node --input-type=module - <<'NODE'
+          const run = JSON.parse(process.env.RUN_JSON ?? "{}");
+          if (
+            run.conclusion !== "success" ||
+            run.event !== "workflow_dispatch" ||
+            run.headSha !== process.env.EXPECTED_MAIN_SHA ||
+            run.workflowName !== "Phase 2E Staging Promotion Preflight"
+          ) {
+            throw new Error("Recovery preflight run is not an exact successful main run.");
+          }
+          NODE
+          evidence_root="$RUNNER_TEMP/fieldgrid-recovery-preflight-$RECOVERY_PREFLIGHT_RUN_ID"
+          rm -rf "$evidence_root"
+          gh run download "$RECOVERY_PREFLIGHT_RUN_ID" --name "phase2e-staging-preflight-${RECOVERY_PREFLIGHT_RUN_ID}-${GITHUB_SHA}" --dir "$evidence_root"
+          report_path="$(find "$evidence_root" -type f -path '*/artifacts/phase2e-staging-preflight/phase2e-staging-preflight.json' -print -quit)"
+          test -n "$report_path"
+          REPORT_PATH="$report_path" EXPECTED_MAIN_SHA="$GITHUB_SHA" EXPECTED_STAGING_SHA="$EXPECTED_STAGING_SHA" EXPECTED_ACTIVE_SHA="$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" EXPECTED_ROLLBACK_RUN="$ROLLBACK_DEPLOY_RUN_ID" node --input-type=module - <<'NODE'
+          import fs from "node:fs";
+          const report = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, "utf8"));
+          const rollback = report.rollback ?? {};
+          const proof = rollback.recoveryProof ?? {};
+          const deployRun = proof.deployRun ?? {};
+          if (
+            report.version !== "phase2e-staging-preflight-v2" ||
+            rollback.expectedGitStagingSha !== process.env.EXPECTED_STAGING_SHA ||
+            rollback.expectedActiveStagingReleaseSha !== process.env.EXPECTED_ACTIVE_SHA ||
+            rollback.gitAndActiveAligned !== false ||
+            rollback.recoveryMode !== "verified-deploy-rollback" ||
+            proof.mode !== "verified-deploy-rollback" ||
+            deployRun.id !== process.env.EXPECTED_ROLLBACK_RUN ||
+            deployRun.headSha !== process.env.EXPECTED_STAGING_SHA ||
+            deployRun.branch !== "staging" ||
+            deployRun.conclusion !== "failure" ||
+            deployRun.apiVerified !== true
+          ) {
+            throw new Error("Recovery preflight rollback proof does not match the requested deployment.");
+          }
+          NODE
+
+      - name: Bind custom routes to recovery candidate in runner environment
+        if: env.DEPLOYMENT_MODE == 'staging-recovery'
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const routes = JSON.parse(process.env.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON ?? "[]");
+            for (const route of routes) route.releaseId = `git-commit:${process.env.GITHUB_SHA}`;
+            process.stdout.write(`FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=${JSON.stringify(routes)}\n`);
+          ' >> "$GITHUB_ENV"
 
       - name: Install pinned Supabase database root certificate
         env:
