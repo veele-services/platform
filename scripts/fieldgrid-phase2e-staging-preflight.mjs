@@ -43,6 +43,7 @@ export const DEPLOY_HEALTH_EVIDENCE_VERSION = "fieldgrid-deploy-health-gate-v2";
 export const LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION =
   "fieldgrid-deploy-health-gate-legacy-v1";
 export const ROLLBACK_RECOVERY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export const MAX_ROLLBACK_DIAGNOSTICS_BYTES = 1024 * 1024;
 export const KNOWN_LEGACY_ROLLBACK_RECOVERY = Object.freeze({
   runId: "34193169329",
   artifactId: 10043061382,
@@ -698,7 +699,17 @@ async function runCommand(command, args, options = {}) {
     });
     let stdout = "";
     let stderr = "";
+    let stdoutBytes = 0;
+    const maxOutputBytes = Number.isSafeInteger(options.maxOutputBytes)
+      ? options.maxOutputBytes
+      : Number.POSITIVE_INFINITY;
     child.stdout.on("data", (chunk) => {
+      stdoutBytes += chunk.byteLength;
+      if (stdoutBytes > maxOutputBytes) {
+        child.kill("SIGKILL");
+        rejectPromise(new Error(`${command} output exceeds its bound.`));
+        return;
+      }
       stdout += chunk.toString();
     });
     child.stderr.on("data", (chunk) => {
@@ -717,6 +728,51 @@ async function runCommand(command, args, options = {}) {
       }
     });
     if (options.input !== undefined) child.stdin.end(options.input);
+  });
+}
+
+export const PYTHON_ZIP_COMMAND = String.raw`import os
+import sys
+import zipfile
+
+mode = sys.argv[1]
+archive_path = os.environ["FIELDGRID_ZIP_ARCHIVE_PATH"]
+entry = os.environ.get("FIELDGRID_ZIP_ENTRY", "")
+max_bytes = int(os.environ["FIELDGRID_ZIP_MAX_BYTES"])
+with zipfile.ZipFile(archive_path) as archive:
+    if mode == "list":
+        sys.stdout.write("\n".join(archive.namelist()))
+    elif mode == "read" and entry:
+        info = archive.getinfo(entry)
+        if info.file_size > max_bytes:
+            raise SystemExit("zip entry exceeds its bound")
+        total = 0
+        with archive.open(info) as source:
+            while True:
+                chunk = source.read(min(65536, max_bytes - total + 1))
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    raise SystemExit("zip entry exceeds its bound")
+                sys.stdout.buffer.write(chunk)
+    else:
+        raise SystemExit("invalid zip operation")
+`;
+
+async function runZipCommand(archivePath, operation, entry, options = {}) {
+  if (operation !== "list" && operation !== "read") {
+    throw new Error("Unsupported ZIP operation.");
+  }
+  return await runCommand("python3", ["-c", PYTHON_ZIP_COMMAND, operation], {
+    ...options,
+    env: {
+      ...(options.env ?? process.env),
+      FIELDGRID_ZIP_ARCHIVE_PATH: archivePath,
+      FIELDGRID_ZIP_ENTRY: entry ?? "",
+      FIELDGRID_ZIP_MAX_BYTES: String(MAX_ROLLBACK_DIAGNOSTICS_BYTES),
+    },
+    maxOutputBytes: MAX_ROLLBACK_DIAGNOSTICS_BYTES,
   });
 }
 
@@ -963,7 +1019,7 @@ async function downloadRollbackDiagnostics(
   }
   const archivePath = join(tempDir, `rollback-diagnostics-${artifact.id}.zip`);
   await writeFile(archivePath, archiveBytes, { mode: 0o600 });
-  const listing = await runCommand("unzip", ["-Z1", archivePath]);
+  const listing = await runZipCommand(archivePath, "list");
   const entries = listing.stdout.split(/\r?\n/u).filter(Boolean);
   if (
     entries.filter((entry) => entry === "deploy-health.json").length !== 1 ||
@@ -975,13 +1031,13 @@ async function downloadRollbackDiagnostics(
   ) {
     throw new Error("Rollback diagnostics archive entries are invalid.");
   }
-  const extracted = await runCommand("unzip", [
-    "-p",
+  const extracted = await runZipCommand(
     archivePath,
+    "read",
     "deploy-health.json",
-  ]);
+  );
   const bytes = Buffer.from(extracted.stdout, "utf8");
-  if (bytes.length === 0 || bytes.length > 1024 * 1024) {
+  if (bytes.length === 0 || bytes.length > MAX_ROLLBACK_DIAGNOSTICS_BYTES) {
     throw new Error("Rollback deploy diagnostics has an invalid size.");
   }
   return bytes;
