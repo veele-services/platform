@@ -1064,9 +1064,7 @@ async function readOwnerReconciliationTarget(queryable: Queryable): Promise<{
       (user) =>
         !user.email_confirmed_at ||
         user.deleted_at !== null ||
-        user.is_anonymous === true ||
-        user.aud !== "authenticated" ||
-        user.role !== "authenticated",
+        user.is_anonymous === true,
     )
   ) {
     throw new FieldDemoOwnerBindingError(
