@@ -191,10 +191,15 @@ jobs:
 
       - name: Capture authenticated exact-SHA live staging smoke
         env:
+          FIELDGRID_STAGING_SMOKE_COOKIE: ${{ secrets.FIELDGRID_STAGING_SMOKE_COOKIE }}
           FIELDGRID_STAGING_SMOKE_BEARER: ${{ secrets.ADMIN_API_SECRET }}
         run: |
           set -euo pipefail
-          test -n "$FIELDGRID_STAGING_SMOKE_BEARER"
+          if [ -n "${FIELDGRID_STAGING_SMOKE_COOKIE:-}" ]; then
+            unset FIELDGRID_STAGING_SMOKE_BEARER
+          else
+            test -n "${FIELDGRID_STAGING_SMOKE_BEARER:-}"
+          fi
           pnpm fieldgrid:sprint15-staging-smoke:run-read-only
 
       - name: Assemble bounded promotion evidence tree
