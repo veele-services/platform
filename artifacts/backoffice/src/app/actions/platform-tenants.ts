@@ -1185,6 +1185,23 @@ async function resolveTenantRoleSelection(
   };
 }
 
+async function resolveTenantOwnerRoleSelection(tenantId: string): Promise<{
+  roleIds: string[];
+  roleNames: string[];
+}> {
+  const roles = await listTenantRoleOptions(tenantId);
+  const ownerRoles = roles.filter((role) =>
+    ["owner", "eigenaar"].includes(role.name.trim().toLowerCase()),
+  );
+  if (ownerRoles.length === 0) {
+    // Owner access is represented by tenant_users.role. Do not incorrectly
+    // grant the Management tenant role when a tenant has no Owner role yet.
+    return { roleIds: [], roleNames: [] };
+  }
+  const selected = ownerRoles[0]!;
+  return { roleIds: [selected.id], roleNames: [selected.name] };
+}
+
 function tenantAccessRoleFromRoleNames(
   roleNames: string[],
 ): "owner" | "admin" | "member" {
@@ -2823,11 +2840,7 @@ export async function updatePlatformTenantOwnerInvite(
   if (inviteId && !existingInvite)
     throw new Error("Owner invite niet gevonden.");
 
-  const roleSelection = await resolveTenantRoleSelection(
-    tenantId,
-    [],
-    TENANT_OWNER_ROLE_NAMES,
-  );
+  const roleSelection = await resolveTenantOwnerRoleSelection(tenantId);
   const invite = await inviteOrFindTenantAuthUser(
     email,
     tenantId,

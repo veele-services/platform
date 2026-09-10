@@ -13,7 +13,9 @@ function assertContains(content, phrases, label) {
 }
 
 test("platform tenant actions support tenant admin CRUD and owner invite resend", () => {
-  const actions = read("artifacts/backoffice/src/app/actions/platform-tenants.ts");
+  const actions = read(
+    "artifacts/backoffice/src/app/actions/platform-tenants.ts",
+  );
 
   assertContains(
     actions,
@@ -33,13 +35,17 @@ test("platform tenant actions support tenant admin CRUD and owner invite resend"
       "tenant_admin_deleted",
       "tenant_owner_invite_updated",
       "existing_auth_user",
+      "resolveTenantOwnerRoleSelection",
+      "grant the Management tenant role when a tenant has no Owner role",
     ],
     "platform tenant admin actions",
   );
 });
 
 test("platform tenant detail exposes tenant admin and owner invite management forms", () => {
-  const page = read("artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx");
+  const page = read(
+    "artifacts/backoffice/src/app/(platform)/platform/tenants/[tenantId]/page.tsx",
+  );
 
   assertContains(
     page,
