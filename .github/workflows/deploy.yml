@@ -206,7 +206,7 @@ jobs:
                   return sha;
                 }),
               );
-              process.stdout.write(`${refs[0]} ${refs[1]}`);
+              process.stdout.write(`${refs[0]} ${refs[1]}\n`);
             '
           )
           if [ "$DEPLOYMENT_MODE" = "normal" ]; then
