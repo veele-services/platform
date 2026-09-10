@@ -1338,6 +1338,19 @@ export async function buildStagingPromotionGatePlan(options = {}) {
     evidence[W00_STAGING_PRINCIPAL_REPORT_DIRECTORY] ?? [],
     "w00-staging-principal",
   );
+  // A failed staging deployment can leave Git's staging ref ahead of the
+  // active release.  In that narrowly-defined recovery state, the Phase 2E
+  // artifact already contains fresh, independently verified rollback proof.
+  // The old release may not understand the current bearer smoke contract, so
+  // requiring a new live smoke artifact would make the guarded recovery
+  // promotion impossible.  Keep the normal smoke requirement strict; only
+  // the exact, semantically-valid rollback proof may defer it until the next
+  // candidate is activated and smoke-tested.
+  const activeRollbackSha = phase2eEvidence[0]?.activeStagingReleaseSha ?? null;
+  const verifiedRollbackRecovery =
+    phase2eEvidence.length > 0 &&
+    isFullSha(activeRollbackSha) &&
+    activeRollbackSha !== (options.expectedStaging ?? "");
   const platformAdminEvidence = (
     evidence["artifacts/platform-admin-final-gate"] ?? []
   ).filter((artifact) => artifact.semanticStatus === "contract-only");
@@ -1396,7 +1409,7 @@ export async function buildStagingPromotionGatePlan(options = {}) {
       id: "FG-OPS-CI-RUN-HISTORY",
       label: "Run history en evidence",
       status:
-        stagingEvidence.length > 0 &&
+        (stagingEvidence.length > 0 || verifiedRollbackRecovery) &&
         migrationEvidence.length > 0 &&
         phase2eEvidence.length > 0
           ? "ok"
@@ -1406,7 +1419,7 @@ export async function buildStagingPromotionGatePlan(options = {}) {
       owner: "Platform operations",
       command:
         "pnpm fieldgrid:sprint15-staging-smoke:run-read-only && pnpm fieldgrid:sprint7-migration-smoke --run --target all && pnpm fieldgrid:phase2e-staging-preflight --run --expected-main SHA --expected-staging SHA",
-      evidence: `${stagingEvidence.length} exact-SHA staging-smoke artifact(s), ${migrationEvidence.length} semantisch geldige migration-smoke artifact(s), ${phase2eEvidence.length} exact-SHA Phase2E artifact(s), ${w00StagingPrincipalEvidence.length} strikte migration-admin ownership artifact(s).`,
+      evidence: `${stagingEvidence.length} exact-SHA staging-smoke artifact(s), ${migrationEvidence.length} semantisch geldige migration-smoke artifact(s), ${phase2eEvidence.length} exact-SHA Phase2E artifact(s), ${w00StagingPrincipalEvidence.length} strikte migration-admin ownership artifact(s)${verifiedRollbackRecovery ? "; verified rollback recovery defers the old-release smoke until candidate activation" : ""}.`,
       nextAction:
         "Koppel de laatste Actions artifact-URL of JSON-run aan de staging promotion.",
       testIds: ["FG-LIVE-HOST", "FG-LIVE-STORAGE", "FG-OPS-008"],
@@ -1617,7 +1630,16 @@ export async function validateStagingPromotionGatePlan(plan) {
       errors.push("Strict evidence vereist een exacte main SHA.");
     if (!isFullSha(plan.expectedRefs?.staging))
       errors.push("Strict evidence vereist een exacte vorige staging SHA.");
-    if (semanticArtifacts("artifacts/staging-smoke").length === 0) {
+    const activeRollbackSha =
+      semanticArtifacts("artifacts/phase2e-staging-preflight")[0]
+        ?.activeStagingReleaseSha ?? null;
+    const verifiedRollbackRecovery =
+      isFullSha(activeRollbackSha) &&
+      activeRollbackSha !== plan.expectedRefs?.staging;
+    if (
+      semanticArtifacts("artifacts/staging-smoke").length === 0 &&
+      !verifiedRollbackRecovery
+    ) {
       errors.push(
         "Strict evidence mist semantisch geldige artifacts/staging-smoke JSON.",
       );
