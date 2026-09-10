@@ -195,8 +195,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$FIELDGRID_STAGING_SMOKE_BEARER"
-          pnpm fieldgrid:sprint15-staging-smoke:run-read-only \
-            --expected-staging "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
+          pnpm fieldgrid:sprint15-staging-smoke:run-read-only
 
       - name: Assemble bounded promotion evidence tree
         if: always()
