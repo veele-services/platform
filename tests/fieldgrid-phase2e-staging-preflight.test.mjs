@@ -1647,6 +1647,15 @@ test("runner setup uses checksum-pinned PostgreSQL 17 packages without host priv
 
 test("deployment receives the mandatory credential recovery secret", () => {
   const deploy = read(".github/workflows/deploy.yml");
+  const refProbeOutputs =
+    deploy.match(
+      /process\.stdout\.write\(`\$\{refs\[0\]\} \$\{refs\[1\]\}\\n`\);/gu,
+    ) ?? [];
+  assert.equal(
+    refProbeOutputs.length,
+    2,
+    "both immutable ref probes must terminate their read input with a newline",
+  );
   const occurrences =
     deploy.match(/FIELDGRID_CREDENTIAL_RECOVERY_SECRET/gu) ?? [];
   assert.ok(occurrences.length >= 2);
