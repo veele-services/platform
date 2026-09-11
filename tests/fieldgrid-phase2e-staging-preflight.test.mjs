@@ -1444,7 +1444,14 @@ test("manual workflow is staging-only and never promotes or uploads the database
   const postgresSetup = workflow.indexOf(
     "scripts/fieldgrid-setup-postgresql17.sh",
   );
+  const verifyIndex = workflow.indexOf(
+    "Verify immutable main ref before repository code",
+  );
   const runtimeCheck = workflow.indexOf("Check staging preflight runtime");
+  const customRouteBinding = workflow.indexOf(
+    "Bind custom routes to preflight candidate in runner environment",
+  );
+  const contractValidation = workflow.indexOf("Validate preflight contract");
   const proofStep = workflow.indexOf(
     "Prove backup, isolated restore, migrations, secrets, routes and rollback target",
   );
@@ -1455,6 +1462,20 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.ok(
     postgresSetup < runtimeCheck,
     "PostgreSQL 17 must be available before the preflight runtime check",
+  );
+  assert.ok(
+    customRouteBinding > verifyIndex && customRouteBinding < contractValidation,
+    "custom route binding must happen after immutable ref verification and before contract validation",
+  );
+  assert.match(
+    workflow,
+    /for \(const route of routes\) route\.releaseId = `git-commit:\$\{process\.env\.EXPECTED_MAIN_SHA\}`;/u,
+    "preflight route identity must be bound to the exact main candidate",
+  );
+  assert.match(
+    workflow,
+    /FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=\$\{JSON\.stringify\(routes\)\}\\n.*>> "\$GITHUB_ENV"/su,
+    "preflight route binding must remain runner-local",
   );
   assert.match(
     workflow,
