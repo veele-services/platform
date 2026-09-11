@@ -125,6 +125,15 @@ jobs:
           )"
           test "$remote" = "$EXPECTED_MAIN_SHA"
 
+      - name: Bind custom routes to preflight candidate in runner environment
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const routes = JSON.parse(process.env.FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON ?? "[]");
+            for (const route of routes) route.releaseId = `git-commit:${process.env.EXPECTED_MAIN_SHA}`;
+            process.stdout.write(`FIELDGRID_CUSTOM_WEBSITE_ROUTES_JSON=${JSON.stringify(routes)}\n`);
+          ' >> "$GITHUB_ENV"
+
       - name: Install pinned Supabase database root certificate
         env:
           FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
