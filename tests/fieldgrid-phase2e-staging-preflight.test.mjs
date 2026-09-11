@@ -1685,7 +1685,18 @@ test("deployment receives the mandatory credential recovery secret", () => {
   assert.match(deploy, /deployment_mode:/u);
   assert.match(deploy, /staging-recovery-only/u);
   assert.match(deploy, /Verify reviewed recovery preflight before activation/u);
-  assert.match(deploy, /gh run download/u);
+  assert.match(
+    deploy,
+    /actions\/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093/u,
+  );
+  assert.match(deploy, /run-id: \$\{\{ inputs\.recovery_preflight_run_id \}\}/u);
+  assert.match(deploy, /github-token: \$\{\{ github\.token \}\}/u);
+  assert.match(deploy, /run\.head_branch !== "main"/u);
+  assert.match(
+    deploy,
+    /run\.path !== "\.github\/workflows\/phase2e-staging-preflight\.yml"/u,
+  );
+  assert.doesNotMatch(deploy, /\bgh(?:\s+run|\s+api)\b/u);
   assert.match(deploy, /Bind custom routes to recovery candidate in runner environment/u);
 
   const packageJson = JSON.parse(read("package.json"));
