@@ -290,6 +290,14 @@ const RESTORE_ROLES = [
   ["supabase_admin", "NOLOGIN SUPERUSER"],
   ["supabase_auth_admin", "NOLOGIN"],
   ["supabase_storage_admin", "NOLOGIN"],
+  [
+    "fieldgrid_runtime_data",
+    "NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",
+  ],
+  [
+    "fieldgrid_runtime_app",
+    "NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION NOBYPASSRLS",
+  ],
 ];
 
 function usage() {

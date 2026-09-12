@@ -1530,6 +1530,16 @@ test("manual workflow is staging-only and never promotes or uploads the database
   );
   assert.ok(dropDefaultPublic >= 0);
   assert.ok(dropDefaultPublic < createRestoreRoles);
+  assert.match(
+    script,
+    /\[\s*"fieldgrid_runtime_data",\s*"NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",\s*\]/u,
+    "restore bootstrap must create the runtime data capability role before pg_restore",
+  );
+  assert.match(
+    script,
+    /\[\s*"fieldgrid_runtime_app",\s*"NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION NOBYPASSRLS",\s*\]/u,
+    "restore bootstrap must create the runtime app capability role before pg_restore",
+  );
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /createApplicationEmptyTarget/u);
