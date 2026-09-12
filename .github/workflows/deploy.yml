@@ -272,24 +272,62 @@ jobs:
       - name: Verify reviewed recovery preflight before activation
         if: env.DEPLOYMENT_MODE == 'staging-recovery'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          run_json="$(gh run view "$RECOVERY_PREFLIGHT_RUN_ID" --json conclusion,event,headSha,workflowName)"
-          RUN_JSON="$run_json" EXPECTED_MAIN_SHA="$GITHUB_SHA" node --input-type=module - <<'NODE'
+          run_json="$(
+            node --input-type=module -e '
+              const runId = process.env.RECOVERY_PREFLIGHT_RUN_ID ?? "";
+              const repository = process.env.GITHUB_REPOSITORY ?? "";
+              if (!/^[1-9][0-9]{0,19}$/u.test(runId)) {
+                throw new Error("Recovery preflight run ID is invalid");
+              }
+              const response = await fetch(
+                `https://api.github.com/repos/${repository}/actions/runs/${runId}`,
+                {
+                  headers: {
+                    Accept: "application/vnd.github+json",
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    "X-GitHub-Api-Version": "2022-11-28",
+                  },
+                },
+              );
+              if (!response.ok) {
+                throw new Error(`Recovery preflight run lookup failed with HTTP ${response.status}`);
+              }
+              process.stdout.write(JSON.stringify(await response.json()));
+            '
+          )"
+          RUN_JSON="$run_json" EXPECTED_MAIN_SHA="$GITHUB_SHA" EXPECTED_PREFLIGHT_RUN_ID="$RECOVERY_PREFLIGHT_RUN_ID" node --input-type=module - <<'NODE'
           const run = JSON.parse(process.env.RUN_JSON ?? "{}");
           if (
+            String(run.id) !== process.env.EXPECTED_PREFLIGHT_RUN_ID ||
+            run.status !== "completed" ||
             run.conclusion !== "success" ||
             run.event !== "workflow_dispatch" ||
-            run.headSha !== process.env.EXPECTED_MAIN_SHA ||
-            run.workflowName !== "Phase 2E Staging Promotion Preflight"
+            run.head_branch !== "main" ||
+            run.head_sha !== process.env.EXPECTED_MAIN_SHA ||
+            run.name !== "Phase 2E Staging Promotion Preflight" ||
+            run.path !== ".github/workflows/phase2e-staging-preflight.yml"
           ) {
             throw new Error("Recovery preflight run is not an exact successful main run.");
           }
           NODE
-          evidence_root="$RUNNER_TEMP/fieldgrid-recovery-preflight-$RECOVERY_PREFLIGHT_RUN_ID"
-          rm -rf "$evidence_root"
-          gh run download "$RECOVERY_PREFLIGHT_RUN_ID" --name "phase2e-staging-preflight-${RECOVERY_PREFLIGHT_RUN_ID}-${GITHUB_SHA}" --dir "$evidence_root"
+
+      - name: Download reviewed recovery preflight evidence
+        if: env.DEPLOYMENT_MODE == 'staging-recovery'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: phase2e-staging-preflight-${{ inputs.recovery_preflight_run_id }}-${{ github.sha }}
+          path: ${{ runner.temp }}/fieldgrid-recovery-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          run-id: ${{ inputs.recovery_preflight_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Validate reviewed recovery preflight evidence
+        if: env.DEPLOYMENT_MODE == 'staging-recovery'
+        run: |
+          set -euo pipefail
+          evidence_root="$RUNNER_TEMP/fieldgrid-recovery-preflight-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           report_path="$(find "$evidence_root" -type f -path '*/artifacts/phase2e-staging-preflight/phase2e-staging-preflight.json' -print -quit)"
           test -n "$report_path"
           REPORT_PATH="$report_path" EXPECTED_MAIN_SHA="$GITHUB_SHA" EXPECTED_STAGING_SHA="$EXPECTED_STAGING_SHA" EXPECTED_ACTIVE_SHA="$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" EXPECTED_ROLLBACK_RUN="$ROLLBACK_DEPLOY_RUN_ID" node --input-type=module - <<'NODE'

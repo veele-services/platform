@@ -109,5 +109,5 @@ test("every release-critical action has an exact reviewed SHA and provenance lab
     }
   }
 
-  assert.equal(actionCount, 115);
+  assert.equal(actionCount, 116);
 });
