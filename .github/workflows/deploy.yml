@@ -701,9 +701,14 @@ jobs:
       - name: Verify staging e-mail provider readiness
         if: env.TARGET == 'staging'
         working-directory: ${{ env.RELEASE }}
+        env:
+          # This server-only pre-activation check must run with the migration
+          # principal. The runtime principal is provisioned immediately after
+          # this check and must not be used as an implicit bootstrap path.
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          pnpm fieldgrid:email-provider-readiness
+          pnpm fieldgrid:email-provider-readiness --migration-database
 
       - name: Verify migration-admin ownership before runtime principal cutover
         if: env.TARGET == 'staging'
