@@ -67,6 +67,11 @@ test("staging deployment backfills before activation and production remains read
   assert.match(backfill, /assertDatabaseEnvironmentIsolation/u);
   assert.match(backfill, /isolation\.environment !== "staging"/u);
   assert.match(backfill, /GITHUB_REF_NAME/u);
+  assert.match(backfill, /FIELDGRID_STAGING_RECOVERY_MODE/u);
+  assert.match(
+    deploy,
+    /FIELDGRID_STAGING_RECOVERY_MODE: \$\{\{ env\.DEPLOYMENT_MODE \}\}/u,
+  );
   assert.doesNotMatch(backfill, /FIELDGRID_DEPLOY_ENV/u);
   assert.match(deploy, /TARGET_ENVIRONMENT:\s*staging/u);
   assert.match(deploy, /test "\$GITHUB_REF" = "refs\/heads\/staging"/u);

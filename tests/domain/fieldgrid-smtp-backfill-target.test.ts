@@ -63,3 +63,29 @@ test("SMTP backfill apply rejects a non-staging ref", () => {
     /requires the staging ref/u,
   );
 });
+
+test("SMTP backfill apply accepts the exact staging recovery dispatch", () => {
+  assert.doesNotThrow(() =>
+    assertSmtpCredentialBackfillTarget("apply", {
+      ...remoteEnvironment("staging", stagingProject),
+      GITHUB_REF_NAME: "main",
+      GITHUB_REF: "refs/heads/main",
+      GITHUB_EVENT_NAME: "workflow_dispatch",
+      FIELDGRID_STAGING_RECOVERY_MODE: "staging-recovery",
+    }),
+  );
+});
+
+test("SMTP backfill recovery exception rejects an inconsistent ref name", () => {
+  assert.throws(
+    () =>
+      assertSmtpCredentialBackfillTarget("apply", {
+        ...remoteEnvironment("staging", stagingProject),
+        GITHUB_REF_NAME: "production",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_EVENT_NAME: "workflow_dispatch",
+        FIELDGRID_STAGING_RECOVERY_MODE: "staging-recovery",
+      }),
+    /requires the staging ref/u,
+  );
+});
