@@ -156,7 +156,18 @@ export function assertSmtpCredentialBackfillTarget(
     );
   }
   const gitRef = environment.GITHUB_REF_NAME?.trim();
-  if (mode === "apply" && gitRef && gitRef !== "staging") {
+  const isStagingRecoveryDispatch =
+    gitRef === "main" &&
+    environment.FIELDGRID_STAGING_RECOVERY_MODE?.trim() ===
+      "staging-recovery" &&
+    environment.GITHUB_EVENT_NAME?.trim() === "workflow_dispatch" &&
+    environment.GITHUB_REF?.trim() === "refs/heads/main";
+  if (
+    mode === "apply" &&
+    gitRef &&
+    gitRef !== "staging" &&
+    !isStagingRecoveryDispatch
+  ) {
     throw new Error("SMTP credential backfill apply requires the staging ref.");
   }
 }

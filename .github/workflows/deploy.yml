@@ -663,6 +663,11 @@ jobs:
         env:
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_SMTP_BACKFILL_CONFIRM: smtp-encrypted-at-rest-v1
+          # Recovery is dispatched from main so the reviewed workflow fix is
+          # available, while this data mutation remains staging-only. The
+          # backfill script requires this explicit mode and exact dispatch
+          # context when GITHUB_REF_NAME is main.
+          FIELDGRID_STAGING_RECOVERY_MODE: ${{ env.DEPLOYMENT_MODE }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:smtp-credential-backfill --apply
