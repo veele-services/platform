@@ -132,6 +132,10 @@ test("previous live release receives the exact operation-minimal FORCE RLS owner
   assert.match(compatibilityBlock, /fieldgrid_migration_admin_compat_/u);
   assert.match(gate, /forcedServerOnlyRelations/u);
   assert.match(gate, /fieldgrid_migration_admin_compat_/u);
+  assert.match(
+    gate,
+    /platform_users:fieldgrid_migration_admin_platform_overlap_delete/u,
+  );
   assert.doesNotMatch(
     compatibilityBlock,
     /GRANT\s+fieldgrid_(?:runtime_app|runtime_data)\s+TO\s+current_user/iu,

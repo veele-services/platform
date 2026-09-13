@@ -35,8 +35,19 @@ test("personnel creation reports activation delivery separately from record crea
   assert.match(personnelActions, /activation_delivery_failed/u);
   assert.match(personnelActions, /auto_invite_personnel_failed/u);
   assert.match(personnelActions, /activationInvite/u);
-  assert.match(personnelActions, /await activationInvite\.finalize\(\)/u);
-  assert.match(personnelActions, /await activationInvite\.rollback\(\)/u);
+  assert.match(
+    personnelActions,
+    /finalizePortalAuthorizationReservation\(activationInvite/u,
+  );
+  assert.match(
+    personnelActions,
+    /reservePersonnelActivationAuthorization/u,
+  );
+  assert.match(
+    personnelActions,
+    /activatePersonnelAuthorizationReservation/u,
+  );
+  assert.match(portalInvites, /await invite\.rollback\(\)/u);
   assert.match(personnelActions, /Auto-invite finalization failed/u);
   assert.match(personnelActions, /sent: null/u);
   assert.doesNotMatch(personnelActions, /portal status update failed/u);

@@ -149,6 +149,10 @@ test("authorization stays inactive until durable Auth finalization", () => {
     /finalizePortalAuthorizationReservation\(invite[\s\S]*reserve:[\s\S]*status: "invited"[\s\S]*activate:[\s\S]*status: "active"[\s\S]*\.insert\(tenantUserRolesTable\)/u,
   );
   assert.match(
+    tenantRoleActions,
+    /if \(reservation\.membership\.status === "invited"\)[\s\S]*\.set\(\{ status: "active"[\s\S]*else if \(reservation\.membership\.status === "active"\)/u,
+  );
+  assert.match(
     customerActions,
     /try \{[\s\S]*upsertCustomerPortalInviteLink\([\s\S]*await provisioned\.finalize\(\);[\s\S]*\} catch \(error\) \{[\s\S]*await provisioned\.rollback\(\);[\s\S]*throw error;/u,
   );
@@ -156,17 +160,25 @@ test("authorization stays inactive until durable Auth finalization", () => {
     customerActions,
     /const \[updated\] = await db[\s\S]*\.returning\(\{ id: customerUsersTable\.id \}\);[\s\S]*if \(!updated \|\| updated\.id !== existing\.id\)/u,
   );
-  assert.ok(
-    [...personnelActions.matchAll(/await activationInvite\.finalize\(\)/gu)]
-      .length >= 2,
-  );
   assert.equal(
-    [...personnelActions.matchAll(/const linkedPersonnel = await db/gu)].length,
+    [
+      ...personnelActions.matchAll(
+        /finalizePortalAuthorizationReservation\(activationInvite/gu,
+      ),
+    ].length,
     2,
   );
   assert.equal(
-    [...personnelActions.matchAll(/linkedPersonnel\.length !== 1/gu)].length,
-    2,
+    [...personnelActions.matchAll(/expectedUserId:/gu)].length,
+    3,
+  );
+  assert.match(
+    personnelActions,
+    /function reservePersonnelActivationAuthorization[\s\S]*userId: null[\s\S]*function activatePersonnelAuthorizationReservation[\s\S]*userId: reservation\.invitedUserId/u,
+  );
+  assert.match(
+    personnelActions,
+    /function activatePersonnelAuthorizationReservation[\s\S]*isNull\(personnelTable\.userId\)[\s\S]*eq\(personnelTable\.updatedAt, reservation\.updatedAt\)/u,
   );
   assert.match(
     platformProvisioningActions,

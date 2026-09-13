@@ -1210,7 +1210,7 @@ export async function inviteTenantUser(input: {
               eq(tenantUsersTable.status, reservation.membership.status),
               eq(tenantUsersTable.updatedAt, reservation.membership.updatedAt),
             );
-            if (reservation.created) {
+            if (reservation.membership.status === "invited") {
               const [activatedMembership] = await tx
                 .update(tenantUsersTable)
                 .set({ status: "active", updatedAt: new Date() })
@@ -1221,7 +1221,7 @@ export async function inviteTenantUser(input: {
                   "De gereserveerde tenantkoppeling veranderde tijdens de uitnodiging.",
                 );
               }
-            } else {
+            } else if (reservation.membership.status === "active") {
               const [unchangedMembership] = await tx
                 .select({ id: tenantUsersTable.id })
                 .from(tenantUsersTable)
@@ -1233,6 +1233,10 @@ export async function inviteTenantUser(input: {
                   "De bestaande tenantkoppeling veranderde tijdens de uitnodiging.",
                 );
               }
+            } else {
+              throw new Error(
+                "De bestaande tenantkoppeling kan niet door een uitnodiging worden geactiveerd.",
+              );
             }
 
             await tx

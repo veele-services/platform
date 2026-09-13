@@ -532,6 +532,10 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
       }
     }
   }
+  expectedServerPolicies.set(
+    "platform_users:fieldgrid_migration_admin_platform_overlap_delete",
+    migrationAdministrator,
+  );
   assertSetEqual(
     new Set(serverOnlyPolicyRoles.rows.map(
       (row) => `${row.relation_name}:${row.policy_name}`,

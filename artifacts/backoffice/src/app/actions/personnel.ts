@@ -18,7 +18,7 @@ import {
   PORTAL_ONBOARDING_VERSION,
 } from "@workspace/db";
 import { geocodeAddress, hasGeocodableAddress } from "@workspace/db/address-geocoding";
-import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, isNull, sql } from "drizzle-orm";
 import { getBatchAvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +26,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import {
+  finalizePortalAuthorizationReservation,
   PortalInviteDeliveryUncertainError,
   provisionPortalUserForActivation,
 } from "@/lib/auth/portal-invites";
@@ -383,6 +384,118 @@ async function sendPersonnelActivationInvite(person: {
     finalize: invite.finalize,
     rollback: invite.rollback,
   };
+}
+
+type PersonnelAuthorizationReservation = {
+  id: string;
+  tenantId: string;
+  invitedUserId: string;
+  email: string;
+  updatedAt: Date;
+};
+
+async function reservePersonnelActivationAuthorization(input: {
+  personnelId: string;
+  tenantId: string;
+  email: string;
+  invitedUserId: string;
+  expectedUserId: string | null;
+}): Promise<PersonnelAuthorizationReservation> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({
+        id: personnelTable.id,
+        email: personnelTable.email,
+        userId: personnelTable.userId,
+        updatedAt: personnelTable.updatedAt,
+      })
+      .from(personnelTable)
+      .where(
+        and(
+          eq(personnelTable.id, input.personnelId),
+          eq(personnelTable.tenantId, input.tenantId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (
+      !current ||
+      current.email.trim().toLowerCase() !== input.email.trim().toLowerCase() ||
+      current.userId !== input.expectedUserId ||
+      (current.userId !== null && current.userId !== input.invitedUserId)
+    ) {
+      throw new Error(
+        "De personeelsuitnodiging veranderde tijdens de Auth-reservering.",
+      );
+    }
+
+    const [reserved] = await tx
+      .update(personnelTable)
+      .set({
+        // A linked active personnel row authorizes immediately. Keep the Auth
+        // UUID detached until finalization has durably made the identity an
+        // activation-only personnel account.
+        userId: null,
+        inviteSentAt: new Date(),
+        portalOnboardingStatus: "not_started",
+        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(personnelTable.id, current.id),
+          eq(personnelTable.tenantId, input.tenantId),
+          eq(personnelTable.email, current.email),
+          eq(personnelTable.updatedAt, current.updatedAt),
+          current.userId === null
+            ? isNull(personnelTable.userId)
+            : eq(personnelTable.userId, current.userId),
+        ),
+      )
+      .returning({
+        id: personnelTable.id,
+        updatedAt: personnelTable.updatedAt,
+      });
+    if (!reserved || reserved.id !== current.id) {
+      throw new Error(
+        "De personeelsuitnodiging kon niet exact worden gereserveerd.",
+      );
+    }
+
+    return {
+      id: reserved.id,
+      tenantId: input.tenantId,
+      invitedUserId: input.invitedUserId,
+      email: current.email,
+      updatedAt: reserved.updatedAt,
+    };
+  });
+}
+
+async function activatePersonnelAuthorizationReservation(
+  reservation: PersonnelAuthorizationReservation,
+): Promise<void> {
+  const [linkedPersonnel] = await db
+    .update(personnelTable)
+    .set({
+      userId: reservation.invitedUserId,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(personnelTable.id, reservation.id),
+        eq(personnelTable.tenantId, reservation.tenantId),
+        eq(personnelTable.email, reservation.email),
+        isNull(personnelTable.userId),
+        eq(personnelTable.updatedAt, reservation.updatedAt),
+      ),
+    )
+    .returning({ id: personnelTable.id });
+  if (!linkedPersonnel || linkedPersonnel.id !== reservation.id) {
+    throw new Error(
+      "De gereserveerde personeelskoppeling veranderde tijdens de uitnodiging.",
+    );
+  }
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -928,33 +1041,21 @@ export async function createPersonnel(
 
       if (activationInvite) {
         try {
-          const linkedPersonnel = await db
-            .update(personnelTable)
-            .set({
-              userId: activationInvite.userId,
-              inviteSentAt: new Date(),
-              portalOnboardingStatus: "not_started",
-              portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
-              updatedAt: new Date(),
-            })
-            .where(eq(personnelTable.id, createdId))
-            .returning({ id: personnelTable.id });
-          if (
-            linkedPersonnel.length !== 1 ||
-            linkedPersonnel[0]?.id !== createdId
-          ) {
-            throw new Error(
-              "De personeelskoppeling kon niet exact worden opgeslagen.",
-            );
-          }
-          await activationInvite.finalize();
-        } catch {
-          let requiresManualControl = false;
-          try {
-            await activationInvite.rollback();
-          } catch {
-            requiresManualControl = true;
-          }
+          await finalizePortalAuthorizationReservation(activationInvite, {
+            reserve: () =>
+              reservePersonnelActivationAuthorization({
+                personnelId: createdId,
+                tenantId,
+                email: insertData.email,
+                invitedUserId: activationInvite.userId,
+                expectedUserId: null,
+              }),
+            activate: activatePersonnelAuthorizationReservation,
+          });
+        } catch (error) {
+          const requiresManualControl =
+            error instanceof Error &&
+            error.message.includes("handmatige controle");
           console.error("[personnel] Auto-invite finalization failed.");
           inviteResult = {
             sent: null,
@@ -1225,37 +1326,18 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
   }
 
   try {
-    const linkedPersonnel = await db
-      .update(personnelTable)
-      .set({
-        userId: activationInvite.userId,
-        inviteSentAt: new Date(),
-        portalOnboardingStatus: "not_started",
-        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)),
-      )
-      .returning({ id: personnelTable.id });
-    if (linkedPersonnel.length !== 1 || linkedPersonnel[0]?.id !== id) {
-      throw new Error(
-        "De personeelskoppeling kon niet exact worden opgeslagen.",
-      );
-    }
-    await activationInvite.finalize();
+    await finalizePortalAuthorizationReservation(activationInvite, {
+      reserve: () =>
+        reservePersonnelActivationAuthorization({
+          personnelId: id,
+          tenantId,
+          email: person.email,
+          invitedUserId: activationInvite.userId,
+          expectedUserId: person.userId,
+        }),
+      activate: activatePersonnelAuthorizationReservation,
+    });
   } catch (error) {
-    try {
-      await activationInvite.rollback();
-    } catch (rollbackError) {
-      return {
-        success: false,
-        message:
-          rollbackError instanceof Error
-            ? rollbackError.message
-            : "De personeelsuitnodiging vereist handmatige Auth-controle.",
-      };
-    }
     return {
       success: false,
       message:
