@@ -112,7 +112,10 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
       updateEnd > updateStart,
   );
 
-  const reservationSource = platformActions.slice(reservationStart, upsertStart);
+  const reservationSource = platformActions.slice(
+    reservationStart,
+    upsertStart,
+  );
   const upsertSource = platformActions.slice(upsertStart, inviteStart);
   const inviteSource = platformActions.slice(inviteStart, updateStart);
   const updateSource = platformActions.slice(updateStart, updateEnd);
@@ -213,6 +216,40 @@ test("tenant invitations preflight platform identities before Auth delivery", ()
     inviteSource.slice(postProvisionMembership, reservation),
     /await invite\.rollback\(\)/u,
   );
+
+  const platformTenantInviteSource = sourceBetween(
+    platformTenantActions,
+    "async function inviteOrFindTenantAuthUser",
+    "type TenantAuthReservation",
+  );
+  const platformTenantAuthPreflight = platformTenantInviteSource.indexOf(
+    "findPlatformTenantAuthUserByEmail(email)",
+  );
+  const platformTenantPreflightMembership = platformTenantInviteSource.indexOf(
+    "platformTenantAuthUserHasPlatformMembership(existingAuthUser.id)",
+  );
+  const platformTenantProvision = platformTenantInviteSource.indexOf(
+    "provisionPortalUserForActivation({",
+  );
+  const platformTenantPostProvisionMembership =
+    platformTenantInviteSource.indexOf(
+      "hasPlatformMembership = await platformTenantAuthUserHasPlatformMembership(",
+    );
+  assert.ok(
+    platformTenantAuthPreflight >= 0 &&
+      platformTenantPreflightMembership > platformTenantAuthPreflight &&
+      platformTenantProvision > platformTenantPreflightMembership &&
+      platformTenantPostProvisionMembership > platformTenantProvision,
+    "platform-managed tenant invites must check platform membership before delivery and after provisioning",
+  );
+  assert.match(
+    platformTenantActions,
+    /function platformTenantAuthUserHasPlatformMembership[\s\S]*\.from\(platformUsersTable\)[\s\S]*eq\(platformUsersTable\.userId, userId\)/u,
+  );
+  assert.match(
+    platformTenantInviteSource.slice(platformTenantPostProvisionMembership),
+    /await invite\.rollback\(\)/u,
+  );
 });
 
 test("authorization stays inactive until durable Auth finalization", () => {
@@ -264,10 +301,7 @@ test("authorization stays inactive until durable Auth finalization", () => {
     ].length,
     2,
   );
-  assert.equal(
-    [...personnelActions.matchAll(/expectedUserId:/gu)].length,
-    3,
-  );
+  assert.equal([...personnelActions.matchAll(/expectedUserId:/gu)].length, 3);
   assert.match(
     personnelActions,
     /function reservePersonnelActivationAuthorization[\s\S]*userId: null[\s\S]*function activatePersonnelAuthorizationReservation[\s\S]*userId: reservation\.invitedUserId/u,
@@ -431,7 +465,10 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     /isNull\(tenantUsersTable\.invitationSource\)[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)/u,
   );
   assert.doesNotMatch(updateTenantAdminSource, /invitationSource: null/u);
-  assert.doesNotMatch(updateTenantAdminSource, /invitationReservationId: null/u);
+  assert.doesNotMatch(
+    updateTenantAdminSource,
+    /invitationReservationId: null/u,
+  );
 
   assert.match(
     platformUserSchema,

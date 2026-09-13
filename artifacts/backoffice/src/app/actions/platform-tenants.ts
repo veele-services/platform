@@ -35,6 +35,7 @@ import {
   planLimitsTable,
   planModulesTable,
   plansTable,
+  platformUsersTable,
   sectorsTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
@@ -1106,6 +1107,17 @@ async function findPlatformTenantAuthUserByEmail(
   return user ? { id: user.id, email: user.email ?? null } : null;
 }
 
+async function platformTenantAuthUserHasPlatformMembership(
+  userId: string,
+): Promise<boolean> {
+  const [membership] = await db
+    .select({ id: platformUsersTable.id })
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.userId, userId))
+    .limit(1);
+  return Boolean(membership);
+}
+
 async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
   return `${await tenantApplicationOrigin(tenantId)}/admin/login`;
 }
@@ -1115,6 +1127,24 @@ async function inviteOrFindTenantAuthUser(
   tenantId: string,
   actorUserId: string,
 ): Promise<TenantAuthUserInviteResult> {
+  let existingAuthUser: Awaited<
+    ReturnType<typeof findPlatformTenantAuthUserByEmail>
+  >;
+  let existingAuthUserHasPlatformMembership: boolean;
+  try {
+    existingAuthUser = await findPlatformTenantAuthUserByEmail(email);
+    existingAuthUserHasPlatformMembership = existingAuthUser
+      ? await platformTenantAuthUserHasPlatformMembership(existingAuthUser.id)
+      : false;
+  } catch {
+    throw new Error("Auth-beheer kon niet veilig worden gecontroleerd.");
+  }
+  if (existingAuthUserHasPlatformMembership) {
+    throw new Error(
+      "Dit e-mailadres kan niet voor een tenantaccount worden uitgenodigd.",
+    );
+  }
+
   const loginUrl = await tenantAdminLoginUrl(tenantId);
   const invite = await provisionPortalUserForActivation({
     email,
@@ -1129,6 +1159,41 @@ async function inviteOrFindTenantAuthUser(
     actorUserId,
     allowExistingActive: true,
   });
+
+  let hasPlatformMembership: boolean;
+  try {
+    hasPlatformMembership = await platformTenantAuthUserHasPlatformMembership(
+      invite.user.id,
+    );
+  } catch {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw new Error(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : "De tenantuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+      );
+    }
+    throw new Error(
+      "De platformkoppeling kon niet veilig worden gecontroleerd.",
+    );
+  }
+  if (hasPlatformMembership) {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw new Error(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : "De tenantuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+      );
+    }
+    throw new Error(
+      "Dit e-mailadres kan niet voor een tenantaccount worden uitgenodigd.",
+    );
+  }
+
   return {
     userId: invite.user.id,
     deliveryStatus: "sent",
