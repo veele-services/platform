@@ -200,6 +200,71 @@ if (process.env.DATABASE_URL) {
     }
   });
 
+  test("Auth surface lock denies direct access to named Supabase and runtime roles", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+    try {
+      const relation = await client.query(
+        `SELECT
+           relation_row.relrowsecurity AS rls_enabled,
+           (
+             SELECT COUNT(*)::integer
+             FROM pg_catalog.pg_policy AS policy_row
+             WHERE policy_row.polrelid = relation_row.oid
+           ) AS policy_count
+         FROM pg_catalog.pg_class AS relation_row
+         WHERE relation_row.oid =
+           'public.fieldgrid_auth_surface_locks'::regclass`,
+      );
+      assert.deepEqual(relation.rows, [
+        { rls_enabled: true, policy_count: 0 },
+      ]);
+
+      const forbiddenAcl = await client.query(
+        `SELECT role_name, privilege_name
+         FROM (
+           VALUES
+             ('anon'::name),
+             ('authenticated'::name),
+             ('service_role'::name),
+             ('fieldgrid_runtime_app'::name),
+             ('fieldgrid_runtime_data'::name)
+         ) AS forbidden_role(role_name)
+         CROSS JOIN unnest(ARRAY[
+           'SELECT',
+           'INSERT',
+           'UPDATE',
+           'DELETE',
+           'TRUNCATE',
+           'REFERENCES',
+           'TRIGGER',
+           'MAINTAIN'
+         ]::text[]) AS operation(privilege_name)
+         WHERE pg_catalog.has_table_privilege(
+           forbidden_role.role_name,
+           'public.fieldgrid_auth_surface_locks'::regclass,
+           operation.privilege_name
+         )`,
+      );
+      assert.deepEqual(forbiddenAcl.rows, []);
+
+      const capability = await client.query(
+        `SELECT access_mode, privileges
+         FROM app_private.fieldgrid_runtime_relation_capabilities
+         WHERE schema_name = 'public'
+           AND relation_name = 'fieldgrid_auth_surface_locks'`,
+      );
+      assert.deepEqual(capability.rows, [
+        { access_mode: "function_only", privileges: [] },
+      ]);
+    } finally {
+      await client.end();
+    }
+  });
+
   test("Auth surface separation serializes concurrent tenant and platform bindings", async () => {
     const first = new Client({
       connectionString: process.env.DATABASE_URL,

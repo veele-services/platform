@@ -39,6 +39,7 @@ const PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES = [
   "20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
   "20260913162000_harden_platform_authorization_continuity.sql",
   "20260913163000_scope_platform_privilege_repair_delete.sql",
+  "20260913164000_close_auth_surface_lock_acl.sql",
 ] as const;
 const PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES = new Set([
   "20260618201212_assignment_monthly_codes.sql",

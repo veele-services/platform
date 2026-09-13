@@ -32,6 +32,10 @@ const platformPrivilegeRepairDeleteMigration = readFileSync(
   "lib/db/migrations/20260913163000_scope_platform_privilege_repair_delete.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const authSurfaceLockAclMigration = readFileSync(
+  "lib/db/migrations/20260913164000_close_auth_surface_lock_acl.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const platformPrivilegeMigrationFrontier = {
   committed: [
     { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
@@ -40,7 +44,8 @@ const platformPrivilegeMigrationFrontier = {
     { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
     { name: "20260913162000_continuity.sql", hash: "continuity", sql: "four" },
     { name: "20260913163000_delete.sql", hash: "delete", sql: "five" },
-    { name: "20260914100000_successor.sql", hash: "successor", sql: "six" },
+    { name: "20260913164000_lock_acl.sql", hash: "lock-acl", sql: "six" },
+    { name: "20260914100000_successor.sql", hash: "successor", sql: "seven" },
   ],
   predecessors: [
     { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
@@ -51,6 +56,7 @@ const platformPrivilegeMigrationFrontier = {
     { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
     { name: "20260913162000_continuity.sql", hash: "continuity", sql: "four" },
     { name: "20260913163000_delete.sql", hash: "delete", sql: "five" },
+    { name: "20260913164000_lock_acl.sql", hash: "lock-acl", sql: "six" },
   ],
   successors: new Set(["20260914100000_successor.sql"]),
   legacyNames: new Set(["20260909120000_predecessor.sql"]),
@@ -416,7 +422,7 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql[\s\S]*20260913163000_scope_platform_privilege_repair_delete\.sql/u,
+    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql[\s\S]*20260913163000_scope_platform_privilege_repair_delete\.sql[\s\S]*20260913164000_close_auth_surface_lock_acl\.sql/u,
   );
   assert.match(
     script,
@@ -535,6 +541,25 @@ test("database serializes active platform-owner removal and closes trigger ACLs"
   );
 });
 
+test("Auth surface lock revokes every named Supabase and runtime role", () => {
+  assert.match(
+    authSurfaceLockAclMigration,
+    /REVOKE ALL ON TABLE public\.fieldgrid_auth_surface_locks[\s\S]*FROM PUBLIC, anon, authenticated, service_role,[\s\S]*fieldgrid_runtime_app, fieldgrid_runtime_data/u,
+  );
+  assert.match(
+    authSurfaceLockAclMigration,
+    /'SELECT'[\s\S]*'INSERT'[\s\S]*'UPDATE'[\s\S]*'DELETE'[\s\S]*'TRUNCATE'[\s\S]*'REFERENCES'[\s\S]*'TRIGGER'[\s\S]*'MAINTAIN'[\s\S]*has_table_privilege/u,
+  );
+  assert.match(
+    authSurfaceLockAclMigration,
+    /relation_name = 'fieldgrid_auth_surface_locks'[\s\S]*access_mode <> 'function_only'[\s\S]*privileges <> ARRAY\[\]::text\[\]/u,
+  );
+  assert.match(
+    postgres17MigrationTest,
+    /Auth surface lock denies direct access to named Supabase and runtime roles/u,
+  );
+});
+
 test("migration admin can delete only the quarantined tenant-overlap row", () => {
   assert.match(
     platformPrivilegeRepairDeleteMigration,
@@ -595,6 +620,7 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
       "20260913161000_barrier.sql",
       "20260913162000_continuity.sql",
       "20260913163000_delete.sql",
+      "20260913164000_lock_acl.sql",
     ],
   );
   assert.deepEqual(
@@ -607,6 +633,7 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
         migrationRecord("20260913161000_barrier.sql", "barrier"),
         migrationRecord("20260913162000_continuity.sql", "continuity"),
         migrationRecord("20260913163000_delete.sql", "delete"),
+        migrationRecord("20260913164000_lock_acl.sql", "lock-acl"),
       ],
     ),
     [],
