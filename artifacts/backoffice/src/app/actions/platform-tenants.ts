@@ -1147,7 +1147,7 @@ type TenantAuthReservation = {
   role: string;
   status: string;
   invitationSource: TenantAuthInvitationSource | null;
-  updatedAt: Date;
+  invitationReservationId: string | null;
 };
 
 const PLATFORM_TENANT_ADMIN_INVITATION_SOURCE =
@@ -1173,6 +1173,7 @@ async function reserveTenantAuthInvite(
         role,
         status: "invited",
         invitationSource,
+        invitationReservationId: sql`gen_random_uuid()`,
       })
       .onConflictDoNothing({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
@@ -1184,10 +1185,13 @@ async function reserveTenantAuthInvite(
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
         invitationSource: tenantUsersTable.invitationSource,
-        updatedAt: tenantUsersTable.updatedAt,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
       });
     if (createdReservation) {
-      if (createdReservation.invitationSource !== invitationSource) {
+      if (
+        createdReservation.invitationSource !== invitationSource ||
+        !createdReservation.invitationReservationId
+      ) {
         throw new Error(
           "Tenantautorisatie kreeg een onjuiste reserveringsbron.",
         );
@@ -1203,7 +1207,7 @@ async function reserveTenantAuthInvite(
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
         invitationSource: tenantUsersTable.invitationSource,
-        updatedAt: tenantUsersTable.updatedAt,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
       })
       .from(tenantUsersTable)
       .where(
@@ -1219,20 +1223,54 @@ async function reserveTenantAuthInvite(
     }
     if (
       existingReservation.status === "active" &&
-      existingReservation.invitationSource === null
+      existingReservation.invitationSource === null &&
+      existingReservation.invitationReservationId === null
     ) {
       return { ...existingReservation, invitationSource: null };
     }
     if (
       existingReservation.role !== role ||
       existingReservation.status !== "invited" ||
-      existingReservation.invitationSource !== invitationSource
+      existingReservation.invitationSource !== invitationSource ||
+      !existingReservation.invitationReservationId
     ) {
       throw new Error(
         "Een bestaande tenantuitnodiging kan niet door deze uitnodigingsroute worden overgenomen.",
       );
     }
-    return { ...existingReservation, invitationSource };
+    const [claimedReservation] = await tx
+      .update(tenantUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantUsersTable.id, existingReservation.id),
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+          eq(tenantUsersTable.role, role),
+          eq(tenantUsersTable.status, "invited"),
+          eq(tenantUsersTable.invitationSource, invitationSource),
+          eq(
+            tenantUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (!claimedReservation?.invitationReservationId) {
+      throw new Error("Tenantautorisatie kon niet atomair worden herclaimd.");
+    }
+    return { ...claimedReservation, invitationSource };
   });
 }
 
@@ -1246,7 +1284,12 @@ function tenantAuthReservationPredicate(reservation: TenantAuthReservation) {
     reservation.invitationSource === null
       ? isNull(tenantUsersTable.invitationSource)
       : eq(tenantUsersTable.invitationSource, reservation.invitationSource),
-    eq(tenantUsersTable.updatedAt, reservation.updatedAt),
+    reservation.invitationReservationId === null
+      ? isNull(tenantUsersTable.invitationReservationId)
+      : eq(
+          tenantUsersTable.invitationReservationId,
+          reservation.invitationReservationId,
+        ),
   );
 }
 
@@ -2622,6 +2665,7 @@ export async function addPlatformTenantAdmin(
             role: accessRole,
             status: "active",
             invitationSource: null,
+            invitationReservationId: null,
             updatedAt: new Date(),
           })
           .where(tenantAuthReservationPredicate(reservation))
@@ -2710,6 +2754,7 @@ export async function updatePlatformTenantAdmin(
         role: accessRole,
         status,
         invitationSource: null,
+        invitationReservationId: null,
         updatedAt: new Date(),
       })
       .where(
@@ -3008,6 +3053,7 @@ export async function updatePlatformTenantOwnerInvite(
             role: "owner",
             status: "active",
             invitationSource: null,
+            invitationReservationId: null,
             updatedAt: now,
           })
           .where(tenantAuthReservationPredicate(reservation))

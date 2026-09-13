@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:44ffc3a0109af9b404c662b76306b743e90f988908e5f48a56f558deb3273d2e",
+  "inventoryHash": "sha256:fd61fdbc60532ebe0bef935d74c3c4a31b9226d552afb3ed5277f14675d33c39",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -35,11 +35,11 @@
     "www"
   ],
   "counts": {
-    "total": 962,
-    "uniqueRuntimeNodes": 842,
-    "classifications": 962,
+    "total": 995,
+    "uniqueRuntimeNodes": 857,
+    "classifications": 995,
     "externalEntrypoints": 113,
-    "internalDbCallsites": 741,
+    "internalDbCallsites": 774,
     "providerBoundaries": 85,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -51,15 +51,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 734,
+      "raw-sql-callsite": 767,
       "provider-boundary": 85,
       "storage-signed-url-issuance": 20
     },
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 446,
-      "low": 407,
+      "medium": 468,
+      "low": 418,
       "informational": 85
     }
   },
@@ -72,7 +72,7 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:4fd1c187f4e1595ee12f2c7015d8b1bded14ee70e1048466fbdf31efe5751a0b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:18bad33b20c10f51321d8bc9e20f417b59c9bda6a17adf620563c9a5bace3437",
+    "raw-sql-callsite": "sha256:41fc95ae2fdd534b08b7bbe0583c2f9fbd66d6baf95328e49a7ad35d4dfa37fd",
     "provider-boundary": "sha256:31f667e2b71c17f70fbb6445860dd11a3ea6e30fceb9b0ad734a40bf163b3322",
     "storage-signed-url-issuance": "sha256:7e639cd73805cfb7ee2d9189ef0bcb33e4c1183b8c1022e837c46b83e06ef23a"
   },

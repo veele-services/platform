@@ -432,10 +432,17 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
       policy.polcmd,
       policy.polpermissive,
       array(
-        select role_row.rolname::text
-        from unnest(policy.polroles) role_oid
-        join pg_catalog.pg_roles role_row on role_row.oid = role_oid
-        order by role_row.rolname
+        select coalesce(
+          role_row.rolname::text,
+          case
+            when policy_role.role_oid = 0 then 'PUBLIC'
+            else pg_catalog.format('oid:%s', policy_role.role_oid)
+          end
+        )
+        from unnest(policy.polroles) as policy_role(role_oid)
+        left join pg_catalog.pg_roles role_row
+          on role_row.oid = policy_role.role_oid
+        order by 1
       ) as roles,
       pg_catalog.pg_get_expr(policy.polqual, policy.polrelid) as using_expression,
       pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid) as check_expression
@@ -505,10 +512,17 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
            policy.polcmd,
            policy.polpermissive,
            array(
-             select role_row.rolname::text
-             from unnest(policy.polroles) role_oid
-             join pg_catalog.pg_roles role_row on role_row.oid = role_oid
-             order by role_row.rolname
+             select coalesce(
+               role_row.rolname::text,
+               case
+                 when policy_role.role_oid = 0 then 'PUBLIC'
+                 else pg_catalog.format('oid:%s', policy_role.role_oid)
+               end
+             )
+             from unnest(policy.polroles) as policy_role(role_oid)
+             left join pg_catalog.pg_roles role_row
+               on role_row.oid = policy_role.role_oid
+             order by 1
            ) as roles,
            pg_catalog.pg_get_expr(policy.polqual, policy.polrelid) as using_expression,
            pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid) as check_expression

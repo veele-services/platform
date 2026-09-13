@@ -50,8 +50,20 @@ const tenantInvitationSourceMigration = readFileSync(
   "lib/db/migrations/20260913165000_bind_tenant_invite_reservation_sources.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const invitationReservationMigration = readFileSync(
+  "lib/db/migrations/20260913170000_bind_authorization_invitation_reservations.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const tenantSchema = readFileSync(
   "lib/db/src/schema/tenants.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const platformUserSchema = readFileSync(
+  "lib/db/src/schema/platform-users.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const personnelSchema = readFileSync(
+  "lib/db/src/schema/personnel.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
 
@@ -65,6 +77,9 @@ test("an existing portal identity cannot be rewritten for another portal", () =>
 });
 
 test("platform-user creation rejects tenant identities and compensates Auth failures", () => {
+  const reservationStart = platformActions.indexOf(
+    "async function reservePlatformUserInvitation",
+  );
   const upsertStart = platformActions.indexOf(
     "export async function upsertPlatformUser",
   );
@@ -75,19 +90,25 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
     "export async function updatePlatformUserFromForm",
   );
   assert.ok(
-    upsertStart >= 0 && inviteStart > upsertStart && updateStart > inviteStart,
+    reservationStart >= 0 &&
+      upsertStart > reservationStart &&
+      inviteStart > upsertStart &&
+      updateStart > inviteStart,
   );
 
+  const reservationSource = platformActions.slice(reservationStart, upsertStart);
   const upsertSource = platformActions.slice(upsertStart, inviteStart);
   const inviteSource = platformActions.slice(inviteStart, updateStart);
-  for (const source of [upsertSource, inviteSource]) {
-    const tenantGuard = source.indexOf("authUserHasTenantMembership(");
-    const platformWrite = source.indexOf(".insert(platformUsersTable)");
-    assert.ok(
-      tenantGuard >= 0 && platformWrite > tenantGuard,
-      "tenant identity check must precede the platform write",
-    );
-  }
+  const upsertTenantGuard = upsertSource.indexOf(
+    "authUserHasTenantMembership(",
+  );
+  const upsertPlatformWrite = upsertSource.indexOf(
+    ".insert(platformUsersTable)",
+  );
+  assert.ok(
+    upsertTenantGuard >= 0 && upsertPlatformWrite > upsertTenantGuard,
+    "tenant identity check must precede the direct platform write",
+  );
 
   const authPreflight = inviteSource.indexOf("findAuthUserByEmail(");
   const provision = inviteSource.indexOf("provisionPortalUserForActivation(");
@@ -95,9 +116,9 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
     "authUserHasTenantMembership(invite.user.id)",
   );
   const platformMembershipGuard = inviteSource.indexOf(
-    "authUserHasPlatformMembership(invite.user.id)",
+    "authUserHasPlatformMembership(invite.user.id, role)",
   );
-  const reservation = inviteSource.indexOf('status: "inactive"');
+  const reservation = inviteSource.indexOf("reservePlatformUserInvitation({");
   const activation = inviteSource.indexOf("activate: async (reserved)");
   assert.ok(
     authPreflight >= 0 &&
@@ -111,15 +132,23 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
 
   assert.match(inviteSource, /let invite:[\s\S]*=\s*null/u);
   assert.match(
-    inviteSource,
-    /\.insert\(platformUsersTable\)[\s\S]*status: "inactive"[\s\S]*\.onConflictDoNothing/u,
+    reservationSource,
+    /\.insert\(platformUsersTable\)[\s\S]*status: "inactive"[\s\S]*invitationSource: PLATFORM_USER_INVITATION_SOURCE[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*\.onConflictDoNothing/u,
+  );
+  assert.match(
+    reservationSource,
+    /\.for\("update"\)[\s\S]*existingReservation\.role !== input\.role[\s\S]*existingReservation\.status !== "inactive"[\s\S]*existingReservation\.invitationSource !==[\s\S]*PLATFORM_USER_INVITATION_SOURCE[\s\S]*!existingReservation\.invitationReservationId/u,
+  );
+  assert.match(
+    reservationSource,
+    /invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*eq\([\s\S]*platformUsersTable\.invitationReservationId,[\s\S]*existingReservation\.invitationReservationId/u,
   );
   assert.match(
     inviteSource,
-    /activate: async \(reserved\)[\s\S]*\.update\(platformUsersTable\)[\s\S]*eq\(platformUsersTable\.status, "inactive"\)/u,
+    /activate: async \(reserved\)[\s\S]*\.update\(platformUsersTable\)[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null,[\s\S]*eq\(platformUsersTable\.status, "inactive"\)[\s\S]*eq\([\s\S]*platformUsersTable\.invitationSource,[\s\S]*reserved\.invitationSource[\s\S]*eq\([\s\S]*platformUsersTable\.invitationReservationId,[\s\S]*reserved\.invitationReservationId/u,
   );
   assert.doesNotMatch(
-    inviteSource,
+    reservationSource,
     /\.insert\(platformUsersTable\)[\s\S]{0,500}?\.onConflictDoUpdate/u,
   );
 });
@@ -183,7 +212,7 @@ test("authorization stays inactive until durable Auth finalization", () => {
   );
   assert.match(
     personnelActions,
-    /function activatePersonnelAuthorizationReservation[\s\S]*isNull\(personnelTable\.userId\)[\s\S]*eq\(personnelTable\.updatedAt, reservation\.updatedAt\)/u,
+    /function activatePersonnelAuthorizationReservation[\s\S]*invitationReservationId: null,[\s\S]*isNull\(personnelTable\.userId\)[\s\S]*eq\([\s\S]*personnelTable\.invitationReservationId,[\s\S]*reservation\.invitationReservationId/u,
   );
   assert.match(
     platformProvisioningActions,
@@ -215,7 +244,7 @@ test("authorization stays inactive until durable Auth finalization", () => {
   );
 });
 
-test("tenant invite reservations are durable and flow-bound", () => {
+test("authorization invitation reservations are durable and flow-bound", () => {
   for (const source of [
     "tenant_role_invite",
     "platform_tenant_admin",
@@ -233,26 +262,30 @@ test("tenant invite reservations are durable and flow-bound", () => {
     /invitationSource: varchar\("invitation_source", \{[\s\S]*length: 64,[\s\S]*\}\)\.\$type<TenantUserInvitationSource>/u,
   );
   assert.match(
+    tenantSchema,
+    /invitationReservationId: uuid\("invitation_reservation_id"\)/u,
+  );
+  assert.match(
     tenantInvitationSourceMigration,
     /ADD CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*invitation_source IS NULL[\s\S]*status = 'invited'[\s\S]*tenant_role_invite'[\s\S]*role = 'member'[\s\S]*platform_tenant_owner'[\s\S]*tenant_provisioning_owner'[\s\S]*role = 'owner'/u,
   );
 
   assert.match(
     tenantRoleActions,
-    /TENANT_ROLE_INVITATION_SOURCE = "tenant_role_invite"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_ROLE_INVITATION_SOURCE/u,
+    /TENANT_ROLE_INVITATION_SOURCE = "tenant_role_invite"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_ROLE_INVITATION_SOURCE,[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`/u,
   );
   assert.match(
     tenantRoleActions,
-    /existingMembership\.status === "active" &&[\s\S]*existingMembership\.invitationSource === null[\s\S]*existingMembership\.role !== "member" \|\|[\s\S]*existingMembership\.status !== "invited" \|\|[\s\S]*existingMembership\.invitationSource !==[\s\S]*TENANT_ROLE_INVITATION_SOURCE/u,
+    /existingMembership\.status === "active" &&[\s\S]*existingMembership\.invitationSource === null &&[\s\S]*existingMembership\.invitationReservationId === null[\s\S]*existingMembership\.role !== "member" \|\|[\s\S]*existingMembership\.status !== "invited" \|\|[\s\S]*existingMembership\.invitationSource !==[\s\S]*TENANT_ROLE_INVITATION_SOURCE \|\|[\s\S]*!existingMembership\.invitationReservationId/u,
   );
   assert.match(
     tenantRoleActions,
-    /reservation\.membership\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.membership\.invitationSource ===[\s\S]*TENANT_ROLE_INVITATION_SOURCE[\s\S]*status: "active",[\s\S]*invitationSource: null/u,
+    /reservation\.membership\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.membership\.invitationReservationId === null[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*status: "active",[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null/u,
   );
 
   assert.match(
     tenantProvisioning,
-    /TENANT_PROVISIONING_OWNER_INVITATION_SOURCE =[\s\S]*"tenant_provisioning_owner"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE/u,
+    /TENANT_PROVISIONING_OWNER_INVITATION_SOURCE =[\s\S]*"tenant_provisioning_owner"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`/u,
   );
   assert.match(
     tenantProvisioning,
@@ -260,11 +293,11 @@ test("tenant invite reservations are durable and flow-bound", () => {
   );
   assert.match(
     tenantProvisioning,
-    /eq\([\s\S]*tenantUsersTable\.invitationSource,[\s\S]*input\.authorizationReservation\.invitationSource[\s\S]*\)[\s\S]*De gereserveerde ownerautorisatie/u,
+    /eq\([\s\S]*tenantUsersTable\.invitationSource,[\s\S]*input\.authorizationReservation\.invitationSource[\s\S]*eq\([\s\S]*tenantUsersTable\.invitationReservationId,[\s\S]*input\.authorizationReservation\.invitationReservationId[\s\S]*De gereserveerde ownerautorisatie/u,
   );
   assert.match(
     tenantProvisioning,
-    /status: "active",[\s\S]*invitationSource: null/u,
+    /status: "active",[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null/u,
   );
 
   assert.match(
@@ -273,11 +306,11 @@ test("tenant invite reservations are durable and flow-bound", () => {
   );
   assert.match(
     platformTenantActions,
-    /existingReservation\.status === "active" &&[\s\S]*existingReservation\.invitationSource === null[\s\S]*existingReservation\.role !== role \|\|[\s\S]*existingReservation\.status !== "invited" \|\|[\s\S]*existingReservation\.invitationSource !== invitationSource/u,
+    /existingReservation\.status === "active" &&[\s\S]*existingReservation\.invitationSource === null &&[\s\S]*existingReservation\.invitationReservationId === null[\s\S]*existingReservation\.role !== role \|\|[\s\S]*existingReservation\.status !== "invited" \|\|[\s\S]*existingReservation\.invitationSource !== invitationSource \|\|[\s\S]*!existingReservation\.invitationReservationId/u,
   );
   assert.match(
     platformTenantActions,
-    /reservation\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*eq\(tenantUsersTable\.invitationSource, reservation\.invitationSource\)/u,
+    /reservation\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.invitationReservationId === null[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*eq\([\s\S]*tenantUsersTable\.invitationReservationId,[\s\S]*reservation\.invitationReservationId/u,
   );
   assert.match(
     platformTenantActions,
@@ -287,6 +320,57 @@ test("tenant invite reservations are durable and flow-bound", () => {
     [...platformTenantActions.matchAll(/invitationSource: null/gu)].length >= 3,
     "activation and manual membership updates must clear reservation ownership",
   );
+  assert.ok(
+    [...platformTenantActions.matchAll(/invitationReservationId: null/gu)]
+      .length >= 3,
+    "activation and manual membership updates must clear reservation tokens",
+  );
+
+  assert.match(
+    platformUserSchema,
+    /PLATFORM_USER_INVITATION_SOURCES = \[[\s\S]*"platform_user_invite"[\s\S]*invitationSource: varchar\("invitation_source", \{[\s\S]*length: 64,[\s\S]*invitationReservationId: uuid\("invitation_reservation_id"\)/u,
+  );
+  assert.match(
+    personnelSchema,
+    /invitationReservationId: uuid\("invitation_reservation_id"\)/u,
+  );
+  for (const contract of [
+    "tenant_users_invitation_reservation_check",
+    "platform_users_invitation_reservation_check",
+    "personnel_invitation_reservation_check",
+  ]) {
+    assert.match(invitationReservationMigration, new RegExp(contract, "u"));
+  }
+  assert.match(
+    invitationReservationMigration,
+    /UPDATE public\.tenant_users[\s\S]*invitation_reservation_id = gen_random_uuid\(\)[\s\S]*invitation_source IS NOT NULL/u,
+  );
+  assert.match(
+    invitationReservationMigration,
+    /platform_users_invitation_reservation_check[\s\S]*invitation_source = 'platform_user_invite'[\s\S]*invitation_reservation_id IS NOT NULL[\s\S]*status = 'inactive'/u,
+  );
+  assert.match(
+    invitationReservationMigration,
+    /personnel_invitation_reservation_check[\s\S]*invitation_reservation_id IS NULL[\s\S]*user_id IS NULL[\s\S]*invite_sent_at IS NOT NULL/u,
+  );
+  assert.match(
+    personnelActions,
+    /function reservePersonnelActivationAuthorization[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*function activatePersonnelAuthorizationReservation[\s\S]*invitationReservationId: null/u,
+  );
+
+  for (const source of [
+    tenantRoleActions,
+    platformTenantActions,
+    tenantProvisioning,
+    platformActions,
+    personnelActions,
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /eq\(\s*[\w.]+\.updatedAt,\s*[\w.]+\.updatedAt\s*\)/u,
+      "database timestamps must not be used as invitation CAS tokens",
+    );
+  }
 });
 
 test("database serializes tenant and platform bindings on one Auth UUID", () => {

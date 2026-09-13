@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "./index";
 import { isPlatformHost, normalizeHost } from "./tenant-context";
 import {
@@ -625,7 +625,7 @@ export async function provisionTenant(
 export type ProvisionedTenantOwnerAuthorizationReservation = {
   id: string;
   invitationSource: typeof TENANT_PROVISIONING_OWNER_INVITATION_SOURCE;
-  updatedAt: Date;
+  invitationReservationId: string;
 };
 
 export async function reserveProvisionedTenantOwnerInvite(input: {
@@ -666,6 +666,7 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
         role: "owner",
         status: "invited",
         invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,
+        invitationReservationId: sql`gen_random_uuid()`,
       })
       .onConflictDoNothing({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
@@ -673,16 +674,17 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
       .returning({
         id: tenantUsersTable.id,
         invitationSource: tenantUsersTable.invitationSource,
-        updatedAt: tenantUsersTable.updatedAt,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
       });
     if (
       createdReservation?.invitationSource ===
-      TENANT_PROVISIONING_OWNER_INVITATION_SOURCE
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE &&
+      createdReservation.invitationReservationId
     ) {
       return {
         id: createdReservation.id,
         invitationSource: createdReservation.invitationSource,
-        updatedAt: createdReservation.updatedAt,
+        invitationReservationId: createdReservation.invitationReservationId,
       };
     }
 
@@ -692,7 +694,7 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
         invitationSource: tenantUsersTable.invitationSource,
-        updatedAt: tenantUsersTable.updatedAt,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
       })
       .from(tenantUsersTable)
       .where(
@@ -708,14 +710,50 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
       existingReservation.role !== "owner" ||
       existingReservation.status !== "invited" ||
       existingReservation.invitationSource !==
-        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE ||
+      !existingReservation.invitationReservationId
     ) {
       throw new Error("Ownerautorisatie kon niet veilig worden gereserveerd.");
     }
+    const [claimedReservation] = await tx
+      .update(tenantUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantUsersTable.id, existingReservation.id),
+          eq(tenantUsersTable.tenantId, input.tenantId),
+          eq(tenantUsersTable.userId, input.ownerUserId),
+          eq(tenantUsersTable.role, "owner"),
+          eq(tenantUsersTable.status, "invited"),
+          eq(
+            tenantUsersTable.invitationSource,
+            TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,
+          ),
+          eq(
+            tenantUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({
+        id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (
+      claimedReservation?.invitationSource !==
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE ||
+      !claimedReservation.invitationReservationId
+    ) {
+      throw new Error("Ownerautorisatie kon niet atomair worden herclaimd.");
+    }
     return {
-      id: existingReservation.id,
-      invitationSource: existingReservation.invitationSource,
-      updatedAt: existingReservation.updatedAt,
+      id: claimedReservation.id,
+      invitationSource: claimedReservation.invitationSource,
+      invitationReservationId: claimedReservation.invitationReservationId,
     };
   });
 }
@@ -766,6 +804,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
           role: "owner",
           status: "active",
           invitationSource: null,
+          invitationReservationId: null,
           updatedAt: new Date(),
         })
         .where(
@@ -780,8 +819,8 @@ export async function completeProvisionedTenantOwnerInvite(input: {
               input.authorizationReservation.invitationSource,
             ),
             eq(
-              tenantUsersTable.updatedAt,
-              input.authorizationReservation.updatedAt,
+              tenantUsersTable.invitationReservationId,
+              input.authorizationReservation.invitationReservationId,
             ),
           ),
         )
@@ -800,6 +839,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
           role: "owner",
           status: "active",
           invitationSource: null,
+          invitationReservationId: null,
         })
         .onConflictDoUpdate({
           target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
@@ -807,6 +847,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
             role: "owner",
             status: "active",
             invitationSource: null,
+            invitationReservationId: null,
             updatedAt: new Date(),
           },
         });

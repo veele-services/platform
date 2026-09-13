@@ -68,6 +68,17 @@ export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
 export type PlatformUserAuthStatus = "confirmed" | "invited" | "unknown";
 
+const PLATFORM_USER_INVITATION_SOURCE = "platform_user_invite" as const;
+
+type PlatformUserInvitationReservation = {
+  id: string;
+  userId: string;
+  role: PlatformRole;
+  status: "inactive";
+  invitationSource: typeof PLATFORM_USER_INVITATION_SOURCE;
+  invitationReservationId: string;
+};
+
 export type PlatformUserRow = {
   id: string;
   userId: string;
@@ -655,13 +666,141 @@ async function authUserHasTenantMembership(userId: string): Promise<boolean> {
   return Boolean(tenantMembership);
 }
 
-async function authUserHasPlatformMembership(userId: string): Promise<boolean> {
+async function authUserHasPlatformMembership(
+  userId: string,
+  reclaimableRole?: PlatformRole,
+): Promise<boolean> {
   const [platformMembership] = await db
-    .select({ id: platformUsersTable.id })
+    .select({
+      id: platformUsersTable.id,
+      role: platformUsersTable.role,
+      status: platformUsersTable.status,
+      invitationSource: platformUsersTable.invitationSource,
+      invitationReservationId: platformUsersTable.invitationReservationId,
+    })
     .from(platformUsersTable)
     .where(eq(platformUsersTable.userId, userId))
     .limit(1);
-  return Boolean(platformMembership);
+  if (!platformMembership) return false;
+  return !(
+    reclaimableRole &&
+    platformMembership.role === reclaimableRole &&
+    platformMembership.status === "inactive" &&
+    platformMembership.invitationSource ===
+      PLATFORM_USER_INVITATION_SOURCE &&
+    Boolean(platformMembership.invitationReservationId)
+  );
+}
+
+async function reservePlatformUserInvitation(input: {
+  userId: string;
+  role: PlatformRole;
+  createdBy: string;
+}): Promise<PlatformUserInvitationReservation> {
+  return db.transaction(async (tx) => {
+    const selection = {
+      id: platformUsersTable.id,
+      userId: platformUsersTable.userId,
+      role: platformUsersTable.role,
+      status: platformUsersTable.status,
+      invitationSource: platformUsersTable.invitationSource,
+      invitationReservationId: platformUsersTable.invitationReservationId,
+    };
+    const [createdReservation] = await tx
+      .insert(platformUsersTable)
+      .values({
+        userId: input.userId,
+        role: input.role,
+        status: "inactive",
+        invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+        invitationReservationId: sql`gen_random_uuid()`,
+        createdBy: input.createdBy,
+      })
+      .onConflictDoNothing({ target: platformUsersTable.userId })
+      .returning(selection);
+    if (createdReservation) {
+      if (
+        createdReservation.role !== input.role ||
+        createdReservation.status !== "inactive" ||
+        createdReservation.invitationSource !==
+          PLATFORM_USER_INVITATION_SOURCE ||
+        !createdReservation.invitationReservationId
+      ) {
+        throw new Error(
+          "De platformkoppeling kreeg een onjuiste reservering.",
+        );
+      }
+      return {
+        ...createdReservation,
+        role: input.role,
+        status: "inactive",
+        invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+        invitationReservationId:
+          createdReservation.invitationReservationId,
+      };
+    }
+
+    const [existingReservation] = await tx
+      .select(selection)
+      .from(platformUsersTable)
+      .where(eq(platformUsersTable.userId, input.userId))
+      .for("update")
+      .limit(1);
+    if (
+      !existingReservation ||
+      existingReservation.role !== input.role ||
+      existingReservation.status !== "inactive" ||
+      existingReservation.invitationSource !==
+        PLATFORM_USER_INVITATION_SOURCE ||
+      !existingReservation.invitationReservationId
+    ) {
+      throw new Error(
+        "Een bestaande platformkoppeling kan niet door deze uitnodiging worden overgenomen.",
+      );
+    }
+
+    const [claimedReservation] = await tx
+      .update(platformUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(platformUsersTable.id, existingReservation.id),
+          eq(platformUsersTable.userId, input.userId),
+          eq(platformUsersTable.role, input.role),
+          eq(platformUsersTable.status, "inactive"),
+          eq(
+            platformUsersTable.invitationSource,
+            PLATFORM_USER_INVITATION_SOURCE,
+          ),
+          eq(
+            platformUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning(selection);
+    if (
+      claimedReservation?.role !== input.role ||
+      claimedReservation.status !== "inactive" ||
+      claimedReservation.invitationSource !==
+        PLATFORM_USER_INVITATION_SOURCE ||
+      !claimedReservation.invitationReservationId
+    ) {
+      throw new Error(
+        "De platformkoppeling kon niet atomair worden herclaimd.",
+      );
+    }
+    return {
+      ...claimedReservation,
+      role: input.role,
+      status: "inactive",
+      invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+      invitationReservationId: claimedReservation.invitationReservationId,
+    };
+  });
 }
 
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
@@ -724,7 +863,13 @@ export async function upsertPlatformUser(input: {
     .values({ userId, role, status, createdBy: actor.userId })
     .onConflictDoUpdate({
       target: platformUsersTable.userId,
-      set: { role, status, updatedAt: new Date() },
+      set: {
+        role,
+        status,
+        invitationSource: null,
+        invitationReservationId: null,
+        updatedAt: new Date(),
+      },
     })
     .returning({ id: platformUsersTable.id });
 
@@ -777,7 +922,7 @@ export async function invitePlatformUserFromForm(
     if (existingAuthUser) {
       const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
         authUserHasTenantMembership(existingAuthUser.id),
-        authUserHasPlatformMembership(existingAuthUser.id),
+        authUserHasPlatformMembership(existingAuthUser.id, role),
       ]);
       if (hasTenantMembership) {
         return {
@@ -816,7 +961,7 @@ export async function invitePlatformUserFromForm(
     });
     const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
       authUserHasTenantMembership(invite.user.id),
-      authUserHasPlatformMembership(invite.user.id),
+      authUserHasPlatformMembership(invite.user.id, role),
     ]);
     if (hasTenantMembership || hasPlatformMembership) {
       await invite.rollback();
@@ -856,50 +1001,47 @@ export async function invitePlatformUserFromForm(
     };
   }
 
-  let row: { id: string; updatedAt: Date } | undefined;
+  let row: PlatformUserInvitationReservation | undefined;
   try {
     row = await finalizePortalAuthorizationReservation(invite, {
       reserve: async () => {
-        let reserved: { id: string; updatedAt: Date } | undefined;
         try {
-          [reserved] = await db
-            .insert(platformUsersTable)
-            .values({
-              userId,
-              role,
-              status: "inactive",
-              createdBy: actor.userId,
-            })
-            .onConflictDoNothing({ target: platformUsersTable.userId })
-            .returning({
-              id: platformUsersTable.id,
-              updatedAt: platformUsersTable.updatedAt,
-            });
+          return await reservePlatformUserInvitation({
+            userId,
+            role,
+            createdBy: actor.userId,
+          });
         } catch {
           throw new Error(
             "De platformkoppeling kon niet veilig worden gereserveerd.",
           );
         }
-        if (!reserved) {
-          throw new Error(
-            "De platformkoppeling is gelijktijdig door een andere uitnodiging gereserveerd.",
-          );
-        }
-        return reserved;
       },
       activate: async (reserved) => {
         let activated: { id: string } | undefined;
         try {
           [activated] = await db
             .update(platformUsersTable)
-            .set({ status, updatedAt: new Date() })
+            .set({
+              status,
+              invitationSource: null,
+              invitationReservationId: null,
+              updatedAt: new Date(),
+            })
             .where(
               and(
                 eq(platformUsersTable.id, reserved.id),
                 eq(platformUsersTable.userId, userId),
                 eq(platformUsersTable.role, role),
                 eq(platformUsersTable.status, "inactive"),
-                eq(platformUsersTable.updatedAt, reserved.updatedAt),
+                eq(
+                  platformUsersTable.invitationSource,
+                  reserved.invitationSource,
+                ),
+                eq(
+                  platformUsersTable.invitationReservationId,
+                  reserved.invitationReservationId,
+                ),
               ),
             )
             .returning({ id: platformUsersTable.id });
@@ -973,7 +1115,13 @@ export async function updatePlatformUserFromForm(
 
   await db
     .update(platformUsersTable)
-    .set({ role, status, updatedAt: new Date() })
+    .set({
+      role,
+      status,
+      invitationSource: null,
+      invitationReservationId: null,
+      updatedAt: new Date(),
+    })
     .where(eq(platformUsersTable.id, target.id));
 
   await writePlatformAuditLog({

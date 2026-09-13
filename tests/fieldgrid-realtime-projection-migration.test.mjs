@@ -27,6 +27,18 @@ const continuityAuthUserB = "93000000-0000-4000-8000-000000000003";
 const continuityPlatformUserB = "93000000-0000-4000-8000-000000000004";
 const invitationSourceAuthUserId = "94000000-0000-4000-8000-000000000001";
 const invitationSourceTenantId = "94000000-0000-4000-8000-000000000002";
+const invitationSourcePlatformAuthUserId =
+  "94000000-0000-4000-8000-000000000003";
+const invitationSourcePlatformUserId =
+  "94000000-0000-4000-8000-000000000004";
+const invitationSourcePersonnelAuthUserId =
+  "94000000-0000-4000-8000-000000000005";
+const invitationSourcePersonnelId =
+  "94000000-0000-4000-8000-000000000006";
+const invitationReservationTokenA =
+  "94000000-0000-4000-8000-000000000007";
+const invitationReservationTokenB =
+  "94000000-0000-4000-8000-000000000008";
 
 test("customer realtime policy rejects JWT email fallback", () => {
   assert.doesNotMatch(migration, /auth\.email\s*\(\)/iu);
@@ -74,7 +86,7 @@ test(
 );
 
 if (process.env.DATABASE_URL) {
-  test("tenant invite reservation sources enforce flow and activation state", async () => {
+  test("authorization invitation tokens enforce reclaim and activation state", async () => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
@@ -112,11 +124,95 @@ if (process.env.DATABASE_URL) {
         );
       }
 
+      const reservationColumns = await client.query(
+        `SELECT table_name, column_name, data_type, character_maximum_length
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND (
+              (table_name = 'tenant_users'
+                AND column_name = 'invitation_reservation_id')
+              OR (table_name = 'platform_users'
+                AND column_name IN (
+                  'invitation_source',
+                  'invitation_reservation_id'
+                ))
+              OR (table_name = 'personnel'
+                AND column_name = 'invitation_reservation_id')
+            )
+          ORDER BY table_name, column_name`,
+      );
+      assert.deepEqual(reservationColumns.rows, [
+        {
+          table_name: "personnel",
+          column_name: "invitation_reservation_id",
+          data_type: "uuid",
+          character_maximum_length: null,
+        },
+        {
+          table_name: "platform_users",
+          column_name: "invitation_reservation_id",
+          data_type: "uuid",
+          character_maximum_length: null,
+        },
+        {
+          table_name: "platform_users",
+          column_name: "invitation_source",
+          data_type: "character varying",
+          character_maximum_length: 64,
+        },
+        {
+          table_name: "tenant_users",
+          column_name: "invitation_reservation_id",
+          data_type: "uuid",
+          character_maximum_length: null,
+        },
+      ]);
+      const reservationConstraints = await client.query(
+        `SELECT constraint_row.conname,
+                constraint_row.convalidated,
+                pg_catalog.pg_get_constraintdef(
+                  constraint_row.oid,
+                  true
+                ) AS definition
+           FROM pg_catalog.pg_constraint AS constraint_row
+          WHERE constraint_row.conname IN (
+                  'tenant_users_invitation_reservation_check',
+                  'platform_users_invitation_reservation_check',
+                  'personnel_invitation_reservation_check'
+                )
+          ORDER BY constraint_row.conname`,
+      );
+      assert.equal(reservationConstraints.rows.length, 3);
+      for (const row of reservationConstraints.rows) {
+        assert.equal(row.convalidated, true);
+        assert.match(row.definition, /invitation_reservation_id/u);
+      }
+      assert.match(
+        reservationConstraints.rows.find(
+          (row) =>
+            row.conname === "platform_users_invitation_reservation_check",
+        )?.definition ?? "",
+        /platform_user_invite.*inactive/u,
+      );
+      assert.match(
+        reservationConstraints.rows.find(
+          (row) => row.conname === "personnel_invitation_reservation_check",
+        )?.definition ?? "",
+        /user_id IS NULL.*invite_sent_at IS NOT NULL/u,
+      );
+
       await client.query("BEGIN");
       await client.query(
         `INSERT INTO auth.users (id, email, raw_app_meta_data)
-         VALUES ($1, 'invite-source@example.invalid', '{}'::jsonb)`,
-        [invitationSourceAuthUserId],
+         VALUES
+           ($1, 'invite-source@example.invalid', '{}'::jsonb),
+           ($2, 'platform-invite-source@example.invalid', '{}'::jsonb),
+           ($3, 'personnel-invite-source@example.invalid', '{}'::jsonb)`,
+        [
+          invitationSourceAuthUserId,
+          invitationSourcePlatformAuthUserId,
+          invitationSourcePersonnelAuthUserId,
+        ],
       );
       await client.query(
         `INSERT INTO public.tenants (id, slug, name, is_active, status)
@@ -125,9 +221,25 @@ if (process.env.DATABASE_URL) {
       );
       await client.query(
         `INSERT INTO public.tenant_users (
-           tenant_id, user_id, role, status, invitation_source
-         ) VALUES ($1, $2, 'member', 'invited', 'tenant_role_invite')`,
-        [invitationSourceTenantId, invitationSourceAuthUserId],
+           tenant_id,
+           user_id,
+           role,
+           status,
+           invitation_source,
+           invitation_reservation_id
+         ) VALUES (
+           $1,
+           $2,
+           'member',
+           'invited',
+           'tenant_role_invite',
+           $3
+         )`,
+        [
+          invitationSourceTenantId,
+          invitationSourceAuthUserId,
+          invitationReservationTokenA,
+        ],
       );
 
       await client.query("SAVEPOINT invalid_active_source");
@@ -162,7 +274,7 @@ if (process.env.DATABASE_URL) {
         `UPDATE public.tenant_users
             SET role = 'owner', invitation_source = 'platform_tenant_owner'
           WHERE tenant_id = $1 AND user_id = $2
-        RETURNING role, status, invitation_source`,
+        RETURNING role, status, invitation_source, invitation_reservation_id`,
         [invitationSourceTenantId, invitationSourceAuthUserId],
       );
       assert.deepEqual(ownerReservation.rows, [
@@ -170,18 +282,201 @@ if (process.env.DATABASE_URL) {
           role: "owner",
           status: "invited",
           invitation_source: "platform_tenant_owner",
+          invitation_reservation_id: invitationReservationTokenA,
         },
       ]);
 
-      const activation = await client.query(
+      const reclaimedTenantReservation = await client.query(
         `UPDATE public.tenant_users
-            SET status = 'active', invitation_source = NULL
-          WHERE tenant_id = $1 AND user_id = $2
-        RETURNING status, invitation_source`,
-        [invitationSourceTenantId, invitationSourceAuthUserId],
+            SET invitation_reservation_id = $3
+          WHERE tenant_id = $1
+            AND user_id = $2
+            AND invitation_reservation_id = $4
+        RETURNING invitation_reservation_id`,
+        [
+          invitationSourceTenantId,
+          invitationSourceAuthUserId,
+          invitationReservationTokenB,
+          invitationReservationTokenA,
+        ],
       );
-      assert.deepEqual(activation.rows, [
-        { status: "active", invitation_source: null },
+      assert.deepEqual(reclaimedTenantReservation.rows, [
+        { invitation_reservation_id: invitationReservationTokenB },
+      ]);
+
+      const staleTenantActivation = await client.query(
+        `UPDATE public.tenant_users
+            SET status = 'active',
+                invitation_source = NULL,
+                invitation_reservation_id = NULL
+          WHERE tenant_id = $1
+            AND user_id = $2
+            AND invitation_reservation_id = $3`,
+        [
+          invitationSourceTenantId,
+          invitationSourceAuthUserId,
+          invitationReservationTokenA,
+        ],
+      );
+      assert.equal(staleTenantActivation.rowCount, 0);
+      const tenantActivation = await client.query(
+        `UPDATE public.tenant_users
+            SET status = 'active',
+                invitation_source = NULL,
+                invitation_reservation_id = NULL
+          WHERE tenant_id = $1
+            AND user_id = $2
+            AND invitation_reservation_id = $3
+        RETURNING status, invitation_source, invitation_reservation_id`,
+        [
+          invitationSourceTenantId,
+          invitationSourceAuthUserId,
+          invitationReservationTokenB,
+        ],
+      );
+      assert.deepEqual(tenantActivation.rows, [
+        {
+          status: "active",
+          invitation_source: null,
+          invitation_reservation_id: null,
+        },
+      ]);
+
+      await client.query(
+        `INSERT INTO public.platform_users (
+           id,
+           user_id,
+           role,
+           status,
+           invitation_source,
+           invitation_reservation_id
+         ) VALUES ($1, $2, 'admin', 'inactive', 'platform_user_invite', $3)`,
+        [
+          invitationSourcePlatformUserId,
+          invitationSourcePlatformAuthUserId,
+          invitationReservationTokenA,
+        ],
+      );
+      await client.query("SAVEPOINT invalid_platform_activation");
+      await assert.rejects(
+        client.query(
+          `UPDATE public.platform_users
+              SET status = 'active'
+            WHERE id = $1`,
+          [invitationSourcePlatformUserId],
+        ),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint ===
+            "platform_users_invitation_reservation_check",
+      );
+      await client.query("ROLLBACK TO SAVEPOINT invalid_platform_activation");
+      await client.query(
+        `UPDATE public.platform_users
+            SET invitation_reservation_id = $2
+          WHERE id = $1 AND invitation_reservation_id = $3`,
+        [
+          invitationSourcePlatformUserId,
+          invitationReservationTokenB,
+          invitationReservationTokenA,
+        ],
+      );
+      const stalePlatformActivation = await client.query(
+        `UPDATE public.platform_users
+            SET status = 'active',
+                invitation_source = NULL,
+                invitation_reservation_id = NULL
+          WHERE id = $1 AND invitation_reservation_id = $2`,
+        [invitationSourcePlatformUserId, invitationReservationTokenA],
+      );
+      assert.equal(stalePlatformActivation.rowCount, 0);
+      const platformActivation = await client.query(
+        `UPDATE public.platform_users
+            SET status = 'active',
+                invitation_source = NULL,
+                invitation_reservation_id = NULL
+          WHERE id = $1 AND invitation_reservation_id = $2
+        RETURNING status, invitation_source, invitation_reservation_id`,
+        [invitationSourcePlatformUserId, invitationReservationTokenB],
+      );
+      assert.deepEqual(platformActivation.rows, [
+        {
+          status: "active",
+          invitation_source: null,
+          invitation_reservation_id: null,
+        },
+      ]);
+
+      await client.query(
+        `INSERT INTO public.personnel (
+           id,
+           tenant_id,
+           first_name,
+           last_name,
+           email,
+           invite_sent_at,
+           invitation_reservation_id
+         ) VALUES ($1, $2, 'Invite', 'Token', $3, now(), $4)`,
+        [
+          invitationSourcePersonnelId,
+          invitationSourceTenantId,
+          "personnel-invite-token@example.invalid",
+          invitationReservationTokenA,
+        ],
+      );
+      await client.query("SAVEPOINT invalid_personnel_activation");
+      await assert.rejects(
+        client.query(
+          `UPDATE public.personnel
+              SET user_id = $2
+            WHERE id = $1`,
+          [
+            invitationSourcePersonnelId,
+            invitationSourcePersonnelAuthUserId,
+          ],
+        ),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "personnel_invitation_reservation_check",
+      );
+      await client.query("ROLLBACK TO SAVEPOINT invalid_personnel_activation");
+      await client.query(
+        `UPDATE public.personnel
+            SET invitation_reservation_id = $2
+          WHERE id = $1 AND invitation_reservation_id = $3`,
+        [
+          invitationSourcePersonnelId,
+          invitationReservationTokenB,
+          invitationReservationTokenA,
+        ],
+      );
+      const stalePersonnelActivation = await client.query(
+        `UPDATE public.personnel
+            SET user_id = $2, invitation_reservation_id = NULL
+          WHERE id = $1 AND invitation_reservation_id = $3`,
+        [
+          invitationSourcePersonnelId,
+          invitationSourcePersonnelAuthUserId,
+          invitationReservationTokenA,
+        ],
+      );
+      assert.equal(stalePersonnelActivation.rowCount, 0);
+      const personnelActivation = await client.query(
+        `UPDATE public.personnel
+            SET user_id = $2, invitation_reservation_id = NULL
+          WHERE id = $1 AND invitation_reservation_id = $3
+        RETURNING user_id::text, invitation_reservation_id`,
+        [
+          invitationSourcePersonnelId,
+          invitationSourcePersonnelAuthUserId,
+          invitationReservationTokenB,
+        ],
+      );
+      assert.deepEqual(personnelActivation.rows, [
+        {
+          user_id: invitationSourcePersonnelAuthUserId,
+          invitation_reservation_id: null,
+        },
       ]);
       await client.query("ROLLBACK");
     } finally {
@@ -315,6 +610,48 @@ if (process.env.DATABASE_URL) {
          )`,
       );
       assert.deepEqual(forbiddenAcl.rows, []);
+
+      await client.query("BEGIN");
+      try {
+        const alterPolicy = await client.query(
+          `SELECT pg_catalog.format(
+             'ALTER POLICY fieldgrid_migration_admin_platform_overlap_delete ON public.platform_users TO PUBLIC, %I',
+             configuration.migration_admin
+           ) AS statement
+           FROM app_private.fieldgrid_runtime_principal_configuration AS configuration
+          WHERE configuration.singleton IS TRUE`,
+        );
+        assert.equal(alterPolicy.rows.length, 1);
+        await client.query(alterPolicy.rows[0].statement);
+
+        const projectedRoles = await client.query(
+          `SELECT ARRAY(
+             SELECT COALESCE(
+               role_row.rolname::text,
+               CASE
+                 WHEN policy_role.role_oid = 0 THEN 'PUBLIC'
+                 ELSE pg_catalog.format('oid:%s', policy_role.role_oid)
+               END
+             )
+               FROM pg_catalog.pg_policy AS policy_row
+              CROSS JOIN LATERAL unnest(policy_row.polroles)
+                AS policy_role(role_oid)
+               LEFT JOIN pg_catalog.pg_roles AS role_row
+                 ON role_row.oid = policy_role.role_oid
+              WHERE policy_row.polrelid = 'public.platform_users'::regclass
+                AND policy_row.polname =
+                  'fieldgrid_migration_admin_platform_overlap_delete'
+              ORDER BY 1
+           ) AS roles`,
+        );
+        assert.deepEqual(projectedRoles.rows, [
+          // PostgreSQL canonicalizes a policy containing PUBLIC plus named
+          // roles to PUBLIC because OID 0 already includes every role.
+          { roles: ["PUBLIC"] },
+        ]);
+      } finally {
+        await client.query("ROLLBACK");
+      }
     } finally {
       await client.end();
     }

@@ -148,6 +148,37 @@ test("previous live release receives the exact operation-minimal FORCE RLS owner
     gate,
     /normalizePolicyExpression\(row\.using_expression\) ===\s*expected\.usingExpression[\s\S]*normalizePolicyExpression\(row\.check_expression\) ===\s*expected\.checkExpression/u,
   );
+  assert.equal(
+    [
+      ...gate.matchAll(
+        /when policy_role\.role_oid = 0 then 'PUBLIC'/gu,
+      ),
+    ].length,
+    2,
+    "runtime and server-only policy projections must preserve PUBLIC (OID 0)",
+  );
+  assert.equal(
+    [
+      ...gate.matchAll(
+        /left join pg_catalog\.pg_roles role_row\s+on role_row\.oid = policy_role\.role_oid/gu,
+      ),
+    ].length,
+    2,
+    "policy role projections must retain roles absent from pg_roles",
+  );
+  assert.equal(
+    [
+      ...gate.matchAll(
+        /else pg_catalog\.format\('oid:%s', policy_role\.role_oid\)/gu,
+      ),
+    ].length,
+    2,
+    "unknown policy role OIDs must remain visible and fail closed",
+  );
+  assert.doesNotMatch(
+    gate,
+    /from unnest\(policy\.polroles\) as policy_role\(role_oid\)\s+join pg_catalog\.pg_roles/u,
+  );
   assert.doesNotMatch(
     compatibilityBlock,
     /GRANT\s+fieldgrid_(?:runtime_app|runtime_data)\s+TO\s+current_user/iu,

@@ -48,6 +48,8 @@ async function seedPlatformUsers() {
       set: {
         role: sql`excluded.role`,
         status: "active",
+        invitationSource: null,
+        invitationReservationId: null,
         updatedAt: new Date(),
       },
     })

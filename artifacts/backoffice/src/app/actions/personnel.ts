@@ -391,7 +391,7 @@ type PersonnelAuthorizationReservation = {
   tenantId: string;
   invitedUserId: string;
   email: string;
-  updatedAt: Date;
+  invitationReservationId: string;
 };
 
 async function reservePersonnelActivationAuthorization(input: {
@@ -407,7 +407,7 @@ async function reservePersonnelActivationAuthorization(input: {
         id: personnelTable.id,
         email: personnelTable.email,
         userId: personnelTable.userId,
-        updatedAt: personnelTable.updatedAt,
+        invitationReservationId: personnelTable.invitationReservationId,
       })
       .from(personnelTable)
       .where(
@@ -436,6 +436,7 @@ async function reservePersonnelActivationAuthorization(input: {
         // UUID detached until finalization has durably made the identity an
         // activation-only personnel account.
         userId: null,
+        invitationReservationId: sql`gen_random_uuid()`,
         inviteSentAt: new Date(),
         portalOnboardingStatus: "not_started",
         portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
@@ -446,17 +447,25 @@ async function reservePersonnelActivationAuthorization(input: {
           eq(personnelTable.id, current.id),
           eq(personnelTable.tenantId, input.tenantId),
           eq(personnelTable.email, current.email),
-          eq(personnelTable.updatedAt, current.updatedAt),
           current.userId === null
             ? isNull(personnelTable.userId)
             : eq(personnelTable.userId, current.userId),
+          current.invitationReservationId === null
+            ? isNull(personnelTable.invitationReservationId)
+            : eq(
+                personnelTable.invitationReservationId,
+                current.invitationReservationId,
+              ),
         ),
       )
       .returning({
         id: personnelTable.id,
-        updatedAt: personnelTable.updatedAt,
+        invitationReservationId: personnelTable.invitationReservationId,
       });
-    if (!reserved || reserved.id !== current.id) {
+    if (
+      !reserved?.invitationReservationId ||
+      reserved.id !== current.id
+    ) {
       throw new Error(
         "De personeelsuitnodiging kon niet exact worden gereserveerd.",
       );
@@ -467,7 +476,7 @@ async function reservePersonnelActivationAuthorization(input: {
       tenantId: input.tenantId,
       invitedUserId: input.invitedUserId,
       email: current.email,
-      updatedAt: reserved.updatedAt,
+      invitationReservationId: reserved.invitationReservationId,
     };
   });
 }
@@ -479,6 +488,7 @@ async function activatePersonnelAuthorizationReservation(
     .update(personnelTable)
     .set({
       userId: reservation.invitedUserId,
+      invitationReservationId: null,
       updatedAt: new Date(),
     })
     .where(
@@ -487,7 +497,10 @@ async function activatePersonnelAuthorizationReservation(
         eq(personnelTable.tenantId, reservation.tenantId),
         eq(personnelTable.email, reservation.email),
         isNull(personnelTable.userId),
-        eq(personnelTable.updatedAt, reservation.updatedAt),
+        eq(
+          personnelTable.invitationReservationId,
+          reservation.invitationReservationId,
+        ),
       ),
     )
     .returning({ id: personnelTable.id });
@@ -1182,6 +1195,7 @@ export async function updatePersonnel(
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
+      invitationReservationId: null,
       updatedAt: new Date(),
     };
     await db
@@ -1238,7 +1252,11 @@ export async function setPersonnelStatus(
 
   await db
     .update(personnelTable)
-    .set({ isActive, updatedAt: new Date() })
+    .set({
+      isActive,
+      invitationReservationId: null,
+      updatedAt: new Date(),
+    })
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
@@ -1269,7 +1287,11 @@ export async function bulkSetPersonnelStatus(
 
   await db
     .update(personnelTable)
-    .set({ isActive, updatedAt: new Date() })
+    .set({
+      isActive,
+      invitationReservationId: null,
+      updatedAt: new Date(),
+    })
     .where(and(inArray(personnelTable.id, ids), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
@@ -1445,7 +1467,11 @@ export async function updatePersonnelEmail(
   try {
     await db
       .update(personnelTable)
-      .set({ email: trimmed, updatedAt: new Date() })
+      .set({
+        email: trimmed,
+        invitationReservationId: null,
+        updatedAt: new Date(),
+      })
       .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({

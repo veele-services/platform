@@ -85,6 +85,7 @@ export const tenantUsersTable = pgTable(
     invitationSource: varchar("invitation_source", {
       length: 64,
     }).$type<TenantUserInvitationSource>(),
+    invitationReservationId: uuid("invitation_reservation_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

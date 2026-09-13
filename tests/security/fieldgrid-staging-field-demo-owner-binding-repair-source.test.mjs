@@ -50,7 +50,12 @@ const platformPrivilegeMigrationFrontier = {
       hash: "invite-source",
       sql: "seven",
     },
-    { name: "20260914100000_successor.sql", hash: "successor", sql: "eight" },
+    {
+      name: "20260913170000_invite_reservation.sql",
+      hash: "invite-reservation",
+      sql: "eight",
+    },
+    { name: "20260914100000_successor.sql", hash: "successor", sql: "nine" },
   ],
   predecessors: [
     { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
@@ -66,6 +71,11 @@ const platformPrivilegeMigrationFrontier = {
       name: "20260913165000_invite_source.sql",
       hash: "invite-source",
       sql: "seven",
+    },
+    {
+      name: "20260913170000_invite_reservation.sql",
+      hash: "invite-reservation",
+      sql: "eight",
     },
   ],
   successors: new Set(["20260914100000_successor.sql"]),
@@ -432,7 +442,7 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql[\s\S]*20260913163000_scope_platform_privilege_repair_delete\.sql[\s\S]*20260913164000_close_auth_surface_lock_acl\.sql[\s\S]*20260913165000_bind_tenant_invite_reservation_sources\.sql/u,
+    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql[\s\S]*20260913163000_scope_platform_privilege_repair_delete\.sql[\s\S]*20260913164000_close_auth_surface_lock_acl\.sql[\s\S]*20260913165000_bind_tenant_invite_reservation_sources\.sql[\s\S]*20260913170000_bind_authorization_invitation_reservations\.sql/u,
   );
   assert.match(
     script,
@@ -632,6 +642,7 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
       "20260913163000_delete.sql",
       "20260913164000_lock_acl.sql",
       "20260913165000_invite_source.sql",
+      "20260913170000_invite_reservation.sql",
     ],
   );
   assert.deepEqual(
@@ -646,6 +657,10 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
         migrationRecord("20260913163000_delete.sql", "delete"),
         migrationRecord("20260913164000_lock_acl.sql", "lock-acl"),
         migrationRecord("20260913165000_invite_source.sql", "invite-source"),
+        migrationRecord(
+          "20260913170000_invite_reservation.sql",
+          "invite-reservation",
+        ),
       ],
     ),
     [],

@@ -1148,6 +1148,7 @@ export async function inviteTenantUser(input: {
                 role: "member",
                 status: "invited",
                 invitationSource: TENANT_ROLE_INVITATION_SOURCE,
+                invitationReservationId: sql`gen_random_uuid()`,
               })
               .onConflictDoNothing({
                 target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
@@ -1157,9 +1158,15 @@ export async function inviteTenantUser(input: {
                 role: tenantUsersTable.role,
                 status: tenantUsersTable.status,
                 invitationSource: tenantUsersTable.invitationSource,
-                updatedAt: tenantUsersTable.updatedAt,
+                invitationReservationId:
+                  tenantUsersTable.invitationReservationId,
               });
             if (createdMembership) {
+              if (!createdMembership.invitationReservationId) {
+                throw new Error(
+                  "Tenantkoppeling kreeg geen reserveringstoken.",
+                );
+              }
               return { membership: createdMembership };
             }
 
@@ -1169,7 +1176,8 @@ export async function inviteTenantUser(input: {
                 role: tenantUsersTable.role,
                 status: tenantUsersTable.status,
                 invitationSource: tenantUsersTable.invitationSource,
-                updatedAt: tenantUsersTable.updatedAt,
+                invitationReservationId:
+                  tenantUsersTable.invitationReservationId,
               })
               .from(tenantUsersTable)
               .where(
@@ -1185,7 +1193,8 @@ export async function inviteTenantUser(input: {
             }
             if (
               existingMembership.status === "active" &&
-              existingMembership.invitationSource === null
+              existingMembership.invitationSource === null &&
+              existingMembership.invitationReservationId === null
             ) {
               return { membership: existingMembership };
             }
@@ -1193,13 +1202,50 @@ export async function inviteTenantUser(input: {
               existingMembership.role !== "member" ||
               existingMembership.status !== "invited" ||
               existingMembership.invitationSource !==
-                TENANT_ROLE_INVITATION_SOURCE
+                TENANT_ROLE_INVITATION_SOURCE ||
+              !existingMembership.invitationReservationId
             ) {
               throw new Error(
                 "Een bestaande tenantuitnodiging kan niet door deze uitnodiging worden overgenomen.",
               );
             }
-            return { membership: existingMembership };
+            const [claimedMembership] = await tx
+              .update(tenantUsersTable)
+              .set({
+                invitationReservationId: sql`gen_random_uuid()`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(tenantUsersTable.id, existingMembership.id),
+                  eq(tenantUsersTable.tenantId, tenantId),
+                  eq(tenantUsersTable.userId, invitedUserId),
+                  eq(tenantUsersTable.role, "member"),
+                  eq(tenantUsersTable.status, "invited"),
+                  eq(
+                    tenantUsersTable.invitationSource,
+                    TENANT_ROLE_INVITATION_SOURCE,
+                  ),
+                  eq(
+                    tenantUsersTable.invitationReservationId,
+                    existingMembership.invitationReservationId,
+                  ),
+                ),
+              )
+              .returning({
+                id: tenantUsersTable.id,
+                role: tenantUsersTable.role,
+                status: tenantUsersTable.status,
+                invitationSource: tenantUsersTable.invitationSource,
+                invitationReservationId:
+                  tenantUsersTable.invitationReservationId,
+              });
+            if (!claimedMembership?.invitationReservationId) {
+              throw new Error(
+                "Tenantuitnodiging kon niet atomair worden herclaimd.",
+              );
+            }
+            return { membership: claimedMembership };
           });
         } catch {
           throw new Error(
@@ -1235,19 +1281,26 @@ export async function inviteTenantUser(input: {
                     tenantUsersTable.invitationSource,
                     reservation.membership.invitationSource,
                   ),
-              eq(tenantUsersTable.updatedAt, reservation.membership.updatedAt),
+              reservation.membership.invitationReservationId === null
+                ? isNull(tenantUsersTable.invitationReservationId)
+                : eq(
+                    tenantUsersTable.invitationReservationId,
+                    reservation.membership.invitationReservationId,
+                  ),
             );
             if (
               reservation.membership.role === "member" &&
               reservation.membership.status === "invited" &&
               reservation.membership.invitationSource ===
-                TENANT_ROLE_INVITATION_SOURCE
+                TENANT_ROLE_INVITATION_SOURCE &&
+              reservation.membership.invitationReservationId !== null
             ) {
               const [activatedMembership] = await tx
                 .update(tenantUsersTable)
                 .set({
                   status: "active",
                   invitationSource: null,
+                  invitationReservationId: null,
                   updatedAt: new Date(),
                 })
                 .where(membershipPredicate)
@@ -1259,7 +1312,8 @@ export async function inviteTenantUser(input: {
               }
             } else if (
               reservation.membership.status === "active" &&
-              reservation.membership.invitationSource === null
+              reservation.membership.invitationSource === null &&
+              reservation.membership.invitationReservationId === null
             ) {
               const [unchangedMembership] = await tx
                 .select({ id: tenantUsersTable.id })
