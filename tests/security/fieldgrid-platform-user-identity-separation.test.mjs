@@ -182,6 +182,39 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   }
 });
 
+test("tenant invitations preflight platform identities before Auth delivery", () => {
+  const inviteSource = tenantRoleActions.slice(
+    tenantRoleActions.indexOf("export async function inviteTenantUser"),
+  );
+  const authPreflight = inviteSource.indexOf("findAuthUserByEmail(");
+  const preflightMembership = inviteSource.indexOf(
+    "authUserHasPlatformMembership(existingAuthUser.id)",
+  );
+  const provision = inviteSource.indexOf("provisionPortalUserForActivation({");
+  const postProvisionMembership = inviteSource.indexOf(
+    "authUserHasPlatformMembership(invitedUserId)",
+  );
+  const reservation = inviteSource.indexOf(
+    "finalizePortalAuthorizationReservation(invite",
+  );
+  assert.ok(
+    authPreflight >= 0 &&
+      preflightMembership > authPreflight &&
+      provision > preflightMembership &&
+      postProvisionMembership > provision &&
+      reservation > postProvisionMembership,
+    "platform membership must be checked before delivery and again before reservation",
+  );
+  assert.match(
+    tenantRoleActions,
+    /function authUserHasPlatformMembership[\s\S]*\.from\(platformUsersTable\)[\s\S]*eq\(platformUsersTable\.userId, userId\)/u,
+  );
+  assert.match(
+    inviteSource.slice(postProvisionMembership, reservation),
+    /await invite\.rollback\(\)/u,
+  );
+});
+
 test("authorization stays inactive until durable Auth finalization", () => {
   const existingIdentityStart = portalInvites.indexOf(
     "const existingPortal = existingUser.app_metadata?.portal",
@@ -431,27 +464,31 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     personnelActions,
     /function reservePersonnelActivationAuthorization[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*function activatePersonnelAuthorizationReservation[\s\S]*invitationReservationId: null/u,
   );
+  const updatePersonnelSource = sourceBetween(
+    personnelActions,
+    "export async function updatePersonnel",
+    "export async function setPersonnelStatus",
+  );
+  const setPersonnelStatusSource = sourceBetween(
+    personnelActions,
+    "export async function setPersonnelStatus",
+    "export async function bulkSetPersonnelStatus",
+  );
+  const bulkSetPersonnelStatusSource = sourceBetween(
+    personnelActions,
+    "export async function bulkSetPersonnelStatus",
+    "export async function invitePersonnel",
+  );
+  const updatePersonnelEmailSource = sourceBetween(
+    personnelActions,
+    "export async function updatePersonnelEmail",
+    "export async function setPersonnelAuthBan",
+  );
   for (const genericPersonnelWrite of [
-    sourceBetween(
-      personnelActions,
-      "export async function updatePersonnel",
-      "export async function setPersonnelStatus",
-    ),
-    sourceBetween(
-      personnelActions,
-      "export async function setPersonnelStatus",
-      "export async function bulkSetPersonnelStatus",
-    ),
-    sourceBetween(
-      personnelActions,
-      "export async function bulkSetPersonnelStatus",
-      "export async function invitePersonnel",
-    ),
-    sourceBetween(
-      personnelActions,
-      "export async function updatePersonnelEmail",
-      "export async function setPersonnelAuthBan",
-    ),
+    updatePersonnelSource,
+    setPersonnelStatusSource,
+    bulkSetPersonnelStatusSource,
+    updatePersonnelEmailSource,
   ]) {
     assert.doesNotMatch(
       genericPersonnelWrite,
@@ -460,8 +497,20 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     );
   }
   assert.match(
+    updatePersonnelSource,
+    /email: +personnelTable\.email,[\s\S]*invitationReservationId: personnelTable\.invitationReservationId[\s\S]*const emailChanged = existing\.email !== parsedUpdateData\.email[\s\S]*emailChanged && existing\.invitationReservationId !== null/u,
+  );
+  assert.match(
+    updatePersonnelSource,
+    /emailChanged[\s\S]*\? isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
+  );
+  assert.match(
+    updatePersonnelEmailSource,
+    /invitationReservationId: personnelTable\.invitationReservationId[\s\S]*person\.invitationReservationId !== null[\s\S]*isNull\(personnelTable\.userId\)[\s\S]*isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
+  );
+  assert.match(
     platformUserSeed,
-    /setWhere: and\([\s\S]*isNull\(platformUsersTable\.invitationSource\)[\s\S]*isNull\(platformUsersTable\.invitationReservationId\)[\s\S]*inserted\.length !== platformUsers\.length/u,
+    /db\.transaction\(async \(tx\)[\s\S]*const seeded = await tx[\s\S]*setWhere: and\([\s\S]*isNull\(platformUsersTable\.invitationSource\)[\s\S]*isNull\(platformUsersTable\.invitationReservationId\)[\s\S]*seeded\.length !== platformUsers\.length[\s\S]*return seeded/u,
   );
   assert.doesNotMatch(platformUserSeed, /invitationSource: null/u);
   assert.doesNotMatch(platformUserSeed, /invitationReservationId: null/u);

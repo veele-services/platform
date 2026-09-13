@@ -1175,8 +1175,10 @@ export async function updatePersonnel(
 
     const [existing] = await db
       .select({
-        id:          personnelTable.id,
-        vehicleType: personnelTable.vehicleType,
+        id:                      personnelTable.id,
+        email:                   personnelTable.email,
+        vehicleType:             personnelTable.vehicleType,
+        invitationReservationId: personnelTable.invitationReservationId,
       })
       .from(personnelTable)
       .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
@@ -1184,6 +1186,14 @@ export async function updatePersonnel(
 
     if (!existing) {
       return { success: false, message: "Personeelsrecord niet gevonden." };
+    }
+    const emailChanged = existing.email !== parsedUpdateData.email;
+    if (emailChanged && existing.invitationReservationId !== null) {
+      return {
+        success: false,
+        message:
+          "Dit e-mailadres kan niet worden gewijzigd terwijl de personeelsuitnodiging wordt afgerond.",
+      };
     }
 
     const previousVehicleType =
@@ -1197,10 +1207,26 @@ export async function updatePersonnel(
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
       updatedAt: new Date(),
     };
-    await db
+    const [updated] = await db
       .update(personnelTable)
       .set(updateData)
-      .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
+      .where(
+        and(
+          eq(personnelTable.id, id),
+          eq(personnelTable.tenantId, tenantId),
+          emailChanged
+            ? isNull(personnelTable.invitationReservationId)
+            : undefined,
+        ),
+      )
+      .returning({ id: personnelTable.id });
+    if (updated?.id !== existing.id) {
+      return {
+        success: false,
+        message:
+          "De personeelsuitnodiging veranderde; controleer de status en probeer opnieuw.",
+      };
+    }
 
     await db.insert(auditLogTable).values({
       tenantId,
@@ -1448,7 +1474,11 @@ export async function updatePersonnelEmail(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
-    .select({ userId: personnelTable.userId })
+    .select({
+      email: personnelTable.email,
+      userId: personnelTable.userId,
+      invitationReservationId: personnelTable.invitationReservationId,
+    })
     .from(personnelTable)
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
@@ -1460,15 +1490,38 @@ export async function updatePersonnelEmail(
       message: "E-mailadres kan niet worden gewijzigd van een account dat al actief is. Gebruik gebruikersbeheer voor toegang of reset.",
     };
   }
+  if (person.email === trimmed) return { success: true };
+  if (person.invitationReservationId !== null) {
+    return {
+      success: false,
+      message:
+        "Dit e-mailadres kan niet worden gewijzigd terwijl de personeelsuitnodiging wordt afgerond.",
+    };
+  }
 
   try {
-    await db
+    const [updated] = await db
       .update(personnelTable)
       .set({
         email: trimmed,
         updatedAt: new Date(),
       })
-      .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
+      .where(
+        and(
+          eq(personnelTable.id, id),
+          eq(personnelTable.tenantId, tenantId),
+          isNull(personnelTable.userId),
+          isNull(personnelTable.invitationReservationId),
+        ),
+      )
+      .returning({ id: personnelTable.id });
+    if (updated?.id !== id) {
+      return {
+        success: false,
+        message:
+          "De personeelsuitnodiging veranderde; controleer de status en probeer opnieuw.",
+      };
+    }
 
     await db.insert(auditLogTable).values({
       tenantId,

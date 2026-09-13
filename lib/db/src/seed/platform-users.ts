@@ -34,38 +34,41 @@ async function seedPlatformUsers() {
     );
   }
 
-  const inserted = await db
-    .insert(platformUsersTable)
-    .values(
-      platformUsers.map((user) => ({
-        userId: user.userId,
-        role: user.role,
-        status: "active",
-      })),
-    )
-    .onConflictDoUpdate({
-      target: platformUsersTable.userId,
-      set: {
-        role: sql`excluded.role`,
-        status: "active",
-        updatedAt: new Date(),
-      },
-      setWhere: and(
-        isNull(platformUsersTable.invitationSource),
-        isNull(platformUsersTable.invitationReservationId),
-      ),
-    })
-    .returning({
-      id: platformUsersTable.id,
-      userId: platformUsersTable.userId,
-      role: platformUsersTable.role,
-    });
+  const inserted = await db.transaction(async (tx) => {
+    const seeded = await tx
+      .insert(platformUsersTable)
+      .values(
+        platformUsers.map((user) => ({
+          userId: user.userId,
+          role: user.role,
+          status: "active",
+        })),
+      )
+      .onConflictDoUpdate({
+        target: platformUsersTable.userId,
+        set: {
+          role: sql`excluded.role`,
+          status: "active",
+          updatedAt: new Date(),
+        },
+        setWhere: and(
+          isNull(platformUsersTable.invitationSource),
+          isNull(platformUsersTable.invitationReservationId),
+        ),
+      })
+      .returning({
+        id: platformUsersTable.id,
+        userId: platformUsersTable.userId,
+        role: platformUsersTable.role,
+      });
 
-  if (inserted.length !== platformUsers.length) {
-    throw new Error(
-      "Platform user seed refused to replace an in-flight invitation reservation.",
-    );
-  }
+    if (seeded.length !== platformUsers.length) {
+      throw new Error(
+        "Platform user seed refused to replace an in-flight invitation reservation.",
+      );
+    }
+    return seeded;
+  });
 
   console.log(`Bootstrapped ${inserted.length} platform user(s).`);
   for (const user of inserted) {

@@ -205,14 +205,24 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(fieldDemoBootstrap, /ownerEmail: FIELD_DEMO_OWNER_EMAIL/u);
   assert.match(
     fieldDemoBootstrap,
-    /await dbModule\.completeProvisionedTenantOwnerInvite\(/u,
+    /await dbModule\.reserveProvisionedTenantOwnerInvite\([\s\S]*ownerUserId[\s\S]*authorizationReservation/u,
+  );
+  assert.match(
+    fieldDemoBootstrap,
+    /await dbModule\.completeProvisionedTenantOwnerInvite\([\s\S]*authorizationReservation,/u,
   );
   assert.ok(
     fieldDemoBootstrap.indexOf("fieldDemoProvisioningRunOwnershipIsExact") <
       fieldDemoBootstrap.indexOf(
+        "await dbModule.reserveProvisionedTenantOwnerInvite(",
+      ) &&
+      fieldDemoBootstrap.indexOf(
+        "await dbModule.reserveProvisionedTenantOwnerInvite(",
+      ) <
+      fieldDemoBootstrap.indexOf(
         "await dbModule.completeProvisionedTenantOwnerInvite(",
       ),
-    "owner completion must follow exact automation ownership verification",
+    "owner reservation and completion must follow exact automation ownership verification",
   );
   assert.doesNotMatch(fieldDemoBootstrap, /moduleKeys/u);
   for (const metadata of [

@@ -1200,6 +1200,12 @@ export async function ensureFieldDemoFixture(
         "field_demo",
       );
     }
+    const authorizationReservation =
+      await dbModule.reserveProvisionedTenantOwnerInvite({
+        tenantId: provisioned.tenantId,
+        runId: provisioned.runId,
+        ownerUserId,
+      });
     await dbModule.completeProvisionedTenantOwnerInvite({
       tenantId: provisioned.tenantId,
       runId: provisioned.runId,
@@ -1207,6 +1213,7 @@ export async function ensureFieldDemoFixture(
       ownerUserId,
       invitedBy: actorUserId,
       ownerInviteStatus: "accepted",
+      authorizationReservation,
     });
     provisioningRun = await findFieldDemoProvisioningRun(
       dbModule.pool,
