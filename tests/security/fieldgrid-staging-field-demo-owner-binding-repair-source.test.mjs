@@ -66,13 +66,32 @@ test("snapshot and classification prove the exact owner and Management binding",
   );
   assert.match(script, /auth_user\.deleted_at IS NULL/u);
   assert.match(script, /FROM public\.platform_users AS/u);
+  for (const diagnostic of [
+    "auth_core_count",
+    "auth_contract_count",
+    "auth_environment_count",
+    "auth_portal_count",
+    "email_identity_count",
+    "platform_user_count",
+  ]) {
+    assert.match(script, new RegExp(`AS ${diagnostic}\\b`, "u"));
+  }
+  for (const reason of [
+    "auth-owner-email-invalid",
+    "auth-owner-core-invalid",
+    "auth-owner-email-identity-invalid",
+    "auth-owner-platform-privilege-present",
+    "auth-owner-contract-invalid",
+    "auth-owner-environment-invalid",
+    "auth-owner-portal-invalid",
+  ]) {
+    assert.match(script, new RegExp(reason, "u"));
+  }
 
-  const authIdentityStart = script.indexOf(
+  const authIdentityEnd = script.indexOf("AS auth_exact_count");
+  const authIdentityStart = script.lastIndexOf(
     "(SELECT COUNT(*)::integer FROM auth.users AS auth_user",
-  );
-  const authIdentityEnd = script.indexOf(
-    "AS auth_exact_count",
-    authIdentityStart,
+    authIdentityEnd,
   );
   assert.ok(
     authIdentityStart >= 0 && authIdentityEnd > authIdentityStart,

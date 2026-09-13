@@ -83,6 +83,10 @@ export type FieldDemoOwnerBindingSnapshot = {
   exact_domain_binding_count: number;
   legacy_domain_binding_count: number;
   auth_email_count: number;
+  auth_core_count: number;
+  auth_contract_count: number;
+  auth_environment_count: number;
+  auth_portal_count: number;
   auth_exact_count: number;
   email_identity_count: number;
   platform_user_count: number;
@@ -118,6 +122,13 @@ export type FieldDemoOwnerBindingFailureReason =
   | "subscription-invalid"
   | "website-state-present"
   | "domain-history-present"
+  | "auth-owner-email-invalid"
+  | "auth-owner-core-invalid"
+  | "auth-owner-email-identity-invalid"
+  | "auth-owner-platform-privilege-present"
+  | "auth-owner-contract-invalid"
+  | "auth-owner-environment-invalid"
+  | "auth-owner-portal-invalid"
   | "auth-owner-invalid"
   | "legacy-role-state-present"
   | "management-role-invalid"
@@ -415,6 +426,10 @@ const COUNT_FIELDS: ReadonlyArray<keyof FieldDemoOwnerBindingSnapshot> = [
   "exact_domain_binding_count",
   "legacy_domain_binding_count",
   "auth_email_count",
+  "auth_core_count",
+  "auth_contract_count",
+  "auth_environment_count",
+  "auth_portal_count",
   "auth_exact_count",
   "email_identity_count",
   "platform_user_count",
@@ -495,12 +510,39 @@ export function classifyFieldDemoOwnerBinding(
   }
   if (
     snapshot.auth_email_count !== 1 ||
-    snapshot.auth_exact_count !== 1 ||
-    snapshot.email_identity_count !== 1 ||
-    snapshot.platform_user_count !== 0 ||
     !snapshot.owner_user_id ||
     !UUID_PATTERN.test(snapshot.owner_user_id)
   ) {
+    return { state: "unsafe", failureReason: "auth-owner-email-invalid" };
+  }
+  if (snapshot.auth_core_count !== 1) {
+    return { state: "unsafe", failureReason: "auth-owner-core-invalid" };
+  }
+  if (snapshot.email_identity_count !== 1) {
+    return {
+      state: "unsafe",
+      failureReason: "auth-owner-email-identity-invalid",
+    };
+  }
+  if (snapshot.platform_user_count !== 0) {
+    return {
+      state: "unsafe",
+      failureReason: "auth-owner-platform-privilege-present",
+    };
+  }
+  if (snapshot.auth_contract_count !== 1) {
+    return { state: "unsafe", failureReason: "auth-owner-contract-invalid" };
+  }
+  if (snapshot.auth_environment_count !== 1) {
+    return {
+      state: "unsafe",
+      failureReason: "auth-owner-environment-invalid",
+    };
+  }
+  if (snapshot.auth_portal_count !== 1) {
+    return { state: "unsafe", failureReason: "auth-owner-portal-invalid" };
+  }
+  if (snapshot.auth_exact_count !== 1) {
     return { state: "unsafe", failureReason: "auth-owner-invalid" };
   }
   if (snapshot.legacy_user_role_count !== 0) {
@@ -741,6 +783,28 @@ SELECT
   (SELECT COUNT(*)::integer FROM public.website_domain_bindings
     WHERE hostname = $4) AS legacy_domain_binding_count,
   (SELECT COUNT(*)::integer FROM owner_account) AS auth_email_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($2)
+      AND auth_user.email_confirmed_at IS NOT NULL
+      AND coalesce(length(auth_user.encrypted_password), 0) > 0
+      AND auth_user.is_anonymous = false
+      AND auth_user.aud = 'authenticated'
+      AND auth_user.role = 'authenticated'
+      AND auth_user.deleted_at IS NULL
+      AND (auth_user.banned_until IS NULL OR auth_user.banned_until <= now()))
+    AS auth_core_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($2)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $5)
+    AS auth_contract_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($2)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging')
+    AS auth_environment_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($2)
+      AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
+    AS auth_portal_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
     WHERE lower(auth_user.email) = lower($2)
       AND auth_user.email_confirmed_at IS NOT NULL

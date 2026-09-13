@@ -71,6 +71,10 @@ const exactSnapshot: FieldDemoOwnerBindingSnapshot = {
   exact_domain_binding_count: 0,
   legacy_domain_binding_count: 0,
   auth_email_count: 1,
+  auth_core_count: 1,
+  auth_contract_count: 1,
+  auth_environment_count: 1,
+  auth_portal_count: 1,
   auth_exact_count: 1,
   email_identity_count: 1,
   platform_user_count: 0,
@@ -253,7 +257,31 @@ const failClosedCases: Array<
     "subscription-invalid",
   ],
   ["website state", { website_site_count: 1 }, "website-state-present"],
-  ["auth owner", { auth_exact_count: 0 }, "auth-owner-invalid"],
+  ["auth e-mail", { auth_email_count: 0 }, "auth-owner-email-invalid"],
+  [
+    "auth owner UUID",
+    { owner_user_id: "not-a-uuid" },
+    "auth-owner-email-invalid",
+  ],
+  ["auth core", { auth_core_count: 0 }, "auth-owner-core-invalid"],
+  [
+    "auth e-mail identity",
+    { email_identity_count: 0 },
+    "auth-owner-email-identity-invalid",
+  ],
+  [
+    "auth platform privilege",
+    { platform_user_count: 1 },
+    "auth-owner-platform-privilege-present",
+  ],
+  ["auth contract", { auth_contract_count: 0 }, "auth-owner-contract-invalid"],
+  [
+    "auth environment",
+    { auth_environment_count: 0 },
+    "auth-owner-environment-invalid",
+  ],
+  ["auth portal", { auth_portal_count: 0 }, "auth-owner-portal-invalid"],
+  ["auth aggregate", { auth_exact_count: 0 }, "auth-owner-invalid"],
   [
     "legacy global role",
     { legacy_user_role_count: 1 },
@@ -647,6 +675,10 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
     /services@fieldgrid\.nl|field-demo(?:\.staging)?\.fieldgrid\.nl/u,
   );
   for (const alias of [
+    "auth_core_count",
+    "auth_contract_count",
+    "auth_environment_count",
+    "auth_portal_count",
     "auth_exact_count",
     "management_missing_permission_count",
     "management_extra_permission_count",
@@ -655,12 +687,10 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
   ]) {
     assert.match(capturedSql, new RegExp(`AS ${alias}`, "u"));
   }
-  const authIdentityStart = capturedSql.indexOf(
+  const authIdentityEnd = capturedSql.indexOf("AS auth_exact_count");
+  const authIdentityStart = capturedSql.lastIndexOf(
     "(SELECT COUNT(*)::integer FROM auth.users AS auth_user",
-  );
-  const authIdentityEnd = capturedSql.indexOf(
-    "AS auth_exact_count",
-    authIdentityStart,
+    authIdentityEnd,
   );
   assert.ok(
     authIdentityStart >= 0 && authIdentityEnd > authIdentityStart,
