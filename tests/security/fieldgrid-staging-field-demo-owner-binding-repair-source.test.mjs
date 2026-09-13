@@ -14,6 +14,10 @@ const postgres17MigrationTest = readFileSync(
   "tests/fieldgrid-realtime-projection-migration.test.mjs",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const recipientHistoryMigration = readFileSync(
+  "lib/db/migrations/20260913135353_preserve_deleted_platform_notification_recipient_history.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 test("owner-binding repair exposes one fixed staging-only contract", () => {
   assert.match(
@@ -35,9 +39,17 @@ test("owner-binding repair exposes one fixed staging-only contract", () => {
     "FieldDemoOwnerBindingFailureReason",
     "FieldDemoOwnerPlatformPrivilegeSnapshot",
     "FieldDemoOwnerPlatformPrivilegeSummary",
+    "FieldDemoPlatformPrivilegeRepairResult",
+    "FieldDemoPlatformPrivilegeRepairTarget",
     "validateFieldDemoOwnerBindingConfig",
     "classifyFieldDemoOwnerBinding",
     "summarizeFieldDemoOwnerPlatformPrivilege",
+    "projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair",
+    "fieldDemoPlatformPrivilegeRepairPreconditionIsSafe",
+    "normalizedFieldDemoOwnerAppMetadata",
+    "fieldDemoOwnerAppMetadataMatches",
+    "fieldDemoOwnerAuthMetadataIsNormalized",
+    "fieldDemoOwnerAuthUpdateOutcome",
     "repairFieldDemoOwnerBinding",
     "safeFieldDemoOwnerBindingErrorCode",
     "safeFieldDemoOwnerBindingFailureReason",
@@ -100,7 +112,10 @@ test("snapshot and classification prove the exact owner and Management binding",
     "platform_current_runtime_support_grant_count",
     "platform_future_support_grant_count",
     "platform_support_actor_audit_count",
+    "platform_recipient_reference_count",
+    "platform_recipient_snapshot_count",
     "platform_blocking_reference_count",
+    "platform_nonrecipient_set_null_reference_count",
     "platform_set_null_reference_count",
     "platform_audit_event_count",
     "platform_invite_event_count",
@@ -160,11 +175,11 @@ test("snapshot and classification prove the exact owner and Management binding",
   assert.match(script, /trigger_row\.tgtype::integer & target\.event_mask/u);
   assert.match(
     script,
-    /recipient\.recipient_type = 'platform_user'[\s\S]*?AS platform_blocking_reference_count/u,
+    /recipient\.recipient_type = 'platform_user'[\s\S]*?NOT EXISTS \([\s\S]*?owner_account[\s\S]*?AS platform_blocking_reference_count/u,
   );
   assert.match(
     script,
-    /recipient\.recipient_type = 'tenant_owner'[\s\S]*?AS platform_set_null_reference_count/u,
+    /recipient\.recipient_type = 'platform_user'[\s\S]*?recipient\.recipient_user_id[\s\S]*?AS platform_set_null_reference_count/u,
   );
   const diagnoseStart = script.indexOf('if (operation === "diagnose")');
   const mutationStart = script.indexOf(
@@ -208,22 +223,23 @@ test("repair and owner reconciliation are locked singular transactions", () => {
     "public.tenant_user_roles",
     "public.tenant_users",
   ]);
-  assert.equal(
-    [...script.matchAll(/\.rowCount !== 1/gu)].length,
-    4,
-    "each approved insert or reconciliation update must affect exactly one row",
+  assert.ok(
+    [...script.matchAll(/\.rowCount !== 1/gu)].length >= 5,
+    "each approved insert, update, or platform-role delete must be singular",
   );
   assert.match(
     script,
     /UPDATE public\.tenant_users[\s\S]*SET role = 'admin'[\s\S]*WHERE tenant_id = \$1[\s\S]*AND user_id = \$2[\s\S]*role = 'owner'[\s\S]*status = 'active'/u,
   );
-  assert.doesNotMatch(script, /\bDELETE\s+FROM\s+(?:public|auth)\./iu);
+  assert.equal(
+    [...script.matchAll(/\bDELETE\s+FROM\s+public\.platform_users\b/giu)]
+      .length,
+    1,
+  );
+  assert.doesNotMatch(script, /\bDELETE\s+FROM\s+auth\./iu);
   assert.doesNotMatch(script, /\bON CONFLICT\b/iu);
   assert.doesNotMatch(script, /\bINSERT INTO\s+public\.audit_log\b/iu);
-  assert.doesNotMatch(
-    script,
-    /\b(?:INSERT INTO|UPDATE|DELETE FROM)\s+auth\./iu,
-  );
+  assert.doesNotMatch(script, /\b(?:INSERT INTO|UPDATE)\s+auth\./iu);
   assert.match(script, /await client\.query\("COMMIT"\)/u);
   assert.match(
     script,
@@ -265,10 +281,108 @@ test("diagnosis and workflow evidence remain categorical and secret-free", () =>
   assert.match(evidenceType[1], /observedState/u);
   assert.match(evidenceType[1], /mutationAttempted/u);
   assert.match(evidenceType[1], /platformPrivilegeSummary/u);
-  assert.match(script, /schemaVersion: 2/u);
+  assert.match(script, /schemaVersion: 3/u);
   assert.doesNotMatch(
     evidenceType[1],
     /platform_(?:user|support|audit|set_null).*count/u,
+  );
+});
+
+test("platform-role removal preserves recipient history and normalizes Auth safely", () => {
+  assert.match(
+    recipientHistoryMigration,
+    /pg_get_expr\([\s\S]*platform_notification_recipients_scope_check/u,
+  );
+  assert.match(
+    recipientHistoryMigration,
+    /ADD CONSTRAINT platform_notification_recipients_scope_history_check_v2 CHECK/u,
+  );
+  assert.match(
+    recipientHistoryMigration,
+    /recipient_type = 'platform_user'[\s\S]*tenant_id IS NULL[\s\S]*tenant_owner_invite_id IS NULL[\s\S]*recipient_user_id IS NOT NULL[\s\S]*platform_user_id IS NOT NULL[\s\S]*delivery_status IN \('sent', 'skipped', 'failed'\)/u,
+  );
+  assert.match(
+    recipientHistoryMigration,
+    /recipient_type = 'tenant_owner'[\s\S]*platform_user_id IS NULL[\s\S]*tenant_slug IS NOT NULL[\s\S]*tenant_owner_invite_id IS NOT NULL[\s\S]*recipient_email IS NOT NULL[\s\S]*tenant_id IS NOT NULL[\s\S]*delivery_status IN \('sent', 'skipped', 'failed'\)/u,
+  );
+  assert.match(
+    recipientHistoryMigration,
+    /UPDATE public\.platform_notification_recipients[\s\S]*SET recipient_user_id = platform_user\.user_id/u,
+  );
+  assert.match(recipientHistoryMigration, /NOT VALID/u);
+  assert.match(
+    recipientHistoryMigration,
+    /VALIDATE CONSTRAINT platform_notification_recipients_scope_history_check_v2/u,
+  );
+  assert.match(
+    recipientHistoryMigration,
+    /DROP CONSTRAINT platform_notification_recipients_scope_check[\s\S]*RENAME CONSTRAINT platform_notification_recipients_scope_history_check_v2[\s\S]*TO platform_notification_recipients_scope_check/u,
+  );
+  assert.doesNotMatch(
+    recipientHistoryMigration,
+    /DISABLE ROW LEVEL SECURITY|\bGRANT\b|\bREVOKE\b|\bauth\./iu,
+  );
+
+  assert.match(script, /session_revoked_at: revokedAt/u);
+  assert.match(script, /fieldgrid_platform_privilege_repair/u);
+  assert.match(script, /delete normalized\["platform_role"\]/u);
+  assert.match(script, /method: "PUT"/u);
+  assert.match(
+    script,
+    /\/auth\/v1\/admin\/users\/\$\{encodeURIComponent\(target\.userId\)\}/u,
+  );
+  assert.match(script, /redirect: "error"/u);
+  assert.match(script, /AbortSignal\.timeout\(AUTH_REQUEST_TIMEOUT_MS\)/u);
+  assert.match(script, /pg_try_advisory_lock\(hashtextextended\(\$1, 0\)\)/u);
+  assert.match(
+    script,
+    /DELETE FROM public\.platform_users AS platform_user[\s\S]*platform_user\.id = \$1::uuid[\s\S]*platform_user\.user_id = \$2::uuid[\s\S]*platform_user\.role = 'owner'[\s\S]*platform_user\.status = 'suspended'/u,
+  );
+  assert.match(
+    script,
+    /UPDATE public\.platform_users AS platform_user[\s\S]*SET status = 'suspended'[\s\S]*platform_user\.id = \$1::uuid[\s\S]*platform_user\.user_id = \$2::uuid/u,
+  );
+  assert.match(
+    script,
+    /recipient\.platform_user_id IS NULL[\s\S]*recipient\.recipient_user_id = \$2::uuid/u,
+  );
+  assert.match(
+    script,
+    /fieldDemoPlatformPrivilegeRepairPreconditionIsSafe\([\s\S]*lockedPlatformSummary/u,
+  );
+  assert.match(
+    script,
+    /failureStage = "platform_privilege_mutation";\s+mutationAttempted = true;\s+await removeFieldDemoPlatformPrivilege\(/u,
+  );
+  assert.match(
+    script,
+    /drizzle\.veele_sql_migrations[\s\S]*PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME[\s\S]*migrationHash/u,
+  );
+  const repairStart = script.indexOf(
+    'if (operation === "repair-platform-privilege")',
+  );
+  const quarantineCall = script.indexOf(
+    "await suspendFieldDemoPlatformPrivilege(",
+    repairStart,
+  );
+  const authCall = script.indexOf(
+    "await normalizeFieldDemoOwnerAuthMetadata(",
+    repairStart,
+  );
+  const deleteCall = script.indexOf(
+    "await removeFieldDemoPlatformPrivilege(",
+    repairStart,
+  );
+  assert.ok(
+    repairStart >= 0 &&
+      quarantineCall > repairStart &&
+      authCall > quarantineCall &&
+      deleteCall > authCall,
+    "repair must quarantine before Auth normalization and delete only afterward",
+  );
+  assert.doesNotMatch(
+    script,
+    /console\.(?:log|error)\([^\n]*(?:serviceCredential|appMetadata|userId|recipientIds)/u,
   );
 });
 
@@ -277,7 +391,7 @@ test("workflow binds database credentials to an exact protected main operation",
   assert.match(workflow, /^permissions:\n  contents: read$/mu);
   assert.match(
     workflow,
-    /type: choice\n\s+options:\n\s+- diagnose\n\s+- repair/u,
+    /type: choice\n\s+options:\n\s+- diagnose\n\s+- repair\n\s+- reconcile\n\s+- repair-platform-privilege/u,
   );
   assert.match(workflow, /group: veele-staging/u);
   assert.match(workflow, /cancel-in-progress: false/u);
@@ -304,22 +418,37 @@ test("workflow binds database credentials to an exact protected main operation",
   const mutationStep = workflow.indexOf(
     "- name: Repair or reconcile the exact staging owner-binding state",
   );
+  const platformPrivilegeStep = workflow.indexOf(
+    "- name: Normalize and remove the exact field-demo platform privilege",
+  );
+  const uploadStep = workflow.indexOf(
+    "- name: Upload secret-free owner-binding evidence",
+  );
   const reverifyStep = workflow.indexOf(
     "- name: Reverify exact main immediately before owner-binding operation",
   );
   assert.ok(
     reverifyStep >= 0 &&
       diagnoseStep > reverifyStep &&
-      mutationStep > diagnoseStep,
+      mutationStep > diagnoseStep &&
+      platformPrivilegeStep > mutationStep &&
+      uploadStep > platformPrivilegeStep,
   );
   assert.doesNotMatch(
     workflow.slice(0, diagnoseStep),
     /FIELDGRID_(?:RUNTIME|MIGRATION)_DATABASE_URL:\s*\$\{\{|NEXT_PUBLIC_SUPABASE_URL:\s*\$\{\{/u,
   );
   const diagnoseSource = workflow.slice(diagnoseStep, mutationStep);
-  const mutationEnd = workflow.indexOf("\n      - name:", mutationStep + 1);
-  const mutationSource = workflow.slice(mutationStep, mutationEnd);
-  for (const operationSource of [diagnoseSource, mutationSource]) {
+  const mutationSource = workflow.slice(mutationStep, platformPrivilegeStep);
+  const platformPrivilegeSource = workflow.slice(
+    platformPrivilegeStep,
+    uploadStep,
+  );
+  for (const operationSource of [
+    diagnoseSource,
+    mutationSource,
+    platformPrivilegeSource,
+  ]) {
     assert.match(
       operationSource,
       /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
@@ -337,13 +466,23 @@ test("workflow binds database credentials to an exact protected main operation",
     diagnoseSource,
     /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: \$\{\{ secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID \}\}/u,
   );
-  assert.doesNotMatch(
-    mutationSource,
-    /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID/u,
+  assert.match(mutationSource, /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID/u);
+  assert.match(
+    platformPrivilegeSource,
+    /SUPABASE_SERVICE_ROLE_KEY: \$\{\{ secrets\.SUPABASE_SERVICE_ROLE_KEY \}\}/u,
   );
-  assert.doesNotMatch(workflow, /SUPABASE_SERVICE_ROLE_KEY/u);
+  assert.match(platformPrivilegeSource, /--repair-platform-privilege/u);
+  assert.match(
+    platformPrivilegeSource,
+    /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: \$\{\{ secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID \}\}/u,
+  );
+  assert.equal(
+    [...workflow.matchAll(/SUPABASE_SERVICE_ROLE_KEY:/gu)].length,
+    1,
+  );
+  assert.doesNotMatch(workflow, /pnpm run db:migrate/u);
   assert.doesNotMatch(workflow, /systemctl|docker\s+(?:compose|run)|deploy/i);
-  assert.match(workflow, /retention-days: 1/u);
+  assert.match(workflow, /retention-days: 30/u);
   assert.match(
     workflow,
     /\*-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}\.json/u,

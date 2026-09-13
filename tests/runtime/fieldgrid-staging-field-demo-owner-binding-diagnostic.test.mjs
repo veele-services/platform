@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
+  FIELD_DEMO_RETAINED_OWNER_ID,
   loadFieldDemoOwnerPlatformPrivilegeSnapshot,
   summarizeFieldDemoOwnerPlatformPrivilege,
 } from "../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
-const ownerUserId = "91000000-0000-4000-8000-000000000001";
+const recipientHistoryMigration = readFileSync(
+  new URL(
+    "../../lib/db/migrations/20260913135353_preserve_deleted_platform_notification_recipient_history.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const ownerUserId = FIELD_DEMO_RETAINED_OWNER_ID;
 const platformUserId = "91000000-0000-4000-8000-000000000002";
 const inactiveTenantId = "91000000-0000-4000-8000-000000000003";
 const activeTenantId = "91000000-0000-4000-8000-000000000004";
@@ -92,12 +101,19 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
     assert.equal(exactSnapshot.exact_indirect_grant_fk_count, 2);
     assert.equal(exactSnapshot.exact_set_null_nullable_column_count, 9);
     assert.equal(exactSnapshot.recipient_scope_check_count, 1);
+    assert.equal(exactSnapshot.platform_recipient_reference_count, 0);
+    assert.equal(exactSnapshot.platform_recipient_snapshot_count, 0);
     assert.equal(exactSnapshot.unexpected_set_null_check_count, 0);
     assert.equal(exactSnapshot.unexpected_deletion_path_trigger_count, 0);
     assert.equal(
       summarizeFieldDemoOwnerPlatformPrivilege(exactSnapshot)
         .foreignKeyContractState,
       "exact",
+    );
+    assert.equal(
+      summarizeFieldDemoOwnerPlatformPrivilege(exactSnapshot)
+        .recipientSnapshotState,
+      "none",
     );
     await client.query("ROLLBACK");
 
@@ -179,6 +195,12 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
         .foreignKeyContractState,
       "drift",
     );
+    await assert.rejects(
+      client.query(recipientHistoryMigration),
+      (error) =>
+        error?.code === "P0001" &&
+        /not the exact predecessor/u.test(error?.message ?? ""),
+    );
     await client.query("ROLLBACK");
 
     await client.query("BEGIN");
@@ -227,8 +249,10 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
     );
 
     await insertDispatch(client);
-    await client.query(
-      `INSERT INTO public.platform_notification_recipients (
+    await client.query("SAVEPOINT cross_scope_recipient");
+    await assert.rejects(
+      client.query(
+        `INSERT INTO public.platform_notification_recipients (
          id,
          dispatch_id,
          recipient_type,
@@ -236,8 +260,11 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
          platform_user_id,
          recipient_email
        ) VALUES ($1, $2, 'tenant_owner', $3, $4, 'diagnostic@example.invalid')`,
-      [recipientId, dispatchId, activeTenantId, platformUserId],
+        [recipientId, dispatchId, activeTenantId, platformUserId],
+      ),
+      (error) => error?.code === "23514",
     );
+    await client.query("ROLLBACK TO SAVEPOINT cross_scope_recipient");
     const setNullSnapshot = await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
       client,
       null,
@@ -245,12 +272,13 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
     const setNullSummary =
       summarizeFieldDemoOwnerPlatformPrivilege(setNullSnapshot);
     assert.equal(setNullSnapshot.platform_blocking_reference_count, 0);
-    assert.equal(setNullSnapshot.platform_set_null_reference_count, 1);
-    assert.equal(setNullSummary.deletionBlockState, "none");
+    assert.equal(setNullSnapshot.platform_set_null_reference_count, 0);
     assert.equal(
-      setNullSummary.deletionImpactState,
-      "cascade-and-set-null-history-present",
+      setNullSnapshot.platform_nonrecipient_set_null_reference_count,
+      0,
     );
+    assert.equal(setNullSummary.deletionBlockState, "none");
+    assert.equal(setNullSummary.deletionImpactState, "cascade-history-present");
     await client.query("DELETE FROM public.platform_users WHERE id = $1", [
       platformUserId,
     ]);
@@ -265,7 +293,7 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
     );
     assert.deepEqual(deletionReadback.rows[0], {
       grant_count: 0,
-      null_recipient_count: 1,
+      null_recipient_count: 0,
     });
     await client.query("ROLLBACK");
 
@@ -277,9 +305,58 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
          id,
          dispatch_id,
          recipient_type,
-         platform_user_id
-       ) VALUES ($1, $2, 'platform_user', $3)`,
-      [recipientId, dispatchId, platformUserId],
+         platform_user_id,
+         recipient_user_id,
+         delivery_status
+       ) VALUES ($1, $2, 'platform_user', $3, $4, 'sent')`,
+      [recipientId, dispatchId, platformUserId, ownerUserId],
+    );
+    const historicalSnapshot =
+      await loadFieldDemoOwnerPlatformPrivilegeSnapshot(client, null);
+    const historicalSummary =
+      summarizeFieldDemoOwnerPlatformPrivilege(historicalSnapshot);
+    assert.equal(historicalSnapshot.platform_recipient_reference_count, 1);
+    assert.equal(historicalSnapshot.platform_recipient_snapshot_count, 1);
+    assert.equal(historicalSnapshot.platform_blocking_reference_count, 0);
+    assert.equal(historicalSnapshot.platform_set_null_reference_count, 1);
+    assert.equal(historicalSummary.recipientSnapshotState, "exact");
+    assert.equal(historicalSummary.deletionBlockState, "none");
+    assert.equal(
+      historicalSummary.deletionImpactState,
+      "set-null-history-present",
+    );
+    await client.query("DELETE FROM public.platform_users WHERE id = $1", [
+      platformUserId,
+    ]);
+    const historicalReadback = await client.query(
+      `SELECT COUNT(*)::integer AS preserved_count
+         FROM public.platform_notification_recipients
+        WHERE id = $1
+          AND platform_user_id IS NULL
+          AND recipient_user_id = $2`,
+      [recipientId, ownerUserId],
+    );
+    assert.equal(historicalReadback.rows[0].preserved_count, 1);
+    await client.query("ROLLBACK");
+
+    await client.query("BEGIN");
+    await insertOwnerPlatformUser(client);
+    await insertDispatch(client);
+    await client.query(
+      `INSERT INTO public.platform_notification_recipients (
+         id,
+         dispatch_id,
+         recipient_type,
+         platform_user_id,
+         recipient_user_id,
+         delivery_status
+       ) VALUES ($1, $2, 'platform_user', $3, $4, 'sent')`,
+      [
+        recipientId,
+        dispatchId,
+        platformUserId,
+        "91000000-0000-4000-8000-000000000099",
+      ],
     );
     const blockingSnapshot = await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
       client,
@@ -287,18 +364,110 @@ export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
     );
     const blockingSummary =
       summarizeFieldDemoOwnerPlatformPrivilege(blockingSnapshot);
+    assert.equal(blockingSnapshot.platform_recipient_reference_count, 1);
+    assert.equal(blockingSnapshot.platform_recipient_snapshot_count, 0);
     assert.equal(blockingSnapshot.platform_blocking_reference_count, 1);
     assert.equal(blockingSnapshot.platform_set_null_reference_count, 0);
+    assert.equal(blockingSummary.recipientSnapshotState, "incomplete");
     assert.equal(
       blockingSummary.deletionBlockState,
       "notification-recipient-reference",
     );
+    await client.query("ROLLBACK");
+
+    await client.query("BEGIN");
+    await insertOwnerPlatformUser(client);
+    await insertDispatch(client);
+    await client.query(
+      `INSERT INTO public.platform_notification_recipients (
+         id,
+         dispatch_id,
+         recipient_type,
+         platform_user_id,
+         recipient_user_id
+       ) VALUES ($1, $2, 'platform_user', $3, $4)`,
+      [recipientId, dispatchId, platformUserId, ownerUserId],
+    );
+    const queuedSnapshot = await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+      client,
+      null,
+    );
+    assert.equal(queuedSnapshot.platform_blocking_reference_count, 1);
     await assert.rejects(
       client.query("DELETE FROM public.platform_users WHERE id = $1", [
         platformUserId,
       ]),
       (error) => error?.code === "23514",
     );
+    await client.query("ROLLBACK");
+
+    await client.query("BEGIN");
+    await insertOwnerPlatformUser(client);
+    await insertDispatch(client);
+    await client.query(`
+      ALTER TABLE public.platform_notification_recipients
+        DROP CONSTRAINT platform_notification_recipients_scope_check;
+      ALTER TABLE public.platform_notification_recipients
+        ADD CONSTRAINT platform_notification_recipients_scope_check CHECK (
+          (recipient_type = 'platform_user' AND platform_user_id IS NOT NULL AND tenant_id IS NULL)
+          OR
+          (recipient_type = 'tenant_owner' AND tenant_id IS NOT NULL AND (tenant_owner_invite_id IS NOT NULL OR recipient_email IS NOT NULL))
+        );
+    `);
+    await client.query(
+      `INSERT INTO public.platform_notification_recipients (
+         id,
+         dispatch_id,
+         recipient_type,
+         platform_user_id,
+         recipient_user_id
+       ) VALUES ($1, $2, 'platform_user', $3, NULL)`,
+      [recipientId, dispatchId, platformUserId],
+    );
+    await client.query(recipientHistoryMigration);
+    const backfilled = await client.query(
+      `SELECT recipient_user_id::text AS recipient_user_id
+         FROM public.platform_notification_recipients
+        WHERE id = $1`,
+      [recipientId],
+    );
+    assert.equal(backfilled.rows[0]?.recipient_user_id, ownerUserId);
+    await client.query("ROLLBACK");
+
+    await client.query("BEGIN");
+    await insertTenant(client, {
+      id: inactiveTenantId,
+      slug: "diagnostic-history",
+      isActive: true,
+      status: "active",
+    });
+    await insertDispatch(client);
+    await client.query(
+      `INSERT INTO public.platform_notification_recipients (
+         id,
+         dispatch_id,
+         recipient_type,
+         tenant_id,
+         recipient_email,
+         tenant_slug,
+         delivery_status
+       ) VALUES ($1, $2, 'tenant_owner', $3,
+                 'owner@example.invalid', 'diagnostic-history', 'sent')`,
+      [recipientId, dispatchId, inactiveTenantId],
+    );
+    await client.query("DELETE FROM public.tenants WHERE id = $1", [
+      inactiveTenantId,
+    ]);
+    const tenantHistory = await client.query(
+      `SELECT tenant_id, tenant_slug
+         FROM public.platform_notification_recipients
+        WHERE id = $1`,
+      [recipientId],
+    );
+    assert.deepEqual(tenantHistory.rows[0], {
+      tenant_id: null,
+      tenant_slug: "diagnostic-history",
+    });
     await client.query("ROLLBACK");
   } finally {
     await rollback(client);

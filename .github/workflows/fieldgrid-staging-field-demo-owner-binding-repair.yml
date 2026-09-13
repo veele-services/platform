@@ -11,6 +11,7 @@ on:
           - diagnose
           - repair
           - reconcile
+          - repair-platform-privilege
       expected_main_sha:
         description: "Exact reviewed main SHA"
         required: true
@@ -52,16 +53,19 @@ jobs:
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
-          if [ "$OWNER_BINDING_OPERATION" = "reconcile" ]; then
-            test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-reconcile-v1"
-          else
-            test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-binding-repair-v1"
-          fi
-          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
           case "$OWNER_BINDING_OPERATION" in
-            diagnose|repair|reconcile) ;;
+            reconcile)
+              test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-reconcile-v1"
+              ;;
+            repair-platform-privilege)
+              test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-platform-privilege-repair-v1"
+              ;;
+            diagnose|repair)
+              test "$REPAIR_CONFIRMATION" = "fieldgrid-staging-field-demo-owner-binding-repair-v1"
+              ;;
             *) exit 1 ;;
           esac
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
 
       - name: Checkout exact reviewed main source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -185,12 +189,13 @@ jobs:
             --expected-sha "$EXPECTED_MAIN_SHA"
 
       - name: Repair or reconcile the exact staging owner-binding state
-        if: inputs.operation != 'diagnose'
+        if: inputs.operation == 'repair' || inputs.operation == 'reconcile'
         env:
           DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
           FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION: ${{ inputs.confirmation }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         run: |
           set -euo pipefail
@@ -208,6 +213,23 @@ jobs:
             exit 1
           fi
 
+      - name: Normalize and remove the exact field-demo platform privilege
+        if: inputs.operation == 'repair-platform-privilege'
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+          FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION: ${{ inputs.confirmation }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
+            --repair-platform-privilege \
+            --expected-sha "$EXPECTED_MAIN_SHA"
+
       - name: Upload secret-free owner-binding evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -215,7 +237,7 @@ jobs:
           name: field-demo-owner-binding-state-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/field-demo-owner-binding-repair/*-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
-          retention-days: 1
+          retention-days: 30
 
       - name: Remove temporary database root certificate
         if: always()

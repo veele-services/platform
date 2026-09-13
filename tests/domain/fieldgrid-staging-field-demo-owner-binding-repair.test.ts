@@ -8,13 +8,20 @@ import {
   FIELD_DEMO_OWNER_BINDING_SUPABASE_URL,
   FIELD_DEMO_OWNER_BINDING_VERSION,
   FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY,
+  FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION,
   FIELD_DEMO_RETAINED_OWNER_ID,
   FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
   FIELD_DEMO_SUPERSEDED_OWNER_ID,
   classifyFieldDemoOwnerBinding,
+  fieldDemoOwnerAppMetadataMatches,
+  fieldDemoOwnerAuthMetadataIsNormalized,
+  fieldDemoOwnerAuthUpdateOutcome,
+  fieldDemoPlatformPrivilegeRepairPreconditionIsSafe,
   formatSafeFieldDemoOwnerBindingError,
   loadFieldDemoOwnerBindingSnapshot,
   loadFieldDemoOwnerPlatformPrivilegeSnapshot,
+  normalizedFieldDemoOwnerAppMetadata,
+  projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair,
   repairFieldDemoOwnerBinding,
   reconcileFieldDemoOwnerBinding,
   safeFieldDemoOwnerBindingErrorCode,
@@ -29,7 +36,8 @@ import { FIELD_DEMO_OWNER_EMAIL } from "../../scripts/fieldgrid-staging-field-de
 
 const sha = "a".repeat(40);
 const tenantId = "10000000-0000-4000-8000-000000000081";
-const ownerUserId = "10000000-0000-4000-8000-000000000082";
+const ownerUserId = FIELD_DEMO_RETAINED_OWNER_ID;
+const automationUserId = "10000000-0000-4000-8000-000000000082";
 const managementRoleId = "10000000-0000-4000-8000-000000000083";
 
 const validEnvironment = {
@@ -124,7 +132,10 @@ const exactPlatformPrivilegeSnapshot: FieldDemoOwnerPlatformPrivilegeSnapshot =
     platform_current_runtime_support_grant_count: 0,
     platform_future_support_grant_count: 0,
     platform_support_actor_audit_count: 0,
+    platform_recipient_reference_count: 0,
+    platform_recipient_snapshot_count: 0,
     platform_blocking_reference_count: 0,
+    platform_nonrecipient_set_null_reference_count: 0,
     platform_set_null_reference_count: 0,
     platform_audit_event_count: 0,
     platform_invite_event_count: 0,
@@ -252,6 +263,34 @@ test("owner-binding configuration is exact staging and exact main only", () => {
     ),
     [],
   );
+
+  const platformPrivilegeRepairEnvironment = {
+    ...validEnvironment,
+    FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION:
+      FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION,
+    FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: automationUserId,
+    SUPABASE_SERVICE_ROLE_KEY: "s".repeat(32),
+  };
+  assert.deepEqual(
+    validateFieldDemoOwnerBindingConfig(
+      { mode: "repair-platform-privilege", expectedSha: sha },
+      platformPrivilegeRepairEnvironment,
+    ),
+    [],
+  );
+  for (const overrides of [
+    { SUPABASE_SERVICE_ROLE_KEY: "" },
+    { FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: "" },
+    { FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ownerUserId },
+    { FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION: "wrong" },
+  ]) {
+    assert.ok(
+      validateFieldDemoOwnerBindingConfig(
+        { mode: "repair-platform-privilege", expectedSha: sha },
+        { ...platformPrivilegeRepairEnvironment, ...overrides },
+      ).length > 0,
+    );
+  }
 });
 
 test("owner-binding constants remain exact and staging-scoped", () => {
@@ -263,6 +302,10 @@ test("owner-binding constants remain exact and staging-scoped", () => {
   assert.equal(
     FIELD_DEMO_OWNER_BINDING_SUPABASE_URL,
     `https://${FIELD_DEMO_OWNER_BINDING_PROJECT_REF}.supabase.co`,
+  );
+  assert.equal(
+    FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION,
+    "fieldgrid-staging-field-demo-platform-privilege-repair-v1",
   );
 });
 
@@ -293,6 +336,8 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
       supportGrantState: "none",
       effectiveSupportState: "none",
       foreignKeyContractState: "exact",
+      recipientSnapshotState: "none",
+      nonRecipientHistoryState: "none",
       deletionBlockState: "none",
       deletionImpactState: "none",
       provenanceState: "none",
@@ -314,6 +359,7 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
         platform_current_runtime_support_grant_count: 1,
         platform_future_support_grant_count: 1,
         platform_support_actor_audit_count: 3,
+        platform_nonrecipient_set_null_reference_count: 2,
         platform_set_null_reference_count: 2,
         platform_audit_event_count: 2,
         platform_invite_event_count: 1,
@@ -328,6 +374,8 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
       supportGrantState: "current-and-future",
       effectiveSupportState: "active",
       foreignKeyContractState: "exact",
+      recipientSnapshotState: "none",
+      nonRecipientHistoryState: "present",
       deletionBlockState: "none",
       deletionImpactState: "cascade-and-set-null-history-present",
       provenanceState: "invite-event-present",
@@ -342,6 +390,7 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
         platform_user_admin_role_count: 1,
         other_active_platform_admin_count: 0,
         other_active_platform_owner_count: 1,
+        platform_nonrecipient_set_null_reference_count: 1,
         platform_set_null_reference_count: 1,
         platform_audit_event_count: 1,
         platform_create_event_count: 1,
@@ -356,6 +405,8 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
       supportGrantState: "none",
       effectiveSupportState: "none",
       foreignKeyContractState: "exact",
+      recipientSnapshotState: "none",
+      nonRecipientHistoryState: "present",
       deletionBlockState: "none",
       deletionImpactState: "set-null-history-present",
       provenanceState: "create-event-present",
@@ -368,18 +419,16 @@ test("platform privilege diagnosis is categorical and predicts a safe replacemen
       platform_user_suspended_count: 1,
       platform_user_support_role_count: 1,
       platform_support_grant_count: 1,
+      platform_recipient_reference_count: 1,
       platform_blocking_reference_count: 1,
-      platform_set_null_reference_count: 1,
+      platform_set_null_reference_count: 0,
     }),
   );
   assert.equal(
     blockedDeletion.deletionBlockState,
     "notification-recipient-reference",
   );
-  assert.equal(
-    blockedDeletion.deletionImpactState,
-    "cascade-and-set-null-history-present",
-  );
+  assert.equal(blockedDeletion.deletionImpactState, "cascade-history-present");
   assert.equal(
     summarizeFieldDemoOwnerPlatformPrivilege(
       platformPrivilegeSnapshot({
@@ -438,10 +487,162 @@ test("platform privilege diagnosis fails closed for inconsistent aggregates", ()
       supportGrantState: "ambiguous",
       effectiveSupportState: "ambiguous",
       foreignKeyContractState: "ambiguous",
+      recipientSnapshotState: "ambiguous",
+      nonRecipientHistoryState: "ambiguous",
       deletionBlockState: "ambiguous",
       deletionImpactState: "ambiguous",
       provenanceState: "ambiguous",
     },
+  );
+});
+
+test("platform-privilege repair accepts only the exact removable owner shape", () => {
+  const accidentalBinding = snapshot({
+    platform_user_count: 1,
+    auth_contract_count: 0,
+    auth_portal_count: 0,
+    auth_exact_count: 0,
+  });
+  const removablePrivilege = summarizeFieldDemoOwnerPlatformPrivilege(
+    platformPrivilegeSnapshot({
+      auth_contract_count: 0,
+      auth_tenant_portal_count: 0,
+      auth_platform_portal_count: 1,
+      platform_user_count: 1,
+      platform_user_active_count: 1,
+      platform_user_owner_role_count: 1,
+      other_active_platform_owner_count: 1,
+      configured_actor_provided_count: 1,
+      configured_actor_eligible_count: 1,
+      platform_recipient_reference_count: 1,
+      platform_recipient_snapshot_count: 1,
+      platform_set_null_reference_count: 1,
+      platform_audit_event_count: 1,
+      platform_invite_event_count: 1,
+    }),
+  );
+
+  assert.deepEqual(
+    projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair(accidentalBinding),
+    { state: "already-valid", failureReason: null },
+  );
+  assert.equal(
+    fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+      accidentalBinding,
+      removablePrivilege,
+    ),
+    true,
+  );
+
+  for (const unsafeSummary of [
+    { ...removablePrivilege, continuityState: "sole-active-owner" as const },
+    { ...removablePrivilege, automationActorState: "multiple-admins" as const },
+    { ...removablePrivilege, supportGrantState: "historical-only" as const },
+    { ...removablePrivilege, recipientSnapshotState: "incomplete" as const },
+    { ...removablePrivilege, nonRecipientHistoryState: "present" as const },
+    {
+      ...removablePrivilege,
+      deletionBlockState: "notification-recipient-reference" as const,
+    },
+    {
+      ...removablePrivilege,
+      deletionImpactState: "cascade-history-present" as const,
+    },
+    { ...removablePrivilege, provenanceState: "other-audit-history" as const },
+    { ...removablePrivilege, foreignKeyContractState: "drift" as const },
+  ]) {
+    assert.equal(
+      fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+        accidentalBinding,
+        unsafeSummary,
+      ),
+      false,
+    );
+  }
+  assert.equal(
+    fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+      { ...accidentalBinding, target_any_owner_count: 2 },
+      removablePrivilege,
+    ),
+    false,
+  );
+});
+
+test("owner Auth normalization removes platform claims and revokes live sessions", () => {
+  const revokedAt = "2026-09-13T13:50:00.000Z";
+  const current = {
+    portal: "platform-admin",
+    platform_role: "owner",
+    retained: "value",
+  };
+  const normalized = normalizedFieldDemoOwnerAppMetadata(current, revokedAt);
+  assert.deepEqual(normalized, {
+    portal: "tenant-admin",
+    retained: "value",
+    fieldgrid_automation_contract:
+      "fieldgrid-staging-field-demo-owner-repair-v1",
+    fieldgrid_environment: "staging",
+    fieldgrid_platform_privilege_repair:
+      "fieldgrid-staging-field-demo-platform-privilege-repair-v1",
+    session_revoked_at: revokedAt,
+  });
+  assert.equal(current.portal, "platform-admin");
+  assert.equal(
+    fieldDemoOwnerAuthMetadataIsNormalized(
+      {
+        userId: ownerUserId,
+        platformUserId: null,
+        platformRole: null,
+        platformStatus: null,
+        appMetadata: normalized,
+      },
+      revokedAt,
+    ),
+    true,
+  );
+  assert.equal(
+    fieldDemoOwnerAuthMetadataIsNormalized(
+      {
+        userId: ownerUserId,
+        platformUserId: null,
+        platformRole: null,
+        platformStatus: null,
+        appMetadata: { ...normalized, platform_role: "owner" },
+      },
+      revokedAt,
+    ),
+    false,
+  );
+  assert.equal(
+    fieldDemoOwnerAppMetadataMatches(
+      {
+        userId: ownerUserId,
+        platformUserId: null,
+        platformRole: null,
+        platformStatus: null,
+        appMetadata: { nested: { b: 2, a: 1 }, ...normalized },
+      },
+      { ...normalized, nested: { a: 1, b: 2 } },
+    ),
+    true,
+  );
+  assert.throws(() => normalizedFieldDemoOwnerAppMetadata(current, "invalid"));
+
+  assert.equal(
+    fieldDemoOwnerAuthUpdateOutcome(new Response(null, { status: 200 })),
+    "accepted",
+  );
+  assert.equal(
+    fieldDemoOwnerAuthUpdateOutcome(new Response(null, { status: 422 })),
+    "rejected",
+  );
+  assert.equal(
+    fieldDemoOwnerAuthUpdateOutcome(new Response(null, { status: 429 })),
+    "uncertain",
+  );
+  assert.equal(
+    fieldDemoOwnerAuthUpdateOutcome(new Response(null, { status: 503 })),
+    "uncertain",
   );
 });
 
@@ -896,6 +1097,7 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
   assert.equal(capturedSql, FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY);
   assert.deepEqual(capturedValues, [
     "field-demo",
+    FIELD_DEMO_RETAINED_OWNER_ID,
     FIELD_DEMO_OWNER_EMAIL,
     "field-demo.staging.fieldgrid.nl",
     "field-demo.fieldgrid.nl",
@@ -975,14 +1177,15 @@ test("platform privilege helper is isolated, schema-aware and singular", async (
         };
       },
     },
-    ownerUserId,
+    automationUserId,
   );
 
   assert.equal(loaded, exactPlatformPrivilegeSnapshot);
   assert.equal(capturedSql, FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY);
   assert.deepEqual(capturedValues, [
+    FIELD_DEMO_RETAINED_OWNER_ID,
     FIELD_DEMO_OWNER_EMAIL,
-    ownerUserId,
+    automationUserId,
     "fieldgrid-staging-field-demo-owner-repair-v1",
   ]);
   assert.doesNotMatch(capturedSql, /info@dgwebservices\.nl/u);
@@ -1009,7 +1212,10 @@ test("platform privilege helper is isolated, schema-aware and singular", async (
     "platform_current_runtime_support_grant_count",
     "platform_future_support_grant_count",
     "platform_support_actor_audit_count",
+    "platform_recipient_reference_count",
+    "platform_recipient_snapshot_count",
     "platform_blocking_reference_count",
+    "platform_nonrecipient_set_null_reference_count",
     "platform_set_null_reference_count",
     "platform_audit_event_count",
     "platform_invite_event_count",

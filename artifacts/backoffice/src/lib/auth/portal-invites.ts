@@ -230,11 +230,7 @@ export async function provisionPortalUserForActivation(opts: {
     }
     originalUser = existingUser;
     const existingPortal = existingUser.app_metadata?.portal;
-    if (
-      existingPortal &&
-      existingPortal !== opts.portal &&
-      !opts.allowExistingActive
-    ) {
+    if (existingPortal && existingPortal !== opts.portal) {
       throw new Error(
         "Dit e-mailadres is al gekoppeld aan een ander portaalaccount.",
       );

@@ -13,6 +13,7 @@ import {
   markCredentialRecoveryDelivery,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
+  tenantUsersTable,
   tenantsTable,
   isPlatformSupportRole,
   moduleForPermissionKey,
@@ -673,6 +674,19 @@ export async function upsertPlatformUser(input: {
   const userId = input.userId.trim();
   if (!userId) return { success: false, message: "Gebruiker is verplicht." };
 
+  const [tenantMembership] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(eq(tenantUsersTable.userId, userId))
+    .limit(1);
+  if (tenantMembership) {
+    return {
+      success: false,
+      message:
+        "Een tenantaccount kan niet ook als platformgebruiker worden gekoppeld.",
+    };
+  }
+
   const role = normalizePlatformRole(input.role);
   const status = normalizePlatformStatus(input.status ?? "active");
   const [target] = await db
@@ -738,9 +752,11 @@ export async function invitePlatformUserFromForm(
   });
   if (!policy.success) return policy;
 
-  let userId: string | null = null;
+  let invite: Awaited<
+    ReturnType<typeof provisionPortalUserForActivation>
+  > | null = null;
   try {
-    const invite = await provisionPortalUserForActivation({
+    invite = await provisionPortalUserForActivation({
       email,
       fullName: email,
       portal: "platform-admin",
@@ -750,8 +766,31 @@ export async function invitePlatformUserFromForm(
       actorUserId: actor.userId,
       allowExistingActive: true,
     });
-    userId = invite.user.id;
+    const [tenantMembership] = await db
+      .select({ id: tenantUsersTable.id })
+      .from(tenantUsersTable)
+      .where(eq(tenantUsersTable.userId, invite.user.id))
+      .limit(1);
+    if (tenantMembership) {
+      await invite.rollback();
+      return {
+        success: false,
+        message:
+          "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
+      };
+    }
   } catch (error) {
+    if (invite) {
+      try {
+        await invite.rollback();
+      } catch {
+        return {
+          success: false,
+          message:
+            "De platformuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+        };
+      }
+    }
     return {
       success: false,
       message:
@@ -761,6 +800,7 @@ export async function invitePlatformUserFromForm(
     };
   }
 
+  const userId = invite?.user.id ?? null;
   if (!userId) {
     return {
       success: false,
@@ -768,14 +808,46 @@ export async function invitePlatformUserFromForm(
     };
   }
 
-  const [row] = await db
-    .insert(platformUsersTable)
-    .values({ userId, role, status, createdBy: actor.userId })
-    .onConflictDoUpdate({
-      target: platformUsersTable.userId,
-      set: { role, status, updatedAt: new Date() },
-    })
-    .returning({ id: platformUsersTable.id });
+  let row: { id: string } | undefined;
+  try {
+    [row] = await db
+      .insert(platformUsersTable)
+      .values({ userId, role, status, createdBy: actor.userId })
+      .onConflictDoUpdate({
+        target: platformUsersTable.userId,
+        set: { role, status, updatedAt: new Date() },
+      })
+      .returning({ id: platformUsersTable.id });
+  } catch {
+    try {
+      await invite.rollback();
+    } catch {
+      return {
+        success: false,
+        message:
+          "De platformkoppeling is mislukt en het Auth-herstel vereist handmatige controle.",
+      };
+    }
+    return {
+      success: false,
+      message: "De platformkoppeling kon niet veilig worden opgeslagen.",
+    };
+  }
+  if (!row) {
+    try {
+      await invite.rollback();
+    } catch {
+      return {
+        success: false,
+        message:
+          "De platformkoppeling ontbreekt en het Auth-herstel vereist handmatige controle.",
+      };
+    }
+    return {
+      success: false,
+      message: "De platformkoppeling gaf geen resultaat terug.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,
