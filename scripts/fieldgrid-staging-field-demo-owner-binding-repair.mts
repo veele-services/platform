@@ -657,6 +657,8 @@ export function formatSafeFieldDemoOwnerBindingError(error: unknown): string {
   )}${reason ? `:${reason}` : ""}`;
 }
 
+// The activation/profile-name markers are deliberately absent from the
+// durable owner predicate: normal backoffice onboarding consumes them.
 export const FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY = `WITH target AS (
   SELECT id, plan_key, is_active, status
     FROM public.tenants
@@ -750,11 +752,8 @@ SELECT
       AND (auth_user.banned_until IS NULL OR auth_user.banned_until <= now())
       AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $5
       AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging'
-      AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin'
-      AND (auth_user.raw_app_meta_data -> 'credential_activation_pending')
-        IS NOT DISTINCT FROM 'true'::jsonb
-      AND (auth_user.raw_app_meta_data -> 'backoffice_profile_name_required')
-        IS NOT DISTINCT FROM 'true'::jsonb) AS auth_exact_count,
+      AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
+    AS auth_exact_count,
   (SELECT COUNT(*)::integer FROM auth.identities AS identity
     JOIN owner_account ON owner_account.id = identity.user_id
     WHERE identity.provider = 'email'

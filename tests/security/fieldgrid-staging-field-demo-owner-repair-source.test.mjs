@@ -53,7 +53,16 @@ test("owner repair proves exact absence, identity and zero platform privilege", 
   assert.match(script, /AS platform_user_count/u);
   assert.match(script, /fieldDemoOwnerFailureReason\(before\)/u);
   assert.match(script, /field_demo_owner_not_found/u);
+  assert.match(script, /fieldDemoExistingOwnerCandidateIsExact/u);
   assert.match(script, /fieldDemoOwnerRepairCandidateIsExact/u);
+  assert.match(
+    script,
+    /before\.length === 1 &&\s+fieldDemoExistingOwnerCandidateIsExact\(before\[0\]\)/u,
+  );
+  assert.match(
+    script,
+    /after\.length === 1 && fieldDemoOwnerRepairCandidateIsExact\(after\[0\]\)/u,
+  );
   assert.match(script, /pg_try_advisory_lock\(hashtextextended\(\$1, 0\)\)/u);
   assert.match(script, /pg_advisory_unlock\(hashtextextended\(\$1, 0\)\)/u);
   assert.match(script, /POSTCHECK_ATTEMPTS = 20/u);

@@ -655,6 +655,28 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
   ]) {
     assert.match(capturedSql, new RegExp(`AS ${alias}`, "u"));
   }
+  const authIdentityStart = capturedSql.indexOf(
+    "(SELECT COUNT(*)::integer FROM auth.users AS auth_user",
+  );
+  const authIdentityEnd = capturedSql.indexOf(
+    "AS auth_exact_count",
+    authIdentityStart,
+  );
+  assert.ok(
+    authIdentityStart >= 0 && authIdentityEnd > authIdentityStart,
+    "auth identity predicate must remain explicit",
+  );
+  const authIdentityPredicate = capturedSql.slice(
+    authIdentityStart,
+    authIdentityEnd,
+  );
+  assert.match(authIdentityPredicate, /fieldgrid_automation_contract/u);
+  assert.match(authIdentityPredicate, /fieldgrid_environment/u);
+  assert.match(authIdentityPredicate, /portal/u);
+  assert.doesNotMatch(
+    authIdentityPredicate,
+    /credential_activation_pending|backoffice_profile_name_required/u,
+  );
 
   for (const rows of [[], [exactSnapshot, exactSnapshot]]) {
     const error = await captureError(() =>
