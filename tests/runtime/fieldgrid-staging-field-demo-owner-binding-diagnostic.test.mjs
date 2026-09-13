@@ -1,15 +1,9 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
 
 import {
   loadFieldDemoOwnerPlatformPrivilegeSnapshot,
   summarizeFieldDemoOwnerPlatformPrivilege,
 } from "../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
-import {
-  connect,
-  databaseUrl,
-} from "../../scripts/fieldgrid-runtime-safety-lib.mjs";
-
 const ownerUserId = "91000000-0000-4000-8000-000000000001";
 const platformUserId = "91000000-0000-4000-8000-000000000002";
 const inactiveTenantId = "91000000-0000-4000-8000-000000000003";
@@ -83,10 +77,7 @@ async function insertDispatch(client) {
   );
 }
 
-test("PostgreSQL 17 executes the platform-privilege diagnostic and rejects schema lookalikes", async () => {
-  databaseUrl();
-  const client = await connect();
-
+export async function verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client) {
   try {
     await client.query(
       "BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE READ ONLY",
@@ -311,6 +302,5 @@ test("PostgreSQL 17 executes the platform-privilege diagnostic and rejects schem
     await client.query("ROLLBACK");
   } finally {
     await rollback(client);
-    await client.end();
   }
-});
+}

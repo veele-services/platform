@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
+
 const repoRoot = process.cwd();
 const migrationPath = join(
   repoRoot,
@@ -25,7 +27,7 @@ test("customer realtime policy rejects JWT email fallback", () => {
 test(
   "installed customer realtime policy requires an active linked user",
   { skip: !process.env.DATABASE_URL },
-  async () => {
+  async (context) => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
@@ -48,6 +50,12 @@ test(
       assert.match(policy.rows[0].qual, /cu\.user_id = auth\.uid\(\)/u);
       assert.match(policy.rows[0].qual, /cu\.status.*active/u);
       assert.match(policy.rows[0].qual, /c\.is_active IS TRUE/u);
+      await context.test(
+        "owner platform-privilege diagnostic executes against the migrated schema",
+        async () => {
+          await verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client);
+        },
+      );
     } finally {
       await client.end();
     }
@@ -91,7 +99,11 @@ test(
         resource_id: "assignment-regression",
         action: "insert",
         event_type: "customer_visible_projection_changed",
-        payload: { nested: { label: "retained" }, rows: [{ value: 1 }], safe: "retained" },
+        payload: {
+          nested: { label: "retained" },
+          rows: [{ value: 1 }],
+          safe: "retained",
+        },
       });
     } finally {
       await client.end();

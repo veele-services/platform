@@ -10,7 +10,10 @@ const workflow = readFileSync(
   ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
   "utf8",
 ).replaceAll("\r\n", "\n");
-const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const postgres17MigrationTest = readFileSync(
+  "tests/fieldgrid-realtime-projection-migration.test.mjs",
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 test("owner-binding repair exposes one fixed staging-only contract", () => {
   assert.match(
@@ -349,7 +352,11 @@ test("workflow binds database credentials to an exact protected main operation",
 
 test("PostgreSQL 17 migration smoke executes the schema-dependent diagnostic", () => {
   assert.match(
-    packageJson.scripts["fieldgrid:test:postgres17-migration-smoke"],
+    postgres17MigrationTest,
     /fieldgrid-staging-field-demo-owner-binding-diagnostic\.test\.mjs/u,
+  );
+  assert.match(
+    postgres17MigrationTest,
+    /verifyFieldDemoOwnerPlatformPrivilegeDiagnostic\(client\)/u,
   );
 });
