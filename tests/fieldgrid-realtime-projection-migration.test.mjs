@@ -73,10 +73,8 @@ test(
   },
 );
 
-test(
-  "tenant invite reservation sources enforce flow and activation state",
-  { skip: !process.env.DATABASE_URL },
-  async () => {
+if (process.env.DATABASE_URL) {
+  test("tenant invite reservation sources enforce flow and activation state", async () => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
@@ -190,8 +188,8 @@ test(
       await client.query("ROLLBACK").catch(() => undefined);
       await client.end();
     }
-  },
-);
+  });
+}
 
 test(
   "realtime emitter stores canonical metadata and redacts sensitive payload",
