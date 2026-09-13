@@ -2729,7 +2729,11 @@ export async function updatePlatformTenantAdmin(
 
   await assertTenantExists(tenantId);
   const [tenantUser] = await db
-    .select({ id: tenantUsersTable.id })
+    .select({
+      id: tenantUsersTable.id,
+      invitationSource: tenantUsersTable.invitationSource,
+      invitationReservationId: tenantUsersTable.invitationReservationId,
+    })
     .from(tenantUsersTable)
     .where(
       and(
@@ -2739,6 +2743,14 @@ export async function updatePlatformTenantAdmin(
     )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+  if (
+    tenantUser.invitationSource !== null ||
+    tenantUser.invitationReservationId !== null
+  ) {
+    throw new Error(
+      "Deze tenantuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    );
+  }
 
   const roleSelection = await resolveTenantRoleSelection(
     tenantId,
@@ -2748,21 +2760,28 @@ export async function updatePlatformTenantAdmin(
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
-    await tx
+    const [updatedMembership] = await tx
       .update(tenantUsersTable)
       .set({
         role: accessRole,
         status,
-        invitationSource: null,
-        invitationReservationId: null,
         updatedAt: new Date(),
       })
       .where(
         and(
+          eq(tenantUsersTable.id, tenantUser.id),
           eq(tenantUsersTable.tenantId, tenantId),
           eq(tenantUsersTable.userId, userId),
+          isNull(tenantUsersTable.invitationSource),
+          isNull(tenantUsersTable.invitationReservationId),
         ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (updatedMembership?.id !== tenantUser.id) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
       );
+    }
 
     await tx
       .delete(tenantUserRolesTable)

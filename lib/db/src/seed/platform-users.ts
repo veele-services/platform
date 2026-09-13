@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, isNull, sql } from "drizzle-orm";
 import { db, pool } from "../index";
 import { platformUsersTable } from "../schema/platform-users";
 
@@ -48,12 +48,24 @@ async function seedPlatformUsers() {
       set: {
         role: sql`excluded.role`,
         status: "active",
-        invitationSource: null,
-        invitationReservationId: null,
         updatedAt: new Date(),
       },
+      setWhere: and(
+        isNull(platformUsersTable.invitationSource),
+        isNull(platformUsersTable.invitationReservationId),
+      ),
     })
-    .returning({ id: platformUsersTable.id, userId: platformUsersTable.userId, role: platformUsersTable.role });
+    .returning({
+      id: platformUsersTable.id,
+      userId: platformUsersTable.userId,
+      role: platformUsersTable.role,
+    });
+
+  if (inserted.length !== platformUsers.length) {
+    throw new Error(
+      "Platform user seed refused to replace an in-flight invitation reservation.",
+    );
+  }
 
   console.log(`Bootstrapped ${inserted.length} platform user(s).`);
   for (const user of inserted) {

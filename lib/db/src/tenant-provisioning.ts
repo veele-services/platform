@@ -765,7 +765,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
   ownerUserId: string;
   invitedBy: string;
   ownerInviteStatus?: "sent" | "accepted";
-  authorizationReservation?: ProvisionedTenantOwnerAuthorizationReservation;
+  authorizationReservation: ProvisionedTenantOwnerAuthorizationReservation;
 }): Promise<void> {
   const email = input.ownerEmail.trim().toLowerCase();
   const ownerInviteStatus = input.ownerInviteStatus ?? "sent";
@@ -785,72 +785,44 @@ export async function completeProvisionedTenantOwnerInvite(input: {
         and(
           eq(tenantProvisioningRunsTable.id, input.runId),
           eq(tenantProvisioningRunsTable.tenantId, input.tenantId),
-          input.authorizationReservation
-            ? eq(
-                tenantProvisioningRunsTable.currentStep,
-                "owner_invite_pending",
-              )
-            : undefined,
+          eq(tenantProvisioningRunsTable.currentStep, "owner_invite_pending"),
         ),
       )
       .for("update")
       .limit(1);
     if (!run) throw new Error("Provisioningrun hoort niet bij deze tenant.");
 
-    if (input.authorizationReservation) {
-      const [activatedMembership] = await tx
-        .update(tenantUsersTable)
-        .set({
-          role: "owner",
-          status: "active",
-          invitationSource: null,
-          invitationReservationId: null,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(tenantUsersTable.id, input.authorizationReservation.id),
-            eq(tenantUsersTable.tenantId, input.tenantId),
-            eq(tenantUsersTable.userId, input.ownerUserId),
-            eq(tenantUsersTable.role, "owner"),
-            eq(tenantUsersTable.status, "invited"),
-            eq(
-              tenantUsersTable.invitationSource,
-              input.authorizationReservation.invitationSource,
-            ),
-            eq(
-              tenantUsersTable.invitationReservationId,
-              input.authorizationReservation.invitationReservationId,
-            ),
+    const [activatedMembership] = await tx
+      .update(tenantUsersTable)
+      .set({
+        role: "owner",
+        status: "active",
+        invitationSource: null,
+        invitationReservationId: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantUsersTable.id, input.authorizationReservation.id),
+          eq(tenantUsersTable.tenantId, input.tenantId),
+          eq(tenantUsersTable.userId, input.ownerUserId),
+          eq(tenantUsersTable.role, "owner"),
+          eq(tenantUsersTable.status, "invited"),
+          eq(
+            tenantUsersTable.invitationSource,
+            input.authorizationReservation.invitationSource,
           ),
-        )
-        .returning({ id: tenantUsersTable.id });
-      if (activatedMembership?.id !== input.authorizationReservation.id) {
-        throw new Error(
-          "De gereserveerde ownerautorisatie veranderde tijdens de uitnodiging.",
-        );
-      }
-    } else {
-      await tx
-        .insert(tenantUsersTable)
-        .values({
-          tenantId: input.tenantId,
-          userId: input.ownerUserId,
-          role: "owner",
-          status: "active",
-          invitationSource: null,
-          invitationReservationId: null,
-        })
-        .onConflictDoUpdate({
-          target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-          set: {
-            role: "owner",
-            status: "active",
-            invitationSource: null,
-            invitationReservationId: null,
-            updatedAt: new Date(),
-          },
-        });
+          eq(
+            tenantUsersTable.invitationReservationId,
+            input.authorizationReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (activatedMembership?.id !== input.authorizationReservation.id) {
+      throw new Error(
+        "De gereserveerde ownerautorisatie veranderde tijdens de uitnodiging.",
+      );
     }
 
     const tenantRoles = await tx

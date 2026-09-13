@@ -850,6 +850,17 @@ export async function upsertPlatformUser(input: {
     .from(platformUsersTable)
     .where(eq(platformUsersTable.userId, userId))
     .limit(1);
+  if (
+    target &&
+    (target.invitationSource !== null ||
+      target.invitationReservationId !== null)
+  ) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
   const policy = await validatePlatformUserManagement({
     actor,
     target: target ?? null,
@@ -866,12 +877,21 @@ export async function upsertPlatformUser(input: {
       set: {
         role,
         status,
-        invitationSource: null,
-        invitationReservationId: null,
         updatedAt: new Date(),
       },
+      setWhere: and(
+        isNull(platformUsersTable.invitationSource),
+        isNull(platformUsersTable.invitationReservationId),
+      ),
     })
     .returning({ id: platformUsersTable.id });
+  if (!row) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,
@@ -1104,6 +1124,16 @@ export async function updatePlatformUserFromForm(
   if (!target) {
     return { success: false, message: "Platformgebruiker niet gevonden." };
   }
+  if (
+    target.invitationSource !== null ||
+    target.invitationReservationId !== null
+  ) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   const policy = await validatePlatformUserManagement({
     actor,
@@ -1113,16 +1143,28 @@ export async function updatePlatformUserFromForm(
   });
   if (!policy.success) return policy;
 
-  await db
+  const [updated] = await db
     .update(platformUsersTable)
     .set({
       role,
       status,
-      invitationSource: null,
-      invitationReservationId: null,
       updatedAt: new Date(),
     })
-    .where(eq(platformUsersTable.id, target.id));
+    .where(
+      and(
+        eq(platformUsersTable.id, target.id),
+        isNull(platformUsersTable.invitationSource),
+        isNull(platformUsersTable.invitationReservationId),
+      ),
+    )
+    .returning({ id: platformUsersTable.id });
+  if (updated?.id !== target.id) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,

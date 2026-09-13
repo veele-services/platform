@@ -1195,7 +1195,6 @@ export async function updatePersonnel(
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
-      invitationReservationId: null,
       updatedAt: new Date(),
     };
     await db
@@ -1254,7 +1253,6 @@ export async function setPersonnelStatus(
     .update(personnelTable)
     .set({
       isActive,
-      invitationReservationId: null,
       updatedAt: new Date(),
     })
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
@@ -1289,7 +1287,6 @@ export async function bulkSetPersonnelStatus(
     .update(personnelTable)
     .set({
       isActive,
-      invitationReservationId: null,
       updatedAt: new Date(),
     })
     .where(and(inArray(personnelTable.id, ids), eq(personnelTable.tenantId, tenantId)));
@@ -1469,7 +1466,6 @@ export async function updatePersonnelEmail(
       .update(personnelTable)
       .set({
         email: trimmed,
-        invitationReservationId: null,
         updatedAt: new Date(),
       })
       .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));

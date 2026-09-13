@@ -62,10 +62,22 @@ const platformUserSchema = readFileSync(
   "lib/db/src/schema/platform-users.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const platformUserSeed = readFileSync(
+  "lib/db/src/seed/platform-users.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const personnelSchema = readFileSync(
   "lib/db/src/schema/personnel.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
+
+function sourceBetween(source, startMarker, endMarker) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  assert.ok(start >= 0, `missing source marker: ${startMarker}`);
+  assert.ok(end > start, `missing source marker: ${endMarker}`);
+  return source.slice(start, end);
+}
 
 test("an existing portal identity cannot be rewritten for another portal", () => {
   const mismatchGuard = portalInvites.match(
@@ -89,16 +101,21 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   const updateStart = platformActions.indexOf(
     "export async function updatePlatformUserFromForm",
   );
+  const updateEnd = platformActions.indexOf(
+    "export async function sendPlatformUserPasswordResetFromForm",
+  );
   assert.ok(
     reservationStart >= 0 &&
       upsertStart > reservationStart &&
       inviteStart > upsertStart &&
-      updateStart > inviteStart,
+      updateStart > inviteStart &&
+      updateEnd > updateStart,
   );
 
   const reservationSource = platformActions.slice(reservationStart, upsertStart);
   const upsertSource = platformActions.slice(upsertStart, inviteStart);
   const inviteSource = platformActions.slice(inviteStart, updateStart);
+  const updateSource = platformActions.slice(updateStart, updateEnd);
   const upsertTenantGuard = upsertSource.indexOf(
     "authUserHasTenantMembership(",
   );
@@ -151,6 +168,18 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
     reservationSource,
     /\.insert\(platformUsersTable\)[\s\S]{0,500}?\.onConflictDoUpdate/u,
   );
+  for (const genericWrite of [upsertSource, updateSource]) {
+    assert.match(
+      genericWrite,
+      /invitationSource !== null[\s\S]*invitationReservationId !== null/u,
+    );
+    assert.match(
+      genericWrite,
+      /isNull\(platformUsersTable\.invitationSource\)[\s\S]*isNull\(platformUsersTable\.invitationReservationId\)/u,
+    );
+    assert.doesNotMatch(genericWrite, /invitationSource: null/u);
+    assert.doesNotMatch(genericWrite, /invitationReservationId: null/u);
+  }
 });
 
 test("authorization stays inactive until durable Auth finalization", () => {
@@ -299,6 +328,24 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     tenantProvisioning,
     /status: "active",[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null/u,
   );
+  const completeProvisioningSource = sourceBetween(
+    tenantProvisioning,
+    "export async function completeProvisionedTenantOwnerInvite",
+    "export async function rollbackProvisionedTenant",
+  );
+  assert.match(
+    completeProvisioningSource,
+    /authorizationReservation: ProvisionedTenantOwnerAuthorizationReservation/u,
+  );
+  assert.doesNotMatch(
+    completeProvisioningSource,
+    /authorizationReservation\?:/u,
+  );
+  assert.doesNotMatch(
+    completeProvisioningSource,
+    /\.insert\(tenantUsersTable\)/u,
+    "provisioning completion must activate only its exact reservation",
+  );
 
   assert.match(
     platformTenantActions,
@@ -316,15 +363,42 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     platformTenantActions,
     /reserveTenantAuthInvite\([\s\S]*PLATFORM_TENANT_ADMIN_INVITATION_SOURCE[\s\S]*reserveTenantAuthInvite\([\s\S]*PLATFORM_TENANT_OWNER_INVITATION_SOURCE/u,
   );
-  assert.ok(
-    [...platformTenantActions.matchAll(/invitationSource: null/gu)].length >= 3,
-    "activation and manual membership updates must clear reservation ownership",
+  const addTenantAdminSource = sourceBetween(
+    platformTenantActions,
+    "export async function addPlatformTenantAdmin",
+    "export async function updatePlatformTenantAdmin",
   );
-  assert.ok(
-    [...platformTenantActions.matchAll(/invitationReservationId: null/gu)]
-      .length >= 3,
-    "activation and manual membership updates must clear reservation tokens",
+  const updateTenantAdminSource = sourceBetween(
+    platformTenantActions,
+    "export async function updatePlatformTenantAdmin",
+    "export async function deletePlatformTenantAdmin",
   );
+  const updateTenantOwnerSource = sourceBetween(
+    platformTenantActions,
+    "export async function updatePlatformTenantOwnerInvite",
+    "export async function listPlatformTenantRegions",
+  );
+  for (const owningInviteFlow of [
+    addTenantAdminSource,
+    updateTenantOwnerSource,
+  ]) {
+    assert.match(owningInviteFlow, /invitationSource: null/u);
+    assert.match(owningInviteFlow, /invitationReservationId: null/u);
+  }
+  assert.match(
+    updateTenantAdminSource,
+    /invitationSource: tenantUsersTable\.invitationSource[\s\S]*invitationReservationId: tenantUsersTable\.invitationReservationId/u,
+  );
+  assert.match(
+    updateTenantAdminSource,
+    /invitationSource !== null[\s\S]*invitationReservationId !== null/u,
+  );
+  assert.match(
+    updateTenantAdminSource,
+    /isNull\(tenantUsersTable\.invitationSource\)[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)/u,
+  );
+  assert.doesNotMatch(updateTenantAdminSource, /invitationSource: null/u);
+  assert.doesNotMatch(updateTenantAdminSource, /invitationReservationId: null/u);
 
   assert.match(
     platformUserSchema,
@@ -357,6 +431,40 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     personnelActions,
     /function reservePersonnelActivationAuthorization[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*function activatePersonnelAuthorizationReservation[\s\S]*invitationReservationId: null/u,
   );
+  for (const genericPersonnelWrite of [
+    sourceBetween(
+      personnelActions,
+      "export async function updatePersonnel",
+      "export async function setPersonnelStatus",
+    ),
+    sourceBetween(
+      personnelActions,
+      "export async function setPersonnelStatus",
+      "export async function bulkSetPersonnelStatus",
+    ),
+    sourceBetween(
+      personnelActions,
+      "export async function bulkSetPersonnelStatus",
+      "export async function invitePersonnel",
+    ),
+    sourceBetween(
+      personnelActions,
+      "export async function updatePersonnelEmail",
+      "export async function setPersonnelAuthBan",
+    ),
+  ]) {
+    assert.doesNotMatch(
+      genericPersonnelWrite,
+      /invitationReservationId: null/u,
+      "generic personnel writes must leave invitation reservations intact",
+    );
+  }
+  assert.match(
+    platformUserSeed,
+    /setWhere: and\([\s\S]*isNull\(platformUsersTable\.invitationSource\)[\s\S]*isNull\(platformUsersTable\.invitationReservationId\)[\s\S]*inserted\.length !== platformUsers\.length/u,
+  );
+  assert.doesNotMatch(platformUserSeed, /invitationSource: null/u);
+  assert.doesNotMatch(platformUserSeed, /invitationReservationId: null/u);
 
   for (const source of [
     tenantRoleActions,
