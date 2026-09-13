@@ -37,7 +37,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  findAuthUserByEmail,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import {
   buildPasswordResetCodeEmail,
   platformAdminUrl,
@@ -642,6 +645,15 @@ function matchesPlatformSecurityFilter(
   return true;
 }
 
+async function authUserHasTenantMembership(userId: string): Promise<boolean> {
+  const [tenantMembership] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(eq(tenantUsersTable.userId, userId))
+    .limit(1);
+  return Boolean(tenantMembership);
+}
+
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
   await requirePlatformAdmin();
 
@@ -674,12 +686,7 @@ export async function upsertPlatformUser(input: {
   const userId = input.userId.trim();
   if (!userId) return { success: false, message: "Gebruiker is verplicht." };
 
-  const [tenantMembership] = await db
-    .select({ id: tenantUsersTable.id })
-    .from(tenantUsersTable)
-    .where(eq(tenantUsersTable.userId, userId))
-    .limit(1);
-  if (tenantMembership) {
+  if (await authUserHasTenantMembership(userId)) {
     return {
       success: false,
       message:
@@ -752,6 +759,28 @@ export async function invitePlatformUserFromForm(
   });
   if (!policy.success) return policy;
 
+  try {
+    const existingAuthUser = await findAuthUserByEmail(
+      createAdminClient(),
+      email,
+    );
+    if (
+      existingAuthUser &&
+      (await authUserHasTenantMembership(existingAuthUser.id))
+    ) {
+      return {
+        success: false,
+        message:
+          "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      message: "Auth-beheer kon niet veilig worden gecontroleerd.",
+    };
+  }
+
   let invite: Awaited<
     ReturnType<typeof provisionPortalUserForActivation>
   > | null = null;
@@ -766,12 +795,7 @@ export async function invitePlatformUserFromForm(
       actorUserId: actor.userId,
       allowExistingActive: true,
     });
-    const [tenantMembership] = await db
-      .select({ id: tenantUsersTable.id })
-      .from(tenantUsersTable)
-      .where(eq(tenantUsersTable.userId, invite.user.id))
-      .limit(1);
-    if (tenantMembership) {
+    if (await authUserHasTenantMembership(invite.user.id)) {
       await invite.rollback();
       return {
         success: false,

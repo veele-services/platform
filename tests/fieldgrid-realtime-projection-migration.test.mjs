@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 
@@ -16,6 +17,9 @@ const dbRequire = createRequire(
   new URL("../lib/db/package.json", import.meta.url),
 );
 const { Client } = dbRequire("pg");
+const separatedAuthUserId = "92000000-0000-4000-8000-000000000001";
+const separatedPlatformUserId = "92000000-0000-4000-8000-000000000002";
+const separatedTenantId = "92000000-0000-4000-8000-000000000003";
 
 test("customer realtime policy rejects JWT email fallback", () => {
   assert.doesNotMatch(migration, /auth\.email\s*\(\)/iu);
@@ -107,6 +111,153 @@ test(
       });
     } finally {
       await client.end();
+    }
+  },
+);
+
+test(
+  "Auth surface separation serializes concurrent tenant and platform bindings",
+  { skip: !process.env.DATABASE_URL },
+  async () => {
+    const first = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+      statement_timeout: 10_000,
+    });
+    const second = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+      statement_timeout: 10_000,
+    });
+    let tenantInsert = null;
+    await first.connect();
+    await second.connect();
+
+    try {
+      await first.query(
+        `INSERT INTO auth.users (id, email, raw_app_meta_data)
+         VALUES ($1, 'surface-separation@example.invalid', '{}'::jsonb)`,
+        [separatedAuthUserId],
+      );
+      await first.query(
+        `INSERT INTO public.tenants (id, slug, name, is_active, status)
+         VALUES ($1, 'surface-separation', 'Surface separation', true, 'active')`,
+        [separatedTenantId],
+      );
+      const secondPid = await second.query(
+        "SELECT pg_backend_pid()::integer AS pid",
+      );
+
+      await first.query("BEGIN");
+      await second.query("BEGIN");
+      await first.query(
+        `INSERT INTO public.platform_users (id, user_id, role, status)
+         VALUES ($1, $2, 'admin', 'active')`,
+        [separatedPlatformUserId, separatedAuthUserId],
+      );
+      tenantInsert = second.query(
+        `INSERT INTO public.tenant_users (tenant_id, user_id, role, status)
+         VALUES ($1, $2, 'member', 'active')`,
+        [separatedTenantId, separatedAuthUserId],
+      );
+
+      let waitingOnIdentityLock = false;
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const waiting = await first.query(
+          `SELECT EXISTS (
+             SELECT 1
+               FROM pg_catalog.pg_locks
+              WHERE pid = $1
+                AND locktype = 'advisory'
+                AND granted = false
+           ) AS waiting`,
+          [secondPid.rows[0]?.pid],
+        );
+        waitingOnIdentityLock = waiting.rows[0]?.waiting === true;
+        if (waitingOnIdentityLock) break;
+        await delay(20);
+      }
+      assert.equal(
+        waitingOnIdentityLock,
+        true,
+        "the concurrent binding must wait on the shared Auth identity lock",
+      );
+
+      await first.query("COMMIT");
+      await assert.rejects(
+        tenantInsert,
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "fieldgrid_auth_surface_separation",
+      );
+      tenantInsert = null;
+      await second.query("ROLLBACK");
+
+      const bindingCounts = await first.query(
+        `SELECT
+           (SELECT COUNT(*)::integer FROM public.platform_users
+             WHERE user_id = $1) AS platform_count,
+           (SELECT COUNT(*)::integer FROM public.tenant_users
+             WHERE user_id = $1) AS tenant_count`,
+        [separatedAuthUserId],
+      );
+      assert.deepEqual(bindingCounts.rows[0], {
+        platform_count: 1,
+        tenant_count: 0,
+      });
+
+      await first.query(
+        "DELETE FROM public.platform_users WHERE user_id = $1",
+        [separatedAuthUserId],
+      );
+      await first.query(
+        `INSERT INTO public.tenant_users (tenant_id, user_id, role, status)
+         VALUES ($1, $2, 'member', 'active')`,
+        [separatedTenantId, separatedAuthUserId],
+      );
+      await assert.rejects(
+        first.query(
+          `INSERT INTO public.platform_users (id, user_id, role, status)
+           VALUES ($1, $2, 'admin', 'active')`,
+          [separatedPlatformUserId, separatedAuthUserId],
+        ),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "fieldgrid_auth_surface_separation",
+      );
+      const reverseBindingCounts = await first.query(
+        `SELECT
+           (SELECT COUNT(*)::integer FROM public.platform_users
+             WHERE user_id = $1) AS platform_count,
+           (SELECT COUNT(*)::integer FROM public.tenant_users
+             WHERE user_id = $1) AS tenant_count`,
+        [separatedAuthUserId],
+      );
+      assert.deepEqual(reverseBindingCounts.rows[0], {
+        platform_count: 0,
+        tenant_count: 1,
+      });
+    } finally {
+      await first.query("ROLLBACK").catch(() => undefined);
+      if (tenantInsert) await tenantInsert.catch(() => undefined);
+      await second.query("ROLLBACK").catch(() => undefined);
+      await first
+        .query("DELETE FROM public.platform_users WHERE user_id = $1", [
+          separatedAuthUserId,
+        ])
+        .catch(() => undefined);
+      await first
+        .query("DELETE FROM public.tenant_users WHERE user_id = $1", [
+          separatedAuthUserId,
+        ])
+        .catch(() => undefined);
+      await first
+        .query("DELETE FROM public.tenants WHERE id = $1", [separatedTenantId])
+        .catch(() => undefined);
+      await first
+        .query("DELETE FROM auth.users WHERE id = $1", [separatedAuthUserId])
+        .catch(() => undefined);
+      await Promise.allSettled([first.end(), second.end()]);
     }
   },
 );

@@ -10,6 +10,10 @@ const portalInvites = readFileSync(
   "artifacts/backoffice/src/lib/auth/portal-invites.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const authSurfaceMigration = readFileSync(
+  "lib/db/migrations/20260913154500_prevent_cross_portal_identity_reuse.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 test("an existing portal identity cannot be rewritten for another portal", () => {
   const mismatchGuard = portalInvites.match(
@@ -37,13 +41,27 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   const upsertSource = platformActions.slice(upsertStart, inviteStart);
   const inviteSource = platformActions.slice(inviteStart, updateStart);
   for (const source of [upsertSource, inviteSource]) {
-    const tenantGuard = source.indexOf(".from(tenantUsersTable)");
+    const tenantGuard = source.indexOf("authUserHasTenantMembership(");
     const platformWrite = source.indexOf(".insert(platformUsersTable)");
     assert.ok(
       tenantGuard >= 0 && platformWrite > tenantGuard,
       "tenant identity check must precede the platform write",
     );
   }
+
+  const authPreflight = inviteSource.indexOf("findAuthUserByEmail(");
+  const provision = inviteSource.indexOf("provisionPortalUserForActivation(");
+  const postProvisionGuard = inviteSource.indexOf(
+    "authUserHasTenantMembership(invite.user.id)",
+  );
+  const platformWrite = inviteSource.indexOf(".insert(platformUsersTable)");
+  assert.ok(
+    authPreflight >= 0 &&
+      provision > authPreflight &&
+      postProvisionGuard > provision &&
+      platformWrite > postProvisionGuard,
+    "tenant membership must be checked before e-mail provisioning and again before binding",
+  );
 
   assert.match(inviteSource, /let invite:[\s\S]*=\s*null/u);
   assert.ok(
@@ -53,5 +71,44 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   assert.match(
     inviteSource,
     /catch \{[\s\S]*await invite\.rollback\(\)[\s\S]*platformkoppeling kon niet veilig/u,
+  );
+});
+
+test("database serializes tenant and platform bindings on one Auth UUID", () => {
+  assert.match(
+    authSurfaceMigration,
+    /CREATE FUNCTION public\.fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, public/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /pg_advisory_xact_lock\([\s\S]*hashtextextended\([\s\S]*NEW\.user_id::text/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /TG_TABLE_NAME = 'tenant_users'[\s\S]*FROM public\.platform_users[\s\S]*platform_user\.user_id = NEW\.user_id/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /TG_TABLE_NAME = 'platform_users'[\s\S]*FROM public\.tenant_users[\s\S]*tenant_user\.user_id = NEW\.user_id/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /CREATE TRIGGER tenant_users_auth_surface_separation[\s\S]*BEFORE INSERT OR UPDATE OF user_id ON public\.tenant_users/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /CREATE TRIGGER platform_users_auth_surface_separation[\s\S]*BEFORE INSERT OR UPDATE OF user_id ON public\.platform_users/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /REVOKE ALL ON FUNCTION public\.fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*FROM PUBLIC/u,
+  );
+  assert.doesNotMatch(
+    authSurfaceMigration,
+    /DISABLE ROW LEVEL SECURITY|ALTER TABLE[\s\S]*DISABLE TRIGGER|\bGRANT\b/iu,
+  );
+  assert.doesNotMatch(
+    authSurfaceMigration,
+    /\b(?:UPDATE|DELETE FROM)\s+public\.(?:tenant_users|platform_users)\b/iu,
   );
 });
