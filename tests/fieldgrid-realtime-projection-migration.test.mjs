@@ -7,6 +7,10 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
+import {
+  runSqlMigrationTransaction,
+  sqlForManagedMigrationTransaction,
+} from "../lib/db/src/migration-transaction-retry.ts";
 
 const repoRoot = process.cwd();
 const migrationPath = join(
@@ -86,6 +90,73 @@ test(
 );
 
 if (process.env.DATABASE_URL) {
+  test("active reservation migration journal keeps the committed source hash", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+
+    try {
+      const recorded = await client.query(
+        `SELECT hash, baselined
+           FROM drizzle.veele_sql_migrations
+          WHERE name = $1`,
+        ["20260913171000_bind_active_tenant_invitation_reservations.sql"],
+      );
+      assert.deepEqual(recorded.rows, [
+        {
+          hash: "3c2a0a0ca7c91c59c4aedce5950d9d230dbb0c0715485e67e101b31ce21b0c0b",
+          baselined: false,
+        },
+      ]);
+    } finally {
+      await client.end();
+    }
+  });
+
+  test("managed migration journaling failure rolls back the schema change", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+
+    const probeTable = "public.fieldgrid_migration_atomicity_probe";
+    try {
+      await client.query(`DROP TABLE IF EXISTS ${probeTable}`);
+      const wrappedMigration = [
+        "-- source bytes retain their reviewed transaction wrapper",
+        "BEGIN;",
+        `CREATE TABLE ${probeTable} (id integer PRIMARY KEY);`,
+        "COMMIT;",
+        "",
+      ].join("\n");
+
+      await assert.rejects(
+        runSqlMigrationTransaction(
+          client,
+          () =>
+            client.query(
+              sqlForManagedMigrationTransaction(wrappedMigration),
+            ),
+          () => client.query("SELECT 1 / 0"),
+          { retryDelaysMs: [] },
+        ),
+        (error) => error?.code === "22012",
+      );
+
+      const postRollback = await client.query(
+        `SELECT to_regclass($1)::text AS relation_name`,
+        [probeTable],
+      );
+      assert.deepEqual(postRollback.rows, [{ relation_name: null }]);
+    } finally {
+      await client.query(`DROP TABLE IF EXISTS ${probeTable}`);
+      await client.end();
+    }
+  });
+
   test("authorization invitation tokens enforce reclaim and activation state", async () => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,

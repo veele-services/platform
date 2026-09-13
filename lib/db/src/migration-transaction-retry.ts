@@ -1,5 +1,7 @@
 const migrationDeadlockSqlState = "40P01";
 const defaultDeadlockRetryDelaysMs = [100, 250] as const;
+const standaloneMigrationBegin = /^[\t ]*BEGIN[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
+const standaloneMigrationCommit = /^[\t ]*COMMIT[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 
 export type MigrationTransactionClient = {
   query(queryText: string): Promise<unknown>;
@@ -35,6 +37,51 @@ function isDeadlock(error: unknown): boolean {
     "code" in error &&
     error.code === migrationDeadlockSqlState
   );
+}
+
+function isMigrationBoundaryTrivia(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.length === 0 || trimmed.startsWith("--");
+}
+
+/**
+ * Remove only a migration file's outer transaction statements before it is
+ * executed inside the runner-owned schema-and-journal transaction. The source
+ * bytes remain untouched for migration-history hashing and drift detection.
+ */
+export function sqlForManagedMigrationTransaction(sourceSql: string): string {
+  const lines = sourceSql.split("\n");
+  const firstStatementIndex = lines.findIndex(
+    (line) => !isMigrationBoundaryTrivia(line),
+  );
+  let lastStatementIndex = lines.length - 1;
+  while (
+    lastStatementIndex >= 0 &&
+    isMigrationBoundaryTrivia(lines[lastStatementIndex] ?? "")
+  ) {
+    lastStatementIndex -= 1;
+  }
+
+  const hasOuterBegin =
+    firstStatementIndex >= 0 &&
+    standaloneMigrationBegin.test(lines[firstStatementIndex] ?? "");
+  const hasOuterCommit =
+    lastStatementIndex >= 0 &&
+    standaloneMigrationCommit.test(lines[lastStatementIndex] ?? "");
+
+  if (hasOuterBegin !== hasOuterCommit) {
+    throw new Error(
+      "SQL migration has unmatched file-level transaction control.",
+    );
+  }
+  if (!hasOuterBegin || !hasOuterCommit) return sourceSql;
+
+  return lines
+    .filter(
+      (_line, index) =>
+        index !== firstStatementIndex && index !== lastStatementIndex,
+    )
+    .join("\n");
 }
 
 async function sleep(delayMs: number): Promise<void> {

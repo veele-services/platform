@@ -143,7 +143,7 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
       "pg_catalog.pg_advisory_unlock",
       "await withDatabaseMigrationLock(client, async () => {",
       "await runSqlMigrationTransaction(",
-      "() => client.query(migration.sql)",
+      "() => client.query(sqlForManagedMigrationTransaction(migration.sql))",
       "() => recordSqlMigration(client, migration, false)",
       "prepareMigration: async () =>",
       "await sqlMigrationIsRecorded(client, migration)",

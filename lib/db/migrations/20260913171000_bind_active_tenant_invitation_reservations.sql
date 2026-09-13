@@ -1,3 +1,5 @@
+BEGIN;
+
 -- Existing active tenant members may receive an additional tenant role or be
 -- promoted through a platform-managed invite. Keep that operation durable
 -- across Auth finalization without suspending the member's existing access.
@@ -175,3 +177,5 @@ BEGIN
   END IF;
 END;
 $fieldgrid_active_tenant_invitation_closure$;
+
+COMMIT;

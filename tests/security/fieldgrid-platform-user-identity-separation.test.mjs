@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
@@ -391,10 +392,12 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     activeTenantInvitationReservationMigration,
     /ADD CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*status = 'invited'[\s\S]*status = 'active'[\s\S]*tenant_role_invite'[\s\S]*platform_tenant_admin'[\s\S]*platform_tenant_owner'[\s\S]*NOT VALID[\s\S]*VALIDATE CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*DROP CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*RENAME CONSTRAINT tenant_users_invitation_source_state_check_v2/u,
   );
-  assert.doesNotMatch(
-    activeTenantInvitationReservationMigration,
-    /^(?:BEGIN|COMMIT);$/mu,
-    "the migration runner owns schema-and-journal transaction control",
+  assert.equal(
+    createHash("sha256")
+      .update(activeTenantInvitationReservationMigration)
+      .digest("hex"),
+    "3c2a0a0ca7c91c59c4aedce5950d9d230dbb0c0715485e67e101b31ce21b0c0b",
+    "the committed forward-only migration source hash must remain stable",
   );
   const activeReservationConstraintBranch = sourceBetween(
     activeTenantInvitationReservationMigration,

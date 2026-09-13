@@ -21,6 +21,7 @@ import { loadDbRuntimeEnv } from "./runtime-env";
 import { databaseConnectionConfig } from "./database-environment";
 import {
   runSqlMigrationTransaction,
+  sqlForManagedMigrationTransaction,
   withMigrationSessionLock,
 } from "./migration-transaction-retry";
 
@@ -515,7 +516,7 @@ async function runSqlMigrations(
     console.log(`[db:migrate] SQL applying: ${migration.name}`);
     const result = await runSqlMigrationTransaction(
       client,
-      () => client.query(migration.sql),
+      () => client.query(sqlForManagedMigrationTransaction(migration.sql)),
       () => recordSqlMigration(client, migration, false),
       {
         prepareMigration: async () =>

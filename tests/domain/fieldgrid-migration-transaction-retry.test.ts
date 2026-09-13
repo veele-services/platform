@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   runSqlMigrationTransaction,
+  sqlForManagedMigrationTransaction,
   type MigrationTransactionClient,
   withMigrationSessionLock,
 } from "../../lib/db/src/migration-transaction-retry";
@@ -12,6 +13,56 @@ type SqlStateError = Error & { code: string };
 function sqlStateError(code: string, message: string): SqlStateError {
   return Object.assign(new Error(message), { code });
 }
+
+test("managed migration SQL removes only a matching outer transaction wrapper", () => {
+  const source = [
+    "-- committed source comment",
+    "",
+    "BEGIN;",
+    "",
+    "DO $migration$",
+    "BEGIN",
+    "  PERFORM 'COMMIT;';",
+    "END;",
+    "$migration$;",
+    "",
+    "COMMIT;",
+    "-- trailing source comment",
+    "",
+  ].join("\n");
+
+  assert.equal(
+    sqlForManagedMigrationTransaction(source),
+    [
+      "-- committed source comment",
+      "",
+      "",
+      "DO $migration$",
+      "BEGIN",
+      "  PERFORM 'COMMIT;';",
+      "END;",
+      "$migration$;",
+      "",
+      "-- trailing source comment",
+      "",
+    ].join("\n"),
+  );
+  assert.equal(
+    sqlForManagedMigrationTransaction("SELECT 1;\n"),
+    "SELECT 1;\n",
+  );
+});
+
+test("managed migration SQL rejects unmatched file-level transaction control", () => {
+  assert.throws(
+    () => sqlForManagedMigrationTransaction("BEGIN;\nSELECT 1;\n"),
+    /unmatched file-level transaction control/u,
+  );
+  assert.throws(
+    () => sqlForManagedMigrationTransaction("SELECT 1;\nCOMMIT;\n"),
+    /unmatched file-level transaction control/u,
+  );
+});
 
 test("deadlocked SQL is rolled back before a bounded retry and recorded once", async () => {
   const calls: string[] = [];
@@ -465,7 +516,7 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   const orderedSqlCallbacks = [
     "await runSqlMigrationTransaction(",
     "client,",
-    "() => client.query(migration.sql)",
+    "() => client.query(sqlForManagedMigrationTransaction(migration.sql))",
     "() => recordSqlMigration(client, migration, false)",
     "prepareMigration: async () =>",
     "await sqlMigrationIsRecorded(client, migration)",

@@ -472,7 +472,7 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /for \(const migration of pending\)[\s\S]*await queryable\.query\(migration\.sql\)[\s\S]*INSERT INTO drizzle\.veele_sql_migrations[\s\S]*migration\.name, migration\.hash/u,
+    /for \(const migration of pending\)[\s\S]*await queryable\.query\(sqlForManagedMigrationTransaction\(migration\.sql\)\)[\s\S]*INSERT INTO drizzle\.veele_sql_migrations[\s\S]*migration\.name, migration\.hash/u,
   );
   assert.ok(
     [

@@ -5,6 +5,8 @@ import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { sqlForManagedMigrationTransaction } from "../lib/db/src/migration-transaction-retry.ts";
+
 import {
   FIELD_DEMO_HOST,
   FIELD_DEMO_OWNER_EMAIL,
@@ -2511,7 +2513,7 @@ export async function applyExactPlatformPrivilegePrerequisiteMigrations(
       );
     }
     for (const migration of pending) {
-      await queryable.query(migration.sql);
+      await queryable.query(sqlForManagedMigrationTransaction(migration.sql));
       const inserted = await queryable.query(
         `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
          VALUES ($1, $2, false)
