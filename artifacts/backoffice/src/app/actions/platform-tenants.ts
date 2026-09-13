@@ -76,6 +76,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   finalizePortalAuthorizationReservation,
+  findAuthUserByEmail,
   provisionPortalUserForActivation,
 } from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
@@ -1087,26 +1088,6 @@ async function platformTenantAuthUsersById(
   }
 }
 
-async function findPlatformTenantAuthUserByEmail(
-  email: string,
-): Promise<{ id: string; email: string | null } | null> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-  if (error)
-    throw new Error(
-      `Auth-gebruiker kon niet worden opgezocht: ${error.message}`,
-    );
-
-  const normalizedEmail = normalizeEmail(email);
-  const user = data.users.find(
-    (candidate) => normalizeEmail(candidate.email ?? "") === normalizedEmail,
-  );
-  return user ? { id: user.id, email: user.email ?? null } : null;
-}
-
 async function platformTenantAuthUserHasPlatformMembership(
   userId: string,
 ): Promise<boolean> {
@@ -1128,11 +1109,12 @@ async function inviteOrFindTenantAuthUser(
   actorUserId: string,
 ): Promise<TenantAuthUserInviteResult> {
   let existingAuthUser: Awaited<
-    ReturnType<typeof findPlatformTenantAuthUserByEmail>
+    ReturnType<typeof findAuthUserByEmail>
   >;
   let existingAuthUserHasPlatformMembership: boolean;
   try {
-    existingAuthUser = await findPlatformTenantAuthUserByEmail(email);
+    const admin = createAdminClient();
+    existingAuthUser = await findAuthUserByEmail(admin, email);
     existingAuthUserHasPlatformMembership = existingAuthUser
       ? await platformTenantAuthUserHasPlatformMembership(existingAuthUser.id)
       : false;
@@ -1227,9 +1209,34 @@ async function reserveTenantAuthInvite(
   tenantId: string,
   userId: string,
   role: string,
+  tenantRoleIds: string[],
   invitationSource: TenantAuthInvitationSource,
 ): Promise<TenantAuthReservation> {
+  const expectedTenantRoleIds = [...new Set(tenantRoleIds)].sort();
+  if (expectedTenantRoleIds.length === 0) {
+    throw new Error("Tenantautorisatie vereist minimaal één tenantrol.");
+  }
   return db.transaction(async (tx) => {
+    const lockedRoles = await tx
+      .select({ id: tenantRolesTable.id })
+      .from(tenantRolesTable)
+      .where(
+        and(
+          eq(tenantRolesTable.tenantId, tenantId),
+          inArray(tenantRolesTable.id, expectedTenantRoleIds),
+        ),
+      )
+      .orderBy(asc(tenantRolesTable.id))
+      .for("key share");
+    if (
+      lockedRoles.length !== expectedTenantRoleIds.length ||
+      lockedRoles.some(
+        (lockedRole, index) => lockedRole.id !== expectedTenantRoleIds[index],
+      )
+    ) {
+      throw new Error("Een gereserveerde tenantrol bestaat niet meer.");
+    }
+
     const [createdReservation] = await tx
       .insert(tenantUsersTable)
       .values({
@@ -2720,6 +2727,7 @@ export async function addPlatformTenantAdmin(
         tenantId,
         invite.userId,
         accessRole,
+        roleSelection.roleIds,
         PLATFORM_TENANT_ADMIN_INVITATION_SOURCE,
       ),
     activate: (reservation) =>
@@ -2901,6 +2909,8 @@ export async function deletePlatformTenantAdmin(
       id: tenantUsersTable.id,
       role: tenantUsersTable.role,
       status: tenantUsersTable.status,
+      invitationSource: tenantUsersTable.invitationSource,
+      invitationReservationId: tenantUsersTable.invitationReservationId,
     })
     .from(tenantUsersTable)
     .where(
@@ -2911,8 +2921,42 @@ export async function deletePlatformTenantAdmin(
     )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+  if (
+    tenantUser.invitationSource !== null ||
+    tenantUser.invitationReservationId !== null
+  ) {
+    throw new Error(
+      "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
+    );
+  }
 
   await db.transaction(async (tx) => {
+    const [lockedTenantUser] = await tx
+      .select({
+        id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.id, tenantUser.id),
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (
+      !lockedTenantUser ||
+      lockedTenantUser.invitationSource !== null ||
+      lockedTenantUser.invitationReservationId !== null
+    ) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
+      );
+    }
+
     await tx
       .delete(tenantUserRolesTable)
       .where(
@@ -2922,14 +2966,23 @@ export async function deletePlatformTenantAdmin(
         ),
       );
 
-    await tx
+    const [deletedMembership] = await tx
       .delete(tenantUsersTable)
       .where(
         and(
+          eq(tenantUsersTable.id, lockedTenantUser.id),
           eq(tenantUsersTable.tenantId, tenantId),
           eq(tenantUsersTable.userId, userId),
+          isNull(tenantUsersTable.invitationSource),
+          isNull(tenantUsersTable.invitationReservationId),
         ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (deletedMembership?.id !== lockedTenantUser.id) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
       );
+    }
   });
 
   await auditPlatformTenantAction({
@@ -3127,6 +3180,7 @@ export async function updatePlatformTenantOwnerInvite(
         tenantId,
         invite.userId,
         "owner",
+        roleSelection.roleIds,
         PLATFORM_TENANT_OWNER_INVITATION_SOURCE,
       ),
     activate: (reservation) =>

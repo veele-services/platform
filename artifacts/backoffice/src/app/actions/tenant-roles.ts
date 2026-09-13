@@ -12,7 +12,7 @@ import {
   tenantUserRolesTable,
   tenantUsersTable,
 } from "@workspace/db";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -665,6 +665,23 @@ export async function deleteTenantRole(roleId: string): Promise<ActionResult> {
       return {
         success: false,
         message: "Systeemrollen kunnen niet worden verwijderd.",
+      };
+    }
+
+    const [{ invitationCount }] = await tx
+      .select({ invitationCount: sql<number>`count(*)::int` })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          isNotNull(tenantUsersTable.invitationReservationId),
+        ),
+      );
+    if (invitationCount > 0) {
+      return {
+        success: false,
+        message:
+          "Rollen kunnen niet worden verwijderd terwijl een gebruikersuitnodiging wordt afgerond.",
       };
     }
 

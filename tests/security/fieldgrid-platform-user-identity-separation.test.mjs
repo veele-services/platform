@@ -223,7 +223,7 @@ test("tenant invitations preflight platform identities before Auth delivery", ()
     "type TenantAuthReservation",
   );
   const platformTenantAuthPreflight = platformTenantInviteSource.indexOf(
-    "findPlatformTenantAuthUserByEmail(email)",
+    "findAuthUserByEmail(admin, email)",
   );
   const platformTenantPreflightMembership = platformTenantInviteSource.indexOf(
     "platformTenantAuthUserHasPlatformMembership(existingAuthUser.id)",
@@ -245,6 +245,10 @@ test("tenant invitations preflight platform identities before Auth delivery", ()
   assert.match(
     platformTenantActions,
     /function platformTenantAuthUserHasPlatformMembership[\s\S]*\.from\(platformUsersTable\)[\s\S]*eq\(platformUsersTable\.userId, userId\)/u,
+  );
+  assert.match(
+    portalInvites,
+    /export async function findAuthUserByEmail[\s\S]*for \(let page = 1; page <= 20; page \+= 1\)[\s\S]*listUsers\(\{[\s\S]*page,[\s\S]*perPage: 1000/u,
   );
   assert.match(
     platformTenantInviteSource.slice(platformTenantPostProvisionMembership),
@@ -329,6 +333,20 @@ test("authorization stays inactive until durable Auth finalization", () => {
   assert.match(
     platformTenantActions,
     /function reserveTenantAuthInvite[\s\S]*status: "invited"/u,
+  );
+  const platformTenantReservationSource = sourceBetween(
+    platformTenantActions,
+    "async function reserveTenantAuthInvite",
+    "function tenantAuthReservationPredicate",
+  );
+  assert.ok(
+    platformTenantReservationSource.indexOf('.for("key share")') <
+      platformTenantReservationSource.indexOf(".insert(tenantUsersTable)"),
+    "platform-managed invites must lock their exact tenant roles before reserving membership",
+  );
+  assert.match(
+    platformTenantReservationSource,
+    /expectedTenantRoleIds[\s\S]*eq\(tenantRolesTable\.tenantId, tenantId\)[\s\S]*inArray\(tenantRolesTable\.id, expectedTenantRoleIds\)/u,
   );
   assert.doesNotMatch(
     platformTenantActions,
@@ -440,6 +458,11 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     "export async function updatePlatformTenantAdmin",
     "export async function deletePlatformTenantAdmin",
   );
+  const deleteTenantAdminSource = sourceBetween(
+    platformTenantActions,
+    "export async function deletePlatformTenantAdmin",
+    "export async function sendPlatformTenantAdminPasswordReset",
+  );
   const updateTenantOwnerSource = sourceBetween(
     platformTenantActions,
     "export async function updatePlatformTenantOwnerInvite",
@@ -468,6 +491,10 @@ test("authorization invitation reservations are durable and flow-bound", () => {
   assert.doesNotMatch(
     updateTenantAdminSource,
     /invitationReservationId: null/u,
+  );
+  assert.match(
+    deleteTenantAdminSource,
+    /invitationReservationId: tenantUsersTable\.invitationReservationId[\s\S]*\.for\("update"\)[\s\S]*lockedTenantUser\.invitationReservationId !== null[\s\S]*\.delete\(tenantUsersTable\)[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: tenantUsersTable\.id \}\)/u,
   );
 
   assert.match(
@@ -521,6 +548,9 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     "export async function updatePersonnelEmail",
     "export async function setPersonnelAuthBan",
   );
+  const deletePersonnelSource = personnelActions.slice(
+    personnelActions.indexOf("export async function deletePersonnel"),
+  );
   for (const genericPersonnelWrite of [
     updatePersonnelSource,
     setPersonnelStatusSource,
@@ -544,6 +574,10 @@ test("authorization invitation reservations are durable and flow-bound", () => {
   assert.match(
     updatePersonnelEmailSource,
     /invitationReservationId: personnelTable\.invitationReservationId[\s\S]*person\.invitationReservationId !== null[\s\S]*isNull\(personnelTable\.userId\)[\s\S]*isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
+  );
+  assert.match(
+    deletePersonnelSource,
+    /invitationReservationId: personnelTable\.invitationReservationId[\s\S]*person\.invitationReservationId !== null[\s\S]*\.delete\(personnelTable\)[\s\S]*isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
   );
   assert.match(
     platformUserSeed,

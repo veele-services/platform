@@ -92,6 +92,10 @@ test("privileged role assignment, reset and delete stay explicit and atomic", ()
   const remove = action(source, "deleteTenantRole");
   assert.match(remove, /await db\.transaction/u);
   assert.match(remove, /\.for\("update"\)/u);
+  assert.match(
+    remove,
+    /isNotNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*invitationCount > 0[\s\S]*Rollen kunnen niet worden verwijderd terwijl een gebruikersuitnodiging wordt afgerond/u,
+  );
   assert.match(remove, /await tx\.insert\(auditLogTable\)/u);
   assert.match(remove, /eq\(tenantUsersTable\.status, "active"\)/u);
   assert.doesNotMatch(remove, /personnelTable/u);

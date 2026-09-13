@@ -1615,14 +1615,42 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
-    .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+    .select({
+      id: personnelTable.id,
+      firstName: personnelTable.firstName,
+      lastName: personnelTable.lastName,
+      invitationReservationId: personnelTable.invitationReservationId,
+    })
     .from(personnelTable)
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (person.invitationReservationId !== null) {
+    return {
+      success: false,
+      message:
+        "De medewerker kan niet worden verwijderd terwijl de uitnodiging wordt afgerond.",
+    };
+  }
 
-  await db.delete(personnelTable).where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
+  const [deleted] = await db
+    .delete(personnelTable)
+    .where(
+      and(
+        eq(personnelTable.id, id),
+        eq(personnelTable.tenantId, tenantId),
+        isNull(personnelTable.invitationReservationId),
+      ),
+    )
+    .returning({ id: personnelTable.id });
+  if (deleted?.id !== person.id) {
+    return {
+      success: false,
+      message:
+        "De personeelsuitnodiging veranderde; controleer de status en probeer opnieuw.",
+    };
+  }
 
   await db.insert(auditLogTable).values({
     tenantId,
