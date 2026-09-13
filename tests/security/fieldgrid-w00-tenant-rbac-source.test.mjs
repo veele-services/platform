@@ -102,14 +102,25 @@ test("privileged role assignment, reset and delete stay explicit and atomic", ()
   }
 });
 
-test("portal invite provisioning exposes checked compensation and uses it on failure", () => {
+test("portal invite compensation revokes activation without stale Auth writes", () => {
   const source = read("artifacts/backoffice/src/lib/auth/portal-invites.ts");
+  const rollbackStart = source.indexOf("const rollback = async () =>");
+  const challengeStart = source.indexOf(
+    "const challenge = await issueCredentialRecoveryChallenge(",
+    rollbackStart,
+  );
+  assert.ok(rollbackStart >= 0 && challengeStart > rollbackStart);
+  const rollback = source.slice(rollbackStart, challengeStart);
   assert.match(source, /rollback: \(\) => Promise<void>/u);
-  assert.match(source, /revokeCredentialRecoveryChallenges/u);
-  assert.match(source, /admin\.auth\.admin\.deleteUser\(user\.id\)/u);
-  assert.match(source, /app_metadata: originalUser\.app_metadata/u);
-  assert.match(source, /user_metadata: originalUser\.user_metadata/u);
-  assert.match(source, /if \(errors\.length > 0\)/u);
+  assert.match(rollback, /revokeCredentialRecoveryChallenges/u);
+  assert.match(rollback, /created \|\| existingIdentityUpdated/u);
+  assert.match(rollback, /errors\.push\("auth-identiteitscontrole"\)/u);
+  assert.doesNotMatch(rollback, /deleteUser|updateUserById/u);
+  assert.doesNotMatch(rollback, /app_metadata|user_metadata/u);
+  assert.match(
+    rollback,
+    /challengeRevocationFailed = true;[\s\S]*if \(!challengeRevocationFailed\) rolledBack = true;[\s\S]*if \(errors\.length > 0\)/u,
+  );
   assert.match(source, /await rollback\(\)/u);
   assert.doesNotMatch(source, /Promise\.allSettled/u);
 });

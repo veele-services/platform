@@ -128,6 +128,7 @@ function checkMigrationManifest() {
     new Set([
       "public.assignment_sector_prefix",
       "public.fieldgrid_assert_staffing_eligibility",
+      "public.fieldgrid_enforce_auth_surface_separation",
       "public.next_assignment_code",
       "public.next_entity_code",
       "public.resolve_assignment_sector_prefix",

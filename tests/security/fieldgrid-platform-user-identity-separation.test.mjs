@@ -10,8 +10,12 @@ const portalInvites = readFileSync(
   "artifacts/backoffice/src/lib/auth/portal-invites.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
-const authSurfaceMigration = readFileSync(
+const initialAuthSurfaceMigration = readFileSync(
   "lib/db/migrations/20260913154500_prevent_cross_portal_identity_reuse.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const authSurfaceMigration = readFileSync(
+  "lib/db/migrations/20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
 
@@ -77,35 +81,51 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
 test("database serializes tenant and platform bindings on one Auth UUID", () => {
   assert.match(
     authSurfaceMigration,
-    /CREATE FUNCTION public\.fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, public/u,
+    /LOCK TABLE public\.tenant_users, public\.platform_users[\s\S]*IN SHARE ROW EXCLUSIVE MODE/u,
   );
   assert.match(
     authSurfaceMigration,
-    /pg_advisory_xact_lock\([\s\S]*hashtextextended\([\s\S]*NEW\.user_id::text/u,
+    /expected_trigger\(trigger_name, relation_id\)[\s\S]*trigger_row\.tgtype::integer = 23[\s\S]*trigger_row\.tgenabled = 'O'/u,
   );
   assert.match(
     authSurfaceMigration,
-    /TG_TABLE_NAME = 'tenant_users'[\s\S]*FROM public\.platform_users[\s\S]*platform_user\.user_id = NEW\.user_id/u,
+    /CREATE TABLE public\.fieldgrid_auth_surface_locks \([\s\S]*user_id uuid PRIMARY KEY[\s\S]*revision bigint NOT NULL/u,
   );
   assert.match(
     authSurfaceMigration,
-    /TG_TABLE_NAME = 'platform_users'[\s\S]*FROM public\.tenant_users[\s\S]*tenant_user\.user_id = NEW\.user_id/u,
+    /INSERT INTO public\.fieldgrid_auth_surface_locks \(user_id\)[\s\S]*FROM public\.tenant_users[\s\S]*UNION[\s\S]*FROM public\.platform_users/u,
   );
   assert.match(
     authSurfaceMigration,
-    /CREATE TRIGGER tenant_users_auth_surface_separation[\s\S]*BEFORE INSERT OR UPDATE OF user_id ON public\.tenant_users/u,
+    /CREATE OR REPLACE FUNCTION public\.fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, public/u,
   );
   assert.match(
     authSurfaceMigration,
-    /CREATE TRIGGER platform_users_auth_surface_separation[\s\S]*BEFORE INSERT OR UPDATE OF user_id ON public\.platform_users/u,
+    /INSERT INTO public\.fieldgrid_auth_surface_locks AS surface_lock[\s\S]*ON CONFLICT \(user_id\) DO UPDATE[\s\S]*surface_lock\.revision \+ 1[\s\S]*RETURNING user_id INTO barrier_user_id/u,
   );
   assert.match(
     authSurfaceMigration,
-    /REVOKE ALL ON FUNCTION public\.fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*FROM PUBLIC/u,
+    /TG_TABLE_NAME = 'tenant_users'[\s\S]*FROM public\.platform_users[\s\S]*platform_user\.user_id = NEW\.user_id[\s\S]*FROM public\.tenant_users[\s\S]*tenant_user\.user_id = NEW\.user_id/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /ALTER TABLE public\.fieldgrid_auth_surface_locks ENABLE ROW LEVEL SECURITY[\s\S]*REVOKE ALL ON TABLE public\.fieldgrid_auth_surface_locks FROM PUBLIC/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /fieldgrid_runtime_relation_capabilities[\s\S]*'fieldgrid_auth_surface_locks'[\s\S]*'function_only'[\s\S]*'20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql'/u,
+  );
+  assert.match(
+    authSurfaceMigration,
+    /fieldgrid_runtime_function_capabilities[\s\S]*'fieldgrid_enforce_auth_surface_separation'[\s\S]*'trigger_dependency'[\s\S]*'20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql'/u,
+  );
+  assert.match(
+    initialAuthSurfaceMigration,
+    /CREATE TRIGGER tenant_users_auth_surface_separation[\s\S]*CREATE TRIGGER platform_users_auth_surface_separation/u,
   );
   assert.doesNotMatch(
     authSurfaceMigration,
-    /DISABLE ROW LEVEL SECURITY|ALTER TABLE[\s\S]*DISABLE TRIGGER|\bGRANT\b/iu,
+    /pg_advisory_xact_lock|DISABLE ROW LEVEL SECURITY|DISABLE TRIGGER|\bGRANT\b/iu,
   );
   assert.doesNotMatch(
     authSurfaceMigration,

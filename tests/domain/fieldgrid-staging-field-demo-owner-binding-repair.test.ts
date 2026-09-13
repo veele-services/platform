@@ -12,6 +12,7 @@ import {
   FIELD_DEMO_RETAINED_OWNER_ID,
   FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
   FIELD_DEMO_SUPERSEDED_OWNER_ID,
+  assertRecipientHistoryMigrationFrontier,
   classifyFieldDemoOwnerBinding,
   fieldDemoOwnerAppMetadataMatches,
   fieldDemoOwnerAuthMetadataIsNormalized,
@@ -39,6 +40,19 @@ const tenantId = "10000000-0000-4000-8000-000000000081";
 const ownerUserId = FIELD_DEMO_RETAINED_OWNER_ID;
 const automationUserId = "10000000-0000-4000-8000-000000000082";
 const managementRoleId = "10000000-0000-4000-8000-000000000083";
+
+const recipientHistoryFrontier = {
+  predecessors: [
+    { name: "001_before.sql", hash: "1".repeat(64), sql: "SELECT 1;" },
+    { name: "002_before.sql", hash: "2".repeat(64), sql: "SELECT 2;" },
+  ],
+  target: {
+    name: "003_recipient_history.sql",
+    hash: "3".repeat(64),
+    sql: "SELECT 3;",
+  },
+  successors: new Set(["004_after.sql"]),
+};
 
 const validEnvironment = {
   APP_ENV: "staging",
@@ -199,6 +213,56 @@ async function captureError(run: () => Promise<unknown>): Promise<unknown> {
   }
   assert.fail("Expected owner-binding repair to fail.");
 }
+
+test("recipient-history migration requires an exact contiguous predecessor frontier", () => {
+  const predecessorRecords = recipientHistoryFrontier.predecessors.map(
+    ({ name, hash }, index) => ({ name, hash, baselined: index === 0 }),
+  );
+  assert.equal(
+    assertRecipientHistoryMigrationFrontier(
+      recipientHistoryFrontier,
+      predecessorRecords,
+    ),
+    "pending",
+  );
+  assert.equal(
+    assertRecipientHistoryMigrationFrontier(recipientHistoryFrontier, [
+      ...predecessorRecords,
+      {
+        name: recipientHistoryFrontier.target.name,
+        hash: recipientHistoryFrontier.target.hash,
+        baselined: false,
+      },
+    ]),
+    "recorded",
+  );
+
+  for (const records of [
+    predecessorRecords.slice(1),
+    [{ ...predecessorRecords[0]!, hash: "f".repeat(64) }],
+    [
+      ...predecessorRecords,
+      { name: "004_after.sql", hash: "4".repeat(64), baselined: false },
+    ],
+    [
+      ...predecessorRecords,
+      {
+        name: recipientHistoryFrontier.target.name,
+        hash: recipientHistoryFrontier.target.hash,
+        baselined: true,
+      },
+    ],
+  ]) {
+    assert.throws(
+      () =>
+        assertRecipientHistoryMigrationFrontier(
+          recipientHistoryFrontier,
+          records,
+        ),
+      /migration|frontier/iu,
+    );
+  }
+});
 
 test("owner-binding configuration is exact staging and exact main only", () => {
   for (const mode of ["diagnose", "repair", "reconcile"] as const) {

@@ -142,12 +142,21 @@ if (process.env.DATABASE_URL) {
          VALUES ($1, 'surface-separation', 'Surface separation', true, 'active')`,
         [separatedTenantId],
       );
+      const firstPid = await first.query(
+        "SELECT pg_backend_pid()::integer AS pid",
+      );
       const secondPid = await second.query(
         "SELECT pg_backend_pid()::integer AS pid",
       );
 
+      await second.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+      await second.query(
+        `SELECT revision
+           FROM public.fieldgrid_auth_surface_locks
+          WHERE user_id = $1`,
+        [separatedAuthUserId],
+      );
       await first.query("BEGIN");
-      await second.query("BEGIN");
       await first.query(
         `INSERT INTO public.platform_users (id, user_id, role, status)
          VALUES ($1, $2, 'admin', 'active')`,
@@ -162,14 +171,10 @@ if (process.env.DATABASE_URL) {
       let waitingOnIdentityLock = false;
       for (let attempt = 0; attempt < 50; attempt += 1) {
         const waiting = await first.query(
-          `SELECT EXISTS (
-             SELECT 1
-               FROM pg_catalog.pg_locks
-              WHERE pid = $1
-                AND locktype = 'advisory'
-                AND granted = false
+          `SELECT $1::integer = ANY(
+             pg_catalog.pg_blocking_pids($2::integer)
            ) AS waiting`,
-          [secondPid.rows[0]?.pid],
+          [firstPid.rows[0]?.pid, secondPid.rows[0]?.pid],
         );
         waitingOnIdentityLock = waiting.rows[0]?.waiting === true;
         if (waitingOnIdentityLock) break;
@@ -182,12 +187,7 @@ if (process.env.DATABASE_URL) {
       );
 
       await first.query("COMMIT");
-      await assert.rejects(
-        tenantInsert,
-        (error) =>
-          error?.code === "23514" &&
-          error?.constraint === "fieldgrid_auth_surface_separation",
-      );
+      await assert.rejects(tenantInsert, (error) => error?.code === "40001");
       tenantInsert = null;
       await second.query("ROLLBACK");
 

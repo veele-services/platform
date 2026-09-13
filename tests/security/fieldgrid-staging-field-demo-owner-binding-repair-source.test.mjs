@@ -358,6 +358,35 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
     script,
     /drizzle\.veele_sql_migrations[\s\S]*PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME[\s\S]*migrationHash/u,
   );
+  assert.match(
+    script,
+    /readdir\(migrationsDir,[\s\S]*PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME[\s\S]*predecessors: migrations\.slice\(0, -1\)[\s\S]*successors: new Set/u,
+  );
+  assert.match(
+    script,
+    /for \(const migration of frontier\.predecessors\)[\s\S]*record\.hash !== migration\.hash/u,
+  );
+  assert.match(
+    script,
+    /records\.some\([\s\S]*?frontier\.successors\.has\(record\.name\)[\s\S]*?record\.name\.localeCompare\(frontier\.target\.name\) > 0/u,
+  );
+  assert.ok(
+    [...script.matchAll(/SELECT name, hash, baselined[\s\S]*?ORDER BY name/gu)]
+      .length >= 2,
+    "migration state and its locked recheck must validate the complete frontier",
+  );
+  assert.match(
+    script,
+    /SELECT platform_user\.id\s+FROM public\.platform_users AS platform_user\s+ORDER BY platform_user\.id\s+FOR UPDATE/u,
+  );
+  assert.match(
+    script,
+    /postPlatformSummary\.automationActorState !== "single-admin-ready"[\s\S]*postPlatformSummary\.configuredActorState !==[\s\S]*"other-active-eligible"/u,
+  );
+  assert.match(
+    script,
+    /freshPlatformSnapshot\.other_active_platform_owner_count < 1[\s\S]*freshPlatformSummary\.automationActorState !== "single-admin-ready"[\s\S]*freshPlatformSummary\.configuredActorState !==[\s\S]*"other-active-eligible"/u,
+  );
   const repairStart = script.indexOf(
     'if (operation === "repair-platform-privilege")',
   );

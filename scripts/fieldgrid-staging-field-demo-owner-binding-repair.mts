@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -2113,20 +2113,111 @@ async function waitForFieldDemoOwnerAuthPostimage(
   return null;
 }
 
+type ReviewedSqlMigration = {
+  name: string;
+  hash: string;
+  sql: string;
+};
+
+type SqlMigrationHistoryRecord = {
+  name: string;
+  hash: string;
+  baselined: boolean;
+};
+
+function reviewedSqlMigrationHash(sql: string): string {
+  return createHash("sha256").update(sql.replace(/\r\n/gu, "\n")).digest("hex");
+}
+
+async function loadRecipientHistoryMigrationFrontier(): Promise<{
+  predecessors: ReviewedSqlMigration[];
+  target: ReviewedSqlMigration;
+  successors: ReadonlySet<string>;
+}> {
+  const migrationsDir = join(repoRoot, "lib", "db", "migrations");
+  const names = (await readdir(migrationsDir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && /^\d+.*\.sql$/u.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+  const targetIndex = names.indexOf(PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME);
+  if (targetIndex < 0) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Reviewed recipient-history migration is absent from the SQL frontier.",
+      "platform_privilege_precondition",
+    );
+  }
+  const migrations = await Promise.all(
+    names.slice(0, targetIndex + 1).map(async (name) => {
+      const sql = await readFile(join(migrationsDir, name), "utf8");
+      return { name, hash: reviewedSqlMigrationHash(sql), sql };
+    }),
+  );
+  const target = migrations.at(-1);
+  if (!target || target.name !== PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Reviewed recipient-history migration frontier is ambiguous.",
+      "platform_privilege_precondition",
+    );
+  }
+  return {
+    predecessors: migrations.slice(0, -1),
+    target,
+    successors: new Set(names.slice(targetIndex + 1)),
+  };
+}
+
+export function assertRecipientHistoryMigrationFrontier(
+  frontier: Awaited<ReturnType<typeof loadRecipientHistoryMigrationFrontier>>,
+  records: SqlMigrationHistoryRecord[],
+): "pending" | "recorded" {
+  const recordsByName = new Map(records.map((record) => [record.name, record]));
+  for (const migration of frontier.predecessors) {
+    const record = recordsByName.get(migration.name);
+    if (!record || record.hash !== migration.hash) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history does not match the reviewed predecessor frontier.",
+        "platform_privilege_precondition",
+      );
+    }
+  }
+
+  const targetRecord = recordsByName.get(frontier.target.name);
+  if (targetRecord) {
+    if (targetRecord.hash !== frontier.target.hash || targetRecord.baselined) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "Recipient-history migration record does not match reviewed source.",
+        "platform_privilege_precondition",
+      );
+    }
+    return "recorded";
+  }
+
+  if (
+    records.some(
+      (record) =>
+        frontier.successors.has(record.name) ||
+        record.name.localeCompare(frontier.target.name) > 0,
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Recipient-history migration is missing behind the recorded SQL frontier.",
+      "platform_privilege_precondition",
+    );
+  }
+  return "pending";
+}
+
 async function applyExactPlatformRecipientHistoryMigration(
   queryable: Queryable,
 ): Promise<boolean> {
-  const migrationSql = await readFile(
-    join(
-      repoRoot,
-      "lib",
-      "db",
-      "migrations",
-      PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME,
-    ),
-    "utf8",
-  );
-  const migrationHash = createHash("sha256").update(migrationSql).digest("hex");
+  const frontier = await loadRecipientHistoryMigrationFrontier();
+  const migrationSql = frontier.target.sql;
+  const migrationHash = frontier.target.hash;
   let migrationLockAcquired = false;
   let migrationTransactionStarted = false;
   try {
@@ -2159,46 +2250,30 @@ async function applyExactPlatformRecipientHistoryMigration(
       );
     }
 
-    const recorded = await queryable.query<{
-      hash: string;
-      baselined: boolean;
-    }>(
-      `SELECT hash, baselined
+    const recorded = await queryable.query<SqlMigrationHistoryRecord>(
+      `SELECT name, hash, baselined
          FROM drizzle.veele_sql_migrations
-        WHERE name = $1`,
-      [PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME],
+        ORDER BY name`,
     );
-    if (recorded.rows.length > 1) {
-      throw new FieldDemoOwnerBindingError(
-        "field_demo_owner_binding_precondition_invalid",
-        "Recipient-history migration record is ambiguous.",
-        "platform_privilege_precondition",
-      );
-    }
-    if (recorded.rows.length === 1) {
-      if (
-        recorded.rows[0]?.hash !== migrationHash ||
-        recorded.rows[0]?.baselined !== false
-      ) {
-        throw new FieldDemoOwnerBindingError(
-          "field_demo_owner_binding_precondition_invalid",
-          "Recipient-history migration record does not match reviewed source.",
-          "platform_privilege_precondition",
-        );
-      }
+    if (
+      assertRecipientHistoryMigrationFrontier(frontier, recorded.rows) ===
+      "recorded"
+    ) {
       return false;
     }
 
     await queryable.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
     migrationTransactionStarted = true;
-    const recheck = await queryable.query<{ hash: string; baselined: boolean }>(
-      `SELECT hash, baselined
+    const recheck = await queryable.query<SqlMigrationHistoryRecord>(
+      `SELECT name, hash, baselined
          FROM drizzle.veele_sql_migrations
-        WHERE name = $1
+        ORDER BY name
         FOR UPDATE`,
-      [PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME],
     );
-    if (recheck.rows.length !== 0) {
+    if (
+      assertRecipientHistoryMigrationFrontier(frontier, recheck.rows) !==
+      "pending"
+    ) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
         "Recipient-history migration state changed under its lock.",
@@ -2395,16 +2470,12 @@ async function lockFieldDemoOwnerBindingRows(
 async function lockFieldDemoPlatformPrivilegeRows(
   queryable: Queryable,
   platformUserId: string,
-  ownerUserId: string,
 ): Promise<void> {
   await queryable.query(
     `SELECT platform_user.id
        FROM public.platform_users AS platform_user
-      WHERE platform_user.id = $1::uuid
-        AND platform_user.user_id = $2::uuid
       ORDER BY platform_user.id
       FOR UPDATE`,
-    [platformUserId, ownerUserId],
   );
   await queryable.query(
     `SELECT recipient.id
@@ -2867,7 +2938,6 @@ async function runOwnerBindingOperation(
         await lockFieldDemoPlatformPrivilegeRows(
           client,
           beforeTarget.platformUserId,
-          beforeTarget.userId,
         );
       }
       const before = await loadFieldDemoOwnerBindingSnapshot(client);
@@ -3048,11 +3118,7 @@ async function runOwnerBindingOperation(
       transactionStarted = true;
       transactionFinished = false;
       await lockFieldDemoOwnerBindingRows(client);
-      await lockFieldDemoPlatformPrivilegeRows(
-        client,
-        platformUserId,
-        normalizedTarget.userId,
-      );
+      await lockFieldDemoPlatformPrivilegeRows(client, platformUserId);
 
       failureStage = "platform_privilege_precondition";
       const lockedSnapshot = await loadFieldDemoOwnerBindingSnapshot(client);
@@ -3119,18 +3185,22 @@ async function runOwnerBindingOperation(
       const postDecision = classifyFieldDemoOwnerBinding(postSnapshot);
       const postTarget =
         await loadFieldDemoPlatformPrivilegeRepairTarget(client);
-      const postPlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+      const postPlatformSnapshot =
         await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
           client,
           configuredAutomationActor,
-        ),
-      );
+        );
+      const postPlatformSummary =
+        summarizeFieldDemoOwnerPlatformPrivilege(postPlatformSnapshot);
       if (
         postDecision.state !== "already-valid" ||
         postTarget.platformUserId !== null ||
         !fieldDemoOwnerAuthMetadataIsNormalized(postTarget) ||
         !fieldDemoOwnerAppMetadataMatches(postTarget, expectedAppMetadata) ||
         postPlatformSummary.accountState !== "absent" ||
+        postPlatformSnapshot.other_active_platform_owner_count < 1 ||
+        postPlatformSummary.automationActorState !== "single-admin-ready" ||
+        postPlatformSummary.configuredActorState !== "other-active-eligible" ||
         postPlatformSummary.foreignKeyContractState !== "exact" ||
         postPlatformSummary.deletionBlockState !== "none"
       ) {
@@ -3149,11 +3219,13 @@ async function runOwnerBindingOperation(
       const freshSnapshot = await loadFieldDemoOwnerBindingSnapshot(client);
       const freshTarget =
         await loadFieldDemoPlatformPrivilegeRepairTarget(client);
-      const freshPlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+      const freshPlatformSnapshot =
         await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
           client,
           configuredAutomationActor,
-        ),
+        );
+      const freshPlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+        freshPlatformSnapshot,
       );
       if (
         classifyFieldDemoOwnerBinding(freshSnapshot).state !==
@@ -3162,6 +3234,9 @@ async function runOwnerBindingOperation(
         !fieldDemoOwnerAuthMetadataIsNormalized(freshTarget) ||
         !fieldDemoOwnerAppMetadataMatches(freshTarget, expectedAppMetadata) ||
         freshPlatformSummary.accountState !== "absent" ||
+        freshPlatformSnapshot.other_active_platform_owner_count < 1 ||
+        freshPlatformSummary.automationActorState !== "single-admin-ready" ||
+        freshPlatformSummary.configuredActorState !== "other-active-eligible" ||
         freshPlatformSummary.foreignKeyContractState !== "exact"
       ) {
         throw new FieldDemoOwnerBindingError(

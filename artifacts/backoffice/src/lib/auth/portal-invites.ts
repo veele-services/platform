@@ -212,7 +212,7 @@ export async function provisionPortalUserForActivation(opts: {
 
   let user: User;
   let created = false;
-  let originalUser: User | null = null;
+  let existingIdentityUpdated = false;
   if (!createError && createdData.user) {
     user = createdData.user;
     created = true;
@@ -228,7 +228,6 @@ export async function provisionPortalUserForActivation(opts: {
         "Het bestaande auth-account kon niet veilig worden opgehaald.",
       );
     }
-    originalUser = existingUser;
     const existingPortal = existingUser.app_metadata?.portal;
     if (existingPortal && existingPortal !== opts.portal) {
       throw new Error(
@@ -265,6 +264,7 @@ export async function provisionPortalUserForActivation(opts: {
       );
     }
     user = updatedData.user;
+    existingIdentityUpdated = true;
   }
 
   let challengeId: string | null = null;
@@ -272,6 +272,7 @@ export async function provisionPortalUserForActivation(opts: {
   const rollback = async () => {
     if (rolledBack) return;
     const errors: string[] = [];
+    let challengeRevocationFailed = false;
 
     if (challengeId) {
       try {
@@ -284,27 +285,28 @@ export async function provisionPortalUserForActivation(opts: {
           reason: "portal_invite_rolled_back",
         });
       } catch {
+        challengeRevocationFailed = true;
         errors.push("activatie-intrekking");
       }
     }
 
-    if (created) {
-      const { error } = await admin.auth.admin.deleteUser(user.id);
-      if (error) errors.push("auth-accountverwijdering");
-    } else if (originalUser) {
-      const { error } = await admin.auth.admin.updateUserById(user.id, {
-        app_metadata: originalUser.app_metadata,
-        user_metadata: originalUser.user_metadata,
-      });
-      if (error) errors.push("auth-metadataherstel");
+    if (created || existingIdentityUpdated) {
+      // Supabase Auth has no compare-and-delete or compare-and-update contract.
+      // Automatic reversal could therefore delete an identity adopted by a
+      // concurrent successful invite or overwrite newer metadata. Keep the
+      // random-password identity fail-closed, revoke its activation challenge,
+      // and require an explicit read-before-write operator reconciliation.
+      errors.push("auth-identiteitscontrole");
     }
 
+    // Keep rollback retryable only while a live activation challenge may
+    // remain. Auth reconciliation itself is deliberately an operator action.
+    if (!challengeRevocationFailed) rolledBack = true;
     if (errors.length > 0) {
       throw new Error(
         `Uitnodiging is geweigerd, maar ${errors.join(" en ")} vereist handmatige controle.`,
       );
     }
-    rolledBack = true;
   };
 
   try {
