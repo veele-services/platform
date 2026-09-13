@@ -59,6 +59,7 @@ type OwnerBindingEnvironment = Record<string, string | undefined> & {
   FIELDGRID_MIGRATION_DATABASE_URL?: string;
   FIELDGRID_DATABASE_CONNECTION_PURPOSE?: string;
   FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION?: string;
+  FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?: string;
 };
 
 export type FieldDemoOwnerBindingSnapshot = {
@@ -106,6 +107,112 @@ export type FieldDemoOwnerBindingSnapshot = {
   owner_target_role_link_count: number;
   owner_target_management_link_count: number;
   owner_target_nonmanagement_link_count: number;
+};
+
+export type FieldDemoOwnerPlatformPrivilegeSnapshot = {
+  auth_email_count: number;
+  auth_contract_count: number;
+  auth_environment_count: number;
+  auth_tenant_portal_count: number;
+  auth_platform_portal_count: number;
+  platform_user_count: number;
+  platform_user_active_count: number;
+  platform_user_inactive_count: number;
+  platform_user_suspended_count: number;
+  platform_user_owner_role_count: number;
+  platform_user_admin_role_count: number;
+  platform_user_support_role_count: number;
+  other_active_platform_owner_count: number;
+  other_active_platform_admin_count: number;
+  configured_actor_provided_count: number;
+  configured_actor_matches_owner_count: number;
+  configured_actor_eligible_count: number;
+  platform_support_grant_count: number;
+  platform_current_support_grant_count: number;
+  platform_current_runtime_support_grant_count: number;
+  platform_future_support_grant_count: number;
+  platform_support_actor_audit_count: number;
+  platform_blocking_reference_count: number;
+  platform_set_null_reference_count: number;
+  platform_audit_event_count: number;
+  platform_invite_event_count: number;
+  platform_create_event_count: number;
+  direct_platform_fk_count: number;
+  exact_direct_platform_fk_count: number;
+  indirect_grant_fk_count: number;
+  exact_indirect_grant_fk_count: number;
+  exact_set_null_nullable_column_count: number;
+  recipient_scope_check_count: number;
+  unexpected_set_null_check_count: number;
+  unexpected_deletion_path_trigger_count: number;
+};
+
+export type FieldDemoOwnerPlatformPrivilegeSummary = {
+  accountState:
+    | "absent"
+    | "active-owner"
+    | "active-admin"
+    | "active-support"
+    | "inactive-owner"
+    | "inactive-admin"
+    | "inactive-support"
+    | "suspended-owner"
+    | "suspended-admin"
+    | "suspended-support"
+    | "ambiguous";
+  continuityState:
+    | "not-applicable"
+    | "sole-active-owner"
+    | "other-active-owner-present"
+    | "ambiguous";
+  automationActorState:
+    | "single-admin-ready"
+    | "single-owner-ready"
+    | "none"
+    | "multiple-admins"
+    | "multiple-owners"
+    | "ambiguous";
+  configuredActorState:
+    | "not-configured"
+    | "target-eligible"
+    | "target-ineligible"
+    | "other-active-eligible"
+    | "configured-ineligible"
+    | "ambiguous";
+  authMetadataState:
+    | "tenant-owner-compatible"
+    | "platform-admin-portal"
+    | "incompatible"
+    | "unavailable";
+  supportGrantState:
+    | "none"
+    | "historical-only"
+    | "current"
+    | "future"
+    | "current-and-future"
+    | "ambiguous";
+  effectiveSupportState:
+    | "none"
+    | "active"
+    | "blocked-by-platform-status"
+    | "blocked-by-tenant-status"
+    | "blocked-by-platform-and-tenant-status"
+    | "ambiguous";
+  foreignKeyContractState: "exact" | "drift" | "ambiguous";
+  deletionBlockState: "none" | "notification-recipient-reference" | "ambiguous";
+  deletionImpactState:
+    | "none"
+    | "cascade-history-present"
+    | "set-null-history-present"
+    | "cascade-and-set-null-history-present"
+    | "ambiguous";
+  provenanceState:
+    | "none"
+    | "invite-event-present"
+    | "create-event-present"
+    | "mixed-events-present"
+    | "other-audit-history"
+    | "ambiguous";
 };
 
 export type FieldDemoOwnerBindingState =
@@ -185,7 +292,7 @@ class FieldDemoOwnerBindingError extends Error {
 }
 
 type OwnerBindingEvidence = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   contract: typeof FIELD_DEMO_OWNER_BINDING_VERSION;
   environment: "staging";
   operation: "diagnose" | "repair" | "reconcile";
@@ -201,6 +308,7 @@ type OwnerBindingEvidence = {
   errorCode: OwnerBindingErrorCode | null;
   failureStage: OwnerBindingFailureStage;
   failureReason: FieldDemoOwnerBindingFailureReason | null;
+  platformPrivilegeSummary: FieldDemoOwnerPlatformPrivilegeSummary | null;
   startedAt: string;
   completedAt: string;
 };
@@ -404,6 +512,15 @@ export function validateFieldDemoOwnerBindingConfig(
       "owner-binding operation requires migration connection purpose",
     );
   }
+  const configuredActor =
+    environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?.trim() ?? "";
+  if (
+    options.mode === "diagnose" &&
+    configuredActor &&
+    !UUID_PATTERN.test(configuredActor)
+  ) {
+    errors.push("configured website automation actor is invalid");
+  }
   return errors;
 }
 
@@ -458,6 +575,319 @@ function snapshotCountsAreValid(
     (field) =>
       Number.isInteger(snapshot[field]) && Number(snapshot[field]) >= 0,
   );
+}
+
+const PLATFORM_PRIVILEGE_COUNT_FIELDS: ReadonlyArray<
+  keyof FieldDemoOwnerPlatformPrivilegeSnapshot
+> = [
+  "auth_email_count",
+  "auth_contract_count",
+  "auth_environment_count",
+  "auth_tenant_portal_count",
+  "auth_platform_portal_count",
+  "platform_user_count",
+  "platform_user_active_count",
+  "platform_user_inactive_count",
+  "platform_user_suspended_count",
+  "platform_user_owner_role_count",
+  "platform_user_admin_role_count",
+  "platform_user_support_role_count",
+  "other_active_platform_owner_count",
+  "other_active_platform_admin_count",
+  "configured_actor_provided_count",
+  "configured_actor_matches_owner_count",
+  "configured_actor_eligible_count",
+  "platform_support_grant_count",
+  "platform_current_support_grant_count",
+  "platform_current_runtime_support_grant_count",
+  "platform_future_support_grant_count",
+  "platform_support_actor_audit_count",
+  "platform_blocking_reference_count",
+  "platform_set_null_reference_count",
+  "platform_audit_event_count",
+  "platform_invite_event_count",
+  "platform_create_event_count",
+  "direct_platform_fk_count",
+  "exact_direct_platform_fk_count",
+  "indirect_grant_fk_count",
+  "exact_indirect_grant_fk_count",
+  "exact_set_null_nullable_column_count",
+  "recipient_scope_check_count",
+  "unexpected_set_null_check_count",
+  "unexpected_deletion_path_trigger_count",
+];
+
+function platformPrivilegeCountsAreValid(
+  snapshot: FieldDemoOwnerPlatformPrivilegeSnapshot,
+): boolean {
+  return PLATFORM_PRIVILEGE_COUNT_FIELDS.every(
+    (field) =>
+      Number.isInteger(snapshot[field]) && Number(snapshot[field]) >= 0,
+  );
+}
+
+export function summarizeFieldDemoOwnerPlatformPrivilege(
+  snapshot: FieldDemoOwnerPlatformPrivilegeSnapshot,
+): FieldDemoOwnerPlatformPrivilegeSummary {
+  if (!platformPrivilegeCountsAreValid(snapshot)) {
+    return {
+      accountState: "ambiguous",
+      continuityState: "ambiguous",
+      automationActorState: "ambiguous",
+      configuredActorState: "ambiguous",
+      authMetadataState: "unavailable",
+      supportGrantState: "ambiguous",
+      effectiveSupportState: "ambiguous",
+      foreignKeyContractState: "ambiguous",
+      deletionBlockState: "ambiguous",
+      deletionImpactState: "ambiguous",
+      provenanceState: "ambiguous",
+    };
+  }
+
+  const statusCounts = {
+    active: snapshot.platform_user_active_count,
+    inactive: snapshot.platform_user_inactive_count,
+    suspended: snapshot.platform_user_suspended_count,
+  } as const;
+  const roleCounts = {
+    owner: snapshot.platform_user_owner_role_count,
+    admin: snapshot.platform_user_admin_role_count,
+    support: snapshot.platform_user_support_role_count,
+  } as const;
+  const status = Object.entries(statusCounts).find(
+    ([, count]) => count === 1,
+  )?.[0] as keyof typeof statusCounts | undefined;
+  const role = Object.entries(roleCounts).find(
+    ([, count]) => count === 1,
+  )?.[0] as keyof typeof roleCounts | undefined;
+  const accountStates = {
+    active: {
+      owner: "active-owner",
+      admin: "active-admin",
+      support: "active-support",
+    },
+    inactive: {
+      owner: "inactive-owner",
+      admin: "inactive-admin",
+      support: "inactive-support",
+    },
+    suspended: {
+      owner: "suspended-owner",
+      admin: "suspended-admin",
+      support: "suspended-support",
+    },
+  } as const;
+  let accountState: FieldDemoOwnerPlatformPrivilegeSummary["accountState"] =
+    "ambiguous";
+  if (
+    snapshot.platform_user_count === 0 &&
+    Object.values(statusCounts).every((count) => count === 0) &&
+    Object.values(roleCounts).every((count) => count === 0)
+  ) {
+    accountState = "absent";
+  } else if (
+    snapshot.platform_user_count === 1 &&
+    Object.values(statusCounts).reduce((sum, count) => sum + count, 0) === 1 &&
+    Object.values(roleCounts).reduce((sum, count) => sum + count, 0) === 1 &&
+    status &&
+    role
+  ) {
+    accountState = accountStates[status][role];
+  }
+
+  const continuityState: FieldDemoOwnerPlatformPrivilegeSummary["continuityState"] =
+    accountState === "ambiguous"
+      ? "ambiguous"
+      : accountState !== "active-owner"
+        ? "not-applicable"
+        : snapshot.other_active_platform_owner_count === 0
+          ? "sole-active-owner"
+          : "other-active-owner-present";
+
+  let automationActorState: FieldDemoOwnerPlatformPrivilegeSummary["automationActorState"];
+  if (snapshot.other_active_platform_admin_count === 1) {
+    automationActorState = "single-admin-ready";
+  } else if (snapshot.other_active_platform_admin_count > 1) {
+    automationActorState = "multiple-admins";
+  } else if (snapshot.other_active_platform_owner_count === 1) {
+    automationActorState = "single-owner-ready";
+  } else if (snapshot.other_active_platform_owner_count > 1) {
+    automationActorState = "multiple-owners";
+  } else {
+    automationActorState = "none";
+  }
+
+  let configuredActorState: FieldDemoOwnerPlatformPrivilegeSummary["configuredActorState"] =
+    "ambiguous";
+  if (
+    snapshot.configured_actor_provided_count === 0 &&
+    snapshot.configured_actor_matches_owner_count === 0 &&
+    snapshot.configured_actor_eligible_count === 0
+  ) {
+    configuredActorState = "not-configured";
+  } else if (
+    snapshot.configured_actor_provided_count === 1 &&
+    snapshot.configured_actor_matches_owner_count === 1 &&
+    snapshot.configured_actor_eligible_count === 1
+  ) {
+    configuredActorState = "target-eligible";
+  } else if (
+    snapshot.configured_actor_provided_count === 1 &&
+    snapshot.configured_actor_matches_owner_count === 1 &&
+    snapshot.configured_actor_eligible_count === 0
+  ) {
+    configuredActorState = "target-ineligible";
+  } else if (
+    snapshot.configured_actor_provided_count === 1 &&
+    snapshot.configured_actor_matches_owner_count === 0 &&
+    snapshot.configured_actor_eligible_count === 1
+  ) {
+    configuredActorState = "other-active-eligible";
+  } else if (
+    snapshot.configured_actor_provided_count === 1 &&
+    snapshot.configured_actor_matches_owner_count === 0 &&
+    snapshot.configured_actor_eligible_count === 0
+  ) {
+    configuredActorState = "configured-ineligible";
+  }
+
+  let authMetadataState: FieldDemoOwnerPlatformPrivilegeSummary["authMetadataState"] =
+    "incompatible";
+  if (snapshot.auth_email_count !== 1) {
+    authMetadataState = "unavailable";
+  } else if (
+    snapshot.auth_contract_count === 1 &&
+    snapshot.auth_environment_count === 1 &&
+    snapshot.auth_tenant_portal_count === 1 &&
+    snapshot.auth_platform_portal_count === 0
+  ) {
+    authMetadataState = "tenant-owner-compatible";
+  } else if (
+    snapshot.auth_contract_count === 1 &&
+    snapshot.auth_environment_count === 1 &&
+    snapshot.auth_tenant_portal_count === 0 &&
+    snapshot.auth_platform_portal_count === 1
+  ) {
+    authMetadataState = "platform-admin-portal";
+  }
+
+  let supportGrantState: FieldDemoOwnerPlatformPrivilegeSummary["supportGrantState"] =
+    "ambiguous";
+  if (
+    snapshot.platform_current_support_grant_count +
+      snapshot.platform_future_support_grant_count <=
+      snapshot.platform_support_grant_count &&
+    snapshot.platform_current_runtime_support_grant_count <=
+      snapshot.platform_current_support_grant_count
+  ) {
+    if (snapshot.platform_support_grant_count === 0) {
+      supportGrantState = "none";
+    } else if (
+      snapshot.platform_current_support_grant_count > 0 &&
+      snapshot.platform_future_support_grant_count > 0
+    ) {
+      supportGrantState = "current-and-future";
+    } else if (snapshot.platform_current_support_grant_count > 0) {
+      supportGrantState = "current";
+    } else if (snapshot.platform_future_support_grant_count > 0) {
+      supportGrantState = "future";
+    } else {
+      supportGrantState = "historical-only";
+    }
+  }
+
+  const hasCurrentSupportGrant =
+    supportGrantState === "current" ||
+    supportGrantState === "current-and-future";
+  const hasCurrentRuntimeSupportGrant =
+    snapshot.platform_current_runtime_support_grant_count > 0;
+  const hasActivePlatformAccount = accountState.startsWith("active-");
+  const effectiveSupportState: FieldDemoOwnerPlatformPrivilegeSummary["effectiveSupportState"] =
+    supportGrantState === "ambiguous" || accountState === "ambiguous"
+      ? "ambiguous"
+      : !hasCurrentSupportGrant
+        ? "none"
+        : hasActivePlatformAccount && hasCurrentRuntimeSupportGrant
+          ? "active"
+          : !hasActivePlatformAccount && !hasCurrentRuntimeSupportGrant
+            ? "blocked-by-platform-and-tenant-status"
+            : hasActivePlatformAccount
+              ? "blocked-by-tenant-status"
+              : "blocked-by-platform-status";
+
+  const foreignKeyContractState: FieldDemoOwnerPlatformPrivilegeSummary["foreignKeyContractState"] =
+    snapshot.direct_platform_fk_count === 9 &&
+    snapshot.exact_direct_platform_fk_count === 9 &&
+    snapshot.indirect_grant_fk_count === 2 &&
+    snapshot.exact_indirect_grant_fk_count === 2 &&
+    snapshot.exact_set_null_nullable_column_count === 9 &&
+    snapshot.recipient_scope_check_count === 1 &&
+    snapshot.unexpected_set_null_check_count === 0 &&
+    snapshot.unexpected_deletion_path_trigger_count === 0
+      ? "exact"
+      : "drift";
+  const hasCascadeHistory =
+    snapshot.platform_support_grant_count > 0 ||
+    snapshot.platform_support_actor_audit_count > 0;
+  const hasSetNullHistory = snapshot.platform_set_null_reference_count > 0;
+  const deletionBlockState: FieldDemoOwnerPlatformPrivilegeSummary["deletionBlockState"] =
+    foreignKeyContractState !== "exact" || accountState === "ambiguous"
+      ? "ambiguous"
+      : snapshot.platform_blocking_reference_count > 0
+        ? "notification-recipient-reference"
+        : "none";
+  const deletionImpactState: FieldDemoOwnerPlatformPrivilegeSummary["deletionImpactState"] =
+    foreignKeyContractState !== "exact" || accountState === "ambiguous"
+      ? "ambiguous"
+      : hasCascadeHistory && hasSetNullHistory
+        ? "cascade-and-set-null-history-present"
+        : hasCascadeHistory
+          ? "cascade-history-present"
+          : hasSetNullHistory
+            ? "set-null-history-present"
+            : "none";
+
+  let provenanceState: FieldDemoOwnerPlatformPrivilegeSummary["provenanceState"] =
+    "ambiguous";
+  if (
+    snapshot.platform_invite_event_count <=
+      snapshot.platform_audit_event_count &&
+    snapshot.platform_create_event_count <=
+      snapshot.platform_audit_event_count &&
+    snapshot.platform_invite_event_count +
+      snapshot.platform_create_event_count <=
+      snapshot.platform_audit_event_count
+  ) {
+    if (snapshot.platform_audit_event_count === 0) {
+      provenanceState = "none";
+    } else if (
+      snapshot.platform_invite_event_count > 0 &&
+      snapshot.platform_create_event_count > 0
+    ) {
+      provenanceState = "mixed-events-present";
+    } else if (snapshot.platform_invite_event_count > 0) {
+      provenanceState = "invite-event-present";
+    } else if (snapshot.platform_create_event_count > 0) {
+      provenanceState = "create-event-present";
+    } else {
+      provenanceState = "other-audit-history";
+    }
+  }
+
+  return {
+    accountState,
+    continuityState,
+    automationActorState,
+    configuredActorState,
+    authMetadataState,
+    supportGrantState,
+    effectiveSupportState,
+    foreignKeyContractState,
+    deletionBlockState,
+    deletionImpactState,
+    provenanceState,
+  };
 }
 
 export function classifyFieldDemoOwnerBinding(
@@ -920,6 +1350,346 @@ export async function loadFieldDemoOwnerBindingSnapshot(
   return result.rows[0]!;
 }
 
+export const FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY = `WITH owner_account AS (
+  SELECT auth_user.id
+    FROM auth.users AS auth_user
+   WHERE lower(auth_user.email) = lower($1)
+), owner_platform_user AS (
+  SELECT platform_user.id, platform_user.role, platform_user.status
+    FROM public.platform_users AS platform_user
+    JOIN owner_account ON owner_account.id = platform_user.user_id
+), owner_platform_grant AS (
+  SELECT support_grant.id, support_grant.revoked_at,
+         support_grant.starts_at, support_grant.expires_at,
+         support_grant.tenant_id
+    FROM public.support_access_grants AS support_grant
+    JOIN owner_platform_user
+      ON owner_platform_user.id = support_grant.platform_user_id
+), owner_platform_audit AS (
+  SELECT audit.action
+    FROM public.audit_log AS audit
+    JOIN owner_platform_user
+      ON audit.resource_id = owner_platform_user.id::text
+   WHERE audit.tenant_id IS NULL
+     AND audit.resource = 'platform_users'
+), expected_direct_fk(table_name, column_name, delete_action) AS (
+  VALUES
+    ('support_access_grants'::text, 'platform_user_id'::text, 'c'::text),
+    ('support_access_audit_log', 'platform_user_id', 'c'),
+    ('tenant_domains', 'created_by_platform_user_id', 'n'),
+    ('tenant_domains', 'verified_by_platform_user_id', 'n'),
+    ('platform_tickets', 'assignee_platform_user_id', 'n'),
+    ('platform_tickets', 'created_by_platform_user_id', 'n'),
+    ('platform_ticket_notes', 'author_platform_user_id', 'n'),
+    ('platform_notification_dispatches', 'created_by_platform_user_id', 'n'),
+    ('platform_notification_recipients', 'platform_user_id', 'n')
+), expected_indirect_fk(table_name, column_name, delete_action) AS (
+  VALUES
+    ('support_access_audit_log'::text, 'grant_id'::text, 'n'::text),
+    ('platform_tickets', 'support_grant_id', 'n')
+), expected_set_null_fk(table_name, column_name) AS (
+  SELECT table_name, column_name
+    FROM expected_direct_fk
+   WHERE delete_action = 'n'
+  UNION ALL
+  SELECT table_name, column_name
+    FROM expected_indirect_fk
+   WHERE delete_action = 'n'
+), deletion_trigger_target(table_name, event_mask) AS (
+  VALUES
+    ('platform_users'::text, 8::integer),
+    ('support_access_grants', 8),
+    ('support_access_audit_log', 8),
+    ('support_access_audit_log', 16),
+    ('tenant_domains', 16),
+    ('platform_tickets', 16),
+    ('platform_ticket_notes', 16),
+    ('platform_notification_dispatches', 16),
+    ('platform_notification_recipients', 16)
+)
+SELECT
+  (SELECT COUNT(*)::integer FROM owner_account) AS auth_email_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($1)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $3)
+    AS auth_contract_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($1)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging')
+    AS auth_environment_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($1)
+      AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
+    AS auth_tenant_portal_count,
+  (SELECT COUNT(*)::integer FROM auth.users AS auth_user
+    WHERE lower(auth_user.email) = lower($1)
+      AND auth_user.raw_app_meta_data ->> 'portal' = 'platform-admin')
+    AS auth_platform_portal_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user) AS platform_user_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE status = 'active') AS platform_user_active_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE status = 'inactive') AS platform_user_inactive_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE status = 'suspended') AS platform_user_suspended_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE role = 'owner') AS platform_user_owner_role_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE role = 'admin') AS platform_user_admin_role_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_user
+    WHERE role = 'support') AS platform_user_support_role_count,
+  (SELECT COUNT(*)::integer FROM public.platform_users AS platform_user
+    WHERE platform_user.status = 'active'
+      AND platform_user.role = 'owner'
+      AND NOT EXISTS (
+        SELECT 1 FROM owner_account
+         WHERE owner_account.id = platform_user.user_id
+      )) AS other_active_platform_owner_count,
+  (SELECT COUNT(*)::integer FROM public.platform_users AS platform_user
+    WHERE platform_user.status = 'active'
+      AND platform_user.role = 'admin'
+      AND NOT EXISTS (
+        SELECT 1 FROM owner_account
+         WHERE owner_account.id = platform_user.user_id
+      )) AS other_active_platform_admin_count,
+  (CASE WHEN $2::uuid IS NULL THEN 0 ELSE 1 END)::integer
+    AS configured_actor_provided_count,
+  (SELECT COUNT(*)::integer FROM owner_account
+    WHERE owner_account.id = $2::uuid)
+    AS configured_actor_matches_owner_count,
+  (SELECT COUNT(*)::integer FROM public.platform_users AS platform_user
+    WHERE platform_user.user_id = $2::uuid
+      AND platform_user.status = 'active'
+      AND platform_user.role IN ('owner', 'admin'))
+    AS configured_actor_eligible_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_grant)
+    AS platform_support_grant_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_grant
+    WHERE revoked_at IS NULL AND starts_at <= now() AND expires_at > now())
+    AS platform_current_support_grant_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_grant AS support_grant
+    JOIN public.tenants AS tenant ON tenant.id = support_grant.tenant_id
+    WHERE support_grant.revoked_at IS NULL
+      AND support_grant.starts_at <= now()
+      AND support_grant.expires_at > now()
+      AND tenant.is_active IS TRUE
+      AND tenant.status IN ('trial', 'active'))
+    AS platform_current_runtime_support_grant_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_grant
+    WHERE revoked_at IS NULL AND starts_at > now() AND expires_at > now())
+    AS platform_future_support_grant_count,
+  (SELECT COUNT(*)::integer FROM public.support_access_audit_log AS audit
+    JOIN owner_platform_user
+      ON owner_platform_user.id = audit.platform_user_id)
+    AS platform_support_actor_audit_count,
+  (SELECT COUNT(*)::integer
+    FROM public.platform_notification_recipients AS recipient
+    JOIN owner_platform_user
+      ON owner_platform_user.id = recipient.platform_user_id
+   WHERE recipient.recipient_type = 'platform_user')
+    AS platform_blocking_reference_count,
+  ((SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
+      JOIN owner_platform_user ON owner_platform_user.id IN (
+        domain.created_by_platform_user_id,
+        domain.verified_by_platform_user_id
+      )) +
+   (SELECT COUNT(*)::integer FROM public.platform_tickets AS ticket
+      JOIN owner_platform_user ON owner_platform_user.id IN (
+        ticket.assignee_platform_user_id,
+        ticket.created_by_platform_user_id
+      )) +
+   (SELECT COUNT(*)::integer FROM public.platform_ticket_notes AS note
+      JOIN owner_platform_user
+        ON owner_platform_user.id = note.author_platform_user_id) +
+   (SELECT COUNT(*)::integer
+      FROM public.platform_notification_dispatches AS notification
+      JOIN owner_platform_user
+        ON owner_platform_user.id = notification.created_by_platform_user_id) +
+   (SELECT COUNT(*)::integer FROM public.support_access_audit_log AS audit
+      JOIN owner_platform_grant ON owner_platform_grant.id = audit.grant_id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM owner_platform_user
+        WHERE owner_platform_user.id = audit.platform_user_id
+     )) +
+   (SELECT COUNT(*)::integer FROM public.platform_tickets AS ticket
+      JOIN owner_platform_grant
+        ON owner_platform_grant.id = ticket.support_grant_id) +
+   (SELECT COUNT(*)::integer
+      FROM public.platform_notification_recipients AS recipient
+      JOIN owner_platform_user
+        ON owner_platform_user.id = recipient.platform_user_id
+     WHERE recipient.recipient_type = 'tenant_owner'))
+    AS platform_set_null_reference_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_audit)
+    AS platform_audit_event_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_audit
+    WHERE action = 'platform_user_invited') AS platform_invite_event_count,
+  (SELECT COUNT(*)::integer FROM owner_platform_audit
+    WHERE action = 'platform_user_created') AS platform_create_event_count,
+  (SELECT COUNT(*)::integer FROM pg_catalog.pg_constraint AS fk
+    WHERE fk.contype = 'f'
+      AND fk.confrelid = 'public.platform_users'::regclass)
+    AS direct_platform_fk_count,
+  (SELECT COUNT(*)::integer
+     FROM expected_direct_fk AS expected
+    WHERE 1 = (
+      SELECT COUNT(*)
+        FROM pg_catalog.pg_namespace AS namespace
+        JOIN pg_catalog.pg_class AS child_table
+          ON child_table.relnamespace = namespace.oid
+         AND child_table.relname = expected.table_name
+        JOIN pg_catalog.pg_attribute AS child_column
+          ON child_column.attrelid = child_table.oid
+         AND child_column.attname = expected.column_name
+         AND child_column.attisdropped = false
+        JOIN pg_catalog.pg_constraint AS fk
+          ON fk.contype = 'f'
+         AND fk.convalidated = true
+         AND fk.condeferrable = false
+         AND fk.conrelid = child_table.oid
+         AND fk.confrelid = 'public.platform_users'::regclass
+         AND cardinality(fk.conkey) = 1
+         AND fk.conkey[1] = child_column.attnum
+         AND cardinality(fk.confkey) = 1
+         AND fk.confmatchtype = 's'
+         AND fk.confupdtype = 'a'
+         AND fk.confdeltype::text = expected.delete_action
+        JOIN pg_catalog.pg_attribute AS parent_column
+          ON parent_column.attrelid = fk.confrelid
+         AND parent_column.attnum = fk.confkey[1]
+         AND parent_column.attname = 'id'
+         AND parent_column.attisdropped = false
+       WHERE namespace.nspname = 'public'))
+    AS exact_direct_platform_fk_count,
+  (SELECT COUNT(*)::integer FROM pg_catalog.pg_constraint AS fk
+    WHERE fk.contype = 'f'
+      AND fk.confrelid = 'public.support_access_grants'::regclass)
+    AS indirect_grant_fk_count,
+  (SELECT COUNT(*)::integer
+     FROM expected_indirect_fk AS expected
+    WHERE 1 = (
+      SELECT COUNT(*)
+        FROM pg_catalog.pg_namespace AS namespace
+        JOIN pg_catalog.pg_class AS child_table
+          ON child_table.relnamespace = namespace.oid
+         AND child_table.relname = expected.table_name
+        JOIN pg_catalog.pg_attribute AS child_column
+          ON child_column.attrelid = child_table.oid
+         AND child_column.attname = expected.column_name
+         AND child_column.attisdropped = false
+        JOIN pg_catalog.pg_constraint AS fk
+          ON fk.contype = 'f'
+         AND fk.convalidated = true
+         AND fk.condeferrable = false
+         AND fk.conrelid = child_table.oid
+         AND fk.confrelid = 'public.support_access_grants'::regclass
+         AND cardinality(fk.conkey) = 1
+         AND fk.conkey[1] = child_column.attnum
+         AND cardinality(fk.confkey) = 1
+         AND fk.confmatchtype = 's'
+         AND fk.confupdtype = 'a'
+         AND fk.confdeltype::text = expected.delete_action
+        JOIN pg_catalog.pg_attribute AS parent_column
+          ON parent_column.attrelid = fk.confrelid
+         AND parent_column.attnum = fk.confkey[1]
+         AND parent_column.attname = 'id'
+         AND parent_column.attisdropped = false
+       WHERE namespace.nspname = 'public'))
+    AS exact_indirect_grant_fk_count,
+  (SELECT COUNT(*)::integer
+     FROM expected_set_null_fk AS expected
+    WHERE 1 = (
+      SELECT COUNT(*)
+        FROM pg_catalog.pg_namespace AS namespace
+        JOIN pg_catalog.pg_class AS child_table
+          ON child_table.relnamespace = namespace.oid
+         AND child_table.relname = expected.table_name
+        JOIN pg_catalog.pg_attribute AS child_column
+          ON child_column.attrelid = child_table.oid
+         AND child_column.attname = expected.column_name
+         AND child_column.attisdropped = false
+         AND child_column.attnotnull = false
+       WHERE namespace.nspname = 'public'))
+    AS exact_set_null_nullable_column_count,
+  (SELECT COUNT(*)::integer FROM pg_catalog.pg_constraint AS check_constraint
+    WHERE check_constraint.contype = 'c'
+      AND check_constraint.convalidated = true
+      AND check_constraint.conname =
+        'platform_notification_recipients_scope_check'
+      AND check_constraint.conrelid =
+        'public.platform_notification_recipients'::regclass
+      AND regexp_replace(
+        lower(pg_catalog.pg_get_expr(
+          check_constraint.conbin,
+          check_constraint.conrelid,
+          false
+        )),
+        '[[:space:]]+',
+        '',
+        'g'
+      ) = $scope$((((recipient_type)::text='platform_user'::text)and(platform_user_idisnotnull)and(tenant_idisnull))or(((recipient_type)::text='tenant_owner'::text)and(tenant_idisnotnull)and((tenant_owner_invite_idisnotnull)or(recipient_emailisnotnull))))$scope$)
+    AS recipient_scope_check_count,
+  (SELECT COUNT(DISTINCT check_constraint.oid)::integer
+     FROM expected_set_null_fk AS expected
+     JOIN pg_catalog.pg_namespace AS namespace
+       ON namespace.nspname = 'public'
+     JOIN pg_catalog.pg_class AS child_table
+       ON child_table.relnamespace = namespace.oid
+      AND child_table.relname = expected.table_name
+     JOIN pg_catalog.pg_constraint AS check_constraint
+       ON check_constraint.conrelid = child_table.oid
+      AND check_constraint.contype = 'c'
+    WHERE lower(pg_catalog.pg_get_expr(
+            check_constraint.conbin,
+            check_constraint.conrelid,
+            false
+          )) ~ (
+            '(^|[^a-z0-9_])' || expected.column_name ||
+            '([^a-z0-9_]|$)'
+          )
+      AND NOT (
+        expected.table_name = 'platform_notification_recipients'
+        AND expected.column_name = 'platform_user_id'
+        AND check_constraint.conname =
+          'platform_notification_recipients_scope_check'
+      )) AS unexpected_set_null_check_count,
+  (SELECT COUNT(DISTINCT trigger_row.oid)::integer
+     FROM deletion_trigger_target AS target
+     JOIN pg_catalog.pg_namespace AS namespace
+       ON namespace.nspname = 'public'
+     JOIN pg_catalog.pg_class AS affected_table
+       ON affected_table.relnamespace = namespace.oid
+      AND affected_table.relname = target.table_name
+     JOIN pg_catalog.pg_trigger AS trigger_row
+       ON trigger_row.tgrelid = affected_table.oid
+      AND trigger_row.tgisinternal = false
+      AND (trigger_row.tgtype::integer & target.event_mask) =
+        target.event_mask)
+    AS unexpected_deletion_path_trigger_count`;
+
+export async function loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+  queryable: Queryable,
+  configuredAutomationActor: string | null,
+): Promise<FieldDemoOwnerPlatformPrivilegeSnapshot> {
+  const result = await queryable.query<FieldDemoOwnerPlatformPrivilegeSnapshot>(
+    FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY,
+    [
+      FIELD_DEMO_OWNER_EMAIL,
+      configuredAutomationActor,
+      OWNER_AUTH_REPAIR_VERSION,
+    ],
+  );
+  if (result.rows.length !== 1) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Field-demo owner platform-privilege snapshot is not singular.",
+      "owner_binding_precondition",
+      "auth-owner-platform-privilege-present",
+    );
+  }
+  return result.rows[0]!;
+}
+
 async function acquireOwnerBindingLock(queryable: Queryable): Promise<void> {
   const result = await queryable.query<{ acquired: boolean }>(
     `SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS acquired`,
@@ -1310,6 +2080,8 @@ async function runOwnerBindingOperation(
     throw new Error("Static checks cannot access the database.");
   }
   const operation = options.mode;
+  const configuredAutomationActor =
+    environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?.trim() || null;
   const startedAt = new Date().toISOString();
   let failureStage: OwnerBindingFailureStage = "configuration";
   let mutationAttempted = false;
@@ -1321,7 +2093,7 @@ async function runOwnerBindingOperation(
     | (Queryable & { release: (error?: Error | boolean) => void })
     | null = null;
   const evidence: OwnerBindingEvidence = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contract: FIELD_DEMO_OWNER_BINDING_VERSION,
     environment: "staging",
     operation,
@@ -1333,6 +2105,7 @@ async function runOwnerBindingOperation(
     errorCode: null,
     failureStage: null,
     failureReason: null,
+    platformPrivilegeSummary: null,
     startedAt,
     completedAt: startedAt,
   };
@@ -1366,6 +2139,15 @@ async function runOwnerBindingOperation(
       const decision = classifyFieldDemoOwnerBinding(snapshot);
       observedState = decision.state;
       evidence.failureReason = decision.failureReason;
+      if (decision.failureReason === "auth-owner-platform-privilege-present") {
+        const platformSnapshot =
+          await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+            client,
+            configuredAutomationActor,
+          );
+        evidence.platformPrivilegeSummary =
+          summarizeFieldDemoOwnerPlatformPrivilege(platformSnapshot);
+      }
       await client.query("ROLLBACK");
       transactionFinished = true;
       evidence.status = "passed";
@@ -1461,7 +2243,8 @@ async function runOwnerBindingOperation(
       error instanceof FieldDemoOwnerBindingError
         ? error.failureStage
         : failureStage;
-    evidence.failureReason = safeFieldDemoOwnerBindingFailureReason(error);
+    evidence.failureReason =
+      safeFieldDemoOwnerBindingFailureReason(error) ?? evidence.failureReason;
     evidence.observedState = observedState;
     evidence.mutationAttempted = mutationAttempted;
     throw error;
