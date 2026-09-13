@@ -115,10 +115,8 @@ test(
   },
 );
 
-test(
-  "Auth surface separation serializes concurrent tenant and platform bindings",
-  { skip: !process.env.DATABASE_URL },
-  async () => {
+if (process.env.DATABASE_URL) {
+  test("Auth surface separation serializes concurrent tenant and platform bindings", async () => {
     const first = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
@@ -259,5 +257,5 @@ test(
         .catch(() => undefined);
       await Promise.allSettled([first.end(), second.end()]);
     }
-  },
-);
+  });
+}
