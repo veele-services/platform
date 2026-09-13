@@ -64,7 +64,10 @@ import {
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
@@ -1128,21 +1131,71 @@ async function inviteOrFindTenantAuthUser(
   };
 }
 
-async function bindAndFinalizeTenantAuthInvite(
-  invite: TenantAuthUserInviteResult,
-  bind: () => Promise<void>,
-): Promise<void> {
-  try {
-    await bind();
-    await invite.finalize();
-  } catch (error) {
-    try {
-      await invite.rollback();
-    } catch (rollbackError) {
-      throw rollbackError;
+type TenantAuthReservation = {
+  id: string;
+  tenantId: string;
+  userId: string;
+  role: string;
+  status: string;
+  updatedAt: Date;
+};
+
+async function reserveTenantAuthInvite(
+  tenantId: string,
+  userId: string,
+  role: string,
+): Promise<TenantAuthReservation> {
+  return db.transaction(async (tx) => {
+    const [createdReservation] = await tx
+      .insert(tenantUsersTable)
+      .values({ tenantId, userId, role, status: "invited" })
+      .onConflictDoNothing({
+        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+      })
+      .returning({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        updatedAt: tenantUsersTable.updatedAt,
+      });
+    if (createdReservation) return createdReservation;
+
+    const [existingReservation] = await tx
+      .select({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        updatedAt: tenantUsersTable.updatedAt,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!existingReservation) {
+      throw new Error("Tenantautorisatie kon niet worden gereserveerd.");
     }
-    throw error;
-  }
+    return existingReservation;
+  });
+}
+
+function tenantAuthReservationPredicate(reservation: TenantAuthReservation) {
+  return and(
+    eq(tenantUsersTable.id, reservation.id),
+    eq(tenantUsersTable.tenantId, reservation.tenantId),
+    eq(tenantUsersTable.userId, reservation.userId),
+    eq(tenantUsersTable.role, reservation.role),
+    eq(tenantUsersTable.status, reservation.status),
+    eq(tenantUsersTable.updatedAt, reservation.updatedAt),
+  );
 }
 
 async function listTenantRoleOptions(
@@ -2501,42 +2554,42 @@ export async function addPlatformTenantAdmin(
   );
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
-  await bindAndFinalizeTenantAuthInvite(invite, () =>
-    db.transaction(async (tx) => {
-    await tx
-      .insert(tenantUsersTable)
-      .values({
-        tenantId,
-        userId: invite.userId,
-        role: accessRole,
-        status: "active",
-      })
-      .onConflictDoUpdate({
-        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-        set: { role: accessRole, status: "active", updatedAt: new Date() },
-      });
+  await finalizePortalAuthorizationReservation(invite, {
+    reserve: () => reserveTenantAuthInvite(tenantId, invite.userId, accessRole),
+    activate: (reservation) =>
+      db.transaction(async (tx) => {
+        const [activatedMembership] = await tx
+          .update(tenantUsersTable)
+          .set({ role: accessRole, status: "active", updatedAt: new Date() })
+          .where(tenantAuthReservationPredicate(reservation))
+          .returning({ id: tenantUsersTable.id });
+        if (activatedMembership?.id !== reservation.id) {
+          throw new Error(
+            "De gereserveerde tenantbeheerder veranderde tijdens de uitnodiging.",
+          );
+        }
 
-    await tx
-      .delete(tenantUserRolesTable)
-      .where(
-        and(
-          eq(tenantUserRolesTable.tenantId, tenantId),
-          eq(tenantUserRolesTable.userId, invite.userId),
-        ),
-      );
+        await tx
+          .delete(tenantUserRolesTable)
+          .where(
+            and(
+              eq(tenantUserRolesTable.tenantId, tenantId),
+              eq(tenantUserRolesTable.userId, invite.userId),
+            ),
+          );
 
-    await tx
-      .insert(tenantUserRolesTable)
-      .values(
-        roleSelection.roleIds.map((tenantRoleId) => ({
-          tenantId,
-          userId: invite.userId,
-          tenantRoleId,
-        })),
-      )
-      .onConflictDoNothing();
-    }),
-  );
+        await tx
+          .insert(tenantUserRolesTable)
+          .values(
+            roleSelection.roleIds.map((tenantRoleId) => ({
+              tenantId,
+              userId: invite.userId,
+              tenantRoleId,
+            })),
+          )
+          .onConflictDoNothing();
+      }),
+  });
 
   await auditPlatformTenantAction({
     tenantId,
@@ -2871,98 +2924,98 @@ export async function updatePlatformTenantOwnerInvite(
   );
   const now = new Date();
 
-  await bindAndFinalizeTenantAuthInvite(invite, () =>
-    db.transaction(async (tx) => {
-    if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
-      await tx
-        .update(tenantOwnerInvitesTable)
-        .set({
-          status: "rolled_back",
-          rollbackAt: now,
-          errorMessage: `Vervangen door ${email}.`,
-          updatedAt: now,
-          metadata: {
-            ...(existingInvite.metadata ?? {}),
-            replacedByEmail: email,
-            replacedByPlatformUserId: actor.userId,
-          },
-        })
-        .where(eq(tenantOwnerInvitesTable.id, existingInvite.id));
-    }
+  await finalizePortalAuthorizationReservation(invite, {
+    reserve: () => reserveTenantAuthInvite(tenantId, invite.userId, "owner"),
+    activate: (reservation) =>
+      db.transaction(async (tx) => {
+        const [activatedMembership] = await tx
+          .update(tenantUsersTable)
+          .set({ role: "owner", status: "active", updatedAt: now })
+          .where(tenantAuthReservationPredicate(reservation))
+          .returning({ id: tenantUsersTable.id });
+        if (activatedMembership?.id !== reservation.id) {
+          throw new Error(
+            "De gereserveerde tenantowner veranderde tijdens de uitnodiging.",
+          );
+        }
 
-    await tx
-      .insert(tenantOwnerInvitesTable)
-      .values({
-        tenantId,
-        email,
-        userId: invite.userId,
-        status: "sent",
-        invitedBy: actor.userId,
-        inviteSentAt: now,
-        errorMessage: invite.deliveryMessage,
-        metadata: {
-          source: "platform_tenant_detail",
-          previousInviteId: existingInvite?.id ?? null,
-          deliveryStatus: invite.deliveryStatus,
-        },
-      })
-      .onConflictDoUpdate({
-        target: [
-          tenantOwnerInvitesTable.tenantId,
-          tenantOwnerInvitesTable.email,
-        ],
-        set: {
-          userId: invite.userId,
-          status: "sent",
-          invitedBy: actor.userId,
-          inviteSentAt: now,
-          rollbackAt: null,
-          errorMessage: invite.deliveryMessage,
-          updatedAt: now,
-          metadata: {
-            source: "platform_tenant_detail",
-            previousInviteId: existingInvite?.id ?? null,
-            deliveryStatus: invite.deliveryStatus,
-          },
-        },
-      });
+        if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
+          await tx
+            .update(tenantOwnerInvitesTable)
+            .set({
+              status: "rolled_back",
+              rollbackAt: now,
+              errorMessage: `Vervangen door ${email}.`,
+              updatedAt: now,
+              metadata: {
+                ...(existingInvite.metadata ?? {}),
+                replacedByEmail: email,
+                replacedByPlatformUserId: actor.userId,
+              },
+            })
+            .where(eq(tenantOwnerInvitesTable.id, existingInvite.id));
+        }
 
-    await tx
-      .insert(tenantUsersTable)
-      .values({
-        tenantId,
-        userId: invite.userId,
-        role: "owner",
-        status: "active",
-      })
-      .onConflictDoUpdate({
-        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-        set: { role: "owner", status: "active", updatedAt: now },
-      });
+        await tx
+          .insert(tenantOwnerInvitesTable)
+          .values({
+            tenantId,
+            email,
+            userId: invite.userId,
+            status: "sent",
+            invitedBy: actor.userId,
+            inviteSentAt: now,
+            errorMessage: invite.deliveryMessage,
+            metadata: {
+              source: "platform_tenant_detail",
+              previousInviteId: existingInvite?.id ?? null,
+              deliveryStatus: invite.deliveryStatus,
+            },
+          })
+          .onConflictDoUpdate({
+            target: [
+              tenantOwnerInvitesTable.tenantId,
+              tenantOwnerInvitesTable.email,
+            ],
+            set: {
+              userId: invite.userId,
+              status: "sent",
+              invitedBy: actor.userId,
+              inviteSentAt: now,
+              rollbackAt: null,
+              errorMessage: invite.deliveryMessage,
+              updatedAt: now,
+              metadata: {
+                source: "platform_tenant_detail",
+                previousInviteId: existingInvite?.id ?? null,
+                deliveryStatus: invite.deliveryStatus,
+              },
+            },
+          });
 
-    await tx
-      .insert(tenantUserRolesTable)
-      .values(
-        roleSelection.roleIds.map((tenantRoleId) => ({
-          tenantId,
-          userId: invite.userId,
-          tenantRoleId,
-        })),
-      )
-      .onConflictDoNothing();
+        await tx
+          .insert(tenantUserRolesTable)
+          .values(
+            roleSelection.roleIds.map((tenantRoleId) => ({
+              tenantId,
+              userId: invite.userId,
+              tenantRoleId,
+            })),
+          )
+          .onConflictDoNothing();
 
-    await tx
-      .update(tenantProvisioningRunsTable)
-      .set({
-        ownerEmail: email,
-        ownerUserId: invite.userId,
-        ownerInviteStatus: "sent",
-        errorMessage: null,
-        updatedAt: now,
-      })
-      .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
-    }),
-  );
+        await tx
+          .update(tenantProvisioningRunsTable)
+          .set({
+            ownerEmail: email,
+            ownerUserId: invite.userId,
+            ownerInviteStatus: "sent",
+            errorMessage: null,
+            updatedAt: now,
+          })
+          .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
+      }),
+  });
 
   await auditPlatformTenantAction({
     tenantId,

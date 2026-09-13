@@ -27,6 +27,35 @@ export type PortalInviteType =
   | "tenant-admin"
   | "platform-admin";
 
+type PortalAuthorizationInvite = {
+  finalize: () => Promise<void>;
+  rollback: () => Promise<void>;
+};
+
+export async function finalizePortalAuthorizationReservation<T>(
+  invite: PortalAuthorizationInvite,
+  operations: {
+    reserve: () => Promise<T>;
+    activate: (reservation: T) => Promise<void>;
+  },
+): Promise<T> {
+  try {
+    // The reservation must bind the Auth UUID while remaining non-authorizing.
+    // A process exit between these awaits therefore leaves access fail-closed.
+    const reservation = await operations.reserve();
+    await invite.finalize();
+    await operations.activate(reservation);
+    return reservation;
+  } catch (error) {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw rollbackError;
+    }
+    throw error;
+  }
+}
+
 export class PortalInviteDeliveryUncertainError extends Error {
   constructor() {
     super(
@@ -341,9 +370,10 @@ export async function provisionPortalUserForActivation(opts: {
       );
     }
 
-    // Existing identities are updated only after the caller has durably bound
-    // the matching authorization surface. This keeps failed delivery and the
-    // losing side of a cross-surface race from changing a working account.
+    // Existing identities are updated only after the caller has durably
+    // reserved the matching authorization surface in a non-authorizing state.
+    // This keeps failed delivery and the losing side of a cross-surface race
+    // from changing a working account without making the reservation active.
     existingIdentityMutationAttempted = true;
     const { data: updatedData, error: updateError } =
       await admin.auth.admin.updateUserById(user.id, {

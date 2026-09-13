@@ -26,6 +26,10 @@ const platformProvisioningActions = readFileSync(
   "artifacts/backoffice/src/app/actions/platform-provisioning.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const tenantProvisioning = readFileSync(
+  "lib/db/src/tenant-provisioning.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const platformTenantActions = readFileSync(
   "artifacts/backoffice/src/app/actions/platform-tenants.ts",
   "utf8",
@@ -82,29 +86,37 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   const postProvisionGuard = inviteSource.indexOf(
     "authUserHasTenantMembership(invite.user.id)",
   );
-  const platformWrite = inviteSource.indexOf(".insert(platformUsersTable)");
-  const finalize = inviteSource.indexOf("await invite.finalize()");
+  const platformMembershipGuard = inviteSource.indexOf(
+    "authUserHasPlatformMembership(invite.user.id)",
+  );
+  const reservation = inviteSource.indexOf('status: "inactive"');
+  const activation = inviteSource.indexOf("activate: async (reserved)");
   assert.ok(
     authPreflight >= 0 &&
       provision > authPreflight &&
       postProvisionGuard > provision &&
-      platformWrite > postProvisionGuard &&
-      finalize > platformWrite,
-    "tenant membership must be checked around provisioning and Auth metadata finalized only after binding",
+      platformMembershipGuard > provision &&
+      reservation > postProvisionGuard &&
+      activation > reservation,
+    "identity guards and an inactive reservation must precede platform activation",
   );
 
   assert.match(inviteSource, /let invite:[\s\S]*=\s*null/u);
-  assert.ok(
-    [...inviteSource.matchAll(/await invite\.rollback\(\)/gu)].length >= 3,
-    "all pre-binding failures must compensate the Auth invitation",
+  assert.match(
+    inviteSource,
+    /\.insert\(platformUsersTable\)[\s\S]*status: "inactive"[\s\S]*\.onConflictDoNothing/u,
   );
   assert.match(
     inviteSource,
-    /catch \{[\s\S]*await invite\.rollback\(\)[\s\S]*platformkoppeling kon niet veilig/u,
+    /activate: async \(reserved\)[\s\S]*\.update\(platformUsersTable\)[\s\S]*eq\(platformUsersTable\.status, "inactive"\)/u,
+  );
+  assert.doesNotMatch(
+    inviteSource,
+    /\.insert\(platformUsersTable\)[\s\S]{0,500}?\.onConflictDoUpdate/u,
   );
 });
 
-test("existing Auth metadata is finalized only after durable portal binding", () => {
+test("authorization stays inactive until durable Auth finalization", () => {
   const existingIdentityStart = portalInvites.indexOf(
     "const existingPortal = existingUser.app_metadata?.portal",
   );
@@ -127,10 +139,14 @@ test("existing Auth metadata is finalized only after durable portal binding", ()
     portalInvites.slice(finalizeStart, challengeStart),
     /existingIdentityMutationAttempted = true[\s\S]*updateUserById/u,
   );
+  assert.match(
+    portalInvites,
+    /function finalizePortalAuthorizationReservation<[\s\S]*operations\.reserve\(\)[\s\S]*invite\.finalize\(\)[\s\S]*operations\.activate\(reservation\)[\s\S]*invite\.rollback\(\)/u,
+  );
 
   assert.match(
     tenantRoleActions,
-    /\.insert\(tenantUsersTable\)[\s\S]*await invite\.finalize\(\)/u,
+    /finalizePortalAuthorizationReservation\(invite[\s\S]*reserve:[\s\S]*status: "invited"[\s\S]*activate:[\s\S]*status: "active"[\s\S]*\.insert\(tenantUserRolesTable\)/u,
   );
   assert.match(
     customerActions,
@@ -154,19 +170,27 @@ test("existing Auth metadata is finalized only after durable portal binding", ()
   );
   assert.match(
     platformProvisioningActions,
-    /completeProvisionedTenantOwnerInvite\([\s\S]*await ownerInvite\.finalize\(\)/u,
+    /finalizePortalAuthorizationReservation\(ownerInvite[\s\S]*reserveProvisionedTenantOwnerInvite\([\s\S]*activate:[\s\S]*completeProvisionedTenantOwnerInvite\(/u,
   );
   assert.match(
-    platformTenantActions,
-    /await bind\(\);[\s\S]*await invite\.finalize\(\)/u,
+    tenantProvisioning,
+    /function reserveProvisionedTenantOwnerInvite[\s\S]*status: "invited"[\s\S]*authorizationReservation[\s\S]*status: "active"/u,
   );
   assert.equal(
     [
       ...platformTenantActions.matchAll(
-        /bindAndFinalizeTenantAuthInvite\(invite, \(\) =>/gu,
+        /finalizePortalAuthorizationReservation\(invite, \{/gu,
       ),
     ].length,
     2,
+  );
+  assert.match(
+    platformTenantActions,
+    /function reserveTenantAuthInvite[\s\S]*status: "invited"/u,
+  );
+  assert.doesNotMatch(
+    platformTenantActions,
+    /bindAndFinalizeTenantAuthInvite/u,
   );
   assert.match(
     settingsActions,

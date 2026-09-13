@@ -14,14 +14,13 @@ import {
   FIELD_DEMO_SUPERSEDED_OWNER_ID,
   assertPlatformPrivilegeMigrationFrontier,
   classifyFieldDemoOwnerBinding,
-  fieldDemoOwnerAppMetadataMatches,
+  fieldDemoOwnerAuthMetadataPatch,
   fieldDemoOwnerAuthMetadataIsNormalized,
   fieldDemoOwnerAuthUpdateOutcome,
   fieldDemoPlatformPrivilegeRepairPreconditionIsSafe,
   formatSafeFieldDemoOwnerBindingError,
   loadFieldDemoOwnerBindingSnapshot,
   loadFieldDemoOwnerPlatformPrivilegeSnapshot,
-  normalizedFieldDemoOwnerAppMetadata,
   projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair,
   repairFieldDemoOwnerBinding,
   reconcileFieldDemoOwnerBinding,
@@ -700,25 +699,28 @@ test("platform-privilege repair accepts only the exact removable owner shape", (
   );
 });
 
-test("owner Auth normalization removes platform claims and revokes live sessions", () => {
+test("owner Auth normalization patches only repair-owned claims and revokes live sessions", () => {
   const revokedAt = "2026-09-13T13:50:00.000Z";
   const current = {
     portal: "platform-admin",
     platform_role: "owner",
     retained: "value",
   };
-  const normalized = normalizedFieldDemoOwnerAppMetadata(current, revokedAt);
-  assert.deepEqual(normalized, {
+  const patch = fieldDemoOwnerAuthMetadataPatch(revokedAt);
+  assert.deepEqual(patch, {
     portal: "tenant-admin",
-    retained: "value",
     fieldgrid_automation_contract:
       "fieldgrid-staging-field-demo-owner-repair-v1",
     fieldgrid_environment: "staging",
     fieldgrid_platform_privilege_repair:
       "fieldgrid-staging-field-demo-platform-privilege-repair-v1",
     session_revoked_at: revokedAt,
+    platform_role: null,
   });
   assert.equal(current.portal, "platform-admin");
+  assert.equal("retained" in patch, false);
+  const normalized = { ...current, ...patch };
+  delete normalized.platform_role;
   assert.equal(
     fieldDemoOwnerAuthMetadataIsNormalized(
       {
@@ -745,20 +747,7 @@ test("owner Auth normalization removes platform claims and revokes live sessions
     ),
     false,
   );
-  assert.equal(
-    fieldDemoOwnerAppMetadataMatches(
-      {
-        userId: ownerUserId,
-        platformUserId: null,
-        platformRole: null,
-        platformStatus: null,
-        appMetadata: { nested: { b: 2, a: 1 }, ...normalized },
-      },
-      { ...normalized, nested: { a: 1, b: 2 } },
-    ),
-    true,
-  );
-  assert.throws(() => normalizedFieldDemoOwnerAppMetadata(current, "invalid"));
+  assert.throws(() => fieldDemoOwnerAuthMetadataPatch("invalid"));
 
   assert.equal(
     fieldDemoOwnerAuthUpdateOutcome(new Response(null, { status: 200 })),

@@ -38,6 +38,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
+  finalizePortalAuthorizationReservation,
   findAuthUserByEmail,
   provisionPortalUserForActivation,
 } from "@/lib/auth/portal-invites";
@@ -654,6 +655,15 @@ async function authUserHasTenantMembership(userId: string): Promise<boolean> {
   return Boolean(tenantMembership);
 }
 
+async function authUserHasPlatformMembership(userId: string): Promise<boolean> {
+  const [platformMembership] = await db
+    .select({ id: platformUsersTable.id })
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.userId, userId))
+    .limit(1);
+  return Boolean(platformMembership);
+}
+
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
   await requirePlatformAdmin();
 
@@ -764,15 +774,24 @@ export async function invitePlatformUserFromForm(
       createAdminClient(),
       email,
     );
-    if (
-      existingAuthUser &&
-      (await authUserHasTenantMembership(existingAuthUser.id))
-    ) {
-      return {
-        success: false,
-        message:
-          "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
-      };
+    if (existingAuthUser) {
+      const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
+        authUserHasTenantMembership(existingAuthUser.id),
+        authUserHasPlatformMembership(existingAuthUser.id),
+      ]);
+      if (hasTenantMembership) {
+        return {
+          success: false,
+          message:
+            "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
+        };
+      }
+      if (hasPlatformMembership) {
+        return {
+          success: false,
+          message: "Deze gebruiker is al aan platformbeheer gekoppeld.",
+        };
+      }
     }
   } catch {
     return {
@@ -795,12 +814,17 @@ export async function invitePlatformUserFromForm(
       actorUserId: actor.userId,
       allowExistingActive: true,
     });
-    if (await authUserHasTenantMembership(invite.user.id)) {
+    const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
+      authUserHasTenantMembership(invite.user.id),
+      authUserHasPlatformMembership(invite.user.id),
+    ]);
+    if (hasTenantMembership || hasPlatformMembership) {
       await invite.rollback();
       return {
         success: false,
-        message:
-          "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
+        message: hasTenantMembership
+          ? "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd."
+          : "Deze gebruiker is al aan platformbeheer gekoppeld.",
       };
     }
   } catch (error) {
@@ -832,49 +856,65 @@ export async function invitePlatformUserFromForm(
     };
   }
 
-  let row: { id: string } | undefined;
+  let row: { id: string; updatedAt: Date } | undefined;
   try {
-    [row] = await db
-      .insert(platformUsersTable)
-      .values({ userId, role, status, createdBy: actor.userId })
-      .onConflictDoUpdate({
-        target: platformUsersTable.userId,
-        set: { role, status, updatedAt: new Date() },
-      })
-      .returning({ id: platformUsersTable.id });
-  } catch {
-    try {
-      await invite.rollback();
-    } catch {
-      return {
-        success: false,
-        message:
-          "De platformkoppeling is mislukt en het Auth-herstel vereist handmatige controle.",
-      };
-    }
-    return {
-      success: false,
-      message: "De platformkoppeling kon niet veilig worden opgeslagen.",
-    };
-  }
-  if (!row) {
-    try {
-      await invite.rollback();
-    } catch {
-      return {
-        success: false,
-        message:
-          "De platformkoppeling ontbreekt en het Auth-herstel vereist handmatige controle.",
-      };
-    }
-    return {
-      success: false,
-      message: "De platformkoppeling gaf geen resultaat terug.",
-    };
-  }
-
-  try {
-    await invite.finalize();
+    row = await finalizePortalAuthorizationReservation(invite, {
+      reserve: async () => {
+        let reserved: { id: string; updatedAt: Date } | undefined;
+        try {
+          [reserved] = await db
+            .insert(platformUsersTable)
+            .values({
+              userId,
+              role,
+              status: "inactive",
+              createdBy: actor.userId,
+            })
+            .onConflictDoNothing({ target: platformUsersTable.userId })
+            .returning({
+              id: platformUsersTable.id,
+              updatedAt: platformUsersTable.updatedAt,
+            });
+        } catch {
+          throw new Error(
+            "De platformkoppeling kon niet veilig worden gereserveerd.",
+          );
+        }
+        if (!reserved) {
+          throw new Error(
+            "De platformkoppeling is gelijktijdig door een andere uitnodiging gereserveerd.",
+          );
+        }
+        return reserved;
+      },
+      activate: async (reserved) => {
+        let activated: { id: string } | undefined;
+        try {
+          [activated] = await db
+            .update(platformUsersTable)
+            .set({ status, updatedAt: new Date() })
+            .where(
+              and(
+                eq(platformUsersTable.id, reserved.id),
+                eq(platformUsersTable.userId, userId),
+                eq(platformUsersTable.role, role),
+                eq(platformUsersTable.status, "inactive"),
+                eq(platformUsersTable.updatedAt, reserved.updatedAt),
+              ),
+            )
+            .returning({ id: platformUsersTable.id });
+        } catch {
+          throw new Error(
+            "De platformkoppeling kon na Auth-finalisatie niet veilig worden geactiveerd.",
+          );
+        }
+        if (!activated || activated.id !== reserved.id) {
+          throw new Error(
+            "De gereserveerde platformkoppeling veranderde tijdens de uitnodiging.",
+          );
+        }
+      },
+    });
   } catch (error) {
     return {
       success: false,

@@ -12,6 +12,7 @@ import {
   normalizeTenantProvisioningSlug,
   plansTable,
   provisionTenant,
+  reserveProvisionedTenantOwnerInvite,
   resolveFieldgridDeploymentEnvironment,
   rollbackProvisionedTenant,
   sectorsTable,
@@ -31,7 +32,10 @@ import {
   requirePlatformAdmin,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
@@ -835,14 +839,24 @@ async function runPlatformTenantProvisioning(
         ),
       actorUserId: actor.userId,
     });
-    await completeProvisionedTenantOwnerInvite({
-      tenantId: result.tenantId,
-      runId: result.runId,
-      ownerEmail: input.ownerEmail,
-      ownerUserId: ownerInvite.user.id,
-      invitedBy: actor.userId,
+    const ownerUserId = ownerInvite.user.id;
+    await finalizePortalAuthorizationReservation(ownerInvite, {
+      reserve: () =>
+        reserveProvisionedTenantOwnerInvite({
+          tenantId: result.tenantId,
+          runId: result.runId,
+          ownerUserId,
+        }),
+      activate: (authorizationReservation) =>
+        completeProvisionedTenantOwnerInvite({
+          tenantId: result.tenantId,
+          runId: result.runId,
+          ownerEmail: input.ownerEmail,
+          ownerUserId,
+          invitedBy: actor.userId,
+          authorizationReservation,
+        }),
     });
-    await ownerInvite.finalize();
   } catch (error) {
     let reportedError = error;
     if (ownerInvite) {

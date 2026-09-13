@@ -28,13 +28,19 @@ const platformOwnerContinuityMigration = readFileSync(
   "lib/db/migrations/20260913162000_harden_platform_authorization_continuity.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const platformPrivilegeRepairDeleteMigration = readFileSync(
+  "lib/db/migrations/20260913163000_scope_platform_privilege_repair_delete.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const platformPrivilegeMigrationFrontier = {
   committed: [
     { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
     { name: "20260913135353_recipient.sql", hash: "recipient", sql: "one" },
     { name: "20260913154500_guard.sql", hash: "guard", sql: "two" },
     { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
-    { name: "20260914100000_successor.sql", hash: "successor", sql: "four" },
+    { name: "20260913162000_continuity.sql", hash: "continuity", sql: "four" },
+    { name: "20260913163000_delete.sql", hash: "delete", sql: "five" },
+    { name: "20260914100000_successor.sql", hash: "successor", sql: "six" },
   ],
   predecessors: [
     { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
@@ -43,6 +49,8 @@ const platformPrivilegeMigrationFrontier = {
     { name: "20260913135353_recipient.sql", hash: "recipient", sql: "one" },
     { name: "20260913154500_guard.sql", hash: "guard", sql: "two" },
     { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
+    { name: "20260913162000_continuity.sql", hash: "continuity", sql: "four" },
+    { name: "20260913163000_delete.sql", hash: "delete", sql: "five" },
   ],
   successors: new Set(["20260914100000_successor.sql"]),
   legacyNames: new Set(["20260909120000_predecessor.sql"]),
@@ -85,8 +93,7 @@ test("owner-binding repair exposes one fixed staging-only contract", () => {
     "summarizeFieldDemoOwnerPlatformPrivilege",
     "projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair",
     "fieldDemoPlatformPrivilegeRepairPreconditionIsSafe",
-    "normalizedFieldDemoOwnerAppMetadata",
-    "fieldDemoOwnerAppMetadataMatches",
+    "fieldDemoOwnerAuthMetadataPatch",
     "fieldDemoOwnerAuthMetadataIsNormalized",
     "fieldDemoOwnerAuthUpdateOutcome",
     "repairFieldDemoOwnerBinding",
@@ -366,11 +373,19 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
 
   assert.match(script, /session_revoked_at: revokedAt/u);
   assert.match(script, /fieldgrid_platform_privilege_repair/u);
-  assert.match(script, /delete normalized\["platform_role"\]/u);
   assert.match(
     script,
-    /app_metadata: \{[\s\S]*\.\.\.normalizedAppMetadata[\s\S]*platform_role: null/u,
+    /app_metadata: fieldDemoOwnerAuthMetadataPatch\(revokedAt\)/u,
   );
+  assert.match(
+    script,
+    /function fieldDemoOwnerAuthMetadataPatch\([\s\S]*platform_role: null/u,
+  );
+  assert.doesNotMatch(
+    script,
+    /fieldDemoOwnerAuthMetadataPatch\([\s\S]{0,500}?\.\.\.current/u,
+  );
+  assert.doesNotMatch(script, /\.\.\.normalizedAppMetadata/u);
   assert.match(script, /method: "PUT"/u);
   assert.match(
     script,
@@ -401,7 +416,7 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql/u,
+    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql[\s\S]*20260913163000_scope_platform_privilege_repair_delete\.sql/u,
   );
   assert.match(
     script,
@@ -520,6 +535,41 @@ test("database serializes active platform-owner removal and closes trigger ACLs"
   );
 });
 
+test("migration admin can delete only the quarantined tenant-overlap row", () => {
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /configuration\.migration_admin[\s\S]*configured_migration_admin <> current_user/u,
+  );
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /GRANT DELETE ON TABLE public\.platform_users TO %I/u,
+  );
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /CREATE POLICY fieldgrid_migration_admin_platform_overlap_delete[\s\S]*FOR DELETE TO %I[\s\S]*role = ''owner''[\s\S]*status = ''suspended''[\s\S]*FROM public\.tenant_users AS tenant_membership[\s\S]*tenant_membership\.user_id = platform_users\.user_id[\s\S]*tenant_membership\.status = ''active''/u,
+  );
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /policy_row\.polcmd = 'd'[\s\S]*policy_row\.polroles = ARRAY\[[\s\S]*configured_migration_admin/u,
+  );
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /'anon'::name[\s\S]*'authenticated'::name[\s\S]*'service_role'::name[\s\S]*'fieldgrid_runtime_app'::name[\s\S]*'fieldgrid_runtime_data'::name[\s\S]*has_table_privilege\([\s\S]*'DELETE'/u,
+  );
+  assert.match(
+    platformPrivilegeRepairDeleteMigration,
+    /relation_name = 'platform_users'[\s\S]*'DELETE' = ANY\(capability\.privileges\)[\s\S]*must not expand runtime capabilities/u,
+  );
+  assert.doesNotMatch(
+    platformPrivilegeRepairDeleteMigration,
+    /TO (?:PUBLIC|anon|authenticated|service_role|fieldgrid_runtime_app|fieldgrid_runtime_data)/u,
+  );
+  assert.match(
+    postgres17MigrationTest,
+    /platform privilege repair has one scoped migration-admin DELETE policy/u,
+  );
+});
+
 test("platform-privilege prerequisite frontier returns only one contiguous pending suffix", () => {
   const predecessor = migrationRecord(
     "20260909120000_predecessor.sql",
@@ -540,7 +590,12 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
         migrationRecord("20260913135353_recipient.sql", "recipient"),
       ],
     ).map(({ name }) => name),
-    ["20260913154500_guard.sql", "20260913161000_barrier.sql"],
+    [
+      "20260913154500_guard.sql",
+      "20260913161000_barrier.sql",
+      "20260913162000_continuity.sql",
+      "20260913163000_delete.sql",
+    ],
   );
   assert.deepEqual(
     assertPlatformPrivilegeMigrationFrontier(
@@ -550,6 +605,8 @@ test("platform-privilege prerequisite frontier returns only one contiguous pendi
         migrationRecord("20260913135353_recipient.sql", "recipient"),
         migrationRecord("20260913154500_guard.sql", "guard"),
         migrationRecord("20260913161000_barrier.sql", "barrier"),
+        migrationRecord("20260913162000_continuity.sql", "continuity"),
+        migrationRecord("20260913163000_delete.sql", "delete"),
       ],
     ),
     [],

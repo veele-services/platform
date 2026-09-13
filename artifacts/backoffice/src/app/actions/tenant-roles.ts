@@ -22,7 +22,10 @@ import {
 } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 import type { ActionResult } from "./customers";
 
@@ -1118,64 +1121,145 @@ export async function inviteTenantUser(input: {
     };
   }
   try {
-    await db.transaction(async (tx) => {
-      const [currentRole] = await tx
-        .select({ id: tenantRolesTable.id, name: tenantRolesTable.name })
-        .from(tenantRolesTable)
-        .where(
-          and(
-            eq(tenantRolesTable.id, role.id),
-            eq(tenantRolesTable.tenantId, tenantId),
-          ),
-        )
-        .for("key share")
-        .limit(1);
-      if (!currentRole) throw new Error("Tenantrol bestaat niet meer.");
+    await finalizePortalAuthorizationReservation(invite, {
+      reserve: async () => {
+        try {
+          return await db.transaction(async (tx) => {
+            const [currentRole] = await tx
+              .select({ id: tenantRolesTable.id })
+              .from(tenantRolesTable)
+              .where(
+                and(
+                  eq(tenantRolesTable.id, role.id),
+                  eq(tenantRolesTable.tenantId, tenantId),
+                ),
+              )
+              .for("key share")
+              .limit(1);
+            if (!currentRole) throw new Error("Tenantrol bestaat niet meer.");
 
-      await tx
-        .insert(tenantUsersTable)
-        .values({
-          tenantId,
-          userId: invitedUserId,
-          role: "member",
-          status: "active",
-        })
-        .onConflictDoNothing();
+            const [createdMembership] = await tx
+              .insert(tenantUsersTable)
+              .values({
+                tenantId,
+                userId: invitedUserId,
+                role: "member",
+                status: "invited",
+              })
+              .onConflictDoNothing({
+                target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+              })
+              .returning({
+                id: tenantUsersTable.id,
+                role: tenantUsersTable.role,
+                status: tenantUsersTable.status,
+                updatedAt: tenantUsersTable.updatedAt,
+              });
+            if (createdMembership) {
+              return { membership: createdMembership, created: true as const };
+            }
 
-      await tx
-        .insert(tenantUserRolesTable)
-        .values({ tenantId, userId: invitedUserId, tenantRoleId: currentRole.id })
-        .onConflictDoNothing();
+            const [existingMembership] = await tx
+              .select({
+                id: tenantUsersTable.id,
+                role: tenantUsersTable.role,
+                status: tenantUsersTable.status,
+                updatedAt: tenantUsersTable.updatedAt,
+              })
+              .from(tenantUsersTable)
+              .where(
+                and(
+                  eq(tenantUsersTable.tenantId, tenantId),
+                  eq(tenantUsersTable.userId, invitedUserId),
+                ),
+              )
+              .for("update")
+              .limit(1);
+            if (!existingMembership) {
+              throw new Error("Tenantkoppeling kon niet worden gereserveerd.");
+            }
+            return { membership: existingMembership, created: false as const };
+          });
+        } catch {
+          throw new Error(
+            "Uitnodiging kon niet veilig voor deze tenant worden gereserveerd.",
+          );
+        }
+      },
+      activate: async (reservation) => {
+        try {
+          await db.transaction(async (tx) => {
+            const [currentRole] = await tx
+              .select({ id: tenantRolesTable.id, name: tenantRolesTable.name })
+              .from(tenantRolesTable)
+              .where(
+                and(
+                  eq(tenantRolesTable.id, role.id),
+                  eq(tenantRolesTable.tenantId, tenantId),
+                ),
+              )
+              .for("key share")
+              .limit(1);
+            if (!currentRole) throw new Error("Tenantrol bestaat niet meer.");
 
-      await tx.insert(auditLogTable).values({
-        tenantId,
-        userId: user.id,
-        action: "invite",
-        resource: "tenant_users",
-        resourceId: invitedUserId,
-        metadata: { tenantId, email, role: currentRole.name },
-      });
+            const membershipPredicate = and(
+              eq(tenantUsersTable.id, reservation.membership.id),
+              eq(tenantUsersTable.tenantId, tenantId),
+              eq(tenantUsersTable.userId, invitedUserId),
+              eq(tenantUsersTable.role, reservation.membership.role),
+              eq(tenantUsersTable.status, reservation.membership.status),
+              eq(tenantUsersTable.updatedAt, reservation.membership.updatedAt),
+            );
+            if (reservation.created) {
+              const [activatedMembership] = await tx
+                .update(tenantUsersTable)
+                .set({ status: "active", updatedAt: new Date() })
+                .where(membershipPredicate)
+                .returning({ id: tenantUsersTable.id });
+              if (activatedMembership?.id !== reservation.membership.id) {
+                throw new Error(
+                  "De gereserveerde tenantkoppeling veranderde tijdens de uitnodiging.",
+                );
+              }
+            } else {
+              const [unchangedMembership] = await tx
+                .select({ id: tenantUsersTable.id })
+                .from(tenantUsersTable)
+                .where(membershipPredicate)
+                .for("update")
+                .limit(1);
+              if (unchangedMembership?.id !== reservation.membership.id) {
+                throw new Error(
+                  "De bestaande tenantkoppeling veranderde tijdens de uitnodiging.",
+                );
+              }
+            }
+
+            await tx
+              .insert(tenantUserRolesTable)
+              .values({
+                tenantId,
+                userId: invitedUserId,
+                tenantRoleId: currentRole.id,
+              })
+              .onConflictDoNothing();
+
+            await tx.insert(auditLogTable).values({
+              tenantId,
+              userId: user.id,
+              action: "invite",
+              resource: "tenant_users",
+              resourceId: invitedUserId,
+              metadata: { tenantId, email, role: currentRole.name },
+            });
+          });
+        } catch {
+          throw new Error(
+            "Uitnodiging kon na Auth-finalisatie niet veilig worden geactiveerd.",
+          );
+        }
+      },
     });
-  } catch {
-    try {
-      await invite.rollback();
-    } catch (error) {
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Uitnodiging is geweigerd; handmatige controle is vereist.",
-      };
-    }
-    return {
-      success: false,
-      message: "Uitnodiging kon niet veilig aan deze tenant worden gekoppeld.",
-    };
-  }
-
-  try {
-    await invite.finalize();
   } catch (error) {
     return {
       success: false,

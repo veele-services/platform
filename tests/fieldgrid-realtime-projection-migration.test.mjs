@@ -127,6 +127,79 @@ if (process.env.DATABASE_URL) {
     "runtime migration tests require a disposable local PostgreSQL database",
   );
 
+  test("platform privilege repair has one scoped migration-admin DELETE policy", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+    try {
+      const policy = await client.query(
+        `SELECT
+           policy_row.cmd,
+           policy_row.permissive,
+           policy_row.roles::text[] AS roles,
+           policy_row.qual,
+           policy_row.with_check
+         FROM pg_catalog.pg_policies AS policy_row
+         WHERE policy_row.schemaname = 'public'
+           AND policy_row.tablename = 'platform_users'
+           AND policy_row.policyname =
+             'fieldgrid_migration_admin_platform_overlap_delete'`,
+      );
+      assert.equal(policy.rows.length, 1);
+      assert.equal(policy.rows[0]?.cmd, "DELETE");
+      assert.equal(policy.rows[0]?.permissive, "PERMISSIVE");
+      assert.equal(policy.rows[0]?.with_check, null);
+      assert.match(policy.rows[0]?.qual ?? "", /role.*owner/u);
+      assert.match(policy.rows[0]?.qual ?? "", /status.*suspended/u);
+      assert.match(policy.rows[0]?.qual ?? "", /tenant_users/u);
+      assert.match(policy.rows[0]?.qual ?? "", /status.*active/u);
+
+      const acl = await client.query(
+        `SELECT
+           configuration.migration_admin::text AS migration_admin,
+           pg_catalog.has_table_privilege(
+             configuration.migration_admin,
+             'public.platform_users'::regclass,
+             'DELETE'
+           ) AS migration_admin_delete,
+           EXISTS (
+             SELECT 1
+             FROM app_private.fieldgrid_runtime_relation_capabilities AS capability
+             WHERE capability.schema_name = 'public'
+               AND capability.relation_name = 'platform_users'
+               AND 'DELETE' = ANY(capability.privileges)
+           ) AS runtime_delete
+         FROM app_private.fieldgrid_runtime_principal_configuration AS configuration
+         WHERE configuration.singleton IS TRUE`,
+      );
+      assert.equal(acl.rows.length, 1);
+      assert.equal(acl.rows[0]?.migration_admin_delete, true);
+      assert.equal(acl.rows[0]?.runtime_delete, false);
+      assert.deepEqual(policy.rows[0]?.roles, [acl.rows[0]?.migration_admin]);
+
+      const forbiddenAcl = await client.query(
+        `SELECT role_name
+         FROM unnest(ARRAY[
+           'anon',
+           'authenticated',
+           'service_role',
+           'fieldgrid_runtime_app',
+           'fieldgrid_runtime_data'
+         ]::text[]) AS forbidden(role_name)
+         WHERE pg_catalog.has_table_privilege(
+           role_name,
+           'public.platform_users'::regclass,
+           'DELETE'
+         )`,
+      );
+      assert.deepEqual(forbiddenAcl.rows, []);
+    } finally {
+      await client.end();
+    }
+  });
+
   test("Auth surface separation serializes concurrent tenant and platform bindings", async () => {
     const first = new Client({
       connectionString: process.env.DATABASE_URL,

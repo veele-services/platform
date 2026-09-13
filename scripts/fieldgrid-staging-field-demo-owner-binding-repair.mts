@@ -38,6 +38,7 @@ const PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES = [
   "20260913154500_prevent_cross_portal_identity_reuse.sql",
   "20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
   "20260913162000_harden_platform_authorization_continuity.sql",
+  "20260913163000_scope_platform_privilege_repair_delete.sql",
 ] as const;
 const PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES = new Set([
   "20260618201212_assignment_monthly_codes.sql",
@@ -1234,8 +1235,7 @@ export function fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
   );
 }
 
-export function normalizedFieldDemoOwnerAppMetadata(
-  current: Record<string, unknown>,
+export function fieldDemoOwnerAuthMetadataPatch(
   revokedAt: string,
 ): Record<string, unknown> {
   if (
@@ -1245,16 +1245,15 @@ export function normalizedFieldDemoOwnerAppMetadata(
   ) {
     throw new Error("Owner session revocation timestamp is invalid.");
   }
-  const normalized: Record<string, unknown> = {
-    ...current,
+  return {
     portal: "tenant-admin",
     fieldgrid_automation_contract: OWNER_AUTH_REPAIR_VERSION,
     fieldgrid_environment: "staging",
     fieldgrid_platform_privilege_repair: PLATFORM_PRIVILEGE_AUTH_REPAIR_VERSION,
     session_revoked_at: revokedAt,
+    // GoTrue merges app_metadata patches; null removes only this obsolete key.
+    platform_role: null,
   };
-  delete normalized["platform_role"];
-  return normalized;
 }
 
 export function fieldDemoOwnerAuthUpdateOutcome(
@@ -2079,28 +2078,6 @@ async function loadFieldDemoPlatformPrivilegeRepairTarget(
   };
 }
 
-function canonicalJson(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalJson);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nested]) => [key, canonicalJson(nested)]),
-    );
-  }
-  return value;
-}
-
-export function fieldDemoOwnerAppMetadataMatches(
-  target: FieldDemoPlatformPrivilegeRepairTarget,
-  expected: Record<string, unknown>,
-): boolean {
-  return (
-    JSON.stringify(canonicalJson(target.appMetadata)) ===
-    JSON.stringify(canonicalJson(expected))
-  );
-}
-
 function exactIsoTimestamp(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -2147,7 +2124,7 @@ async function fieldDemoOwnerAuthUpdateFetch(
 async function normalizeFieldDemoOwnerAuthMetadata(
   environment: OwnerBindingEnvironment,
   target: FieldDemoPlatformPrivilegeRepairTarget,
-  normalizedAppMetadata: Record<string, unknown>,
+  revokedAt: string,
 ): Promise<FieldDemoOwnerAuthUpdateOutcome> {
   const serviceCredential = environment.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
   const response = await fieldDemoOwnerAuthUpdateFetch(
@@ -2164,12 +2141,7 @@ async function normalizeFieldDemoOwnerAuthMetadata(
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        app_metadata: {
-          ...normalizedAppMetadata,
-          // GoTrue merges metadata patches; JSON null explicitly deletes the
-          // old role claim while omission would retain it.
-          platform_role: null,
-        },
+        app_metadata: fieldDemoOwnerAuthMetadataPatch(revokedAt),
       }),
     },
   );
@@ -2178,11 +2150,11 @@ async function normalizeFieldDemoOwnerAuthMetadata(
 
 async function waitForFieldDemoOwnerAuthPostimage(
   queryable: Queryable,
-  expectedAppMetadata: Record<string, unknown>,
+  revokedAt: string,
 ): Promise<FieldDemoPlatformPrivilegeRepairTarget | null> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const target = await loadFieldDemoPlatformPrivilegeRepairTarget(queryable);
-    if (fieldDemoOwnerAppMetadataMatches(target, expectedAppMetadata)) {
+    if (fieldDemoOwnerAuthMetadataIsNormalized(target, revokedAt)) {
       return target;
     }
     if (attempt < 4) await delay(250 * (attempt + 1));
@@ -3325,22 +3297,30 @@ async function runOwnerBindingOperation(
         );
       }
       let normalizedTarget = freshPreimage;
-      let expectedAppMetadata = freshPreimage.appMetadata;
-      if (!fieldDemoOwnerAuthMetadataIsNormalized(freshPreimage)) {
-        const revokedAt = new Date().toISOString();
-        expectedAppMetadata = normalizedFieldDemoOwnerAppMetadata(
-          freshPreimage.appMetadata,
-          revokedAt,
-        );
+      let expectedRevokedAt: string;
+      if (fieldDemoOwnerAuthMetadataIsNormalized(freshPreimage)) {
+        const existingRevokedAt =
+          freshPreimage.appMetadata["session_revoked_at"];
+        if (!exactIsoTimestamp(existingRevokedAt)) {
+          throw new FieldDemoOwnerBindingError(
+            "field_demo_owner_binding_postcondition_invalid",
+            "Normalized owner Auth metadata has no exact revocation timestamp.",
+            "owner_auth_normalization",
+            "auth-owner-platform-privilege-present",
+          );
+        }
+        expectedRevokedAt = existingRevokedAt;
+      } else {
+        expectedRevokedAt = new Date().toISOString();
         mutationAttempted = true;
         const authUpdateOutcome = await normalizeFieldDemoOwnerAuthMetadata(
           environment,
           freshPreimage,
-          expectedAppMetadata,
+          expectedRevokedAt,
         );
         const observedPostimage = await waitForFieldDemoOwnerAuthPostimage(
           client,
-          expectedAppMetadata,
+          expectedRevokedAt,
         );
         if (!observedPostimage) {
           const errorCode: OwnerBindingErrorCode =
@@ -3361,8 +3341,10 @@ async function runOwnerBindingOperation(
       if (
         normalizedTarget.platformUserId !== platformUserId ||
         normalizedTarget.platformStatus !== "suspended" ||
-        !fieldDemoOwnerAuthMetadataIsNormalized(normalizedTarget) ||
-        !fieldDemoOwnerAppMetadataMatches(normalizedTarget, expectedAppMetadata)
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          normalizedTarget,
+          expectedRevokedAt,
+        )
       ) {
         throw new FieldDemoOwnerBindingError(
           "field_demo_owner_binding_postcondition_invalid",
@@ -3398,8 +3380,10 @@ async function runOwnerBindingOperation(
         lockedTarget.platformRole !== "owner" ||
         lockedTarget.platformStatus !== "suspended" ||
         lockedPlatformSummary.authMetadataState !== "tenant-owner-compatible" ||
-        !fieldDemoOwnerAuthMetadataIsNormalized(lockedTarget) ||
-        !fieldDemoOwnerAppMetadataMatches(lockedTarget, expectedAppMetadata) ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          lockedTarget,
+          expectedRevokedAt,
+        ) ||
         !fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
           lockedSnapshot,
           lockedPlatformSummary,
@@ -3456,8 +3440,10 @@ async function runOwnerBindingOperation(
       if (
         postDecision.state !== "already-valid" ||
         postTarget.platformUserId !== null ||
-        !fieldDemoOwnerAuthMetadataIsNormalized(postTarget) ||
-        !fieldDemoOwnerAppMetadataMatches(postTarget, expectedAppMetadata) ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          postTarget,
+          expectedRevokedAt,
+        ) ||
         postPlatformSummary.accountState !== "absent" ||
         postPlatformSnapshot.other_active_platform_owner_count < 1 ||
         postPlatformSummary.automationActorState !== "single-admin-ready" ||
@@ -3492,8 +3478,10 @@ async function runOwnerBindingOperation(
         classifyFieldDemoOwnerBinding(freshSnapshot).state !==
           "already-valid" ||
         freshTarget.platformUserId !== null ||
-        !fieldDemoOwnerAuthMetadataIsNormalized(freshTarget) ||
-        !fieldDemoOwnerAppMetadataMatches(freshTarget, expectedAppMetadata) ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          freshTarget,
+          expectedRevokedAt,
+        ) ||
         freshPlatformSummary.accountState !== "absent" ||
         freshPlatformSnapshot.other_active_platform_owner_count < 1 ||
         freshPlatformSummary.automationActorState !== "single-admin-ready" ||
