@@ -150,7 +150,15 @@ test("authorization stays inactive until durable Auth finalization", () => {
   );
   assert.match(
     tenantRoleActions,
-    /if \(reservation\.membership\.status === "invited"\)[\s\S]*\.set\(\{ status: "active"[\s\S]*else if \(reservation\.membership\.status === "active"\)/u,
+    /if \(\s*reservation\.created &&[\s\S]*reservation\.membership\.status === "invited"[\s\S]*\.set\(\{ status: "active"[\s\S]*else if \(\s*!reservation\.created &&[\s\S]*reservation\.membership\.status === "active"/u,
+  );
+  assert.match(
+    tenantRoleActions,
+    /if \(existingMembership\.status !== "active"\)[\s\S]*bestaande tenantuitnodiging[\s\S]*created: false as const/u,
+  );
+  assert.match(
+    tenantRoleActions,
+    /reservation\.created &&[\s\S]*reservation\.membership\.role === "member"[\s\S]*reservation\.membership\.status === "invited"[\s\S]*!reservation\.created &&[\s\S]*reservation\.membership\.status === "active"/u,
   );
   assert.match(
     customerActions,

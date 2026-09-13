@@ -1178,6 +1178,11 @@ export async function inviteTenantUser(input: {
             if (!existingMembership) {
               throw new Error("Tenantkoppeling kon niet worden gereserveerd.");
             }
+            if (existingMembership.status !== "active") {
+              throw new Error(
+                "Een bestaande tenantuitnodiging kan niet door deze uitnodiging worden overgenomen.",
+              );
+            }
             return { membership: existingMembership, created: false as const };
           });
         } catch {
@@ -1210,7 +1215,11 @@ export async function inviteTenantUser(input: {
               eq(tenantUsersTable.status, reservation.membership.status),
               eq(tenantUsersTable.updatedAt, reservation.membership.updatedAt),
             );
-            if (reservation.membership.status === "invited") {
+            if (
+              reservation.created &&
+              reservation.membership.role === "member" &&
+              reservation.membership.status === "invited"
+            ) {
               const [activatedMembership] = await tx
                 .update(tenantUsersTable)
                 .set({ status: "active", updatedAt: new Date() })
@@ -1221,7 +1230,10 @@ export async function inviteTenantUser(input: {
                   "De gereserveerde tenantkoppeling veranderde tijdens de uitnodiging.",
                 );
               }
-            } else if (reservation.membership.status === "active") {
+            } else if (
+              !reservation.created &&
+              reservation.membership.status === "active"
+            ) {
               const [unchangedMembership] = await tx
                 .select({ id: tenantUsersTable.id })
                 .from(tenantUsersTable)

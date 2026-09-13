@@ -136,6 +136,18 @@ test("previous live release receives the exact operation-minimal FORCE RLS owner
     gate,
     /platform_users:fieldgrid_migration_admin_platform_overlap_delete/u,
   );
+  assert.match(
+    gate,
+    /policy\.polcmd,[\s\S]*policy\.polpermissive,[\s\S]*pg_catalog\.pg_get_expr\(policy\.polqual[\s\S]*pg_catalog\.pg_get_expr\(policy\.polwithcheck/u,
+  );
+  assert.match(
+    gate,
+    /usingExpression: normalizePolicyExpression\(`[\s\S]*role[\s\S]*owner[\s\S]*status[\s\S]*suspended[\s\S]*tenant_membership\.user_id = platform_users\.user_id[\s\S]*tenant_membership\.status[\s\S]*active/u,
+  );
+  assert.match(
+    gate,
+    /normalizePolicyExpression\(row\.using_expression\) ===\s*expected\.usingExpression[\s\S]*normalizePolicyExpression\(row\.check_expression\) ===\s*expected\.checkExpression/u,
+  );
   assert.doesNotMatch(
     compatibilityBlock,
     /GRANT\s+fieldgrid_(?:runtime_app|runtime_data)\s+TO\s+current_user/iu,
