@@ -242,25 +242,27 @@ if (process.env.DATABASE_URL) {
         ],
       );
 
-      await client.query("SAVEPOINT invalid_active_source");
-      await assert.rejects(
-        client.query(
-          `UPDATE public.tenant_users
-              SET status = 'active'
-            WHERE tenant_id = $1 AND user_id = $2`,
-          [invitationSourceTenantId, invitationSourceAuthUserId],
-        ),
-        (error) =>
-          error?.code === "23514" &&
-          error?.constraint === "tenant_users_invitation_source_state_check",
+      const activeTenantRoleReservation = await client.query(
+        `UPDATE public.tenant_users
+            SET status = 'active'
+          WHERE tenant_id = $1 AND user_id = $2
+        RETURNING role, status, invitation_source, invitation_reservation_id`,
+        [invitationSourceTenantId, invitationSourceAuthUserId],
       );
-      await client.query("ROLLBACK TO SAVEPOINT invalid_active_source");
+      assert.deepEqual(activeTenantRoleReservation.rows, [
+        {
+          role: "member",
+          status: "active",
+          invitation_source: "tenant_role_invite",
+          invitation_reservation_id: invitationReservationTokenA,
+        },
+      ]);
 
-      await client.query("SAVEPOINT invalid_member_source");
+      await client.query("SAVEPOINT invalid_active_provisioning_source");
       await assert.rejects(
         client.query(
           `UPDATE public.tenant_users
-              SET role = 'owner'
+              SET invitation_source = 'tenant_provisioning_owner'
             WHERE tenant_id = $1 AND user_id = $2`,
           [invitationSourceTenantId, invitationSourceAuthUserId],
         ),
@@ -268,7 +270,9 @@ if (process.env.DATABASE_URL) {
           error?.code === "23514" &&
           error?.constraint === "tenant_users_invitation_source_state_check",
       );
-      await client.query("ROLLBACK TO SAVEPOINT invalid_member_source");
+      await client.query(
+        "ROLLBACK TO SAVEPOINT invalid_active_provisioning_source",
+      );
 
       const ownerReservation = await client.query(
         `UPDATE public.tenant_users
@@ -280,7 +284,7 @@ if (process.env.DATABASE_URL) {
       assert.deepEqual(ownerReservation.rows, [
         {
           role: "owner",
-          status: "invited",
+          status: "active",
           invitation_source: "platform_tenant_owner",
           invitation_reservation_id: invitationReservationTokenA,
         },

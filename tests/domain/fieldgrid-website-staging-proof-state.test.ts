@@ -656,7 +656,7 @@ test("prepare-managed requires the exact executed reservation migration", () => 
   const hash = "b".repeat(64);
   assert.equal(
     AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
-    "20260913170000_bind_authorization_invitation_reservations.sql",
+    "20260913171000_bind_active_tenant_invitation_reservations.sql",
   );
   assert.equal(
     authorizationInvitationReservationMigrationIsExact(

@@ -42,6 +42,7 @@ const PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES = [
   "20260913164000_close_auth_surface_lock_acl.sql",
   "20260913165000_bind_tenant_invite_reservation_sources.sql",
   "20260913170000_bind_authorization_invitation_reservations.sql",
+  "20260913171000_bind_active_tenant_invitation_reservations.sql",
 ] as const;
 const PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES = new Set([
   "20260618201212_assignment_monthly_codes.sql",

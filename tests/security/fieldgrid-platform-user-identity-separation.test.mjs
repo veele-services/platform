@@ -54,6 +54,10 @@ const invitationReservationMigration = readFileSync(
   "lib/db/migrations/20260913170000_bind_authorization_invitation_reservations.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const activeTenantInvitationReservationMigration = readFileSync(
+  "lib/db/migrations/20260913171000_bind_active_tenant_invitation_reservations.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const tenantSchema = readFileSync(
   "lib/db/src/schema/tenants.ts",
   "utf8",
@@ -383,6 +387,19 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     tenantInvitationSourceMigration,
     /ADD CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*invitation_source IS NULL[\s\S]*status = 'invited'[\s\S]*tenant_role_invite'[\s\S]*role = 'member'[\s\S]*platform_tenant_owner'[\s\S]*tenant_provisioning_owner'[\s\S]*role = 'owner'/u,
   );
+  assert.match(
+    activeTenantInvitationReservationMigration,
+    /ADD CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*status = 'invited'[\s\S]*status = 'active'[\s\S]*tenant_role_invite'[\s\S]*platform_tenant_admin'[\s\S]*platform_tenant_owner'[\s\S]*NOT VALID[\s\S]*VALIDATE CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*DROP CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*RENAME CONSTRAINT tenant_users_invitation_source_state_check_v2/u,
+  );
+  const activeReservationConstraintBranch = sourceBetween(
+    activeTenantInvitationReservationMigration,
+    "status = 'active'",
+    ") NOT VALID",
+  );
+  assert.doesNotMatch(
+    activeReservationConstraintBranch,
+    /tenant_provisioning_owner/u,
+  );
 
   assert.match(
     tenantRoleActions,
@@ -390,11 +407,15 @@ test("authorization invitation reservations are durable and flow-bound", () => {
   );
   assert.match(
     tenantRoleActions,
-    /existingMembership\.status === "active" &&[\s\S]*existingMembership\.invitationSource === null &&[\s\S]*existingMembership\.invitationReservationId === null[\s\S]*existingMembership\.role !== "member" \|\|[\s\S]*existingMembership\.status !== "invited" \|\|[\s\S]*existingMembership\.invitationSource !==[\s\S]*TENANT_ROLE_INVITATION_SOURCE \|\|[\s\S]*!existingMembership\.invitationReservationId/u,
+    /existingMembership\.status === "active" &&[\s\S]*TENANT_ROLE_INVITATION_SOURCE[\s\S]*if \(existingMembership\.status === "active"\)[\s\S]*\.update\(tenantUsersTable\)[\s\S]*invitationSource: TENANT_ROLE_INVITATION_SOURCE[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*eq\(tenantUsersTable\.status, "active"\)[\s\S]*\.returning/u,
   );
   assert.match(
     tenantRoleActions,
-    /reservation\.membership\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.membership\.invitationReservationId === null[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*status: "active",[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null/u,
+    /activeMembershipReservation =[\s\S]*reservation\.membership\.status === "active"[\s\S]*invitationSource ===[\s\S]*TENANT_ROLE_INVITATION_SOURCE[\s\S]*invitationReservationId !== null[\s\S]*status: "active",[\s\S]*invitationSource: null,[\s\S]*invitationReservationId: null/u,
+  );
+  assert.doesNotMatch(
+    tenantRoleActions,
+    /existingMembership\.status === "active"[\s\S]{0,250}?return \{ membership: existingMembership \}/u,
   );
 
   assert.match(
@@ -438,11 +459,15 @@ test("authorization invitation reservations are durable and flow-bound", () => {
   );
   assert.match(
     platformTenantActions,
-    /existingReservation\.status === "active" &&[\s\S]*existingReservation\.invitationSource === null &&[\s\S]*existingReservation\.invitationReservationId === null[\s\S]*existingReservation\.role !== role \|\|[\s\S]*existingReservation\.status !== "invited" \|\|[\s\S]*existingReservation\.invitationSource !== invitationSource \|\|[\s\S]*!existingReservation\.invitationReservationId/u,
+    /existingReservation\.status === "active" &&[\s\S]*existingReservation\.invitationSource === invitationSource[\s\S]*if \(existingReservation\.status === "active"\)[\s\S]*\.update\(tenantUsersTable\)[\s\S]*invitationSource,[\s\S]*invitationReservationId: sql`gen_random_uuid\(\)`[\s\S]*eq\(tenantUsersTable\.status, "active"\)[\s\S]*\.returning/u,
   );
   assert.match(
     platformTenantActions,
-    /reservation\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.invitationReservationId === null[\s\S]*isNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*eq\([\s\S]*tenantUsersTable\.invitationReservationId,[\s\S]*reservation\.invitationReservationId/u,
+    /tenantAuthReservationPredicate[\s\S]*eq\([\s\S]*tenantUsersTable\.invitationSource,[\s\S]*reservation\.invitationSource[\s\S]*eq\([\s\S]*tenantUsersTable\.invitationReservationId,[\s\S]*reservation\.invitationReservationId/u,
+  );
+  assert.doesNotMatch(
+    platformTenantActions,
+    /existingReservation\.status === "active"[\s\S]{0,250}?return \{ \.\.\.existingReservation, invitationSource: null \}/u,
   );
   assert.match(
     platformTenantActions,

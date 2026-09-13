@@ -296,7 +296,7 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   );
   assert.match(
     operations,
-    /20260913170000_bind_authorization_invitation_reservations\.sql/u,
+    /20260913171000_bind_active_tenant_invitation_reservations\.sql/u,
   );
   assert.match(
     workflow,

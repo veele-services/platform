@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:4f4780dba02c6ef54ac8d20dbfa8956ff779c101c512062bbaa3b0afaee28bc5",
+  "inventoryHash": "sha256:c202c47f42f832096683d23304e57119f7c268869e8ba6ce9ecc475f69471584",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -35,11 +35,11 @@
     "www"
   ],
   "counts": {
-    "total": 996,
-    "uniqueRuntimeNodes": 858,
-    "classifications": 996,
+    "total": 1002,
+    "uniqueRuntimeNodes": 860,
+    "classifications": 1002,
     "externalEntrypoints": 113,
-    "internalDbCallsites": 775,
+    "internalDbCallsites": 781,
     "providerBoundaries": 85,
     "signedUrlCallsites": 20,
     "byKind": {
@@ -51,15 +51,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 768,
+      "raw-sql-callsite": 774,
       "provider-boundary": 85,
       "storage-signed-url-issuance": 20
     },
     "bySeverity": {
       "review-required": 20,
       "high": 4,
-      "medium": 468,
-      "low": 419,
+      "medium": 472,
+      "low": 421,
       "informational": 85
     }
   },
@@ -72,7 +72,7 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:4fd1c187f4e1595ee12f2c7015d8b1bded14ee70e1048466fbdf31efe5751a0b",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:92b4ddf0b831f9c22af2d923ff9cae2d2aaa94909d3d0b11a7d8ba14e93c8503",
+    "raw-sql-callsite": "sha256:2541a943c433d50401513f5abe5799df7e39672d7da8a707efea7f57b2c69589",
     "provider-boundary": "sha256:31f667e2b71c17f70fbb6445860dd11a3ea6e30fceb9b0ad734a40bf163b3322",
     "storage-signed-url-issuance": "sha256:7e639cd73805cfb7ee2d9189ef0bcb33e4c1183b8c1022e837c46b83e06ef23a"
   },

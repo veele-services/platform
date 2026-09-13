@@ -21,7 +21,7 @@ export const FIELD_DEMO_FIXTURE_MARKER =
 export const CUSTOM_PROOF_HOST = "veeleservices.staging.fieldgrid.nl";
 export const CUSTOM_PROOF_URL = `https://${CUSTOM_PROOF_HOST}/`;
 export const AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME =
-  "20260913170000_bind_authorization_invitation_reservations.sql";
+  "20260913171000_bind_active_tenant_invitation_reservations.sql";
 
 const PROVIDER_KEY = "fieldgrid_vps";
 const HEALTH_PATH = "/api/health";

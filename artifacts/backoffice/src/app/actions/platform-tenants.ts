@@ -1295,10 +1295,58 @@ async function reserveTenantAuthInvite(
     }
     if (
       existingReservation.status === "active" &&
-      existingReservation.invitationSource === null &&
-      existingReservation.invitationReservationId === null
+      !(
+        (existingReservation.invitationSource === null &&
+          existingReservation.invitationReservationId === null) ||
+        (existingReservation.invitationSource === invitationSource &&
+          existingReservation.invitationReservationId !== null)
+      )
     ) {
-      return { ...existingReservation, invitationSource: null };
+      throw new Error(
+        "Een actieve tenantautorisatie is al door een andere uitnodigingsroute gereserveerd.",
+      );
+    }
+    if (existingReservation.status === "active") {
+      const [claimedActiveReservation] = await tx
+        .update(tenantUsersTable)
+        .set({
+          invitationSource,
+          invitationReservationId: sql`gen_random_uuid()`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(tenantUsersTable.id, existingReservation.id),
+            eq(tenantUsersTable.tenantId, tenantId),
+            eq(tenantUsersTable.userId, userId),
+            eq(tenantUsersTable.role, existingReservation.role),
+            eq(tenantUsersTable.status, "active"),
+            existingReservation.invitationSource === null
+              ? isNull(tenantUsersTable.invitationSource)
+              : eq(tenantUsersTable.invitationSource, invitationSource),
+            existingReservation.invitationReservationId === null
+              ? isNull(tenantUsersTable.invitationReservationId)
+              : eq(
+                  tenantUsersTable.invitationReservationId,
+                  existingReservation.invitationReservationId,
+                ),
+          ),
+        )
+        .returning({
+          id: tenantUsersTable.id,
+          tenantId: tenantUsersTable.tenantId,
+          userId: tenantUsersTable.userId,
+          role: tenantUsersTable.role,
+          status: tenantUsersTable.status,
+          invitationSource: tenantUsersTable.invitationSource,
+          invitationReservationId: tenantUsersTable.invitationReservationId,
+        });
+      if (!claimedActiveReservation?.invitationReservationId) {
+        throw new Error(
+          "Actieve tenantautorisatie kon niet atomair worden gereserveerd.",
+        );
+      }
+      return { ...claimedActiveReservation, invitationSource };
     }
     if (
       existingReservation.role !== role ||

@@ -1326,10 +1326,61 @@ export async function inviteTenantUser(input: {
             }
             if (
               existingMembership.status === "active" &&
-              existingMembership.invitationSource === null &&
-              existingMembership.invitationReservationId === null
+              !(
+                (existingMembership.invitationSource === null &&
+                  existingMembership.invitationReservationId === null) ||
+                (existingMembership.invitationSource ===
+                  TENANT_ROLE_INVITATION_SOURCE &&
+                  existingMembership.invitationReservationId !== null)
+              )
             ) {
-              return { membership: existingMembership };
+              throw new Error(
+                "Een actieve tenantkoppeling is al door een andere uitnodiging gereserveerd.",
+              );
+            }
+            if (existingMembership.status === "active") {
+              const [claimedActiveMembership] = await tx
+                .update(tenantUsersTable)
+                .set({
+                  invitationSource: TENANT_ROLE_INVITATION_SOURCE,
+                  invitationReservationId: sql`gen_random_uuid()`,
+                  updatedAt: new Date(),
+                })
+                .where(
+                  and(
+                    eq(tenantUsersTable.id, existingMembership.id),
+                    eq(tenantUsersTable.tenantId, tenantId),
+                    eq(tenantUsersTable.userId, invitedUserId),
+                    eq(tenantUsersTable.role, existingMembership.role),
+                    eq(tenantUsersTable.status, "active"),
+                    existingMembership.invitationSource === null
+                      ? isNull(tenantUsersTable.invitationSource)
+                      : eq(
+                          tenantUsersTable.invitationSource,
+                          TENANT_ROLE_INVITATION_SOURCE,
+                        ),
+                    existingMembership.invitationReservationId === null
+                      ? isNull(tenantUsersTable.invitationReservationId)
+                      : eq(
+                          tenantUsersTable.invitationReservationId,
+                          existingMembership.invitationReservationId,
+                        ),
+                  ),
+                )
+                .returning({
+                  id: tenantUsersTable.id,
+                  role: tenantUsersTable.role,
+                  status: tenantUsersTable.status,
+                  invitationSource: tenantUsersTable.invitationSource,
+                  invitationReservationId:
+                    tenantUsersTable.invitationReservationId,
+                });
+              if (!claimedActiveMembership?.invitationReservationId) {
+                throw new Error(
+                  "Actieve tenantkoppeling kon niet atomair worden gereserveerd.",
+                );
+              }
+              return { membership: claimedActiveMembership };
             }
             if (
               existingMembership.role !== "member" ||
@@ -1421,9 +1472,13 @@ export async function inviteTenantUser(input: {
                     reservation.membership.invitationReservationId,
                   ),
             );
-            if (
+            const invitedMembershipReservation =
               reservation.membership.role === "member" &&
-              reservation.membership.status === "invited" &&
+              reservation.membership.status === "invited";
+            const activeMembershipReservation =
+              reservation.membership.status === "active";
+            if (
+              (invitedMembershipReservation || activeMembershipReservation) &&
               reservation.membership.invitationSource ===
                 TENANT_ROLE_INVITATION_SOURCE &&
               reservation.membership.invitationReservationId !== null
@@ -1441,22 +1496,6 @@ export async function inviteTenantUser(input: {
               if (activatedMembership?.id !== reservation.membership.id) {
                 throw new Error(
                   "De gereserveerde tenantkoppeling veranderde tijdens de uitnodiging.",
-                );
-              }
-            } else if (
-              reservation.membership.status === "active" &&
-              reservation.membership.invitationSource === null &&
-              reservation.membership.invitationReservationId === null
-            ) {
-              const [unchangedMembership] = await tx
-                .select({ id: tenantUsersTable.id })
-                .from(tenantUsersTable)
-                .where(membershipPredicate)
-                .for("update")
-                .limit(1);
-              if (unchangedMembership?.id !== reservation.membership.id) {
-                throw new Error(
-                  "De bestaande tenantkoppeling veranderde tijdens de uitnodiging.",
                 );
               }
             } else {

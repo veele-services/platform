@@ -258,7 +258,7 @@ Repair** from `main` with:
 
 This operation acquires the database migration lock, applies only the exact
 reviewed contiguous prerequisite suffix through
-`20260913170000_bind_authorization_invitation_reservations.sql`, records each
+`20260913171000_bind_active_tenant_invitation_reservations.sql`, records each
 migration as executed (never baselined), and then removes the one reviewed
 field-demo platform privilege. Stop unless its secret-free evidence reports
 `platform-privilege-removed`. The proof-state workflow independently verifies
