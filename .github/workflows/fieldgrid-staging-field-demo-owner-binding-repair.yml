@@ -168,7 +168,24 @@ jobs:
             }
           '
 
-      - name: Diagnose or repair the exact staging owner-binding state
+      - name: Diagnose the exact staging owner-binding state
+        if: inputs.operation == 'diagnose'
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+          FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION: ${{ inputs.confirmation }}
+          FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
+            --diagnose \
+            --expected-sha "$EXPECTED_MAIN_SHA"
+
+      - name: Repair or reconcile the exact staging owner-binding state
+        if: inputs.operation != 'diagnose'
         env:
           DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -177,21 +194,18 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         run: |
           set -euo pipefail
-          if [ "$OWNER_BINDING_OPERATION" = "diagnose" ]; then
-            pnpm --filter @workspace/db exec tsx \
-              ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
-              --diagnose \
-              --expected-sha "$EXPECTED_MAIN_SHA"
-          elif [ "$OWNER_BINDING_OPERATION" = "repair" ]; then
+          if [ "$OWNER_BINDING_OPERATION" = "repair" ]; then
             pnpm --filter @workspace/db exec tsx \
               ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
               --repair \
               --expected-sha "$EXPECTED_MAIN_SHA"
-          else
+          elif [ "$OWNER_BINDING_OPERATION" = "reconcile" ]; then
             pnpm --filter @workspace/db exec tsx \
               ../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts \
               --reconcile \
               --expected-sha "$EXPECTED_MAIN_SHA"
+          else
+            exit 1
           fi
 
       - name: Upload secret-free owner-binding evidence

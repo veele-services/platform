@@ -10,6 +10,7 @@ const workflow = readFileSync(
   ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
 test("owner-binding repair exposes one fixed staging-only contract", () => {
   assert.match(
@@ -29,14 +30,19 @@ test("owner-binding repair exposes one fixed staging-only contract", () => {
     "FieldDemoOwnerBindingDecision",
     "FieldDemoOwnerBindingRepairResult",
     "FieldDemoOwnerBindingFailureReason",
+    "FieldDemoOwnerPlatformPrivilegeSnapshot",
+    "FieldDemoOwnerPlatformPrivilegeSummary",
     "validateFieldDemoOwnerBindingConfig",
     "classifyFieldDemoOwnerBinding",
+    "summarizeFieldDemoOwnerPlatformPrivilege",
     "repairFieldDemoOwnerBinding",
     "safeFieldDemoOwnerBindingErrorCode",
     "safeFieldDemoOwnerBindingFailureReason",
     "formatSafeFieldDemoOwnerBindingError",
     "FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY",
     "loadFieldDemoOwnerBindingSnapshot",
+    "FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY",
+    "loadFieldDemoOwnerPlatformPrivilegeSnapshot",
   ]) {
     assert.match(
       script,
@@ -71,8 +77,39 @@ test("snapshot and classification prove the exact owner and Management binding",
     "auth_contract_count",
     "auth_environment_count",
     "auth_portal_count",
+    "auth_tenant_portal_count",
+    "auth_platform_portal_count",
     "email_identity_count",
     "platform_user_count",
+    "platform_user_active_count",
+    "platform_user_inactive_count",
+    "platform_user_suspended_count",
+    "platform_user_owner_role_count",
+    "platform_user_admin_role_count",
+    "platform_user_support_role_count",
+    "other_active_platform_owner_count",
+    "other_active_platform_admin_count",
+    "configured_actor_provided_count",
+    "configured_actor_matches_owner_count",
+    "configured_actor_eligible_count",
+    "platform_support_grant_count",
+    "platform_current_support_grant_count",
+    "platform_current_runtime_support_grant_count",
+    "platform_future_support_grant_count",
+    "platform_support_actor_audit_count",
+    "platform_blocking_reference_count",
+    "platform_set_null_reference_count",
+    "platform_audit_event_count",
+    "platform_invite_event_count",
+    "platform_create_event_count",
+    "direct_platform_fk_count",
+    "exact_direct_platform_fk_count",
+    "indirect_grant_fk_count",
+    "exact_indirect_grant_fk_count",
+    "exact_set_null_nullable_column_count",
+    "recipient_scope_check_count",
+    "unexpected_set_null_check_count",
+    "unexpected_deletion_path_trigger_count",
   ]) {
     assert.match(script, new RegExp(`AS ${diagnostic}\\b`, "u"));
   }
@@ -107,6 +144,38 @@ test("snapshot and classification prove the exact owner and Management binding",
   assert.doesNotMatch(
     authIdentityPredicate,
     /credential_activation_pending|backoffice_profile_name_required/u,
+  );
+
+  assert.match(script, /public\.platform_notification_dispatches/u);
+  assert.doesNotMatch(script, /public\.platform_notifications\b/u);
+  assert.match(script, /pg_catalog\.pg_constraint/u);
+  assert.match(script, /pg_catalog\.pg_trigger/u);
+  assert.match(script, /WHERE 1 = \(\s*SELECT COUNT\(\*\)/u);
+  assert.match(script, /pg_catalog\.pg_get_expr/u);
+  assert.doesNotMatch(script, /pg_get_constraintdef[^\n]*\n?\s*LIKE/u);
+  assert.match(script, /child_column\.attnotnull = false/u);
+  assert.match(script, /trigger_row\.tgtype::integer & target\.event_mask/u);
+  assert.match(
+    script,
+    /recipient\.recipient_type = 'platform_user'[\s\S]*?AS platform_blocking_reference_count/u,
+  );
+  assert.match(
+    script,
+    /recipient\.recipient_type = 'tenant_owner'[\s\S]*?AS platform_set_null_reference_count/u,
+  );
+  const diagnoseStart = script.indexOf('if (operation === "diagnose")');
+  const mutationStart = script.indexOf(
+    "await acquireOwnerBindingLock(client)",
+    diagnoseStart,
+  );
+  assert.ok(diagnoseStart >= 0 && mutationStart > diagnoseStart);
+  assert.match(
+    script.slice(diagnoseStart, mutationStart),
+    /loadFieldDemoOwnerPlatformPrivilegeSnapshot/u,
+  );
+  assert.doesNotMatch(
+    script.slice(mutationStart),
+    /loadFieldDemoOwnerPlatformPrivilegeSnapshot/u,
   );
 });
 
@@ -192,6 +261,12 @@ test("diagnosis and workflow evidence remain categorical and secret-free", () =>
   );
   assert.match(evidenceType[1], /observedState/u);
   assert.match(evidenceType[1], /mutationAttempted/u);
+  assert.match(evidenceType[1], /platformPrivilegeSummary/u);
+  assert.match(script, /schemaVersion: 2/u);
+  assert.doesNotMatch(
+    evidenceType[1],
+    /platform_(?:user|support|audit|set_null).*count/u,
+  );
 });
 
 test("workflow binds database credentials to an exact protected main operation", () => {
@@ -220,30 +295,48 @@ test("workflow binds database credentials to an exact protected main operation",
     /tsc[\s\\]+.*fieldgrid-staging-field-demo-owner-binding-repair\.mts/su,
   );
 
-  const operationStep = workflow.indexOf(
-    "- name: Diagnose or repair the exact staging owner-binding state",
+  const diagnoseStep = workflow.indexOf(
+    "- name: Diagnose the exact staging owner-binding state",
+  );
+  const mutationStep = workflow.indexOf(
+    "- name: Repair or reconcile the exact staging owner-binding state",
   );
   const reverifyStep = workflow.indexOf(
     "- name: Reverify exact main immediately before owner-binding operation",
   );
-  assert.ok(reverifyStep >= 0 && operationStep > reverifyStep);
+  assert.ok(
+    reverifyStep >= 0 &&
+      diagnoseStep > reverifyStep &&
+      mutationStep > diagnoseStep,
+  );
   assert.doesNotMatch(
-    workflow.slice(0, operationStep),
+    workflow.slice(0, diagnoseStep),
     /FIELDGRID_(?:RUNTIME|MIGRATION)_DATABASE_URL:\s*\$\{\{|NEXT_PUBLIC_SUPABASE_URL:\s*\$\{\{/u,
   );
-  const operationEnd = workflow.indexOf("\n      - name:", operationStep + 1);
-  const operationSource = workflow.slice(operationStep, operationEnd);
+  const diagnoseSource = workflow.slice(diagnoseStep, mutationStep);
+  const mutationEnd = workflow.indexOf("\n      - name:", mutationStep + 1);
+  const mutationSource = workflow.slice(mutationStep, mutationEnd);
+  for (const operationSource of [diagnoseSource, mutationSource]) {
+    assert.match(
+      operationSource,
+      /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+    );
+    assert.match(
+      operationSource,
+      /DATABASE_URL: \$\{\{ secrets\.FIELDGRID_RUNTIME_DATABASE_URL \}\}/u,
+    );
+    assert.match(
+      operationSource,
+      /NEXT_PUBLIC_SUPABASE_URL: \$\{\{ secrets\.NEXT_PUBLIC_SUPABASE_URL \}\}/u,
+    );
+  }
   assert.match(
-    operationSource,
-    /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
+    diagnoseSource,
+    /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: \$\{\{ secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID \}\}/u,
   );
-  assert.match(
-    operationSource,
-    /DATABASE_URL: \$\{\{ secrets\.FIELDGRID_RUNTIME_DATABASE_URL \}\}/u,
-  );
-  assert.match(
-    operationSource,
-    /NEXT_PUBLIC_SUPABASE_URL: \$\{\{ secrets\.NEXT_PUBLIC_SUPABASE_URL \}\}/u,
+  assert.doesNotMatch(
+    mutationSource,
+    /FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID/u,
   );
   assert.doesNotMatch(workflow, /SUPABASE_SERVICE_ROLE_KEY/u);
   assert.doesNotMatch(workflow, /systemctl|docker\s+(?:compose|run)|deploy/i);
@@ -251,5 +344,12 @@ test("workflow binds database credentials to an exact protected main operation",
   assert.match(
     workflow,
     /\*-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}\.json/u,
+  );
+});
+
+test("PostgreSQL 17 migration smoke executes the schema-dependent diagnostic", () => {
+  assert.match(
+    packageJson.scripts["fieldgrid:test:postgres17-migration-smoke"],
+    /fieldgrid-staging-field-demo-owner-binding-diagnostic\.test\.mjs/u,
   );
 });

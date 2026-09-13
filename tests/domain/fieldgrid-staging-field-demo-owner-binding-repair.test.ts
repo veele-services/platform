@@ -7,19 +7,23 @@ import {
   FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY,
   FIELD_DEMO_OWNER_BINDING_SUPABASE_URL,
   FIELD_DEMO_OWNER_BINDING_VERSION,
+  FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY,
   FIELD_DEMO_RETAINED_OWNER_ID,
   FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
   FIELD_DEMO_SUPERSEDED_OWNER_ID,
   classifyFieldDemoOwnerBinding,
   formatSafeFieldDemoOwnerBindingError,
   loadFieldDemoOwnerBindingSnapshot,
+  loadFieldDemoOwnerPlatformPrivilegeSnapshot,
   repairFieldDemoOwnerBinding,
   reconcileFieldDemoOwnerBinding,
   safeFieldDemoOwnerBindingErrorCode,
   safeFieldDemoOwnerBindingFailureReason,
+  summarizeFieldDemoOwnerPlatformPrivilege,
   validateFieldDemoOwnerBindingConfig,
   type FieldDemoOwnerBindingFailureReason,
   type FieldDemoOwnerBindingSnapshot,
+  type FieldDemoOwnerPlatformPrivilegeSnapshot,
 } from "../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import { FIELD_DEMO_OWNER_EMAIL } from "../../scripts/fieldgrid-staging-field-demo-domain-repair.mts";
 
@@ -96,10 +100,55 @@ const exactSnapshot: FieldDemoOwnerBindingSnapshot = {
   owner_target_nonmanagement_link_count: 0,
 };
 
+const exactPlatformPrivilegeSnapshot: FieldDemoOwnerPlatformPrivilegeSnapshot =
+  {
+    auth_email_count: 1,
+    auth_contract_count: 1,
+    auth_environment_count: 1,
+    auth_tenant_portal_count: 1,
+    auth_platform_portal_count: 0,
+    platform_user_count: 0,
+    platform_user_active_count: 0,
+    platform_user_inactive_count: 0,
+    platform_user_suspended_count: 0,
+    platform_user_owner_role_count: 0,
+    platform_user_admin_role_count: 0,
+    platform_user_support_role_count: 0,
+    other_active_platform_owner_count: 0,
+    other_active_platform_admin_count: 1,
+    configured_actor_provided_count: 1,
+    configured_actor_matches_owner_count: 0,
+    configured_actor_eligible_count: 1,
+    platform_support_grant_count: 0,
+    platform_current_support_grant_count: 0,
+    platform_current_runtime_support_grant_count: 0,
+    platform_future_support_grant_count: 0,
+    platform_support_actor_audit_count: 0,
+    platform_blocking_reference_count: 0,
+    platform_set_null_reference_count: 0,
+    platform_audit_event_count: 0,
+    platform_invite_event_count: 0,
+    platform_create_event_count: 0,
+    direct_platform_fk_count: 9,
+    exact_direct_platform_fk_count: 9,
+    indirect_grant_fk_count: 2,
+    exact_indirect_grant_fk_count: 2,
+    exact_set_null_nullable_column_count: 9,
+    recipient_scope_check_count: 1,
+    unexpected_set_null_check_count: 0,
+    unexpected_deletion_path_trigger_count: 0,
+  };
+
 function snapshot(
   overrides: Partial<FieldDemoOwnerBindingSnapshot> = {},
 ): FieldDemoOwnerBindingSnapshot {
   return { ...exactSnapshot, ...overrides };
+}
+
+function platformPrivilegeSnapshot(
+  overrides: Partial<FieldDemoOwnerPlatformPrivilegeSnapshot> = {},
+): FieldDemoOwnerPlatformPrivilegeSnapshot {
+  return { ...exactPlatformPrivilegeSnapshot, ...overrides };
 }
 
 const missingBothSnapshot = snapshot({
@@ -185,6 +234,24 @@ test("owner-binding configuration is exact staging and exact main only", () => {
     );
     assert.ok(errors.length > 0, `${key} must fail closed`);
   }
+
+  const invalidActorEnvironment = {
+    ...validEnvironment,
+    FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID: "not-a-uuid",
+  };
+  assert.ok(
+    validateFieldDemoOwnerBindingConfig(
+      { mode: "diagnose", expectedSha: sha },
+      invalidActorEnvironment,
+    ).length > 0,
+  );
+  assert.deepEqual(
+    validateFieldDemoOwnerBindingConfig(
+      { mode: "repair", expectedSha: sha },
+      invalidActorEnvironment,
+    ),
+    [],
+  );
 });
 
 test("owner-binding constants remain exact and staging-scoped", () => {
@@ -212,6 +279,170 @@ test("classifier accepts only the three exact owner-binding shapes", () => {
     state: "missing-management-role",
     failureReason: null,
   });
+});
+
+test("platform privilege diagnosis is categorical and predicts a safe replacement actor", () => {
+  assert.deepEqual(
+    summarizeFieldDemoOwnerPlatformPrivilege(exactPlatformPrivilegeSnapshot),
+    {
+      accountState: "absent",
+      continuityState: "not-applicable",
+      automationActorState: "single-admin-ready",
+      configuredActorState: "other-active-eligible",
+      authMetadataState: "tenant-owner-compatible",
+      supportGrantState: "none",
+      effectiveSupportState: "none",
+      foreignKeyContractState: "exact",
+      deletionBlockState: "none",
+      deletionImpactState: "none",
+      provenanceState: "none",
+    },
+  );
+
+  assert.deepEqual(
+    summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot({
+        auth_tenant_portal_count: 0,
+        auth_platform_portal_count: 1,
+        platform_user_count: 1,
+        platform_user_active_count: 1,
+        platform_user_owner_role_count: 1,
+        other_active_platform_admin_count: 0,
+        configured_actor_matches_owner_count: 1,
+        platform_support_grant_count: 3,
+        platform_current_support_grant_count: 1,
+        platform_current_runtime_support_grant_count: 1,
+        platform_future_support_grant_count: 1,
+        platform_support_actor_audit_count: 3,
+        platform_set_null_reference_count: 2,
+        platform_audit_event_count: 2,
+        platform_invite_event_count: 1,
+      }),
+    ),
+    {
+      accountState: "active-owner",
+      continuityState: "sole-active-owner",
+      automationActorState: "none",
+      configuredActorState: "target-eligible",
+      authMetadataState: "platform-admin-portal",
+      supportGrantState: "current-and-future",
+      effectiveSupportState: "active",
+      foreignKeyContractState: "exact",
+      deletionBlockState: "none",
+      deletionImpactState: "cascade-and-set-null-history-present",
+      provenanceState: "invite-event-present",
+    },
+  );
+
+  assert.deepEqual(
+    summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot({
+        platform_user_count: 1,
+        platform_user_inactive_count: 1,
+        platform_user_admin_role_count: 1,
+        other_active_platform_admin_count: 0,
+        other_active_platform_owner_count: 1,
+        platform_set_null_reference_count: 1,
+        platform_audit_event_count: 1,
+        platform_create_event_count: 1,
+      }),
+    ),
+    {
+      accountState: "inactive-admin",
+      continuityState: "not-applicable",
+      automationActorState: "single-owner-ready",
+      configuredActorState: "other-active-eligible",
+      authMetadataState: "tenant-owner-compatible",
+      supportGrantState: "none",
+      effectiveSupportState: "none",
+      foreignKeyContractState: "exact",
+      deletionBlockState: "none",
+      deletionImpactState: "set-null-history-present",
+      provenanceState: "create-event-present",
+    },
+  );
+
+  const blockedDeletion = summarizeFieldDemoOwnerPlatformPrivilege(
+    platformPrivilegeSnapshot({
+      platform_user_count: 1,
+      platform_user_suspended_count: 1,
+      platform_user_support_role_count: 1,
+      platform_support_grant_count: 1,
+      platform_blocking_reference_count: 1,
+      platform_set_null_reference_count: 1,
+    }),
+  );
+  assert.equal(
+    blockedDeletion.deletionBlockState,
+    "notification-recipient-reference",
+  );
+  assert.equal(
+    blockedDeletion.deletionImpactState,
+    "cascade-and-set-null-history-present",
+  );
+  assert.equal(
+    summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot({
+        platform_user_count: 1,
+        platform_user_inactive_count: 1,
+        platform_user_support_role_count: 1,
+        platform_support_grant_count: 1,
+        platform_current_support_grant_count: 1,
+        platform_current_runtime_support_grant_count: 1,
+      }),
+    ).effectiveSupportState,
+    "blocked-by-platform-status",
+  );
+  assert.equal(
+    summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot({
+        platform_user_count: 1,
+        platform_user_active_count: 1,
+        platform_user_support_role_count: 1,
+        other_active_platform_admin_count: 0,
+        platform_support_grant_count: 1,
+        platform_current_support_grant_count: 1,
+      }),
+    ).effectiveSupportState,
+    "blocked-by-tenant-status",
+  );
+});
+
+test("platform privilege diagnosis exposes schema drift as ambiguous delete impact", () => {
+  for (const drift of [
+    { exact_direct_platform_fk_count: 8 },
+    { exact_set_null_nullable_column_count: 8 },
+    { unexpected_set_null_check_count: 1 },
+    { unexpected_deletion_path_trigger_count: 1 },
+  ]) {
+    const summary = summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot(drift),
+    );
+    assert.equal(summary.foreignKeyContractState, "drift");
+    assert.equal(summary.deletionBlockState, "ambiguous");
+    assert.equal(summary.deletionImpactState, "ambiguous");
+  }
+});
+
+test("platform privilege diagnosis fails closed for inconsistent aggregates", () => {
+  assert.deepEqual(
+    summarizeFieldDemoOwnerPlatformPrivilege(
+      platformPrivilegeSnapshot({ platform_support_grant_count: -1 }),
+    ),
+    {
+      accountState: "ambiguous",
+      continuityState: "ambiguous",
+      automationActorState: "ambiguous",
+      configuredActorState: "ambiguous",
+      authMetadataState: "unavailable",
+      supportGrantState: "ambiguous",
+      effectiveSupportState: "ambiguous",
+      foreignKeyContractState: "ambiguous",
+      deletionBlockState: "ambiguous",
+      deletionImpactState: "ambiguous",
+      provenanceState: "ambiguous",
+    },
+  );
 });
 
 const failClosedCases: Array<
@@ -723,6 +954,99 @@ test("snapshot helper binds fixed identities and requires one aggregate row", as
     assert.equal(
       safeFieldDemoOwnerBindingFailureReason(error),
       "tenant-identity-invalid",
+    );
+  }
+});
+
+test("platform privilege helper is isolated, schema-aware and singular", async () => {
+  let capturedSql = "";
+  let capturedValues: unknown[] = [];
+  const loaded = await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+    {
+      async query<T extends Record<string, unknown>>(
+        text: string,
+        values?: unknown[],
+      ) {
+        capturedSql = text;
+        capturedValues = values ?? [];
+        return {
+          rows: [exactPlatformPrivilegeSnapshot as T],
+          rowCount: 1,
+        };
+      },
+    },
+    ownerUserId,
+  );
+
+  assert.equal(loaded, exactPlatformPrivilegeSnapshot);
+  assert.equal(capturedSql, FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY);
+  assert.deepEqual(capturedValues, [
+    FIELD_DEMO_OWNER_EMAIL,
+    ownerUserId,
+    "fieldgrid-staging-field-demo-owner-repair-v1",
+  ]);
+  assert.doesNotMatch(capturedSql, /info@dgwebservices\.nl/u);
+  assert.match(capturedSql, /public\.platform_notification_dispatches/u);
+  assert.doesNotMatch(capturedSql, /public\.platform_notifications\b/u);
+  assert.match(capturedSql, /pg_catalog\.pg_constraint/u);
+  assert.match(capturedSql, /pg_catalog\.pg_trigger/u);
+  for (const alias of [
+    "auth_tenant_portal_count",
+    "auth_platform_portal_count",
+    "platform_user_active_count",
+    "platform_user_inactive_count",
+    "platform_user_suspended_count",
+    "platform_user_owner_role_count",
+    "platform_user_admin_role_count",
+    "platform_user_support_role_count",
+    "other_active_platform_owner_count",
+    "other_active_platform_admin_count",
+    "configured_actor_provided_count",
+    "configured_actor_matches_owner_count",
+    "configured_actor_eligible_count",
+    "platform_support_grant_count",
+    "platform_current_support_grant_count",
+    "platform_current_runtime_support_grant_count",
+    "platform_future_support_grant_count",
+    "platform_support_actor_audit_count",
+    "platform_blocking_reference_count",
+    "platform_set_null_reference_count",
+    "platform_audit_event_count",
+    "platform_invite_event_count",
+    "platform_create_event_count",
+    "direct_platform_fk_count",
+    "exact_direct_platform_fk_count",
+    "indirect_grant_fk_count",
+    "exact_indirect_grant_fk_count",
+    "exact_set_null_nullable_column_count",
+    "recipient_scope_check_count",
+    "unexpected_set_null_check_count",
+    "unexpected_deletion_path_trigger_count",
+  ]) {
+    assert.match(capturedSql, new RegExp(`AS ${alias}\\b`, "u"));
+  }
+
+  for (const rows of [
+    [],
+    [exactPlatformPrivilegeSnapshot, exactPlatformPrivilegeSnapshot],
+  ]) {
+    const error = await captureError(() =>
+      loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+        {
+          async query<T extends Record<string, unknown>>() {
+            return { rows: rows as T[], rowCount: rows.length };
+          },
+        },
+        null,
+      ),
+    );
+    assert.equal(
+      safeFieldDemoOwnerBindingErrorCode(error),
+      "field_demo_owner_binding_precondition_invalid",
+    );
+    assert.equal(
+      safeFieldDemoOwnerBindingFailureReason(error),
+      "auth-owner-platform-privilege-present",
     );
   }
 });

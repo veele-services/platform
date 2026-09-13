@@ -76,7 +76,7 @@
     "fieldgrid:personnel-tenant-entry:check": "pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-personnel-tenant-code.test.ts && node --test tests/domain/fieldgrid-personnel-tenant-entry-source.test.mjs",
     "fieldgrid:android-runtime:preflight": "node scripts/preflight-android-personnel-runtime.mjs --runtime-only",
     "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
-    "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration",
+    "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration && pnpm --filter @workspace/db exec tsx --test ../../tests/runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs",
     "fieldgrid:test:realtime-projection-migration": "node --test tests/fieldgrid-realtime-projection-migration.test.mjs",
     "fieldgrid:test:credential-recovery-runtime": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-credential-recovery-runtime.mts",
     "fieldgrid:smtp-credential-backfill": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-smtp-credential-backfill.mts",

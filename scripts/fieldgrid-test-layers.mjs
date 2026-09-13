@@ -57,11 +57,12 @@ export const fieldgridTestLayers = [
     label: "PostgreSQL 17 migration smoke",
     owner: "Platform engineering",
     purpose:
-      "Alle migraties draaien op een lege lokale PostgreSQL 17 database met Supabase-compatibiliteitsshims.",
+      "Alle migraties en schema-afhankelijke herstelqueries draaien op een lege lokale PostgreSQL 17 database met Supabase-compatibiliteitsshims.",
     ciCommand:
-      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration",
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:test:realtime-projection-migration && pnpm --filter @workspace/db exec tsx --test ../../tests/runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs",
     requiredTestFiles: [
       "tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs",
+      "tests/runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs",
     ],
     requiredSignals: ["FG-PG17-MIGRATION-SMOKE"],
   },
