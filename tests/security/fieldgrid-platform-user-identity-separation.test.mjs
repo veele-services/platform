@@ -391,6 +391,11 @@ test("authorization invitation reservations are durable and flow-bound", () => {
     activeTenantInvitationReservationMigration,
     /ADD CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*status = 'invited'[\s\S]*status = 'active'[\s\S]*tenant_role_invite'[\s\S]*platform_tenant_admin'[\s\S]*platform_tenant_owner'[\s\S]*NOT VALID[\s\S]*VALIDATE CONSTRAINT tenant_users_invitation_source_state_check_v2[\s\S]*DROP CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*RENAME CONSTRAINT tenant_users_invitation_source_state_check_v2/u,
   );
+  assert.doesNotMatch(
+    activeTenantInvitationReservationMigration,
+    /^(?:BEGIN|COMMIT);$/mu,
+    "the migration runner owns schema-and-journal transaction control",
+  );
   const activeReservationConstraintBranch = sourceBetween(
     activeTenantInvitationReservationMigration,
     "status = 'active'",
