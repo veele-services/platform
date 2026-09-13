@@ -436,7 +436,7 @@ async function upsertCustomerPortalInviteLink(input: {
     .limit(1);
 
   if (existing) {
-    await db
+    const [updated] = await db
       .update(customerUsersTable)
       .set({
         userId: input.authUserId,
@@ -465,8 +465,14 @@ async function upsertCustomerPortalInviteLink(input: {
           eq(customerUsersTable.id, existing.id),
           eq(customerUsersTable.tenantId, input.tenantId),
         ),
+      )
+      .returning({ id: customerUsersTable.id });
+    if (!updated || updated.id !== existing.id) {
+      throw new Error(
+        "De klantportaalkoppeling kon niet exact worden opgeslagen.",
       );
-    return existing.id;
+    }
+    return updated.id;
   }
 
   try {
@@ -485,7 +491,12 @@ async function upsertCustomerPortalInviteLink(input: {
         portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
       })
       .returning({ id: customerUsersTable.id });
-    return created!.id;
+    if (!created) {
+      throw new Error(
+        "De klantportaalkoppeling kon niet exact worden opgeslagen.",
+      );
+    }
+    return created.id;
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     const [raced] = await db
@@ -649,14 +660,22 @@ async function sendCustomerPortalInvite(input: {
     allowExistingActive: true,
   });
 
-  const customerUserId = await upsertCustomerPortalInviteLink({
-    tenantId: input.tenantId,
-    customerId: input.customerId,
-    authUserId: provisioned.user.id,
-    email,
-    fullName,
-    status: "invited",
-  });
+  let customerUserId: string;
+  try {
+    customerUserId = await upsertCustomerPortalInviteLink({
+      tenantId: input.tenantId,
+      customerId: input.customerId,
+      authUserId: provisioned.user.id,
+      email,
+      fullName,
+      status: "invited",
+    });
+
+    await provisioned.finalize();
+  } catch (error) {
+    await provisioned.rollback();
+    throw error;
+  }
 
   await markCustomerPortalInviteSent(input.tenantId, customerUserId);
 

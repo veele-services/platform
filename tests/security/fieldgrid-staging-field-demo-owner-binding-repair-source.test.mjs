@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+import { assertPlatformPrivilegeMigrationFrontier } from "../../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
+import {
+  allowedHistoricalRecordedMigrations,
+  allowedLegacyTimestampMigrations,
+} from "../../scripts/fieldgrid-migration-order-check.mjs";
+
 const script = readFileSync(
   "scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts",
   "utf8",
@@ -18,6 +24,39 @@ const recipientHistoryMigration = readFileSync(
   "lib/db/migrations/20260913135353_preserve_deleted_platform_notification_recipient_history.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const platformOwnerContinuityMigration = readFileSync(
+  "lib/db/migrations/20260913162000_harden_platform_authorization_continuity.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const platformPrivilegeMigrationFrontier = {
+  committed: [
+    { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
+    { name: "20260913135353_recipient.sql", hash: "recipient", sql: "one" },
+    { name: "20260913154500_guard.sql", hash: "guard", sql: "two" },
+    { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
+    { name: "20260914100000_successor.sql", hash: "successor", sql: "four" },
+  ],
+  predecessors: [
+    { name: "20260909120000_predecessor.sql", hash: "predecessor", sql: "" },
+  ],
+  required: [
+    { name: "20260913135353_recipient.sql", hash: "recipient", sql: "one" },
+    { name: "20260913154500_guard.sql", hash: "guard", sql: "two" },
+    { name: "20260913161000_barrier.sql", hash: "barrier", sql: "three" },
+  ],
+  successors: new Set(["20260914100000_successor.sql"]),
+  legacyNames: new Set(["20260909120000_predecessor.sql"]),
+  historical: new Map(),
+};
+
+function migrationRecord(name, hash, baselined = false) {
+  return {
+    name,
+    hash,
+    baselined,
+    appliedAt: "2026-09-13T12:00:00.000Z",
+  };
+}
 
 test("owner-binding repair exposes one fixed staging-only contract", () => {
   assert.match(
@@ -58,6 +97,7 @@ test("owner-binding repair exposes one fixed staging-only contract", () => {
     "loadFieldDemoOwnerBindingSnapshot",
     "FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY",
     "loadFieldDemoOwnerPlatformPrivilegeSnapshot",
+    "applyExactPlatformPrivilegePrerequisiteMigrations",
   ]) {
     assert.match(
       script,
@@ -126,6 +166,7 @@ test("snapshot and classification prove the exact owner and Management binding",
     "exact_indirect_grant_fk_count",
     "exact_set_null_nullable_column_count",
     "recipient_scope_check_count",
+    "platform_owner_continuity_trigger_count",
     "unexpected_set_null_check_count",
     "unexpected_deletion_path_trigger_count",
   ]) {
@@ -326,6 +367,10 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   assert.match(script, /session_revoked_at: revokedAt/u);
   assert.match(script, /fieldgrid_platform_privilege_repair/u);
   assert.match(script, /delete normalized\["platform_role"\]/u);
+  assert.match(
+    script,
+    /app_metadata: \{[\s\S]*\.\.\.normalizedAppMetadata[\s\S]*platform_role: null/u,
+  );
   assert.match(script, /method: "PUT"/u);
   assert.match(
     script,
@@ -356,11 +401,11 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /drizzle\.veele_sql_migrations[\s\S]*PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME[\s\S]*migrationHash/u,
+    /PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[\s\S]*20260913135353_preserve_deleted_platform_notification_recipient_history\.sql[\s\S]*20260913154500_prevent_cross_portal_identity_reuse\.sql[\s\S]*20260913161000_serialize_auth_surface_bindings_across_snapshots\.sql[\s\S]*20260913162000_harden_platform_authorization_continuity\.sql/u,
   );
   assert.match(
     script,
-    /readdir\(migrationsDir,[\s\S]*PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME[\s\S]*predecessors: migrations\.slice\(0, -1\)[\s\S]*successors: new Set/u,
+    /readdir\(migrationsDir,[\s\S]*requiredNames = names\.slice[\s\S]*predecessors: migrations\.slice\(0, firstRequiredIndex\)[\s\S]*required: migrations\.slice\(\s*firstRequiredIndex,[\s\S]*finalRequiredIndex \+ 1[\s\S]*successors: new Set/u,
   );
   assert.match(
     script,
@@ -368,13 +413,30 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /records\.some\([\s\S]*?frontier\.successors\.has\(record\.name\)[\s\S]*?record\.name\.localeCompare\(frontier\.target\.name\) > 0/u,
+    /for \(const \[index, migration\] of frontier\.required\.entries\(\)\)[\s\S]*firstPendingIndex[\s\S]*record\.baselined/u,
+  );
+  assert.match(
+    script,
+    /records\.some\([\s\S]*?frontier\.successors\.has\(record\.name\)[\s\S]*?record\.name\.localeCompare\(finalRequiredMigration\.name\) > 0/u,
+  );
+  assert.match(
+    script,
+    /for \(const migration of pending\)[\s\S]*await queryable\.query\(migration\.sql\)[\s\S]*INSERT INTO drizzle\.veele_sql_migrations[\s\S]*migration\.name, migration\.hash/u,
   );
   assert.ok(
-    [...script.matchAll(/SELECT name, hash, baselined[\s\S]*?ORDER BY name/gu)]
-      .length >= 2,
+    [
+      ...script.matchAll(
+        /SELECT name, hash, baselined, applied_at AS "appliedAt"[\s\S]*?ORDER BY applied_at, name/gu,
+      ),
+    ].length >= 2,
     "migration state and its locked recheck must validate the complete frontier",
   );
+  assert.match(script, /SQL migration history contains an unreviewed entry/u);
+  assert.match(
+    script,
+    /SQL migration history is not a contiguous committed prefix/u,
+  );
+  assert.match(script, /evidence\.mutationAttempted = mutationAttempted/u);
   assert.match(
     script,
     /SELECT platform_user\.id\s+FROM public\.platform_users AS platform_user\s+ORDER BY platform_user\.id\s+FOR UPDATE/u,
@@ -412,6 +474,155 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   assert.doesNotMatch(
     script,
     /console\.(?:log|error)\([^\n]*(?:serviceCredential|appMetadata|userId|recipientIds)/u,
+  );
+});
+
+test("database serializes active platform-owner removal and closes trigger ACLs", () => {
+  assert.match(
+    platformOwnerContinuityMigration,
+    /LOCK TABLE public\.platform_users IN SHARE ROW EXCLUSIVE MODE/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /CREATE TABLE public\.fieldgrid_platform_owner_continuity_lock \([\s\S]*singleton boolean PRIMARY KEY[\s\S]*revision bigint NOT NULL/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /ENABLE ROW LEVEL SECURITY[\s\S]*REVOKE ALL ON TABLE public\.fieldgrid_platform_owner_continuity_lock/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /CREATE FUNCTION public\.fieldgrid_enforce_platform_owner_continuity\(\)[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, public/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /INSERT INTO public\.fieldgrid_platform_owner_continuity_lock AS continuity_lock[\s\S]*ON CONFLICT \(singleton\) DO UPDATE[\s\S]*continuity_lock\.revision \+ 1/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /other_owner\.id <> OLD\.id[\s\S]*other_owner\.role = 'owner'[\s\S]*other_owner\.status = 'active'[\s\S]*CONSTRAINT = 'fieldgrid_platform_owner_continuity'/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /CREATE TRIGGER platform_users_owner_continuity_update[\s\S]*CREATE TRIGGER platform_users_owner_continuity_delete/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /REVOKE EXECUTE ON FUNCTION[\s\S]*fieldgrid_enforce_auth_surface_separation\(\)[\s\S]*fieldgrid_enforce_platform_owner_continuity\(\)[\s\S]*FROM PUBLIC, anon, authenticated, service_role,[\s\S]*GRANT EXECUTE ON FUNCTION[\s\S]*TO fieldgrid_runtime_data/u,
+  );
+  assert.match(
+    platformOwnerContinuityMigration,
+    /fieldgrid_runtime_relation_capabilities[\s\S]*'fieldgrid_platform_owner_continuity_lock'[\s\S]*'function_only'[\s\S]*fieldgrid_runtime_function_capabilities[\s\S]*'fieldgrid_enforce_platform_owner_continuity'[\s\S]*'trigger_dependency'/u,
+  );
+  assert.match(
+    postgres17MigrationTest,
+    /platform owner continuity serializes concurrent last-owner removal/u,
+  );
+});
+
+test("platform-privilege prerequisite frontier returns only one contiguous pending suffix", () => {
+  const predecessor = migrationRecord(
+    "20260909120000_predecessor.sql",
+    "predecessor",
+  );
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(
+      platformPrivilegeMigrationFrontier,
+      [predecessor],
+    ).map(({ name }) => name),
+    platformPrivilegeMigrationFrontier.required.map(({ name }) => name),
+  );
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(
+      platformPrivilegeMigrationFrontier,
+      [
+        predecessor,
+        migrationRecord("20260913135353_recipient.sql", "recipient"),
+      ],
+    ).map(({ name }) => name),
+    ["20260913154500_guard.sql", "20260913161000_barrier.sql"],
+  );
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(
+      platformPrivilegeMigrationFrontier,
+      [
+        predecessor,
+        migrationRecord("20260913135353_recipient.sql", "recipient"),
+        migrationRecord("20260913154500_guard.sql", "guard"),
+        migrationRecord("20260913161000_barrier.sql", "barrier"),
+      ],
+    ),
+    [],
+  );
+});
+
+test("platform-privilege history policy mirrors the canonical migration-order policy", () => {
+  for (const name of allowedLegacyTimestampMigrations) {
+    assert.ok(script.includes(name), `${name} must remain an approved legacy name`);
+  }
+  for (const [name, policy] of Object.entries(
+    allowedHistoricalRecordedMigrations,
+  )) {
+    assert.ok(script.includes(name), `${name} must remain explicitly reviewed`);
+    assert.ok(
+      script.includes(policy.sqlSha256),
+      `${name} must retain its frozen historical hash`,
+    );
+    if (policy.canonicalName) {
+      assert.ok(
+        script.includes(policy.canonicalName),
+        `${name} must retain its canonical replacement`,
+      );
+    }
+  }
+});
+
+test("platform-privilege prerequisite frontier rejects gaps, drift, baselines, and successors", () => {
+  const predecessor = migrationRecord(
+    "20260909120000_predecessor.sql",
+    "predecessor",
+  );
+  assert.throws(
+    () =>
+      assertPlatformPrivilegeMigrationFrontier(
+        platformPrivilegeMigrationFrontier,
+        [
+          predecessor,
+          migrationRecord("20260913135353_recipient.sql", "recipient"),
+          migrationRecord("20260913161000_barrier.sql", "barrier"),
+        ],
+      ),
+    /not a contiguous committed prefix/u,
+  );
+  assert.throws(
+    () =>
+      assertPlatformPrivilegeMigrationFrontier(
+        platformPrivilegeMigrationFrontier,
+        [migrationRecord(predecessor.name, "drift")],
+      ),
+    /source-hash drift/u,
+  );
+  assert.throws(
+    () =>
+      assertPlatformPrivilegeMigrationFrontier(
+        platformPrivilegeMigrationFrontier,
+        [
+          predecessor,
+          migrationRecord("20260913135353_recipient.sql", "recipient", true),
+        ],
+      ),
+    /baselined without execution/u,
+  );
+  assert.throws(
+    () =>
+      assertPlatformPrivilegeMigrationFrontier(
+        platformPrivilegeMigrationFrontier,
+        [
+          predecessor,
+          migrationRecord("20260914100000_successor.sql", "successor"),
+        ],
+      ),
+    /not a contiguous committed prefix/u,
   );
 });
 

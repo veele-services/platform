@@ -1040,6 +1040,8 @@ type TenantAuthUserInviteResult = {
   userId: string;
   deliveryStatus: "sent" | "existing_auth_user";
   deliveryMessage: string | null;
+  finalize: () => Promise<void>;
+  rollback: () => Promise<void>;
 };
 
 async function platformTenantAuthUsersById(
@@ -1121,7 +1123,26 @@ async function inviteOrFindTenantAuthUser(
     deliveryMessage: invite.created
       ? null
       : "Nieuwe eenmalige activatiecode verstuurd naar bestaand auth-account.",
+    finalize: invite.finalize,
+    rollback: invite.rollback,
   };
+}
+
+async function bindAndFinalizeTenantAuthInvite(
+  invite: TenantAuthUserInviteResult,
+  bind: () => Promise<void>,
+): Promise<void> {
+  try {
+    await bind();
+    await invite.finalize();
+  } catch (error) {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw rollbackError;
+    }
+    throw error;
+  }
 }
 
 async function listTenantRoleOptions(
@@ -2480,7 +2501,8 @@ export async function addPlatformTenantAdmin(
   );
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
-  await db.transaction(async (tx) => {
+  await bindAndFinalizeTenantAuthInvite(invite, () =>
+    db.transaction(async (tx) => {
     await tx
       .insert(tenantUsersTable)
       .values({
@@ -2513,7 +2535,8 @@ export async function addPlatformTenantAdmin(
         })),
       )
       .onConflictDoNothing();
-  });
+    }),
+  );
 
   await auditPlatformTenantAction({
     tenantId,
@@ -2848,7 +2871,8 @@ export async function updatePlatformTenantOwnerInvite(
   );
   const now = new Date();
 
-  await db.transaction(async (tx) => {
+  await bindAndFinalizeTenantAuthInvite(invite, () =>
+    db.transaction(async (tx) => {
     if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
       await tx
         .update(tenantOwnerInvitesTable)
@@ -2937,7 +2961,8 @@ export async function updatePlatformTenantOwnerInvite(
         updatedAt: now,
       })
       .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
-  });
+    }),
+  );
 
   await auditPlatformTenantAction({
     tenantId,

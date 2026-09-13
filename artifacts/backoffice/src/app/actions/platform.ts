@@ -873,6 +873,18 @@ export async function invitePlatformUserFromForm(
     };
   }
 
+  try {
+    await invite.finalize();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "De platformuitnodiging vereist handmatige Auth-controle.",
+    };
+  }
+
   await writePlatformAuditLog({
     actor,
     action: "platform_user_invited",

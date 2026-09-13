@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
+import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 
 const repoRoot = process.cwd();
 const migrationPath = join(
@@ -20,6 +21,10 @@ const { Client } = dbRequire("pg");
 const separatedAuthUserId = "92000000-0000-4000-8000-000000000001";
 const separatedPlatformUserId = "92000000-0000-4000-8000-000000000002";
 const separatedTenantId = "92000000-0000-4000-8000-000000000003";
+const continuityAuthUserA = "93000000-0000-4000-8000-000000000001";
+const continuityPlatformUserA = "93000000-0000-4000-8000-000000000002";
+const continuityAuthUserB = "93000000-0000-4000-8000-000000000003";
+const continuityPlatformUserB = "93000000-0000-4000-8000-000000000004";
 
 test("customer realtime policy rejects JWT email fallback", () => {
   assert.doesNotMatch(migration, /auth\.email\s*\(\)/iu);
@@ -116,6 +121,12 @@ test(
 );
 
 if (process.env.DATABASE_URL) {
+  const databaseHost = new URL(process.env.DATABASE_URL).hostname;
+  assert.ok(
+    ["127.0.0.1", "localhost", "::1", "postgres"].includes(databaseHost),
+    "runtime migration tests require a disposable local PostgreSQL database",
+  );
+
   test("Auth surface separation serializes concurrent tenant and platform bindings", async () => {
     const first = new Client({
       connectionString: process.env.DATABASE_URL,
@@ -254,6 +265,235 @@ if (process.env.DATABASE_URL) {
         .catch(() => undefined);
       await first
         .query("DELETE FROM auth.users WHERE id = $1", [separatedAuthUserId])
+        .catch(() => undefined);
+      await Promise.allSettled([first.end(), second.end()]);
+    }
+  });
+
+  test("platform owner continuity serializes concurrent last-owner removal", async () => {
+    const first = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+      statement_timeout: 10_000,
+    });
+    const second = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+      statement_timeout: 10_000,
+    });
+    let secondDemotion = null;
+    let originalOwnerIds = [];
+    await first.connect();
+    await second.connect();
+
+    try {
+      await first.query(
+        `INSERT INTO auth.users (id, email, raw_app_meta_data)
+         VALUES ($1, 'platform-owner@runtime.fieldgrid.test', '{}'::jsonb)
+         ON CONFLICT (id) DO NOTHING`,
+        [FIXTURE.users.platformOwner],
+      );
+      await first.query(
+        `INSERT INTO public.platform_users (id, user_id, role, status)
+         VALUES ($1, $2, 'owner', 'active')
+         ON CONFLICT (id) DO UPDATE
+           SET role = 'owner', status = 'active'`,
+        [FIXTURE.platformUsers.owner, FIXTURE.users.platformOwner],
+      );
+      const originalOwners = await first.query(
+        `SELECT id::text
+           FROM public.platform_users
+          WHERE role = 'owner' AND status = 'active'
+          ORDER BY id`,
+      );
+      originalOwnerIds = originalOwners.rows.map((row) => row.id);
+      assert.ok(
+        originalOwnerIds.length > 0,
+        "runtime fixtures must provide an existing active platform owner",
+      );
+
+      await first.query(
+        `INSERT INTO auth.users (id, email, raw_app_meta_data)
+         VALUES
+           ($1, 'owner-continuity-a@example.invalid', '{}'::jsonb),
+           ($2, 'owner-continuity-b@example.invalid', '{}'::jsonb)`,
+        [continuityAuthUserA, continuityAuthUserB],
+      );
+      await first.query(
+        `INSERT INTO public.platform_users (id, user_id, role, status)
+         VALUES
+           ($1, $2, 'owner', 'active'),
+           ($3, $4, 'owner', 'active')`,
+        [
+          continuityPlatformUserA,
+          continuityAuthUserA,
+          continuityPlatformUserB,
+          continuityAuthUserB,
+        ],
+      );
+      await first.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = ANY($1::uuid[])`,
+        [originalOwnerIds],
+      );
+
+      const firstPid = await first.query(
+        "SELECT pg_backend_pid()::integer AS pid",
+      );
+      const secondPid = await second.query(
+        "SELECT pg_backend_pid()::integer AS pid",
+      );
+      await second.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+      await second.query(
+        `SELECT revision
+           FROM public.fieldgrid_platform_owner_continuity_lock
+          WHERE singleton IS TRUE`,
+      );
+      await first.query("BEGIN");
+      await first.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = $1`,
+        [continuityPlatformUserA],
+      );
+      secondDemotion = second.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = $1`,
+        [continuityPlatformUserB],
+      );
+
+      let waitingOnContinuityBarrier = false;
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const waiting = await first.query(
+          `SELECT $1::integer = ANY(
+             pg_catalog.pg_blocking_pids($2::integer)
+           ) AS waiting`,
+          [firstPid.rows[0]?.pid, secondPid.rows[0]?.pid],
+        );
+        waitingOnContinuityBarrier = waiting.rows[0]?.waiting === true;
+        if (waitingOnContinuityBarrier) break;
+        await delay(20);
+      }
+      assert.equal(
+        waitingOnContinuityBarrier,
+        true,
+        "the concurrent demotion must wait on the owner-continuity barrier",
+      );
+
+      await first.query("COMMIT");
+      await assert.rejects(secondDemotion, (error) => error?.code === "40001");
+      secondDemotion = null;
+      await second.query("ROLLBACK");
+
+      const retainedOwner = await first.query(
+        `SELECT id::text, role, status
+           FROM public.platform_users
+          WHERE role = 'owner' AND status = 'active'`,
+      );
+      assert.deepEqual(retainedOwner.rows, [
+        {
+          id: continuityPlatformUserB,
+          role: "owner",
+          status: "active",
+        },
+      ]);
+      await assert.rejects(
+        first.query("DELETE FROM public.platform_users WHERE id = $1", [
+          continuityPlatformUserB,
+        ]),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "fieldgrid_platform_owner_continuity",
+      );
+
+      await first.query(
+        `UPDATE public.platform_users
+            SET role = 'owner', status = 'active'
+          WHERE id = $1`,
+        [continuityPlatformUserA],
+      );
+      const legitimateDemotion = await first.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = $1`,
+        [continuityPlatformUserB],
+      );
+      assert.equal(legitimateDemotion.rowCount, 1);
+
+      await first.query(
+        `UPDATE public.platform_users
+            SET role = 'owner'
+          WHERE id = $1`,
+        [continuityPlatformUserB],
+      );
+      await first.query("BEGIN");
+      await first.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = $1`,
+        [continuityPlatformUserA],
+      );
+      secondDemotion = second.query(
+        `UPDATE public.platform_users
+            SET role = 'admin'
+          WHERE id = $1`,
+        [continuityPlatformUserB],
+      );
+
+      let readCommittedWaiterBlocked = false;
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const waiting = await first.query(
+          `SELECT $1::integer = ANY(
+             pg_catalog.pg_blocking_pids($2::integer)
+           ) AS waiting`,
+          [firstPid.rows[0]?.pid, secondPid.rows[0]?.pid],
+        );
+        readCommittedWaiterBlocked = waiting.rows[0]?.waiting === true;
+        if (readCommittedWaiterBlocked) break;
+        await delay(20);
+      }
+      assert.equal(readCommittedWaiterBlocked, true);
+      await first.query("COMMIT");
+      await assert.rejects(
+        secondDemotion,
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "fieldgrid_platform_owner_continuity",
+      );
+      secondDemotion = null;
+      const readCommittedOwner = await first.query(
+        `SELECT id::text
+           FROM public.platform_users
+          WHERE role = 'owner' AND status = 'active'`,
+      );
+      assert.deepEqual(readCommittedOwner.rows, [
+        { id: continuityPlatformUserB },
+      ]);
+    } finally {
+      await first.query("ROLLBACK").catch(() => undefined);
+      if (secondDemotion) await secondDemotion.catch(() => undefined);
+      await second.query("ROLLBACK").catch(() => undefined);
+      if (originalOwnerIds.length > 0) {
+        await first
+          .query(
+            `UPDATE public.platform_users
+                SET role = 'owner', status = 'active'
+              WHERE id = ANY($1::uuid[])`,
+            [originalOwnerIds],
+          )
+          .catch(() => undefined);
+      }
+      await first
+        .query("DELETE FROM public.platform_users WHERE id = ANY($1::uuid[])", [
+          [continuityPlatformUserA, continuityPlatformUserB],
+        ])
+        .catch(() => undefined);
+      await first
+        .query("DELETE FROM auth.users WHERE id = ANY($1::uuid[])", [
+          [continuityAuthUserA, continuityAuthUserB],
+        ])
         .catch(() => undefined);
       await Promise.allSettled([first.end(), second.end()]);
     }

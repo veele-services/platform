@@ -10,6 +10,30 @@ const portalInvites = readFileSync(
   "artifacts/backoffice/src/lib/auth/portal-invites.ts",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const tenantRoleActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/tenant-roles.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const customerActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/customers.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const personnelActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/personnel.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const platformProvisioningActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/platform-provisioning.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const platformTenantActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/platform-tenants.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const settingsActions = readFileSync(
+  "artifacts/backoffice/src/app/actions/settings.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
 const initialAuthSurfaceMigration = readFileSync(
   "lib/db/migrations/20260913154500_prevent_cross_portal_identity_reuse.sql",
   "utf8",
@@ -59,12 +83,14 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
     "authUserHasTenantMembership(invite.user.id)",
   );
   const platformWrite = inviteSource.indexOf(".insert(platformUsersTable)");
+  const finalize = inviteSource.indexOf("await invite.finalize()");
   assert.ok(
     authPreflight >= 0 &&
       provision > authPreflight &&
       postProvisionGuard > provision &&
-      platformWrite > postProvisionGuard,
-    "tenant membership must be checked before e-mail provisioning and again before binding",
+      platformWrite > postProvisionGuard &&
+      finalize > platformWrite,
+    "tenant membership must be checked around provisioning and Auth metadata finalized only after binding",
   );
 
   assert.match(inviteSource, /let invite:[\s\S]*=\s*null/u);
@@ -75,6 +101,76 @@ test("platform-user creation rejects tenant identities and compensates Auth fail
   assert.match(
     inviteSource,
     /catch \{[\s\S]*await invite\.rollback\(\)[\s\S]*platformkoppeling kon niet veilig/u,
+  );
+});
+
+test("existing Auth metadata is finalized only after durable portal binding", () => {
+  const existingIdentityStart = portalInvites.indexOf(
+    "const existingPortal = existingUser.app_metadata?.portal",
+  );
+  const rollbackStart = portalInvites.indexOf("const rollback = async () =>");
+  const finalizeStart = portalInvites.indexOf("const finalize = async () =>");
+  const challengeStart = portalInvites.indexOf(
+    "const challenge = await issueCredentialRecoveryChallenge(",
+  );
+  assert.ok(
+    existingIdentityStart >= 0 &&
+      rollbackStart > existingIdentityStart &&
+      finalizeStart > rollbackStart &&
+      challengeStart > finalizeStart,
+  );
+  assert.doesNotMatch(
+    portalInvites.slice(existingIdentityStart, rollbackStart),
+    /updateUserById/u,
+  );
+  assert.match(
+    portalInvites.slice(finalizeStart, challengeStart),
+    /existingIdentityMutationAttempted = true[\s\S]*updateUserById/u,
+  );
+
+  assert.match(
+    tenantRoleActions,
+    /\.insert\(tenantUsersTable\)[\s\S]*await invite\.finalize\(\)/u,
+  );
+  assert.match(
+    customerActions,
+    /try \{[\s\S]*upsertCustomerPortalInviteLink\([\s\S]*await provisioned\.finalize\(\);[\s\S]*\} catch \(error\) \{[\s\S]*await provisioned\.rollback\(\);[\s\S]*throw error;/u,
+  );
+  assert.match(
+    customerActions,
+    /const \[updated\] = await db[\s\S]*\.returning\(\{ id: customerUsersTable\.id \}\);[\s\S]*if \(!updated \|\| updated\.id !== existing\.id\)/u,
+  );
+  assert.ok(
+    [...personnelActions.matchAll(/await activationInvite\.finalize\(\)/gu)]
+      .length >= 2,
+  );
+  assert.equal(
+    [...personnelActions.matchAll(/const linkedPersonnel = await db/gu)].length,
+    2,
+  );
+  assert.equal(
+    [...personnelActions.matchAll(/linkedPersonnel\.length !== 1/gu)].length,
+    2,
+  );
+  assert.match(
+    platformProvisioningActions,
+    /completeProvisionedTenantOwnerInvite\([\s\S]*await ownerInvite\.finalize\(\)/u,
+  );
+  assert.match(
+    platformTenantActions,
+    /await bind\(\);[\s\S]*await invite\.finalize\(\)/u,
+  );
+  assert.equal(
+    [
+      ...platformTenantActions.matchAll(
+        /bindAndFinalizeTenantAuthInvite\(invite, \(\) =>/gu,
+      ),
+    ].length,
+    2,
+  );
+  assert.match(
+    settingsActions,
+    /\.insert\(userRolesTable\)[\s\S]*await invite\.finalize\(\)/u,
   );
 });
 

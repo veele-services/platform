@@ -184,6 +184,51 @@ try {
   });
   assert.equal(supersededResult.state, "invalid");
 
+  const scopedRevocationFirst = await issue("scoped-revoke-first@example.test", {
+    purpose: "activation",
+    networkSignal: "198.51.100.10",
+    clientSignal: "scoped-revoke-first",
+  });
+  const scopedRevocationSecond = await issue("scoped-revoke-second@example.test", {
+    purpose: "activation",
+    networkSignal: "198.51.100.11",
+    clientSignal: "scoped-revoke-second",
+  });
+  assert.equal(scopedRevocationFirst.status, "issued");
+  assert.equal(scopedRevocationSecond.status, "issued");
+  assert.ok(
+    scopedRevocationFirst.challengeId && scopedRevocationSecond.challengeId,
+  );
+  const scopedRevokedCount = await revokeCredentialRecoveryChallenges({
+    challengeId: scopedRevocationFirst.challengeId,
+    tenantId: tenantA,
+    surface: "customer-portal",
+    purpose: "activation",
+    subjectUserId: customerA,
+    actorUserId: FIXTURE.users.tenantAAdmin,
+    reason: "scoped_revoke",
+    now: baseNow,
+  });
+  assert.equal(scopedRevokedCount, 1);
+  const scopedRevocationState = await client.query(
+    `select id::text, invalidated_reason
+       from public.credential_recovery_challenges
+      where id = any($1::uuid[])
+      order by id`,
+    [[scopedRevocationFirst.challengeId, scopedRevocationSecond.challengeId]],
+  );
+  const scopedRevocationById = new Map(
+    scopedRevocationState.rows.map((row) => [row.id, row.invalidated_reason]),
+  );
+  assert.equal(
+    scopedRevocationById.get(scopedRevocationFirst.challengeId),
+    "scoped_revoke",
+  );
+  assert.equal(
+    scopedRevocationById.get(scopedRevocationSecond.challengeId),
+    null,
+  );
+
   const revoked = await issue("revoked@example.test");
   const revokedCount = await revokeCredentialRecoveryChallenges({
     tenantId: tenantA,
@@ -366,6 +411,7 @@ try {
       "invalid-expired-used-token",
       "wrong-tenant-purpose-and-surface-token",
       "supersede-and-revoke",
+      "challenge-id-scoped-revoke",
       "deactivated-eligibility",
       "concurrent-single-use",
       "durable-rate-limit",

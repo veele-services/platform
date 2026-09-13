@@ -12,7 +12,7 @@ import {
   FIELD_DEMO_RETAINED_OWNER_ID,
   FIELD_DEMO_SUPERSEDED_OWNER_EMAIL,
   FIELD_DEMO_SUPERSEDED_OWNER_ID,
-  assertRecipientHistoryMigrationFrontier,
+  assertPlatformPrivilegeMigrationFrontier,
   classifyFieldDemoOwnerBinding,
   fieldDemoOwnerAppMetadataMatches,
   fieldDemoOwnerAuthMetadataIsNormalized,
@@ -46,13 +46,49 @@ const recipientHistoryFrontier = {
     { name: "001_before.sql", hash: "1".repeat(64), sql: "SELECT 1;" },
     { name: "002_before.sql", hash: "2".repeat(64), sql: "SELECT 2;" },
   ],
-  target: {
-    name: "003_recipient_history.sql",
-    hash: "3".repeat(64),
-    sql: "SELECT 3;",
-  },
-  successors: new Set(["004_after.sql"]),
+  required: [
+    {
+      name: "20260913135353_recipient_history.sql",
+      hash: "3".repeat(64),
+      sql: "SELECT 3;",
+    },
+    {
+      name: "20260913154500_auth_guard.sql",
+      hash: "4".repeat(64),
+      sql: "SELECT 4;",
+    },
+  ],
+  committed: [] as { name: string; hash: string; sql: string }[],
+  successors: new Set(["20260914100000_after.sql"]),
+  legacyNames: new Set(["001_before.sql", "002_before.sql"]),
+  historical: new Map(),
 };
+const recipientHistoryCommitted = [
+  ...recipientHistoryFrontier.predecessors,
+  ...recipientHistoryFrontier.required,
+  {
+    name: "20260914100000_after.sql",
+    hash: "5".repeat(64),
+    sql: "SELECT 5;",
+  },
+];
+Object.assign(recipientHistoryFrontier, {
+  committed: recipientHistoryCommitted,
+});
+
+function migrationRecord(
+  name: string,
+  hash: string,
+  index: number,
+  baselined = false,
+) {
+  return {
+    name,
+    hash,
+    baselined,
+    appliedAt: new Date(Date.UTC(2026, 8, 13, 12, 0, index)),
+  };
+}
 
 const validEnvironment = {
   APP_ENV: "staging",
@@ -160,6 +196,7 @@ const exactPlatformPrivilegeSnapshot: FieldDemoOwnerPlatformPrivilegeSnapshot =
     exact_indirect_grant_fk_count: 2,
     exact_set_null_nullable_column_count: 9,
     recipient_scope_check_count: 1,
+    platform_owner_continuity_trigger_count: 2,
     unexpected_set_null_check_count: 0,
     unexpected_deletion_path_trigger_count: 0,
   };
@@ -214,27 +251,52 @@ async function captureError(run: () => Promise<unknown>): Promise<unknown> {
   assert.fail("Expected owner-binding repair to fail.");
 }
 
-test("recipient-history migration requires an exact contiguous predecessor frontier", () => {
+test("platform-privilege migrations require an exact contiguous history frontier", () => {
   const predecessorRecords = recipientHistoryFrontier.predecessors.map(
-    ({ name, hash }, index) => ({ name, hash, baselined: index === 0 }),
+    ({ name, hash }, index) => migrationRecord(name, hash, index, index === 0),
   );
-  assert.equal(
-    assertRecipientHistoryMigrationFrontier(
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(
       recipientHistoryFrontier,
       predecessorRecords,
-    ),
-    "pending",
+    ).map(({ name }) => name),
+    recipientHistoryFrontier.required.map(({ name }) => name),
   );
-  assert.equal(
-    assertRecipientHistoryMigrationFrontier(recipientHistoryFrontier, [
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(recipientHistoryFrontier, [
       ...predecessorRecords,
-      {
-        name: recipientHistoryFrontier.target.name,
-        hash: recipientHistoryFrontier.target.hash,
-        baselined: false,
-      },
+      ...recipientHistoryFrontier.required.map(({ name, hash }, index) =>
+        migrationRecord(name, hash, index + predecessorRecords.length),
+      ),
     ]),
-    "recorded",
+    [],
+  );
+  const historicalAliasFrontier = {
+    ...recipientHistoryFrontier,
+    historical: new Map([
+      [
+        "099_recipient_history_alias.sql",
+        {
+          kind: "renamed" as const,
+          canonicalName: recipientHistoryFrontier.required[0]!.name,
+          hash: "a".repeat(64),
+        },
+      ],
+    ]),
+  };
+  assert.deepEqual(
+    assertPlatformPrivilegeMigrationFrontier(historicalAliasFrontier, [
+      ...predecessorRecords,
+      migrationRecord(
+        "099_recipient_history_alias.sql",
+        "a".repeat(64),
+        2,
+      ),
+      ...recipientHistoryFrontier.required.map(({ name, hash }, index) =>
+        migrationRecord(name, hash, index + predecessorRecords.length + 1),
+      ),
+    ]),
+    [],
   );
 
   for (const records of [
@@ -242,24 +304,30 @@ test("recipient-history migration requires an exact contiguous predecessor front
     [{ ...predecessorRecords[0]!, hash: "f".repeat(64) }],
     [
       ...predecessorRecords,
-      { name: "004_after.sql", hash: "4".repeat(64), baselined: false },
+      migrationRecord("20260914100000_after.sql", "5".repeat(64), 2),
     ],
     [
       ...predecessorRecords,
-      {
-        name: recipientHistoryFrontier.target.name,
-        hash: recipientHistoryFrontier.target.hash,
-        baselined: true,
-      },
+      migrationRecord(
+        recipientHistoryFrontier.required[0]!.name,
+        recipientHistoryFrontier.required[0]!.hash,
+        2,
+        true,
+      ),
     ],
+    [
+      ...predecessorRecords,
+      migrationRecord("099_staging_only.sql", "9".repeat(64), 2),
+    ],
+    [predecessorRecords[1]!, predecessorRecords[0]!],
   ]) {
     assert.throws(
       () =>
-        assertRecipientHistoryMigrationFrontier(
+        assertPlatformPrivilegeMigrationFrontier(
           recipientHistoryFrontier,
           records,
         ),
-      /migration|frontier/iu,
+      /migration|frontier|history/iu,
     );
   }
 });
@@ -1290,6 +1358,7 @@ test("platform privilege helper is isolated, schema-aware and singular", async (
     "exact_indirect_grant_fk_count",
     "exact_set_null_nullable_column_count",
     "recipient_scope_check_count",
+    "platform_owner_continuity_trigger_count",
     "unexpected_set_null_check_count",
     "unexpected_deletion_path_trigger_count",
   ]) {

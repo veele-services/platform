@@ -358,7 +358,12 @@ async function sendPersonnelActivationInvite(person: {
   lastName: string;
   email: string;
   tenantId: string;
-}): Promise<{ userId: string; created: boolean }> {
+}): Promise<{
+  userId: string;
+  created: boolean;
+  finalize: () => Promise<void>;
+  rollback: () => Promise<void>;
+}> {
   const fullName = `${person.firstName} ${person.lastName}`.trim();
   const activationUrl = await personnelTenantEntryUrl(
     person.tenantId,
@@ -372,7 +377,12 @@ async function sendPersonnelActivationInvite(person: {
     portalName: "Personeelsportaal",
     activationUrl,
   });
-  return { userId: invite.user.id, created: invite.created };
+  return {
+    userId: invite.user.id,
+    created: invite.created,
+    finalize: invite.finalize,
+    rollback: invite.rollback,
+  };
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -918,7 +928,7 @@ export async function createPersonnel(
 
       if (activationInvite) {
         try {
-          await db
+          const linkedPersonnel = await db
             .update(personnelTable)
             .set({
               userId: activationInvite.userId,
@@ -927,13 +937,30 @@ export async function createPersonnel(
               portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
               updatedAt: new Date(),
             })
-            .where(eq(personnelTable.id, createdId));
+            .where(eq(personnelTable.id, createdId))
+            .returning({ id: personnelTable.id });
+          if (
+            linkedPersonnel.length !== 1 ||
+            linkedPersonnel[0]?.id !== createdId
+          ) {
+            throw new Error(
+              "De personeelskoppeling kon niet exact worden opgeslagen.",
+            );
+          }
+          await activationInvite.finalize();
         } catch {
-          console.error("[personnel] Auto-invite portal status update failed.");
+          let requiresManualControl = false;
+          try {
+            await activationInvite.rollback();
+          } catch {
+            requiresManualControl = true;
+          }
+          console.error("[personnel] Auto-invite finalization failed.");
           inviteResult = {
-            sent: true,
-            message:
-              "De activatiemail is verstuurd, maar de portaalstatus kon niet worden bijgewerkt. Verstuur niet opnieuw en neem contact op met platformbeheer.",
+            sent: null,
+            message: requiresManualControl
+              ? "De activatie kon niet veilig worden afgerond en vereist handmatige Auth-controle."
+              : "De activatie kon niet veilig worden afgerond; de verstuurde code is ingetrokken.",
           };
         }
 
@@ -1185,7 +1212,9 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     }
   }
 
-  let activationInvite: { userId: string; created: boolean };
+  let activationInvite: Awaited<
+    ReturnType<typeof sendPersonnelActivationInvite>
+  >;
   try {
     activationInvite = await sendPersonnelActivationInvite({ ...person, tenantId });
   } catch (error) {
@@ -1195,16 +1224,46 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     };
   }
 
-  await db
-    .update(personnelTable)
-    .set({
-      userId: activationInvite.userId,
-      inviteSentAt: new Date(),
-      portalOnboardingStatus: "not_started",
-      portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
+  try {
+    const linkedPersonnel = await db
+      .update(personnelTable)
+      .set({
+        userId: activationInvite.userId,
+        inviteSentAt: new Date(),
+        portalOnboardingStatus: "not_started",
+        portalOnboardingVersion: PORTAL_ONBOARDING_VERSION,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)),
+      )
+      .returning({ id: personnelTable.id });
+    if (linkedPersonnel.length !== 1 || linkedPersonnel[0]?.id !== id) {
+      throw new Error(
+        "De personeelskoppeling kon niet exact worden opgeslagen.",
+      );
+    }
+    await activationInvite.finalize();
+  } catch (error) {
+    try {
+      await activationInvite.rollback();
+    } catch (rollbackError) {
+      return {
+        success: false,
+        message:
+          rollbackError instanceof Error
+            ? rollbackError.message
+            : "De personeelsuitnodiging vereist handmatige Auth-controle.",
+      };
+    }
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "De personeelsuitnodiging kon niet veilig worden gekoppeld.",
+    };
+  }
 
   await db.insert(auditLogTable).values({
     tenantId,

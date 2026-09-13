@@ -100,6 +100,27 @@ function activationAppMetadata(
   return metadata;
 }
 
+function activationAppMetadataPatch(
+  portal: PortalInviteType,
+  profileNameRequired: boolean,
+): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    portal,
+    credential_activation_pending: true,
+    force_password_change: null,
+    temporary_password_issued_at: null,
+    temporary_password_expires_at: null,
+    temporary_password_kind: null,
+    [BACKOFFICE_PROFILE_NAME_REQUIRED]: profileNameRequired ? true : null,
+  };
+  if (portal === "personnel" || portal === "customer") {
+    metadata[PORTAL_ONBOARDING_REQUIRED_METADATA] = true;
+    metadata[PORTAL_ONBOARDING_STATUS_METADATA] = "not_started";
+    metadata[PORTAL_ONBOARDING_VERSION_METADATA] = PORTAL_ONBOARDING_VERSION;
+  }
+  return metadata;
+}
+
 function surfaceForPortal(portal: PortalInviteType): CredentialRecoverySurface {
   if (portal === "customer") return "customer-portal";
   if (portal === "personnel") return "personnel-portal";
@@ -175,6 +196,7 @@ export async function provisionPortalUserForActivation(opts: {
   created: boolean;
   challengeId: string;
   expiresAt: Date;
+  finalize: () => Promise<void>;
   rollback: () => Promise<void>;
 }> {
   const admin = createAdminClient();
@@ -212,7 +234,12 @@ export async function provisionPortalUserForActivation(opts: {
 
   let user: User;
   let created = false;
-  let existingIdentityUpdated = false;
+  let existingIdentityMutationAttempted = false;
+  let existingIdentityFinalized = false;
+  let pendingExistingIdentityUpdate: {
+    appMetadata: Record<string, unknown>;
+    userMetadata: Record<string, unknown>;
+  } | null = null;
   if (!createError && createdData.user) {
     user = createdData.user;
     created = true;
@@ -246,25 +273,16 @@ export async function provisionPortalUserForActivation(opts: {
       );
     }
     profileName ??= getBackofficeProfileName(existingUser);
-    const { data: updatedData, error: updateError } =
-      await admin.auth.admin.updateUserById(existingUser.id, {
-        app_metadata: activationAppMetadata(
-          existingUser.app_metadata,
-          opts.portal,
-          opts.portal === "tenant-admin" && !profileName,
-        ),
-        user_metadata: {
-          ...(existingUser.user_metadata ?? {}),
-          ...userMetadata,
-        },
-      });
-    if (updateError || !updatedData.user) {
-      throw new Error(
-        updateError?.message ?? "Portaalgebruiker bijwerken mislukt.",
-      );
-    }
-    user = updatedData.user;
-    existingIdentityUpdated = true;
+    user = existingUser;
+    pendingExistingIdentityUpdate = {
+      // GoTrue merges metadata patches per key. Keep this patch minimal so a
+      // later finalize cannot replay unrelated stale Auth metadata.
+      appMetadata: activationAppMetadataPatch(
+        opts.portal,
+        opts.portal === "tenant-admin" && !profileName,
+      ),
+      userMetadata,
+    };
   }
 
   let challengeId: string | null = null;
@@ -277,6 +295,7 @@ export async function provisionPortalUserForActivation(opts: {
     if (challengeId) {
       try {
         await revokeCredentialRecoveryChallenges({
+          challengeId,
           tenantId: opts.tenantId,
           surface,
           purpose: "activation",
@@ -290,7 +309,7 @@ export async function provisionPortalUserForActivation(opts: {
       }
     }
 
-    if (created || existingIdentityUpdated) {
+    if (created || existingIdentityMutationAttempted) {
       // Supabase Auth has no compare-and-delete or compare-and-update contract.
       // Automatic reversal could therefore delete an identity adopted by a
       // concurrent successful invite or overwrite newer metadata. Keep the
@@ -307,6 +326,42 @@ export async function provisionPortalUserForActivation(opts: {
         `Uitnodiging is geweigerd, maar ${errors.join(" en ")} vereist handmatige controle.`,
       );
     }
+  };
+
+  const finalize = async () => {
+    if (rolledBack) {
+      throw new Error(
+        "De ingetrokken portaaluitnodiging kan niet worden afgerond.",
+      );
+    }
+    if (created || existingIdentityFinalized) return;
+    if (!pendingExistingIdentityUpdate || existingIdentityMutationAttempted) {
+      throw new Error(
+        "De bestaande Auth-identiteit vereist handmatige controle.",
+      );
+    }
+
+    // Existing identities are updated only after the caller has durably bound
+    // the matching authorization surface. This keeps failed delivery and the
+    // losing side of a cross-surface race from changing a working account.
+    existingIdentityMutationAttempted = true;
+    const { data: updatedData, error: updateError } =
+      await admin.auth.admin.updateUserById(user.id, {
+        app_metadata: pendingExistingIdentityUpdate.appMetadata,
+        user_metadata: pendingExistingIdentityUpdate.userMetadata,
+      });
+    if (updateError || !updatedData.user) {
+      try {
+        await rollback();
+      } catch (rollbackError) {
+        throw rollbackError;
+      }
+      throw new Error(
+        updateError?.message ?? "Portaalgebruiker bijwerken mislukt.",
+      );
+    }
+    user = updatedData.user;
+    existingIdentityFinalized = true;
   };
 
   try {
@@ -362,6 +417,7 @@ export async function provisionPortalUserForActivation(opts: {
       created,
       challengeId: challenge.challengeId,
       expiresAt: challenge.expiresAt,
+      finalize,
       rollback,
     };
   } catch (error) {

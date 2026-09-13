@@ -1174,6 +1174,18 @@ export async function inviteTenantUser(input: {
     };
   }
 
+  try {
+    await invite.finalize();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "De tenantuitnodiging vereist handmatige Auth-controle.",
+    };
+  }
+
   revalidatePath("/instellingen/gebruikers");
   return { success: true };
 }

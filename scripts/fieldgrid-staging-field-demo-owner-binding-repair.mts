@@ -33,8 +33,49 @@ const OWNER_AUTH_REPAIR_VERSION =
   "fieldgrid-staging-field-demo-owner-repair-v1";
 const PLATFORM_PRIVILEGE_AUTH_REPAIR_VERSION =
   "fieldgrid-staging-field-demo-platform-privilege-repair-v1";
-const PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME =
-  "20260913135353_preserve_deleted_platform_notification_recipient_history.sql";
+const PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES = [
+  "20260913135353_preserve_deleted_platform_notification_recipient_history.sql",
+  "20260913154500_prevent_cross_portal_identity_reuse.sql",
+  "20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
+  "20260913162000_harden_platform_authorization_continuity.sql",
+] as const;
+const PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES = new Set([
+  "20260618201212_assignment_monthly_codes.sql",
+]);
+const PLATFORM_PRIVILEGE_HISTORICAL_MIGRATIONS = new Map<
+  string,
+  {
+    kind: "renamed" | "tombstone";
+    canonicalName: string | null;
+    hash: string;
+  }
+>([
+  [
+    "055_platform_users.sql",
+    {
+      kind: "tombstone",
+      canonicalName: null,
+      hash: "77b8c80d6fe9470da8d82cfe6c6338c584b396878dd322404bb445a96d2de37a",
+    },
+  ],
+  [
+    "102_cleanup_staging_demo_sector_descriptions.sql",
+    {
+      kind: "renamed",
+      canonicalName:
+        "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+      hash: "7639dda641d69e0c1393ee36f97814fcc03f08f5e103aed3ed54d834e82bcd4a",
+    },
+  ],
+  [
+    "103_enterprise_whitelabel_theme.sql",
+    {
+      kind: "renamed",
+      canonicalName: "20260708121100_enterprise_whitelabel_theme.sql",
+      hash: "23059e1c093e3c2278270c2c9e34ca517505bdb27bd489f8bda97253b5b6eb05",
+    },
+  ],
+]);
 const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 export const FIELD_DEMO_RETAINED_OWNER_ID =
   "cafccef6-ba37-4fe0-879e-55c566b6136e";
@@ -164,6 +205,7 @@ export type FieldDemoOwnerPlatformPrivilegeSnapshot = {
   exact_indirect_grant_fk_count: number;
   exact_set_null_nullable_column_count: number;
   recipient_scope_check_count: number;
+  platform_owner_continuity_trigger_count: number;
   unexpected_set_null_check_count: number;
   unexpected_deletion_path_trigger_count: number;
 };
@@ -678,6 +720,7 @@ const PLATFORM_PRIVILEGE_COUNT_FIELDS: ReadonlyArray<
   "exact_indirect_grant_fk_count",
   "exact_set_null_nullable_column_count",
   "recipient_scope_check_count",
+  "platform_owner_continuity_trigger_count",
   "unexpected_set_null_check_count",
   "unexpected_deletion_path_trigger_count",
 ];
@@ -898,6 +941,7 @@ export function summarizeFieldDemoOwnerPlatformPrivilege(
     snapshot.exact_indirect_grant_fk_count === 2 &&
     snapshot.exact_set_null_nullable_column_count === 9 &&
     snapshot.recipient_scope_check_count === 1 &&
+    snapshot.platform_owner_continuity_trigger_count === 2 &&
     snapshot.unexpected_set_null_check_count === 0 &&
     snapshot.unexpected_deletion_path_trigger_count === 0
       ? "exact"
@@ -1884,6 +1928,26 @@ SELECT
         'g'
       ) = $scope$((((recipient_type)::text='platform_user'::text)and(tenant_idisnull)and(tenant_owner_invite_idisnull)and(recipient_user_idisnotnull)and((platform_user_idisnotnull)or((delivery_status)::text=any((array['sent'::charactervarying,'skipped'::charactervarying,'failed'::charactervarying])::text[]))))or(((recipient_type)::text='tenant_owner'::text)and(platform_user_idisnull)and(tenant_slugisnotnull)and((tenant_owner_invite_idisnotnull)or(recipient_emailisnotnull))and((tenant_idisnotnull)or((delivery_status)::text=any((array['sent'::charactervarying,'skipped'::charactervarying,'failed'::charactervarying])::text[])))))$scope$)
     AS recipient_scope_check_count,
+  (SELECT COUNT(*)::integer
+     FROM (
+       VALUES
+         ('platform_users_owner_continuity_update'::name, 19::integer),
+         ('platform_users_owner_continuity_delete'::name, 11::integer)
+     ) AS expected_trigger(trigger_name, trigger_type)
+     JOIN pg_catalog.pg_trigger AS trigger_row
+       ON trigger_row.tgname = expected_trigger.trigger_name
+      AND trigger_row.tgrelid = 'public.platform_users'::regclass
+      AND trigger_row.tgfoid =
+        'public.fieldgrid_enforce_platform_owner_continuity()'::regprocedure
+      AND trigger_row.tgtype::integer = expected_trigger.trigger_type
+      AND trigger_row.tgenabled = 'O'
+      AND trigger_row.tgisinternal = false
+     JOIN pg_catalog.pg_proc AS function_row
+       ON function_row.oid = trigger_row.tgfoid
+      AND function_row.prosecdef = true
+      AND function_row.proconfig =
+        ARRAY['search_path=pg_catalog, public']::text[])
+    AS platform_owner_continuity_trigger_count,
   (SELECT COUNT(DISTINCT check_constraint.oid)::integer
      FROM expected_set_null_fk AS expected
      JOIN pg_catalog.pg_namespace AS namespace
@@ -1916,10 +1980,18 @@ SELECT
        ON affected_table.relnamespace = namespace.oid
       AND affected_table.relname = target.table_name
      JOIN pg_catalog.pg_trigger AS trigger_row
-       ON trigger_row.tgrelid = affected_table.oid
+      ON trigger_row.tgrelid = affected_table.oid
       AND trigger_row.tgisinternal = false
       AND (trigger_row.tgtype::integer & target.event_mask) =
-        target.event_mask)
+        target.event_mask
+    WHERE NOT (
+      affected_table.relname = 'platform_users'
+      AND trigger_row.tgname = 'platform_users_owner_continuity_delete'
+      AND trigger_row.tgfoid =
+        'public.fieldgrid_enforce_platform_owner_continuity()'::regprocedure
+      AND trigger_row.tgtype::integer = 11
+      AND trigger_row.tgenabled = 'O'
+    ))
     AS unexpected_deletion_path_trigger_count`;
 
 export async function loadFieldDemoOwnerPlatformPrivilegeSnapshot(
@@ -2092,7 +2164,12 @@ async function normalizeFieldDemoOwnerAuthMetadata(
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        app_metadata: normalizedAppMetadata,
+        app_metadata: {
+          ...normalizedAppMetadata,
+          // GoTrue merges metadata patches; JSON null explicitly deletes the
+          // old role claim while omission would retain it.
+          platform_role: null,
+        },
       }),
     },
   );
@@ -2123,56 +2200,215 @@ type SqlMigrationHistoryRecord = {
   name: string;
   hash: string;
   baselined: boolean;
+  appliedAt: Date | string;
 };
 
 function reviewedSqlMigrationHash(sql: string): string {
   return createHash("sha256").update(sql.replace(/\r\n/gu, "\n")).digest("hex");
 }
 
-async function loadRecipientHistoryMigrationFrontier(): Promise<{
+async function loadPlatformPrivilegeMigrationFrontier(): Promise<{
+  committed: ReviewedSqlMigration[];
   predecessors: ReviewedSqlMigration[];
-  target: ReviewedSqlMigration;
+  required: ReviewedSqlMigration[];
   successors: ReadonlySet<string>;
+  legacyNames: ReadonlySet<string>;
+  historical: ReadonlyMap<
+    string,
+    {
+      kind: "renamed" | "tombstone";
+      canonicalName: string | null;
+      hash: string;
+    }
+  >;
 }> {
   const migrationsDir = join(repoRoot, "lib", "db", "migrations");
   const names = (await readdir(migrationsDir, { withFileTypes: true }))
     .filter((entry) => entry.isFile() && /^\d+.*\.sql$/u.test(entry.name))
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right));
-  const targetIndex = names.indexOf(PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME);
-  if (targetIndex < 0) {
+  const firstRequiredName = PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[0];
+  const finalRequiredName = PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES.at(-1);
+  const firstRequiredIndex = names.indexOf(firstRequiredName);
+  const finalRequiredIndex = finalRequiredName
+    ? names.indexOf(finalRequiredName)
+    : -1;
+  if (firstRequiredIndex < 0 || finalRequiredIndex < firstRequiredIndex) {
     throw new FieldDemoOwnerBindingError(
       "field_demo_owner_binding_precondition_invalid",
-      "Reviewed recipient-history migration is absent from the SQL frontier.",
+      "Reviewed platform-privilege migrations are absent from the SQL frontier.",
+      "platform_privilege_precondition",
+    );
+  }
+  const requiredNames = names.slice(firstRequiredIndex, finalRequiredIndex + 1);
+  if (
+    requiredNames.length !==
+      PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES.length ||
+    requiredNames.some(
+      (name, index) =>
+        name !== PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[index],
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Reviewed platform-privilege migration frontier is ambiguous.",
       "platform_privilege_precondition",
     );
   }
   const migrations = await Promise.all(
-    names.slice(0, targetIndex + 1).map(async (name) => {
+    names.map(async (name) => {
       const sql = await readFile(join(migrationsDir, name), "utf8");
       return { name, hash: reviewedSqlMigrationHash(sql), sql };
     }),
   );
-  const target = migrations.at(-1);
-  if (!target || target.name !== PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME) {
-    throw new FieldDemoOwnerBindingError(
-      "field_demo_owner_binding_precondition_invalid",
-      "Reviewed recipient-history migration frontier is ambiguous.",
-      "platform_privilege_precondition",
-    );
-  }
   return {
-    predecessors: migrations.slice(0, -1),
-    target,
-    successors: new Set(names.slice(targetIndex + 1)),
+    committed: migrations,
+    predecessors: migrations.slice(0, firstRequiredIndex),
+    required: migrations.slice(firstRequiredIndex, finalRequiredIndex + 1),
+    successors: new Set(names.slice(finalRequiredIndex + 1)),
+    legacyNames: new Set(
+      names.filter(
+        (name) =>
+          /^\d{3}_[a-z0-9][a-z0-9_]*\.sql$/u.test(name) ||
+          PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES.has(name),
+      ),
+    ),
+    historical: PLATFORM_PRIVILEGE_HISTORICAL_MIGRATIONS,
   };
 }
 
-export function assertRecipientHistoryMigrationFrontier(
-  frontier: Awaited<ReturnType<typeof loadRecipientHistoryMigrationFrontier>>,
+function migrationHistoryTimestamp(record: SqlMigrationHistoryRecord): number {
+  const timestamp =
+    record.appliedAt instanceof Date
+      ? record.appliedAt.getTime()
+      : Date.parse(record.appliedAt);
+  if (!Number.isFinite(timestamp)) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history contains an invalid application timestamp.",
+      "platform_privilege_precondition",
+    );
+  }
+  return timestamp;
+}
+
+export function assertPlatformPrivilegeMigrationFrontier(
+  frontier: Awaited<ReturnType<typeof loadPlatformPrivilegeMigrationFrontier>>,
   records: SqlMigrationHistoryRecord[],
-): "pending" | "recorded" {
+): ReviewedSqlMigration[] {
+  const duplicateNames = records
+    .map((record) => record.name)
+    .filter((name, index, names) => names.indexOf(name) !== index);
+  if (duplicateNames.length > 0) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history contains duplicate entries.",
+      "platform_privilege_precondition",
+    );
+  }
+
+  const committedByName = new Map(
+    frontier.committed.map((migration) => [migration.name, migration]),
+  );
+  const historicalCanonicalNames = new Set(
+    [...frontier.historical.values()]
+      .map((migration) => migration.canonicalName)
+      .filter((name): name is string => name !== null),
+  );
+  const normalizedHistory: string[] = [];
+  const canonicalEquivalents = new Set<string>();
+  let previousTimestamp = Number.NEGATIVE_INFINITY;
+  let previousName = "";
+  for (const record of records) {
+    const appliedAt = migrationHistoryTimestamp(record);
+    if (
+      appliedAt < previousTimestamp ||
+      (appliedAt === previousTimestamp &&
+        record.name.localeCompare(previousName) < 0)
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history is not ordered by application time.",
+        "platform_privilege_precondition",
+      );
+    }
+    previousTimestamp = appliedAt;
+    previousName = record.name;
+
+    const committed = committedByName.get(record.name);
+    const historical = frontier.historical.get(record.name);
+    if (!committed && !historical) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history contains an unreviewed entry.",
+        "platform_privilege_precondition",
+      );
+    }
+    if (record.hash !== (committed?.hash ?? historical?.hash)) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history contains source-hash drift.",
+        "platform_privilege_precondition",
+      );
+    }
+    if (
+      record.baselined &&
+      (historical?.kind === "renamed" ||
+        (committed && !frontier.legacyNames.has(record.name)))
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "A modern SQL migration was baselined without execution.",
+        "platform_privilege_precondition",
+      );
+    }
+
+    if (historical) {
+      if (historical.kind === "tombstone") continue;
+      if (
+        historical.canonicalName &&
+        !canonicalEquivalents.has(historical.canonicalName)
+      ) {
+        normalizedHistory.push(historical.canonicalName);
+        canonicalEquivalents.add(historical.canonicalName);
+      }
+      continue;
+    }
+    if (
+      historicalCanonicalNames.has(record.name) &&
+      canonicalEquivalents.has(record.name)
+    ) {
+      continue;
+    }
+    normalizedHistory.push(record.name);
+  }
+
   const recordsByName = new Map(records.map((record) => [record.name, record]));
+  for (const legacyName of frontier.legacyNames) {
+    if (!recordsByName.has(legacyName)) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history is missing a required legacy entry.",
+        "platform_privilege_precondition",
+      );
+    }
+  }
+  const expectedModern = frontier.committed
+    .map((migration) => migration.name)
+    .filter((name) => !frontier.legacyNames.has(name));
+  const recordedModern = normalizedHistory.filter(
+    (name) => !frontier.legacyNames.has(name),
+  );
+  if (
+    recordedModern.length > expectedModern.length ||
+    recordedModern.some((name, index) => name !== expectedModern[index])
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history is not a contiguous committed prefix.",
+      "platform_privilege_precondition",
+    );
+  }
   for (const migration of frontier.predecessors) {
     const record = recordsByName.get(migration.name);
     if (!record || record.hash !== migration.hash) {
@@ -2184,40 +2420,53 @@ export function assertRecipientHistoryMigrationFrontier(
     }
   }
 
-  const targetRecord = recordsByName.get(frontier.target.name);
-  if (targetRecord) {
-    if (targetRecord.hash !== frontier.target.hash || targetRecord.baselined) {
+  let firstPendingIndex = -1;
+  for (const [index, migration] of frontier.required.entries()) {
+    const record = recordsByName.get(migration.name);
+    if (!record) {
+      if (firstPendingIndex < 0) firstPendingIndex = index;
+      continue;
+    }
+    if (record.hash !== migration.hash || record.baselined) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
-        "Recipient-history migration record does not match reviewed source.",
+        "Platform-privilege migration record does not match reviewed source.",
         "platform_privilege_precondition",
       );
     }
-    return "recorded";
+    if (firstPendingIndex >= 0) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "A platform-privilege migration is missing behind the recorded required frontier.",
+        "platform_privilege_precondition",
+      );
+    }
   }
 
+  if (firstPendingIndex < 0) return [];
+
+  const finalRequiredMigration = frontier.required.at(-1);
   if (
+    !finalRequiredMigration ||
     records.some(
       (record) =>
         frontier.successors.has(record.name) ||
-        record.name.localeCompare(frontier.target.name) > 0,
+        record.name.localeCompare(finalRequiredMigration.name) > 0,
     )
   ) {
     throw new FieldDemoOwnerBindingError(
       "field_demo_owner_binding_precondition_invalid",
-      "Recipient-history migration is missing behind the recorded SQL frontier.",
+      "A platform-privilege migration is missing behind the recorded SQL frontier.",
       "platform_privilege_precondition",
     );
   }
-  return "pending";
+  return frontier.required.slice(firstPendingIndex);
 }
 
-async function applyExactPlatformRecipientHistoryMigration(
+export async function applyExactPlatformPrivilegePrerequisiteMigrations(
   queryable: Queryable,
 ): Promise<boolean> {
-  const frontier = await loadRecipientHistoryMigrationFrontier();
-  const migrationSql = frontier.target.sql;
-  const migrationHash = frontier.target.hash;
+  const frontier = await loadPlatformPrivilegeMigrationFrontier();
   let migrationLockAcquired = false;
   let migrationTransactionStarted = false;
   try {
@@ -2251,48 +2500,59 @@ async function applyExactPlatformRecipientHistoryMigration(
     }
 
     const recorded = await queryable.query<SqlMigrationHistoryRecord>(
-      `SELECT name, hash, baselined
+      `SELECT name, hash, baselined, applied_at AS "appliedAt"
          FROM drizzle.veele_sql_migrations
-        ORDER BY name`,
+        ORDER BY applied_at, name`,
     );
-    if (
-      assertRecipientHistoryMigrationFrontier(frontier, recorded.rows) ===
-      "recorded"
-    ) {
-      return false;
-    }
+    const initiallyPending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      recorded.rows,
+    );
+    if (initiallyPending.length === 0) return false;
 
     await queryable.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
     migrationTransactionStarted = true;
     const recheck = await queryable.query<SqlMigrationHistoryRecord>(
-      `SELECT name, hash, baselined
+      `SELECT name, hash, baselined, applied_at AS "appliedAt"
          FROM drizzle.veele_sql_migrations
-        ORDER BY name
+        ORDER BY applied_at, name
         FOR UPDATE`,
     );
+    const pending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      recheck.rows,
+    );
     if (
-      assertRecipientHistoryMigrationFrontier(frontier, recheck.rows) !==
-      "pending"
+      pending.length !== initiallyPending.length ||
+      pending.some(
+        (migration, index) => migration.name !== initiallyPending[index]?.name,
+      )
     ) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
-        "Recipient-history migration state changed under its lock.",
+        "Platform-privilege migration state changed under its lock.",
         "platform_privilege_precondition",
       );
     }
-    await queryable.query(migrationSql);
-    const inserted = await queryable.query(
-      `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
-       VALUES ($1, $2, false)
-       RETURNING name`,
-      [PLATFORM_RECIPIENT_HISTORY_MIGRATION_NAME, migrationHash],
-    );
-    if (inserted.rowCount !== 1 || inserted.rows.length !== 1) {
-      throw new FieldDemoOwnerBindingError(
-        "field_demo_owner_binding_mutation_failed",
-        "Recipient-history migration was not recorded exactly once.",
-        "platform_privilege_mutation",
+    for (const migration of pending) {
+      await queryable.query(migration.sql);
+      const inserted = await queryable.query(
+        `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
+         VALUES ($1, $2, false)
+         RETURNING name`,
+        [migration.name, migration.hash],
       );
+      if (
+        inserted.rowCount !== 1 ||
+        inserted.rows.length !== 1 ||
+        inserted.rows[0]?.name !== migration.name
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_mutation_failed",
+          "A platform-privilege migration was not recorded exactly once.",
+          "platform_privilege_mutation",
+        );
+      }
     }
     await queryable.query("COMMIT");
     migrationTransactionStarted = false;
@@ -2921,7 +3181,7 @@ async function runOwnerBindingOperation(
     if (operation === "repair-platform-privilege") {
       failureStage = "platform_privilege_precondition";
       mutationAttempted =
-        (await applyExactPlatformRecipientHistoryMigration(client)) ||
+        (await applyExactPlatformPrivilegePrerequisiteMigrations(client)) ||
         mutationAttempted;
       failureStage = "database_transaction";
       await acquirePlatformPrivilegeRepairLock(client);
@@ -2980,6 +3240,7 @@ async function runOwnerBindingOperation(
         evidence.status = "passed";
         evidence.observedState = beforeDecision.state;
         evidence.result = "already-removed";
+        evidence.mutationAttempted = mutationAttempted;
         platformPrivilegePhase = "removed";
         evidence.platformPrivilegePhase = platformPrivilegePhase;
         evidence.failureReason = null;
