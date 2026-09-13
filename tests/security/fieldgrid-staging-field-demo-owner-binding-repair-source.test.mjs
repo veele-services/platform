@@ -66,6 +66,29 @@ test("snapshot and classification prove the exact owner and Management binding",
   );
   assert.match(script, /auth_user\.deleted_at IS NULL/u);
   assert.match(script, /FROM public\.platform_users AS/u);
+
+  const authIdentityStart = script.indexOf(
+    "(SELECT COUNT(*)::integer FROM auth.users AS auth_user",
+  );
+  const authIdentityEnd = script.indexOf(
+    "AS auth_exact_count",
+    authIdentityStart,
+  );
+  assert.ok(
+    authIdentityStart >= 0 && authIdentityEnd > authIdentityStart,
+    "auth identity predicate must remain explicit",
+  );
+  const authIdentityPredicate = script.slice(
+    authIdentityStart,
+    authIdentityEnd,
+  );
+  assert.match(authIdentityPredicate, /fieldgrid_automation_contract/u);
+  assert.match(authIdentityPredicate, /fieldgrid_environment/u);
+  assert.match(authIdentityPredicate, /portal/u);
+  assert.doesNotMatch(
+    authIdentityPredicate,
+    /credential_activation_pending|backoffice_profile_name_required/u,
+  );
 });
 
 test("repair and owner reconciliation are locked singular transactions", () => {

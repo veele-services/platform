@@ -6,6 +6,7 @@ import {
   FIELD_DEMO_OWNER_REPAIR_PROJECT_REF,
   FIELD_DEMO_OWNER_REPAIR_SUPABASE_URL,
   FIELD_DEMO_OWNER_REPAIR_VERSION,
+  fieldDemoExistingOwnerCandidateIsExact,
   fieldDemoOwnerCreateOutcome,
   fieldDemoOwnerRepairCandidateIsExact,
   fieldDemoOwnerRepairCandidateIsSafe,
@@ -164,16 +165,33 @@ test("owner lookup preserves exact JSON boolean metadata types", async () => {
   );
 });
 
-test("an already valid tenant owner is an exact no-op", async () => {
+test("an existing owner is an exact no-op for every lifecycle-marker state", async () => {
   let creates = 0;
-  const result = await repairMissingFieldDemoOwner({
-    readCandidates: sequenceReader([[exactCandidate]]),
-    createOwner: async () => {
-      creates += 1;
-      return "accepted";
-    },
-  });
-  assert.equal(result, "already-valid");
+  for (const [activationPending, profileNameRequired] of [
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ] as const) {
+    const candidate = {
+      ...exactCandidate,
+      activation_pending: activationPending,
+      profile_name_required: profileNameRequired,
+    };
+    const result = await repairMissingFieldDemoOwner({
+      readCandidates: sequenceReader([[candidate]]),
+      createOwner: async () => {
+        creates += 1;
+        return "accepted";
+      },
+    });
+    assert.equal(result, "already-valid");
+    assert.equal(fieldDemoExistingOwnerCandidateIsExact(candidate), true);
+    assert.equal(
+      fieldDemoOwnerRepairCandidateIsExact(candidate),
+      activationPending && profileNameRequired,
+    );
+  }
   assert.equal(creates, 0);
 });
 
@@ -204,8 +222,14 @@ test("every non-missing invalid owner state fails before mutation", async () => 
       "field_demo_owner_id_invalid",
     ],
     [[{ ...exactCandidate, email_identity_count: 0 }], null],
+    [[{ ...exactCandidate, email_identity_count: 2 }], null],
     [[{ ...exactCandidate, platform_user_count: 1 }], null],
     [[{ ...exactCandidate, repair_contract: "external" }], null],
+    [[{ ...exactCandidate, repair_contract: null }], null],
+    [[{ ...exactCandidate, repair_environment: "production" }], null],
+    [[{ ...exactCandidate, repair_environment: null }], null],
+    [[{ ...exactCandidate, portal: "platform" }], null],
+    [[{ ...exactCandidate, portal: null }], null],
   ];
 
   for (const [rows, expectedReason] of cases) {
@@ -242,6 +266,32 @@ test("a missing owner is created once and accepted only after exact postcheck", 
   assert.equal(creates, 1);
   assert.equal(fieldDemoOwnerRepairCandidateIsSafe(exactCandidate), true);
   assert.equal(fieldDemoOwnerRepairCandidateIsExact(exactCandidate), true);
+});
+
+test("fresh-create postcondition requires both lifecycle markers", async () => {
+  for (const candidate of [
+    { ...exactCandidate, activation_pending: false },
+    { ...exactCandidate, profile_name_required: false },
+  ]) {
+    let creates = 0;
+    const error = await captureError(() =>
+      repairMissingFieldDemoOwner({
+        readCandidates: sequenceReader([[], [candidate]]),
+        createOwner: async () => {
+          creates += 1;
+          return "accepted";
+        },
+        wait: async () => {},
+      }),
+    );
+    assert.equal(creates, 1);
+    assert.equal(
+      safeFieldDemoOwnerRepairErrorCode(error),
+      "field_demo_owner_repair_postcondition_invalid",
+    );
+    assert.equal(fieldDemoOwnerRepairCandidateIsExact(candidate), false);
+    assert.equal(fieldDemoExistingOwnerCandidateIsExact(candidate), true);
+  }
 });
 
 test("a timeout-after-commit is never retried and succeeds through post-read", async () => {

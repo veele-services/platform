@@ -287,6 +287,7 @@ export function fieldDemoOwnerRepairCandidateIsSafe(
 export function fieldDemoOwnerRepairCandidateIsExact(
   candidate: FieldDemoOwnerRepairCandidate | undefined,
 ): boolean {
+  // A fresh create must still begin in the exact pending-onboarding state.
   return Boolean(
     fieldDemoOwnerRepairCandidateIsSafe(candidate) &&
     candidate?.repair_contract === FIELD_DEMO_OWNER_REPAIR_VERSION &&
@@ -294,6 +295,20 @@ export function fieldDemoOwnerRepairCandidateIsExact(
     candidate.portal === "tenant-admin" &&
     candidate.activation_pending &&
     candidate.profile_name_required,
+  );
+}
+
+export function fieldDemoExistingOwnerCandidateIsExact(
+  candidate: FieldDemoOwnerRepairCandidate | undefined,
+): boolean {
+  // Normal backoffice onboarding consumes the activation/profile-name
+  // markers. Existing owners therefore prove durable identity only, while the
+  // fresh-create postcondition below continues to require both markers.
+  return Boolean(
+    fieldDemoOwnerRepairCandidateIsSafe(candidate) &&
+    candidate?.repair_contract === FIELD_DEMO_OWNER_REPAIR_VERSION &&
+    candidate.repair_environment === "staging" &&
+    candidate.portal === "tenant-admin",
   );
 }
 
@@ -351,7 +366,7 @@ export async function repairMissingFieldDemoOwner(
   if (beforeReason === null) {
     if (
       before.length === 1 &&
-      fieldDemoOwnerRepairCandidateIsExact(before[0])
+      fieldDemoExistingOwnerCandidateIsExact(before[0])
     ) {
       return "already-valid";
     }
