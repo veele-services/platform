@@ -246,7 +246,25 @@ Require exact-head CI on the Phase 9 PR with zero failed, cancelled or pending
 authoritative checks. Squash-merge only after human review. Record the squash
 main SHA.
 
-### 2. Prepare the managed proof and principal fixture
+### 2. Apply the reservation frontier and repair field-demo privilege
+
+After the exact main merge, dispatch **Field-demo Staging Owner Binding
+Repair** from `main` with:
+
+- `operation`: `repair-platform-privilege`;
+- `expected_main_sha`: the exact remote main head;
+- `confirmation`:
+  `fieldgrid-staging-field-demo-platform-privilege-repair-v1`.
+
+This operation acquires the database migration lock, applies only the exact
+reviewed contiguous prerequisite suffix through
+`20260913170000_bind_authorization_invitation_reservations.sql`, records each
+migration as executed (never baselined), and then removes the one reviewed
+field-demo platform privilege. Stop unless its secret-free evidence reports
+`platform-privilege-removed`. The proof-state workflow independently verifies
+the exact reservation-migration hash before it can create or update a fixture.
+
+### 3. Prepare the managed proof and principal fixture
 
 After the exact main merge, but before moving `staging`, dispatch **Website
 Staging Proof State** from `main` with:
@@ -270,7 +288,7 @@ automation actor UUID. It contains no email address, upstream, credential or
 other PII. Download it only for the W00 principal proof and delete it after use.
 This operation cannot register, approve or activate a custom release.
 
-### 3. Backup, isolated restore and migration rehearsal
+### 4. Backup, isolated restore and migration rehearsal
 
 From the exact main SHA, dispatch **Phase 2E Staging Promotion Preflight** with:
 
@@ -290,7 +308,7 @@ the previous staging release marker. It does not move a ref or deploy.
 Stop on any mismatch. Do not promote until its secret-free evidence artifact is
 green.
 
-### 4. Promote through the existing exact-ref staging contract
+### 5. Promote through the existing exact-ref staging contract
 
 Use the existing normal, non-force, fast-forward main-to-staging promotion.
 The staging deploy must:
@@ -302,7 +320,7 @@ The staging deploy must:
 
 Do not manually bypass a failed deployment.
 
-### 5. Deploy the exact website stack
+### 6. Deploy the exact website stack
 
 After the four-service promotion is green:
 
@@ -320,7 +338,7 @@ The stack workflow owns only the exact staging systemd units and imported
 `fieldgrid-website-staging.caddy` snippet. On failure it restores both the prior
 website-stack symlink and prior Caddy state. It never moves a Git ref.
 
-### 6. Confirm proof sites and form
+### 7. Confirm proof sites and form
 
 Use only these two staging proof sites:
 

@@ -54,6 +54,14 @@ test("role and membership mutations validate tenant scope and commit atomically"
   assert.match(membership, /Gebruiker is geen lid van deze tenant/u);
   assert.match(membership, /if \(userId === user\.id\)/u);
   assert.match(membership, /await db\.transaction/u);
+  assert.match(
+    membership,
+    /invitationReservationId: tenantUsersTable\.invitationReservationId[\s\S]*lockedMembership[\s\S]*\.for\("update"\)[\s\S]*lockedMembership\.invitationReservationId !== null[\s\S]*\.delete\(tenantUserRolesTable\)/u,
+  );
+  assert.match(
+    membership,
+    /Rollen kunnen niet worden gewijzigd terwijl de uitnodiging wordt afgerond/u,
+  );
   assert.doesNotMatch(membership, /insert\(tenantUsersTable\)/u);
   const batch = action(source, "updateTenantRolePermissions");
   assert.match(batch, /inArray\(permissionsTable\.id, uniquePermissionIds\)/u);

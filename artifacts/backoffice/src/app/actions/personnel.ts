@@ -1160,7 +1160,11 @@ export async function updatePersonnel(
   }
 
   try {
-    const { vehicleType: parsedVehicleType, ...parsedUpdateData } = parsed.data;
+    const {
+      vehicleType: parsedVehicleType,
+      email: nextEmail,
+      ...parsedUpdateData
+    } = parsed.data;
     const vehicleType = normalizePersonnelVehicleType(parsedVehicleType);
     if (parsedVehicleType && !vehicleType) {
       return { success: false, message: "Ongeldig vervoerstype." };
@@ -1187,7 +1191,7 @@ export async function updatePersonnel(
     if (!existing) {
       return { success: false, message: "Personeelsrecord niet gevonden." };
     }
-    const emailChanged = existing.email !== parsedUpdateData.email;
+    const emailChanged = existing.email !== nextEmail;
     if (emailChanged && existing.invitationReservationId !== null) {
       return {
         success: false,
@@ -1200,6 +1204,7 @@ export async function updatePersonnel(
       normalizePersonnelVehicleType(existing.vehicleType) ?? "DRIVE";
     const updateData = {
       ...parsedUpdateData,
+      ...(emailChanged ? { email: nextEmail } : {}),
       ...(vehicleType ? { vehicleType } : {}),
       ...addressGeocodePatch,
       // data.certificates is already CertificateEntry[] — preserve expires_at values
@@ -1214,6 +1219,7 @@ export async function updatePersonnel(
         and(
           eq(personnelTable.id, id),
           eq(personnelTable.tenantId, tenantId),
+          eq(personnelTable.email, existing.email),
           emailChanged
             ? isNull(personnelTable.invitationReservationId)
             : undefined,

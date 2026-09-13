@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -19,6 +20,8 @@ export const FIELD_DEMO_FIXTURE_MARKER =
   "FIELDGRID_STAGING_FIELD_DEMO_FIXTURE_V1";
 export const CUSTOM_PROOF_HOST = "veeleservices.staging.fieldgrid.nl";
 export const CUSTOM_PROOF_URL = `https://${CUSTOM_PROOF_HOST}/`;
+export const AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME =
+  "20260913170000_bind_authorization_invitation_reservations.sql";
 
 const PROVIDER_KEY = "fieldgrid_vps";
 const HEALTH_PATH = "/api/health";
@@ -196,12 +199,14 @@ type ManagedProofCandidateErrorCode =
 type ProofStateErrorCode =
   | ManagedProofCandidateErrorCode
   | FieldDemoFixtureErrorCode
+  | "authorization_invitation_reservation_migration_invalid"
   | "runtime_host_binding_invalid"
   | "runtime_host_settings_invalid";
 
 type ProofFailureStage =
   | "configuration"
   | "database_bootstrap"
+  | "schema_precondition"
   | "automation_actor"
   | "field_demo_owner"
   | "field_demo_candidate"
@@ -448,6 +453,63 @@ async function writeJson(path: string, value: unknown): Promise<void> {
     mode: 0o600,
   });
   await chmod(path, 0o600);
+}
+
+export type AuthorizationInvitationReservationMigrationRecord = {
+  hash: string;
+  baselined: boolean;
+};
+
+export function authorizationInvitationReservationMigrationIsExact(
+  records: readonly AuthorizationInvitationReservationMigrationRecord[],
+  expectedHash: string,
+): boolean {
+  return (
+    records.length === 1 &&
+    records[0]?.hash === expectedHash &&
+    records[0]?.baselined === false
+  );
+}
+
+export async function assertAuthorizationInvitationReservationMigration(
+  queryable: Queryable,
+): Promise<void> {
+  try {
+    const migrationSql = await readFile(
+      join(
+        repoRoot,
+        "lib",
+        "db",
+        "migrations",
+        AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
+      ),
+      "utf8",
+    );
+    const expectedHash = createHash("sha256")
+      .update(migrationSql.replace(/\r\n/gu, "\n"))
+      .digest("hex");
+    const result =
+      await queryable.query<AuthorizationInvitationReservationMigrationRecord>(
+        `SELECT hash, baselined
+           FROM drizzle.veele_sql_migrations
+          WHERE name = $1`,
+        [AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME],
+      );
+    if (
+      !authorizationInvitationReservationMigrationIsExact(
+        result.rows,
+        expectedHash,
+      )
+    ) {
+      throw new Error("reservation migration is not exact");
+    }
+  } catch {
+    throw new ProofStateError(
+      "authorization_invitation_reservation_migration_invalid",
+      "The authorization invitation reservation migration is not applied exactly",
+      "schema_precondition",
+    );
+  }
 }
 
 async function resolveAutomationActor(
@@ -2043,6 +2105,10 @@ async function run(options: ProofOptions, environment: ProofEnvironment) {
     if (errors.length > 0) throw new Error(errors.join("\n"));
     failureStage = "database_bootstrap";
     dbModule = await import("../lib/db/src/index.ts");
+    if (options.mode === "prepare-managed") {
+      failureStage = "schema_precondition";
+      await assertAuthorizationInvitationReservationMigration(dbModule.pool);
+    }
     failureStage = "automation_actor";
     const actorUserId = await resolveAutomationActor(
       dbModule.pool,

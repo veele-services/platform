@@ -535,11 +535,11 @@ test("authorization invitation reservations are durable and flow-bound", () => {
   }
   assert.match(
     updatePersonnelSource,
-    /email: +personnelTable\.email,[\s\S]*invitationReservationId: personnelTable\.invitationReservationId[\s\S]*const emailChanged = existing\.email !== parsedUpdateData\.email[\s\S]*emailChanged && existing\.invitationReservationId !== null/u,
+    /email: nextEmail,[\s\S]*email: +personnelTable\.email,[\s\S]*invitationReservationId: personnelTable\.invitationReservationId[\s\S]*const emailChanged = existing\.email !== nextEmail[\s\S]*emailChanged && existing\.invitationReservationId !== null/u,
   );
   assert.match(
     updatePersonnelSource,
-    /emailChanged[\s\S]*\? isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
+    /\.\.\.\(emailChanged \? \{ email: nextEmail \} : \{\}\)[\s\S]*eq\(personnelTable\.email, existing\.email\)[\s\S]*emailChanged[\s\S]*\? isNull\(personnelTable\.invitationReservationId\)[\s\S]*\.returning\(\{ id: personnelTable\.id \}\)/u,
   );
   assert.match(
     updatePersonnelEmailSource,

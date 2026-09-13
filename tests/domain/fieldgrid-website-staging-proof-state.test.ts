@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
   CUSTOM_PROOF_HOST,
   FIELD_DEMO_FIXTURE_MARKER,
   FIELD_DEMO_FIXTURE_VERSION,
@@ -12,6 +13,7 @@ import {
   MANAGED_PROOF_SLUG,
   WEBSITE_STAGING_PROOF_STATE_VERSION,
   WEBSITE_STAGING_PROOF_MARKER,
+  authorizationInvitationReservationMigrationIsExact,
   decideFieldDemoFixture,
   ensureFieldDemoFixture,
   fieldDemoOwnerFailureReason,
@@ -649,6 +651,35 @@ function baseEnvironment() {
       "website-staging-prepare-managed",
   };
 }
+
+test("prepare-managed requires the exact executed reservation migration", () => {
+  const hash = "b".repeat(64);
+  assert.equal(
+    AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
+    "20260913170000_bind_authorization_invitation_reservations.sql",
+  );
+  assert.equal(
+    authorizationInvitationReservationMigrationIsExact(
+      [{ hash, baselined: false }],
+      hash,
+    ),
+    true,
+  );
+  for (const records of [
+    [],
+    [{ hash: "c".repeat(64), baselined: false }],
+    [{ hash, baselined: true }],
+    [
+      { hash, baselined: false },
+      { hash, baselined: false },
+    ],
+  ]) {
+    assert.equal(
+      authorizationInvitationReservationMigrationIsExact(records, hash),
+      false,
+    );
+  }
+});
 
 test("prepare-managed is exact-main, explicit and independent of custom routing", () => {
   assert.equal(MANAGED_PROOF_HOST, "managed-proof-w00-v2.staging.fieldgrid.nl");

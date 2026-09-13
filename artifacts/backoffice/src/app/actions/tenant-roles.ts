@@ -946,7 +946,10 @@ export async function updateTenantUserRoles(
 
   const uniqueRoleIds = [...new Set(roleIds.filter(Boolean))];
   const [membership] = await db
-    .select({ userId: tenantUsersTable.userId })
+    .select({
+      userId: tenantUsersTable.userId,
+      invitationReservationId: tenantUsersTable.invitationReservationId,
+    })
     .from(tenantUsersTable)
     .where(
       and(
@@ -958,6 +961,13 @@ export async function updateTenantUserRoles(
 
   if (!membership) {
     return { success: false, message: "Gebruiker is geen lid van deze tenant." };
+  }
+  if (membership.invitationReservationId !== null) {
+    return {
+      success: false,
+      message:
+        "Rollen kunnen niet worden gewijzigd terwijl de uitnodiging wordt afgerond.",
+    };
   }
   if (uniqueRoleIds.length > 0) {
     const validRoles = await db
@@ -1012,7 +1022,26 @@ export async function updateTenantUserRoles(
     };
   }
 
-  await db.transaction(async (tx) => {
+  const updateResult = await db.transaction(async (tx) => {
+    const [lockedMembership] = await tx
+      .select({
+        userId: tenantUsersTable.userId,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!lockedMembership) return "membership-changed" as const;
+    if (lockedMembership.invitationReservationId !== null) {
+      return "invitation-reserved" as const;
+    }
+
     await tx
       .delete(tenantUserRolesTable)
       .where(
@@ -1047,7 +1076,22 @@ export async function updateTenantUserRoles(
         roleNames: assignedRoles.map((role) => role.name),
       },
     });
+    return "updated" as const;
   });
+
+  if (updateResult === "membership-changed") {
+    return {
+      success: false,
+      message: "Het tenantlidmaatschap veranderde; probeer het opnieuw.",
+    };
+  }
+  if (updateResult === "invitation-reserved") {
+    return {
+      success: false,
+      message:
+        "Rollen kunnen niet worden gewijzigd terwijl de uitnodiging wordt afgerond.",
+    };
+  }
 
   revalidatePath("/instellingen/gebruikers");
   return { success: true };
