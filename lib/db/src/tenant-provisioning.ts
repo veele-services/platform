@@ -34,6 +34,8 @@ import {
 } from "./schema";
 
 const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
+const TENANT_PROVISIONING_OWNER_INVITATION_SOURCE =
+  "tenant_provisioning_owner" as const;
 const OWNER_ROLE_NAMES = [
   "Management",
   "Owner",
@@ -622,6 +624,7 @@ export async function provisionTenant(
 
 export type ProvisionedTenantOwnerAuthorizationReservation = {
   id: string;
+  invitationSource: typeof TENANT_PROVISIONING_OWNER_INVITATION_SOURCE;
   updatedAt: Date;
 };
 
@@ -662,21 +665,33 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
         userId: input.ownerUserId,
         role: "owner",
         status: "invited",
+        invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,
       })
       .onConflictDoNothing({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
       })
       .returning({
         id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
         updatedAt: tenantUsersTable.updatedAt,
       });
-    if (createdReservation) return createdReservation;
+    if (
+      createdReservation?.invitationSource ===
+      TENANT_PROVISIONING_OWNER_INVITATION_SOURCE
+    ) {
+      return {
+        id: createdReservation.id,
+        invitationSource: createdReservation.invitationSource,
+        updatedAt: createdReservation.updatedAt,
+      };
+    }
 
     const [existingReservation] = await tx
       .select({
         id: tenantUsersTable.id,
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
         updatedAt: tenantUsersTable.updatedAt,
       })
       .from(tenantUsersTable)
@@ -691,12 +706,15 @@ export async function reserveProvisionedTenantOwnerInvite(input: {
     if (
       !existingReservation ||
       existingReservation.role !== "owner" ||
-      existingReservation.status !== "invited"
+      existingReservation.status !== "invited" ||
+      existingReservation.invitationSource !==
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE
     ) {
       throw new Error("Ownerautorisatie kon niet veilig worden gereserveerd.");
     }
     return {
       id: existingReservation.id,
+      invitationSource: existingReservation.invitationSource,
       updatedAt: existingReservation.updatedAt,
     };
   });
@@ -744,7 +762,12 @@ export async function completeProvisionedTenantOwnerInvite(input: {
     if (input.authorizationReservation) {
       const [activatedMembership] = await tx
         .update(tenantUsersTable)
-        .set({ role: "owner", status: "active", updatedAt: new Date() })
+        .set({
+          role: "owner",
+          status: "active",
+          invitationSource: null,
+          updatedAt: new Date(),
+        })
         .where(
           and(
             eq(tenantUsersTable.id, input.authorizationReservation.id),
@@ -752,6 +775,10 @@ export async function completeProvisionedTenantOwnerInvite(input: {
             eq(tenantUsersTable.userId, input.ownerUserId),
             eq(tenantUsersTable.role, "owner"),
             eq(tenantUsersTable.status, "invited"),
+            eq(
+              tenantUsersTable.invitationSource,
+              input.authorizationReservation.invitationSource,
+            ),
             eq(
               tenantUsersTable.updatedAt,
               input.authorizationReservation.updatedAt,
@@ -772,10 +799,16 @@ export async function completeProvisionedTenantOwnerInvite(input: {
           userId: input.ownerUserId,
           role: "owner",
           status: "active",
+          invitationSource: null,
         })
         .onConflictDoUpdate({
           target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-          set: { role: "owner", status: "active", updatedAt: new Date() },
+          set: {
+            role: "owner",
+            status: "active",
+            invitationSource: null,
+            updatedAt: new Date(),
+          },
         });
     }
 

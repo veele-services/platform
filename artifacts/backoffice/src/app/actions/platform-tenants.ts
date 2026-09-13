@@ -56,7 +56,16 @@ import {
   type TenantSubscriptionStatus,
   type TenantStatus,
 } from "@workspace/db";
-import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -1137,18 +1146,34 @@ type TenantAuthReservation = {
   userId: string;
   role: string;
   status: string;
+  invitationSource: TenantAuthInvitationSource | null;
   updatedAt: Date;
 };
+
+const PLATFORM_TENANT_ADMIN_INVITATION_SOURCE =
+  "platform_tenant_admin" as const;
+const PLATFORM_TENANT_OWNER_INVITATION_SOURCE =
+  "platform_tenant_owner" as const;
+type TenantAuthInvitationSource =
+  | typeof PLATFORM_TENANT_ADMIN_INVITATION_SOURCE
+  | typeof PLATFORM_TENANT_OWNER_INVITATION_SOURCE;
 
 async function reserveTenantAuthInvite(
   tenantId: string,
   userId: string,
   role: string,
+  invitationSource: TenantAuthInvitationSource,
 ): Promise<TenantAuthReservation> {
   return db.transaction(async (tx) => {
     const [createdReservation] = await tx
       .insert(tenantUsersTable)
-      .values({ tenantId, userId, role, status: "invited" })
+      .values({
+        tenantId,
+        userId,
+        role,
+        status: "invited",
+        invitationSource,
+      })
       .onConflictDoNothing({
         target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
       })
@@ -1158,9 +1183,17 @@ async function reserveTenantAuthInvite(
         userId: tenantUsersTable.userId,
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
         updatedAt: tenantUsersTable.updatedAt,
       });
-    if (createdReservation) return createdReservation;
+    if (createdReservation) {
+      if (createdReservation.invitationSource !== invitationSource) {
+        throw new Error(
+          "Tenantautorisatie kreeg een onjuiste reserveringsbron.",
+        );
+      }
+      return { ...createdReservation, invitationSource };
+    }
 
     const [existingReservation] = await tx
       .select({
@@ -1169,6 +1202,7 @@ async function reserveTenantAuthInvite(
         userId: tenantUsersTable.userId,
         role: tenantUsersTable.role,
         status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
         updatedAt: tenantUsersTable.updatedAt,
       })
       .from(tenantUsersTable)
@@ -1183,7 +1217,22 @@ async function reserveTenantAuthInvite(
     if (!existingReservation) {
       throw new Error("Tenantautorisatie kon niet worden gereserveerd.");
     }
-    return existingReservation;
+    if (
+      existingReservation.status === "active" &&
+      existingReservation.invitationSource === null
+    ) {
+      return { ...existingReservation, invitationSource: null };
+    }
+    if (
+      existingReservation.role !== role ||
+      existingReservation.status !== "invited" ||
+      existingReservation.invitationSource !== invitationSource
+    ) {
+      throw new Error(
+        "Een bestaande tenantuitnodiging kan niet door deze uitnodigingsroute worden overgenomen.",
+      );
+    }
+    return { ...existingReservation, invitationSource };
   });
 }
 
@@ -1194,6 +1243,9 @@ function tenantAuthReservationPredicate(reservation: TenantAuthReservation) {
     eq(tenantUsersTable.userId, reservation.userId),
     eq(tenantUsersTable.role, reservation.role),
     eq(tenantUsersTable.status, reservation.status),
+    reservation.invitationSource === null
+      ? isNull(tenantUsersTable.invitationSource)
+      : eq(tenantUsersTable.invitationSource, reservation.invitationSource),
     eq(tenantUsersTable.updatedAt, reservation.updatedAt),
   );
 }
@@ -2555,12 +2607,23 @@ export async function addPlatformTenantAdmin(
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await finalizePortalAuthorizationReservation(invite, {
-    reserve: () => reserveTenantAuthInvite(tenantId, invite.userId, accessRole),
+    reserve: () =>
+      reserveTenantAuthInvite(
+        tenantId,
+        invite.userId,
+        accessRole,
+        PLATFORM_TENANT_ADMIN_INVITATION_SOURCE,
+      ),
     activate: (reservation) =>
       db.transaction(async (tx) => {
         const [activatedMembership] = await tx
           .update(tenantUsersTable)
-          .set({ role: accessRole, status: "active", updatedAt: new Date() })
+          .set({
+            role: accessRole,
+            status: "active",
+            invitationSource: null,
+            updatedAt: new Date(),
+          })
           .where(tenantAuthReservationPredicate(reservation))
           .returning({ id: tenantUsersTable.id });
         if (activatedMembership?.id !== reservation.id) {
@@ -2643,7 +2706,12 @@ export async function updatePlatformTenantAdmin(
   await db.transaction(async (tx) => {
     await tx
       .update(tenantUsersTable)
-      .set({ role: accessRole, status, updatedAt: new Date() })
+      .set({
+        role: accessRole,
+        status,
+        invitationSource: null,
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(tenantUsersTable.tenantId, tenantId),
@@ -2925,12 +2993,23 @@ export async function updatePlatformTenantOwnerInvite(
   const now = new Date();
 
   await finalizePortalAuthorizationReservation(invite, {
-    reserve: () => reserveTenantAuthInvite(tenantId, invite.userId, "owner"),
+    reserve: () =>
+      reserveTenantAuthInvite(
+        tenantId,
+        invite.userId,
+        "owner",
+        PLATFORM_TENANT_OWNER_INVITATION_SOURCE,
+      ),
     activate: (reservation) =>
       db.transaction(async (tx) => {
         const [activatedMembership] = await tx
           .update(tenantUsersTable)
-          .set({ role: "owner", status: "active", updatedAt: now })
+          .set({
+            role: "owner",
+            status: "active",
+            invitationSource: null,
+            updatedAt: now,
+          })
           .where(tenantAuthReservationPredicate(reservation))
           .returning({ id: tenantUsersTable.id });
         if (activatedMembership?.id !== reservation.id) {

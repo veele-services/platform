@@ -25,6 +25,8 @@ const continuityAuthUserA = "93000000-0000-4000-8000-000000000001";
 const continuityPlatformUserA = "93000000-0000-4000-8000-000000000002";
 const continuityAuthUserB = "93000000-0000-4000-8000-000000000003";
 const continuityPlatformUserB = "93000000-0000-4000-8000-000000000004";
+const invitationSourceAuthUserId = "94000000-0000-4000-8000-000000000001";
+const invitationSourceTenantId = "94000000-0000-4000-8000-000000000002";
 
 test("customer realtime policy rejects JWT email fallback", () => {
   assert.doesNotMatch(migration, /auth\.email\s*\(\)/iu);
@@ -66,6 +68,126 @@ test(
         },
       );
     } finally {
+      await client.end();
+    }
+  },
+);
+
+test(
+  "tenant invite reservation sources enforce flow and activation state",
+  { skip: !process.env.DATABASE_URL },
+  async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+
+    try {
+      const contract = await client.query(
+        `SELECT
+           attribute_row.attnotnull AS not_null,
+           attribute_row.atttypmod AS type_modifier,
+           constraint_row.convalidated AS validated,
+           pg_catalog.pg_get_constraintdef(constraint_row.oid, true) AS definition
+         FROM pg_catalog.pg_attribute AS attribute_row
+         JOIN pg_catalog.pg_constraint AS constraint_row
+           ON constraint_row.conrelid = attribute_row.attrelid
+          AND constraint_row.conname = 'tenant_users_invitation_source_state_check'
+        WHERE attribute_row.attrelid = 'public.tenant_users'::regclass
+          AND attribute_row.attname = 'invitation_source'
+          AND attribute_row.attisdropped IS FALSE`,
+      );
+      assert.equal(contract.rows.length, 1);
+      assert.equal(contract.rows[0]?.not_null, false);
+      assert.equal(contract.rows[0]?.type_modifier, 68);
+      assert.equal(contract.rows[0]?.validated, true);
+      for (const value of [
+        "tenant_role_invite",
+        "platform_tenant_admin",
+        "platform_tenant_owner",
+        "tenant_provisioning_owner",
+      ]) {
+        assert.match(
+          contract.rows[0]?.definition ?? "",
+          new RegExp(value, "u"),
+        );
+      }
+
+      await client.query("BEGIN");
+      await client.query(
+        `INSERT INTO auth.users (id, email, raw_app_meta_data)
+         VALUES ($1, 'invite-source@example.invalid', '{}'::jsonb)`,
+        [invitationSourceAuthUserId],
+      );
+      await client.query(
+        `INSERT INTO public.tenants (id, slug, name, is_active, status)
+         VALUES ($1, 'invite-source', 'Invite source', true, 'active')`,
+        [invitationSourceTenantId],
+      );
+      await client.query(
+        `INSERT INTO public.tenant_users (
+           tenant_id, user_id, role, status, invitation_source
+         ) VALUES ($1, $2, 'member', 'invited', 'tenant_role_invite')`,
+        [invitationSourceTenantId, invitationSourceAuthUserId],
+      );
+
+      await client.query("SAVEPOINT invalid_active_source");
+      await assert.rejects(
+        client.query(
+          `UPDATE public.tenant_users
+              SET status = 'active'
+            WHERE tenant_id = $1 AND user_id = $2`,
+          [invitationSourceTenantId, invitationSourceAuthUserId],
+        ),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "tenant_users_invitation_source_state_check",
+      );
+      await client.query("ROLLBACK TO SAVEPOINT invalid_active_source");
+
+      await client.query("SAVEPOINT invalid_member_source");
+      await assert.rejects(
+        client.query(
+          `UPDATE public.tenant_users
+              SET role = 'owner'
+            WHERE tenant_id = $1 AND user_id = $2`,
+          [invitationSourceTenantId, invitationSourceAuthUserId],
+        ),
+        (error) =>
+          error?.code === "23514" &&
+          error?.constraint === "tenant_users_invitation_source_state_check",
+      );
+      await client.query("ROLLBACK TO SAVEPOINT invalid_member_source");
+
+      const ownerReservation = await client.query(
+        `UPDATE public.tenant_users
+            SET role = 'owner', invitation_source = 'platform_tenant_owner'
+          WHERE tenant_id = $1 AND user_id = $2
+        RETURNING role, status, invitation_source`,
+        [invitationSourceTenantId, invitationSourceAuthUserId],
+      );
+      assert.deepEqual(ownerReservation.rows, [
+        {
+          role: "owner",
+          status: "invited",
+          invitation_source: "platform_tenant_owner",
+        },
+      ]);
+
+      const activation = await client.query(
+        `UPDATE public.tenant_users
+            SET status = 'active', invitation_source = NULL
+          WHERE tenant_id = $1 AND user_id = $2
+        RETURNING status, invitation_source`,
+        [invitationSourceTenantId, invitationSourceAuthUserId],
+      );
+      assert.deepEqual(activation.rows, [
+        { status: "active", invitation_source: null },
+      ]);
+      await client.query("ROLLBACK");
+    } finally {
+      await client.query("ROLLBACK").catch(() => undefined);
       await client.end();
     }
   },

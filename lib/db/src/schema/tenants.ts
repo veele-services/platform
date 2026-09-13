@@ -26,6 +26,15 @@ export type TenantRuntimeActiveStatus = (typeof TENANT_RUNTIME_ACTIVE_STATUSES)[
 export const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 export type TenantPlanKey = (typeof TENANT_PLAN_KEYS)[number];
 
+export const TENANT_USER_INVITATION_SOURCES = [
+  "tenant_role_invite",
+  "platform_tenant_admin",
+  "platform_tenant_owner",
+  "tenant_provisioning_owner",
+] as const;
+export type TenantUserInvitationSource =
+  (typeof TENANT_USER_INVITATION_SOURCES)[number];
+
 export const tenantsTable = pgTable(
   "tenants",
   {
@@ -73,6 +82,9 @@ export const tenantUsersTable = pgTable(
     userId: uuid("user_id").notNull(),
     role: varchar("role", { length: 40 }).notNull().default("member"),
     status: varchar("status", { length: 30 }).notNull().default("active"),
+    invitationSource: varchar("invitation_source", {
+      length: 64,
+    }).$type<TenantUserInvitationSource>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

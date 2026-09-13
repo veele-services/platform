@@ -46,6 +46,14 @@ const authSurfaceMigration = readFileSync(
   "lib/db/migrations/20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
   "utf8",
 ).replaceAll("\r\n", "\n");
+const tenantInvitationSourceMigration = readFileSync(
+  "lib/db/migrations/20260913165000_bind_tenant_invite_reservation_sources.sql",
+  "utf8",
+).replaceAll("\r\n", "\n");
+const tenantSchema = readFileSync(
+  "lib/db/src/schema/tenants.ts",
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 test("an existing portal identity cannot be rewritten for another portal", () => {
   const mismatchGuard = portalInvites.match(
@@ -148,18 +156,7 @@ test("authorization stays inactive until durable Auth finalization", () => {
     tenantRoleActions,
     /finalizePortalAuthorizationReservation\(invite[\s\S]*reserve:[\s\S]*status: "invited"[\s\S]*activate:[\s\S]*status: "active"[\s\S]*\.insert\(tenantUserRolesTable\)/u,
   );
-  assert.match(
-    tenantRoleActions,
-    /if \(\s*reservation\.created &&[\s\S]*reservation\.membership\.status === "invited"[\s\S]*\.set\(\{ status: "active"[\s\S]*else if \(\s*!reservation\.created &&[\s\S]*reservation\.membership\.status === "active"/u,
-  );
-  assert.match(
-    tenantRoleActions,
-    /if \(existingMembership\.status !== "active"\)[\s\S]*bestaande tenantuitnodiging[\s\S]*created: false as const/u,
-  );
-  assert.match(
-    tenantRoleActions,
-    /reservation\.created &&[\s\S]*reservation\.membership\.role === "member"[\s\S]*reservation\.membership\.status === "invited"[\s\S]*!reservation\.created &&[\s\S]*reservation\.membership\.status === "active"/u,
-  );
+  assert.doesNotMatch(tenantRoleActions, /reservation\.created/u);
   assert.match(
     customerActions,
     /try \{[\s\S]*upsertCustomerPortalInviteLink\([\s\S]*await provisioned\.finalize\(\);[\s\S]*\} catch \(error\) \{[\s\S]*await provisioned\.rollback\(\);[\s\S]*throw error;/u,
@@ -215,6 +212,80 @@ test("authorization stays inactive until durable Auth finalization", () => {
   assert.match(
     settingsActions,
     /\.insert\(userRolesTable\)[\s\S]*await invite\.finalize\(\)/u,
+  );
+});
+
+test("tenant invite reservations are durable and flow-bound", () => {
+  for (const source of [
+    "tenant_role_invite",
+    "platform_tenant_admin",
+    "platform_tenant_owner",
+    "tenant_provisioning_owner",
+  ]) {
+    assert.match(tenantSchema, new RegExp(`"${source}"`, "u"));
+    assert.match(
+      tenantInvitationSourceMigration,
+      new RegExp(`'${source}'`, "u"),
+    );
+  }
+  assert.match(
+    tenantSchema,
+    /invitationSource: varchar\("invitation_source", \{[\s\S]*length: 64,[\s\S]*\}\)\.\$type<TenantUserInvitationSource>/u,
+  );
+  assert.match(
+    tenantInvitationSourceMigration,
+    /ADD CONSTRAINT tenant_users_invitation_source_state_check[\s\S]*invitation_source IS NULL[\s\S]*status = 'invited'[\s\S]*tenant_role_invite'[\s\S]*role = 'member'[\s\S]*platform_tenant_owner'[\s\S]*tenant_provisioning_owner'[\s\S]*role = 'owner'/u,
+  );
+
+  assert.match(
+    tenantRoleActions,
+    /TENANT_ROLE_INVITATION_SOURCE = "tenant_role_invite"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_ROLE_INVITATION_SOURCE/u,
+  );
+  assert.match(
+    tenantRoleActions,
+    /existingMembership\.status === "active" &&[\s\S]*existingMembership\.invitationSource === null[\s\S]*existingMembership\.role !== "member" \|\|[\s\S]*existingMembership\.status !== "invited" \|\|[\s\S]*existingMembership\.invitationSource !==[\s\S]*TENANT_ROLE_INVITATION_SOURCE/u,
+  );
+  assert.match(
+    tenantRoleActions,
+    /reservation\.membership\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*reservation\.membership\.invitationSource ===[\s\S]*TENANT_ROLE_INVITATION_SOURCE[\s\S]*status: "active",[\s\S]*invitationSource: null/u,
+  );
+
+  assert.match(
+    tenantProvisioning,
+    /TENANT_PROVISIONING_OWNER_INVITATION_SOURCE =[\s\S]*"tenant_provisioning_owner"[\s\S]*status: "invited",[\s\S]*invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE/u,
+  );
+  assert.match(
+    tenantProvisioning,
+    /existingReservation\.role !== "owner" \|\|[\s\S]*existingReservation\.status !== "invited" \|\|[\s\S]*existingReservation\.invitationSource !==[\s\S]*TENANT_PROVISIONING_OWNER_INVITATION_SOURCE/u,
+  );
+  assert.match(
+    tenantProvisioning,
+    /eq\([\s\S]*tenantUsersTable\.invitationSource,[\s\S]*input\.authorizationReservation\.invitationSource[\s\S]*\)[\s\S]*De gereserveerde ownerautorisatie/u,
+  );
+  assert.match(
+    tenantProvisioning,
+    /status: "active",[\s\S]*invitationSource: null/u,
+  );
+
+  assert.match(
+    platformTenantActions,
+    /PLATFORM_TENANT_ADMIN_INVITATION_SOURCE =[\s\S]*"platform_tenant_admin"[\s\S]*PLATFORM_TENANT_OWNER_INVITATION_SOURCE =[\s\S]*"platform_tenant_owner"/u,
+  );
+  assert.match(
+    platformTenantActions,
+    /existingReservation\.status === "active" &&[\s\S]*existingReservation\.invitationSource === null[\s\S]*existingReservation\.role !== role \|\|[\s\S]*existingReservation\.status !== "invited" \|\|[\s\S]*existingReservation\.invitationSource !== invitationSource/u,
+  );
+  assert.match(
+    platformTenantActions,
+    /reservation\.invitationSource === null[\s\S]*isNull\(tenantUsersTable\.invitationSource\)[\s\S]*eq\(tenantUsersTable\.invitationSource, reservation\.invitationSource\)/u,
+  );
+  assert.match(
+    platformTenantActions,
+    /reserveTenantAuthInvite\([\s\S]*PLATFORM_TENANT_ADMIN_INVITATION_SOURCE[\s\S]*reserveTenantAuthInvite\([\s\S]*PLATFORM_TENANT_OWNER_INVITATION_SOURCE/u,
+  );
+  assert.ok(
+    [...platformTenantActions.matchAll(/invitationSource: null/gu)].length >= 3,
+    "activation and manual membership updates must clear reservation ownership",
   );
 });
 

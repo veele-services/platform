@@ -11,7 +11,7 @@ import {
   tenantUserRolesTable,
   tenantUsersTable,
 } from "@workspace/db";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +28,8 @@ import {
 } from "@/lib/auth/portal-invites";
 import { tenantApplicationOrigin } from "@/lib/tenant-application-origin";
 import type { ActionResult } from "./customers";
+
+const TENANT_ROLE_INVITATION_SOURCE = "tenant_role_invite" as const;
 
 export type TenantPermissionItem = {
   id: string;
@@ -1145,6 +1147,7 @@ export async function inviteTenantUser(input: {
                 userId: invitedUserId,
                 role: "member",
                 status: "invited",
+                invitationSource: TENANT_ROLE_INVITATION_SOURCE,
               })
               .onConflictDoNothing({
                 target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
@@ -1153,10 +1156,11 @@ export async function inviteTenantUser(input: {
                 id: tenantUsersTable.id,
                 role: tenantUsersTable.role,
                 status: tenantUsersTable.status,
+                invitationSource: tenantUsersTable.invitationSource,
                 updatedAt: tenantUsersTable.updatedAt,
               });
             if (createdMembership) {
-              return { membership: createdMembership, created: true as const };
+              return { membership: createdMembership };
             }
 
             const [existingMembership] = await tx
@@ -1164,6 +1168,7 @@ export async function inviteTenantUser(input: {
                 id: tenantUsersTable.id,
                 role: tenantUsersTable.role,
                 status: tenantUsersTable.status,
+                invitationSource: tenantUsersTable.invitationSource,
                 updatedAt: tenantUsersTable.updatedAt,
               })
               .from(tenantUsersTable)
@@ -1178,12 +1183,23 @@ export async function inviteTenantUser(input: {
             if (!existingMembership) {
               throw new Error("Tenantkoppeling kon niet worden gereserveerd.");
             }
-            if (existingMembership.status !== "active") {
+            if (
+              existingMembership.status === "active" &&
+              existingMembership.invitationSource === null
+            ) {
+              return { membership: existingMembership };
+            }
+            if (
+              existingMembership.role !== "member" ||
+              existingMembership.status !== "invited" ||
+              existingMembership.invitationSource !==
+                TENANT_ROLE_INVITATION_SOURCE
+            ) {
               throw new Error(
                 "Een bestaande tenantuitnodiging kan niet door deze uitnodiging worden overgenomen.",
               );
             }
-            return { membership: existingMembership, created: false as const };
+            return { membership: existingMembership };
           });
         } catch {
           throw new Error(
@@ -1213,16 +1229,27 @@ export async function inviteTenantUser(input: {
               eq(tenantUsersTable.userId, invitedUserId),
               eq(tenantUsersTable.role, reservation.membership.role),
               eq(tenantUsersTable.status, reservation.membership.status),
+              reservation.membership.invitationSource === null
+                ? isNull(tenantUsersTable.invitationSource)
+                : eq(
+                    tenantUsersTable.invitationSource,
+                    reservation.membership.invitationSource,
+                  ),
               eq(tenantUsersTable.updatedAt, reservation.membership.updatedAt),
             );
             if (
-              reservation.created &&
               reservation.membership.role === "member" &&
-              reservation.membership.status === "invited"
+              reservation.membership.status === "invited" &&
+              reservation.membership.invitationSource ===
+                TENANT_ROLE_INVITATION_SOURCE
             ) {
               const [activatedMembership] = await tx
                 .update(tenantUsersTable)
-                .set({ status: "active", updatedAt: new Date() })
+                .set({
+                  status: "active",
+                  invitationSource: null,
+                  updatedAt: new Date(),
+                })
                 .where(membershipPredicate)
                 .returning({ id: tenantUsersTable.id });
               if (activatedMembership?.id !== reservation.membership.id) {
@@ -1231,8 +1258,8 @@ export async function inviteTenantUser(input: {
                 );
               }
             } else if (
-              !reservation.created &&
-              reservation.membership.status === "active"
+              reservation.membership.status === "active" &&
+              reservation.membership.invitationSource === null
             ) {
               const [unchangedMembership] = await tx
                 .select({ id: tenantUsersTable.id })
