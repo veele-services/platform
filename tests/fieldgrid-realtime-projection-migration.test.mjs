@@ -989,6 +989,9 @@ if (process.env.DATABASE_URL) {
          VALUES ($1, $2, 'member', 'active')`,
         [separatedTenantId, separatedAuthUserId],
       );
+      // Observe rejection before COMMIT can release the lock. Keep the original
+      // promise so assert.rejects below still requires the exact SQLSTATE.
+      void tenantInsert.catch(() => undefined);
 
       let waitingOnIdentityLock = false;
       for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -1174,6 +1177,9 @@ if (process.env.DATABASE_URL) {
           WHERE id = $1`,
         [continuityPlatformUserB],
       );
+      // The server may reject before the COMMIT response reaches this client.
+      // Attach an observer now; the original promise is still asserted below.
+      void secondDemotion.catch(() => undefined);
 
       let waitingOnContinuityBarrier = false;
       for (let attempt = 0; attempt < 50; attempt += 1) {

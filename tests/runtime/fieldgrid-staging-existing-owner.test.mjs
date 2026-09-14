@@ -53,6 +53,10 @@ export async function verifyFieldDemoExistingOwner(client, context) {
   const role = randomUUID(),
     permission = randomUUID(),
     template = randomUUID();
+  const foreignRole = randomUUID(),
+    additionalRole = randomUUID(),
+    harmlessLegacyRole = randomUUID(),
+    otherPermission = randomUUID();
   await client.query("BEGIN");
   try {
     assert.equal(
@@ -109,6 +113,10 @@ export async function verifyFieldDemoExistingOwner(client, context) {
       [template],
     );
     await client.query(
+      `INSERT INTO public.roles(id,name,is_system) VALUES ($1,'Existing owner legacy fixture',false)`,
+      [harmlessLegacyRole],
+    );
+    await client.query(
       `INSERT INTO public.permissions(id,resource,action) VALUES ($1,'existing_owner_fixture','read')`,
       [permission],
     );
@@ -128,6 +136,22 @@ export async function verifyFieldDemoExistingOwner(client, context) {
     await client.query(
       `INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id) VALUES ($1,$2,$3)`,
       [tenant, owner, role],
+    );
+    await client.query(
+      `INSERT INTO public.tenant_roles(id,tenant_id,name,is_system,is_custom)
+       VALUES ($1,$2,'Other tenant fixture',false,true),
+              ($3,$4,'Supplemental fixture',false,true)`,
+      [foreignRole, foreignTenant, additionalRole, tenant],
+    );
+    await client.query(
+      `INSERT INTO public.permissions(id,resource,action)
+       VALUES ($1,'existing_owner_other_fixture','read')`,
+      [otherPermission],
+    );
+    await client.query(
+      `INSERT INTO public.tenant_role_permissions(tenant_role_id,permission_id)
+       VALUES ($1,$2),($3,$4)`,
+      [foreignRole, otherPermission, additionalRole, permission],
     );
     await client.query(
       `INSERT INTO public.organization_settings(tenant_id) VALUES ($1)`,
@@ -155,6 +179,13 @@ export async function verifyFieldDemoExistingOwner(client, context) {
       (SELECT jsonb_agg(to_jsonb(i) ORDER BY i.id) FROM auth.identities i WHERE user_id=ANY($1::uuid[])) AS identities,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.tenant_users u WHERE user_id=ANY($1::uuid[])) AS memberships,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.tenant_user_roles u WHERE user_id=ANY($1::uuid[])) AS roles,
+      (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.user_roles u WHERE user_id=ANY($1::uuid[])) AS legacy_roles,
+      (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.roles r WHERE r.id IN (
+        SELECT role_id FROM public.user_roles WHERE user_id=ANY($1::uuid[]))) AS legacy_templates,
+      (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.tenant_roles r WHERE r.id IN (
+        SELECT tenant_role_id FROM public.tenant_user_roles WHERE user_id=ANY($1::uuid[]))) AS tenant_roles,
+      (SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.tenant_role_permissions p WHERE p.tenant_role_id IN (
+        SELECT tenant_role_id FROM public.tenant_user_roles WHERE user_id=ANY($1::uuid[]))) AS tenant_permissions,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.platform_users u WHERE user_id=ANY($1::uuid[])) AS platform`,
           [[owner, foreignOwner, extraOwner]],
         )
@@ -212,6 +243,173 @@ export async function verifyFieldDemoExistingOwner(client, context) {
           assert.equal(result.tenantId, tenant);
         }
         assert.deepEqual(await unchangedAccounts(), before);
+      },
+    );
+
+    const addOtherMembership = () =>
+      client.query(
+        `INSERT INTO public.tenant_users(tenant_id,user_id,role,status)
+       VALUES ($1,$2,'member','active')`,
+        [foreignTenant, owner],
+      );
+    const addOtherRole = () =>
+      client.query(
+        `INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id)
+       VALUES ($1,$2,$3)`,
+        [foreignTenant, owner, foreignRole],
+      );
+    const addSupplementalRole = () =>
+      client.query(
+        `INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id)
+       VALUES ($1,$2,$3)`,
+        [tenant, owner, additionalRole],
+      );
+    const addLegacyRole = () =>
+      client.query(
+        `INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)`,
+        [owner, harmlessLegacyRole],
+      );
+    const permittedExistingStates = [
+      ...["Super Admin", "Planning", "Administratie"].map((name) => [
+        "resolved legacy " + name + " is no longer a direct RLS grant",
+        async () => {
+          await client.query("UPDATE public.roles SET name=$2 WHERE id=$1", [
+            harmlessLegacyRole,
+            name,
+          ]);
+          await addLegacyRole();
+        },
+      ]),
+      ["other tenant membership", addOtherMembership],
+      [
+        "other tenant role has independent permissions",
+        async () => {
+          await addOtherMembership();
+          await addOtherRole();
+        },
+      ],
+      [
+        "supplemental target role with no extra effective permissions",
+        addSupplementalRole,
+      ],
+      [
+        "supplemental target role without permissions",
+        async () => {
+          await addSupplementalRole();
+          await client.query(
+            "DELETE FROM public.tenant_role_permissions WHERE tenant_role_id=$1",
+            [additionalRole],
+          );
+        },
+      ],
+      [
+        "existing legacy role is retained, not used as target-role proof",
+        addLegacyRole,
+      ],
+      [
+        "reported two memberships, one legacy role and three tenant roles",
+        async () => {
+          await addOtherMembership();
+          await addOtherRole();
+          await addSupplementalRole();
+          await addLegacyRole();
+        },
+      ],
+      [
+        "disabled foreign membership remains untouched",
+        async () => {
+          await addOtherMembership();
+          await addOtherRole();
+          await client.query(
+            "UPDATE public.tenant_users SET status='disabled' WHERE tenant_id=$1 AND user_id=$2",
+            [foreignTenant, owner],
+          );
+        },
+      ],
+    ];
+    for (const [name, arrange] of permittedExistingStates) {
+      await context.test(
+        name + " passes existing-owner checks without changing access",
+        async () => {
+          await client.query("SAVEPOINT preserved_access");
+          try {
+            await arrange();
+            const preimage = await unchangedAccounts();
+            for (let attempt = 0; attempt < 2; attempt++) {
+              assert.deepEqual(await counts(), {
+                expected_owner_count: 1,
+                expected_owner_management_role_count: 1,
+              });
+              assert.equal(
+                classifyFieldDemoDomain(
+                  await loadFieldDemoDomainSnapshot(client),
+                ).state,
+                "already-valid",
+              );
+              assert.equal(
+                (
+                  await ensureFieldDemoFixture(
+                    database,
+                    foreignOwner,
+                    "a".repeat(40),
+                    "preserve-multitenant",
+                  )
+                ).tenantId,
+                tenant,
+              );
+            }
+            // Preserving an existing account must not relax fresh provisioning.
+            assert.equal(
+              (await client.query(finalInvariantSql, [tenant, owner])).rows
+                .length,
+              0,
+            );
+            assert.deepEqual(await unchangedAccounts(), preimage);
+          } finally {
+            await client.query("ROLLBACK TO SAVEPOINT preserved_access");
+          }
+        },
+      );
+    }
+
+    await context.test(
+      "legacy Management is a real grant independent of tenant-role permissions",
+      async () => {
+        await client.query("SAVEPOINT legacy_authorization");
+        try {
+          await addOtherMembership();
+          await client.query(
+            "SELECT set_config('request.jwt.claim.sub',$1,true)",
+            [owner],
+          );
+          const legacyAllowsOtherTenant = async () =>
+            (
+              await client.query(
+                "SELECT public.is_management_for_tenant($1) AS allowed",
+                [foreignTenant],
+              )
+            ).rows[0].allowed;
+          assert.equal(await legacyAllowsOtherTenant(), false);
+          await client.query(
+            "INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)",
+            [owner, template],
+          );
+          assert.equal(await legacyAllowsOtherTenant(), true);
+          assert.equal((await counts()).expected_owner_count, 0);
+          // The legacy helper uses the name, not the template flags/permissions.
+          await client.query(
+            "UPDATE public.roles SET is_system=false WHERE id=$1",
+            [template],
+          );
+          await client.query(
+            "DELETE FROM public.role_permissions WHERE role_id=$1",
+            [template],
+          );
+          assert.equal(await legacyAllowsOtherTenant(), true);
+          assert.equal((await counts()).expected_owner_count, 0);
+        } finally {
+          await client.query("ROLLBACK TO SAVEPOINT legacy_authorization");
+        }
       },
     );
 
@@ -295,19 +493,50 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         [tenant, extraOwner],
       ],
       [
-        "cross-tenant membership",
-        "INSERT INTO public.tenant_users(tenant_id,user_id) VALUES ($1,$2)",
-        [foreignTenant, owner],
-      ],
-      [
         "platform membership",
         "INSERT INTO public.platform_users(user_id,role,status) VALUES ($1,'support','suspended')",
         [owner],
       ],
       [
-        "legacy global role",
+        "foreign role without membership",
+        "INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id) VALUES ($1,$2,$3)",
+        [foreignTenant, owner, foreignRole],
+      ],
+      [
+        "target link borrowing a foreign role",
+        "INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id) VALUES ($1,$2,$3)",
+        [tenant, owner, foreignRole],
+      ],
+      [
+        "orphan role link beside valid Management",
+        "INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id) VALUES ($1,$2,$3)",
+        [tenant, owner, randomUUID()],
+      ],
+      [
+        "extra effective permission through supplemental role",
+        `WITH added_permission AS (
+          INSERT INTO public.tenant_role_permissions(tenant_role_id,permission_id)
+          VALUES ($3,$4) RETURNING tenant_role_id
+        ) INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id)
+          SELECT $1,$2,tenant_role_id FROM added_permission`,
+        [tenant, owner, additionalRole, otherPermission],
+      ],
+      [
+        "legacy Management cannot replace scoped Management",
+        `WITH removed_role AS (
+          DELETE FROM public.tenant_user_roles WHERE user_id=$1 RETURNING user_id
+        ) INSERT INTO public.user_roles(user_id,role_id) SELECT user_id,$2 FROM removed_role`,
+        [owner, template],
+      ],
+      [
+        "privileged legacy Management beside intact scoped Management",
         "INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)",
         [owner, template],
+      ],
+      [
+        "orphan legacy role",
+        "INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)",
+        [owner, randomUUID()],
       ],
       [
         "platform metadata",
@@ -383,6 +612,19 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         "extra management permission",
         "INSERT INTO public.tenant_role_permissions(tenant_role_id,permission_id) SELECT $1,id FROM public.permissions WHERE id<>$2 LIMIT 1",
         [role, permission],
+      ],
+      [
+        "same-count Management permission substitution",
+        "UPDATE public.tenant_role_permissions SET permission_id=$2 WHERE tenant_role_id=$1",
+        [role, otherPermission],
+      ],
+      [
+        "supplemental role cannot compensate missing canonical permission",
+        `WITH removed_permission AS (
+          DELETE FROM public.tenant_role_permissions WHERE tenant_role_id=$3 RETURNING id
+        ) INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id)
+          SELECT $1,$2,$4 WHERE EXISTS (SELECT 1 FROM removed_permission)`,
+        [tenant, owner, role, additionalRole],
       ],
     ];
     for (const [name, sql, params] of cases) {
