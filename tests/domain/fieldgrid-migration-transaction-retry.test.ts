@@ -74,6 +74,7 @@ test("managed migration SQL rejects alternate PostgreSQL transaction boundaries"
     "START\n/* boundary comment */\nTRANSACTION;\nSELECT 1;\nEND;\n",
     "START TRANSACTION;\nSELECT 1;\nCOMMIT\nWORK;\n",
     "SELECT 1;\nCOMMIT;\nSELECT 2;\n",
+    "CREATE TABLE foo$tag$ (value integer);\nCOMMIT WORK;\n",
   ]) {
     assert.throws(
       () => sqlForManagedMigrationTransaction(source),
@@ -94,6 +95,22 @@ test("managed migration SQL ignores transaction words in quoted and comment bodi
   ].join("\n");
 
   assert.equal(sqlForManagedMigrationTransaction(source), source);
+});
+
+test("managed migration SQL retains SQL-standard atomic routine bodies", () => {
+  const source = [
+    "CREATE OR REPLACE FUNCTION answer() RETURNS integer",
+    "LANGUAGE SQL",
+    "BEGIN ATOMIC",
+    "  SELECT 42;",
+    "END;",
+  ].join("\n");
+
+  assert.equal(sqlForManagedMigrationTransaction(source), source);
+  assert.throws(
+    () => sqlForManagedMigrationTransaction(`${source}\nCOMMIT WORK;\n`),
+    /unsupported file-level transaction control/u,
+  );
 });
 
 test("only the exact committed migration hash pair is reconcilable", () => {

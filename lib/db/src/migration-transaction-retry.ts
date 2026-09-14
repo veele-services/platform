@@ -6,6 +6,8 @@ const possibleMigrationTransactionStart =
   /^(?:BEGIN\b|START\s+TRANSACTION\b)/iu;
 const possibleMigrationTransactionEnd =
   /^(?:COMMIT\b|ROLLBACK\b|ABORT\b|PREPARE\s+TRANSACTION\b|END\b)/iu;
+const sqlStandardRoutineBodyStart =
+  /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\b[\s\S]*\bBEGIN\s+ATOMIC\b/iu;
 const reconcilableSqlMigrationHashes = new Map<
   string,
   { canonical: string; historical: ReadonlySet<string> }
@@ -69,6 +71,10 @@ function maskedSqlText(sourceSql: string): string {
   return sourceSql.replace(/[^\r\n]/gu, " ");
 }
 
+// Mask regions whose contents are not file-level SQL without changing token
+// separation. PostgreSQL permits nested block comments and dollar-quoted
+// bodies, while a dollar tag adjacent to an identifier is part of that
+// identifier rather than a quote opener.
 function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
   const outside: string[] = [];
   let index = 0;
@@ -133,9 +139,15 @@ function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
     }
 
     if (character === "$") {
-      const delimiter = /^\$(?:[a-z_][a-z0-9_]*)?\$/iu.exec(
-        sourceSql.slice(index),
-      )?.[0];
+      const precedingCharacter = sourceSql[index - 1] ?? "";
+      const hasTokenBoundary =
+        index === 0 ||
+        !/[a-z0-9_$"'\u0080-\uffff]/iu.test(precedingCharacter);
+      const delimiter = hasTokenBoundary
+        ? /^\$(?:[a-z_\u0080-\uffff][a-z0-9_\u0080-\uffff]*)?\$/iu.exec(
+            sourceSql.slice(index),
+          )?.[0]
+        : undefined;
       if (delimiter) {
         const closingIndex = sourceSql.indexOf(
           delimiter,
@@ -163,11 +175,28 @@ function hasFileLevelTransactionControl(sourceSql: string): boolean {
     .split(";")
     .map((statement) => statement.trim())
     .filter((statement) => statement.length > 0);
-  return statements.some(
-    (statement) =>
+  let sqlStandardRoutineBodyDepth = 0;
+  for (const statement of statements) {
+    // SQL-standard LANGUAGE SQL routines use an unquoted BEGIN ATOMIC ... END
+    // body. Its END is compound syntax, not the transaction-ending END alias.
+    if (sqlStandardRoutineBodyStart.test(statement)) {
+      sqlStandardRoutineBodyDepth += 1;
+      continue;
+    }
+    if (sqlStandardRoutineBodyDepth > 0) {
+      if (/^END\b/iu.test(statement)) {
+        sqlStandardRoutineBodyDepth -= 1;
+      }
+      continue;
+    }
+    if (
       possibleMigrationTransactionStart.test(statement) ||
-      possibleMigrationTransactionEnd.test(statement),
-  );
+      possibleMigrationTransactionEnd.test(statement)
+    ) {
+      return true;
+    }
+  }
+  return sqlStandardRoutineBodyDepth !== 0;
 }
 
 /**
