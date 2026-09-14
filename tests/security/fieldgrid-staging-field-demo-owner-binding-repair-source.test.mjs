@@ -460,7 +460,7 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /for \(const migration of frontier\.predecessors\)[\s\S]*record\.hash !== migration\.hash/u,
+    /for \(const migration of frontier\.predecessors\)[\s\S]*!reviewedMigrationHashMatches\(migration, record\)/u,
   );
   assert.match(
     script,
@@ -472,7 +472,15 @@ test("platform-role removal preserves recipient history and normalizes Auth safe
   );
   assert.match(
     script,
-    /for \(const migration of pending\)[\s\S]*await queryable\.query\(sqlForManagedMigrationTransaction\(migration\.sql\)\)[\s\S]*INSERT INTO drizzle\.veele_sql_migrations[\s\S]*migration\.name, migration\.hash/u,
+    /for \(const migration of canonicalPending\)[\s\S]*await queryable\.query\(sqlForManagedMigrationTransaction\(migration\.sql\)\)[\s\S]*INSERT INTO drizzle\.veele_sql_migrations[\s\S]*migration\.name, migration\.hash/u,
+  );
+  assert.match(
+    script,
+    /initialHashReconciliations =\s+platformPrivilegeMigrationHashReconciliations[\s\S]*BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE[\s\S]*hashReconciliations =\s+platformPrivilegeMigrationHashReconciliations/u,
+  );
+  assert.match(
+    script,
+    /for \(const reconciliation of hashReconciliations\)[\s\S]*UPDATE drizzle\.veele_sql_migrations[\s\S]*SET hash = \$2[\s\S]*WHERE name = \$1[\s\S]*AND hash = \$3[\s\S]*RETURNING name, hash[\s\S]*canonicalHistory/u,
   );
   assert.ok(
     [

@@ -5,7 +5,10 @@ import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { sqlForManagedMigrationTransaction } from "../lib/db/src/migration-transaction-retry.ts";
+import {
+  sqlForManagedMigrationTransaction,
+  sqlMigrationHashState,
+} from "../lib/db/src/migration-transaction-retry.ts";
 
 import {
   FIELD_DEMO_HOST,
@@ -2181,8 +2184,50 @@ type SqlMigrationHistoryRecord = {
   appliedAt: Date | string;
 };
 
+type SqlMigrationHashReconciliation = {
+  name: string;
+  recordedHash: string;
+  canonicalHash: string;
+};
+
 function reviewedSqlMigrationHash(sql: string): string {
   return createHash("sha256").update(sql.replace(/\r\n/gu, "\n")).digest("hex");
+}
+
+function reviewedMigrationHashMatches(
+  migration: ReviewedSqlMigration,
+  record: SqlMigrationHistoryRecord,
+): boolean {
+  return (
+    sqlMigrationHashState(migration.name, migration.hash, record.hash) !==
+    "drift"
+  );
+}
+
+function platformPrivilegeMigrationHashReconciliations(
+  frontier: Awaited<ReturnType<typeof loadPlatformPrivilegeMigrationFrontier>>,
+  records: SqlMigrationHistoryRecord[],
+): SqlMigrationHashReconciliation[] {
+  const committedByName = new Map(
+    frontier.committed.map((migration) => [migration.name, migration]),
+  );
+  return records.flatMap((record) => {
+    const migration = committedByName.get(record.name);
+    if (
+      !migration ||
+      sqlMigrationHashState(migration.name, migration.hash, record.hash) !==
+        "reconcilable"
+    ) {
+      return [];
+    }
+    return [
+      {
+        name: migration.name,
+        recordedHash: record.hash,
+        canonicalHash: migration.hash,
+      },
+    ];
+  });
 }
 
 async function loadPlatformPrivilegeMigrationFrontier(): Promise<{
@@ -2322,7 +2367,11 @@ export function assertPlatformPrivilegeMigrationFrontier(
         "platform_privilege_precondition",
       );
     }
-    if (record.hash !== (committed?.hash ?? historical?.hash)) {
+    if (
+      committed
+        ? !reviewedMigrationHashMatches(committed, record)
+        : record.hash !== historical?.hash
+    ) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
         "SQL migration history contains source-hash drift.",
@@ -2389,7 +2438,7 @@ export function assertPlatformPrivilegeMigrationFrontier(
   }
   for (const migration of frontier.predecessors) {
     const record = recordsByName.get(migration.name);
-    if (!record || record.hash !== migration.hash) {
+    if (!record || !reviewedMigrationHashMatches(migration, record)) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
         "SQL migration history does not match the reviewed predecessor frontier.",
@@ -2405,7 +2454,7 @@ export function assertPlatformPrivilegeMigrationFrontier(
       if (firstPendingIndex < 0) firstPendingIndex = index;
       continue;
     }
-    if (record.hash !== migration.hash || record.baselined) {
+    if (!reviewedMigrationHashMatches(migration, record) || record.baselined) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
         "Platform-privilege migration record does not match reviewed source.",
@@ -2486,7 +2535,14 @@ export async function applyExactPlatformPrivilegePrerequisiteMigrations(
       frontier,
       recorded.rows,
     );
-    if (initiallyPending.length === 0) return false;
+    const initialHashReconciliations =
+      platformPrivilegeMigrationHashReconciliations(frontier, recorded.rows);
+    if (
+      initiallyPending.length === 0 &&
+      initialHashReconciliations.length === 0
+    ) {
+      return false;
+    }
 
     await queryable.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
     migrationTransactionStarted = true;
@@ -2500,11 +2556,23 @@ export async function applyExactPlatformPrivilegePrerequisiteMigrations(
       frontier,
       recheck.rows,
     );
+    const hashReconciliations =
+      platformPrivilegeMigrationHashReconciliations(frontier, recheck.rows);
     if (
       pending.length !== initiallyPending.length ||
       pending.some(
         (migration, index) => migration.name !== initiallyPending[index]?.name,
-      )
+      ) ||
+      hashReconciliations.length !== initialHashReconciliations.length ||
+      hashReconciliations.some((reconciliation, index) => {
+        const initial = initialHashReconciliations[index];
+        if (!initial) return true;
+        return (
+          reconciliation.name !== initial.name ||
+          reconciliation.recordedHash !== initial.recordedHash ||
+          reconciliation.canonicalHash !== initial.canonicalHash
+        );
+      })
     ) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
@@ -2512,7 +2580,65 @@ export async function applyExactPlatformPrivilegePrerequisiteMigrations(
         "platform_privilege_precondition",
       );
     }
-    for (const migration of pending) {
+    for (const reconciliation of hashReconciliations) {
+      const reconciled = await queryable.query<{
+        name: string;
+        hash: string;
+      }>(
+        `UPDATE drizzle.veele_sql_migrations
+            SET hash = $2
+          WHERE name = $1
+            AND hash = $3
+        RETURNING name, hash`,
+        [
+          reconciliation.name,
+          reconciliation.canonicalHash,
+          reconciliation.recordedHash,
+        ],
+      );
+      if (
+        reconciled.rowCount !== 1 ||
+        reconciled.rows.length !== 1 ||
+        reconciled.rows[0]?.name !== reconciliation.name ||
+        reconciled.rows[0]?.hash !== reconciliation.canonicalHash
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_mutation_failed",
+          "A committed SQL migration hash was not reconciled exactly once.",
+          "platform_privilege_mutation",
+        );
+      }
+    }
+
+    const canonicalHistory =
+      await queryable.query<SqlMigrationHistoryRecord>(
+        `SELECT name, hash, baselined, applied_at AS "appliedAt"
+           FROM drizzle.veele_sql_migrations
+          ORDER BY applied_at, name
+          FOR UPDATE`,
+      );
+    const canonicalPending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      canonicalHistory.rows,
+    );
+    if (
+      platformPrivilegeMigrationHashReconciliations(
+        frontier,
+        canonicalHistory.rows,
+      ).length !== 0 ||
+      canonicalPending.length !== pending.length ||
+      canonicalPending.some(
+        (migration, index) => migration.name !== pending[index]?.name,
+      )
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_mutation_failed",
+        "Platform-privilege migration history reconciliation was not exact.",
+        "platform_privilege_mutation",
+      );
+    }
+
+    for (const migration of canonicalPending) {
       await queryable.query(sqlForManagedMigrationTransaction(migration.sql));
       const inserted = await queryable.query(
         `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)

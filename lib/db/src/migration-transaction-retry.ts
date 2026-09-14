@@ -2,6 +2,27 @@ const migrationDeadlockSqlState = "40P01";
 const defaultDeadlockRetryDelaysMs = [100, 250] as const;
 const standaloneMigrationBegin = /^[\t ]*BEGIN[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 const standaloneMigrationCommit = /^[\t ]*COMMIT[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
+const possibleMigrationTransactionStart =
+  /^[\t ]*(?:BEGIN\b|START[\t ]+TRANSACTION\b)/iu;
+const possibleMigrationTransactionEnd =
+  /^[\t ]*(?:COMMIT\b|ROLLBACK\b|ABORT\b|PREPARE[\t ]+TRANSACTION\b|END[\t ]+(?:WORK|TRANSACTION)\b)/iu;
+const reconcilableSqlMigrationHashes = new Map<
+  string,
+  { canonical: string; historical: ReadonlySet<string> }
+>([
+  [
+    "20260913171000_bind_active_tenant_invitation_reservations.sql",
+    {
+      canonical:
+        "3c2a0a0ca7c91c59c4aedce5950d9d230dbb0c0715485e67e101b31ce21b0c0b",
+      historical: new Set([
+        "528faccfff900a0522ac19cadf5eb8998c1b3b5641d630a29088384b63043bcf",
+      ]),
+    },
+  ],
+]);
+
+export type SqlMigrationHashState = "exact" | "reconcilable" | "drift";
 
 export type MigrationTransactionClient = {
   query(queryText: string): Promise<unknown>;
@@ -68,13 +89,28 @@ export function sqlForManagedMigrationTransaction(sourceSql: string): string {
   const hasOuterCommit =
     lastStatementIndex >= 0 &&
     standaloneMigrationCommit.test(lines[lastStatementIndex] ?? "");
+  const hasPossibleTransactionStart =
+    firstStatementIndex >= 0 &&
+    possibleMigrationTransactionStart.test(
+      lines[firstStatementIndex] ?? "",
+    );
+  const hasPossibleTransactionEnd =
+    lastStatementIndex >= 0 &&
+    possibleMigrationTransactionEnd.test(lines[lastStatementIndex] ?? "");
 
   if (hasOuterBegin !== hasOuterCommit) {
     throw new Error(
       "SQL migration has unmatched file-level transaction control.",
     );
   }
-  if (!hasOuterBegin || !hasOuterCommit) return sourceSql;
+  if (!hasOuterBegin || !hasOuterCommit) {
+    if (hasPossibleTransactionStart || hasPossibleTransactionEnd) {
+      throw new Error(
+        "SQL migration has unsupported file-level transaction control.",
+      );
+    }
+    return sourceSql;
+  }
 
   return lines
     .filter(
@@ -82,6 +118,20 @@ export function sqlForManagedMigrationTransaction(sourceSql: string): string {
         index !== firstStatementIndex && index !== lastStatementIndex,
     )
     .join("\n");
+}
+
+export function sqlMigrationHashState(
+  migrationName: string,
+  expectedHash: string,
+  recordedHash: string,
+): SqlMigrationHashState {
+  if (recordedHash === expectedHash) return "exact";
+
+  const reconciliation = reconcilableSqlMigrationHashes.get(migrationName);
+  return reconciliation?.canonical === expectedHash &&
+    reconciliation.historical.has(recordedHash)
+    ? "reconcilable"
+    : "drift";
 }
 
 async function sleep(delayMs: number): Promise<void> {

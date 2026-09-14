@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   runSqlMigrationTransaction,
   sqlForManagedMigrationTransaction,
+  sqlMigrationHashState,
   type MigrationTransactionClient,
   withMigrationSessionLock,
 } from "../../lib/db/src/migration-transaction-retry";
@@ -61,6 +62,46 @@ test("managed migration SQL rejects unmatched file-level transaction control", (
   assert.throws(
     () => sqlForManagedMigrationTransaction("SELECT 1;\nCOMMIT;\n"),
     /unmatched file-level transaction control/u,
+  );
+});
+
+test("managed migration SQL rejects alternate PostgreSQL transaction boundaries", () => {
+  for (const source of [
+    "BEGIN TRANSACTION;\nSELECT 1;\nCOMMIT WORK;\n",
+    "BEGIN WORK ISOLATION LEVEL SERIALIZABLE;\nSELECT 1;\nEND WORK;\n",
+    "START TRANSACTION READ ONLY;\nSELECT 1;\nCOMMIT AND CHAIN;\n",
+    "START TRANSACTION;\nSELECT 1;\nROLLBACK;\n",
+  ]) {
+    assert.throws(
+      () => sqlForManagedMigrationTransaction(source),
+      /unsupported file-level transaction control/u,
+    );
+  }
+});
+
+test("only the exact committed migration hash pair is reconcilable", () => {
+  const migrationName =
+    "20260913171000_bind_active_tenant_invitation_reservations.sql";
+  const canonicalHash =
+    "3c2a0a0ca7c91c59c4aedce5950d9d230dbb0c0715485e67e101b31ce21b0c0b";
+  const historicalHash =
+    "528faccfff900a0522ac19cadf5eb8998c1b3b5641d630a29088384b63043bcf";
+
+  assert.equal(
+    sqlMigrationHashState(migrationName, canonicalHash, canonicalHash),
+    "exact",
+  );
+  assert.equal(
+    sqlMigrationHashState(migrationName, canonicalHash, historicalHash),
+    "reconcilable",
+  );
+  assert.equal(
+    sqlMigrationHashState(migrationName, historicalHash, canonicalHash),
+    "drift",
+  );
+  assert.equal(
+    sqlMigrationHashState("unreviewed.sql", canonicalHash, historicalHash),
+    "drift",
   );
 });
 

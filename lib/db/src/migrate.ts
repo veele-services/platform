@@ -22,6 +22,7 @@ import { databaseConnectionConfig } from "./database-environment";
 import {
   runSqlMigrationTransaction,
   sqlForManagedMigrationTransaction,
+  sqlMigrationHashState,
   withMigrationSessionLock,
 } from "./migration-transaction-retry";
 
@@ -473,9 +474,38 @@ async function sqlMigrationIsRecorded(
   );
 
   if (existing.rows.length > 0) {
-    if (existing.rows[0].hash !== migration.hash) {
+    const recordedHash = existing.rows[0]?.hash;
+    const hashState = recordedHash
+      ? sqlMigrationHashState(migration.name, migration.hash, recordedHash)
+      : "drift";
+    if (hashState === "drift") {
       throw new Error(
         `SQL migration ${migration.name} is already recorded with a different hash.`,
+      );
+    }
+    if (hashState === "reconcilable") {
+      const reconciled = await client.query<{ name: string; hash: string }>(
+        `
+          update ${drizzleSchema}.${sqlMigrationsTable}
+             set hash = $2
+           where name = $1
+             and hash = $3
+          returning name, hash
+        `,
+        [migration.name, migration.hash, recordedHash],
+      );
+      if (
+        reconciled.rowCount !== 1 ||
+        reconciled.rows.length !== 1 ||
+        reconciled.rows[0]?.name !== migration.name ||
+        reconciled.rows[0]?.hash !== migration.hash
+      ) {
+        throw new Error(
+          `SQL migration ${migration.name} history hash could not be reconciled.`,
+        );
+      }
+      console.log(
+        `[db:migrate] SQL history hash reconciled: ${migration.name}`,
       );
     }
 

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -7,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
+import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
   runSqlMigrationTransaction,
   sqlForManagedMigrationTransaction,
@@ -90,6 +92,84 @@ test(
 );
 
 if (process.env.DATABASE_URL) {
+  test("both migration runners reconcile the immediately preceding committed hash", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+
+    const migrationName =
+      "20260913171000_bind_active_tenant_invitation_reservations.sql";
+    const canonicalHash =
+      "3c2a0a0ca7c91c59c4aedce5950d9d230dbb0c0715485e67e101b31ce21b0c0b";
+    const historicalHash =
+      "528faccfff900a0522ac19cadf5eb8998c1b3b5641d630a29088384b63043bcf";
+    const setHistoricalHash = async () => {
+      const changed = await client.query(
+        `UPDATE drizzle.veele_sql_migrations
+            SET hash = $2
+          WHERE name = $1
+            AND hash = $3
+        RETURNING hash`,
+        [migrationName, historicalHash, canonicalHash],
+      );
+      assert.deepEqual(changed.rows, [{ hash: historicalHash }]);
+    };
+    const readHash = async () => {
+      const result = await client.query(
+        `SELECT hash
+           FROM drizzle.veele_sql_migrations
+          WHERE name = $1`,
+        [migrationName],
+      );
+      return result.rows[0]?.hash;
+    };
+
+    try {
+      await setHistoricalHash();
+      const canonicalRunnerOutput = execFileSync(
+        "pnpm",
+        ["--filter", "@workspace/db", "run", "db:migrate"],
+        {
+          cwd: repoRoot,
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            DATABASE_URL: process.env.DATABASE_URL,
+            DB_SSL: "false",
+            PGSSLMODE: "disable",
+          },
+        },
+      );
+      assert.match(
+        canonicalRunnerOutput,
+        /SQL history hash reconciled: 20260913171000_bind_active_tenant_invitation_reservations\.sql/u,
+      );
+      assert.equal(await readHash(), canonicalHash);
+
+      await setHistoricalHash();
+      assert.equal(
+        await applyExactPlatformPrivilegePrerequisiteMigrations(client),
+        true,
+      );
+      assert.equal(await readHash(), canonicalHash);
+      assert.equal(
+        await applyExactPlatformPrivilegePrerequisiteMigrations(client),
+        false,
+      );
+    } finally {
+      await client.query(
+        `UPDATE drizzle.veele_sql_migrations
+            SET hash = $2
+          WHERE name = $1
+            AND hash = $3`,
+        [migrationName, canonicalHash, historicalHash],
+      );
+      await client.end();
+    }
+  });
+
   test("active reservation migration journal keeps the committed source hash", async () => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
