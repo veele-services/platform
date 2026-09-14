@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
+import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-management-authorization.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -84,6 +85,12 @@ test(
         "owner platform-privilege diagnostic executes against the migrated schema",
         async () => {
           await verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client);
+        },
+      );
+      await context.test(
+        "tenant Management authorization migration preserves scoped access",
+        async (subcontext) => {
+          await verifyTenantManagementAuthorization(client, subcontext);
         },
       );
       await context.test(
@@ -989,6 +996,9 @@ if (process.env.DATABASE_URL) {
          VALUES ($1, $2, 'member', 'active')`,
         [separatedTenantId, separatedAuthUserId],
       );
+      // Observe rejection before COMMIT can release the lock. Keep the original
+      // promise so assert.rejects below still requires the exact SQLSTATE.
+      void tenantInsert.catch(() => undefined);
 
       let waitingOnIdentityLock = false;
       for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -1174,6 +1184,9 @@ if (process.env.DATABASE_URL) {
           WHERE id = $1`,
         [continuityPlatformUserB],
       );
+      // The server may reject before the COMMIT response reaches this client.
+      // Attach an observer now; the original promise is still asserted below.
+      void secondDemotion.catch(() => undefined);
 
       let waitingOnContinuityBarrier = false;
       for (let attempt = 0; attempt < 50; attempt += 1) {

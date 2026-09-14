@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import assert from "node:assert/strict";
 import { join } from "node:path";
 import {
   FIXTURE,
@@ -303,6 +304,62 @@ async function insertTenantUsersAndRoles(client) {
   );
 }
 
+async function insertCanonicalTenantManagement(client, templateId) {
+  // The same fixtures run before and after the scoped-authorization migration.
+  // Bootstrap a nonempty template only when the local database has no grants;
+  // otherwise copy its full existing canonical set, never just a fixed subset.
+  await client.query(
+    `INSERT INTO public.role_permissions(role_id,permission_id)
+     SELECT $1,p.id FROM public.permissions p
+     WHERE (p.resource,p.action) IN (
+       ('customers','read'),('customers','write'),('objects','read'),('objects','write'),
+       ('assignments','read'),('assignments','write'),('personnel','read'),('personnel','write'),
+       ('invoices','read'),('invoices','write')
+     ) AND NOT EXISTS (SELECT 1 FROM public.role_permissions WHERE role_id=$1)
+     ON CONFLICT DO NOTHING`,
+    [templateId],
+  );
+  // Do not rename the all-access role shared with portal/negative actors.
+  // Only the two management principals get this additional canonical binding.
+  for (const [tenantId, userId] of [
+    [FIXTURE.tenants.a, FIXTURE.users.tenantAAdmin],
+    [FIXTURE.tenants.b, FIXTURE.users.tenantBAdmin],
+  ]) {
+    const role = await client.query(
+      `INSERT INTO public.tenant_roles(tenant_id,template_role_id,name,is_system,is_custom)
+       VALUES ($1,$2,'Management',true,false)
+       ON CONFLICT (tenant_id,name) DO UPDATE SET
+         template_role_id=excluded.template_role_id,is_system=true,is_custom=false
+       RETURNING id`,
+      [tenantId, templateId],
+    );
+    const roleId = role.rows[0].id;
+    await client.query(
+      `INSERT INTO public.tenant_role_permissions(tenant_role_id,permission_id)
+       SELECT $1,permission_id FROM public.role_permissions WHERE role_id=$2
+       ON CONFLICT DO NOTHING`,
+      [roleId, templateId],
+    );
+    await client.query(
+      `INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id)
+       VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
+      [tenantId, userId, roleId],
+    );
+    const exact = await client.query(
+      `SELECT EXISTS (SELECT 1 FROM public.role_permissions WHERE role_id=$2)
+       AND NOT EXISTS (
+         (SELECT permission_id FROM public.role_permissions WHERE role_id=$2)
+         EXCEPT (SELECT permission_id FROM public.tenant_role_permissions WHERE tenant_role_id=$1)
+       ) AND NOT EXISTS (
+         (SELECT permission_id FROM public.tenant_role_permissions WHERE tenant_role_id=$1)
+         EXCEPT (SELECT permission_id FROM public.role_permissions WHERE role_id=$2)
+       ) AS valid`,
+      [roleId, templateId],
+    );
+    assert.equal(exact.rows[0].valid, true, "Management fixture must have the exact nonempty canonical permission set");
+  }
+}
+
 async function insertLegacyGlobalManagementOnlyUser(client) {
   const role = await client.query(
     `
@@ -312,6 +369,8 @@ async function insertLegacyGlobalManagementOnlyUser(client) {
       returning id
     `,
   );
+
+  await insertCanonicalTenantManagement(client, role.rows[0].id);
 
   for (const userId of [
     FIXTURE.users.tenantAAdmin,

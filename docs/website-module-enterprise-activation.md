@@ -265,7 +265,25 @@ before actor or fixture reads. If this gate fails on another environment,
 stop for a reviewed migration operation; do not use a fixed-account repair
 merely to advance the migration frontier.
 
-Dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
+If the existing owner has legacy global `Management`, first run **Staging
+Tenant Management Authorization** from the exact reviewed `main`:
+
+- `operation`: `diagnose`, then `apply` only when `missing_pairs = 0`;
+- `expected_main_sha`: the exact remote main head with successful Main Exact
+  Head Validation;
+- `confirmation`: `fieldgrid-staging-tenant-management-authorization-v1`.
+
+This separate schema-only operation applies exactly
+`20260914125503_scope_tenant_management_authorization.sql`, never pending
+unrelated migrations or any fixed-account repair. It requires an exact,
+contiguous predecessor journal. The migration blocks authorization writes and
+refuses to switch if **any** previously authorized active user/tenant pair lacks
+independently granted canonical Management. No role or membership is created,
+removed or changed. If preservation fails, stop and reconcile the intended
+tenant grants through a separately scoped repair; never auto-copy a global role
+into every membership. See [the authorization runbook](deployment/staging-tenant-management-authorization.md).
+
+Then dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
 
 - `operation`: `diagnose`, then `repair` only for
   `legacy-domain-needs-migration`;
@@ -274,8 +292,22 @@ Dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
 
 The read-only owner prerequisite requires exactly one active owner membership,
 a confirmed, password-enabled, non-anonymous authenticated user with a matching
-email identity, no foreign tenant membership, no platform/global role, and
-exact tenant-scoped Management permissions (neither missing nor extra).
+email identity, no platform role, and exact tenant-scoped Management
+permissions (neither missing nor extra). Existing access to other tenants is
+preserved. Every tenant-role link must reference a role and membership within
+that same tenant; supplemental `field-demo` roles must not widen the effective
+permission set beyond canonical Management. A legacy global role never counts
+as proof of tenant Management. Resolved non-privileged legacy links may remain,
+and legacy `Management` may remain only after the exact migration journal,
+installed function bodies, ownership, pinned search paths, effective ACLs and
+absence of old global authorization consumers all pass. Before that contract is
+installed, the legacy role remains a blocker. The historical
+four-name material-usage policy was explicitly removed by migration
+`20260714120000`; it is not a reason to reject other legacy role names.
+Do not delete legacy links or memberships automatically
+to make this prerequisite pass. A blocked privileged legacy identity needs
+separate diagnosis and an explicitly scoped recovery that preserves intended
+tenant access. See [the multi-tenant validation notes](deployment/staging-owner-multitenant-validation.md).
 Ambiguous owners, inactive owners and invalid rights stop without account
 mutation or bootstrap fallback. An unrelated reserved account is not consulted.
 The domain operation retains its existing locks, dependency checks, audit and
@@ -311,7 +343,10 @@ tenant-scoped owner predicate used by domain diagnosis. It never provisions,
 rebinds, invites or deletes that owner. Only proven absence of both the tenant
 slug and hostname enters the existing reserved-account bootstrap; its exact
 invitation reservation, provisioning evidence and final owner-ID check remain
-mandatory. No password, email, owner UUID or Auth metadata is added to evidence.
+mandatory. The bootstrap postcheck additionally retains exactly one membership,
+one tenant-role link and no legacy global roles; permitting multiple memberships
+for an existing owner does not relax fresh provisioning. No password, email,
+owner UUID or Auth metadata is added to evidence.
 
 ### 4. Backup, isolated restore and migration rehearsal
 

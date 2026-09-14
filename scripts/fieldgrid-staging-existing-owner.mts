@@ -1,3 +1,5 @@
+import { tenantManagementAuthorizationContractSql } from "./fieldgrid-tenant-management-authorization-contract.mts";
+
 /** Read-only prerequisite shared by domain repair and website proof preparation.
  * Existing membership is authoritative; the bootstrap email is never a selector.
  * Only closed, source-owned expressions are accepted, never operator input.
@@ -38,15 +40,33 @@ export function fieldDemoExistingOwnerQuery(
                AND identity.provider = 'email'
                AND lower(identity.identity_data ->> 'email')
                  = lower(owner.email)) = 1
-       AND (SELECT COUNT(*) FROM public.tenant_users AS all_memberships
-             WHERE all_memberships.user_id = owner.id) = 1
        AND NOT EXISTS (
          SELECT 1 FROM public.platform_users AS platform_user
           WHERE platform_user.user_id = owner.id
        )
+       -- Other memberships remain valid. Every role link must still point to
+       -- a role and membership in its own tenant, never borrow a foreign role.
        AND NOT EXISTS (
-         SELECT 1 FROM public.user_roles AS legacy_role
-          WHERE legacy_role.user_id = owner.id
+         SELECT 1 FROM public.tenant_user_roles AS assigned_role
+          LEFT JOIN public.tenant_roles AS scoped_role
+            ON scoped_role.id = assigned_role.tenant_role_id
+           AND scoped_role.tenant_id = assigned_role.tenant_id
+          LEFT JOIN public.tenant_users AS scoped_membership
+            ON scoped_membership.user_id = assigned_role.user_id
+           AND scoped_membership.tenant_id = assigned_role.tenant_id
+         WHERE assigned_role.user_id = owner.id
+           AND (scoped_role.id IS NULL OR scoped_membership.user_id IS NULL)
+       )
+       -- Legacy links are never entitlement evidence. Retain Management only
+       -- after exact journal AND live catalog proof that it no longer grants
+       -- tenant access. Unknown/orphan links remain fail-closed.
+       AND NOT EXISTS (
+         SELECT 1 FROM public.user_roles AS legacy_link
+          LEFT JOIN public.roles AS legacy_role
+            ON legacy_role.id = legacy_link.role_id
+         WHERE legacy_link.user_id = owner.id
+           AND (legacy_role.id IS NULL OR (legacy_role.name = 'Management'
+             AND NOT ${tenantManagementAuthorizationContractSql()}))
        )
   )
   SELECT
@@ -66,8 +86,6 @@ export function fieldDemoExistingOwnerQuery(
         AND tenant_role.name = 'Management'
         AND tenant_role.is_system = true
         AND tenant_role.is_custom = false
-        AND (SELECT COUNT(*) FROM public.tenant_user_roles AS all_roles
-              WHERE all_roles.user_id = membership.user_id) = 1
         AND EXISTS (
           SELECT 1 FROM public.role_permissions AS expected_permission
            WHERE expected_permission.role_id = template_role.id
@@ -89,5 +107,22 @@ export function fieldDemoExistingOwnerQuery(
                 WHERE expected_permission.role_id = template_role.id
                   AND expected_permission.permission_id = actual_permission.permission_id
              )
+        )
+        -- Multiple target-tenant roles are supported, but their effective
+        -- permission union must not exceed the canonical Management template.
+        AND NOT EXISTS (
+          SELECT 1 FROM public.tenant_user_roles AS effective_role
+           JOIN public.tenant_roles AS effective_tenant_role
+             ON effective_tenant_role.id = effective_role.tenant_role_id
+            AND effective_tenant_role.tenant_id = effective_role.tenant_id
+           JOIN public.tenant_role_permissions AS effective_permission
+             ON effective_permission.tenant_role_id = effective_tenant_role.id
+          WHERE effective_role.user_id = membership.user_id
+            AND effective_role.tenant_id = membership.tenant_id
+            AND NOT EXISTS (
+              SELECT 1 FROM public.role_permissions AS expected_permission
+               WHERE expected_permission.role_id = template_role.id
+                 AND expected_permission.permission_id = effective_permission.permission_id
+            )
         )) AS expected_owner_management_role_count`;
 }

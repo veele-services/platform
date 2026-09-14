@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import nodeAssert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { sqlForManagedMigrationTransaction } from "../lib/db/src/migration-transaction-retry.ts";
+import { verifyTenantManagementAuthorizationContract } from "./fieldgrid-tenant-management-authorization-contract.mts";
 import { join } from "node:path";
 import {
   FIXTURE,
@@ -322,35 +324,45 @@ function assertAssignmentPersonnelTableAclLeastPrivilege(snapshot) {
 
 async function applySqlMigration(client, relativePath) {
   const migration = await readFile(join(repoRoot, relativePath), "utf8");
-  await client.query(migration);
+  await client.query(sqlForManagedMigrationTransaction(migration));
 }
 
 async function historicalBroadAclDriftIsCleanedByPhaseBMigrations(client) {
-  await client.query("GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role");
-  const drift = await readAssignmentPersonnelTableAclSnapshot(client);
+  assert(await verifyTenantManagementAuthorizationContract(client), "Current tenant Management contract is required before historical replay.");
+  // Historical migrations intentionally replace authorization functions. Test
+  // their original behavior in isolation; never leave that older catalog in
+  // place for the subsequent current-release RLS assertions.
+  await client.query("BEGIN");
+  try {
+    await client.query("GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role");
+    const drift = await readAssignmentPersonnelTableAclSnapshot(client);
 
-  for (const roleName of ["anon", "authenticated", "service_role"]) {
-    for (const privilegeName of ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES) {
-      assert(drift.privileges[roleName]?.[privilegeName] === true, "Historical broad ACL drift was not simulated.", {
-        roleName,
-        privilegeName,
-        actual: drift.privileges[roleName]?.[privilegeName],
-      });
+    for (const roleName of ["anon", "authenticated", "service_role"]) {
+      for (const privilegeName of ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES) {
+        assert(drift.privileges[roleName]?.[privilegeName] === true, "Historical broad ACL drift was not simulated.", {
+          roleName,
+          privilegeName,
+          actual: drift.privileges[roleName]?.[privilegeName],
+        });
+      }
     }
+
+    await applySqlMigration(client, PHASE_A1_ACL_MIGRATION_PATH);
+    await applySqlMigration(client, PHASE_B_ACL_MIGRATION_PATH);
+    await applySqlMigration(client, PHASE_2C_SECURITY_MIGRATION_PATH);
+    const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
+    assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
+
+    return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned-by-phase-b", "passed", {
+      migrations: [PHASE_A1_ACL_MIGRATION_PATH, PHASE_B_ACL_MIGRATION_PATH, PHASE_2C_SECURITY_MIGRATION_PATH],
+      driftPrivileges: drift.privileges,
+      cleanedPublicPrivileges: cleaned.publicPrivileges,
+      cleanedPrivileges: cleaned.privileges,
+    });
+  } finally {
+    await client.query("ROLLBACK");
+    assert(await verifyTenantManagementAuthorizationContract(client), "Historical replay must preserve the current tenant Management contract.");
   }
-
-  await applySqlMigration(client, PHASE_A1_ACL_MIGRATION_PATH);
-  await applySqlMigration(client, PHASE_B_ACL_MIGRATION_PATH);
-  await applySqlMigration(client, PHASE_2C_SECURITY_MIGRATION_PATH);
-  const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
-  assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
-
-  return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned-by-phase-b", "passed", {
-    migrations: [PHASE_A1_ACL_MIGRATION_PATH, PHASE_B_ACL_MIGRATION_PATH, PHASE_2C_SECURITY_MIGRATION_PATH],
-    driftPrivileges: drift.privileges,
-    cleanedPublicPrivileges: cleaned.publicPrivileges,
-    cleanedPrivileges: cleaned.privileges,
-  });
 }
 
 async function assignmentPersonnelTableAclIsLeastPrivilege(client) {

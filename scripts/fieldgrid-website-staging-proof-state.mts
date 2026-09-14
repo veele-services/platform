@@ -877,10 +877,22 @@ async function assertFieldDemoPrerequisite(
        owner_state.expected_owner_count,
        owner_state.expected_owner_management_role_count
      FROM (${fieldDemoExistingOwnerQuery("$1")}) AS owner_state
-     WHERE $2::uuid IS NULL OR EXISTS (
-       SELECT 1 FROM public.tenant_users AS membership
-        WHERE membership.tenant_id = $1 AND membership.user_id = $2::uuid
-          AND membership.role = 'owner' AND membership.status = 'active'
+     WHERE $2::uuid IS NULL OR (
+       -- A newly provisioned fixture retains the original exclusive-account
+       -- contract. Existing multi-tenant owners never enter this bootstrap.
+       EXISTS (
+         SELECT 1 FROM public.tenant_users AS membership
+          WHERE membership.tenant_id = $1 AND membership.user_id = $2::uuid
+            AND membership.role = 'owner' AND membership.status = 'active'
+       )
+       AND (SELECT COUNT(*) FROM public.tenant_users AS all_memberships
+             WHERE all_memberships.user_id = $2::uuid) = 1
+       AND (SELECT COUNT(*) FROM public.tenant_user_roles AS all_roles
+             WHERE all_roles.user_id = $2::uuid) = 1
+       AND NOT EXISTS (
+         SELECT 1 FROM public.user_roles AS legacy_role
+          WHERE legacy_role.user_id = $2::uuid
+       )
      )`,
     [runtime.tenantId, expectedOwnerUserId ?? null],
   );

@@ -19,8 +19,29 @@ test("existing-owner SQL is read-only, tenant-bound and independent of bootstrap
     assert.match(sql, /COUNT\(\*\) FROM owner_memberships\) = 1/u);
     assert.match(sql, /FROM public\.platform_users/u);
     assert.match(sql, /FROM public\.user_roles/u);
-    assert.match(sql, /WHERE all_memberships\.user_id = owner\.id\) = 1/u);
-    assert.match(sql, /WHERE all_roles\.user_id = membership\.user_id\) = 1/u);
+    assert.doesNotMatch(sql, /all_memberships|all_roles/u);
+    assert.match(sql, /scoped_role\.tenant_id = assigned_role\.tenant_id/u);
+    assert.match(
+      sql,
+      /scoped_membership\.tenant_id = assigned_role\.tenant_id/u,
+    );
+    assert.match(
+      sql,
+      /scoped_role\.id IS NULL OR scoped_membership\.user_id IS NULL/u,
+    );
+    assert.match(sql, /effective_role\.tenant_id = membership\.tenant_id/u);
+    assert.match(
+      sql,
+      /effective_tenant_role\.tenant_id = effective_role\.tenant_id/u,
+    );
+    assert.match(
+      sql,
+      /legacy_role\.id IS NULL OR \(legacy_role\.name = 'Management'\s+AND NOT/u,
+    );
+    assert.match(sql, /wrapper\.prosrc =/u);
+    assert.match(sql, /predicate\.prosrc =/u);
+    assert.match(sql, /FROM drizzle\.veele_sql_migrations/u);
+    assert.match(sql, /baselined = false/u);
     assert.doesNotMatch(
       sql,
       /\b(?:UPDATE|DELETE|INSERT|ALTER|DROP|GRANT|TRUNCATE)\b/iu,
@@ -32,6 +53,41 @@ test("existing-owner SQL is read-only, tenant-bound and independent of bootstrap
     /Unsupported/u,
   );
   assert.match(script, /fieldDemoExistingOwnerQuery\("target.id"\)/u);
+});
+
+test("legacy assessment follows the reconciled migration chain, not removed policies", () => {
+  const closure = readFileSync(
+    "lib/db/migrations/20260714120000_assignment_personnel_phase_b_direct_access_close.sql",
+    "utf8",
+  );
+  assert.match(
+    closure,
+    /DROP POLICY IF EXISTS assignment_material_usage_backoffice_all/u,
+  );
+  const reconciliation = readFileSync(
+    "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+    "utf8",
+  );
+  assert.match(
+    reconciliation,
+    /FROM public\.user_roles ur[\s\S]*r\.name = 'Management'/u,
+  );
+  const sql = fieldDemoExistingOwnerQuery("$1");
+  assert.doesNotMatch(sql, /'Super Admin'|'Planning'|'Administratie'/u);
+});
+
+test("fresh bootstrap retains exclusive account conditions separately", () => {
+  const proof = readFileSync(
+    "scripts/fieldgrid-website-staging-proof-state.mts",
+    "utf8",
+  );
+  const bootstrap = proof.slice(
+    proof.indexOf("WHERE $2::uuid IS NULL OR ("),
+    proof.indexOf("[runtime.tenantId, expectedOwnerUserId ?? null]"),
+  );
+  assert.match(bootstrap, /all_memberships\.user_id = \$2::uuid\) = 1/u);
+  assert.match(bootstrap, /all_roles\.user_id = \$2::uuid\) = 1/u);
+  assert.match(bootstrap, /legacy_role\.user_id = \$2::uuid/u);
 });
 
 test("domain repair is fixed to one known staging-only legacy transition", () => {
