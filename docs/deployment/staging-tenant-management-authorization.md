@@ -16,9 +16,15 @@ lijn zonder account- of rolgegevens te wijzigen.
 
 ## Migratie en veiligheidsgrenzen
 
-Nieuwe, met Supabase CLI 2.117.0 aangemaakte migratie:
-`20260914125503_scope_tenant_management_authorization.sql`.
+Nieuwe forward-only reparatiemigratie:
+`20260914125400_reconcile_legacy_global_rbac_policies.sql`, gevolgd door de
+ongewijzigde scope-migratie `20260914125503_scope_tenant_management_authorization.sql`.
 Geen bestaande migratie is gewijzigd. Geen productieafhankelijkheid toegevoegd.
+
+- De eerste migratie herstelt uitsluitend de drie bekende oude globale
+  `user_roles`-policy-consumers naar de bestaande platformbevoegdheid
+  `global.rbac.manage`. Onbekende consumers blokkeren; accounts, rollen,
+  lidmaatschappen en toepassingsdata worden niet gewijzigd.
 
 - Publieke helpersignatuur blijft gelijk. De functie gebruikt uitsluitend
   `auth.uid()` en de opgegeven tenant.
@@ -65,9 +71,10 @@ migratieverbinding, projectbinding en gepinde TLS-controle.
    de bedoelde rolverdeling bepalen. De aantallen zijn geen toestemming voor
    het uitbreiden van rollen van andere accounts.
 4. `apply` verifieert exact main en succesvolle Main Exact Head Validation,
-   gebruikt de gedeelde migratielock en accepteert alleen de nieuwe migratie.
-   Alle voorgangers moeten al exact en in volgorde zijn geregistreerd. Geen
-   historische hashreconciliatie of ongerelateerde migratie wordt uitgevoerd.
+   gebruikt de gedeelde migratielock en accepteert alleen deze twee direct
+   opeenvolgende, exact gehashte migraties. Alle voorgangers moeten al exact en
+   in volgorde zijn geregistreerd. Geen historische hashreconciliatie of
+   ongerelateerde migratie wordt uitgevoerd.
 5. SQL en journalrecord worden samen gecommit, na behoudcontrole en exacte
    cataloguscontrole. Herhaling wijzigt niets en controleert het geïnstalleerde
    contract opnieuw. Legitieme latere intrekking van een tenantrol is geen reden
@@ -82,10 +89,13 @@ hebben een bewaartermijn van één dag.
 
 ## Verificatie en resterende releasegates
 
-De eerste lokale PostgreSQL 17-proef heeft de volledige migratie uitgevoerd,
+De eerste lokale PostgreSQL 17-proef heeft de volledige scope-migratie uitgevoerd,
 het exacte journal plus geïnstalleerde cataloguscontract bevestigd en alles
 teruggedraaid. Runtime-regressies bewijzen behoud in twee tenants, tenantisolatie,
 weigering van onjuiste rollen, ongewijzigde gegevens en transactionele rollback.
+De nieuwe policy-reconciliatie is afzonderlijk tegen een lokale reconstructie van
+de drie oude policies uitgevoerd; alleen policy metadata veranderde en de proef
+werd teruggedraaid.
 De afzonderlijke operationele tests toetsen bron/history-drift, lockfouten,
 ontbrekende dekking, idempotentie en geheime-vrije foutafhandeling.
 

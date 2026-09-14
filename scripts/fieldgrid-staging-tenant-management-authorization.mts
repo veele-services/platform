@@ -21,6 +21,10 @@ export const TENANT_MANAGEMENT_AUTHORIZATION_VERSION =
 export const TENANT_MANAGEMENT_AUTHORIZATION_CONFIRMATION =
   TENANT_MANAGEMENT_AUTHORIZATION_VERSION;
 export const TENANT_MANAGEMENT_AUTHORIZATION_PROJECT_REF = "olyfmekyqozxrbrwwszu";
+export const TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME =
+  "20260914125400_reconcile_legacy_global_rbac_policies.sql";
+export const TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH =
+  "421fde7810185af215b46b733bcf09878c78812a6a151850bb52536ddcc7ba5c";
 const DATABASE_MIGRATION_LOCK_KEY = "fieldgrid:database-migrations:v1";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
@@ -220,9 +224,13 @@ export async function verifyTenantManagementAuthorizationMainHead(
 
 export function tenantManagementAuthorizationFrontier(base: Frontier, source: Source): Frontier {
   const index = base.committed.findIndex((entry) => entry.name === TENANT_MANAGEMENT_MIGRATION_NAME);
+  const policyIndex = index - 1;
+  const policySource = base.committed[policyIndex];
   const committedSource = base.committed[index];
   const hash = createHash("sha256").update(source.sql.replaceAll("\r\n", "\n")).digest("hex");
-  if (index < 0 || source.name !== TENANT_MANAGEMENT_MIGRATION_NAME ||
+  if (index < 1 || policySource?.name !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME ||
+      policySource.hash !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH ||
+      source.name !== TENANT_MANAGEMENT_MIGRATION_NAME ||
       !HASH_PATTERN.test(source.hash) || source.hash !== hash ||
       committedSource?.hash !== source.hash || committedSource.sql !== source.sql ||
       base.committed.filter((entry) => entry.name === source.name).length !== 1) {
@@ -230,8 +238,8 @@ export function tenantManagementAuthorizationFrontier(base: Frontier, source: So
   }
   return {
     ...base,
-    predecessors: base.committed.slice(0, index),
-    required: [committedSource],
+    predecessors: base.committed.slice(0, policyIndex),
+    required: [policySource, committedSource],
     successors: new Set(base.committed.slice(index + 1).map((entry) => entry.name)),
   };
 }
@@ -247,7 +255,8 @@ export function assertTenantManagementAuthorizationHistory(frontier: Frontier, r
       }
     }
     const pending = assertPlatformPrivilegeMigrationFrontier(frontier, records);
-    if (pending.length > 1 || pending.some((entry) => entry.name !== TENANT_MANAGEMENT_MIGRATION_NAME)) {
+    const allowedPendingNames = new Set(frontier.required.map((entry) => entry.name));
+    if (pending.length > frontier.required.length || pending.some((entry) => !allowedPendingNames.has(entry.name))) {
       throw new Error("unbounded migration request");
     }
     return pending;
@@ -354,21 +363,25 @@ export async function runTenantManagementAuthorization(
     }
     if (before.missing_pairs !== 0) throw new AuthorizationError("access_preservation_failed");
     stage = "transaction_failed";
-    await queryable.query(sqlForManagedMigrationTransaction(source.sql));
+    for (const migration of pending) {
+      await queryable.query(sqlForManagedMigrationTransaction(migration.sql));
+    }
     stage = "impact_invalid";
     const after = sanitizeTenantManagementAuthorizationImpact(await dependencies.readImpact(queryable));
     if (Object.keys(before).some((key) => before[key as keyof AuthorizationImpact] !== after[key as keyof AuthorizationImpact])) {
       throw new AuthorizationError("access_preservation_failed");
     }
     stage = "history_write_failed";
-    const recorded = await queryable.query<{ name: string; hash: string; baselined: boolean }>(
-      `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
-       VALUES ($1, $2, false) RETURNING name, hash, baselined`,
-      [source.name, source.hash],
-    );
-    if (recorded.rowCount !== 1 || recorded.rows.length !== 1 ||
-        recorded.rows[0]?.name !== source.name || recorded.rows[0]?.hash !== source.hash ||
-        recorded.rows[0]?.baselined !== false) throw new AuthorizationError(stage);
+    for (const migration of pending) {
+      const recorded = await queryable.query<{ name: string; hash: string; baselined: boolean }>(
+        `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
+         VALUES ($1, $2, false) RETURNING name, hash, baselined`,
+        [migration.name, migration.hash],
+      );
+      if (recorded.rowCount !== 1 || recorded.rows.length !== 1 ||
+          recorded.rows[0]?.name !== migration.name || recorded.rows[0]?.hash !== migration.hash ||
+          recorded.rows[0]?.baselined !== false) throw new AuthorizationError(stage);
+    }
     // The source-owned catalog contract also requires this exact journal hash.
     stage = "catalog_invalid";
     if (await dependencies.verifyContract(queryable) !== true) throw new AuthorizationError(stage);

@@ -7,6 +7,10 @@ import {
 } from "../../scripts/fieldgrid-tenant-management-authorization-contract.mts";
 
 const source = await loadTenantManagementAuthorizationSource();
+const legacyPolicyReconciliation = readFileSync(
+  "lib/db/migrations/20260914125400_reconcile_legacy_global_rbac_policies.sql",
+  "utf8",
+);
 const predicate = source.sql.split("$canonical_tenant_management$")[1];
 const wrapper = source.sql.split("$tenant_management_v2$")[1];
 
@@ -37,6 +41,35 @@ test("forward migration preserves access under write barriers without account re
   assert.doesNotMatch(source.sql, /GRANT\s+.*\s+ON\s+(?:TABLE|SCHEMA)/iu);
   assert.match(source.sql, /tenant_management_legacy_contract_drift/u);
   assert.match(source.sql, /tenant_management_unexpected_legacy_consumer/u);
+});
+
+test("legacy policy reconciliation is an allowlisted metadata-only repair", () => {
+  assert.match(
+    legacyPolicyReconciliation,
+    /LOCK TABLE public\.platform_users, public\.role_permissions, public\.roles,[\s\S]+public\.user_roles IN SHARE MODE/u,
+  );
+  assert.match(legacyPolicyReconciliation, /SET LOCAL search_path = pg_catalog, public, auth, pg_temp/u);
+  assert.match(legacyPolicyReconciliation, /tenant_management_legacy_policy_consumer_drift/u);
+  assert.match(legacyPolicyReconciliation, /tenant_management_legacy_user_roles_policy_drift/u);
+  assert.match(legacyPolicyReconciliation, /tenant_management_platform_permission_helper_drift/u);
+  assert.match(legacyPolicyReconciliation, /tenant_management_legacy_policy_reconciliation_incomplete/u);
+  for (const policy of [
+    "user_roles_select_own",
+    "user_roles_insert_management",
+    "user_roles_delete_management",
+  ]) {
+    assert.match(legacyPolicyReconciliation, new RegExp(`DROP POLICY ${policy}`, "u"));
+    assert.match(legacyPolicyReconciliation, new RegExp(`CREATE POLICY ${policy}`, "u"));
+  }
+  assert.match(
+    legacyPolicyReconciliation,
+    /public\.fieldgrid_has_platform_permission\('global\.rbac\.manage'\)/u,
+  );
+  assert.doesNotMatch(
+    legacyPolicyReconciliation,
+    /\b(?:INSERT INTO|UPDATE|DELETE FROM|TRUNCATE)\s+(?:public\.|auth\.)/iu,
+  );
+  assert.doesNotMatch(legacyPolicyReconciliation, /ALTER TABLE|CREATE TABLE|DROP TABLE/iu);
 });
 
 test("private predicate is invoker-only and wrapper retains constrained definer ACL", () => {
