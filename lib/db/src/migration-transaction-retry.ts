@@ -3,9 +3,9 @@ const defaultDeadlockRetryDelaysMs = [100, 250] as const;
 const standaloneMigrationBegin = /^[\t ]*BEGIN[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 const standaloneMigrationCommit = /^[\t ]*COMMIT[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 const possibleMigrationTransactionStart =
-  /^[\t ]*(?:BEGIN\b|START[\t ]+TRANSACTION\b)/iu;
+  /^(?:BEGIN\b|START\s+TRANSACTION\b)/iu;
 const possibleMigrationTransactionEnd =
-  /^[\t ]*(?:COMMIT\b|ROLLBACK\b|ABORT\b|PREPARE[\t ]+TRANSACTION\b|END[\t ]+(?:WORK|TRANSACTION)\b)/iu;
+  /^(?:COMMIT\b|ROLLBACK\b|ABORT\b|PREPARE\s+TRANSACTION\b|END\b)/iu;
 const reconcilableSqlMigrationHashes = new Map<
   string,
   { canonical: string; historical: ReadonlySet<string> }
@@ -65,6 +65,111 @@ function isMigrationBoundaryTrivia(line: string): boolean {
   return trimmed.length === 0 || trimmed.startsWith("--");
 }
 
+function maskedSqlText(sourceSql: string): string {
+  return sourceSql.replace(/[^\r\n]/gu, " ");
+}
+
+function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
+  const outside: string[] = [];
+  let index = 0;
+
+  while (index < sourceSql.length) {
+    if (sourceSql.startsWith("--", index)) {
+      const newlineIndex = sourceSql.indexOf("\n", index + 2);
+      const endIndex = newlineIndex < 0 ? sourceSql.length : newlineIndex;
+      outside.push(maskedSqlText(sourceSql.slice(index, endIndex)));
+      index = endIndex;
+      continue;
+    }
+
+    if (sourceSql.startsWith("/*", index)) {
+      let depth = 1;
+      let endIndex = index + 2;
+      while (endIndex < sourceSql.length && depth > 0) {
+        if (sourceSql.startsWith("/*", endIndex)) {
+          depth += 1;
+          endIndex += 2;
+        } else if (sourceSql.startsWith("*/", endIndex)) {
+          depth -= 1;
+          endIndex += 2;
+        } else {
+          endIndex += 1;
+        }
+      }
+      outside.push(maskedSqlText(sourceSql.slice(index, endIndex)));
+      index = endIndex;
+      continue;
+    }
+
+    const character = sourceSql[index] ?? "";
+    if (character === "'" || character === '"') {
+      const quote = character;
+      const possibleEscapePrefix = sourceSql[index - 1] ?? "";
+      const beforeEscapePrefix = sourceSql[index - 2] ?? "";
+      const isEscapeString =
+        quote === "'" &&
+        (possibleEscapePrefix === "e" || possibleEscapePrefix === "E") &&
+        !/[a-z0-9_$]/iu.test(beforeEscapePrefix);
+      let endIndex = index + 1;
+      while (endIndex < sourceSql.length) {
+        if (isEscapeString && sourceSql[endIndex] === "\\") {
+          endIndex = Math.min(endIndex + 2, sourceSql.length);
+          continue;
+        }
+        if (sourceSql[endIndex] !== quote) {
+          endIndex += 1;
+          continue;
+        }
+        if (sourceSql[endIndex + 1] === quote) {
+          endIndex += 2;
+          continue;
+        }
+        endIndex += 1;
+        break;
+      }
+      outside.push(maskedSqlText(sourceSql.slice(index, endIndex)));
+      index = endIndex;
+      continue;
+    }
+
+    if (character === "$") {
+      const delimiter = /^\$(?:[a-z_][a-z0-9_]*)?\$/iu.exec(
+        sourceSql.slice(index),
+      )?.[0];
+      if (delimiter) {
+        const closingIndex = sourceSql.indexOf(
+          delimiter,
+          index + delimiter.length,
+        );
+        const endIndex =
+          closingIndex < 0
+            ? sourceSql.length
+            : closingIndex + delimiter.length;
+        outside.push(maskedSqlText(sourceSql.slice(index, endIndex)));
+        index = endIndex;
+        continue;
+      }
+    }
+
+    outside.push(character);
+    index += 1;
+  }
+
+  return outside.join("");
+}
+
+function hasFileLevelTransactionControl(sourceSql: string): boolean {
+  const statements = sqlOutsideQuotedTextAndComments(sourceSql)
+    .split(";")
+    .map((statement) => statement.trim())
+    .filter((statement) => statement.length > 0);
+  return statements.some(
+    (statement) =>
+      possibleMigrationTransactionStart.test(statement) ||
+      possibleMigrationTransactionEnd.test(statement),
+  );
+}
+
 /**
  * Remove only a migration file's outer transaction statements before it is
  * executed inside the runner-owned schema-and-journal transaction. The source
@@ -89,14 +194,6 @@ export function sqlForManagedMigrationTransaction(sourceSql: string): string {
   const hasOuterCommit =
     lastStatementIndex >= 0 &&
     standaloneMigrationCommit.test(lines[lastStatementIndex] ?? "");
-  const hasPossibleTransactionStart =
-    firstStatementIndex >= 0 &&
-    possibleMigrationTransactionStart.test(
-      lines[firstStatementIndex] ?? "",
-    );
-  const hasPossibleTransactionEnd =
-    lastStatementIndex >= 0 &&
-    possibleMigrationTransactionEnd.test(lines[lastStatementIndex] ?? "");
 
   if (hasOuterBegin !== hasOuterCommit) {
     throw new Error(
@@ -104,7 +201,7 @@ export function sqlForManagedMigrationTransaction(sourceSql: string): string {
     );
   }
   if (!hasOuterBegin || !hasOuterCommit) {
-    if (hasPossibleTransactionStart || hasPossibleTransactionEnd) {
+    if (hasFileLevelTransactionControl(sourceSql)) {
       throw new Error(
         "SQL migration has unsupported file-level transaction control.",
       );
@@ -112,12 +209,18 @@ export function sqlForManagedMigrationTransaction(sourceSql: string): string {
     return sourceSql;
   }
 
-  return lines
+  const managedSql = lines
     .filter(
       (_line, index) =>
         index !== firstStatementIndex && index !== lastStatementIndex,
     )
     .join("\n");
+  if (hasFileLevelTransactionControl(managedSql)) {
+    throw new Error(
+      "SQL migration has unsupported nested file-level transaction control.",
+    );
+  }
+  return managedSql;
 }
 
 export function sqlMigrationHashState(

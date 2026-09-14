@@ -71,12 +71,29 @@ test("managed migration SQL rejects alternate PostgreSQL transaction boundaries"
     "BEGIN WORK ISOLATION LEVEL SERIALIZABLE;\nSELECT 1;\nEND WORK;\n",
     "START TRANSACTION READ ONLY;\nSELECT 1;\nCOMMIT AND CHAIN;\n",
     "START TRANSACTION;\nSELECT 1;\nROLLBACK;\n",
+    "START\n/* boundary comment */\nTRANSACTION;\nSELECT 1;\nEND;\n",
+    "START TRANSACTION;\nSELECT 1;\nCOMMIT\nWORK;\n",
+    "SELECT 1;\nCOMMIT;\nSELECT 2;\n",
   ]) {
     assert.throws(
       () => sqlForManagedMigrationTransaction(source),
       /unsupported file-level transaction control/u,
     );
   }
+});
+
+test("managed migration SQL ignores transaction words in quoted and comment bodies", () => {
+  const source = [
+    "/* START TRANSACTION; */",
+    "CREATE FUNCTION example() RETURNS void LANGUAGE plpgsql AS $body$",
+    "BEGIN",
+    "  PERFORM 'COMMIT;';",
+    "END;",
+    "$body$;",
+    "-- ROLLBACK;",
+  ].join("\n");
+
+  assert.equal(sqlForManagedMigrationTransaction(source), source);
 });
 
 test("only the exact committed migration hash pair is reconcilable", () => {
