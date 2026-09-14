@@ -3,6 +3,8 @@ import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { fieldDemoExistingOwnerQuery } from "./fieldgrid-staging-existing-owner.mts";
+
 export const FIELD_DEMO_DOMAIN_REPAIR_VERSION =
   "fieldgrid-staging-field-demo-domain-repair-v1";
 export const FIELD_DEMO_DOMAIN_REPAIR_CONFIRMATION =
@@ -537,6 +539,9 @@ export const FIELD_DEMO_DOMAIN_SNAPSHOT_QUERY = `WITH target AS (
   SELECT id, plan_key, is_active, status
     FROM public.tenants
    WHERE slug = $1
+), owner_state AS (
+  SELECT owner_counts.* FROM target
+  CROSS JOIN LATERAL (${fieldDemoExistingOwnerQuery("target.id")}) AS owner_counts
 )
 SELECT
   (SELECT id::text FROM target ORDER BY id LIMIT 1) AS tenant_id,
@@ -546,7 +551,7 @@ SELECT
     WHERE domain.domain = $2) AS exact_domain_global_count,
   (SELECT COUNT(*)::integer
      FROM public.tenant_domains AS domain
-    WHERE domain.domain = $4) AS legacy_domain_global_count,
+    WHERE domain.domain = $3) AS legacy_domain_global_count,
   (SELECT COUNT(*)::integer
      FROM public.tenant_domains AS domain
      JOIN target ON target.id = domain.tenant_id) AS target_domain_count,
@@ -557,7 +562,7 @@ SELECT
   (SELECT COUNT(*)::integer
      FROM public.tenant_domains AS domain
      JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4) AS target_legacy_domain_count,
+    WHERE domain.domain = $3) AS target_legacy_domain_count,
   (SELECT COUNT(*)::integer
      FROM public.tenant_domains AS domain
      JOIN target ON target.id = domain.tenant_id
@@ -588,7 +593,7 @@ SELECT
   (SELECT COUNT(*)::integer
      FROM public.tenant_domains AS domain
      JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4
+    WHERE domain.domain = $3
       AND domain.type = 'fieldgrid_subdomain'
       AND domain.is_primary = true
       AND domain.verification_status IN ('verified', 'active')
@@ -599,7 +604,7 @@ SELECT
      JOIN public.tenant_domains AS domain
        ON domain.id = domain_check.tenant_domain_id
      JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4) AS legacy_domain_check_count,
+    WHERE domain.domain = $3) AS legacy_domain_check_count,
   (SELECT COUNT(*)::integer
      FROM target
     WHERE target.plan_key = 'enterprise'
@@ -621,62 +626,9 @@ SELECT
     WHERE subscription.status IN ('trial', 'active')
       AND plan.key = 'enterprise'
       AND plan.is_active = true) AS active_enterprise_subscription_count,
-  (SELECT COUNT(*)::integer
-     FROM public.tenant_users AS membership
-     JOIN auth.users AS owner ON owner.id = membership.user_id
-     JOIN target ON target.id = membership.tenant_id
-    WHERE membership.role = 'owner'
-      AND membership.status = 'active'
-      AND lower(owner.email) = lower($3)
-      AND owner.email_confirmed_at IS NOT NULL
-      AND length(owner.encrypted_password) > 0
-      AND owner.is_anonymous = false
-      AND owner.aud = 'authenticated'
-      AND owner.role = 'authenticated'
-      AND owner.deleted_at IS NULL
-      AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
-    AS expected_owner_count,
-  (SELECT COUNT(*)::integer
-     FROM public.tenant_users AS membership
-     JOIN auth.users AS owner ON owner.id = membership.user_id
-     JOIN target ON target.id = membership.tenant_id
-    WHERE membership.role = 'owner'
-      AND membership.status = 'active'
-      AND lower(owner.email) = lower($3)
-      AND owner.email_confirmed_at IS NOT NULL
-      AND length(owner.encrypted_password) > 0
-      AND owner.is_anonymous = false
-      AND owner.aud = 'authenticated'
-      AND owner.role = 'authenticated'
-      AND owner.deleted_at IS NULL
-      AND (owner.banned_until IS NULL OR owner.banned_until <= now())
-      AND EXISTS (
-        SELECT 1
-          FROM public.tenant_user_roles AS user_role
-          JOIN public.tenant_roles AS tenant_role
-            ON tenant_role.id = user_role.tenant_role_id
-           AND tenant_role.tenant_id = user_role.tenant_id
-          JOIN public.roles AS template_role
-            ON template_role.id = tenant_role.template_role_id
-           AND template_role.name = 'Management'
-         WHERE user_role.tenant_id = membership.tenant_id
-           AND user_role.user_id = membership.user_id
-           AND EXISTS (
-             SELECT 1 FROM public.role_permissions AS expected_permission
-              WHERE expected_permission.role_id = template_role.id
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM public.role_permissions AS expected_permission
-              WHERE expected_permission.role_id = template_role.id
-                AND NOT EXISTS (
-                  SELECT 1
-                    FROM public.tenant_role_permissions AS actual_permission
-                   WHERE actual_permission.tenant_role_id = tenant_role.id
-                     AND actual_permission.permission_id =
-                       expected_permission.permission_id
-                )
-           )
-      )) AS expected_owner_management_role_count,
+  coalesce((SELECT expected_owner_count FROM owner_state), 0) AS expected_owner_count,
+  coalesce((SELECT expected_owner_management_role_count FROM owner_state), 0)
+    AS expected_owner_management_role_count,
   (SELECT COUNT(*)::integer
      FROM public.website_sites AS site
      JOIN target ON target.id = site.tenant_id) AS website_site_count,
@@ -696,19 +648,14 @@ SELECT
     WHERE binding.hostname = $2) AS exact_domain_binding_count,
   (SELECT COUNT(*)::integer
      FROM public.website_domain_bindings AS binding
-    WHERE binding.hostname = $4) AS legacy_domain_binding_count`;
+    WHERE binding.hostname = $3) AS legacy_domain_binding_count`;
 
 export async function loadFieldDemoDomainSnapshot(
   queryable: Queryable,
 ): Promise<FieldDemoDomainSnapshot> {
   const result = await queryable.query<FieldDemoDomainSnapshot>(
     FIELD_DEMO_DOMAIN_SNAPSHOT_QUERY,
-    [
-      FIELD_DEMO_SLUG,
-      FIELD_DEMO_HOST,
-      FIELD_DEMO_OWNER_EMAIL,
-      LEGACY_FIELD_DEMO_HOST,
-    ],
+    [FIELD_DEMO_SLUG, FIELD_DEMO_HOST, LEGACY_FIELD_DEMO_HOST],
   );
   if (result.rows.length !== 1) {
     throw new FieldDemoDomainError(

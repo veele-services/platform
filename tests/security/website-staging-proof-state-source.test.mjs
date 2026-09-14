@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+const existingOwner = readFileSync(
+  "scripts/fieldgrid-staging-existing-owner.mts",
+  "utf8",
+);
+
 const read = (path) => readFileSync(path, "utf8");
 
 test("health refresh capability is private, exact and transition-only", () => {
@@ -208,6 +213,12 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     script.indexOf("export function managedProofCandidateErrorCode"),
   );
   assert.match(fieldDemoBootstrap, /if \(existing\) return existing;/u);
+  assert.ok(
+    fieldDemoBootstrap.indexOf("if (existing) return existing;") <
+      fieldDemoBootstrap.indexOf("await resolveFieldDemoOwnerUser("),
+  );
+  assert.match(script, /fieldDemoExistingOwnerQuery/u);
+  assert.match(script, /expectedOwnerUserId \?\? null/u);
   assert.match(fieldDemoBootstrap, /await dbModule\.provisionTenant\(/u);
   assert.match(fieldDemoBootstrap, /ownerEmail: FIELD_DEMO_OWNER_EMAIL/u);
   assert.match(
@@ -226,9 +237,9 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
       fieldDemoBootstrap.indexOf(
         "await dbModule.reserveProvisionedTenantOwnerInvite(",
       ) <
-      fieldDemoBootstrap.indexOf(
-        "await dbModule.completeProvisionedTenantOwnerInvite(",
-      ),
+        fieldDemoBootstrap.indexOf(
+          "await dbModule.completeProvisionedTenantOwnerInvite(",
+        ),
     "owner reservation and completion must follow exact automation ownership verification",
   );
   assert.doesNotMatch(fieldDemoBootstrap, /moduleKeys/u);
@@ -256,18 +267,18 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     script,
     /coalesce\(length\(encrypted_password\), 0\) > 0 AS password_set/u,
   );
-  assert.match(script, /length\(owner\.encrypted_password\) > 0/u);
-  assert.match(script, /owner\.is_anonymous = false/u);
-  assert.match(script, /owner\.aud = 'authenticated'/u);
-  assert.match(script, /owner\.role = 'authenticated'/u);
-  assert.match(script, /deleted_at IS NULL/u);
-  assert.match(script, /banned_until IS NULL/u);
+  assert.match(existingOwner, /length\(owner\.encrypted_password\) > 0/u);
+  assert.match(existingOwner, /owner\.is_anonymous = false/u);
+  assert.match(existingOwner, /owner\.aud = 'authenticated'/u);
+  assert.match(existingOwner, /owner\.role = 'authenticated'/u);
+  assert.match(existingOwner, /deleted_at IS NULL/u);
+  assert.match(existingOwner, /banned_until IS NULL/u);
   assert.match(script, /membership\.role = 'owner'/u);
   assert.match(script, /membership\.status = 'active'/u);
-  assert.match(script, /FROM public\.tenant_user_roles AS user_role/u);
-  assert.match(script, /template_role\.name = 'Management'/u);
+  assert.match(existingOwner, /JOIN public\.tenant_user_roles AS user_role/u);
+  assert.match(existingOwner, /template_role\.name = 'Management'/u);
   assert.match(
-    script,
+    existingOwner,
     /FROM public\.tenant_role_permissions AS actual_permission/u,
   );
   assert.match(fieldDemoBootstrap, /ownerInviteStatus: "accepted"/u);
