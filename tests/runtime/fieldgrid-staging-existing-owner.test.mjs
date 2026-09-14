@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import { fieldDemoExistingOwnerQuery } from "../../scripts/fieldgrid-staging-existing-owner.mts";
 import {
   classifyFieldDemoDomain,
@@ -9,6 +10,38 @@ import {
   ensureFieldDemoFixture,
   FIELD_DEMO_OWNER_EMAIL,
 } from "../../scripts/fieldgrid-website-staging-proof-state.mts";
+
+const { z } = createRequire(
+  new URL("../../lib/db/package.json", import.meta.url),
+)("zod");
+const ownerEmailSchema = z.string().email();
+
+const setMatchingEmail = `WITH changed_owner AS (
+  UPDATE auth.users SET email=$2 WHERE id=$1 RETURNING id
+)
+UPDATE auth.identities SET identity_data=jsonb_build_object('email',$2::text)
+ WHERE user_id IN (SELECT id FROM changed_owner)`;
+
+const invalidOwnerEmails = [
+  ["empty email", ""],
+  ["space-only email", "   "],
+  ["control-whitespace-only email", "\t\r\n"],
+  ["nonbreaking-space email", "\u00a0"],
+  ["byte-order-mark email", "\ufeff"],
+  ["leading whitespace", " owner@example.invalid"],
+  ["trailing whitespace", "owner@example.invalid "],
+  ["missing at sign", "owner.example.invalid"],
+  ["missing local part", "@example.invalid"],
+  ["missing domain", "owner@"],
+  ["multiple at signs", "owner@@example.invalid"],
+  ["domain without suffix", "owner@example"],
+  ["leading local dot", ".owner@example.invalid"],
+  ["trailing local dot", "owner.@example.invalid"],
+  ["repeated local dot", "first..last@example.invalid"],
+  ["display name instead of address", "Owner <owner@example.invalid>"],
+  ["domain whitespace", "owner@exam ple.invalid"],
+  ["domain underscore", "owner@exam_ple.invalid"],
+];
 
 // Called by the existing disposable-Postgres migration gate, never staging.
 export async function verifyFieldDemoExistingOwner(client, context) {
@@ -119,6 +152,7 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         await client.query(
           `SELECT
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM auth.users u WHERE id=ANY($1::uuid[])) AS accounts,
+      (SELECT jsonb_agg(to_jsonb(i) ORDER BY i.id) FROM auth.identities i WHERE user_id=ANY($1::uuid[])) AS identities,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.tenant_users u WHERE user_id=ANY($1::uuid[])) AS memberships,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.tenant_user_roles u WHERE user_id=ANY($1::uuid[])) AS roles,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.platform_users u WHERE user_id=ANY($1::uuid[])) AS platform`,
@@ -198,7 +232,48 @@ export async function verifyFieldDemoExistingOwner(client, context) {
       },
     );
 
+    for (const email of [
+      "owner@example.invalid",
+      "Owner.Name+tag@Sub.Example.invalid",
+      "o'neil@example.invalid",
+      "owner_name-tag@example.invalid",
+    ]) {
+      await context.test(
+        "valid email syntax remains eligible: " + email,
+        async () => {
+          assert.equal(ownerEmailSchema.safeParse(email).success, true);
+          await client.query("SAVEPOINT valid_email");
+          try {
+            await client.query(setMatchingEmail, [owner, email]);
+            const preimage = await unchangedAccounts();
+            assert.deepEqual(await counts(), {
+              expected_owner_count: 1,
+              expected_owner_management_role_count: 1,
+            });
+            assert.equal(
+              (
+                await ensureFieldDemoFixture(
+                  database,
+                  foreignOwner,
+                  "a".repeat(40),
+                  "valid-email-test",
+                )
+              ).tenantId,
+              tenant,
+            );
+            assert.deepEqual(await unchangedAccounts(), preimage);
+          } finally {
+            await client.query("ROLLBACK TO SAVEPOINT valid_email");
+          }
+        },
+      );
+    }
+
     const cases = [
+      ...invalidOwnerEmails.map(([name, email]) => {
+        assert.equal(ownerEmailSchema.safeParse(email).success, false);
+        return [name, setMatchingEmail, [owner, email]];
+      }),
       [
         "inactive owner",
         "UPDATE public.tenant_users SET status='disabled' WHERE user_id=$1",

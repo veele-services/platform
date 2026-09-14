@@ -19,6 +19,9 @@ export function fieldDemoExistingOwnerQuery(
       JOIN auth.users AS owner ON owner.id = membership.user_id
      WHERE (SELECT COUNT(*) FROM owner_memberships) = 1
        AND membership.status = 'active'
+       -- Match the repository's z.string().email() syntax. Stored Auth email
+       -- must already be usable; never trim or repair an account here.
+       AND owner.email ~* '^(?![.])(?!.*[.][.])[A-Z0-9_''+.-]*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*[.])+[A-Z]{2,}$'
        AND owner.email_confirmed_at IS NOT NULL
        AND length(owner.encrypted_password) > 0
        AND owner.is_anonymous = false

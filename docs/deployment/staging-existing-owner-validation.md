@@ -24,13 +24,14 @@ Geen featuretest heeft staging benaderd. Testdata en tijdelijke uitbreiding van
 de lokale Auth-stub worden altijd teruggedraaid.
 
 - Typecheck van de hele workspace en de afzonderlijke workflow-ingangen: geslaagd.
-- `pnpm -r --if-present run build`: alle zeven applicatiebuilds geslaagd met
+- `pnpm -r --if-present run build` op `18963ecc`: alle zeven applicatiebuilds geslaagd met
   dezelfde niet-geheime lokale buildconfiguratie als
   `main-exact-head-validation.yml`; PDF-bundle/runtimecontrole ook geslaagd.
 - Drie relevante TypeScript-domeinsuites: **50 geslaagd**, geen skips.
 - Drie relevante security/source-suites: **22 geslaagd**, geen skips.
 - `node --test tests/fieldgrid-realtime-projection-migration.test.mjs`:
-  **38 geslaagd**, geen skips; inclusief echte SQL voor de gewijzigde controles.
+  **60 geslaagd**, geen skips; inclusief echte SQL voor de gewijzigde controles
+  en de aanvullende e-mailadrescontrole uit de GitHub-review.
 - Beide staging-scriptcontracten met `--check`: geslaagd.
 - Runtime-entrypointinventaris, testlagen en migratievolgorde: geslaagd.
 - Dashboardaudit: statische controles geslaagd.
@@ -66,6 +67,32 @@ volledige relevante bronbestanden en diff als invoer; dit was een statische
 review, geen tweede testrun. Zijn P2 over ontbrekend gedragstestbewijs voor de
 bootstrap-owner-ID is opgelost met de matching/mismatching PostgreSQL-controle
 en de exacte rollbacktest. Daarna zijn de relevante suites opnieuw uitgevoerd.
+
+### Aanvullende GitHub-review: bruikbaar e-mailadres
+
+De daaropvolgende GitHub-review vond nog een terechte P1: een leeg of ongeldig
+Auth-e-mailadres kon slagen als de emailidentiteit hetzelfde bevatte. Dat is
+gereproduceerd met 18 falende PostgreSQL-regressies vóór de fix. De gedeelde
+read-only controle vereist nu de e-mailsyntaxis van de reeds aanwezige
+`z.string().email()`-validator; opgeslagen adressen worden niet getrimd of
+gerepareerd. Vier geldige varianten beschermen onder meer hoofdletters,
+subdomeinen, plustags en apostrofs. Alle 60 PostgreSQL-tests slagen na de fix;
+de snapshots controleren nu ook dat `auth.identities` ongewijzigd blijft.
+
+Een aparte gerichte bronreview bevestigt dat de P1 is opgelost, zonder
+onopgeloste P0/P1. De P3 over identiteitssnapshots is eveneens verwerkt en
+opnieuw getest. Logs: `/tmp/fieldgrid-owner-email-before.log` (bewust rood vóór
+de fix), `fieldgrid-owner-email-pg17.log`, `fieldgrid-owner-email-unit.log`,
+`fieldgrid-owner-email-static.log`, `fieldgrid-owner-email-typecheck.log` en
+`fieldgrid-owner-email-review.md`.
+
+De lokale volledige build van deze kleine vervolgpatch stuitte ondanks
+verplaatste buildcache opnieuw op `ENOSPC`; andere gebruikersbestanden zijn
+niet verwijderd. De productbuildbronnen zijn niet gewijzigd. De volledige
+build op de nieuwe exacte PR-head blijft verplicht via **Main Exact Head
+Validation / Runtime Safety / build**, naast de lokale SQL-, domein-, source-
+en typechecks. Het definitieve runbewijs staat bij de PR-checks; een eerdere
+groene build is geen vervanging voor die verplichte nieuwe CI-gate.
 
 ## Stagingbewijs en herstel
 
