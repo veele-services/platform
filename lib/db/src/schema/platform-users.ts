@@ -11,6 +11,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { tenantsTable } from "./tenants";
 
+export const PLATFORM_USER_INVITATION_SOURCES = [
+  "platform_user_invite",
+] as const;
+export type PlatformUserInvitationSource =
+  (typeof PLATFORM_USER_INVITATION_SOURCES)[number];
+
 export const platformUsersTable = pgTable(
   "platform_users",
   {
@@ -18,6 +24,10 @@ export const platformUsersTable = pgTable(
     userId: uuid("user_id").notNull(),
     role: varchar("role", { length: 40 }).notNull().default("support"),
     status: varchar("status", { length: 30 }).notNull().default("active"),
+    invitationSource: varchar("invitation_source", {
+      length: 64,
+    }).$type<PlatformUserInvitationSource>(),
+    invitationReservationId: uuid("invitation_reservation_id"),
     createdBy: uuid("created_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

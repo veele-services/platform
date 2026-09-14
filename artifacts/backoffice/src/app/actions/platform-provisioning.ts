@@ -12,6 +12,7 @@ import {
   normalizeTenantProvisioningSlug,
   plansTable,
   provisionTenant,
+  reserveProvisionedTenantOwnerInvite,
   resolveFieldgridDeploymentEnvironment,
   rollbackProvisionedTenant,
   sectorsTable,
@@ -31,7 +32,10 @@ import {
   requirePlatformAdmin,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { backofficeRedirectPath } from "@/lib/backoffice-paths";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
@@ -708,7 +712,7 @@ async function inviteOwnerByEmail(input: {
   tenantId: string;
   primaryDomain: string | null;
   actorUserId: string;
-}): Promise<string> {
+}): Promise<Awaited<ReturnType<typeof provisionPortalUserForActivation>>> {
   const environment = resolveFieldgridDeploymentEnvironment();
   const host = assertTenantDomainMatchesEnvironment(
     normalizeHost(input.primaryDomain ?? ""),
@@ -724,7 +728,7 @@ async function inviteOwnerByEmail(input: {
     actorUserId: input.actorUserId,
     allowExistingActive: true,
   });
-  return invite.user.id;
+  return invite;
 }
 
 async function readProvisioningDraft(
@@ -822,8 +826,9 @@ async function runPlatformTenantProvisioning(
     ),
   });
 
+  let ownerInvite: Awaited<ReturnType<typeof inviteOwnerByEmail>> | null = null;
   try {
-    const ownerUserId = await inviteOwnerByEmail({
+    ownerInvite = await inviteOwnerByEmail({
       email: input.ownerEmail,
       tenantId: result.tenantId,
       primaryDomain:
@@ -834,21 +839,40 @@ async function runPlatformTenantProvisioning(
         ),
       actorUserId: actor.userId,
     });
-    await completeProvisionedTenantOwnerInvite({
-      tenantId: result.tenantId,
-      runId: result.runId,
-      ownerEmail: input.ownerEmail,
-      ownerUserId,
-      invitedBy: actor.userId,
+    const ownerUserId = ownerInvite.user.id;
+    await finalizePortalAuthorizationReservation(ownerInvite, {
+      reserve: () =>
+        reserveProvisionedTenantOwnerInvite({
+          tenantId: result.tenantId,
+          runId: result.runId,
+          ownerUserId,
+        }),
+      activate: (authorizationReservation) =>
+        completeProvisionedTenantOwnerInvite({
+          tenantId: result.tenantId,
+          runId: result.runId,
+          ownerEmail: input.ownerEmail,
+          ownerUserId,
+          invitedBy: actor.userId,
+          authorizationReservation,
+        }),
     });
   } catch (error) {
+    let reportedError = error;
+    if (ownerInvite) {
+      try {
+        await ownerInvite.rollback();
+      } catch (rollbackError) {
+        reportedError = rollbackError;
+      }
+    }
     await rollbackProvisionedTenant({
       tenantId: result.tenantId,
       runId: result.runId,
       requestedBy: actor.userId,
-      reason: errorMessage(error),
+      reason: errorMessage(reportedError),
     });
-    throw error;
+    throw reportedError;
   }
 
   await writeSupportAccessAuditLog({

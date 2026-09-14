@@ -827,6 +827,7 @@ export async function consumeCredentialRecoveryGrant(
 }
 
 export async function revokeCredentialRecoveryChallenges(input: {
+  challengeId?: string | null;
   tenantId: string | null;
   surface: CredentialRecoverySurface;
   purpose?: CredentialRecoveryPurpose | null;
@@ -844,6 +845,7 @@ export async function revokeCredentialRecoveryChallenges(input: {
       delivery_status = 'revoked',
       updated_at = ${now}
     WHERE subject_user_id = ${input.subjectUserId}::uuid
+      AND (${input.challengeId ?? null}::uuid IS NULL OR id = ${input.challengeId ?? null}::uuid)
       AND surface = ${input.surface}
       AND ${tenantSql(input.tenantId)}
       AND (${input.purpose ?? null}::text IS NULL OR purpose = ${input.purpose ?? null})

@@ -132,6 +132,7 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     "managed_proof_identity_mismatch",
     "managed_proof_plan_mismatch",
     "managed_proof_ownership_mismatch",
+    "authorization_invitation_reservation_migration_invalid",
     "runtime_host_binding_invalid",
     "runtime_host_settings_invalid",
   ]) {
@@ -182,6 +183,12 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
     /await resolveAutomationActor\(dbModule\.pool, actorUserId\);/u,
   );
   const runFunction = script.slice(script.indexOf("async function run("));
+  assert.ok(
+    runFunction.indexOf(
+      "await assertAuthorizationInvitationReservationMigration(dbModule.pool)",
+    ) < runFunction.indexOf("await resolveAutomationActor("),
+    "the exact reservation migration must be proven before actor or fixture reads",
+  );
   const prepareManagedBranch = runFunction.slice(
     runFunction.indexOf('if (options.mode === "prepare-managed")'),
     runFunction.indexOf('} else if (options.mode === "complete-custom")'),
@@ -205,14 +212,24 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(fieldDemoBootstrap, /ownerEmail: FIELD_DEMO_OWNER_EMAIL/u);
   assert.match(
     fieldDemoBootstrap,
-    /await dbModule\.completeProvisionedTenantOwnerInvite\(/u,
+    /await dbModule\.reserveProvisionedTenantOwnerInvite\([\s\S]*ownerUserId[\s\S]*authorizationReservation/u,
+  );
+  assert.match(
+    fieldDemoBootstrap,
+    /await dbModule\.completeProvisionedTenantOwnerInvite\([\s\S]*authorizationReservation,/u,
   );
   assert.ok(
     fieldDemoBootstrap.indexOf("fieldDemoProvisioningRunOwnershipIsExact") <
       fieldDemoBootstrap.indexOf(
+        "await dbModule.reserveProvisionedTenantOwnerInvite(",
+      ) &&
+      fieldDemoBootstrap.indexOf(
+        "await dbModule.reserveProvisionedTenantOwnerInvite(",
+      ) <
+      fieldDemoBootstrap.indexOf(
         "await dbModule.completeProvisionedTenantOwnerInvite(",
       ),
-    "owner completion must follow exact automation ownership verification",
+    "owner reservation and completion must follow exact automation ownership verification",
   );
   assert.doesNotMatch(fieldDemoBootstrap, /moduleKeys/u);
   for (const metadata of [
@@ -272,6 +289,15 @@ test("proof-state workflow is two-phase, exact-SHA and short-lived", () => {
   assert.match(workflow, /complete-custom/u);
   assert.match(workflow, /sleep 370/u);
   assert.match(workflow, /retention-days: 1/u);
+  assert.ok(
+    operations.indexOf("repair-platform-privilege") <
+      operations.indexOf("operation`: `prepare-managed"),
+    "the guarded sequence must apply the reservation frontier before managed proof",
+  );
+  assert.match(
+    operations,
+    /20260913171000_bind_active_tenant_invitation_reservations\.sql/u,
+  );
   assert.match(
     workflow,
     /secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID/u,

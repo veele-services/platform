@@ -1883,8 +1883,9 @@ async function inviteUser(data: {
   if (!email) return { success: false, message: "E-mailadres is verplicht." };
 
   let invitedUserId: string;
+  let invite: Awaited<ReturnType<typeof provisionPortalUserForActivation>>;
   try {
-    const invite = await provisionPortalUserForActivation({
+    invite = await provisionPortalUserForActivation({
       email,
       fullName: "",
       portal: "tenant-admin",
@@ -1902,10 +1903,32 @@ async function inviteUser(data: {
     };
   }
 
-  await db
-    .insert(userRolesTable)
-    .values({ userId: invitedUserId, roleId: data.roleId })
-    .onConflictDoNothing();
+  try {
+    await db
+      .insert(userRolesTable)
+      .values({ userId: invitedUserId, roleId: data.roleId })
+      .onConflictDoNothing();
+    await invite.finalize();
+  } catch (error) {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      return {
+        success: false,
+        message:
+          rollbackError instanceof Error
+            ? rollbackError.message
+            : "De uitnodiging vereist handmatige Auth-controle.",
+      };
+    }
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Uitnodiging kon niet veilig worden gekoppeld.",
+    };
+  }
 
   const [role] = await db
     .select({ name: rolesTable.name })
@@ -1993,7 +2016,7 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
 
   try {
     const email = targetUser.user.email;
-    await provisionPortalUserForActivation({
+    const invite = await provisionPortalUserForActivation({
       email,
       fullName: String(
         targetUser.user.user_metadata?.["full_name"] ??
@@ -2007,6 +2030,7 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
       actorUserId: user.id,
       allowExistingActive: true,
     });
+    await invite.finalize();
   } catch (error) {
     return {
       success: false,

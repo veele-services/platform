@@ -54,6 +54,14 @@ test("role and membership mutations validate tenant scope and commit atomically"
   assert.match(membership, /Gebruiker is geen lid van deze tenant/u);
   assert.match(membership, /if \(userId === user\.id\)/u);
   assert.match(membership, /await db\.transaction/u);
+  assert.match(
+    membership,
+    /invitationReservationId: tenantUsersTable\.invitationReservationId[\s\S]*lockedMembership[\s\S]*\.for\("update"\)[\s\S]*lockedMembership\.invitationReservationId !== null[\s\S]*\.delete\(tenantUserRolesTable\)/u,
+  );
+  assert.match(
+    membership,
+    /Rollen kunnen niet worden gewijzigd terwijl de uitnodiging wordt afgerond/u,
+  );
   assert.doesNotMatch(membership, /insert\(tenantUsersTable\)/u);
   const batch = action(source, "updateTenantRolePermissions");
   assert.match(batch, /inArray\(permissionsTable\.id, uniquePermissionIds\)/u);
@@ -84,6 +92,10 @@ test("privileged role assignment, reset and delete stay explicit and atomic", ()
   const remove = action(source, "deleteTenantRole");
   assert.match(remove, /await db\.transaction/u);
   assert.match(remove, /\.for\("update"\)/u);
+  assert.match(
+    remove,
+    /isNotNull\(tenantUsersTable\.invitationReservationId\)[\s\S]*invitationCount > 0[\s\S]*Rollen kunnen niet worden verwijderd terwijl een gebruikersuitnodiging wordt afgerond/u,
+  );
   assert.match(remove, /await tx\.insert\(auditLogTable\)/u);
   assert.match(remove, /eq\(tenantUsersTable\.status, "active"\)/u);
   assert.doesNotMatch(remove, /personnelTable/u);
@@ -102,14 +114,60 @@ test("privileged role assignment, reset and delete stay explicit and atomic", ()
   }
 });
 
-test("portal invite provisioning exposes checked compensation and uses it on failure", () => {
+test("portal invite compensation revokes activation without stale Auth writes", () => {
   const source = read("artifacts/backoffice/src/lib/auth/portal-invites.ts");
+  const recoveryService = read("lib/db/src/credential-recovery-service.ts");
+  const patchStart = source.indexOf("function activationAppMetadataPatch(");
+  const surfaceStart = source.indexOf("function surfaceForPortal(", patchStart);
+  const rollbackStart = source.indexOf("const rollback = async () =>");
+  const finalizeStart = source.indexOf("const finalize = async () =>", rollbackStart);
+  const challengeStart = source.indexOf(
+    "const challenge = await issueCredentialRecoveryChallenge(",
+    finalizeStart,
+  );
+  assert.ok(
+    rollbackStart >= 0 &&
+      finalizeStart > rollbackStart &&
+      challengeStart > finalizeStart,
+  );
+  assert.ok(patchStart >= 0 && surfaceStart > patchStart);
+  const metadataPatch = source.slice(patchStart, surfaceStart);
+  const rollback = source.slice(rollbackStart, finalizeStart);
+  const finalize = source.slice(finalizeStart, challengeStart);
+  assert.match(metadataPatch, /credential_activation_pending: true/u);
+  assert.match(metadataPatch, /force_password_change: null/u);
+  assert.doesNotMatch(metadataPatch, /\.\.\.existing/u);
   assert.match(source, /rollback: \(\) => Promise<void>/u);
-  assert.match(source, /revokeCredentialRecoveryChallenges/u);
-  assert.match(source, /admin\.auth\.admin\.deleteUser\(user\.id\)/u);
-  assert.match(source, /app_metadata: originalUser\.app_metadata/u);
-  assert.match(source, /user_metadata: originalUser\.user_metadata/u);
-  assert.match(source, /if \(errors\.length > 0\)/u);
+  assert.match(source, /finalize: \(\) => Promise<void>/u);
+  assert.match(rollback, /revokeCredentialRecoveryChallenges/u);
+  assert.match(rollback, /challengeId,/u);
+  assert.match(
+    recoveryService,
+    /challengeId\?: string \| null[\s\S]*input\.challengeId \?\? null[\s\S]*OR id = \$\{input\.challengeId \?\? null\}::uuid/u,
+  );
+  assert.match(rollback, /created \|\| existingIdentityMutationAttempted/u);
+  assert.match(rollback, /errors\.push\("auth-identiteitscontrole"\)/u);
+  assert.doesNotMatch(rollback, /deleteUser|updateUserById/u);
+  assert.doesNotMatch(rollback, /app_metadata|user_metadata/u);
+  assert.match(
+    rollback,
+    /challengeRevocationFailed = true;[\s\S]*if \(!challengeRevocationFailed\) rolledBack = true;[\s\S]*if \(errors\.length > 0\)/u,
+  );
+  assert.match(finalize, /existingIdentityMutationAttempted = true/u);
+  assert.match(finalize, /updateUserById/u);
+  assert.match(finalize, /await rollback\(\)/u);
+  assert.doesNotMatch(
+    source.slice(source.indexOf("const existingPortal"), rollbackStart),
+    /updateUserById/u,
+  );
+  assert.match(
+    source.slice(source.indexOf("pendingExistingIdentityUpdate ="), rollbackStart),
+    /activationAppMetadataPatch/u,
+  );
+  assert.doesNotMatch(
+    source.slice(source.indexOf("pendingExistingIdentityUpdate ="), rollbackStart),
+    /\.\.\.\(existingUser\.(?:app_metadata|user_metadata)/u,
+  );
   assert.match(source, /await rollback\(\)/u);
   assert.doesNotMatch(source, /Promise\.allSettled/u);
 });

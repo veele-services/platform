@@ -13,6 +13,7 @@ import {
   markCredentialRecoveryDelivery,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
+  tenantUsersTable,
   tenantsTable,
   isPlatformSupportRole,
   moduleForPermissionKey,
@@ -36,7 +37,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  findAuthUserByEmail,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import {
   buildPasswordResetCodeEmail,
   platformAdminUrl,
@@ -62,6 +67,17 @@ import {
 export type PlatformRole = "owner" | "admin" | "support";
 export type PlatformUserStatus = "active" | "inactive" | "suspended";
 export type PlatformUserAuthStatus = "confirmed" | "invited" | "unknown";
+
+const PLATFORM_USER_INVITATION_SOURCE = "platform_user_invite" as const;
+
+type PlatformUserInvitationReservation = {
+  id: string;
+  userId: string;
+  role: PlatformRole;
+  status: "inactive";
+  invitationSource: typeof PLATFORM_USER_INVITATION_SOURCE;
+  invitationReservationId: string;
+};
 
 export type PlatformUserRow = {
   id: string;
@@ -641,6 +657,152 @@ function matchesPlatformSecurityFilter(
   return true;
 }
 
+async function authUserHasTenantMembership(userId: string): Promise<boolean> {
+  const [tenantMembership] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(eq(tenantUsersTable.userId, userId))
+    .limit(1);
+  return Boolean(tenantMembership);
+}
+
+async function authUserHasPlatformMembership(
+  userId: string,
+  reclaimableRole?: PlatformRole,
+): Promise<boolean> {
+  const [platformMembership] = await db
+    .select({
+      id: platformUsersTable.id,
+      role: platformUsersTable.role,
+      status: platformUsersTable.status,
+      invitationSource: platformUsersTable.invitationSource,
+      invitationReservationId: platformUsersTable.invitationReservationId,
+    })
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.userId, userId))
+    .limit(1);
+  if (!platformMembership) return false;
+  return !(
+    reclaimableRole &&
+    platformMembership.role === reclaimableRole &&
+    platformMembership.status === "inactive" &&
+    platformMembership.invitationSource ===
+      PLATFORM_USER_INVITATION_SOURCE &&
+    Boolean(platformMembership.invitationReservationId)
+  );
+}
+
+async function reservePlatformUserInvitation(input: {
+  userId: string;
+  role: PlatformRole;
+  createdBy: string;
+}): Promise<PlatformUserInvitationReservation> {
+  return db.transaction(async (tx) => {
+    const selection = {
+      id: platformUsersTable.id,
+      userId: platformUsersTable.userId,
+      role: platformUsersTable.role,
+      status: platformUsersTable.status,
+      invitationSource: platformUsersTable.invitationSource,
+      invitationReservationId: platformUsersTable.invitationReservationId,
+    };
+    const [createdReservation] = await tx
+      .insert(platformUsersTable)
+      .values({
+        userId: input.userId,
+        role: input.role,
+        status: "inactive",
+        invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+        invitationReservationId: sql`gen_random_uuid()`,
+        createdBy: input.createdBy,
+      })
+      .onConflictDoNothing({ target: platformUsersTable.userId })
+      .returning(selection);
+    if (createdReservation) {
+      if (
+        createdReservation.role !== input.role ||
+        createdReservation.status !== "inactive" ||
+        createdReservation.invitationSource !==
+          PLATFORM_USER_INVITATION_SOURCE ||
+        !createdReservation.invitationReservationId
+      ) {
+        throw new Error(
+          "De platformkoppeling kreeg een onjuiste reservering.",
+        );
+      }
+      return {
+        ...createdReservation,
+        role: input.role,
+        status: "inactive",
+        invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+        invitationReservationId:
+          createdReservation.invitationReservationId,
+      };
+    }
+
+    const [existingReservation] = await tx
+      .select(selection)
+      .from(platformUsersTable)
+      .where(eq(platformUsersTable.userId, input.userId))
+      .for("update")
+      .limit(1);
+    if (
+      !existingReservation ||
+      existingReservation.role !== input.role ||
+      existingReservation.status !== "inactive" ||
+      existingReservation.invitationSource !==
+        PLATFORM_USER_INVITATION_SOURCE ||
+      !existingReservation.invitationReservationId
+    ) {
+      throw new Error(
+        "Een bestaande platformkoppeling kan niet door deze uitnodiging worden overgenomen.",
+      );
+    }
+
+    const [claimedReservation] = await tx
+      .update(platformUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(platformUsersTable.id, existingReservation.id),
+          eq(platformUsersTable.userId, input.userId),
+          eq(platformUsersTable.role, input.role),
+          eq(platformUsersTable.status, "inactive"),
+          eq(
+            platformUsersTable.invitationSource,
+            PLATFORM_USER_INVITATION_SOURCE,
+          ),
+          eq(
+            platformUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning(selection);
+    if (
+      claimedReservation?.role !== input.role ||
+      claimedReservation.status !== "inactive" ||
+      claimedReservation.invitationSource !==
+        PLATFORM_USER_INVITATION_SOURCE ||
+      !claimedReservation.invitationReservationId
+    ) {
+      throw new Error(
+        "De platformkoppeling kon niet atomair worden herclaimd.",
+      );
+    }
+    return {
+      ...claimedReservation,
+      role: input.role,
+      status: "inactive",
+      invitationSource: PLATFORM_USER_INVITATION_SOURCE,
+      invitationReservationId: claimedReservation.invitationReservationId,
+    };
+  });
+}
+
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
   await requirePlatformAdmin();
 
@@ -673,6 +835,14 @@ export async function upsertPlatformUser(input: {
   const userId = input.userId.trim();
   if (!userId) return { success: false, message: "Gebruiker is verplicht." };
 
+  if (await authUserHasTenantMembership(userId)) {
+    return {
+      success: false,
+      message:
+        "Een tenantaccount kan niet ook als platformgebruiker worden gekoppeld.",
+    };
+  }
+
   const role = normalizePlatformRole(input.role);
   const status = normalizePlatformStatus(input.status ?? "active");
   const [target] = await db
@@ -680,6 +850,17 @@ export async function upsertPlatformUser(input: {
     .from(platformUsersTable)
     .where(eq(platformUsersTable.userId, userId))
     .limit(1);
+  if (
+    target &&
+    (target.invitationSource !== null ||
+      target.invitationReservationId !== null)
+  ) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
   const policy = await validatePlatformUserManagement({
     actor,
     target: target ?? null,
@@ -693,9 +874,24 @@ export async function upsertPlatformUser(input: {
     .values({ userId, role, status, createdBy: actor.userId })
     .onConflictDoUpdate({
       target: platformUsersTable.userId,
-      set: { role, status, updatedAt: new Date() },
+      set: {
+        role,
+        status,
+        updatedAt: new Date(),
+      },
+      setWhere: and(
+        isNull(platformUsersTable.invitationSource),
+        isNull(platformUsersTable.invitationReservationId),
+      ),
     })
     .returning({ id: platformUsersTable.id });
+  if (!row) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,
@@ -738,9 +934,42 @@ export async function invitePlatformUserFromForm(
   });
   if (!policy.success) return policy;
 
-  let userId: string | null = null;
   try {
-    const invite = await provisionPortalUserForActivation({
+    const existingAuthUser = await findAuthUserByEmail(
+      createAdminClient(),
+      email,
+    );
+    if (existingAuthUser) {
+      const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
+        authUserHasTenantMembership(existingAuthUser.id),
+        authUserHasPlatformMembership(existingAuthUser.id, role),
+      ]);
+      if (hasTenantMembership) {
+        return {
+          success: false,
+          message:
+            "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd.",
+        };
+      }
+      if (hasPlatformMembership) {
+        return {
+          success: false,
+          message: "Deze gebruiker is al aan platformbeheer gekoppeld.",
+        };
+      }
+    }
+  } catch {
+    return {
+      success: false,
+      message: "Auth-beheer kon niet veilig worden gecontroleerd.",
+    };
+  }
+
+  let invite: Awaited<
+    ReturnType<typeof provisionPortalUserForActivation>
+  > | null = null;
+  try {
+    invite = await provisionPortalUserForActivation({
       email,
       fullName: email,
       portal: "platform-admin",
@@ -750,8 +979,31 @@ export async function invitePlatformUserFromForm(
       actorUserId: actor.userId,
       allowExistingActive: true,
     });
-    userId = invite.user.id;
+    const [hasTenantMembership, hasPlatformMembership] = await Promise.all([
+      authUserHasTenantMembership(invite.user.id),
+      authUserHasPlatformMembership(invite.user.id, role),
+    ]);
+    if (hasTenantMembership || hasPlatformMembership) {
+      await invite.rollback();
+      return {
+        success: false,
+        message: hasTenantMembership
+          ? "Een tenantaccount kan niet ook als platformgebruiker worden uitgenodigd."
+          : "Deze gebruiker is al aan platformbeheer gekoppeld.",
+      };
+    }
   } catch (error) {
+    if (invite) {
+      try {
+        await invite.rollback();
+      } catch {
+        return {
+          success: false,
+          message:
+            "De platformuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+        };
+      }
+    }
     return {
       success: false,
       message:
@@ -761,6 +1013,7 @@ export async function invitePlatformUserFromForm(
     };
   }
 
+  const userId = invite?.user.id ?? null;
   if (!userId) {
     return {
       success: false,
@@ -768,14 +1021,71 @@ export async function invitePlatformUserFromForm(
     };
   }
 
-  const [row] = await db
-    .insert(platformUsersTable)
-    .values({ userId, role, status, createdBy: actor.userId })
-    .onConflictDoUpdate({
-      target: platformUsersTable.userId,
-      set: { role, status, updatedAt: new Date() },
-    })
-    .returning({ id: platformUsersTable.id });
+  let row: PlatformUserInvitationReservation | undefined;
+  try {
+    row = await finalizePortalAuthorizationReservation(invite, {
+      reserve: async () => {
+        try {
+          return await reservePlatformUserInvitation({
+            userId,
+            role,
+            createdBy: actor.userId,
+          });
+        } catch {
+          throw new Error(
+            "De platformkoppeling kon niet veilig worden gereserveerd.",
+          );
+        }
+      },
+      activate: async (reserved) => {
+        let activated: { id: string } | undefined;
+        try {
+          [activated] = await db
+            .update(platformUsersTable)
+            .set({
+              status,
+              invitationSource: null,
+              invitationReservationId: null,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(platformUsersTable.id, reserved.id),
+                eq(platformUsersTable.userId, userId),
+                eq(platformUsersTable.role, role),
+                eq(platformUsersTable.status, "inactive"),
+                eq(
+                  platformUsersTable.invitationSource,
+                  reserved.invitationSource,
+                ),
+                eq(
+                  platformUsersTable.invitationReservationId,
+                  reserved.invitationReservationId,
+                ),
+              ),
+            )
+            .returning({ id: platformUsersTable.id });
+        } catch {
+          throw new Error(
+            "De platformkoppeling kon na Auth-finalisatie niet veilig worden geactiveerd.",
+          );
+        }
+        if (!activated || activated.id !== reserved.id) {
+          throw new Error(
+            "De gereserveerde platformkoppeling veranderde tijdens de uitnodiging.",
+          );
+        }
+      },
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "De platformuitnodiging vereist handmatige Auth-controle.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,
@@ -814,6 +1124,16 @@ export async function updatePlatformUserFromForm(
   if (!target) {
     return { success: false, message: "Platformgebruiker niet gevonden." };
   }
+  if (
+    target.invitationSource !== null ||
+    target.invitationReservationId !== null
+  ) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   const policy = await validatePlatformUserManagement({
     actor,
@@ -823,10 +1143,28 @@ export async function updatePlatformUserFromForm(
   });
   if (!policy.success) return policy;
 
-  await db
+  const [updated] = await db
     .update(platformUsersTable)
-    .set({ role, status, updatedAt: new Date() })
-    .where(eq(platformUsersTable.id, target.id));
+    .set({
+      role,
+      status,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(platformUsersTable.id, target.id),
+        isNull(platformUsersTable.invitationSource),
+        isNull(platformUsersTable.invitationReservationId),
+      ),
+    )
+    .returning({ id: platformUsersTable.id });
+  if (updated?.id !== target.id) {
+    return {
+      success: false,
+      message:
+        "Deze platformuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    };
+  }
 
   await writePlatformAuditLog({
     actor,

@@ -1,7 +1,14 @@
 #!/usr/bin/env node
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import {
+  sqlForManagedMigrationTransaction,
+  sqlMigrationHashState,
+} from "../lib/db/src/migration-transaction-retry.ts";
 
 import {
   FIELD_DEMO_HOST,
@@ -16,14 +23,70 @@ export const FIELD_DEMO_OWNER_BINDING_CONFIRMATION =
   "fieldgrid-staging-field-demo-owner-binding-repair-v1";
 export const FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION =
   "fieldgrid-staging-field-demo-owner-reconcile-v1";
+export const FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION =
+  "fieldgrid-staging-field-demo-platform-privilege-repair-v1";
 export const FIELD_DEMO_OWNER_BINDING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
 export const FIELD_DEMO_OWNER_BINDING_SUPABASE_URL =
   "https://olyfmekyqozxrbrwwszu.supabase.co";
 
 const OWNER_BINDING_LOCK_KEY =
   "fieldgrid:staging:field-demo-owner-binding-repair:v1";
+const PLATFORM_PRIVILEGE_REPAIR_LOCK_KEY =
+  "fieldgrid:staging:field-demo-platform-privilege-repair:v1";
+const DATABASE_MIGRATION_LOCK_KEY = "fieldgrid:database-migrations:v1";
 const OWNER_AUTH_REPAIR_VERSION =
   "fieldgrid-staging-field-demo-owner-repair-v1";
+const PLATFORM_PRIVILEGE_AUTH_REPAIR_VERSION =
+  "fieldgrid-staging-field-demo-platform-privilege-repair-v1";
+const PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES = [
+  "20260913135353_preserve_deleted_platform_notification_recipient_history.sql",
+  "20260913154500_prevent_cross_portal_identity_reuse.sql",
+  "20260913161000_serialize_auth_surface_bindings_across_snapshots.sql",
+  "20260913162000_harden_platform_authorization_continuity.sql",
+  "20260913163000_scope_platform_privilege_repair_delete.sql",
+  "20260913164000_close_auth_surface_lock_acl.sql",
+  "20260913165000_bind_tenant_invite_reservation_sources.sql",
+  "20260913170000_bind_authorization_invitation_reservations.sql",
+  "20260913171000_bind_active_tenant_invitation_reservations.sql",
+] as const;
+const PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES = new Set([
+  "20260618201212_assignment_monthly_codes.sql",
+]);
+const PLATFORM_PRIVILEGE_HISTORICAL_MIGRATIONS = new Map<
+  string,
+  {
+    kind: "renamed" | "tombstone";
+    canonicalName: string | null;
+    hash: string;
+  }
+>([
+  [
+    "055_platform_users.sql",
+    {
+      kind: "tombstone",
+      canonicalName: null,
+      hash: "77b8c80d6fe9470da8d82cfe6c6338c584b396878dd322404bb445a96d2de37a",
+    },
+  ],
+  [
+    "102_cleanup_staging_demo_sector_descriptions.sql",
+    {
+      kind: "renamed",
+      canonicalName:
+        "20260708121000_cleanup_staging_demo_sector_descriptions.sql",
+      hash: "7639dda641d69e0c1393ee36f97814fcc03f08f5e103aed3ed54d834e82bcd4a",
+    },
+  ],
+  [
+    "103_enterprise_whitelabel_theme.sql",
+    {
+      kind: "renamed",
+      canonicalName: "20260708121100_enterprise_whitelabel_theme.sql",
+      hash: "23059e1c093e3c2278270c2c9e34ca517505bdb27bd489f8bda97253b5b6eb05",
+    },
+  ],
+]);
+const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 export const FIELD_DEMO_RETAINED_OWNER_ID =
   "cafccef6-ba37-4fe0-879e-55c566b6136e";
 export const FIELD_DEMO_SUPERSEDED_OWNER_EMAIL = "admin@veele-services.nl";
@@ -35,7 +98,12 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-type OwnerBindingMode = "check" | "diagnose" | "repair" | "reconcile";
+type OwnerBindingMode =
+  | "check"
+  | "diagnose"
+  | "repair"
+  | "reconcile"
+  | "repair-platform-privilege";
 
 type OwnerBindingOptions = {
   mode: OwnerBindingMode;
@@ -60,6 +128,7 @@ type OwnerBindingEnvironment = Record<string, string | undefined> & {
   FIELDGRID_DATABASE_CONNECTION_PURPOSE?: string;
   FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION?: string;
   FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 };
 
 export type FieldDemoOwnerBindingSnapshot = {
@@ -132,7 +201,10 @@ export type FieldDemoOwnerPlatformPrivilegeSnapshot = {
   platform_current_runtime_support_grant_count: number;
   platform_future_support_grant_count: number;
   platform_support_actor_audit_count: number;
+  platform_recipient_reference_count: number;
+  platform_recipient_snapshot_count: number;
   platform_blocking_reference_count: number;
+  platform_nonrecipient_set_null_reference_count: number;
   platform_set_null_reference_count: number;
   platform_audit_event_count: number;
   platform_invite_event_count: number;
@@ -143,6 +215,7 @@ export type FieldDemoOwnerPlatformPrivilegeSnapshot = {
   exact_indirect_grant_fk_count: number;
   exact_set_null_nullable_column_count: number;
   recipient_scope_check_count: number;
+  platform_owner_continuity_trigger_count: number;
   unexpected_set_null_check_count: number;
   unexpected_deletion_path_trigger_count: number;
 };
@@ -199,6 +272,8 @@ export type FieldDemoOwnerPlatformPrivilegeSummary = {
     | "blocked-by-platform-and-tenant-status"
     | "ambiguous";
   foreignKeyContractState: "exact" | "drift" | "ambiguous";
+  recipientSnapshotState: "none" | "exact" | "incomplete" | "ambiguous";
+  nonRecipientHistoryState: "none" | "present" | "ambiguous";
   deletionBlockState: "none" | "notification-recipient-reference" | "ambiguous";
   deletionImpactState:
     | "none"
@@ -255,12 +330,20 @@ export type FieldDemoOwnerBindingRepairResult =
   | "membership-and-role-created"
   | "management-role-created";
 
+export type FieldDemoPlatformPrivilegeRepairResult =
+  | "already-removed"
+  | "platform-privilege-removed";
+
+type FieldDemoOwnerAuthUpdateOutcome = "accepted" | "rejected" | "uncertain";
+
 type OwnerBindingErrorCode =
   | "field_demo_owner_binding_configuration_invalid"
   | "field_demo_owner_binding_lock_unavailable"
   | "field_demo_owner_binding_precondition_invalid"
   | "field_demo_owner_binding_mutation_failed"
   | "field_demo_owner_binding_postcondition_invalid"
+  | "field_demo_owner_auth_update_rejected"
+  | "field_demo_owner_auth_update_uncertain"
   | "field_demo_owner_binding_failed";
 
 type OwnerBindingFailureStage =
@@ -270,6 +353,10 @@ type OwnerBindingFailureStage =
   | "owner_binding_precondition"
   | "owner_binding_mutation"
   | "owner_binding_postcondition"
+  | "owner_auth_normalization"
+  | "platform_privilege_precondition"
+  | "platform_privilege_mutation"
+  | "platform_privilege_postcondition"
   | null;
 
 class FieldDemoOwnerBindingError extends Error {
@@ -292,10 +379,10 @@ class FieldDemoOwnerBindingError extends Error {
 }
 
 type OwnerBindingEvidence = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   contract: typeof FIELD_DEMO_OWNER_BINDING_VERSION;
   environment: "staging";
-  operation: "diagnose" | "repair" | "reconcile";
+  operation: "diagnose" | "repair" | "reconcile" | "repair-platform-privilege";
   expectedMainSha: string;
   status: "passed" | "failed";
   observedState: FieldDemoOwnerBindingState | null;
@@ -303,12 +390,18 @@ type OwnerBindingEvidence = {
     | "diagnosed"
     | "reconciled-retained-owner"
     | FieldDemoOwnerBindingRepairResult
+    | FieldDemoPlatformPrivilegeRepairResult
     | null;
   mutationAttempted: boolean;
   errorCode: OwnerBindingErrorCode | null;
   failureStage: OwnerBindingFailureStage;
   failureReason: FieldDemoOwnerBindingFailureReason | null;
   platformPrivilegeSummary: FieldDemoOwnerPlatformPrivilegeSummary | null;
+  platformPrivilegePhase:
+    | "not-started"
+    | "quarantined"
+    | "auth-normalized"
+    | "removed";
   startedAt: string;
   completedAt: string;
 };
@@ -318,6 +411,14 @@ type Queryable = {
     text: string,
     values?: unknown[],
   ): Promise<{ rows: T[]; rowCount: number | null }>;
+};
+
+export type FieldDemoPlatformPrivilegeRepairTarget = {
+  userId: string;
+  platformUserId: string | null;
+  platformRole: string | null;
+  platformStatus: string | null;
+  appMetadata: Record<string, unknown>;
 };
 
 type DatabaseModule = {
@@ -406,9 +507,13 @@ function parseArgs(argv: string[]): OwnerBindingOptions {
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (
-      ["--check", "--diagnose", "--repair", "--reconcile"].includes(
-        argument ?? "",
-      )
+      [
+        "--check",
+        "--diagnose",
+        "--repair",
+        "--reconcile",
+        "--repair-platform-privilege",
+      ].includes(argument ?? "")
     ) {
       if (mode) throw new Error("Choose exactly one owner-binding operation.");
       mode = argument!.slice(2) as OwnerBindingMode;
@@ -488,7 +593,9 @@ export function validateFieldDemoOwnerBindingConfig(
     environment.FIELDGRID_FIELD_DEMO_OWNER_BINDING_CONFIRMATION !==
     (options.mode === "reconcile"
       ? FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION
-      : FIELD_DEMO_OWNER_BINDING_CONFIRMATION)
+      : options.mode === "repair-platform-privilege"
+        ? FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION
+        : FIELD_DEMO_OWNER_BINDING_CONFIRMATION)
   ) {
     errors.push("confirmation does not authorize owner-binding operation");
   }
@@ -515,11 +622,18 @@ export function validateFieldDemoOwnerBindingConfig(
   const configuredActor =
     environment.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID?.trim() ?? "";
   if (
-    options.mode === "diagnose" &&
-    configuredActor &&
-    !UUID_PATTERN.test(configuredActor)
+    ((options.mode === "diagnose" && configuredActor) ||
+      options.mode === "repair-platform-privilege") &&
+    (!UUID_PATTERN.test(configuredActor) ||
+      configuredActor.toLowerCase() === FIELD_DEMO_RETAINED_OWNER_ID)
   ) {
     errors.push("configured website automation actor is invalid");
+  }
+  if (
+    options.mode === "repair-platform-privilege" &&
+    (environment.SUPABASE_SERVICE_ROLE_KEY?.trim().length ?? 0) < 32
+  ) {
+    errors.push("platform-privilege repair service credential is unavailable");
   }
   return errors;
 }
@@ -602,7 +716,10 @@ const PLATFORM_PRIVILEGE_COUNT_FIELDS: ReadonlyArray<
   "platform_current_runtime_support_grant_count",
   "platform_future_support_grant_count",
   "platform_support_actor_audit_count",
+  "platform_recipient_reference_count",
+  "platform_recipient_snapshot_count",
   "platform_blocking_reference_count",
+  "platform_nonrecipient_set_null_reference_count",
   "platform_set_null_reference_count",
   "platform_audit_event_count",
   "platform_invite_event_count",
@@ -613,6 +730,7 @@ const PLATFORM_PRIVILEGE_COUNT_FIELDS: ReadonlyArray<
   "exact_indirect_grant_fk_count",
   "exact_set_null_nullable_column_count",
   "recipient_scope_check_count",
+  "platform_owner_continuity_trigger_count",
   "unexpected_set_null_check_count",
   "unexpected_deletion_path_trigger_count",
 ];
@@ -620,9 +738,17 @@ const PLATFORM_PRIVILEGE_COUNT_FIELDS: ReadonlyArray<
 function platformPrivilegeCountsAreValid(
   snapshot: FieldDemoOwnerPlatformPrivilegeSnapshot,
 ): boolean {
-  return PLATFORM_PRIVILEGE_COUNT_FIELDS.every(
-    (field) =>
-      Number.isInteger(snapshot[field]) && Number(snapshot[field]) >= 0,
+  return (
+    PLATFORM_PRIVILEGE_COUNT_FIELDS.every(
+      (field) =>
+        Number.isInteger(snapshot[field]) && Number(snapshot[field]) >= 0,
+    ) &&
+    snapshot.platform_recipient_snapshot_count +
+      snapshot.platform_blocking_reference_count ===
+      snapshot.platform_recipient_reference_count &&
+    snapshot.platform_nonrecipient_set_null_reference_count +
+      snapshot.platform_recipient_snapshot_count ===
+      snapshot.platform_set_null_reference_count
   );
 }
 
@@ -639,6 +765,8 @@ export function summarizeFieldDemoOwnerPlatformPrivilege(
       supportGrantState: "ambiguous",
       effectiveSupportState: "ambiguous",
       foreignKeyContractState: "ambiguous",
+      recipientSnapshotState: "ambiguous",
+      nonRecipientHistoryState: "ambiguous",
       deletionBlockState: "ambiguous",
       deletionImpactState: "ambiguous",
       provenanceState: "ambiguous",
@@ -699,7 +827,7 @@ export function summarizeFieldDemoOwnerPlatformPrivilege(
   const continuityState: FieldDemoOwnerPlatformPrivilegeSummary["continuityState"] =
     accountState === "ambiguous"
       ? "ambiguous"
-      : accountState !== "active-owner"
+      : accountState !== "active-owner" && accountState !== "suspended-owner"
         ? "not-applicable"
         : snapshot.other_active_platform_owner_count === 0
           ? "sole-active-owner"
@@ -823,10 +951,27 @@ export function summarizeFieldDemoOwnerPlatformPrivilege(
     snapshot.exact_indirect_grant_fk_count === 2 &&
     snapshot.exact_set_null_nullable_column_count === 9 &&
     snapshot.recipient_scope_check_count === 1 &&
+    snapshot.platform_owner_continuity_trigger_count === 2 &&
     snapshot.unexpected_set_null_check_count === 0 &&
     snapshot.unexpected_deletion_path_trigger_count === 0
       ? "exact"
       : "drift";
+  const recipientSnapshotState: FieldDemoOwnerPlatformPrivilegeSummary["recipientSnapshotState"] =
+    snapshot.platform_recipient_reference_count === 0 &&
+    snapshot.platform_recipient_snapshot_count === 0
+      ? "none"
+      : snapshot.platform_recipient_reference_count > 0 &&
+          snapshot.platform_recipient_snapshot_count ===
+            snapshot.platform_recipient_reference_count
+        ? "exact"
+        : snapshot.platform_recipient_snapshot_count <=
+            snapshot.platform_recipient_reference_count
+          ? "incomplete"
+          : "ambiguous";
+  const nonRecipientHistoryState: FieldDemoOwnerPlatformPrivilegeSummary["nonRecipientHistoryState"] =
+    snapshot.platform_nonrecipient_set_null_reference_count === 0
+      ? "none"
+      : "present";
   const hasCascadeHistory =
     snapshot.platform_support_grant_count > 0 ||
     snapshot.platform_support_actor_audit_count > 0;
@@ -884,6 +1029,8 @@ export function summarizeFieldDemoOwnerPlatformPrivilege(
     supportGrantState,
     effectiveSupportState,
     foreignKeyContractState,
+    recipientSnapshotState,
+    nonRecipientHistoryState,
     deletionBlockState,
     deletionImpactState,
     provenanceState,
@@ -1053,6 +1200,89 @@ export function classifyFieldDemoOwnerBinding(
   return { state: "unsafe", failureReason: "owner-role-link-invalid" };
 }
 
+export function projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair(
+  snapshot: FieldDemoOwnerBindingSnapshot,
+): FieldDemoOwnerBindingDecision {
+  return classifyFieldDemoOwnerBinding({
+    ...snapshot,
+    platform_user_count: 0,
+    auth_contract_count: 1,
+    auth_environment_count: 1,
+    auth_portal_count: 1,
+    auth_exact_count: 1,
+  });
+}
+
+export function fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+  snapshot: FieldDemoOwnerBindingSnapshot,
+  summary: FieldDemoOwnerPlatformPrivilegeSummary,
+): boolean {
+  const current = classifyFieldDemoOwnerBinding(snapshot);
+  const projected =
+    projectFieldDemoOwnerBindingAfterPlatformPrivilegeRepair(snapshot);
+  return (
+    current.state === "unsafe" &&
+    current.failureReason === "auth-owner-platform-privilege-present" &&
+    snapshot.owner_user_id?.toLowerCase() === FIELD_DEMO_RETAINED_OWNER_ID &&
+    snapshot.platform_user_count === 1 &&
+    projected.state === "already-valid" &&
+    ["active-owner", "suspended-owner"].includes(summary.accountState) &&
+    summary.continuityState === "other-active-owner-present" &&
+    summary.automationActorState === "single-admin-ready" &&
+    summary.configuredActorState === "other-active-eligible" &&
+    summary.authMetadataState !== "unavailable" &&
+    summary.supportGrantState === "none" &&
+    summary.effectiveSupportState === "none" &&
+    summary.foreignKeyContractState === "exact" &&
+    ["none", "exact"].includes(summary.recipientSnapshotState) &&
+    summary.nonRecipientHistoryState === "none" &&
+    summary.deletionBlockState === "none" &&
+    ["none", "set-null-history-present"].includes(
+      summary.deletionImpactState,
+    ) &&
+    summary.provenanceState === "invite-event-present"
+  );
+}
+
+export function fieldDemoOwnerAuthMetadataPatch(
+  revokedAt: string,
+): Record<string, unknown> {
+  if (
+    !revokedAt ||
+    !Number.isFinite(Date.parse(revokedAt)) ||
+    new Date(revokedAt).toISOString() !== revokedAt
+  ) {
+    throw new Error("Owner session revocation timestamp is invalid.");
+  }
+  return {
+    portal: "tenant-admin",
+    fieldgrid_automation_contract: OWNER_AUTH_REPAIR_VERSION,
+    fieldgrid_environment: "staging",
+    fieldgrid_platform_privilege_repair: PLATFORM_PRIVILEGE_AUTH_REPAIR_VERSION,
+    session_revoked_at: revokedAt,
+    // GoTrue merges app_metadata patches; null removes only this obsolete key.
+    platform_role: null,
+  };
+}
+
+export function fieldDemoOwnerAuthUpdateOutcome(
+  response: Pick<Response, "ok" | "status">,
+): FieldDemoOwnerAuthUpdateOutcome {
+  if (response.ok && response.status >= 200 && response.status < 300) {
+    return "accepted";
+  }
+  if (
+    response.status >= 400 &&
+    response.status < 500 &&
+    response.status !== 408 &&
+    response.status !== 425 &&
+    response.status !== 429
+  ) {
+    return "rejected";
+  }
+  return "uncertain";
+}
+
 export async function repairFieldDemoOwnerBinding(
   dependencies: OwnerBindingRepairDependencies,
 ): Promise<FieldDemoOwnerBindingRepairResult> {
@@ -1138,7 +1368,8 @@ export const FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY = `WITH target AS (
 ), owner_account AS (
   SELECT auth_user.id
     FROM auth.users AS auth_user
-   WHERE lower(auth_user.email) = lower($2)
+   WHERE auth_user.id = $2::uuid
+     AND lower(auth_user.email) = lower($3)
 ), management_template AS (
   SELECT role.id
     FROM public.roles AS role
@@ -1164,23 +1395,23 @@ SELECT
     WHERE plan_key = 'enterprise' AND is_active = true
       AND status IN ('trial', 'active')) AS target_tenant_core_valid_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains
-    WHERE domain = $3) AS exact_domain_global_count,
+    WHERE domain = $4) AS exact_domain_global_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains
-    WHERE domain = $4) AS legacy_domain_global_count,
+    WHERE domain = $5) AS legacy_domain_global_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
     JOIN target ON target.id = domain.tenant_id) AS target_domain_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
     JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $3) AS target_exact_domain_count,
+    WHERE domain.domain = $4) AS target_exact_domain_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
     JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4) AS target_legacy_domain_count,
+    WHERE domain.domain = $5) AS target_legacy_domain_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
     JOIN target ON target.id = domain.tenant_id
     WHERE domain.is_primary = true) AS target_primary_domain_count,
   (SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
     JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4
+    WHERE domain.domain = $5
       AND domain.type = 'fieldgrid_subdomain'
       AND domain.is_primary = true
       AND domain.verification_status IN ('verified', 'active')
@@ -1190,7 +1421,7 @@ SELECT
     JOIN public.tenant_domains AS domain
       ON domain.id = domain_check.tenant_domain_id
     JOIN target ON target.id = domain.tenant_id
-    WHERE domain.domain = $4) AS legacy_domain_check_count,
+    WHERE domain.domain = $5) AS legacy_domain_check_count,
   (SELECT COUNT(*)::integer FROM public.organization_settings AS settings
     JOIN target ON target.id = settings.tenant_id)
     AS organization_settings_count,
@@ -1209,12 +1440,13 @@ SELECT
   (SELECT COUNT(*)::integer FROM public.website_domain_bindings AS binding
     JOIN target ON target.id = binding.tenant_id) AS website_binding_count,
   (SELECT COUNT(*)::integer FROM public.website_domain_bindings
-    WHERE hostname = $3) AS exact_domain_binding_count,
+    WHERE hostname = $4) AS exact_domain_binding_count,
   (SELECT COUNT(*)::integer FROM public.website_domain_bindings
-    WHERE hostname = $4) AS legacy_domain_binding_count,
+    WHERE hostname = $5) AS legacy_domain_binding_count,
   (SELECT COUNT(*)::integer FROM owner_account) AS auth_email_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($2)
+    WHERE auth_user.id = $2::uuid
+      AND lower(auth_user.email) = lower($3)
       AND auth_user.email_confirmed_at IS NOT NULL
       AND coalesce(length(auth_user.encrypted_password), 0) > 0
       AND auth_user.is_anonymous = false
@@ -1224,19 +1456,23 @@ SELECT
       AND (auth_user.banned_until IS NULL OR auth_user.banned_until <= now()))
     AS auth_core_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($2)
-      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $5)
+    WHERE auth_user.id = $2::uuid
+      AND lower(auth_user.email) = lower($3)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $6)
     AS auth_contract_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($2)
+    WHERE auth_user.id = $2::uuid
+      AND lower(auth_user.email) = lower($3)
       AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging')
     AS auth_environment_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($2)
+    WHERE auth_user.id = $2::uuid
+      AND lower(auth_user.email) = lower($3)
       AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
     AS auth_portal_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($2)
+    WHERE auth_user.id = $2::uuid
+      AND lower(auth_user.email) = lower($3)
       AND auth_user.email_confirmed_at IS NOT NULL
       AND coalesce(length(auth_user.encrypted_password), 0) > 0
       AND auth_user.is_anonymous = false
@@ -1244,14 +1480,14 @@ SELECT
       AND auth_user.role = 'authenticated'
       AND auth_user.deleted_at IS NULL
       AND (auth_user.banned_until IS NULL OR auth_user.banned_until <= now())
-      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $5
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $6
       AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging'
       AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
     AS auth_exact_count,
   (SELECT COUNT(*)::integer FROM auth.identities AS identity
     JOIN owner_account ON owner_account.id = identity.user_id
     WHERE identity.provider = 'email'
-      AND lower(identity.identity_data ->> 'email') = lower($2))
+      AND lower(identity.identity_data ->> 'email') = lower($3))
     AS email_identity_count,
   (SELECT COUNT(*)::integer FROM public.platform_users AS platform_user
     JOIN owner_account ON owner_account.id = platform_user.user_id)
@@ -1333,6 +1569,7 @@ export async function loadFieldDemoOwnerBindingSnapshot(
     FIELD_DEMO_OWNER_BINDING_SNAPSHOT_QUERY,
     [
       FIELD_DEMO_SLUG,
+      FIELD_DEMO_RETAINED_OWNER_ID,
       FIELD_DEMO_OWNER_EMAIL,
       FIELD_DEMO_HOST,
       LEGACY_FIELD_DEMO_HOST,
@@ -1353,7 +1590,8 @@ export async function loadFieldDemoOwnerBindingSnapshot(
 export const FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY = `WITH owner_account AS (
   SELECT auth_user.id
     FROM auth.users AS auth_user
-   WHERE lower(auth_user.email) = lower($1)
+   WHERE auth_user.id = $1::uuid
+     AND lower(auth_user.email) = lower($2)
 ), owner_platform_user AS (
   SELECT platform_user.id, platform_user.role, platform_user.status
     FROM public.platform_users AS platform_user
@@ -1410,19 +1648,23 @@ export const FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY = `WITH owner_account AS 
 SELECT
   (SELECT COUNT(*)::integer FROM owner_account) AS auth_email_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($1)
-      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $3)
+    WHERE auth_user.id = $1::uuid
+      AND lower(auth_user.email) = lower($2)
+      AND auth_user.raw_app_meta_data ->> 'fieldgrid_automation_contract' = $4)
     AS auth_contract_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($1)
+    WHERE auth_user.id = $1::uuid
+      AND lower(auth_user.email) = lower($2)
       AND auth_user.raw_app_meta_data ->> 'fieldgrid_environment' = 'staging')
     AS auth_environment_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($1)
+    WHERE auth_user.id = $1::uuid
+      AND lower(auth_user.email) = lower($2)
       AND auth_user.raw_app_meta_data ->> 'portal' = 'tenant-admin')
     AS auth_tenant_portal_count,
   (SELECT COUNT(*)::integer FROM auth.users AS auth_user
-    WHERE lower(auth_user.email) = lower($1)
+    WHERE auth_user.id = $1::uuid
+      AND lower(auth_user.email) = lower($2)
       AND auth_user.raw_app_meta_data ->> 'portal' = 'platform-admin')
     AS auth_platform_portal_count,
   (SELECT COUNT(*)::integer FROM owner_platform_user) AS platform_user_count,
@@ -1452,13 +1694,13 @@ SELECT
         SELECT 1 FROM owner_account
          WHERE owner_account.id = platform_user.user_id
       )) AS other_active_platform_admin_count,
-  (CASE WHEN $2::uuid IS NULL THEN 0 ELSE 1 END)::integer
+  (CASE WHEN $3::uuid IS NULL THEN 0 ELSE 1 END)::integer
     AS configured_actor_provided_count,
   (SELECT COUNT(*)::integer FROM owner_account
-    WHERE owner_account.id = $2::uuid)
+    WHERE owner_account.id = $3::uuid)
     AS configured_actor_matches_owner_count,
   (SELECT COUNT(*)::integer FROM public.platform_users AS platform_user
-    WHERE platform_user.user_id = $2::uuid
+    WHERE platform_user.user_id = $3::uuid
       AND platform_user.status = 'active'
       AND platform_user.role IN ('owner', 'admin'))
     AS configured_actor_eligible_count,
@@ -1485,8 +1727,31 @@ SELECT
   (SELECT COUNT(*)::integer
     FROM public.platform_notification_recipients AS recipient
     JOIN owner_platform_user
+      ON owner_platform_user.id = recipient.platform_user_id)
+    AS platform_recipient_reference_count,
+  (SELECT COUNT(*)::integer
+    FROM public.platform_notification_recipients AS recipient
+    JOIN owner_platform_user
       ON owner_platform_user.id = recipient.platform_user_id
-   WHERE recipient.recipient_type = 'platform_user')
+    JOIN owner_account
+      ON owner_account.id = recipient.recipient_user_id
+   WHERE recipient.recipient_type = 'platform_user'
+     AND recipient.tenant_id IS NULL
+     AND recipient.tenant_owner_invite_id IS NULL
+     AND recipient.delivery_status IN ('sent', 'skipped', 'failed'))
+    AS platform_recipient_snapshot_count,
+  (SELECT COUNT(*)::integer
+    FROM public.platform_notification_recipients AS recipient
+    JOIN owner_platform_user
+      ON owner_platform_user.id = recipient.platform_user_id
+   WHERE recipient.recipient_type IS DISTINCT FROM 'platform_user'
+      OR recipient.tenant_id IS NOT NULL
+      OR recipient.tenant_owner_invite_id IS NOT NULL
+      OR recipient.delivery_status NOT IN ('sent', 'skipped', 'failed')
+      OR NOT EXISTS (
+        SELECT 1 FROM owner_account
+         WHERE owner_account.id = recipient.recipient_user_id
+      ))
     AS platform_blocking_reference_count,
   ((SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
       JOIN owner_platform_user ON owner_platform_user.id IN (
@@ -1518,7 +1783,49 @@ SELECT
       FROM public.platform_notification_recipients AS recipient
       JOIN owner_platform_user
         ON owner_platform_user.id = recipient.platform_user_id
-     WHERE recipient.recipient_type = 'tenant_owner'))
+     WHERE recipient.recipient_type IS DISTINCT FROM 'platform_user'))
+    AS platform_nonrecipient_set_null_reference_count,
+  ((SELECT COUNT(*)::integer FROM public.tenant_domains AS domain
+      JOIN owner_platform_user ON owner_platform_user.id IN (
+        domain.created_by_platform_user_id,
+        domain.verified_by_platform_user_id
+      )) +
+   (SELECT COUNT(*)::integer FROM public.platform_tickets AS ticket
+      JOIN owner_platform_user ON owner_platform_user.id IN (
+        ticket.assignee_platform_user_id,
+        ticket.created_by_platform_user_id
+      )) +
+   (SELECT COUNT(*)::integer FROM public.platform_ticket_notes AS note
+      JOIN owner_platform_user
+        ON owner_platform_user.id = note.author_platform_user_id) +
+   (SELECT COUNT(*)::integer
+      FROM public.platform_notification_dispatches AS notification
+      JOIN owner_platform_user
+        ON owner_platform_user.id = notification.created_by_platform_user_id) +
+   (SELECT COUNT(*)::integer FROM public.support_access_audit_log AS audit
+      JOIN owner_platform_grant ON owner_platform_grant.id = audit.grant_id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM owner_platform_user
+        WHERE owner_platform_user.id = audit.platform_user_id
+     )) +
+   (SELECT COUNT(*)::integer FROM public.platform_tickets AS ticket
+      JOIN owner_platform_grant
+        ON owner_platform_grant.id = ticket.support_grant_id) +
+   (SELECT COUNT(*)::integer
+      FROM public.platform_notification_recipients AS recipient
+      JOIN owner_platform_user
+        ON owner_platform_user.id = recipient.platform_user_id
+     WHERE recipient.recipient_type IS DISTINCT FROM 'platform_user'
+        OR (
+          recipient.recipient_type = 'platform_user'
+          AND recipient.tenant_id IS NULL
+          AND recipient.tenant_owner_invite_id IS NULL
+          AND recipient.delivery_status IN ('sent', 'skipped', 'failed')
+          AND EXISTS (
+            SELECT 1 FROM owner_account
+             WHERE owner_account.id = recipient.recipient_user_id
+          )
+        )))
     AS platform_set_null_reference_count,
   (SELECT COUNT(*)::integer FROM owner_platform_audit)
     AS platform_audit_event_count,
@@ -1627,8 +1934,28 @@ SELECT
         '[[:space:]]+',
         '',
         'g'
-      ) = $scope$((((recipient_type)::text='platform_user'::text)and(platform_user_idisnotnull)and(tenant_idisnull))or(((recipient_type)::text='tenant_owner'::text)and(tenant_idisnotnull)and((tenant_owner_invite_idisnotnull)or(recipient_emailisnotnull))))$scope$)
+      ) = $scope$((((recipient_type)::text='platform_user'::text)and(tenant_idisnull)and(tenant_owner_invite_idisnull)and(recipient_user_idisnotnull)and((platform_user_idisnotnull)or((delivery_status)::text=any((array['sent'::charactervarying,'skipped'::charactervarying,'failed'::charactervarying])::text[]))))or(((recipient_type)::text='tenant_owner'::text)and(platform_user_idisnull)and(tenant_slugisnotnull)and((tenant_owner_invite_idisnotnull)or(recipient_emailisnotnull))and((tenant_idisnotnull)or((delivery_status)::text=any((array['sent'::charactervarying,'skipped'::charactervarying,'failed'::charactervarying])::text[])))))$scope$)
     AS recipient_scope_check_count,
+  (SELECT COUNT(*)::integer
+     FROM (
+       VALUES
+         ('platform_users_owner_continuity_update'::name, 19::integer),
+         ('platform_users_owner_continuity_delete'::name, 11::integer)
+     ) AS expected_trigger(trigger_name, trigger_type)
+     JOIN pg_catalog.pg_trigger AS trigger_row
+       ON trigger_row.tgname = expected_trigger.trigger_name
+      AND trigger_row.tgrelid = 'public.platform_users'::regclass
+      AND trigger_row.tgfoid =
+        'public.fieldgrid_enforce_platform_owner_continuity()'::regprocedure
+      AND trigger_row.tgtype::integer = expected_trigger.trigger_type
+      AND trigger_row.tgenabled = 'O'
+      AND trigger_row.tgisinternal = false
+     JOIN pg_catalog.pg_proc AS function_row
+       ON function_row.oid = trigger_row.tgfoid
+      AND function_row.prosecdef = true
+      AND function_row.proconfig =
+        ARRAY['search_path=pg_catalog, public']::text[])
+    AS platform_owner_continuity_trigger_count,
   (SELECT COUNT(DISTINCT check_constraint.oid)::integer
      FROM expected_set_null_fk AS expected
      JOIN pg_catalog.pg_namespace AS namespace
@@ -1661,10 +1988,18 @@ SELECT
        ON affected_table.relnamespace = namespace.oid
       AND affected_table.relname = target.table_name
      JOIN pg_catalog.pg_trigger AS trigger_row
-       ON trigger_row.tgrelid = affected_table.oid
+      ON trigger_row.tgrelid = affected_table.oid
       AND trigger_row.tgisinternal = false
       AND (trigger_row.tgtype::integer & target.event_mask) =
-        target.event_mask)
+        target.event_mask
+    WHERE NOT (
+      affected_table.relname = 'platform_users'
+      AND trigger_row.tgname = 'platform_users_owner_continuity_delete'
+      AND trigger_row.tgfoid =
+        'public.fieldgrid_enforce_platform_owner_continuity()'::regprocedure
+      AND trigger_row.tgtype::integer = 11
+      AND trigger_row.tgenabled = 'O'
+    ))
     AS unexpected_deletion_path_trigger_count`;
 
 export async function loadFieldDemoOwnerPlatformPrivilegeSnapshot(
@@ -1674,6 +2009,7 @@ export async function loadFieldDemoOwnerPlatformPrivilegeSnapshot(
   const result = await queryable.query<FieldDemoOwnerPlatformPrivilegeSnapshot>(
     FIELD_DEMO_OWNER_PLATFORM_PRIVILEGE_QUERY,
     [
+      FIELD_DEMO_RETAINED_OWNER_ID,
       FIELD_DEMO_OWNER_EMAIL,
       configuredAutomationActor,
       OWNER_AUTH_REPAIR_VERSION,
@@ -1688,6 +2024,691 @@ export async function loadFieldDemoOwnerPlatformPrivilegeSnapshot(
     );
   }
   return result.rows[0]!;
+}
+
+function metadataRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+async function loadFieldDemoPlatformPrivilegeRepairTarget(
+  queryable: Queryable,
+): Promise<FieldDemoPlatformPrivilegeRepairTarget> {
+  const result = await queryable.query<{
+    user_id: string;
+    platform_user_id: string | null;
+    platform_role: string | null;
+    platform_status: string | null;
+    raw_app_meta_data: unknown;
+  }>(
+    `SELECT auth_user.id::text AS user_id,
+            platform_user.id::text AS platform_user_id,
+            platform_user.role AS platform_role,
+            platform_user.status AS platform_status,
+            auth_user.raw_app_meta_data
+       FROM auth.users AS auth_user
+       LEFT JOIN public.platform_users AS platform_user
+         ON platform_user.user_id = auth_user.id
+      WHERE auth_user.id = $1::uuid
+        AND lower(auth_user.email) = lower($2)
+      ORDER BY auth_user.id, platform_user.id`,
+    [FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_OWNER_EMAIL],
+  );
+  const row = result.rows[0];
+  const appMetadata = metadataRecord(row?.raw_app_meta_data);
+  const platformStateIsValid =
+    row?.platform_user_id === null
+      ? row.platform_role === null && row.platform_status === null
+      : UUID_PATTERN.test(row?.platform_user_id ?? "") &&
+        typeof row?.platform_role === "string" &&
+        typeof row?.platform_status === "string";
+  if (
+    result.rowCount !== 1 ||
+    result.rows.length !== 1 ||
+    !row ||
+    row.user_id.toLowerCase() !== FIELD_DEMO_RETAINED_OWNER_ID ||
+    !platformStateIsValid ||
+    !appMetadata
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Field-demo owner Auth metadata is not singular.",
+      "platform_privilege_precondition",
+      "auth-owner-invalid",
+    );
+  }
+  return {
+    userId: row.user_id,
+    platformUserId: row.platform_user_id,
+    platformRole: row.platform_role,
+    platformStatus: row.platform_status,
+    appMetadata,
+  };
+}
+
+function exactIsoTimestamp(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    Number.isFinite(Date.parse(value)) &&
+    new Date(value).toISOString() === value
+  );
+}
+
+export function fieldDemoOwnerAuthMetadataIsNormalized(
+  target: FieldDemoPlatformPrivilegeRepairTarget,
+  revokedAt?: string,
+): boolean {
+  const actualRevokedAt = target.appMetadata["session_revoked_at"];
+  return (
+    target.userId.toLowerCase() === FIELD_DEMO_RETAINED_OWNER_ID &&
+    target.appMetadata["portal"] === "tenant-admin" &&
+    target.appMetadata["fieldgrid_automation_contract"] ===
+      OWNER_AUTH_REPAIR_VERSION &&
+    target.appMetadata["fieldgrid_environment"] === "staging" &&
+    target.appMetadata["fieldgrid_platform_privilege_repair"] ===
+      PLATFORM_PRIVILEGE_AUTH_REPAIR_VERSION &&
+    exactIsoTimestamp(actualRevokedAt) &&
+    (revokedAt === undefined || actualRevokedAt === revokedAt) &&
+    !("platform_role" in target.appMetadata)
+  );
+}
+
+async function fieldDemoOwnerAuthUpdateFetch(
+  input: Parameters<typeof fetch>[0],
+  init: Parameters<typeof fetch>[1],
+  fetchImplementation: typeof fetch = fetch,
+): Promise<Response> {
+  try {
+    return await fetchImplementation(input, {
+      ...init,
+      redirect: "error",
+      signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
+    });
+  } catch {
+    return new Response(null, { status: 503 });
+  }
+}
+
+async function normalizeFieldDemoOwnerAuthMetadata(
+  environment: OwnerBindingEnvironment,
+  target: FieldDemoPlatformPrivilegeRepairTarget,
+  revokedAt: string,
+): Promise<FieldDemoOwnerAuthUpdateOutcome> {
+  const serviceCredential = environment.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+  const response = await fieldDemoOwnerAuthUpdateFetch(
+    new URL(
+      `/auth/v1/admin/users/${encodeURIComponent(target.userId)}`,
+      FIELD_DEMO_OWNER_BINDING_SUPABASE_URL,
+    ),
+    {
+      method: "PUT",
+      headers: {
+        accept: "application/json",
+        apikey: serviceCredential,
+        authorization: `Bearer ${serviceCredential}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        app_metadata: fieldDemoOwnerAuthMetadataPatch(revokedAt),
+      }),
+    },
+  );
+  return fieldDemoOwnerAuthUpdateOutcome(response);
+}
+
+async function waitForFieldDemoOwnerAuthPostimage(
+  queryable: Queryable,
+  revokedAt: string,
+): Promise<FieldDemoPlatformPrivilegeRepairTarget | null> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const target = await loadFieldDemoPlatformPrivilegeRepairTarget(queryable);
+    if (fieldDemoOwnerAuthMetadataIsNormalized(target, revokedAt)) {
+      return target;
+    }
+    if (attempt < 4) await delay(250 * (attempt + 1));
+  }
+  return null;
+}
+
+type ReviewedSqlMigration = {
+  name: string;
+  hash: string;
+  sql: string;
+};
+
+type SqlMigrationHistoryRecord = {
+  name: string;
+  hash: string;
+  baselined: boolean;
+  appliedAt: Date | string;
+};
+
+type SqlMigrationHashReconciliation = {
+  name: string;
+  recordedHash: string;
+  canonicalHash: string;
+};
+
+function reviewedSqlMigrationHash(sql: string): string {
+  return createHash("sha256").update(sql.replace(/\r\n/gu, "\n")).digest("hex");
+}
+
+function reviewedMigrationHashMatches(
+  migration: ReviewedSqlMigration,
+  record: SqlMigrationHistoryRecord,
+): boolean {
+  return (
+    sqlMigrationHashState(migration.name, migration.hash, record.hash) !==
+    "drift"
+  );
+}
+
+function platformPrivilegeMigrationHashReconciliations(
+  frontier: Awaited<ReturnType<typeof loadPlatformPrivilegeMigrationFrontier>>,
+  records: SqlMigrationHistoryRecord[],
+): SqlMigrationHashReconciliation[] {
+  const committedByName = new Map(
+    frontier.committed.map((migration) => [migration.name, migration]),
+  );
+  return records.flatMap((record) => {
+    const migration = committedByName.get(record.name);
+    if (
+      !migration ||
+      sqlMigrationHashState(migration.name, migration.hash, record.hash) !==
+        "reconcilable"
+    ) {
+      return [];
+    }
+    return [
+      {
+        name: migration.name,
+        recordedHash: record.hash,
+        canonicalHash: migration.hash,
+      },
+    ];
+  });
+}
+
+async function loadPlatformPrivilegeMigrationFrontier(): Promise<{
+  committed: ReviewedSqlMigration[];
+  predecessors: ReviewedSqlMigration[];
+  required: ReviewedSqlMigration[];
+  successors: ReadonlySet<string>;
+  legacyNames: ReadonlySet<string>;
+  historical: ReadonlyMap<
+    string,
+    {
+      kind: "renamed" | "tombstone";
+      canonicalName: string | null;
+      hash: string;
+    }
+  >;
+}> {
+  const migrationsDir = join(repoRoot, "lib", "db", "migrations");
+  const names = (await readdir(migrationsDir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && /^\d+.*\.sql$/u.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+  const firstRequiredName = PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[0];
+  const finalRequiredName = PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES.at(-1);
+  const firstRequiredIndex = names.indexOf(firstRequiredName);
+  const finalRequiredIndex = finalRequiredName
+    ? names.indexOf(finalRequiredName)
+    : -1;
+  if (firstRequiredIndex < 0 || finalRequiredIndex < firstRequiredIndex) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Reviewed platform-privilege migrations are absent from the SQL frontier.",
+      "platform_privilege_precondition",
+    );
+  }
+  const requiredNames = names.slice(firstRequiredIndex, finalRequiredIndex + 1);
+  if (
+    requiredNames.length !==
+      PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES.length ||
+    requiredNames.some(
+      (name, index) =>
+        name !== PLATFORM_PRIVILEGE_REQUIRED_MIGRATION_NAMES[index],
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Reviewed platform-privilege migration frontier is ambiguous.",
+      "platform_privilege_precondition",
+    );
+  }
+  const migrations = await Promise.all(
+    names.map(async (name) => {
+      const sql = await readFile(join(migrationsDir, name), "utf8");
+      return { name, hash: reviewedSqlMigrationHash(sql), sql };
+    }),
+  );
+  return {
+    committed: migrations,
+    predecessors: migrations.slice(0, firstRequiredIndex),
+    required: migrations.slice(firstRequiredIndex, finalRequiredIndex + 1),
+    successors: new Set(names.slice(finalRequiredIndex + 1)),
+    legacyNames: new Set(
+      names.filter(
+        (name) =>
+          /^\d{3}_[a-z0-9][a-z0-9_]*\.sql$/u.test(name) ||
+          PLATFORM_PRIVILEGE_LEGACY_TIMESTAMP_MIGRATION_NAMES.has(name),
+      ),
+    ),
+    historical: PLATFORM_PRIVILEGE_HISTORICAL_MIGRATIONS,
+  };
+}
+
+function migrationHistoryTimestamp(record: SqlMigrationHistoryRecord): number {
+  const timestamp =
+    record.appliedAt instanceof Date
+      ? record.appliedAt.getTime()
+      : Date.parse(record.appliedAt);
+  if (!Number.isFinite(timestamp)) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history contains an invalid application timestamp.",
+      "platform_privilege_precondition",
+    );
+  }
+  return timestamp;
+}
+
+export function assertPlatformPrivilegeMigrationFrontier(
+  frontier: Awaited<ReturnType<typeof loadPlatformPrivilegeMigrationFrontier>>,
+  records: SqlMigrationHistoryRecord[],
+): ReviewedSqlMigration[] {
+  const duplicateNames = records
+    .map((record) => record.name)
+    .filter((name, index, names) => names.indexOf(name) !== index);
+  if (duplicateNames.length > 0) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history contains duplicate entries.",
+      "platform_privilege_precondition",
+    );
+  }
+
+  const committedByName = new Map(
+    frontier.committed.map((migration) => [migration.name, migration]),
+  );
+  const historicalCanonicalNames = new Set(
+    [...frontier.historical.values()]
+      .map((migration) => migration.canonicalName)
+      .filter((name): name is string => name !== null),
+  );
+  const normalizedHistory: string[] = [];
+  const canonicalEquivalents = new Set<string>();
+  let previousTimestamp = Number.NEGATIVE_INFINITY;
+  let previousName = "";
+  for (const record of records) {
+    const appliedAt = migrationHistoryTimestamp(record);
+    if (
+      appliedAt < previousTimestamp ||
+      (appliedAt === previousTimestamp &&
+        record.name.localeCompare(previousName) < 0)
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history is not ordered by application time.",
+        "platform_privilege_precondition",
+      );
+    }
+    previousTimestamp = appliedAt;
+    previousName = record.name;
+
+    const committed = committedByName.get(record.name);
+    const historical = frontier.historical.get(record.name);
+    if (!committed && !historical) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history contains an unreviewed entry.",
+        "platform_privilege_precondition",
+      );
+    }
+    if (
+      committed
+        ? !reviewedMigrationHashMatches(committed, record)
+        : record.hash !== historical?.hash
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history contains source-hash drift.",
+        "platform_privilege_precondition",
+      );
+    }
+    if (
+      record.baselined &&
+      (historical?.kind === "renamed" ||
+        (committed && !frontier.legacyNames.has(record.name)))
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "A modern SQL migration was baselined without execution.",
+        "platform_privilege_precondition",
+      );
+    }
+
+    if (historical) {
+      if (historical.kind === "tombstone") continue;
+      if (
+        historical.canonicalName &&
+        !canonicalEquivalents.has(historical.canonicalName)
+      ) {
+        normalizedHistory.push(historical.canonicalName);
+        canonicalEquivalents.add(historical.canonicalName);
+      }
+      continue;
+    }
+    if (
+      historicalCanonicalNames.has(record.name) &&
+      canonicalEquivalents.has(record.name)
+    ) {
+      continue;
+    }
+    normalizedHistory.push(record.name);
+  }
+
+  const recordsByName = new Map(records.map((record) => [record.name, record]));
+  for (const legacyName of frontier.legacyNames) {
+    if (!recordsByName.has(legacyName)) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history is missing a required legacy entry.",
+        "platform_privilege_precondition",
+      );
+    }
+  }
+  const expectedModern = frontier.committed
+    .map((migration) => migration.name)
+    .filter((name) => !frontier.legacyNames.has(name));
+  const recordedModern = normalizedHistory.filter(
+    (name) => !frontier.legacyNames.has(name),
+  );
+  if (
+    recordedModern.length > expectedModern.length ||
+    recordedModern.some((name, index) => name !== expectedModern[index])
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "SQL migration history is not a contiguous committed prefix.",
+      "platform_privilege_precondition",
+    );
+  }
+  for (const migration of frontier.predecessors) {
+    const record = recordsByName.get(migration.name);
+    if (!record || !reviewedMigrationHashMatches(migration, record)) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history does not match the reviewed predecessor frontier.",
+        "platform_privilege_precondition",
+      );
+    }
+  }
+
+  let firstPendingIndex = -1;
+  for (const [index, migration] of frontier.required.entries()) {
+    const record = recordsByName.get(migration.name);
+    if (!record) {
+      if (firstPendingIndex < 0) firstPendingIndex = index;
+      continue;
+    }
+    if (!reviewedMigrationHashMatches(migration, record) || record.baselined) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "Platform-privilege migration record does not match reviewed source.",
+        "platform_privilege_precondition",
+      );
+    }
+    if (firstPendingIndex >= 0) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "A platform-privilege migration is missing behind the recorded required frontier.",
+        "platform_privilege_precondition",
+      );
+    }
+  }
+
+  if (firstPendingIndex < 0) return [];
+
+  const finalRequiredMigration = frontier.required.at(-1);
+  if (
+    !finalRequiredMigration ||
+    records.some(
+      (record) =>
+        frontier.successors.has(record.name) ||
+        record.name.localeCompare(finalRequiredMigration.name) > 0,
+    )
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "A platform-privilege migration is missing behind the recorded SQL frontier.",
+      "platform_privilege_precondition",
+    );
+  }
+  return frontier.required.slice(firstPendingIndex);
+}
+
+export async function applyExactPlatformPrivilegePrerequisiteMigrations(
+  queryable: Queryable,
+): Promise<boolean> {
+  const frontier = await loadPlatformPrivilegeMigrationFrontier();
+  let migrationLockAcquired = false;
+  let migrationTransactionStarted = false;
+  try {
+    const lock = await queryable.query<{ acquired: boolean }>(
+      `SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired`,
+      [DATABASE_MIGRATION_LOCK_KEY],
+    );
+    if (lock.rows.length !== 1 || lock.rows[0]?.acquired !== true) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_lock_unavailable",
+        "Database migration lock is unavailable.",
+        "database_transaction",
+      );
+    }
+    migrationLockAcquired = true;
+
+    const historyTable = await queryable.query<{
+      history_table: string | null;
+    }>(
+      `SELECT to_regclass('drizzle.veele_sql_migrations')::text AS history_table`,
+    );
+    if (
+      historyTable.rows.length !== 1 ||
+      historyTable.rows[0]?.history_table !== "drizzle.veele_sql_migrations"
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "SQL migration history is unavailable.",
+        "platform_privilege_precondition",
+      );
+    }
+
+    const recorded = await queryable.query<SqlMigrationHistoryRecord>(
+      `SELECT name, hash, baselined, applied_at AS "appliedAt"
+         FROM drizzle.veele_sql_migrations
+        ORDER BY applied_at, name`,
+    );
+    const initiallyPending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      recorded.rows,
+    );
+    const initialHashReconciliations =
+      platformPrivilegeMigrationHashReconciliations(frontier, recorded.rows);
+    if (
+      initiallyPending.length === 0 &&
+      initialHashReconciliations.length === 0
+    ) {
+      return false;
+    }
+
+    await queryable.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    migrationTransactionStarted = true;
+    const recheck = await queryable.query<SqlMigrationHistoryRecord>(
+      `SELECT name, hash, baselined, applied_at AS "appliedAt"
+         FROM drizzle.veele_sql_migrations
+        ORDER BY applied_at, name
+        FOR UPDATE`,
+    );
+    const pending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      recheck.rows,
+    );
+    const hashReconciliations =
+      platformPrivilegeMigrationHashReconciliations(frontier, recheck.rows);
+    if (
+      pending.length !== initiallyPending.length ||
+      pending.some(
+        (migration, index) => migration.name !== initiallyPending[index]?.name,
+      ) ||
+      hashReconciliations.length !== initialHashReconciliations.length ||
+      hashReconciliations.some((reconciliation, index) => {
+        const initial = initialHashReconciliations[index];
+        if (!initial) return true;
+        return (
+          reconciliation.name !== initial.name ||
+          reconciliation.recordedHash !== initial.recordedHash ||
+          reconciliation.canonicalHash !== initial.canonicalHash
+        );
+      })
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_precondition_invalid",
+        "Platform-privilege migration state changed under its lock.",
+        "platform_privilege_precondition",
+      );
+    }
+    for (const reconciliation of hashReconciliations) {
+      const reconciled = await queryable.query<{
+        name: string;
+        hash: string;
+      }>(
+        `UPDATE drizzle.veele_sql_migrations
+            SET hash = $2
+          WHERE name = $1
+            AND hash = $3
+        RETURNING name, hash`,
+        [
+          reconciliation.name,
+          reconciliation.canonicalHash,
+          reconciliation.recordedHash,
+        ],
+      );
+      if (
+        reconciled.rowCount !== 1 ||
+        reconciled.rows.length !== 1 ||
+        reconciled.rows[0]?.name !== reconciliation.name ||
+        reconciled.rows[0]?.hash !== reconciliation.canonicalHash
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_mutation_failed",
+          "A committed SQL migration hash was not reconciled exactly once.",
+          "platform_privilege_mutation",
+        );
+      }
+    }
+
+    const canonicalHistory =
+      await queryable.query<SqlMigrationHistoryRecord>(
+        `SELECT name, hash, baselined, applied_at AS "appliedAt"
+           FROM drizzle.veele_sql_migrations
+          ORDER BY applied_at, name
+          FOR UPDATE`,
+      );
+    const canonicalPending = assertPlatformPrivilegeMigrationFrontier(
+      frontier,
+      canonicalHistory.rows,
+    );
+    if (
+      platformPrivilegeMigrationHashReconciliations(
+        frontier,
+        canonicalHistory.rows,
+      ).length !== 0 ||
+      canonicalPending.length !== pending.length ||
+      canonicalPending.some(
+        (migration, index) => migration.name !== pending[index]?.name,
+      )
+    ) {
+      throw new FieldDemoOwnerBindingError(
+        "field_demo_owner_binding_mutation_failed",
+        "Platform-privilege migration history reconciliation was not exact.",
+        "platform_privilege_mutation",
+      );
+    }
+
+    for (const migration of canonicalPending) {
+      await queryable.query(sqlForManagedMigrationTransaction(migration.sql));
+      const inserted = await queryable.query(
+        `INSERT INTO drizzle.veele_sql_migrations (name, hash, baselined)
+         VALUES ($1, $2, false)
+         RETURNING name`,
+        [migration.name, migration.hash],
+      );
+      if (
+        inserted.rowCount !== 1 ||
+        inserted.rows.length !== 1 ||
+        inserted.rows[0]?.name !== migration.name
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_mutation_failed",
+          "A platform-privilege migration was not recorded exactly once.",
+          "platform_privilege_mutation",
+        );
+      }
+    }
+    await queryable.query("COMMIT");
+    migrationTransactionStarted = false;
+    return true;
+  } catch (error) {
+    if (migrationTransactionStarted) {
+      try {
+        await queryable.query("ROLLBACK");
+      } catch {
+        // Releasing the dedicated connection below discards its transaction.
+      }
+    }
+    throw error;
+  } finally {
+    if (migrationLockAcquired) {
+      const unlocked = await queryable.query<{ released: boolean }>(
+        `SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS released`,
+        [DATABASE_MIGRATION_LOCK_KEY],
+      );
+      if (unlocked.rows.length !== 1 || unlocked.rows[0]?.released !== true) {
+        throw new Error("Database migration lock was not held.");
+      }
+    }
+  }
+}
+
+async function acquirePlatformPrivilegeRepairLock(
+  queryable: Queryable,
+): Promise<void> {
+  const result = await queryable.query<{ acquired: boolean }>(
+    `SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired`,
+    [PLATFORM_PRIVILEGE_REPAIR_LOCK_KEY],
+  );
+  if (result.rows.length !== 1 || result.rows[0]?.acquired !== true) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_lock_unavailable",
+      "Field-demo platform-privilege repair lock is unavailable.",
+      "database_transaction",
+    );
+  }
+}
+
+async function releasePlatformPrivilegeRepairLock(
+  queryable: Queryable,
+): Promise<void> {
+  const result = await queryable.query<{ released: boolean }>(
+    `SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS released`,
+    [PLATFORM_PRIVILEGE_REPAIR_LOCK_KEY],
+  );
+  if (result.rows.length !== 1 || result.rows[0]?.released !== true) {
+    throw new Error("Platform-privilege repair lock was not held.");
+  }
 }
 
 async function acquireOwnerBindingLock(queryable: Queryable): Promise<void> {
@@ -1714,9 +2735,10 @@ async function lockFieldDemoOwnerBindingRows(
   );
   await queryable.query(
     `SELECT auth_user.id FROM auth.users AS auth_user
-      WHERE lower(auth_user.email) = lower($1)
+      WHERE auth_user.id = $1::uuid
+        AND lower(auth_user.email) = lower($2)
       ORDER BY auth_user.id FOR UPDATE`,
-    [FIELD_DEMO_OWNER_EMAIL],
+    [FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_OWNER_EMAIL],
   );
   await queryable.query(
     `SELECT role.id FROM public.roles AS role
@@ -1790,21 +2812,148 @@ async function lockFieldDemoOwnerBindingRows(
     `SELECT membership.id FROM public.tenant_users AS membership
       WHERE membership.user_id IN (
         SELECT auth_user.id FROM auth.users AS auth_user
-         WHERE lower(auth_user.email) = lower($2)
+         WHERE auth_user.id = $2::uuid
+           AND lower(auth_user.email) = lower($3)
       ) OR (membership.tenant_id IN (
         SELECT tenant.id FROM public.tenants AS tenant WHERE tenant.slug = $1
       ) AND membership.role = 'owner')
       ORDER BY membership.id FOR UPDATE`,
-    [FIELD_DEMO_SLUG, FIELD_DEMO_OWNER_EMAIL],
+    [FIELD_DEMO_SLUG, FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_OWNER_EMAIL],
   );
   await queryable.query(
     `SELECT user_role.id FROM public.tenant_user_roles AS user_role
       WHERE user_role.user_id IN (
         SELECT auth_user.id FROM auth.users AS auth_user
-         WHERE lower(auth_user.email) = lower($1)
+         WHERE auth_user.id = $1::uuid
+           AND lower(auth_user.email) = lower($2)
       ) ORDER BY user_role.id FOR UPDATE`,
-    [FIELD_DEMO_OWNER_EMAIL],
+    [FIELD_DEMO_RETAINED_OWNER_ID, FIELD_DEMO_OWNER_EMAIL],
   );
+}
+
+async function lockFieldDemoPlatformPrivilegeRows(
+  queryable: Queryable,
+  platformUserId: string,
+): Promise<void> {
+  await queryable.query(
+    `SELECT platform_user.id
+       FROM public.platform_users AS platform_user
+      ORDER BY platform_user.id
+      FOR UPDATE`,
+  );
+  await queryable.query(
+    `SELECT recipient.id
+       FROM public.platform_notification_recipients AS recipient
+      WHERE recipient.platform_user_id = $1::uuid
+      ORDER BY recipient.id
+      FOR UPDATE`,
+    [platformUserId],
+  );
+}
+
+async function loadFieldDemoPlatformRecipientIds(
+  queryable: Queryable,
+  platformUserId: string,
+  ownerUserId: string,
+): Promise<string[]> {
+  const result = await queryable.query<{ id: string }>(
+    `SELECT recipient.id::text AS id
+       FROM public.platform_notification_recipients AS recipient
+      WHERE recipient.platform_user_id = $1::uuid
+        AND recipient.recipient_type = 'platform_user'
+        AND recipient.recipient_user_id = $2::uuid
+        AND recipient.tenant_id IS NULL
+        AND recipient.tenant_owner_invite_id IS NULL
+        AND recipient.delivery_status IN ('sent', 'skipped', 'failed')
+      ORDER BY recipient.id`,
+    [platformUserId, ownerUserId],
+  );
+  if (result.rows.some((row) => !UUID_PATTERN.test(row.id))) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_precondition_invalid",
+      "Platform-recipient history identity is invalid.",
+      "platform_privilege_precondition",
+      "auth-owner-platform-privilege-present",
+    );
+  }
+  return result.rows.map((row) => row.id);
+}
+
+async function suspendFieldDemoPlatformPrivilege(
+  queryable: Queryable,
+  platformUserId: string,
+  ownerUserId: string,
+): Promise<void> {
+  const result = await queryable.query(
+    `UPDATE public.platform_users AS platform_user
+        SET status = 'suspended', updated_at = now()
+      WHERE platform_user.id = $1::uuid
+        AND platform_user.user_id = $2::uuid
+        AND platform_user.role = 'owner'
+        AND platform_user.status = 'active'
+      RETURNING platform_user.id`,
+    [platformUserId, ownerUserId],
+  );
+  if (result.rowCount !== 1 || result.rows.length !== 1) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_mutation_failed",
+      "Field-demo platform privilege was not quarantined exactly once.",
+      "platform_privilege_mutation",
+      "auth-owner-platform-privilege-present",
+    );
+  }
+}
+
+async function removeFieldDemoPlatformPrivilege(
+  queryable: Queryable,
+  platformUserId: string,
+  ownerUserId: string,
+): Promise<void> {
+  const result = await queryable.query(
+    `DELETE FROM public.platform_users AS platform_user
+      WHERE platform_user.id = $1::uuid
+        AND platform_user.user_id = $2::uuid
+        AND platform_user.role = 'owner'
+        AND platform_user.status = 'suspended'
+      RETURNING platform_user.id`,
+    [platformUserId, ownerUserId],
+  );
+  if (result.rowCount !== 1 || result.rows.length !== 1) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_mutation_failed",
+      "Field-demo platform privilege was not removed exactly once.",
+      "platform_privilege_mutation",
+      "auth-owner-platform-privilege-present",
+    );
+  }
+}
+
+async function assertPlatformRecipientHistoryDetached(
+  queryable: Queryable,
+  recipientIds: string[],
+  ownerUserId: string,
+): Promise<void> {
+  if (recipientIds.length === 0) return;
+  const result = await queryable.query<{ detached_count: number }>(
+    `SELECT COUNT(*)::integer AS detached_count
+       FROM public.platform_notification_recipients AS recipient
+      WHERE recipient.id = ANY($1::uuid[])
+        AND recipient.recipient_type = 'platform_user'
+        AND recipient.platform_user_id IS NULL
+        AND recipient.recipient_user_id = $2::uuid`,
+    [recipientIds, ownerUserId],
+  );
+  if (
+    result.rows.length !== 1 ||
+    result.rows[0]?.detached_count !== recipientIds.length
+  ) {
+    throw new FieldDemoOwnerBindingError(
+      "field_demo_owner_binding_postcondition_invalid",
+      "Platform-recipient history was not preserved after role removal.",
+      "platform_privilege_postcondition",
+      "auth-owner-platform-privilege-present",
+    );
+  }
 }
 
 async function lockOwnerReconciliationRows(
@@ -2039,7 +3188,7 @@ async function createFieldDemoManagementRoleLink(
 }
 
 function evidencePath(
-  operation: "diagnose" | "repair" | "reconcile",
+  operation: "diagnose" | "repair" | "reconcile" | "repair-platform-privilege",
   environment: OwnerBindingEnvironment,
 ): string {
   const runId = environment.GITHUB_RUN_ID ?? "";
@@ -2074,7 +3223,10 @@ async function runOwnerBindingOperation(
   options: OwnerBindingOptions,
   environment: OwnerBindingEnvironment,
 ): Promise<
-  "diagnosed" | "reconciled-retained-owner" | FieldDemoOwnerBindingRepairResult
+  | "diagnosed"
+  | "reconciled-retained-owner"
+  | FieldDemoOwnerBindingRepairResult
+  | FieldDemoPlatformPrivilegeRepairResult
 > {
   if (options.mode === "check") {
     throw new Error("Static checks cannot access the database.");
@@ -2087,13 +3239,16 @@ async function runOwnerBindingOperation(
   let mutationAttempted = false;
   let transactionStarted = false;
   let transactionFinished = false;
+  let platformPrivilegeRepairLockAcquired = false;
+  let platformPrivilegePhase: OwnerBindingEvidence["platformPrivilegePhase"] =
+    "not-started";
   let observedState: FieldDemoOwnerBindingState | null = null;
   let dbModule: DatabaseModule | null = null;
   let client:
     | (Queryable & { release: (error?: Error | boolean) => void })
     | null = null;
   const evidence: OwnerBindingEvidence = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     contract: FIELD_DEMO_OWNER_BINDING_VERSION,
     environment: "staging",
     operation,
@@ -2106,6 +3261,7 @@ async function runOwnerBindingOperation(
     failureStage: null,
     failureReason: null,
     platformPrivilegeSummary: null,
+    platformPrivilegePhase,
     startedAt,
     completedAt: startedAt,
   };
@@ -2125,6 +3281,359 @@ async function runOwnerBindingOperation(
     ).href;
     dbModule = (await import(databaseModuleUrl)) as DatabaseModule;
     client = await dbModule.pool.connect();
+
+    if (operation === "repair-platform-privilege") {
+      failureStage = "platform_privilege_precondition";
+      mutationAttempted =
+        (await applyExactPlatformPrivilegePrerequisiteMigrations(client)) ||
+        mutationAttempted;
+      failureStage = "database_transaction";
+      await acquirePlatformPrivilegeRepairLock(client);
+      platformPrivilegeRepairLockAcquired = true;
+
+      await client.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+      transactionStarted = true;
+      transactionFinished = false;
+      await lockFieldDemoOwnerBindingRows(client);
+      failureStage = "platform_privilege_precondition";
+      const beforeTarget =
+        await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+      if (beforeTarget.platformUserId) {
+        await lockFieldDemoPlatformPrivilegeRows(
+          client,
+          beforeTarget.platformUserId,
+        );
+      }
+      const before = await loadFieldDemoOwnerBindingSnapshot(client);
+      const beforeDecision = classifyFieldDemoOwnerBinding(before);
+      observedState = beforeDecision.state;
+      evidence.failureReason = beforeDecision.failureReason;
+      const beforePlatformSnapshot =
+        await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+          client,
+          configuredAutomationActor,
+        );
+      const beforePlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+        beforePlatformSnapshot,
+      );
+      evidence.platformPrivilegeSummary = beforePlatformSummary;
+
+      if (before.platform_user_count === 0) {
+        if (
+          beforeDecision.state !== "already-valid" ||
+          before.owner_user_id?.toLowerCase() !==
+            FIELD_DEMO_RETAINED_OWNER_ID ||
+          beforeTarget.platformUserId !== null ||
+          !fieldDemoOwnerAuthMetadataIsNormalized(beforeTarget) ||
+          beforePlatformSummary.accountState !== "absent" ||
+          beforePlatformSummary.automationActorState !== "single-admin-ready" ||
+          beforePlatformSummary.configuredActorState !==
+            "other-active-eligible" ||
+          beforePlatformSummary.foreignKeyContractState !== "exact" ||
+          beforePlatformSummary.nonRecipientHistoryState !== "none"
+        ) {
+          throw new FieldDemoOwnerBindingError(
+            "field_demo_owner_binding_precondition_invalid",
+            "Already-removed platform privilege is not an exact no-op.",
+            "platform_privilege_precondition",
+            beforeDecision.failureReason,
+          );
+        }
+        await client.query("ROLLBACK");
+        transactionFinished = true;
+        evidence.status = "passed";
+        evidence.observedState = beforeDecision.state;
+        evidence.result = "already-removed";
+        evidence.mutationAttempted = mutationAttempted;
+        platformPrivilegePhase = "removed";
+        evidence.platformPrivilegePhase = platformPrivilegePhase;
+        evidence.failureReason = null;
+        return "already-removed";
+      }
+
+      if (
+        !beforeTarget.platformUserId ||
+        beforeTarget.platformRole !== "owner" ||
+        !["active", "suspended"].includes(beforeTarget.platformStatus ?? "") ||
+        !fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+          before,
+          beforePlatformSummary,
+        )
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_precondition_invalid",
+          "Field-demo platform privilege is not safe for bounded removal.",
+          "platform_privilege_precondition",
+          "auth-owner-platform-privilege-present",
+        );
+      }
+      const platformUserId = beforeTarget.platformUserId;
+      if (beforeTarget.platformStatus === "suspended") {
+        platformPrivilegePhase = "quarantined";
+        evidence.platformPrivilegePhase = platformPrivilegePhase;
+      }
+      if (beforeTarget.platformStatus === "active") {
+        failureStage = "platform_privilege_mutation";
+        mutationAttempted = true;
+        await suspendFieldDemoPlatformPrivilege(
+          client,
+          platformUserId,
+          beforeTarget.userId,
+        );
+        const quarantinedTarget =
+          await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+        const quarantinedSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+          await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+            client,
+            configuredAutomationActor,
+          ),
+        );
+        if (
+          quarantinedTarget.platformUserId !== platformUserId ||
+          quarantinedTarget.platformRole !== "owner" ||
+          quarantinedTarget.platformStatus !== "suspended" ||
+          quarantinedSummary.accountState !== "suspended-owner" ||
+          !fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+            await loadFieldDemoOwnerBindingSnapshot(client),
+            quarantinedSummary,
+          )
+        ) {
+          throw new FieldDemoOwnerBindingError(
+            "field_demo_owner_binding_postcondition_invalid",
+            "Field-demo platform privilege was not quarantined safely.",
+            "platform_privilege_postcondition",
+            "auth-owner-platform-privilege-present",
+          );
+        }
+        await client.query("COMMIT");
+        platformPrivilegePhase = "quarantined";
+        evidence.platformPrivilegePhase = platformPrivilegePhase;
+      } else {
+        await client.query("ROLLBACK");
+      }
+      transactionFinished = true;
+
+      failureStage = "owner_auth_normalization";
+      const freshPreimage =
+        await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+      if (
+        freshPreimage.platformUserId !== platformUserId ||
+        freshPreimage.platformRole !== "owner" ||
+        freshPreimage.platformStatus !== "suspended"
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_precondition_invalid",
+          "Quarantined platform privilege changed before Auth normalization.",
+          "owner_auth_normalization",
+          "auth-owner-platform-privilege-present",
+        );
+      }
+      let normalizedTarget = freshPreimage;
+      let expectedRevokedAt: string;
+      if (fieldDemoOwnerAuthMetadataIsNormalized(freshPreimage)) {
+        const existingRevokedAt =
+          freshPreimage.appMetadata["session_revoked_at"];
+        if (!exactIsoTimestamp(existingRevokedAt)) {
+          throw new FieldDemoOwnerBindingError(
+            "field_demo_owner_binding_postcondition_invalid",
+            "Normalized owner Auth metadata has no exact revocation timestamp.",
+            "owner_auth_normalization",
+            "auth-owner-platform-privilege-present",
+          );
+        }
+        expectedRevokedAt = existingRevokedAt;
+      } else {
+        expectedRevokedAt = new Date().toISOString();
+        mutationAttempted = true;
+        const authUpdateOutcome = await normalizeFieldDemoOwnerAuthMetadata(
+          environment,
+          freshPreimage,
+          expectedRevokedAt,
+        );
+        const observedPostimage = await waitForFieldDemoOwnerAuthPostimage(
+          client,
+          expectedRevokedAt,
+        );
+        if (!observedPostimage) {
+          const errorCode: OwnerBindingErrorCode =
+            authUpdateOutcome === "rejected"
+              ? "field_demo_owner_auth_update_rejected"
+              : authUpdateOutcome === "uncertain"
+                ? "field_demo_owner_auth_update_uncertain"
+                : "field_demo_owner_binding_postcondition_invalid";
+          throw new FieldDemoOwnerBindingError(
+            errorCode,
+            "Field-demo owner Auth metadata was not normalized exactly.",
+            "owner_auth_normalization",
+            "auth-owner-platform-privilege-present",
+          );
+        }
+        normalizedTarget = observedPostimage;
+      }
+      if (
+        normalizedTarget.platformUserId !== platformUserId ||
+        normalizedTarget.platformStatus !== "suspended" ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          normalizedTarget,
+          expectedRevokedAt,
+        )
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_postcondition_invalid",
+          "Auth normalization did not preserve the quarantined repair target.",
+          "owner_auth_normalization",
+          "auth-owner-platform-privilege-present",
+        );
+      }
+      platformPrivilegePhase = "auth-normalized";
+      evidence.platformPrivilegePhase = platformPrivilegePhase;
+
+      failureStage = "database_transaction";
+      await client.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+      transactionStarted = true;
+      transactionFinished = false;
+      await lockFieldDemoOwnerBindingRows(client);
+      await lockFieldDemoPlatformPrivilegeRows(client, platformUserId);
+
+      failureStage = "platform_privilege_precondition";
+      const lockedSnapshot = await loadFieldDemoOwnerBindingSnapshot(client);
+      const lockedPlatformSnapshot =
+        await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+          client,
+          configuredAutomationActor,
+        );
+      const lockedPlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+        lockedPlatformSnapshot,
+      );
+      const lockedTarget =
+        await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+      if (
+        lockedTarget.platformUserId !== platformUserId ||
+        lockedTarget.platformRole !== "owner" ||
+        lockedTarget.platformStatus !== "suspended" ||
+        lockedPlatformSummary.authMetadataState !== "tenant-owner-compatible" ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          lockedTarget,
+          expectedRevokedAt,
+        ) ||
+        !fieldDemoPlatformPrivilegeRepairPreconditionIsSafe(
+          lockedSnapshot,
+          lockedPlatformSummary,
+        )
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_precondition_invalid",
+          "Field-demo platform privilege changed before bounded removal.",
+          "platform_privilege_precondition",
+          "auth-owner-platform-privilege-present",
+        );
+      }
+      const recipientIds = await loadFieldDemoPlatformRecipientIds(
+        client,
+        platformUserId,
+        lockedTarget.userId,
+      );
+      if (
+        recipientIds.length !==
+        lockedPlatformSnapshot.platform_recipient_reference_count
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_precondition_invalid",
+          "Platform-recipient history is not exact for bounded removal.",
+          "platform_privilege_precondition",
+          "auth-owner-platform-privilege-present",
+        );
+      }
+
+      failureStage = "platform_privilege_mutation";
+      mutationAttempted = true;
+      await removeFieldDemoPlatformPrivilege(
+        client,
+        platformUserId,
+        lockedTarget.userId,
+      );
+      failureStage = "platform_privilege_postcondition";
+      await assertPlatformRecipientHistoryDetached(
+        client,
+        recipientIds,
+        lockedTarget.userId,
+      );
+      const postSnapshot = await loadFieldDemoOwnerBindingSnapshot(client);
+      const postDecision = classifyFieldDemoOwnerBinding(postSnapshot);
+      const postTarget =
+        await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+      const postPlatformSnapshot =
+        await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+          client,
+          configuredAutomationActor,
+        );
+      const postPlatformSummary =
+        summarizeFieldDemoOwnerPlatformPrivilege(postPlatformSnapshot);
+      if (
+        postDecision.state !== "already-valid" ||
+        postTarget.platformUserId !== null ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          postTarget,
+          expectedRevokedAt,
+        ) ||
+        postPlatformSummary.accountState !== "absent" ||
+        postPlatformSnapshot.other_active_platform_owner_count < 1 ||
+        postPlatformSummary.automationActorState !== "single-admin-ready" ||
+        postPlatformSummary.configuredActorState !== "other-active-eligible" ||
+        postPlatformSummary.foreignKeyContractState !== "exact" ||
+        postPlatformSummary.deletionBlockState !== "none"
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_postcondition_invalid",
+          "Platform-privilege repair did not leave the exact owner binding.",
+          "platform_privilege_postcondition",
+          postDecision.failureReason,
+        );
+      }
+      await client.query("COMMIT");
+      transactionFinished = true;
+      platformPrivilegePhase = "removed";
+      evidence.platformPrivilegePhase = platformPrivilegePhase;
+
+      const freshSnapshot = await loadFieldDemoOwnerBindingSnapshot(client);
+      const freshTarget =
+        await loadFieldDemoPlatformPrivilegeRepairTarget(client);
+      const freshPlatformSnapshot =
+        await loadFieldDemoOwnerPlatformPrivilegeSnapshot(
+          client,
+          configuredAutomationActor,
+        );
+      const freshPlatformSummary = summarizeFieldDemoOwnerPlatformPrivilege(
+        freshPlatformSnapshot,
+      );
+      if (
+        classifyFieldDemoOwnerBinding(freshSnapshot).state !==
+          "already-valid" ||
+        freshTarget.platformUserId !== null ||
+        !fieldDemoOwnerAuthMetadataIsNormalized(
+          freshTarget,
+          expectedRevokedAt,
+        ) ||
+        freshPlatformSummary.accountState !== "absent" ||
+        freshPlatformSnapshot.other_active_platform_owner_count < 1 ||
+        freshPlatformSummary.automationActorState !== "single-admin-ready" ||
+        freshPlatformSummary.configuredActorState !== "other-active-eligible" ||
+        freshPlatformSummary.foreignKeyContractState !== "exact"
+      ) {
+        throw new FieldDemoOwnerBindingError(
+          "field_demo_owner_binding_postcondition_invalid",
+          "Committed platform-privilege repair failed fresh readback.",
+          "platform_privilege_postcondition",
+        );
+      }
+      evidence.status = "passed";
+      evidence.observedState = observedState;
+      evidence.result = "platform-privilege-removed";
+      evidence.mutationAttempted = true;
+      evidence.failureReason = null;
+      return "platform-privilege-removed";
+    }
+
     failureStage = "database_transaction";
     await client.query(
       operation === "diagnose"
@@ -2247,8 +3756,16 @@ async function runOwnerBindingOperation(
       safeFieldDemoOwnerBindingFailureReason(error) ?? evidence.failureReason;
     evidence.observedState = observedState;
     evidence.mutationAttempted = mutationAttempted;
+    evidence.platformPrivilegePhase = platformPrivilegePhase;
     throw error;
   } finally {
+    if (client && platformPrivilegeRepairLockAcquired) {
+      try {
+        await releasePlatformPrivilegeRepairLock(client);
+      } catch {
+        // Releasing the dedicated connection below also releases session locks.
+      }
+    }
     client?.release();
     await dbModule?.pool.end();
     evidence.completedAt = new Date().toISOString();
@@ -2264,6 +3781,8 @@ async function main(): Promise<void> {
         FIELD_DEMO_OWNER_BINDING_VERSION ||
       FIELD_DEMO_OWNER_RECONCILE_CONFIRMATION !==
         "fieldgrid-staging-field-demo-owner-reconcile-v1" ||
+      FIELD_DEMO_PLATFORM_PRIVILEGE_REPAIR_CONFIRMATION !==
+        "fieldgrid-staging-field-demo-platform-privilege-repair-v1" ||
       !FIELD_DEMO_HOST.endsWith(".staging.fieldgrid.nl") ||
       !LEGACY_FIELD_DEMO_HOST.endsWith(".fieldgrid.nl")
     ) {

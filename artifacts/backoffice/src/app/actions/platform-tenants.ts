@@ -35,6 +35,7 @@ import {
   planLimitsTable,
   planModulesTable,
   plansTable,
+  platformUsersTable,
   sectorsTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
@@ -56,7 +57,16 @@ import {
   type TenantSubscriptionStatus,
   type TenantStatus,
 } from "@workspace/db";
-import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -64,7 +74,11 @@ import {
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import {
+  finalizePortalAuthorizationReservation,
+  findAuthUserByEmail,
+  provisionPortalUserForActivation,
+} from "@/lib/auth/portal-invites";
 import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
@@ -1040,6 +1054,8 @@ type TenantAuthUserInviteResult = {
   userId: string;
   deliveryStatus: "sent" | "existing_auth_user";
   deliveryMessage: string | null;
+  finalize: () => Promise<void>;
+  rollback: () => Promise<void>;
 };
 
 async function platformTenantAuthUsersById(
@@ -1072,24 +1088,15 @@ async function platformTenantAuthUsersById(
   }
 }
 
-async function findPlatformTenantAuthUserByEmail(
-  email: string,
-): Promise<{ id: string; email: string | null } | null> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-  if (error)
-    throw new Error(
-      `Auth-gebruiker kon niet worden opgezocht: ${error.message}`,
-    );
-
-  const normalizedEmail = normalizeEmail(email);
-  const user = data.users.find(
-    (candidate) => normalizeEmail(candidate.email ?? "") === normalizedEmail,
-  );
-  return user ? { id: user.id, email: user.email ?? null } : null;
+async function platformTenantAuthUserHasPlatformMembership(
+  userId: string,
+): Promise<boolean> {
+  const [membership] = await db
+    .select({ id: platformUsersTable.id })
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.userId, userId))
+    .limit(1);
+  return Boolean(membership);
 }
 
 async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
@@ -1101,6 +1108,25 @@ async function inviteOrFindTenantAuthUser(
   tenantId: string,
   actorUserId: string,
 ): Promise<TenantAuthUserInviteResult> {
+  let existingAuthUser: Awaited<
+    ReturnType<typeof findAuthUserByEmail>
+  >;
+  let existingAuthUserHasPlatformMembership: boolean;
+  try {
+    const admin = createAdminClient();
+    existingAuthUser = await findAuthUserByEmail(admin, email);
+    existingAuthUserHasPlatformMembership = existingAuthUser
+      ? await platformTenantAuthUserHasPlatformMembership(existingAuthUser.id)
+      : false;
+  } catch {
+    throw new Error("Auth-beheer kon niet veilig worden gecontroleerd.");
+  }
+  if (existingAuthUserHasPlatformMembership) {
+    throw new Error(
+      "Dit e-mailadres kan niet voor een tenantaccount worden uitgenodigd.",
+    );
+  }
+
   const loginUrl = await tenantAdminLoginUrl(tenantId);
   const invite = await provisionPortalUserForActivation({
     email,
@@ -1115,13 +1141,276 @@ async function inviteOrFindTenantAuthUser(
     actorUserId,
     allowExistingActive: true,
   });
+
+  let hasPlatformMembership: boolean;
+  try {
+    hasPlatformMembership = await platformTenantAuthUserHasPlatformMembership(
+      invite.user.id,
+    );
+  } catch {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw new Error(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : "De tenantuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+      );
+    }
+    throw new Error(
+      "De platformkoppeling kon niet veilig worden gecontroleerd.",
+    );
+  }
+  if (hasPlatformMembership) {
+    try {
+      await invite.rollback();
+    } catch (rollbackError) {
+      throw new Error(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : "De tenantuitnodiging is geweigerd, maar het Auth-herstel vereist handmatige controle.",
+      );
+    }
+    throw new Error(
+      "Dit e-mailadres kan niet voor een tenantaccount worden uitgenodigd.",
+    );
+  }
+
   return {
     userId: invite.user.id,
     deliveryStatus: "sent",
     deliveryMessage: invite.created
       ? null
       : "Nieuwe eenmalige activatiecode verstuurd naar bestaand auth-account.",
+    finalize: invite.finalize,
+    rollback: invite.rollback,
   };
+}
+
+type TenantAuthReservation = {
+  id: string;
+  tenantId: string;
+  userId: string;
+  role: string;
+  status: string;
+  invitationSource: TenantAuthInvitationSource | null;
+  invitationReservationId: string | null;
+};
+
+const PLATFORM_TENANT_ADMIN_INVITATION_SOURCE =
+  "platform_tenant_admin" as const;
+const PLATFORM_TENANT_OWNER_INVITATION_SOURCE =
+  "platform_tenant_owner" as const;
+type TenantAuthInvitationSource =
+  | typeof PLATFORM_TENANT_ADMIN_INVITATION_SOURCE
+  | typeof PLATFORM_TENANT_OWNER_INVITATION_SOURCE;
+
+async function reserveTenantAuthInvite(
+  tenantId: string,
+  userId: string,
+  role: string,
+  tenantRoleIds: string[],
+  invitationSource: TenantAuthInvitationSource,
+): Promise<TenantAuthReservation> {
+  const expectedTenantRoleIds = [...new Set(tenantRoleIds)].sort();
+  if (expectedTenantRoleIds.length === 0) {
+    throw new Error("Tenantautorisatie vereist minimaal één tenantrol.");
+  }
+  return db.transaction(async (tx) => {
+    const lockedRoles = await tx
+      .select({ id: tenantRolesTable.id })
+      .from(tenantRolesTable)
+      .where(
+        and(
+          eq(tenantRolesTable.tenantId, tenantId),
+          inArray(tenantRolesTable.id, expectedTenantRoleIds),
+        ),
+      )
+      .orderBy(asc(tenantRolesTable.id))
+      .for("key share");
+    if (
+      lockedRoles.length !== expectedTenantRoleIds.length ||
+      lockedRoles.some(
+        (lockedRole, index) => lockedRole.id !== expectedTenantRoleIds[index],
+      )
+    ) {
+      throw new Error("Een gereserveerde tenantrol bestaat niet meer.");
+    }
+
+    const [createdReservation] = await tx
+      .insert(tenantUsersTable)
+      .values({
+        tenantId,
+        userId,
+        role,
+        status: "invited",
+        invitationSource,
+        invitationReservationId: sql`gen_random_uuid()`,
+      })
+      .onConflictDoNothing({
+        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+      })
+      .returning({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (createdReservation) {
+      if (
+        createdReservation.invitationSource !== invitationSource ||
+        !createdReservation.invitationReservationId
+      ) {
+        throw new Error(
+          "Tenantautorisatie kreeg een onjuiste reserveringsbron.",
+        );
+      }
+      return { ...createdReservation, invitationSource };
+    }
+
+    const [existingReservation] = await tx
+      .select({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!existingReservation) {
+      throw new Error("Tenantautorisatie kon niet worden gereserveerd.");
+    }
+    if (
+      existingReservation.status === "active" &&
+      !(
+        (existingReservation.invitationSource === null &&
+          existingReservation.invitationReservationId === null) ||
+        (existingReservation.invitationSource === invitationSource &&
+          existingReservation.invitationReservationId !== null)
+      )
+    ) {
+      throw new Error(
+        "Een actieve tenantautorisatie is al door een andere uitnodigingsroute gereserveerd.",
+      );
+    }
+    if (existingReservation.status === "active") {
+      const [claimedActiveReservation] = await tx
+        .update(tenantUsersTable)
+        .set({
+          invitationSource,
+          invitationReservationId: sql`gen_random_uuid()`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(tenantUsersTable.id, existingReservation.id),
+            eq(tenantUsersTable.tenantId, tenantId),
+            eq(tenantUsersTable.userId, userId),
+            eq(tenantUsersTable.role, existingReservation.role),
+            eq(tenantUsersTable.status, "active"),
+            existingReservation.invitationSource === null
+              ? isNull(tenantUsersTable.invitationSource)
+              : eq(tenantUsersTable.invitationSource, invitationSource),
+            existingReservation.invitationReservationId === null
+              ? isNull(tenantUsersTable.invitationReservationId)
+              : eq(
+                  tenantUsersTable.invitationReservationId,
+                  existingReservation.invitationReservationId,
+                ),
+          ),
+        )
+        .returning({
+          id: tenantUsersTable.id,
+          tenantId: tenantUsersTable.tenantId,
+          userId: tenantUsersTable.userId,
+          role: tenantUsersTable.role,
+          status: tenantUsersTable.status,
+          invitationSource: tenantUsersTable.invitationSource,
+          invitationReservationId: tenantUsersTable.invitationReservationId,
+        });
+      if (!claimedActiveReservation?.invitationReservationId) {
+        throw new Error(
+          "Actieve tenantautorisatie kon niet atomair worden gereserveerd.",
+        );
+      }
+      return { ...claimedActiveReservation, invitationSource };
+    }
+    if (
+      existingReservation.role !== role ||
+      existingReservation.status !== "invited" ||
+      existingReservation.invitationSource !== invitationSource ||
+      !existingReservation.invitationReservationId
+    ) {
+      throw new Error(
+        "Een bestaande tenantuitnodiging kan niet door deze uitnodigingsroute worden overgenomen.",
+      );
+    }
+    const [claimedReservation] = await tx
+      .update(tenantUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantUsersTable.id, existingReservation.id),
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+          eq(tenantUsersTable.role, role),
+          eq(tenantUsersTable.status, "invited"),
+          eq(tenantUsersTable.invitationSource, invitationSource),
+          eq(
+            tenantUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({
+        id: tenantUsersTable.id,
+        tenantId: tenantUsersTable.tenantId,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (!claimedReservation?.invitationReservationId) {
+      throw new Error("Tenantautorisatie kon niet atomair worden herclaimd.");
+    }
+    return { ...claimedReservation, invitationSource };
+  });
+}
+
+function tenantAuthReservationPredicate(reservation: TenantAuthReservation) {
+  return and(
+    eq(tenantUsersTable.id, reservation.id),
+    eq(tenantUsersTable.tenantId, reservation.tenantId),
+    eq(tenantUsersTable.userId, reservation.userId),
+    eq(tenantUsersTable.role, reservation.role),
+    eq(tenantUsersTable.status, reservation.status),
+    reservation.invitationSource === null
+      ? isNull(tenantUsersTable.invitationSource)
+      : eq(tenantUsersTable.invitationSource, reservation.invitationSource),
+    reservation.invitationReservationId === null
+      ? isNull(tenantUsersTable.invitationReservationId)
+      : eq(
+          tenantUsersTable.invitationReservationId,
+          reservation.invitationReservationId,
+        ),
+  );
 }
 
 async function listTenantRoleOptions(
@@ -2480,39 +2769,54 @@ export async function addPlatformTenantAdmin(
   );
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(tenantUsersTable)
-      .values({
+  await finalizePortalAuthorizationReservation(invite, {
+    reserve: () =>
+      reserveTenantAuthInvite(
         tenantId,
-        userId: invite.userId,
-        role: accessRole,
-        status: "active",
-      })
-      .onConflictDoUpdate({
-        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-        set: { role: accessRole, status: "active", updatedAt: new Date() },
-      });
+        invite.userId,
+        accessRole,
+        roleSelection.roleIds,
+        PLATFORM_TENANT_ADMIN_INVITATION_SOURCE,
+      ),
+    activate: (reservation) =>
+      db.transaction(async (tx) => {
+        const [activatedMembership] = await tx
+          .update(tenantUsersTable)
+          .set({
+            role: accessRole,
+            status: "active",
+            invitationSource: null,
+            invitationReservationId: null,
+            updatedAt: new Date(),
+          })
+          .where(tenantAuthReservationPredicate(reservation))
+          .returning({ id: tenantUsersTable.id });
+        if (activatedMembership?.id !== reservation.id) {
+          throw new Error(
+            "De gereserveerde tenantbeheerder veranderde tijdens de uitnodiging.",
+          );
+        }
 
-    await tx
-      .delete(tenantUserRolesTable)
-      .where(
-        and(
-          eq(tenantUserRolesTable.tenantId, tenantId),
-          eq(tenantUserRolesTable.userId, invite.userId),
-        ),
-      );
+        await tx
+          .delete(tenantUserRolesTable)
+          .where(
+            and(
+              eq(tenantUserRolesTable.tenantId, tenantId),
+              eq(tenantUserRolesTable.userId, invite.userId),
+            ),
+          );
 
-    await tx
-      .insert(tenantUserRolesTable)
-      .values(
-        roleSelection.roleIds.map((tenantRoleId) => ({
-          tenantId,
-          userId: invite.userId,
-          tenantRoleId,
-        })),
-      )
-      .onConflictDoNothing();
+        await tx
+          .insert(tenantUserRolesTable)
+          .values(
+            roleSelection.roleIds.map((tenantRoleId) => ({
+              tenantId,
+              userId: invite.userId,
+              tenantRoleId,
+            })),
+          )
+          .onConflictDoNothing();
+      }),
   });
 
   await auditPlatformTenantAction({
@@ -2546,7 +2850,11 @@ export async function updatePlatformTenantAdmin(
 
   await assertTenantExists(tenantId);
   const [tenantUser] = await db
-    .select({ id: tenantUsersTable.id })
+    .select({
+      id: tenantUsersTable.id,
+      invitationSource: tenantUsersTable.invitationSource,
+      invitationReservationId: tenantUsersTable.invitationReservationId,
+    })
     .from(tenantUsersTable)
     .where(
       and(
@@ -2556,6 +2864,14 @@ export async function updatePlatformTenantAdmin(
     )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+  if (
+    tenantUser.invitationSource !== null ||
+    tenantUser.invitationReservationId !== null
+  ) {
+    throw new Error(
+      "Deze tenantuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
+    );
+  }
 
   const roleSelection = await resolveTenantRoleSelection(
     tenantId,
@@ -2565,15 +2881,28 @@ export async function updatePlatformTenantAdmin(
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
-    await tx
+    const [updatedMembership] = await tx
       .update(tenantUsersTable)
-      .set({ role: accessRole, status, updatedAt: new Date() })
+      .set({
+        role: accessRole,
+        status,
+        updatedAt: new Date(),
+      })
       .where(
         and(
+          eq(tenantUsersTable.id, tenantUser.id),
           eq(tenantUsersTable.tenantId, tenantId),
           eq(tenantUsersTable.userId, userId),
+          isNull(tenantUsersTable.invitationSource),
+          isNull(tenantUsersTable.invitationReservationId),
         ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (updatedMembership?.id !== tenantUser.id) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet handmatig worden gewijzigd.",
       );
+    }
 
     await tx
       .delete(tenantUserRolesTable)
@@ -2628,6 +2957,8 @@ export async function deletePlatformTenantAdmin(
       id: tenantUsersTable.id,
       role: tenantUsersTable.role,
       status: tenantUsersTable.status,
+      invitationSource: tenantUsersTable.invitationSource,
+      invitationReservationId: tenantUsersTable.invitationReservationId,
     })
     .from(tenantUsersTable)
     .where(
@@ -2638,8 +2969,42 @@ export async function deletePlatformTenantAdmin(
     )
     .limit(1);
   if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+  if (
+    tenantUser.invitationSource !== null ||
+    tenantUser.invitationReservationId !== null
+  ) {
+    throw new Error(
+      "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
+    );
+  }
 
   await db.transaction(async (tx) => {
+    const [lockedTenantUser] = await tx
+      .select({
+        id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.id, tenantUser.id),
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (
+      !lockedTenantUser ||
+      lockedTenantUser.invitationSource !== null ||
+      lockedTenantUser.invitationReservationId !== null
+    ) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
+      );
+    }
+
     await tx
       .delete(tenantUserRolesTable)
       .where(
@@ -2649,14 +3014,23 @@ export async function deletePlatformTenantAdmin(
         ),
       );
 
-    await tx
+    const [deletedMembership] = await tx
       .delete(tenantUsersTable)
       .where(
         and(
+          eq(tenantUsersTable.id, lockedTenantUser.id),
           eq(tenantUsersTable.tenantId, tenantId),
           eq(tenantUsersTable.userId, userId),
+          isNull(tenantUsersTable.invitationSource),
+          isNull(tenantUsersTable.invitationReservationId),
         ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (deletedMembership?.id !== lockedTenantUser.id) {
+      throw new Error(
+        "Deze tenantuitnodiging wordt nog afgerond en kan niet worden verwijderd.",
       );
+    }
   });
 
   await auditPlatformTenantAction({
@@ -2848,95 +3222,110 @@ export async function updatePlatformTenantOwnerInvite(
   );
   const now = new Date();
 
-  await db.transaction(async (tx) => {
-    if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
-      await tx
-        .update(tenantOwnerInvitesTable)
-        .set({
-          status: "rolled_back",
-          rollbackAt: now,
-          errorMessage: `Vervangen door ${email}.`,
-          updatedAt: now,
-          metadata: {
-            ...(existingInvite.metadata ?? {}),
-            replacedByEmail: email,
-            replacedByPlatformUserId: actor.userId,
-          },
-        })
-        .where(eq(tenantOwnerInvitesTable.id, existingInvite.id));
-    }
-
-    await tx
-      .insert(tenantOwnerInvitesTable)
-      .values({
+  await finalizePortalAuthorizationReservation(invite, {
+    reserve: () =>
+      reserveTenantAuthInvite(
         tenantId,
-        email,
-        userId: invite.userId,
-        status: "sent",
-        invitedBy: actor.userId,
-        inviteSentAt: now,
-        errorMessage: invite.deliveryMessage,
-        metadata: {
-          source: "platform_tenant_detail",
-          previousInviteId: existingInvite?.id ?? null,
-          deliveryStatus: invite.deliveryStatus,
-        },
-      })
-      .onConflictDoUpdate({
-        target: [
-          tenantOwnerInvitesTable.tenantId,
-          tenantOwnerInvitesTable.email,
-        ],
-        set: {
-          userId: invite.userId,
-          status: "sent",
-          invitedBy: actor.userId,
-          inviteSentAt: now,
-          rollbackAt: null,
-          errorMessage: invite.deliveryMessage,
-          updatedAt: now,
-          metadata: {
-            source: "platform_tenant_detail",
-            previousInviteId: existingInvite?.id ?? null,
-            deliveryStatus: invite.deliveryStatus,
-          },
-        },
-      });
+        invite.userId,
+        "owner",
+        roleSelection.roleIds,
+        PLATFORM_TENANT_OWNER_INVITATION_SOURCE,
+      ),
+    activate: (reservation) =>
+      db.transaction(async (tx) => {
+        const [activatedMembership] = await tx
+          .update(tenantUsersTable)
+          .set({
+            role: "owner",
+            status: "active",
+            invitationSource: null,
+            invitationReservationId: null,
+            updatedAt: now,
+          })
+          .where(tenantAuthReservationPredicate(reservation))
+          .returning({ id: tenantUsersTable.id });
+        if (activatedMembership?.id !== reservation.id) {
+          throw new Error(
+            "De gereserveerde tenantowner veranderde tijdens de uitnodiging.",
+          );
+        }
 
-    await tx
-      .insert(tenantUsersTable)
-      .values({
-        tenantId,
-        userId: invite.userId,
-        role: "owner",
-        status: "active",
-      })
-      .onConflictDoUpdate({
-        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-        set: { role: "owner", status: "active", updatedAt: now },
-      });
+        if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
+          await tx
+            .update(tenantOwnerInvitesTable)
+            .set({
+              status: "rolled_back",
+              rollbackAt: now,
+              errorMessage: `Vervangen door ${email}.`,
+              updatedAt: now,
+              metadata: {
+                ...(existingInvite.metadata ?? {}),
+                replacedByEmail: email,
+                replacedByPlatformUserId: actor.userId,
+              },
+            })
+            .where(eq(tenantOwnerInvitesTable.id, existingInvite.id));
+        }
 
-    await tx
-      .insert(tenantUserRolesTable)
-      .values(
-        roleSelection.roleIds.map((tenantRoleId) => ({
-          tenantId,
-          userId: invite.userId,
-          tenantRoleId,
-        })),
-      )
-      .onConflictDoNothing();
+        await tx
+          .insert(tenantOwnerInvitesTable)
+          .values({
+            tenantId,
+            email,
+            userId: invite.userId,
+            status: "sent",
+            invitedBy: actor.userId,
+            inviteSentAt: now,
+            errorMessage: invite.deliveryMessage,
+            metadata: {
+              source: "platform_tenant_detail",
+              previousInviteId: existingInvite?.id ?? null,
+              deliveryStatus: invite.deliveryStatus,
+            },
+          })
+          .onConflictDoUpdate({
+            target: [
+              tenantOwnerInvitesTable.tenantId,
+              tenantOwnerInvitesTable.email,
+            ],
+            set: {
+              userId: invite.userId,
+              status: "sent",
+              invitedBy: actor.userId,
+              inviteSentAt: now,
+              rollbackAt: null,
+              errorMessage: invite.deliveryMessage,
+              updatedAt: now,
+              metadata: {
+                source: "platform_tenant_detail",
+                previousInviteId: existingInvite?.id ?? null,
+                deliveryStatus: invite.deliveryStatus,
+              },
+            },
+          });
 
-    await tx
-      .update(tenantProvisioningRunsTable)
-      .set({
-        ownerEmail: email,
-        ownerUserId: invite.userId,
-        ownerInviteStatus: "sent",
-        errorMessage: null,
-        updatedAt: now,
-      })
-      .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
+        await tx
+          .insert(tenantUserRolesTable)
+          .values(
+            roleSelection.roleIds.map((tenantRoleId) => ({
+              tenantId,
+              userId: invite.userId,
+              tenantRoleId,
+            })),
+          )
+          .onConflictDoNothing();
+
+        await tx
+          .update(tenantProvisioningRunsTable)
+          .set({
+            ownerEmail: email,
+            ownerUserId: invite.userId,
+            ownerInviteStatus: "sent",
+            errorMessage: null,
+            updatedAt: now,
+          })
+          .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
+      }),
   });
 
   await auditPlatformTenantAction({

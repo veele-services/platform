@@ -145,6 +145,12 @@ function roleList(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function normalizePolicyExpression(value) {
+  return typeof value === "string"
+    ? value.replace(/\s+/gu, " ").trim()
+    : null;
+}
+
 async function assertIdentityAndTopology(client) {
   const identity = await client.query(`
     select
@@ -426,10 +432,17 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
       policy.polcmd,
       policy.polpermissive,
       array(
-        select role_row.rolname::text
-        from unnest(policy.polroles) role_oid
-        join pg_catalog.pg_roles role_row on role_row.oid = role_oid
-        order by role_row.rolname
+        select coalesce(
+          role_row.rolname::text,
+          case
+            when policy_role.role_oid = 0 then 'PUBLIC'
+            else pg_catalog.format('oid:%s', policy_role.role_oid)
+          end
+        )
+        from unnest(policy.polroles) as policy_role(role_oid)
+        left join pg_catalog.pg_roles role_row
+          on role_row.oid = policy_role.role_oid
+        order by 1
       ) as roles,
       pg_catalog.pg_get_expr(policy.polqual, policy.polrelid) as using_expression,
       pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid) as check_expression
@@ -493,30 +506,49 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
     );
   }
 
-  const serverOnlyPolicyRoles = await client.query(`
+  const serverOnlyPolicies = await client.query(`
     select relation.relname::text as relation_name,
            policy.polname::text as policy_name,
+           policy.polcmd,
+           policy.polpermissive,
            array(
-             select role_row.rolname::text
-             from unnest(policy.polroles) role_oid
-             join pg_catalog.pg_roles role_row on role_row.oid = role_oid
-             order by role_row.rolname
-           ) as roles
+             select coalesce(
+               role_row.rolname::text,
+               case
+                 when policy_role.role_oid = 0 then 'PUBLIC'
+                 else pg_catalog.format('oid:%s', policy_role.role_oid)
+               end
+             )
+             from unnest(policy.polroles) as policy_role(role_oid)
+             left join pg_catalog.pg_roles role_row
+               on role_row.oid = policy_role.role_oid
+             order by 1
+           ) as roles,
+           pg_catalog.pg_get_expr(policy.polqual, policy.polrelid) as using_expression,
+           pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid) as check_expression
     from pg_catalog.pg_policy policy
     join pg_catalog.pg_class relation on relation.oid = policy.polrelid
     join pg_catalog.pg_namespace namespace_row
       on namespace_row.oid = relation.relnamespace
     where namespace_row.nspname = 'public'
       and relation.relname = any($1::text[])
+    order by relation.relname, policy.polname
   `, [serverOnlyRelations]);
   const expectedServerPolicies = new Map();
+  const expectedUnrestrictedPolicy = (operation, role) => ({
+    role,
+    command: policyCommand[operation],
+    permissive: true,
+    usingExpression: operation === "INSERT" ? null : "true",
+    checkExpression: ["INSERT", "UPDATE"].includes(operation) ? "true" : null,
+  });
   for (const relationName of serverOnlyRelations) {
     const capability = relations.get(`public.${relationName}`);
     if (["direct", "indirect"].includes(capability?.mode)) {
       for (const operation of capability.privileges) {
         expectedServerPolicies.set(
           `${relationName}:fieldgrid_runtime_data_${operation.toLowerCase()}`,
-          CAPABILITY_ROLE,
+          expectedUnrestrictedPolicy(operation, CAPABILITY_ROLE),
         );
       }
     }
@@ -527,27 +559,54 @@ async function assertRelationClosure(client, relations, migrationAdministrator) 
       for (const operation of adminOperations) {
         expectedServerPolicies.set(
           `${relationName}:fieldgrid_migration_admin_compat_${operation.toLowerCase()}`,
-          migrationAdministrator,
+          expectedUnrestrictedPolicy(operation, migrationAdministrator),
         );
       }
     }
   }
+  expectedServerPolicies.set(
+    "platform_users:fieldgrid_migration_admin_platform_overlap_delete",
+    {
+      role: migrationAdministrator,
+      command: policyCommand.DELETE,
+      permissive: true,
+      usingExpression: normalizePolicyExpression(`
+        (((role)::text = 'owner'::text)
+          AND ((status)::text = 'suspended'::text)
+          AND (EXISTS (
+            SELECT 1
+            FROM tenant_users tenant_membership
+            WHERE ((tenant_membership.user_id = platform_users.user_id)
+              AND ((tenant_membership.status)::text = 'active'::text)))))
+      `),
+      checkExpression: null,
+    },
+  );
   assertSetEqual(
-    new Set(serverOnlyPolicyRoles.rows.map(
+    new Set(serverOnlyPolicies.rows.map(
       (row) => `${row.relation_name}:${row.policy_name}`,
     )),
     new Set(expectedServerPolicies.keys()),
     "server-only policy closure",
   );
-  assert(
-    serverOnlyPolicyRoles.rows.every(
-      (row) => row.roles.length === 1
-        && row.roles[0] === expectedServerPolicies.get(
-          `${row.relation_name}:${row.policy_name}`,
-        ),
-    ),
-    "A server-only policy targets an unexpected principal.",
-  );
+  for (const row of serverOnlyPolicies.rows) {
+    const key = `${row.relation_name}:${row.policy_name}`;
+    const expected = expectedServerPolicies.get(key);
+    const roles = roleList(row.roles);
+    assert(
+      expected
+        && row.polcmd === expected.command
+        && row.polpermissive === expected.permissive
+        && roles.length === 1
+        && roles[0] === expected.role,
+      `Server-only policy metadata has drifted on ${key}.`,
+    );
+    assert(
+      normalizePolicyExpression(row.using_expression) === expected.usingExpression
+        && normalizePolicyExpression(row.check_expression) === expected.checkExpression,
+      `Server-only policy expression has drifted on ${key}.`,
+    );
+  }
 
   const browserAcl = await client.query(`
     select principal.role_name, target.relation_name, operation.privilege

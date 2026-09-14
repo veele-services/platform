@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "./index";
 import { isPlatformHost, normalizeHost } from "./tenant-context";
 import {
@@ -34,6 +34,8 @@ import {
 } from "./schema";
 
 const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
+const TENANT_PROVISIONING_OWNER_INVITATION_SOURCE =
+  "tenant_provisioning_owner" as const;
 const OWNER_ROLE_NAMES = [
   "Management",
   "Owner",
@@ -620,6 +622,142 @@ export async function provisionTenant(
   }
 }
 
+export type ProvisionedTenantOwnerAuthorizationReservation = {
+  id: string;
+  invitationSource: typeof TENANT_PROVISIONING_OWNER_INVITATION_SOURCE;
+  invitationReservationId: string;
+};
+
+export async function reserveProvisionedTenantOwnerInvite(input: {
+  tenantId: string;
+  runId: string;
+  ownerUserId: string;
+}): Promise<ProvisionedTenantOwnerAuthorizationReservation> {
+  return db.transaction(async (tx) => {
+    const [tenant] = await tx
+      .select({ id: tenantsTable.id })
+      .from(tenantsTable)
+      .where(eq(tenantsTable.id, input.tenantId))
+      .limit(1);
+    if (!tenant) throw new Error("Tenant niet gevonden voor owner invite.");
+
+    const [run] = await tx
+      .select({ id: tenantProvisioningRunsTable.id })
+      .from(tenantProvisioningRunsTable)
+      .where(
+        and(
+          eq(tenantProvisioningRunsTable.id, input.runId),
+          eq(tenantProvisioningRunsTable.tenantId, input.tenantId),
+          eq(tenantProvisioningRunsTable.status, "succeeded"),
+          eq(tenantProvisioningRunsTable.currentStep, "owner_invite_pending"),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!run) {
+      throw new Error("Provisioningrun is niet gereed voor de owner invite.");
+    }
+
+    const [createdReservation] = await tx
+      .insert(tenantUsersTable)
+      .values({
+        tenantId: input.tenantId,
+        userId: input.ownerUserId,
+        role: "owner",
+        status: "invited",
+        invitationSource: TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,
+        invitationReservationId: sql`gen_random_uuid()`,
+      })
+      .onConflictDoNothing({
+        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+      })
+      .returning({
+        id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (
+      createdReservation?.invitationSource ===
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE &&
+      createdReservation.invitationReservationId
+    ) {
+      return {
+        id: createdReservation.id,
+        invitationSource: createdReservation.invitationSource,
+        invitationReservationId: createdReservation.invitationReservationId,
+      };
+    }
+
+    const [existingReservation] = await tx
+      .select({
+        id: tenantUsersTable.id,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, input.tenantId),
+          eq(tenantUsersTable.userId, input.ownerUserId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (
+      !existingReservation ||
+      existingReservation.role !== "owner" ||
+      existingReservation.status !== "invited" ||
+      existingReservation.invitationSource !==
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE ||
+      !existingReservation.invitationReservationId
+    ) {
+      throw new Error("Ownerautorisatie kon niet veilig worden gereserveerd.");
+    }
+    const [claimedReservation] = await tx
+      .update(tenantUsersTable)
+      .set({
+        invitationReservationId: sql`gen_random_uuid()`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantUsersTable.id, existingReservation.id),
+          eq(tenantUsersTable.tenantId, input.tenantId),
+          eq(tenantUsersTable.userId, input.ownerUserId),
+          eq(tenantUsersTable.role, "owner"),
+          eq(tenantUsersTable.status, "invited"),
+          eq(
+            tenantUsersTable.invitationSource,
+            TENANT_PROVISIONING_OWNER_INVITATION_SOURCE,
+          ),
+          eq(
+            tenantUsersTable.invitationReservationId,
+            existingReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({
+        id: tenantUsersTable.id,
+        invitationSource: tenantUsersTable.invitationSource,
+        invitationReservationId: tenantUsersTable.invitationReservationId,
+      });
+    if (
+      claimedReservation?.invitationSource !==
+        TENANT_PROVISIONING_OWNER_INVITATION_SOURCE ||
+      !claimedReservation.invitationReservationId
+    ) {
+      throw new Error("Ownerautorisatie kon niet atomair worden herclaimd.");
+    }
+    return {
+      id: claimedReservation.id,
+      invitationSource: claimedReservation.invitationSource,
+      invitationReservationId: claimedReservation.invitationReservationId,
+    };
+  });
+}
+
 export async function completeProvisionedTenantOwnerInvite(input: {
   tenantId: string;
   runId: string;
@@ -627,6 +765,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
   ownerUserId: string;
   invitedBy: string;
   ownerInviteStatus?: "sent" | "accepted";
+  authorizationReservation: ProvisionedTenantOwnerAuthorizationReservation;
 }): Promise<void> {
   const email = input.ownerEmail.trim().toLowerCase();
   const ownerInviteStatus = input.ownerInviteStatus ?? "sent";
@@ -639,18 +778,52 @@ export async function completeProvisionedTenantOwnerInvite(input: {
       .limit(1);
     if (!tenant) throw new Error("Tenant niet gevonden voor owner invite.");
 
-    await tx
-      .insert(tenantUsersTable)
-      .values({
-        tenantId: input.tenantId,
-        userId: input.ownerUserId,
+    const [run] = await tx
+      .select({ id: tenantProvisioningRunsTable.id })
+      .from(tenantProvisioningRunsTable)
+      .where(
+        and(
+          eq(tenantProvisioningRunsTable.id, input.runId),
+          eq(tenantProvisioningRunsTable.tenantId, input.tenantId),
+          eq(tenantProvisioningRunsTable.currentStep, "owner_invite_pending"),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!run) throw new Error("Provisioningrun hoort niet bij deze tenant.");
+
+    const [activatedMembership] = await tx
+      .update(tenantUsersTable)
+      .set({
         role: "owner",
         status: "active",
+        invitationSource: null,
+        invitationReservationId: null,
+        updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
-        set: { role: "owner", status: "active", updatedAt: new Date() },
-      });
+      .where(
+        and(
+          eq(tenantUsersTable.id, input.authorizationReservation.id),
+          eq(tenantUsersTable.tenantId, input.tenantId),
+          eq(tenantUsersTable.userId, input.ownerUserId),
+          eq(tenantUsersTable.role, "owner"),
+          eq(tenantUsersTable.status, "invited"),
+          eq(
+            tenantUsersTable.invitationSource,
+            input.authorizationReservation.invitationSource,
+          ),
+          eq(
+            tenantUsersTable.invitationReservationId,
+            input.authorizationReservation.invitationReservationId,
+          ),
+        ),
+      )
+      .returning({ id: tenantUsersTable.id });
+    if (activatedMembership?.id !== input.authorizationReservation.id) {
+      throw new Error(
+        "De gereserveerde ownerautorisatie veranderde tijdens de uitnodiging.",
+      );
+    }
 
     const tenantRoles = await tx
       .select({ id: tenantRolesTable.id, name: tenantRolesTable.name })
@@ -702,7 +875,7 @@ export async function completeProvisionedTenantOwnerInvite(input: {
         },
       });
 
-    await tx
+    const [completedRun] = await tx
       .update(tenantProvisioningRunsTable)
       .set({
         ownerEmail: email,
@@ -711,7 +884,16 @@ export async function completeProvisionedTenantOwnerInvite(input: {
         currentStep: "completed",
         updatedAt: new Date(),
       })
-      .where(eq(tenantProvisioningRunsTable.id, input.runId));
+      .where(
+        and(
+          eq(tenantProvisioningRunsTable.id, input.runId),
+          eq(tenantProvisioningRunsTable.tenantId, input.tenantId),
+        ),
+      )
+      .returning({ id: tenantProvisioningRunsTable.id });
+    if (completedRun?.id !== input.runId) {
+      throw new Error("Provisioningrun kon niet exact worden afgerond.");
+    }
   });
 }
 

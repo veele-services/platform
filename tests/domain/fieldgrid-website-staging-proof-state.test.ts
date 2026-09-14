@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
   CUSTOM_PROOF_HOST,
   FIELD_DEMO_FIXTURE_MARKER,
   FIELD_DEMO_FIXTURE_VERSION,
@@ -12,6 +13,7 @@ import {
   MANAGED_PROOF_SLUG,
   WEBSITE_STAGING_PROOF_STATE_VERSION,
   WEBSITE_STAGING_PROOF_MARKER,
+  authorizationInvitationReservationMigrationIsExact,
   decideFieldDemoFixture,
   ensureFieldDemoFixture,
   fieldDemoOwnerFailureReason,
@@ -35,7 +37,9 @@ const UUID_PATTERN_FOR_TEST =
 
 const fieldDemoTenantId = "10000000-0000-4000-8000-000000000040";
 const fieldDemoRunId = "10000000-0000-4000-8000-000000000041";
+const fieldDemoTenantUserId = "10000000-0000-4000-8000-000000000042";
 const fieldDemoOwnerUserId = "10000000-0000-4000-8000-000000000043";
+const fieldDemoReservationId = "10000000-0000-4000-8000-000000000044";
 const exactFieldDemoOwnerCandidate = {
   user_id: fieldDemoOwnerUserId,
   is_deleted: false,
@@ -422,6 +426,7 @@ function fieldDemoDatabaseDouble(
 ) {
   const events: string[] = [];
   const provisionInputs: Array<Record<string, unknown>> = [];
+  const reservationInputs: Array<Record<string, unknown>> = [];
   const completionInputs: Array<Record<string, unknown>> = [];
   const rollbackInputs: Array<Record<string, unknown>> = [];
   let queryIndex = 0;
@@ -447,6 +452,15 @@ function fieldDemoDatabaseDouble(
         ownerEmail: FIELD_DEMO_OWNER_EMAIL,
       };
     },
+    async reserveProvisionedTenantOwnerInvite(input: Record<string, unknown>) {
+      events.push("reserve-owner");
+      reservationInputs.push(input);
+      return {
+        id: fieldDemoTenantUserId,
+        invitationSource: "tenant_provisioning_owner",
+        invitationReservationId: fieldDemoReservationId,
+      };
+    },
     async completeProvisionedTenantOwnerInvite(input: Record<string, unknown>) {
       events.push("complete-owner");
       completionInputs.push(input);
@@ -463,6 +477,7 @@ function fieldDemoDatabaseDouble(
     database,
     events,
     provisionInputs,
+    reservationInputs,
     completionInputs,
     rollbackInputs,
   };
@@ -496,7 +511,7 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
   assert.equal(result.tenantId, fieldDemoTenantId);
   assert.deepEqual(
     testDouble.events.filter((event) => !event.startsWith("query-")),
-    ["provision", "complete-owner"],
+    ["provision", "reserve-owner", "complete-owner"],
   );
   assert.equal(testDouble.events[0], "query-0");
   assert.equal(
@@ -504,6 +519,13 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
     FIELD_DEMO_OWNER_EMAIL,
   );
   assert.equal("moduleKeys" in testDouble.provisionInputs[0]!, false);
+  assert.deepEqual(testDouble.reservationInputs, [
+    {
+      tenantId: fieldDemoTenantId,
+      runId: fieldDemoRunId,
+      ownerUserId: fieldDemoOwnerUserId,
+    },
+  ]);
   assert.deepEqual(testDouble.completionInputs, [
     {
       tenantId: fieldDemoTenantId,
@@ -512,6 +534,11 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
       ownerUserId: fieldDemoOwnerUserId,
       invitedBy: actor,
       ownerInviteStatus: "accepted",
+      authorizationReservation: {
+        id: fieldDemoTenantUserId,
+        invitationSource: "tenant_provisioning_owner",
+        invitationReservationId: fieldDemoReservationId,
+      },
     },
   ]);
   assert.equal(testDouble.rollbackInputs.length, 0);
@@ -539,6 +566,7 @@ test("field-demo performs no mutation for every invalid owner state", async () =
     );
     assert.deepEqual(testDouble.events, ["query-0"]);
     assert.equal(testDouble.provisionInputs.length, 0);
+    assert.equal(testDouble.reservationInputs.length, 0);
     assert.equal(testDouble.completionInputs.length, 0);
     assert.equal(testDouble.rollbackInputs.length, 0);
   }
@@ -566,7 +594,7 @@ test("field-demo rolls back its exact tenant when owner completion fails", async
   );
   assert.deepEqual(
     testDouble.events.filter((event) => !event.startsWith("query-")),
-    ["provision", "complete-owner", "rollback"],
+    ["provision", "reserve-owner", "complete-owner", "rollback"],
   );
   assert.equal(testDouble.rollbackInputs.length, 1);
   assert.equal(testDouble.rollbackInputs[0]?.tenantId, fieldDemoTenantId);
@@ -601,7 +629,7 @@ test("field-demo rolls back its exact tenant when the final owner-role check fai
   );
   assert.deepEqual(
     testDouble.events.filter((event) => !event.startsWith("query-")),
-    ["provision", "complete-owner", "rollback"],
+    ["provision", "reserve-owner", "complete-owner", "rollback"],
   );
   assert.equal(testDouble.rollbackInputs.length, 1);
 });
@@ -623,6 +651,35 @@ function baseEnvironment() {
       "website-staging-prepare-managed",
   };
 }
+
+test("prepare-managed requires the exact executed reservation migration", () => {
+  const hash = "b".repeat(64);
+  assert.equal(
+    AUTHORIZATION_INVITATION_RESERVATION_MIGRATION_NAME,
+    "20260913171000_bind_active_tenant_invitation_reservations.sql",
+  );
+  assert.equal(
+    authorizationInvitationReservationMigrationIsExact(
+      [{ hash, baselined: false }],
+      hash,
+    ),
+    true,
+  );
+  for (const records of [
+    [],
+    [{ hash: "c".repeat(64), baselined: false }],
+    [{ hash, baselined: true }],
+    [
+      { hash, baselined: false },
+      { hash, baselined: false },
+    ],
+  ]) {
+    assert.equal(
+      authorizationInvitationReservationMigrationIsExact(records, hash),
+      false,
+    );
+  }
+});
 
 test("prepare-managed is exact-main, explicit and independent of custom routing", () => {
   assert.equal(MANAGED_PROOF_HOST, "managed-proof-w00-v2.staging.fieldgrid.nl");
