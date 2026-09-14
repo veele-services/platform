@@ -246,23 +246,41 @@ Require exact-head CI on the Phase 9 PR with zero failed, cancelled or pending
 authoritative checks. Squash-merge only after human review. Record the squash
 main SHA.
 
-### 2. Apply the reservation frontier and repair field-demo privilege
+### 2. Preserve the existing owner and prepare the domain
 
-After the exact main merge, dispatch **Field-demo Staging Owner Binding
-Repair** from `main` with:
+Existing `field-demo` ownership comes from its tenant membership, not the
+reserved bootstrap email. Do not move the reserved account from another
+tenant or remove that account's platform privilege to satisfy a deploy check.
+The old `repair-platform-privilege` operation remains an explicit, separately
+reviewed recovery for its exact fixed identity; it is not a prerequisite for
+deploying an already valid tenant with a different owner.
 
-- `operation`: `repair-platform-privilege`;
+The reviewed prerequisite migrations through
+`20260913171000_bind_active_tenant_invitation_reservations.sql` must already
+be executed with their exact hashes, never baselined. In the September 14
+rollout, run `34828691221` applied that frontier before its owner precondition
+failed; that is migration evidence, not successful owner-repair evidence.
+The proof-state workflow independently verifies the reservation-migration hash
+before actor or fixture reads. If this gate fails on another environment,
+stop for a reviewed migration operation; do not use a fixed-account repair
+merely to advance the migration frontier.
+
+Dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
+
+- `operation`: `diagnose`, then `repair` only for
+  `legacy-domain-needs-migration`;
 - `expected_main_sha`: the exact remote main head;
-- `confirmation`:
-  `fieldgrid-staging-field-demo-platform-privilege-repair-v1`.
+- `confirmation`: `fieldgrid-staging-field-demo-domain-repair-v1`.
 
-This operation acquires the database migration lock, applies only the exact
-reviewed contiguous prerequisite suffix through
-`20260913171000_bind_active_tenant_invitation_reservations.sql`, records each
-migration as executed (never baselined), and then removes the one reviewed
-field-demo platform privilege. Stop unless its secret-free evidence reports
-`platform-privilege-removed`. The proof-state workflow independently verifies
-the exact reservation-migration hash before it can create or update a fixture.
+The read-only owner prerequisite requires exactly one active owner membership,
+a confirmed, password-enabled, non-anonymous authenticated user with a matching
+email identity, no foreign tenant membership, no platform/global role, and
+exact tenant-scoped Management permissions (neither missing nor extra).
+Ambiguous owners, inactive owners and invalid rights stop without account
+mutation or bootstrap fallback. An unrelated reserved account is not consulted.
+The domain operation retains its existing locks, dependency checks, audit and
+postconditions; only the exact legacy hostname can change. Require
+`already-valid` or a successful repair with a valid postcheck before step 3.
 
 ### 3. Prepare the managed proof and principal fixture
 
@@ -287,6 +305,13 @@ the existing `field-demo.staging.fieldgrid.nl` and new
 automation actor UUID. It contains no email address, upstream, credential or
 other PII. Download it only for the W00 principal proof and delete it after use.
 This operation cannot register, approve or activate a custom release.
+
+For an existing `field-demo`, preparation reuses and rechecks the same
+tenant-scoped owner predicate used by domain diagnosis. It never provisions,
+rebinds, invites or deletes that owner. Only proven absence of both the tenant
+slug and hostname enters the existing reserved-account bootstrap; its exact
+invitation reservation, provisioning evidence and final owner-ID check remain
+mandatory. No password, email, owner UUID or Auth metadata is added to evidence.
 
 ### 4. Backup, isolated restore and migration rehearsal
 

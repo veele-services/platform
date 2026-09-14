@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { fieldDemoExistingOwnerQuery } from "./fieldgrid-staging-existing-owner.mts";
 
 export const WEBSITE_STAGING_PROOF_STATE_VERSION =
   "fieldgrid-website-staging-proof-state-v1";
@@ -13,6 +14,7 @@ export const MANAGED_PROOF_URL = `https://${MANAGED_PROOF_HOST}/`;
 export const MANAGED_PROOF_SLUG = "managed-proof-w00-v2";
 export const FIELD_DEMO_HOST = "field-demo.staging.fieldgrid.nl";
 export const FIELD_DEMO_SLUG = "field-demo";
+
 export const FIELD_DEMO_OWNER_EMAIL = "info@dgwebservices.nl";
 export const FIELD_DEMO_FIXTURE_VERSION =
   "fieldgrid-staging-field-demo-fixture-v1";
@@ -799,6 +801,7 @@ async function assertFieldDemoPrerequisite(
     | "field_demo_fixture_recheck"
   >,
   expectedTenantId?: string,
+  expectedOwnerUserId?: string,
 ): Promise<RuntimeTenant> {
   let runtime: RuntimeTenant;
   try {
@@ -871,65 +874,15 @@ async function assertFieldDemoPrerequisite(
            AND plan.key = 'enterprise'
            AND plan.is_active = true)
          AS active_enterprise_subscription_count,
-       (SELECT COUNT(*)::integer
-          FROM public.tenant_users AS membership
-          JOIN auth.users AS owner ON owner.id = membership.user_id
-         WHERE membership.tenant_id = $1
-           AND membership.role = 'owner'
-           AND membership.status = 'active'
-           AND lower(owner.email) = lower($2)
-           AND owner.email_confirmed_at IS NOT NULL
-           AND length(owner.encrypted_password) > 0
-           AND owner.is_anonymous = false
-           AND owner.aud = 'authenticated'
-           AND owner.role = 'authenticated'
-           AND owner.deleted_at IS NULL
-           AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
-         AS expected_owner_count,
-       (SELECT COUNT(*)::integer
-          FROM public.tenant_users AS membership
-          JOIN auth.users AS owner ON owner.id = membership.user_id
-         WHERE membership.tenant_id = $1
-           AND membership.role = 'owner'
-           AND membership.status = 'active'
-           AND lower(owner.email) = lower($2)
-           AND owner.email_confirmed_at IS NOT NULL
-           AND length(owner.encrypted_password) > 0
-           AND owner.is_anonymous = false
-           AND owner.aud = 'authenticated'
-           AND owner.role = 'authenticated'
-           AND owner.deleted_at IS NULL
-           AND (owner.banned_until IS NULL OR owner.banned_until <= now())
-           AND EXISTS (
-             SELECT 1
-             FROM public.tenant_user_roles AS user_role
-             JOIN public.tenant_roles AS tenant_role
-               ON tenant_role.id = user_role.tenant_role_id
-              AND tenant_role.tenant_id = user_role.tenant_id
-             JOIN public.roles AS template_role
-               ON template_role.id = tenant_role.template_role_id
-              AND template_role.name = 'Management'
-             WHERE user_role.tenant_id = membership.tenant_id
-               AND user_role.user_id = membership.user_id
-               AND EXISTS (
-                 SELECT 1
-                 FROM public.role_permissions AS expected_permission
-                 WHERE expected_permission.role_id = template_role.id
-               )
-               AND NOT EXISTS (
-                 SELECT 1
-                 FROM public.role_permissions AS expected_permission
-                 WHERE expected_permission.role_id = template_role.id
-                   AND NOT EXISTS (
-                     SELECT 1
-                     FROM public.tenant_role_permissions AS actual_permission
-                     WHERE actual_permission.tenant_role_id = tenant_role.id
-                       AND actual_permission.permission_id =
-                         expected_permission.permission_id
-                   )
-               )
-           )) AS expected_owner_management_role_count`,
-    [runtime.tenantId, FIELD_DEMO_OWNER_EMAIL],
+       owner_state.expected_owner_count,
+       owner_state.expected_owner_management_role_count
+     FROM (${fieldDemoExistingOwnerQuery("$1")}) AS owner_state
+     WHERE $2::uuid IS NULL OR EXISTS (
+       SELECT 1 FROM public.tenant_users AS membership
+        WHERE membership.tenant_id = $1 AND membership.user_id = $2::uuid
+          AND membership.role = 'owner' AND membership.status = 'active'
+     )`,
+    [runtime.tenantId, expectedOwnerUserId ?? null],
   );
   if (invariants.rows.length !== 1) {
     throw new ProofStateError(
@@ -954,7 +907,7 @@ async function assertFieldDemoPrerequisite(
   if (invariant.expected_owner_count !== 1) {
     throw new ProofStateError(
       "field_demo_owner_invalid",
-      "Field-demo reserved pilot owner is not exact",
+      "Field-demo existing tenant owner is not exact",
       failureStage,
       "field_demo",
     );
@@ -962,7 +915,7 @@ async function assertFieldDemoPrerequisite(
   if (invariant.expected_owner_management_role_count !== 1) {
     throw new ProofStateError(
       "field_demo_owner_invalid",
-      "Field-demo reserved pilot owner permissions are not exact",
+      "Field-demo existing tenant owner permissions are not exact",
       failureStage,
       "field_demo",
     );
@@ -984,6 +937,7 @@ async function findFieldDemoFixture(
     ProofFailureStage,
     "field_demo_candidate" | "field_demo_post_provision"
   >,
+  expectedOwnerUserId?: string,
 ): Promise<RuntimeTenant | null> {
   const presenceResult = await queryable.query<FieldDemoFixturePresence>(
     `SELECT
@@ -1029,65 +983,10 @@ async function findFieldDemoFixture(
                 AND plan.key = 'enterprise'
                 AND plan.is_active = true)
               AS active_enterprise_subscription_count,
-            (SELECT COUNT(*)::integer
-               FROM public.tenant_users AS membership
-               JOIN auth.users AS owner ON owner.id = membership.user_id
-              WHERE membership.tenant_id = tenant.id
-                AND membership.role = 'owner'
-                AND membership.status = 'active'
-                AND lower(owner.email) = lower($3)
-                AND owner.email_confirmed_at IS NOT NULL
-                AND length(owner.encrypted_password) > 0
-                AND owner.is_anonymous = false
-                AND owner.aud = 'authenticated'
-                AND owner.role = 'authenticated'
-                AND owner.deleted_at IS NULL
-                AND (owner.banned_until IS NULL OR owner.banned_until <= now()))
-              AS expected_owner_count,
-            (SELECT COUNT(*)::integer
-               FROM public.tenant_users AS membership
-               JOIN auth.users AS owner ON owner.id = membership.user_id
-              WHERE membership.tenant_id = tenant.id
-                AND membership.role = 'owner'
-                AND membership.status = 'active'
-                AND lower(owner.email) = lower($3)
-                AND owner.email_confirmed_at IS NOT NULL
-                AND length(owner.encrypted_password) > 0
-                AND owner.is_anonymous = false
-                AND owner.aud = 'authenticated'
-                AND owner.role = 'authenticated'
-                AND owner.deleted_at IS NULL
-                AND (owner.banned_until IS NULL OR owner.banned_until <= now())
-                AND EXISTS (
-                  SELECT 1
-                  FROM public.tenant_user_roles AS user_role
-                  JOIN public.tenant_roles AS tenant_role
-                    ON tenant_role.id = user_role.tenant_role_id
-                   AND tenant_role.tenant_id = user_role.tenant_id
-                  JOIN public.roles AS template_role
-                    ON template_role.id = tenant_role.template_role_id
-                   AND template_role.name = 'Management'
-                  WHERE user_role.tenant_id = membership.tenant_id
-                    AND user_role.user_id = membership.user_id
-                    AND EXISTS (
-                      SELECT 1
-                      FROM public.role_permissions AS expected_permission
-                      WHERE expected_permission.role_id = template_role.id
-                    )
-                    AND NOT EXISTS (
-                      SELECT 1
-                      FROM public.role_permissions AS expected_permission
-                      WHERE expected_permission.role_id = template_role.id
-                        AND NOT EXISTS (
-                          SELECT 1
-                          FROM public.tenant_role_permissions AS actual_permission
-                          WHERE actual_permission.tenant_role_id = tenant_role.id
-                            AND actual_permission.permission_id =
-                              expected_permission.permission_id
-                        )
-                    )
-                )) AS expected_owner_management_role_count
+            owner_state.expected_owner_count,
+            owner_state.expected_owner_management_role_count
      FROM public.tenants AS tenant
+     CROSS JOIN LATERAL (${fieldDemoExistingOwnerQuery("tenant.id")}) AS owner_state
      LEFT JOIN LATERAL (
        SELECT
          (COUNT(*) FILTER (WHERE domain.is_primary = true))::integer
@@ -1109,7 +1008,7 @@ async function findFieldDemoFixture(
      ) AS domains ON true
      WHERE tenant.slug = $1 OR domains.exact_domain_count > 0
      ORDER BY tenant.id`,
-    [FIELD_DEMO_SLUG, FIELD_DEMO_HOST, FIELD_DEMO_OWNER_EMAIL],
+    [FIELD_DEMO_SLUG, FIELD_DEMO_HOST],
   );
   const decision = decideFieldDemoFixture(presenceResult.rows[0]!, result.rows);
   if (decision.action === "provision") return null;
@@ -1127,6 +1026,7 @@ async function findFieldDemoFixture(
     queryable,
     failureStage,
     candidate.tenant_id,
+    expectedOwnerUserId,
   );
 }
 
@@ -1204,13 +1104,14 @@ export async function ensureFieldDemoFixture(
   expectedSha: string,
   changeReference: string,
 ): Promise<RuntimeTenant> {
-  const ownerUserId = await resolveFieldDemoOwnerUser(dbModule.pool);
   const existing = await findFieldDemoFixture(
     dbModule.pool,
     "field_demo_candidate",
   );
   if (existing) return existing;
 
+  // Use the reserved account only to bootstrap a genuinely absent tenant.
+  const ownerUserId = await resolveFieldDemoOwnerUser(dbModule.pool);
   let provisioned: FieldDemoProvisioningIdentity;
   try {
     const result = await dbModule.provisionTenant({
@@ -1292,6 +1193,7 @@ export async function ensureFieldDemoFixture(
     const resolved = await findFieldDemoFixture(
       dbModule.pool,
       "field_demo_post_provision",
+      ownerUserId,
     );
     if (!resolved || resolved.tenantId !== provisioned.tenantId) {
       throw new ProofStateError(

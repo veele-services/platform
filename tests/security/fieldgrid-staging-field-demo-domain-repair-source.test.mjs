@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { fieldDemoExistingOwnerQuery } from "../../scripts/fieldgrid-staging-existing-owner.mts";
 
 const script = readFileSync(
   "scripts/fieldgrid-staging-field-demo-domain-repair.mts",
@@ -10,6 +11,28 @@ const workflow = readFileSync(
   ".github/workflows/fieldgrid-staging-field-demo-domain-repair.yml",
   "utf8",
 ).replaceAll("\r\n", "\n");
+
+test("existing-owner SQL is read-only, tenant-bound and independent of bootstrap identity", () => {
+  for (const selector of ["$1", "tenant.id", "target.id"]) {
+    const sql = fieldDemoExistingOwnerQuery(selector);
+    assert.ok(sql.includes(`membership.tenant_id = ${selector}`));
+    assert.match(sql, /COUNT\(\*\) FROM owner_memberships\) = 1/u);
+    assert.match(sql, /FROM public\.platform_users/u);
+    assert.match(sql, /FROM public\.user_roles/u);
+    assert.match(sql, /WHERE all_memberships\.user_id = owner\.id\) = 1/u);
+    assert.match(sql, /WHERE all_roles\.user_id = membership\.user_id\) = 1/u);
+    assert.doesNotMatch(
+      sql,
+      /\b(?:UPDATE|DELETE|INSERT|ALTER|DROP|GRANT|TRUNCATE)\b/iu,
+    );
+    assert.doesNotMatch(sql, /info@|cafccef6|raw_user_meta_data/u);
+  }
+  assert.throws(
+    () => fieldDemoExistingOwnerQuery("untrusted-input"),
+    /Unsupported/u,
+  );
+  assert.match(script, /fieldDemoExistingOwnerQuery\("target.id"\)/u);
+});
 
 test("domain repair is fixed to one known staging-only legacy transition", () => {
   assert.match(script, /fieldgrid-staging-field-demo-domain-repair-v1/u);

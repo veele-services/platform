@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
+import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -83,6 +84,12 @@ test(
         "owner platform-privilege diagnostic executes against the migrated schema",
         async () => {
           await verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client);
+        },
+      );
+      await context.test(
+        "existing-owner prerequisites execute against the migrated schema",
+        async (subcontext) => {
+          await verifyFieldDemoExistingOwner(client, subcontext);
         },
       );
     } finally {

@@ -322,7 +322,6 @@ test("snapshot query is parameterized and returns one fixed aggregate row", asyn
   assert.deepEqual(capturedValues, [
     FIELD_DEMO_SLUG,
     FIELD_DEMO_HOST,
-    FIELD_DEMO_OWNER_EMAIL,
     LEGACY_FIELD_DEMO_HOST,
   ]);
   assert.doesNotMatch(capturedSql, /field-demo(?:\.staging)?\.fieldgrid\.nl/u);
@@ -333,7 +332,7 @@ test("snapshot query is parameterized and returns one fixed aggregate row", asyn
     capturedSql.match(/AND domain\.verified_at IS NOT NULL/gu)?.length,
     2,
   );
-  for (const placeholder of ["\\$2", "\\$4"]) {
+  for (const placeholder of ["\\$2", "\\$3"]) {
     assert.match(
       capturedSql,
       new RegExp(

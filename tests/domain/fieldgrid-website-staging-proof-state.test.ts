@@ -429,10 +429,12 @@ function fieldDemoDatabaseDouble(
   const reservationInputs: Array<Record<string, unknown>> = [];
   const completionInputs: Array<Record<string, unknown>> = [];
   const rollbackInputs: Array<Record<string, unknown>> = [];
+  const queryValues: unknown[][] = [];
   let queryIndex = 0;
   const database = {
     pool: {
-      async query() {
+      async query(_sql: string, values: unknown[] = []) {
+        queryValues.push(values);
         events.push(`query-${queryIndex}`);
         const rows = queryRows[queryIndex];
         queryIndex += 1;
@@ -480,8 +482,55 @@ function fieldDemoDatabaseDouble(
     reservationInputs,
     completionInputs,
     rollbackInputs,
+    queryValues,
   };
 }
+
+test("existing field-demo needs no reserved-account lookup or owner mutation", async () => {
+  const testDouble = fieldDemoDatabaseDouble([
+    [{ slug_match_count: 1, domain_match_count: 1 }],
+    [exactFieldDemoCandidate],
+    [runtimeTenantFixture()],
+    [invariantFixture()],
+  ]);
+  const result = await ensureFieldDemoFixture(
+    testDouble.database,
+    actor,
+    sha,
+    "existing-owner",
+  );
+  assert.equal(result.tenantId, fieldDemoTenantId);
+  assert.deepEqual(testDouble.events, [
+    "query-0",
+    "query-1",
+    "query-2",
+    "query-3",
+  ]);
+  assert.deepEqual(testDouble.provisionInputs, []);
+  assert.deepEqual(testDouble.reservationInputs, []);
+  assert.deepEqual(testDouble.completionInputs, []);
+  assert.deepEqual(testDouble.rollbackInputs, []);
+  assert.deepEqual(testDouble.queryValues.at(-1), [fieldDemoTenantId, null]);
+});
+
+test("an invalid existing owner is rejected without fallback to bootstrap", async () => {
+  for (const counts of [
+    { expected_owner_count: 0 },
+    { expected_owner_count: 2 },
+    { expected_owner_management_role_count: 0 },
+    { expected_owner_management_role_count: 2 },
+  ]) {
+    const testDouble = fieldDemoDatabaseDouble([
+      [{ slug_match_count: 1, domain_match_count: 1 }],
+      [{ ...exactFieldDemoCandidate, ...counts }],
+    ]);
+    await assert.rejects(
+      ensureFieldDemoFixture(testDouble.database, actor, sha, "existing-owner"),
+    );
+    assert.deepEqual(testDouble.events, ["query-0", "query-1"]);
+    assert.deepEqual(testDouble.provisionInputs, []);
+  }
+});
 
 test("field-demo provisions, completes its owner and rechecks all invariants", async () => {
   const pendingRun = provisioningRunFixture({
@@ -490,9 +539,9 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
     current_step: "owner_invite_pending",
   });
   const testDouble = fieldDemoDatabaseDouble([
-    [exactFieldDemoOwnerCandidate],
     [{ slug_match_count: 0, domain_match_count: 0 }],
     [],
+    [exactFieldDemoOwnerCandidate],
     [pendingRun],
     [provisioningRunFixture()],
     [{ slug_match_count: 1, domain_match_count: 1 }],
@@ -542,6 +591,10 @@ test("field-demo provisions, completes its owner and rechecks all invariants", a
     },
   ]);
   assert.equal(testDouble.rollbackInputs.length, 0);
+  assert.deepEqual(testDouble.queryValues.at(-1), [
+    fieldDemoTenantId,
+    fieldDemoOwnerUserId,
+  ]);
 });
 
 test("field-demo performs no mutation for every invalid owner state", async () => {
@@ -559,12 +612,16 @@ test("field-demo performs no mutation for every invalid owner state", async () =
   ];
 
   for (const rows of ownerRows) {
-    const testDouble = fieldDemoDatabaseDouble([rows]);
+    const testDouble = fieldDemoDatabaseDouble([
+      [{ slug_match_count: 0, domain_match_count: 0 }],
+      [],
+      rows,
+    ]);
     await assert.rejects(
       ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
       /exactly one valid reserved pilot owner/u,
     );
-    assert.deepEqual(testDouble.events, ["query-0"]);
+    assert.deepEqual(testDouble.events, ["query-0", "query-1", "query-2"]);
     assert.equal(testDouble.provisionInputs.length, 0);
     assert.equal(testDouble.reservationInputs.length, 0);
     assert.equal(testDouble.completionInputs.length, 0);
@@ -580,9 +637,9 @@ test("field-demo rolls back its exact tenant when owner completion fails", async
   });
   const testDouble = fieldDemoDatabaseDouble(
     [
-      [exactFieldDemoOwnerCandidate],
       [{ slug_match_count: 0, domain_match_count: 0 }],
       [],
+      [exactFieldDemoOwnerCandidate],
       [pendingRun],
     ],
     { ownerCompletionFails: true },
@@ -602,6 +659,31 @@ test("field-demo rolls back its exact tenant when owner completion fails", async
   assert.equal(testDouble.rollbackInputs[0]?.requestedBy, actor);
 });
 
+test("bootstrap rolls back when the exact-owner invariant query rejects the final binding", async () => {
+  const testDouble = fieldDemoDatabaseDouble([
+    [{ slug_match_count: 0, domain_match_count: 0 }],
+    [],
+    [exactFieldDemoOwnerCandidate],
+    [provisioningRunFixture()],
+    [provisioningRunFixture()],
+    [{ slug_match_count: 1, domain_match_count: 1 }],
+    [exactFieldDemoCandidate],
+    [runtimeTenantFixture()],
+    [],
+  ]);
+  await assert.rejects(
+    ensureFieldDemoFixture(testDouble.database, actor, sha, "PR-449"),
+  );
+  assert.deepEqual(testDouble.queryValues.at(-1), [
+    fieldDemoTenantId,
+    fieldDemoOwnerUserId,
+  ]);
+  assert.equal(testDouble.rollbackInputs.length, 1);
+  assert.equal(testDouble.rollbackInputs[0]?.tenantId, fieldDemoTenantId);
+  assert.equal(testDouble.rollbackInputs[0]?.runId, fieldDemoRunId);
+  assert.equal(testDouble.rollbackInputs[0]?.requestedBy, actor);
+});
+
 test("field-demo rolls back its exact tenant when the final owner-role check fails", async () => {
   const pendingRun = provisioningRunFixture({
     owner_user_id: null,
@@ -609,9 +691,9 @@ test("field-demo rolls back its exact tenant when the final owner-role check fai
     current_step: "owner_invite_pending",
   });
   const testDouble = fieldDemoDatabaseDouble([
-    [exactFieldDemoOwnerCandidate],
     [{ slug_match_count: 0, domain_match_count: 0 }],
     [],
+    [exactFieldDemoOwnerCandidate],
     [pendingRun],
     [provisioningRunFixture()],
     [{ slug_match_count: 1, domain_match_count: 1 }],
