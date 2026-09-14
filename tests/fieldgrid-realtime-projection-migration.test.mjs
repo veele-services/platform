@@ -195,6 +195,60 @@ if (process.env.DATABASE_URL) {
     }
   });
 
+  test("managed SQL detection preserves PostgreSQL lexical and atomic bodies", async () => {
+    const client = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+    await client.connect();
+
+    let transactionStarted = false;
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+
+      const typedConstant = await client.query(
+        sqlForManagedMigrationTransaction(
+          'SELECT "text"$body$SELECT 1; COMMIT;$body$ AS value;',
+        ),
+      );
+      assert.deepEqual(typedConstant.rows, [
+        { value: "SELECT 1; COMMIT;" },
+      ]);
+
+      const unicodeTag = await client.query(
+        sqlForManagedMigrationTransaction(
+          "SELECT $𝒕$BEGIN; COMMIT; END;$𝒕$ AS value;",
+        ),
+      );
+      assert.deepEqual(unicodeTag.rows, [
+        { value: "BEGIN; COMMIT; END;" },
+      ]);
+
+      await client.query(
+        sqlForManagedMigrationTransaction(
+          [
+            "CREATE FUNCTION pg_temp.fieldgrid_managed_atomic_probe()",
+            "RETURNS integer LANGUAGE SQL",
+            "BEGIN ATOMIC",
+            "  SELECT 42;",
+            "END;",
+          ].join("\n"),
+        ),
+      );
+      const atomicBody = await client.query(
+        "SELECT pg_temp.fieldgrid_managed_atomic_probe() AS value",
+      );
+      assert.deepEqual(atomicBody.rows, [{ value: 42 }]);
+
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+    } finally {
+      if (transactionStarted) await client.query("ROLLBACK");
+      await client.end();
+    }
+  });
+
   test("managed migration journaling failure rolls back the schema change", async () => {
     const client = new Client({
       connectionString: process.env.DATABASE_URL,

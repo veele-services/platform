@@ -95,6 +95,15 @@ test("managed migration SQL ignores transaction words in quoted and comment bodi
   ].join("\n");
 
   assert.equal(sqlForManagedMigrationTransaction(source), source);
+  for (const typedConstant of [
+    'SELECT "text"$body$SELECT 1; COMMIT;$body$;',
+    "SELECT $𝒕$BEGIN; COMMIT; END;$𝒕$;",
+  ]) {
+    assert.equal(
+      sqlForManagedMigrationTransaction(typedConstant),
+      typedConstant,
+    );
+  }
 });
 
 test("managed migration SQL retains SQL-standard atomic routine bodies", () => {
@@ -109,6 +118,17 @@ test("managed migration SQL retains SQL-standard atomic routine bodies", () => {
   assert.equal(sqlForManagedMigrationTransaction(source), source);
   assert.throws(
     () => sqlForManagedMigrationTransaction(`${source}\nCOMMIT WORK;\n`),
+    /unsupported file-level transaction control/u,
+  );
+
+  const quotedBodyWithMisleadingParameter = [
+    "CREATE FUNCTION signature_probe(begin atomic) RETURNS integer",
+    "LANGUAGE SQL AS $body$ SELECT 1 $body$;",
+    "END;",
+  ].join("\n");
+  assert.throws(
+    () =>
+      sqlForManagedMigrationTransaction(quotedBodyWithMisleadingParameter),
     /unsupported file-level transaction control/u,
   );
 });

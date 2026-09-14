@@ -3,11 +3,15 @@ const defaultDeadlockRetryDelaysMs = [100, 250] as const;
 const standaloneMigrationBegin = /^[\t ]*BEGIN[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 const standaloneMigrationCommit = /^[\t ]*COMMIT[\t ]*;[\t ]*(?:--[^\r\n]*)?\r?$/iu;
 const possibleMigrationTransactionStart =
-  /^(?:BEGIN\b|START\s+TRANSACTION\b)/iu;
+  /^(?:BEGIN|START\s+TRANSACTION)/iu;
 const possibleMigrationTransactionEnd =
-  /^(?:COMMIT\b|ROLLBACK\b|ABORT\b|PREPARE\s+TRANSACTION\b|END\b)/iu;
-const sqlStandardRoutineBodyStart =
-  /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\b[\s\S]*\bBEGIN\s+ATOMIC\b/iu;
+  /^(?:COMMIT|ROLLBACK|ABORT|PREPARE\s+TRANSACTION|END)/iu;
+const sqlRoutineDeclarationStart =
+  /^CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)(?:\s|$)/iu;
+const sqlStandardAtomicBodyStart = /^BEGIN\s+ATOMIC/iu;
+const sqlStandardAtomicBodyEnd = /^END/iu;
+const postgresIdentifierContinuation =
+  /^[a-z0-9_$\u0080-\u{10ffff}]$/iu;
 const reconcilableSqlMigrationHashes = new Map<
   string,
   { canonical: string; historical: ReadonlySet<string> }
@@ -71,6 +75,42 @@ function maskedSqlText(sourceSql: string): string {
   return sourceSql.replace(/[^\r\n]/gu, " ");
 }
 
+function sqlCodePointAt(sourceSql: string, index: number): string {
+  const codePoint = sourceSql.codePointAt(index);
+  return codePoint === undefined ? "" : String.fromCodePoint(codePoint);
+}
+
+function sqlCodePointBefore(sourceSql: string, index: number): string {
+  if (index <= 0) return "";
+  const precedingCodeUnit = sourceSql.charCodeAt(index - 1);
+  if (
+    precedingCodeUnit >= 0xdc00 &&
+    precedingCodeUnit <= 0xdfff &&
+    index > 1
+  ) {
+    const leadingCodeUnit = sourceSql.charCodeAt(index - 2);
+    if (leadingCodeUnit >= 0xd800 && leadingCodeUnit <= 0xdbff) {
+      return sourceSql.slice(index - 2, index);
+    }
+  }
+  return sourceSql[index - 1] ?? "";
+}
+
+function isPostgresIdentifierContinuation(character: string): boolean {
+  return character.length > 0 && postgresIdentifierContinuation.test(character);
+}
+
+function matchesPostgresKeywordPrefix(
+  sourceSql: string,
+  pattern: RegExp,
+): boolean {
+  const match = pattern.exec(sourceSql)?.[0];
+  return (
+    match !== undefined &&
+    !isPostgresIdentifierContinuation(sqlCodePointAt(sourceSql, match.length))
+  );
+}
+
 // Mask regions whose contents are not file-level SQL without changing token
 // separation. PostgreSQL permits nested block comments and dollar-quoted
 // bodies, while a dollar tag adjacent to an identifier is part of that
@@ -111,11 +151,11 @@ function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
     if (character === "'" || character === '"') {
       const quote = character;
       const possibleEscapePrefix = sourceSql[index - 1] ?? "";
-      const beforeEscapePrefix = sourceSql[index - 2] ?? "";
+      const beforeEscapePrefix = sqlCodePointBefore(sourceSql, index - 1);
       const isEscapeString =
         quote === "'" &&
         (possibleEscapePrefix === "e" || possibleEscapePrefix === "E") &&
-        !/[a-z0-9_$]/iu.test(beforeEscapePrefix);
+        !isPostgresIdentifierContinuation(beforeEscapePrefix);
       let endIndex = index + 1;
       while (endIndex < sourceSql.length) {
         if (isEscapeString && sourceSql[endIndex] === "\\") {
@@ -139,12 +179,11 @@ function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
     }
 
     if (character === "$") {
-      const precedingCharacter = sourceSql[index - 1] ?? "";
+      const precedingCharacter = sqlCodePointBefore(sourceSql, index);
       const hasTokenBoundary =
-        index === 0 ||
-        !/[a-z0-9_$"'\u0080-\uffff]/iu.test(precedingCharacter);
+        index === 0 || !isPostgresIdentifierContinuation(precedingCharacter);
       const delimiter = hasTokenBoundary
-        ? /^\$(?:[a-z_\u0080-\uffff][a-z0-9_\u0080-\uffff]*)?\$/iu.exec(
+        ? /^\$(?:[a-z_\u0080-\u{10ffff}][a-z0-9_\u0080-\u{10ffff}]*)?\$/iu.exec(
             sourceSql.slice(index),
           )?.[0]
         : undefined;
@@ -170,6 +209,34 @@ function sqlOutsideQuotedTextAndComments(sourceSql: string): string {
   return outside.join("");
 }
 
+function statementStartsSqlStandardRoutineBody(statement: string): boolean {
+  if (!sqlRoutineDeclarationStart.test(statement)) return false;
+
+  let parenthesisDepth = 0;
+  for (let index = 0; index < statement.length; ) {
+    const character = sqlCodePointAt(statement, index);
+    if (character === "(") {
+      parenthesisDepth += 1;
+    } else if (character === ")") {
+      parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    } else if (
+      parenthesisDepth === 0 &&
+      !isPostgresIdentifierContinuation(sqlCodePointBefore(statement, index))
+    ) {
+      if (
+        matchesPostgresKeywordPrefix(
+          statement.slice(index),
+          sqlStandardAtomicBodyStart,
+        )
+      ) {
+        return true;
+      }
+    }
+    index += character.length || 1;
+  }
+  return false;
+}
+
 function hasFileLevelTransactionControl(sourceSql: string): boolean {
   const statements = sqlOutsideQuotedTextAndComments(sourceSql)
     .split(";")
@@ -179,19 +246,22 @@ function hasFileLevelTransactionControl(sourceSql: string): boolean {
   for (const statement of statements) {
     // SQL-standard LANGUAGE SQL routines use an unquoted BEGIN ATOMIC ... END
     // body. Its END is compound syntax, not the transaction-ending END alias.
-    if (sqlStandardRoutineBodyStart.test(statement)) {
+    if (statementStartsSqlStandardRoutineBody(statement)) {
       sqlStandardRoutineBodyDepth += 1;
       continue;
     }
     if (sqlStandardRoutineBodyDepth > 0) {
-      if (/^END\b/iu.test(statement)) {
+      if (matchesPostgresKeywordPrefix(statement, sqlStandardAtomicBodyEnd)) {
         sqlStandardRoutineBodyDepth -= 1;
       }
       continue;
     }
     if (
-      possibleMigrationTransactionStart.test(statement) ||
-      possibleMigrationTransactionEnd.test(statement)
+      matchesPostgresKeywordPrefix(
+        statement,
+        possibleMigrationTransactionStart,
+      ) ||
+      matchesPostgresKeywordPrefix(statement, possibleMigrationTransactionEnd)
     ) {
       return true;
     }
