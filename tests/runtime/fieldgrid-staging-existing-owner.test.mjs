@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { fieldDemoExistingOwnerQuery } from "../../scripts/fieldgrid-staging-existing-owner.mts";
+import { installHistoricalTenantManagementHelper } from "./fieldgrid-tenant-management-authorization.test.mjs";
+import {
+  loadTenantManagementAuthorizationSource,
+  verifyTenantManagementAuthorizationContract,
+} from "../../scripts/fieldgrid-tenant-management-authorization-contract.mts";
 import {
   classifyFieldDemoDomain,
   loadFieldDemoDomainSnapshot,
@@ -184,8 +189,10 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         SELECT role_id FROM public.user_roles WHERE user_id=ANY($1::uuid[]))) AS legacy_templates,
       (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.tenant_roles r WHERE r.id IN (
         SELECT tenant_role_id FROM public.tenant_user_roles WHERE user_id=ANY($1::uuid[]))) AS tenant_roles,
-      (SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.tenant_role_permissions p WHERE p.tenant_role_id IN (
+      (SELECT jsonb_agg(to_jsonb(p) ORDER BY to_jsonb(p)::text) FROM public.tenant_role_permissions p WHERE p.tenant_role_id IN (
         SELECT tenant_role_id FROM public.tenant_user_roles WHERE user_id=ANY($1::uuid[]))) AS tenant_permissions,
+      (SELECT jsonb_agg(to_jsonb(p) ORDER BY to_jsonb(p)::text) FROM public.role_permissions p) AS template_permissions,
+      (SELECT jsonb_agg(to_jsonb(p) ORDER BY to_jsonb(p)::text) FROM public.permissions p) AS permissions,
       (SELECT jsonb_agg(to_jsonb(u) ORDER BY u.id) FROM public.platform_users u WHERE user_id=ANY($1::uuid[])) AS platform`,
           [[owner, foreignOwner, extraOwner]],
         )
@@ -269,6 +276,10 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         `INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)`,
         [owner, harmlessLegacyRole],
       );
+    const addLegacyManagement = () => client.query(
+      "INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)",
+      [owner, template],
+    );
     const permittedExistingStates = [
       ...["Super Admin", "Planning", "Administratie"].map((name) => [
         "resolved legacy " + name + " is no longer a direct RLS grant",
@@ -313,6 +324,26 @@ export async function verifyFieldDemoExistingOwner(client, context) {
           await addOtherRole();
           await addSupplementalRole();
           await addLegacyRole();
+        },
+      ],
+      [
+        "post-contract legacy Management with two independently authorized tenants and three roles",
+        async () => {
+          assert.equal(await verifyTenantManagementAuthorizationContract(client), true);
+          await addOtherMembership();
+          await addOtherRole();
+          await addSupplementalRole();
+          await client.query(
+            `UPDATE public.tenant_roles SET name='Management',template_role_id=$2,is_system=true,is_custom=false WHERE id=$1`,
+            [foreignRole, template],
+          );
+          await client.query("UPDATE public.tenant_role_permissions SET permission_id=$2 WHERE tenant_role_id=$1", [foreignRole, permission]);
+          await addLegacyManagement();
+          await client.query("SELECT set_config('request.jwt.claim.sub',$1,true)", [owner]);
+          assert.deepEqual((await client.query(
+            "SELECT public.is_management_for_tenant($1) AS own, public.is_management_for_tenant($2) AS other",
+            [tenant, foreignTenant],
+          )).rows[0], { own: true, other: true });
         },
       ],
       [
@@ -377,6 +408,8 @@ export async function verifyFieldDemoExistingOwner(client, context) {
       async () => {
         await client.query("SAVEPOINT legacy_authorization");
         try {
+          await installHistoricalTenantManagementHelper(client);
+          assert.equal(await verifyTenantManagementAuthorizationContract(client), false);
           await addOtherMembership();
           await client.query(
             "SELECT set_config('request.jwt.claim.sub',$1,true)",
@@ -412,6 +445,31 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         }
       },
     );
+
+    const authorizationSource = await loadTenantManagementAuthorizationSource();
+    for (const [name, sql, values] of [
+      ["missing history", "DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [authorizationSource.name]],
+      ["wrong history hash", "UPDATE drizzle.veele_sql_migrations SET hash=$2 WHERE name=$1", [authorizationSource.name, "0".repeat(64)]],
+      ["public ACL drift", "GRANT EXECUTE ON FUNCTION public.is_management_for_tenant(uuid) TO anon", []],
+      ["private ACL drift", "GRANT EXECUTE ON FUNCTION app_private.fieldgrid_has_canonical_tenant_management(uuid,uuid) TO authenticated", []],
+    ]) {
+      await context.test("legacy Management remains blocked with " + name, async () => {
+        await client.query("SAVEPOINT legacy_contract_drift");
+        try {
+          await addLegacyManagement();
+          assert.deepEqual(await counts(), { expected_owner_count: 1, expected_owner_management_role_count: 1 });
+          await client.query(sql, values);
+          const preimage = await unchangedAccounts();
+          assert.equal(await verifyTenantManagementAuthorizationContract(client), false);
+          assert.equal((await counts()).expected_owner_count, 0);
+          assert.equal(classifyFieldDemoDomain(await loadFieldDemoDomainSnapshot(client)).state, "unsafe");
+          await assert.rejects(ensureFieldDemoFixture(database, foreignOwner, "a".repeat(40), "legacy-contract-drift"), /fixture state is not exact/u);
+          assert.deepEqual(await unchangedAccounts(), preimage);
+        } finally {
+          await client.query("ROLLBACK TO SAVEPOINT legacy_contract_drift");
+        }
+      });
+    }
 
     await context.test(
       "bootstrap postcheck pins the reserved owner ID even when another owner is valid",
@@ -529,9 +587,10 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         [owner, template],
       ],
       [
-        "privileged legacy Management beside intact scoped Management",
+        "pre-contract legacy Management beside intact scoped Management",
         "INSERT INTO public.user_roles(user_id,role_id) VALUES ($1,$2)",
         [owner, template],
+        () => installHistoricalTenantManagementHelper(client),
       ],
       [
         "orphan legacy role",
@@ -627,12 +686,13 @@ export async function verifyFieldDemoExistingOwner(client, context) {
         [tenant, owner, role, additionalRole],
       ],
     ];
-    for (const [name, sql, params] of cases) {
+    for (const [name, sql, params, arrange] of cases) {
       await context.test(
         name + " fails closed without repair fallback",
         async () => {
           await client.query("SAVEPOINT invalid_owner");
           try {
+            if (arrange) await arrange();
             await client.query("SET LOCAL session_replication_role = replica");
             assert.ok((await client.query(sql, params)).rowCount > 0);
             await client.query("SET LOCAL session_replication_role = origin");

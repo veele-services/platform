@@ -19,16 +19,21 @@ verplicht en moet exact met haar template overeenkomen. Aanvullende rollen in
 `field-demo` mogen samen geen rechten buiten dat template toevoegen. Rechten in
 andere tenants blijven buiten die vergelijking en worden niet aangepast.
 
-De nieuwe controle wijzigt geen Auth, sessies, lidmaatschappen, rollen, RLS,
-schema, migratie, dependency of product-UI. Het vaste herstelaccount wordt niet
+De ownercontrole zelf wijzigt geen Auth, sessies, lidmaatschappen, rollen, RLS,
+schema, dependency of product-UI. Het vaste herstelaccount wordt niet
 verplaatst. Bootstrap van een werkelijk ontbrekende fixture houdt de bestaande
 exclusieve controles, naast de exacte owner-ID en reserveringsbewijzen.
+Na bevestiging dat de bestaande globale rol `Management` is, heeft de gebruiker
+ook de afzonderlijke autorisatiecorrectie toegestaan, inclusief live toepassing
+na de vereiste gates. Die forward-only migratie en operationele begrenzing staan
+in [het autorisatierunbook](staging-tenant-management-authorization.md).
 
 ## Oude globale rollen: afzonderlijke veiligheidsgrens
 
 Oude `user_roles` zijn geen bewijs van tenantgebonden Management. Verweesde
-koppelingen en de globale rolnaam `Management` blijven geblokkeerd, ook zonder
-systeemvlag of rechtenrecords.
+koppelingen blijven geblokkeerd. De globale rolnaam `Management` blijft
+geblokkeerd zolang het nieuwe tenantgebonden databasecontract niet exact is
+bewezen, ook zonder systeemvlag of rechtenrecords.
 Andere bestaande, correct gerefereerde legacykoppelingen blijven behouden.
 
 Dit is bewust geen algemene versoepeling van de globale rollencontrole:
@@ -45,10 +50,10 @@ Dit is bewust geen algemene versoepeling van de globale rollencontrole:
 - De backoffice haalt rollen en rechten daarentegen per tenant op in
   `artifacts/backoffice/src/lib/auth/permissions.ts`.
 
-De naam van de bestaande staging-legacyrol is nog niet vastgesteld. Daarom
-wordt niet beweerd dat deze patch alle stagingblokkades oplost. Als die rol
-`Management` is, blijft de deploy geblokkeerd totdat een
-afzonderlijk beoordeeld herstel de bedoelde toegang aantoonbaar behoudt.
+De gebruiker heeft inmiddels één correct gerefereerde globale `Management`-rol
+bevestigd. De deploy blijft geblokkeerd totdat het afzonderlijk beoordeelde
+herstel de bedoelde toegang aantoonbaar behoudt en het nieuwe databasecontract
+daadwerkelijk is geïnstalleerd.
 Er wordt geen rol verwijderd of databasepolicy versoepeld als automatische
 fallback. De bestaande vaste-account-repair blijft buiten deze scope.
 
@@ -66,7 +71,7 @@ Ze bewijzen onder meer:
 - weigering van verweesde of verkeerd gescopeerde rollen, extra effectieve
   rechten, verwisselde rechten bij gelijkblijvende aantallen en ontbrekende
   canonieke rechten die via een aanvullende rol worden aangevuld;
-- weigering van globale Management en behoud van de bestaande
+- weigering van globale Management vóór het nieuwe databasecontract en behoud van de bestaande
   Auth-, platform- en dubbele/inactieve-ownercontroles;
 - strikte bootstrapweigering van elk toegelaten extra bestaand lidmaatschap,
   extra rol of legacykoppeling;
@@ -102,14 +107,17 @@ uitgeschakeld of versoepeld; de drie volledige herhalingen slagen.
 Het eerste foutbewijs blijft bewaard in
 `/tmp/fieldgrid-owner-multitenant-pg17-concurrency-1235.log`.
 
-Zelfreview en afzonderlijke read-only subagentreview vonden geen open P0/P1.
+Zelfreview en afzonderlijke read-only subagentreview van de oorspronkelijke
+multi-tenantcontrole vonden geen open P0/P1. De autorisatie-uitbreiding krijgt
+eigen verificatie en review, vastgelegd in het afzonderlijke runbook.
 De aanvullende opmerkingen over snapshots van rolrechten en een ontbrekend
 canoniek recht dat een extra rol probeert aan te vullen, zijn beide verwerkt.
 De review toetste ook de volledige migratieketen: de historische viernamenpolicy
 is verwijderd, terwijl de resterende globale Managementwerking met echte SQL
 is bewezen. Alleen statische bronanalyse zou die afbakening onvoldoende staven.
 
-Na review en merge: domeindiagnose op exact main opnieuw uitvoeren. Alleen bij
+Na review en merge: eerst de afzonderlijke autorisatiediagnose en -migratie,
+dan domeindiagnose op exact main opnieuw uitvoeren. Alleen bij
 een geldige eigenaar mogen de bestaande domeinherstel-, proof-, backup-,
 promotie- en deploygates uit de activation-runbook volgen. Geen gate wordt
 overgeslagen. Rollback van deze code is een nieuwe gereviewde commit vanaf main

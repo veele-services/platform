@@ -36,8 +36,12 @@ test("existing-owner SQL is read-only, tenant-bound and independent of bootstrap
     );
     assert.match(
       sql,
-      /legacy_role\.id IS NULL OR legacy_role\.name = 'Management'/u,
+      /legacy_role\.id IS NULL OR \(legacy_role\.name = 'Management'\s+AND NOT/u,
     );
+    assert.match(sql, /wrapper\.prosrc =/u);
+    assert.match(sql, /predicate\.prosrc =/u);
+    assert.match(sql, /FROM drizzle\.veele_sql_migrations/u);
+    assert.match(sql, /baselined = false/u);
     assert.doesNotMatch(
       sql,
       /\b(?:UPDATE|DELETE|INSERT|ALTER|DROP|GRANT|TRUNCATE)\b/iu,

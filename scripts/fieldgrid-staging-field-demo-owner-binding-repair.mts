@@ -2230,7 +2230,7 @@ function platformPrivilegeMigrationHashReconciliations(
   });
 }
 
-async function loadPlatformPrivilegeMigrationFrontier(): Promise<{
+export async function loadPlatformPrivilegeMigrationFrontier(): Promise<{
   committed: ReviewedSqlMigration[];
   predecessors: ReviewedSqlMigration[];
   required: ReviewedSqlMigration[];

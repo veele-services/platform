@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
+import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-management-authorization.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -84,6 +85,12 @@ test(
         "owner platform-privilege diagnostic executes against the migrated schema",
         async () => {
           await verifyFieldDemoOwnerPlatformPrivilegeDiagnostic(client);
+        },
+      );
+      await context.test(
+        "tenant Management authorization migration preserves scoped access",
+        async (subcontext) => {
+          await verifyTenantManagementAuthorization(client, subcontext);
         },
       );
       await context.test(

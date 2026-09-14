@@ -265,7 +265,25 @@ before actor or fixture reads. If this gate fails on another environment,
 stop for a reviewed migration operation; do not use a fixed-account repair
 merely to advance the migration frontier.
 
-Dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
+If the existing owner has legacy global `Management`, first run **Staging
+Tenant Management Authorization** from the exact reviewed `main`:
+
+- `operation`: `diagnose`, then `apply` only when `missing_pairs = 0`;
+- `expected_main_sha`: the exact remote main head with successful Main Exact
+  Head Validation;
+- `confirmation`: `fieldgrid-staging-tenant-management-authorization-v1`.
+
+This separate schema-only operation applies exactly
+`20260914125503_scope_tenant_management_authorization.sql`, never pending
+unrelated migrations or any fixed-account repair. It requires an exact,
+contiguous predecessor journal. The migration blocks authorization writes and
+refuses to switch if **any** previously authorized active user/tenant pair lacks
+independently granted canonical Management. No role or membership is created,
+removed or changed. If preservation fails, stop and reconcile the intended
+tenant grants through a separately scoped repair; never auto-copy a global role
+into every membership. See [the authorization runbook](deployment/staging-tenant-management-authorization.md).
+
+Then dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
 
 - `operation`: `diagnose`, then `repair` only for
   `legacy-domain-needs-migration`;
@@ -280,8 +298,10 @@ preserved. Every tenant-role link must reference a role and membership within
 that same tenant; supplemental `field-demo` roles must not widen the effective
 permission set beyond canonical Management. A legacy global role never counts
 as proof of tenant Management. Resolved non-privileged legacy links may remain,
-but legacy `Management` remains blocked: `is_management_for_tenant` still
-consumes that global role independently of tenant-role grants. The historical
+and legacy `Management` may remain only after the exact migration journal,
+installed function bodies, ownership, pinned search paths, effective ACLs and
+absence of old global authorization consumers all pass. Before that contract is
+installed, the legacy role remains a blocker. The historical
 four-name material-usage policy was explicitly removed by migration
 `20260714120000`; it is not a reason to reject other legacy role names.
 Do not delete legacy links or memberships automatically

@@ -1,3 +1,5 @@
+import { tenantManagementAuthorizationContractSql } from "./fieldgrid-tenant-management-authorization-contract.mts";
+
 /** Read-only prerequisite shared by domain repair and website proof preparation.
  * Existing membership is authoritative; the bootstrap email is never a selector.
  * Only closed, source-owned expressions are accepted, never operator input.
@@ -55,15 +57,16 @@ export function fieldDemoExistingOwnerQuery(
          WHERE assigned_role.user_id = owner.id
            AND (scoped_role.id IS NULL OR scoped_membership.user_id IS NULL)
        )
-       -- Legacy links are not target-tenant entitlement evidence. Preserve
-       -- resolved non-privileged links; legacy Management still feeds
-       -- is_management_for_tenant regardless of flags or permission rows.
+       -- Legacy links are never entitlement evidence. Retain Management only
+       -- after exact journal AND live catalog proof that it no longer grants
+       -- tenant access. Unknown/orphan links remain fail-closed.
        AND NOT EXISTS (
          SELECT 1 FROM public.user_roles AS legacy_link
           LEFT JOIN public.roles AS legacy_role
             ON legacy_role.id = legacy_link.role_id
          WHERE legacy_link.user_id = owner.id
-           AND (legacy_role.id IS NULL OR legacy_role.name = 'Management')
+           AND (legacy_role.id IS NULL OR (legacy_role.name = 'Management'
+             AND NOT ${tenantManagementAuthorizationContractSql()}))
        )
   )
   SELECT
