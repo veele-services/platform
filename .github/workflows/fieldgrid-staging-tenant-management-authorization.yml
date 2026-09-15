@@ -117,12 +117,17 @@ jobs:
             --skipLibCheck \
             --strict \
             --types node \
-            ../../scripts/fieldgrid-staging-tenant-management-authorization.mts
+            ../../scripts/fieldgrid-staging-tenant-management-authorization.mts \
+            ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts
           pnpm --filter @workspace/db exec tsx \
             ../../scripts/fieldgrid-staging-tenant-management-authorization.mts --check
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts --check
           node --test tests/security/fieldgrid-tenant-management-authorization-source.test.mjs
+          node --test tests/security/fieldgrid-tenant-management-sql-diagnostic-source.test.mjs
           pnpm --filter @workspace/db exec tsx --test \
-            ../../tests/domain/fieldgrid-staging-tenant-management-authorization.test.ts
+            ../../tests/domain/fieldgrid-staging-tenant-management-authorization.test.ts \
+            ../../tests/domain/fieldgrid-staging-tenant-management-sql-diagnostic.test.ts
 
       - name: Install exact pinned database root certificate
         env:
@@ -180,12 +185,36 @@ jobs:
             *) exit 1 ;;
           esac
 
+      - name: Capture safe migration precondition diagnostics
+        if: ${{ always() && (inputs.operation == 'diagnose' || failure()) }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+          FIELDGRID_TENANT_MANAGEMENT_AUTHORIZATION_CONFIRMATION: ${{ inputs.confirmation }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db exec tsx \
+            ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts \
+            --diagnose --expected-sha "$EXPECTED_MAIN_SHA"
+
       - name: Upload secret-free authorization evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tenant-management-authorization-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/tenant-management-authorization/*-${{ github.run_id }}-${{ github.run_attempt }}.json
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Upload secret-free SQL diagnostic evidence
+        if: ${{ always() && (inputs.operation == 'diagnose' || failure()) }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tenant-management-sql-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/tenant-management-sql-diagnostic/*-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
           retention-days: 1
 
