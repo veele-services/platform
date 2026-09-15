@@ -123,9 +123,8 @@ jobs:
             ../../scripts/fieldgrid-staging-tenant-management-authorization.mts --check
           pnpm --filter @workspace/db exec tsx \
             ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts --check
-          node --test \
-            tests/security/fieldgrid-tenant-management-authorization-source.test.mjs \
-            tests/security/fieldgrid-tenant-management-sql-diagnostic-source.test.mjs
+          node --test tests/security/fieldgrid-tenant-management-authorization-source.test.mjs
+          node --test tests/security/fieldgrid-tenant-management-sql-diagnostic-source.test.mjs
           pnpm --filter @workspace/db exec tsx --test \
             ../../tests/domain/fieldgrid-staging-tenant-management-authorization.test.ts \
             ../../tests/domain/fieldgrid-staging-tenant-management-sql-diagnostic.test.ts
