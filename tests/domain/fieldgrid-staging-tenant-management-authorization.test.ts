@@ -5,6 +5,8 @@ import { test } from "node:test";
 import {
   TENANT_MANAGEMENT_AUTHORIZATION_CONFIRMATION,
   TENANT_MANAGEMENT_AUTHORIZATION_PROJECT_REF,
+  TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH,
+  TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME,
   assertSuccessfulTenantManagementValidationRun,
   assertTenantManagementAuthorizationHistory,
   formatSafeTenantManagementAuthorizationError,
@@ -22,11 +24,16 @@ import { TENANT_MANAGEMENT_MIGRATION_NAME } from "../../scripts/fieldgrid-tenant
 const sha = "a".repeat(40);
 const hash = (sql: string) => createHash("sha256").update(sql).digest("hex");
 const source = { name: TENANT_MANAGEMENT_MIGRATION_NAME, sql: "SELECT 42;", hash: hash("SELECT 42;") };
+const policyReconciliation = {
+  name: TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME,
+  sql: "SELECT 41;",
+  hash: TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH,
+};
 const legacy = { name: "001_fixture.sql", sql: "SELECT 1;", hash: hash("SELECT 1;") };
 const predecessor = { name: "20260101000000_fixture.sql", sql: "SELECT 2;", hash: hash("SELECT 2;") };
 const successor = { name: "29990101000000_fixture.sql", sql: "SELECT 3;", hash: hash("SELECT 3;") };
 const base = {
-  committed: [legacy, predecessor, source, successor],
+  committed: [legacy, predecessor, policyReconciliation, source, successor],
   predecessors: [legacy],
   required: [predecessor],
   successors: new Set([source.name, successor.name]),
@@ -94,20 +101,20 @@ test("live configuration pins staging, main, purpose, TLS, project and separate 
 
 test("frontier permits only the source-owned migration after every exact predecessor", () => {
   const frontier = tenantManagementAuthorizationFrontier(base, source);
-  assert.deepEqual(frontier.required, [source]);
+  assert.deepEqual(frontier.required, [policyReconciliation, source]);
   assert.deepEqual(frontier.predecessors, [legacy, predecessor]);
   assert.deepEqual(frontier.successors, new Set([successor.name]));
   assert.deepEqual(base.required, [predecessor]);
-  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, initialHistory()), [source]);
+  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, initialHistory()), [policyReconciliation, source]);
   assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier,
-    [...initialHistory(), historyRecord(source, 2)]), []);
+    [...initialHistory(), historyRecord(policyReconciliation, 2), historyRecord(source, 3)]), []);
   for (const records of [
     [historyRecord(legacy, 0)],
-    [...initialHistory(), historyRecord(successor, 3)],
-    [...initialHistory(), { ...historyRecord(source, 2), baselined: true }],
-    [...initialHistory(), { ...historyRecord(source, 2), hash: "b".repeat(64) }],
+    [...initialHistory(), historyRecord(successor, 4)],
+    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), baselined: true }],
+    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), hash: "b".repeat(64) }],
     [...initialHistory(), historyRecord(predecessor, 2)],
-    [...initialHistory(), { ...historyRecord(source, 2), name: "20260101000001_unreviewed.sql" }],
+    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), name: "20260101000001_unreviewed.sql" }],
     [{ ...historyRecord(legacy, 0), hash: "c".repeat(64) }, historyRecord(predecessor, 1)],
     [historyRecord(legacy, 0), { ...historyRecord(predecessor, 1), baselined: true }],
   ]) assert.throws(() => assertTenantManagementAuthorizationHistory(frontier, records), /history_invalid/u);
@@ -139,7 +146,7 @@ function fixture(options: {
   let recorded = installed;
   let impactReads = 0;
   let contractReads = 0;
-  const records = options.records ?? [...initialHistory(), ...(recorded ? [historyRecord(source, 2)] : [])];
+  const records = options.records ?? [...initialHistory(), ...(recorded ? [historyRecord(policyReconciliation, 2), historyRecord(source, 3)] : [])];
   const queryable = {
     async query(sql: string, values?: unknown[]) {
       calls.push(sql);
@@ -147,11 +154,11 @@ function fixture(options: {
       if (sql.includes("pg_try_advisory_lock")) return { rows: [{ acquired: options.lock ?? true }], rowCount: 1 };
       if (sql.includes("pg_advisory_unlock")) return { rows: [{ released: true }], rowCount: 1 };
       if (sql.includes('applied_at AS "appliedAt"')) return { rows: records, rowCount: records.length };
-      if (sql === source.sql) installed = true;
+      if (sql === policyReconciliation.sql || sql === source.sql) installed = true;
       if (sql.startsWith("INSERT INTO drizzle.veele_sql_migrations")) {
-        assert.deepEqual(values, [source.name, source.hash]);
+        assert.ok(values?.[0] === policyReconciliation.name || values?.[0] === source.name);
         recorded = true;
-        return { rows: [{ name: source.name, hash: source.hash, baselined: false }], rowCount: options.invalidJournal ? 0 : 1 };
+        return { rows: [{ name: values?.[0], hash: values?.[1], baselined: false }], rowCount: options.invalidJournal ? 0 : 1 };
       }
       return { rows: [], rowCount: 0 };
     },
@@ -192,9 +199,13 @@ test("apply locks in migration order, preserves counts, and verifies catalog aft
   assert.ok(f.calls.includes("BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED READ WRITE"));
   const migrationIndex = f.calls.indexOf(source.sql);
   const journalIndex = f.calls.findIndex((sql) => sql.startsWith("INSERT INTO drizzle.veele_sql_migrations"));
+  const policyMigrationIndex = f.calls.indexOf(policyReconciliation.sql);
+  assert.ok(policyMigrationIndex < migrationIndex);
   assert.ok(migrationIndex < journalIndex);
-  assert.ok(journalIndex < f.calls.lastIndexOf("VERIFY CONTRACT"));
+  const lastJournalIndex = f.calls.findLastIndex((sql) => sql.startsWith("INSERT INTO drizzle.veele_sql_migrations"));
+  assert.ok(lastJournalIndex < f.calls.lastIndexOf("VERIFY CONTRACT"));
   assert.ok(f.calls.lastIndexOf("VERIFY CONTRACT") < f.calls.indexOf("COMMIT"));
+  assert.equal(f.calls.filter((sql) => sql === policyReconciliation.sql).length, 1);
   assert.equal(f.calls.filter((sql) => sql === source.sql).length, 1);
   assert.ok(!f.calls.some((sql) => /^(?:UPDATE|DELETE)/u.test(sql)));
 });
@@ -225,7 +236,7 @@ test("missing access, history drift and unavailable locks prevent migration exec
 
 test("SQL, journal, preservation, postcondition and commit failures roll back without retries or raw errors", async () => {
   for (const options of [
-    { failSql: source.sql }, { failSql: "INSERT INTO drizzle.veele_sql_migrations" },
+    { failSql: policyReconciliation.sql }, { failSql: source.sql }, { failSql: "INSERT INTO drizzle.veele_sql_migrations" },
     { invalidJournal: true }, { contract: [false, false] },
     { impacts: [preserved, { ...preserved, scoped_pairs: 4 }] }, { failSql: "COMMIT" },
   ]) {
@@ -236,6 +247,7 @@ test("SQL, journal, preservation, postcondition and commit failures roll back wi
     });
     assert.ok(f.calls.includes("ROLLBACK"));
     assert.ok(f.calls.at(-1)?.includes("pg_advisory_unlock"));
+    assert.ok(f.calls.filter((sql) => sql === policyReconciliation.sql).length <= 1);
     assert.ok(f.calls.filter((sql) => sql === source.sql).length <= 1);
   }
   assert.doesNotMatch(formatSafeTenantManagementAuthorizationError(new Error("secret")), /secret/u);

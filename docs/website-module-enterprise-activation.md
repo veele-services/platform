@@ -273,15 +273,18 @@ Tenant Management Authorization** from the exact reviewed `main`:
   Head Validation;
 - `confirmation`: `fieldgrid-staging-tenant-management-authorization-v1`.
 
-This separate schema-only operation applies exactly
-`20260914125503_scope_tenant_management_authorization.sql`, never pending
+This separate schema-only operation applies exactly the two reviewed,
+contiguous migrations `20260914125400_reconcile_legacy_global_rbac_policies.sql`
+and `20260914125503_scope_tenant_management_authorization.sql`, never pending
 unrelated migrations or any fixed-account repair. It requires an exact,
-contiguous predecessor journal. The migration blocks authorization writes and
-refuses to switch if **any** previously authorized active user/tenant pair lacks
-independently granted canonical Management. No role or membership is created,
-removed or changed. If preservation fails, stop and reconcile the intended
-tenant grants through a separately scoped repair; never auto-copy a global role
-into every membership. See [the authorization runbook](deployment/staging-tenant-management-authorization.md).
+contiguous predecessor journal. The first migration only reconciles the known
+legacy global `user_roles` policies and refuses unknown policy consumers. The
+scope migration blocks authorization writes and refuses to switch if **any**
+previously authorized active user/tenant pair lacks independently granted
+canonical Management. No role or membership is created, removed or changed.
+If preservation fails, stop and reconcile the intended tenant grants through a
+separately scoped repair; never auto-copy a global role into every membership.
+See [the authorization runbook](deployment/staging-tenant-management-authorization.md).
 
 Then dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
 
