@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
@@ -51,4 +52,37 @@ test("workflow exposes no mutation mode and keeps database credentials after sta
     workflow,
     /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_AUTH|db:migrate|repair-platform-privilege/u,
   );
+});
+
+test("dispatch confirmation stays data even with shell metacharacters", () => {
+  const step = workflow.split("- name: Reject non-main diagnostic dispatch")[1]
+    .split("- name: Checkout exact reviewed main source")[0];
+  assert.match(step, /DIAGNOSTIC_CONFIRMATION: \$\{\{ inputs\.confirmation \}\}/u);
+  const shell = step.split("run: |\n")[1].split("\n")
+    .map((line) => line.replace(/^          /u, "")).join("\n");
+  assert.doesNotMatch(shell, /\$\{\{/u, "untrusted workflow expressions must not enter shell source");
+  const confirmation = "fieldgrid-staging-tenant-management-policy-identity-diagnostic-v1";
+  for (const value of [
+    confirmation,
+    "$(printf injected >&2)",
+    "`printf injected >&2`",
+    '\"; printf injected >&2; #',
+    "wrong\nvalue",
+  ]) {
+    const result = spawnSync("bash", ["--noprofile", "--norc", "-c", shell], {
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        GITHUB_EVENT_NAME: "workflow_dispatch",
+        GITHUB_REPOSITORY: "veele-services/platform",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_SHA: "a".repeat(40),
+        EXPECTED_MAIN_SHA: "a".repeat(40),
+        DIAGNOSTIC_CONFIRMATION: value,
+      },
+    });
+    assert.equal(result.status, value === confirmation ? 0 : 1);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "");
+  }
 });

@@ -37,13 +37,15 @@ jobs:
 
     steps:
       - name: Reject non-main diagnostic dispatch
+        env:
+          DIAGNOSTIC_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           set -euo pipefail
           test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
-          test "${{ inputs.confirmation }}" = "fieldgrid-staging-tenant-management-policy-identity-diagnostic-v1"
+          test "$DIAGNOSTIC_CONFIRMATION" = "fieldgrid-staging-tenant-management-policy-identity-diagnostic-v1"
           [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
 
       - name: Checkout exact reviewed main source

@@ -188,6 +188,23 @@ type DatabaseModule = {
   };
 };
 
+// A result is usable only after the dedicated connection and pool are closed.
+// Attempt both cleanup operations, even when releasing the client fails.
+export async function runTenantManagementPolicyIdentitySession(
+  database: DatabaseModule,
+): Promise<TenantManagementPolicyIdentityDiagnosticResult> {
+  let client: Awaited<ReturnType<DatabaseModule["pool"]["connect"]>> | undefined;
+  try {
+    client = await database.pool.connect();
+    return await runTenantManagementPolicyIdentityDiagnostic(client);
+  } finally {
+    let cleanupFailed = false;
+    try { client?.release(true); } catch { cleanupFailed = true; }
+    try { await database.pool.end(); } catch { cleanupFailed = true; }
+    if (cleanupFailed) throw new PolicyIdentityDiagnosticError("cleanup_failed");
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseTenantManagementPolicyIdentityDiagnosticArgs(
     process.argv.slice(2),
@@ -212,8 +229,6 @@ async function main(): Promise<void> {
   }
 
   const startedAt = new Date().toISOString();
-  let database: DatabaseModule | undefined;
-  let client: Awaited<ReturnType<DatabaseModule["pool"]["connect"]>> | undefined;
   let result: TenantManagementPolicyIdentityDiagnosticResult | null = null;
   let errorCode: DiagnosticErrorCode | null = null;
   try {
@@ -226,19 +241,16 @@ async function main(): Promise<void> {
     } catch {
       throw new PolicyIdentityDiagnosticError("main_validation_failed");
     }
-    database = await import(
+    const database = await import(
       pathToFileURL(join(repoRoot, "lib/db/src/connection.ts")).href
     ) as DatabaseModule;
-    client = await database.pool.connect();
-    result = await runTenantManagementPolicyIdentityDiagnostic(client);
+    result = await runTenantManagementPolicyIdentitySession(database);
   } catch (error) {
     errorCode = error instanceof PolicyIdentityDiagnosticError
       ? error.code
       : "operation_failed";
     throw new PolicyIdentityDiagnosticError(errorCode);
   } finally {
-    client?.release(true);
-    await database?.pool.end();
     const directory = join(
       repoRoot,
       "artifacts",
