@@ -268,7 +268,11 @@ merely to advance the migration frontier.
 If the existing owner has legacy global `Management`, first run **Staging
 Tenant Management Authorization** from the exact reviewed `main`:
 
-- `operation`: `diagnose`, then `apply` only when `missing_pairs = 0`;
+- `operation`: `diagnose`, then `apply` only with proven policy/history readiness,
+  `missing_pairs = 0` and `preserved_pairs = legacy_pairs`. An
+  `unknown_policy_consumer` blocker or `readyForApply=false` requires the
+  [policy identity route](deployment/staging-tenant-management-policy-identity-diagnostic.md)
+  and a separately reviewed prerequisite repair first;
 - `expected_main_sha`: the exact remote main head with successful Main Exact
   Head Validation;
 - `confirmation`: `fieldgrid-staging-tenant-management-authorization-v1`.
