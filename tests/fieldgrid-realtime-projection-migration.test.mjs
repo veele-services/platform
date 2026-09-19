@@ -57,16 +57,15 @@ test("customer realtime policy rejects JWT email fallback", () => {
   assert.match(migration, /cu\.user_id = auth\.uid\(\)/u);
 });
 
-// The repair cases clone the local template and exercise real commits. Run
-// before the shared source connection is opened, so CREATE DATABASE TEMPLATE
-// never races with the historical migration smoke cases below.
-test("bounded tenant-management policy repair on disposable PostgreSQL", { skip: !process.env.DATABASE_URL },
-  verifyTenantManagementPolicyRepair);
-
 test(
   "installed customer realtime policy requires an active linked user",
   { skip: !process.env.DATABASE_URL },
   async (context) => {
+    // Share the existing database gate instead of creating another skipped
+    // top-level test in the static lane. Clone before opening the template's
+    // shared connection; every real-commit repair case still runs in PG CI.
+    await context.test("bounded tenant-management policy repair on disposable PostgreSQL",
+      verifyTenantManagementPolicyRepair);
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
