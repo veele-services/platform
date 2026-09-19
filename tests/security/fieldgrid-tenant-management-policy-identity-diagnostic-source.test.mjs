@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 const script = readFileSync(
@@ -30,6 +32,62 @@ test("policy identity diagnostic remains read-only and metadata-only", () => {
     /auth\.users|raw_user_meta_data|access_token|refresh_token|password|DATABASE_URL\s*[:=]\s*process/u,
   );
   assert.doesNotMatch(script, /error\.(?:message|stack)|String\(error\)/u);
+});
+
+test("exact-head workflow command executes and rejects unvalidated runs without network", () => {
+  const step = workflow.split("- name: Require successful exact-head validation")[1]
+    .split("- name: Install exact pinned database root certificate")[0];
+  const shell = step.split("run: |\n")[1].split("\n")
+    .map((line) => line.replace(/^          /u, "")).join("\n");
+  const head = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
+  assert.equal(head.status, 0);
+  const directory = mkdtempSync(join(tmpdir(), "fieldgrid-validation-command-"));
+  const preload = join(directory, "fetch-fixture.mjs");
+  const called = join(directory, "called");
+  writeFileSync(preload, `
+    import { writeFileSync } from 'node:fs';
+    globalThis.fetch = async (url, options) => {
+      const sha = process.env.EXPECTED_MAIN_SHA;
+      const expected = 'https://api.github.com/repos/veele-services/platform/actions/workflows/main-exact-head-validation.yml/runs?branch=main&head_sha=' + sha + '&per_page=100';
+      if (url !== expected || options.headers.Authorization !== 'Bearer synthetic-validation-token') {
+        throw new Error('fixture request mismatch');
+      }
+      writeFileSync(process.env.FIXTURE_CALLED, 'called');
+      const scenario = process.env.FIXTURE_SCENARIO;
+      if (scenario === 'network-error') throw new Error('synthetic-sensitive-driver-detail');
+      return { ok: scenario !== 'http-error', json: async () => ({ total_count: 1, workflow_runs: [{
+        id: 1, head_sha: scenario === 'wrong-head' ? '0'.repeat(40) : sha,
+        head_branch: 'main', path: '.github/workflows/main-exact-head-validation.yml',
+        name: 'Main Exact Head Validation', event: 'push',
+        head_repository: { full_name: 'veele-services/platform' },
+        status: scenario === 'pending' ? 'in_progress' : 'completed',
+        conclusion: scenario === 'skipped' ? 'skipped' : 'success',
+      }] }) };
+    };
+  `);
+  try {
+    for (const scenario of ["success", "pending", "skipped", "wrong-head", "http-error", "network-error"]) {
+      rmSync(called, { force: true });
+      const result = spawnSync("bash", ["--noprofile", "--norc", "-c", shell], {
+        encoding: "utf8", timeout: 30_000,
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          NODE_OPTIONS: `--import=${preload}`,
+          EXPECTED_MAIN_SHA: head.stdout.trim(),
+          GITHUB_REPOSITORY: "veele-services/platform",
+          GITHUB_TOKEN: "synthetic-validation-token",
+          FIXTURE_SCENARIO: scenario,
+          FIXTURE_CALLED: called,
+        },
+      });
+      assert.equal(result.error, undefined, scenario);
+      assert.equal(result.status, scenario === "success" ? 0 : 1, scenario);
+      assert.equal(existsSync(called), true, `${scenario}: command must reach validation`);
+      assert.doesNotMatch(result.stdout + result.stderr, /synthetic-sensitive-driver-detail/u);
+      if (scenario !== "success") assert.match(result.stderr, /Exact-head validation failed/u);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
 test("workflow exposes no mutation mode and keeps database credentials after static checks", () => {
