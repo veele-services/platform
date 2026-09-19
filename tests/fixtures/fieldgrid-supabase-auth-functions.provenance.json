@@ -1,0 +1,19 @@
+{
+  "description": "Unmodified official Supabase Auth migration used only as a source-bound helper definition fixture. Namespace templating is resolved separately; local reconstruction does not prove a hosted installation.",
+  "repository": "https://github.com/supabase/auth",
+  "revision": "2e9ce6c8e46532879ced1c6f9a7acdcde3815ea6",
+  "sourcePath": "migrations/20220224000811_update_auth_functions.up.sql",
+  "sourceUrl": "https://raw.githubusercontent.com/supabase/auth/2e9ce6c8e46532879ced1c6f9a7acdcde3815ea6/migrations/20220224000811_update_auth_functions.up.sql",
+  "sha256": "5b72022d73e64a8e474d2122ac42f299bb7ce4d59755cdcc78e72abfe5d47dc0",
+  "byteLength": 895,
+  "helperBodies": [
+    {
+      "signature": "auth.uid()",
+      "sha256": "9ab5ea099e74ec09e83b1505c51a3647791195aed7c742dcc3f257dfc7d2f300"
+    },
+    {
+      "signature": "auth.role()",
+      "sha256": "925a4caecb62a7b1f09af87e75465847e16ea0c2c13207448c2c1c180ab2b215"
+    }
+  ]
+}

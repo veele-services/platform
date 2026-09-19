@@ -269,26 +269,36 @@ If the existing owner has legacy global `Management`, first run **Staging
 Tenant Management Authorization** from the exact reviewed `main`:
 
 - `operation`: `diagnose`, then `apply` only with proven policy/history readiness,
-  `missing_pairs = 0` and `preserved_pairs = legacy_pairs`. An
-  `unknown_policy_consumer` blocker or `readyForApply=false` requires the
-  [policy identity route](deployment/staging-tenant-management-policy-identity-diagnostic.md)
-  and a separately reviewed prerequisite repair first;
+  `missing_pairs = 0` and `preserved_pairs = legacy_pairs`. For the exact known
+  legacy set require `legacyDefinitionMatches`, `dependenciesValid` and
+  `readyForPrerequisiteRepair`. `readyForApply` remains false until that
+  prerequisite completes; the composite runner rechecks real scope readiness
+  before executing the dependent migrations. Unknown identities use the
+  [policy identity route](deployment/staging-tenant-management-policy-identity-diagnostic.md);
+  helper, definition or history drift remains blocked for its own reason;
 - `expected_main_sha`: the exact remote main head with successful Main Exact
   Head Validation;
 - `confirmation`: `fieldgrid-staging-tenant-management-authorization-v1`.
 
-This separate schema-only operation applies exactly the two reviewed,
-contiguous migrations `20260914125400_reconcile_legacy_global_rbac_policies.sql`
-and `20260914125503_scope_tenant_management_authorization.sql`, never pending
-unrelated migrations or any fixed-account repair. It requires an exact,
-contiguous predecessor journal. The first migration only reconciles the known
-legacy global `user_roles` policies and refuses unknown policy consumers. The
+This schema-only operation accepts exactly three reviewed source migrations:
+the immutable `20260914125400_reconcile_legacy_global_rbac_policies.sql`,
+`20260914125503_scope_tenant_management_authorization.sql` and the forward-only
+`20260919220633_repair_tenant_management_policy_consumers.sql`. On the proven
+legacy frontier it executes the new prerequisite first, then both old phases,
+inside one transaction; exact journal records are written chronologically only
+after all postconditions pass. A clean installation runs the ordinary sorted
+order. No unrelated pending migration or fixed-account repair is accepted.
+The prerequisite compares complete source-bound definitions and repairs only
+the confirmed object/payment consumers. Reconciliation still refuses unknown
+consumers and preserves its separate `user_roles` platform scope. The
 scope migration blocks authorization writes and refuses to switch if **any**
 previously authorized active user/tenant pair lacks independently granted
 canonical Management. No role or membership is created, removed or changed.
 If preservation fails, stop and reconcile the intended tenant grants through a
 separately scoped repair; never auto-copy a global role into every membership.
 See [the authorization runbook](deployment/staging-tenant-management-authorization.md).
+After apply, require a fresh read-only `canonical-state` result with the full
+policy/helper/journal contract verified; do not rerun legacy preconditions.
 
 Then dispatch **Field-demo Staging Domain Repair** from the exact reviewed `main`:
 

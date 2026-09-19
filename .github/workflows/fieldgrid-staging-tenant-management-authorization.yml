@@ -125,8 +125,10 @@ jobs:
             ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts --check
           node --test tests/security/fieldgrid-tenant-management-authorization-source.test.mjs
           node --test tests/security/fieldgrid-tenant-management-sql-diagnostic-source.test.mjs
+          node --test tests/security/fieldgrid-tenant-management-policy-repair-source.test.mjs
           pnpm --filter @workspace/db exec tsx --test \
             ../../tests/domain/fieldgrid-staging-tenant-management-authorization.test.ts \
+            ../../tests/domain/fieldgrid-tenant-management-policy-definition-contract.test.ts \
             ../../tests/domain/fieldgrid-staging-tenant-management-sql-diagnostic.test.ts
 
       - name: Install exact pinned database root certificate
@@ -162,6 +164,7 @@ jobs:
           '
 
       - name: Diagnose or apply only the reviewed authorization migration
+        id: authorization_operation
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
@@ -185,8 +188,8 @@ jobs:
             *) exit 1 ;;
           esac
 
-      - name: Capture safe migration precondition diagnostics
-        if: ${{ always() && (inputs.operation == 'diagnose' || failure()) }}
+      - name: Read canonical or prerequisite state after unsuccessful apply
+        if: ${{ always() && inputs.operation == 'apply' && steps.authorization_operation.outcome == 'failure' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
@@ -197,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm --filter @workspace/db exec tsx \
-            ../../scripts/fieldgrid-staging-tenant-management-sql-diagnostic.mts \
+            ../../scripts/fieldgrid-staging-tenant-management-authorization.mts \
             --diagnose --expected-sha "$EXPECTED_MAIN_SHA"
 
       - name: Upload secret-free authorization evidence
@@ -206,15 +209,6 @@ jobs:
         with:
           name: tenant-management-authorization-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/tenant-management-authorization/*-${{ github.run_id }}-${{ github.run_attempt }}.json
-          if-no-files-found: warn
-          retention-days: 1
-
-      - name: Upload secret-free SQL diagnostic evidence
-        if: ${{ always() && (inputs.operation == 'diagnose' || failure()) }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: tenant-management-sql-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/tenant-management-sql-diagnostic/*-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
           retention-days: 1
 

@@ -10,6 +10,7 @@ import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/field
 import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
 import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-management-authorization.test.mjs";
 import { verifyPolicyIdentityDiagnostic } from "./runtime/fieldgrid-policy-identity-diagnostic.test.mjs";
+import { verifyTenantManagementPolicyRepair } from "./runtime/fieldgrid-tenant-management-policy-repair.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -55,6 +56,12 @@ test("customer realtime policy rejects JWT email fallback", () => {
   assert.match(migration, /cu\.status = 'active'/u);
   assert.match(migration, /cu\.user_id = auth\.uid\(\)/u);
 });
+
+// The repair cases clone the local template and exercise real commits. Run
+// before the shared source connection is opened, so CREATE DATABASE TEMPLATE
+// never races with the historical migration smoke cases below.
+test("bounded tenant-management policy repair on disposable PostgreSQL", { skip: !process.env.DATABASE_URL },
+  verifyTenantManagementPolicyRepair);
 
 test(
   "installed customer realtime policy requires an active linked user",

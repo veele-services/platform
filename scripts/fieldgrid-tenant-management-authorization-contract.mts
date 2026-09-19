@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { tenantManagementPolicyRepairContractSql } from "./fieldgrid-tenant-management-policy-repair-contract.mts";
 
 export const TENANT_MANAGEMENT_MIGRATION_NAME =
   "20260914125503_scope_tenant_management_authorization.sql";
@@ -33,7 +34,7 @@ export type TenantManagementQueryable = {
 // Authorization cannot be inferred from a migration marker alone: verify the
 // exact installed bodies, signatures, owners, search paths and effective ACLs.
 // This expression only reads catalogs/history; it never calls a missing helper.
-export function tenantManagementAuthorizationContractSql(): string {
+export function tenantManagementScopeContractSql(includeJournal = true): string {
   return `(EXISTS (
     SELECT 1 FROM pg_proc wrapper
     JOIN pg_proc predicate ON predicate.oid =
@@ -75,11 +76,11 @@ export function tenantManagementAuthorizationContractSql(): string {
         SELECT 1 FROM aclexplode(coalesce(predicate.proacl, acldefault('f', predicate.proowner))) acl
         WHERE acl.grantee <> predicate.proowner
       )
-  ) AND (SELECT count(*) FROM drizzle.veele_sql_migrations
+  )${includeJournal ? ` AND (SELECT count(*) FROM drizzle.veele_sql_migrations
           WHERE name = ${quote(TENANT_MANAGEMENT_MIGRATION_NAME)}) = 1
     AND EXISTS (SELECT 1 FROM drizzle.veele_sql_migrations
       WHERE name = ${quote(TENANT_MANAGEMENT_MIGRATION_NAME)}
-        AND hash = ${quote(hash)} AND baselined = false)
+        AND hash = ${quote(hash)} AND baselined = false)` : ""}
     AND NOT EXISTS (
       SELECT 1 FROM pg_policies
       WHERE coalesce(qual, '') ~ '\\mis_management[[:space:]]*\\('
@@ -97,6 +98,28 @@ export function tenantManagementAuthorizationContractSql(): string {
       WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
         AND pg_get_ruledef(r.oid) ~ '\\mis_management[[:space:]]*\\('
     ))`;
+}
+
+export function tenantManagementAuthorizationContractSql(): string {
+  return `(${tenantManagementScopeContractSql()} AND ${tenantManagementPolicyRepairContractSql()})`;
+}
+
+export async function verifyTenantManagementScopeCatalog(
+  queryable: TenantManagementQueryable,
+): Promise<boolean> {
+  const result = await queryable.query<{ valid: boolean }>(
+    `SELECT ${tenantManagementScopeContractSql(false)} AS valid`,
+  );
+  return result.rows.length === 1 && result.rows[0]?.valid === true;
+}
+
+export async function verifyTenantManagementScopeContract(
+  queryable: TenantManagementQueryable,
+): Promise<boolean> {
+  const result = await queryable.query<{ valid: boolean }>(
+    `SELECT ${tenantManagementScopeContractSql()} AS valid`,
+  );
+  return result.rows.length === 1 && result.rows[0]?.valid === true;
 }
 
 export async function verifyTenantManagementAuthorizationContract(

@@ -33,15 +33,20 @@ test("SQL diagnostic is catalog-only, read-only and secret-free", () => {
   assert.match(script, /legacy_rule_consumer_count/u);
 });
 
-test("workflow runs safe diagnostics on diagnose and failed apply only", () => {
+test("failed apply reads its actual installed state and never reruns legacy preconditions unconditionally", () => {
   assert.match(
     workflow,
-    /name: Capture safe migration precondition diagnostics[\s\S]*if: \$\{\{ always\(\) && \(inputs\.operation == 'diagnose' \|\| failure\(\)\) \}\}/u,
+    /name: Diagnose or apply only the reviewed authorization migration\s+id: authorization_operation/u,
   );
+  const recoveryStep = workflow.split("- name: Read canonical or prerequisite state after unsuccessful apply")[1]
+    .split("- name: Upload secret-free authorization evidence")[0];
   assert.match(
-    workflow,
-    /fieldgrid-staging-tenant-management-sql-diagnostic\.mts[\s\S]*--diagnose --expected-sha "\$EXPECTED_MAIN_SHA"/u,
+    recoveryStep,
+    /if: \$\{\{ always\(\) && inputs\.operation == 'apply' && steps\.authorization_operation\.outcome == 'failure' \}\}/u,
   );
+  assert.match(recoveryStep, /fieldgrid-staging-tenant-management-authorization\.mts[\s\S]*--diagnose --expected-sha "\$EXPECTED_MAIN_SHA"/u);
+  assert.doesNotMatch(recoveryStep, /--apply|fieldgrid-staging-tenant-management-sql-diagnostic\.mts/u);
+  assert.doesNotMatch(workflow, /sql-diagnostic\.mts[\s\\\n]+--diagnose/u);
   assert.match(
     workflow,
     /FIELDGRID_MIGRATION_DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u,
@@ -52,6 +57,6 @@ test("workflow runs safe diagnostics on diagnose and failed apply only", () => {
   );
   assert.match(
     workflow,
-    /name: Upload secret-free SQL diagnostic evidence[\s\S]*tenant-management-sql-diagnostic-/u,
+    /name: Upload secret-free authorization evidence[\s\S]*tenant-management-authorization-/u,
   );
 });
