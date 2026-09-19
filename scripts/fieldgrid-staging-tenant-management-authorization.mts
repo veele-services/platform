@@ -13,8 +13,14 @@ import {
   TENANT_MANAGEMENT_MIGRATION_NAME,
   loadTenantManagementAuthorizationSource,
   readTenantManagementAuthorizationImpact,
-  verifyTenantManagementAuthorizationContract,
+  verifyTenantManagementScopeContract,
+  verifyTenantManagementScopeCatalog,
 } from "./fieldgrid-tenant-management-authorization-contract.mts";
+import {
+  loadTenantManagementPolicyRepairSource,
+  readTenantManagementPolicyRepairReadiness,
+  verifyTenantManagementPolicyRepairCatalog,
+} from "./fieldgrid-tenant-management-policy-repair-contract.mts";
 
 export const TENANT_MANAGEMENT_AUTHORIZATION_VERSION =
   "fieldgrid-staging-tenant-management-authorization-v1";
@@ -25,6 +31,8 @@ export const TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME =
   "20260914125400_reconcile_legacy_global_rbac_policies.sql";
 export const TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH =
   "421fde7810185af215b46b733bcf09878c78812a6a151850bb52536ddcc7ba5c";
+export const TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME =
+  "20260919220633_repair_tenant_management_policy_consumers.sql";
 const DATABASE_MIGRATION_LOCK_KEY = "fieldgrid:database-migrations:v1";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
@@ -60,6 +68,11 @@ type ErrorCode =
   | "catalog_invalid"
   | "history_write_failed"
   | "transaction_failed"
+  | "repair_not_ready"
+  | "repair_failed"
+  | "scope_not_ready"
+  | "scope_failed"
+  | "commit_uncertain"
   | "cleanup_failed"
   | "operation_failed";
 
@@ -222,25 +235,32 @@ export async function verifyTenantManagementAuthorizationMainHead(
   } catch { throw new AuthorizationError("main_validation_failed"); }
 }
 
-export function tenantManagementAuthorizationFrontier(base: Frontier, source: Source): Frontier {
+export function tenantManagementAuthorizationFrontier(
+  base: Frontier, source: Source, repair: Source,
+): Frontier {
   const index = base.committed.findIndex((entry) => entry.name === TENANT_MANAGEMENT_MIGRATION_NAME);
   const policyIndex = index - 1;
   const policySource = base.committed[policyIndex];
   const committedSource = base.committed[index];
-  const hash = createHash("sha256").update(source.sql.replaceAll("\r\n", "\n")).digest("hex");
+  const committedRepair = base.committed[index + 1];
+  const exactSource = (candidate: Source, committed: Source | undefined, name: string) =>
+    candidate.name === name && HASH_PATTERN.test(candidate.hash) &&
+    candidate.hash === createHash("sha256").update(candidate.sql.replaceAll("\r\n", "\n")).digest("hex") &&
+    committed?.hash === candidate.hash && committed.sql === candidate.sql &&
+    base.committed.filter((entry) => entry.name === name).length === 1;
+  // This is one reviewed suffix, not an extensible pending-migration runner.
   if (index < 1 || policySource?.name !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME ||
       policySource.hash !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH ||
-      source.name !== TENANT_MANAGEMENT_MIGRATION_NAME ||
-      !HASH_PATTERN.test(source.hash) || source.hash !== hash ||
-      committedSource?.hash !== source.hash || committedSource.sql !== source.sql ||
-      base.committed.filter((entry) => entry.name === source.name).length !== 1) {
+      !exactSource(source, committedSource, TENANT_MANAGEMENT_MIGRATION_NAME) ||
+      !exactSource(repair, committedRepair, TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME) ||
+      base.committed.length !== index + 2) {
     throw new AuthorizationError("source_invalid");
   }
   return {
     ...base,
     predecessors: base.committed.slice(0, policyIndex),
-    required: [policySource, committedSource],
-    successors: new Set(base.committed.slice(index + 1).map((entry) => entry.name)),
+    required: [policySource, committedSource!, committedRepair!],
+    successors: new Set(),
   };
 }
 
@@ -256,7 +276,10 @@ export function assertTenantManagementAuthorizationHistory(frontier: Frontier, r
     }
     const pending = assertPlatformPrivilegeMigrationFrontier(frontier, records);
     const allowedPendingNames = new Set(frontier.required.map((entry) => entry.name));
-    if (pending.length > frontier.required.length || pending.some((entry) => !allowedPendingNames.has(entry.name))) {
+    if (frontier.required.length !== 3 ||
+        ![0, 1, 3].includes(pending.length) ||
+        pending.some((entry) => !allowedPendingNames.has(entry.name)) ||
+        (pending.length === 1 && pending[0]?.name !== TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME)) {
       throw new Error("unbounded migration request");
     }
     return pending;
@@ -281,25 +304,84 @@ export function sanitizeTenantManagementAuthorizationImpact(value: unknown): Aut
   return result;
 }
 
-type Dependencies = {
+export type RepairReadiness = {
+  legacyDefinitionMatches: boolean;
+  cleanDefinitionMatches: boolean;
+  targetDefinitionMatches: boolean;
+  dependenciesValid: boolean;
+};
+export type AuthorizationDependencies = {
   loadFrontier: () => Promise<Frontier>;
   loadSource: () => Promise<Source>;
-  verifyContract: (queryable: AuthorizationQueryable) => Promise<boolean>;
+  loadRepairSource: () => Promise<Source>;
+  verifyScopeContract: (queryable: AuthorizationQueryable) => Promise<boolean>;
+  verifyScopeCatalog: (queryable: AuthorizationQueryable) => Promise<boolean>;
+  verifyRepairCatalog: (queryable: AuthorizationQueryable) => Promise<boolean>;
+  readRepairReadiness: (queryable: AuthorizationQueryable) => Promise<RepairReadiness>;
+  readScopeReadiness: (queryable: AuthorizationQueryable) => Promise<{ readyForApply: boolean }>;
   readImpact: (queryable: AuthorizationQueryable) => Promise<unknown>;
 };
-const defaultDependencies: Dependencies = {
+const defaultDependencies: AuthorizationDependencies = {
   loadFrontier: loadPlatformPrivilegeMigrationFrontier,
   loadSource: loadTenantManagementAuthorizationSource,
-  verifyContract: verifyTenantManagementAuthorizationContract,
+  loadRepairSource: loadTenantManagementPolicyRepairSource,
+  verifyScopeContract: verifyTenantManagementScopeContract,
+  verifyScopeCatalog: verifyTenantManagementScopeCatalog,
+  verifyRepairCatalog: verifyTenantManagementPolicyRepairCatalog,
+  readRepairReadiness: readTenantManagementPolicyRepairReadiness,
+  readScopeReadiness: async (queryable) => {
+    // Defer the import: the legacy diagnostic also imports dispatch guards from
+    // this runner. Only call it before the canonical scope has been installed.
+    const { readTenantManagementSqlDiagnostic } = await import(
+      "./fieldgrid-staging-tenant-management-sql-diagnostic.mts"
+    );
+    return readTenantManagementSqlDiagnostic(queryable);
+  },
   readImpact: readTenantManagementAuthorizationImpact,
 };
 
+export type AuthorizationState = "legacy-state" | "clean-state" | "repaired-state" | "canonical-state" | "unknown-state";
 export type AuthorizationResult = {
   result: "diagnosed" | "applied" | "already-applied";
+  state: AuthorizationState;
   migrationRecorded: boolean;
+  scopeMigrationRecorded: boolean;
+  repairMigrationRecorded: boolean;
   contractVerified: boolean;
+  readyForApply: boolean;
+  readyForPrerequisiteRepair: boolean;
+  repairReadiness: RepairReadiness;
   impact: AuthorizationImpact;
 };
+
+function contractBoolean(value: unknown): boolean {
+  if (typeof value !== "boolean") throw new AuthorizationError("catalog_invalid");
+  return value;
+}
+
+function repairReadiness(value: unknown): RepairReadiness {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new AuthorizationError("catalog_invalid");
+  const input = value as Record<string, unknown>;
+  if (Object.keys(input).length !== 4 ||
+      Object.keys(input).some((key) => !["legacyDefinitionMatches", "cleanDefinitionMatches", "targetDefinitionMatches", "dependenciesValid"].includes(key))) {
+    throw new AuthorizationError("catalog_invalid");
+  }
+  const result = {
+    legacyDefinitionMatches: contractBoolean(input.legacyDefinitionMatches),
+    cleanDefinitionMatches: contractBoolean(input.cleanDefinitionMatches),
+    targetDefinitionMatches: contractBoolean(input.targetDefinitionMatches),
+    dependenciesValid: contractBoolean(input.dependenciesValid),
+  };
+  if ([result.legacyDefinitionMatches, result.cleanDefinitionMatches, result.targetDefinitionMatches]
+    .filter(Boolean).length > 1) throw new AuthorizationError("catalog_invalid");
+  return result;
+}
+
+async function scopeReadiness(queryable: AuthorizationQueryable, dependencies: AuthorizationDependencies): Promise<boolean> {
+  const value = await dependencies.readScopeReadiness(queryable);
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new AuthorizationError("catalog_invalid");
+  return contractBoolean(value.readyForApply);
+}
 
 // SHARE blocks grant/membership changes while allowing ordinary reads. The
 // migration takes its own catalog locks and repeats its preservation guards.
@@ -308,18 +390,28 @@ const AUTHORIZATION_LOCKS = `LOCK TABLE
   public.tenant_roles, public.tenant_user_roles, public.tenant_users,
   public.tenants, public.user_roles IN SHARE MODE`;
 
+// Preserve the existing authorization order, then lock the repair relations
+// alphabetically. Policy tables also serialize concurrent policy DDL.
+const POLICY_REPAIR_LOCKS = `LOCK TABLE public.invoices IN SHARE MODE;
+LOCK TABLE public.object_contacts, public.object_personnel IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.objects IN SHARE MODE;
+LOCK TABLE public.payments IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.personnel IN SHARE MODE`;
+
 export async function runTenantManagementAuthorization(
   queryable: AuthorizationQueryable,
   operation: "diagnose" | "apply",
-  dependencies: Dependencies = defaultDependencies,
+  dependencies: AuthorizationDependencies = defaultDependencies,
 ): Promise<AuthorizationResult> {
   let locked = false;
   let transactionStarted = false;
   let stage: ErrorCode = "source_invalid";
   try {
     if (operation !== "diagnose" && operation !== "apply") throw new AuthorizationError("configuration_invalid");
-    const [base, source] = await Promise.all([dependencies.loadFrontier(), dependencies.loadSource()]);
-    const frontier = tenantManagementAuthorizationFrontier(base, source);
+    const [base, source, repair] = await Promise.all([
+      dependencies.loadFrontier(), dependencies.loadSource(), dependencies.loadRepairSource(),
+    ]);
+    const frontier = tenantManagementAuthorizationFrontier(base, source, repair);
     stage = "lock_unavailable";
     const lock = await queryable.query<{ acquired: boolean }>(
       "SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired",
@@ -338,34 +430,75 @@ export async function runTenantManagementAuthorization(
     if (operation === "apply") {
       await queryable.query("LOCK TABLE drizzle.veele_sql_migrations IN SHARE ROW EXCLUSIVE MODE");
       await queryable.query(AUTHORIZATION_LOCKS);
+      await queryable.query(POLICY_REPAIR_LOCKS);
     }
-    const history = await queryable.query<History[number]>(
+    const readHistory = async () => (await queryable.query<History[number]>(
       `SELECT name, hash, baselined, applied_at AS "appliedAt"
          FROM drizzle.veele_sql_migrations ORDER BY applied_at, name`,
-    );
-    const pending = assertTenantManagementAuthorizationHistory(frontier, history.rows);
+    )).rows;
+    const pending = assertTenantManagementAuthorizationHistory(frontier, await readHistory());
+    const scopeRecorded = pending.length < 3;
+    const repairRecorded = pending.length === 0;
     stage = "catalog_invalid";
-    const installed = await dependencies.verifyContract(queryable);
-    if (typeof installed !== "boolean" || installed !== (pending.length === 0)) {
-      throw new AuthorizationError(stage);
-    }
+    const scopeInstalled = contractBoolean(await dependencies.verifyScopeContract(queryable));
+    const scopeCatalog = contractBoolean(await dependencies.verifyScopeCatalog(queryable));
+    if (scopeInstalled !== scopeRecorded || scopeCatalog !== scopeRecorded) throw new AuthorizationError(stage);
+    const readiness = repairReadiness(await dependencies.readRepairReadiness(queryable));
+    const repairCanonical = contractBoolean(await dependencies.verifyRepairCatalog(queryable));
+    if (repairCanonical !== readiness.targetDefinitionMatches) throw new AuthorizationError(stage);
+    // A clean sorted installation reaches the repair after the historical pair.
+    // An installed scope never makes reintroduced legacy policies repairable.
+    if (scopeRecorded && (!readiness.dependenciesValid ||
+        (!readiness.cleanDefinitionMatches && !repairCanonical) ||
+        (repairRecorded && !repairCanonical))) throw new AuthorizationError(stage);
     stage = "impact_invalid";
     const before = sanitizeTenantManagementAuthorizationImpact(await dependencies.readImpact(queryable));
-    if (operation === "diagnose") {
+    const preserved = before.missing_pairs === 0 && before.preserved_pairs === before.legacy_pairs;
+    stage = "catalog_invalid";
+    const rawScopeReady = scopeRecorded ? false : await scopeReadiness(queryable, dependencies);
+    const readyForApply = !scopeRecorded && preserved && readiness.dependenciesValid &&
+      repairCanonical && rawScopeReady;
+    const acceptedRepairDefinition = scopeRecorded
+      ? readiness.cleanDefinitionMatches || readiness.targetDefinitionMatches
+      : readiness.legacyDefinitionMatches || readiness.targetDefinitionMatches;
+    const readyForPrerequisiteRepair = !repairRecorded && readiness.dependenciesValid &&
+      acceptedRepairDefinition && (scopeRecorded || preserved);
+    const installed = scopeInstalled && repairCanonical && repairRecorded;
+    const state: AuthorizationState = !readiness.dependenciesValid ||
+      (!readiness.legacyDefinitionMatches && !readiness.cleanDefinitionMatches && !readiness.targetDefinitionMatches)
+      ? "unknown-state" : installed ? "canonical-state"
+      : readiness.cleanDefinitionMatches ? "clean-state"
+      : repairCanonical ? "repaired-state" : "legacy-state";
+    const result = (kind: AuthorizationResult["result"], impact = before): AuthorizationResult => ({
+      result: kind, state, migrationRecorded: repairRecorded, scopeMigrationRecorded: scopeRecorded,
+      repairMigrationRecorded: repairRecorded, contractVerified: installed,
+      readyForApply, readyForPrerequisiteRepair, repairReadiness: readiness, impact,
+    });
+    if (operation === "diagnose" || pending.length === 0) {
+      // Even apply/already-applied is a non-mutating postcheck.
       await queryable.query("ROLLBACK");
       transactionStarted = false;
-      return { result: "diagnosed", migrationRecorded: pending.length === 0, contractVerified: installed, impact: before };
+      return result(operation === "diagnose" ? "diagnosed" : "already-applied");
     }
-    if (pending.length === 0) {
-      await queryable.query("COMMIT");
-      transactionStarted = false;
-      return { result: "already-applied", migrationRecorded: true, contractVerified: true, impact: before };
+    if (!scopeRecorded && !preserved) throw new AuthorizationError("access_preservation_failed");
+    if (!readyForPrerequisiteRepair) throw new AuthorizationError("repair_not_ready");
+    // Explicit prerequisite execution; journal order remains chronological.
+    stage = "repair_failed";
+    await queryable.query(sqlForManagedMigrationTransaction(repair.sql));
+    if (contractBoolean(await dependencies.verifyRepairCatalog(queryable)) !== true) throw new AuthorizationError(stage);
+    if (!scopeRecorded) {
+      stage = "scope_not_ready";
+      if (!await scopeReadiness(queryable, dependencies)) throw new AuthorizationError(stage);
+      stage = "repair_failed";
+      await queryable.query(sqlForManagedMigrationTransaction(frontier.required[0]!.sql));
+      stage = "scope_not_ready";
+      if (!await scopeReadiness(queryable, dependencies)) throw new AuthorizationError(stage);
+      stage = "scope_failed";
+      await queryable.query(sqlForManagedMigrationTransaction(source.sql));
     }
-    if (before.missing_pairs !== 0) throw new AuthorizationError("access_preservation_failed");
-    stage = "transaction_failed";
-    for (const migration of pending) {
-      await queryable.query(sqlForManagedMigrationTransaction(migration.sql));
-    }
+    stage = "catalog_invalid";
+    if (!contractBoolean(await dependencies.verifyScopeCatalog(queryable)) ||
+        !contractBoolean(await dependencies.verifyRepairCatalog(queryable))) throw new AuthorizationError(stage);
     stage = "impact_invalid";
     const after = sanitizeTenantManagementAuthorizationImpact(await dependencies.readImpact(queryable));
     if (Object.keys(before).some((key) => before[key as keyof AuthorizationImpact] !== after[key as keyof AuthorizationImpact])) {
@@ -382,17 +515,30 @@ export async function runTenantManagementAuthorization(
           recorded.rows[0]?.name !== migration.name || recorded.rows[0]?.hash !== migration.hash ||
           recorded.rows[0]?.baselined !== false) throw new AuthorizationError(stage);
     }
-    // The source-owned catalog contract also requires this exact journal hash.
+    stage = "history_invalid";
+    if (assertTenantManagementAuthorizationHistory(frontier, await readHistory()).length !== 0) throw new AuthorizationError(stage);
     stage = "catalog_invalid";
-    if (await dependencies.verifyContract(queryable) !== true) throw new AuthorizationError(stage);
-    stage = "transaction_failed";
+    if (!contractBoolean(await dependencies.verifyScopeContract(queryable)) ||
+        !contractBoolean(await dependencies.verifyScopeCatalog(queryable)) ||
+        !contractBoolean(await dependencies.verifyRepairCatalog(queryable))) throw new AuthorizationError(stage);
+    stage = "commit_uncertain";
     await queryable.query("COMMIT");
     transactionStarted = false;
-    return { result: "applied", migrationRecorded: true, contractVerified: true, impact: after };
+    stage = "cleanup_failed";
+    return {
+      result: "applied", state: "canonical-state", migrationRecorded: true,
+      scopeMigrationRecorded: true, repairMigrationRecorded: true, contractVerified: true,
+      readyForApply: false, readyForPrerequisiteRepair: false,
+      repairReadiness: {
+        legacyDefinitionMatches: false, cleanDefinitionMatches: false,
+        targetDefinitionMatches: true, dependenciesValid: true,
+      },
+      impact: after,
+    };
   } catch (error) {
     if (transactionStarted) {
       try { await queryable.query("ROLLBACK"); }
-      catch { throw new AuthorizationError("cleanup_failed"); }
+      catch { throw new AuthorizationError(stage === "commit_uncertain" ? stage : "cleanup_failed"); }
     }
     throw error instanceof AuthorizationError ? error : new AuthorizationError(stage);
   } finally {
@@ -403,7 +549,7 @@ export async function runTenantManagementAuthorization(
           [DATABASE_MIGRATION_LOCK_KEY],
         );
         if (unlocked.rows.length !== 1 || unlocked.rows[0]?.released !== true) throw new Error("unlock failed");
-      } catch { throw new AuthorizationError("cleanup_failed"); }
+      } catch { throw new AuthorizationError(stage === "commit_uncertain" ? stage : "cleanup_failed"); }
     }
   }
 }
@@ -415,13 +561,38 @@ type DatabaseModule = {
   };
 };
 
+// Return evidence only after both cleanup operations have been attempted.
+export async function runTenantManagementAuthorizationSession(
+  database: DatabaseModule,
+  operation: "diagnose" | "apply",
+  dependencies: AuthorizationDependencies = defaultDependencies,
+): Promise<AuthorizationResult> {
+  let client: Awaited<ReturnType<DatabaseModule["pool"]["connect"]>> | undefined;
+  let operationError: unknown;
+  try {
+    client = await database.pool.connect();
+    return await runTenantManagementAuthorization(client, operation, dependencies);
+  } catch (error) {
+    operationError = error instanceof AuthorizationError ? error : new AuthorizationError("operation_failed");
+    throw operationError;
+  } finally {
+    let cleanupFailed = false;
+    try { client?.release(true); } catch { cleanupFailed = true; }
+    try { await database.pool.end(); } catch { cleanupFailed = true; }
+    if (cleanupFailed) {
+      if (operationError instanceof AuthorizationError && operationError.code === "commit_uncertain") throw operationError;
+      throw new AuthorizationError("cleanup_failed");
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseTenantManagementAuthorizationArgs(process.argv.slice(2));
   if (options.mode === "check") {
-    const [base, source] = await Promise.all([
-      loadPlatformPrivilegeMigrationFrontier(), loadTenantManagementAuthorizationSource(),
+    const [base, source, repair] = await Promise.all([
+      defaultDependencies.loadFrontier(), defaultDependencies.loadSource(), defaultDependencies.loadRepairSource(),
     ]);
-    tenantManagementAuthorizationFrontier(base, source);
+    tenantManagementAuthorizationFrontier(base, source, repair);
     console.log(`${TENANT_MANAGEMENT_AUTHORIZATION_VERSION}: static checks passed`);
     return;
   }
@@ -430,34 +601,29 @@ async function main(): Promise<void> {
     throw new AuthorizationError("configuration_invalid");
   }
   const startedAt = new Date().toISOString();
-  let database: DatabaseModule | undefined;
-  let client: Awaited<ReturnType<DatabaseModule["pool"]["connect"]>> | undefined;
   let result: AuthorizationResult | null = null;
   let errorCode: ErrorCode | null = null;
   try {
     await verifyTenantManagementAuthorizationMainHead(options.expectedSha, options.mode, environment);
     // Import only after dispatch/project/purpose validation; never load Auth APIs.
-    database = await import(pathToFileURL(join(repoRoot, "lib/db/src/connection.ts")).href) as DatabaseModule;
-    client = await database.pool.connect();
-    result = await runTenantManagementAuthorization(client, options.mode);
+    const database = await import(pathToFileURL(join(repoRoot, "lib/db/src/connection.ts")).href) as DatabaseModule;
+    result = await runTenantManagementAuthorizationSession(database, options.mode);
   } catch (error) {
     errorCode = error instanceof AuthorizationError ? error.code : "operation_failed";
     throw new AuthorizationError(errorCode);
   } finally {
-    // Always discard this dedicated connection, including uncertain rollback/commit.
-    client?.release(true);
-    await database?.pool.end();
     const directory = join(repoRoot, "artifacts", "tenant-management-authorization");
     await mkdir(directory, { recursive: true, mode: 0o700 });
     await chmod(directory, 0o700);
     const path = join(directory, `${options.mode}-${environment.GITHUB_RUN_ID}-${environment.GITHUB_RUN_ATTEMPT}.json`);
     await writeFile(path, JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       contract: TENANT_MANAGEMENT_AUTHORIZATION_VERSION,
       environment: "staging",
       operation: options.mode,
       expectedMainSha: options.expectedSha,
-      migrationName: TENANT_MANAGEMENT_MIGRATION_NAME,
+      migrationNames: [TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME,
+        TENANT_MANAGEMENT_MIGRATION_NAME, TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME],
       status: result ? "passed" : "failed",
       result,
       errorCode,

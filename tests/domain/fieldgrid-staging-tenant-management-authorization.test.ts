@@ -7,16 +7,19 @@ import {
   TENANT_MANAGEMENT_AUTHORIZATION_PROJECT_REF,
   TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH,
   TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_NAME,
+  TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME,
   assertSuccessfulTenantManagementValidationRun,
   assertTenantManagementAuthorizationHistory,
   formatSafeTenantManagementAuthorizationError,
   parseTenantManagementAuthorizationArgs,
   runTenantManagementAuthorization,
+  runTenantManagementAuthorizationSession,
   sanitizeTenantManagementAuthorizationImpact,
   tenantManagementAuthorizationFrontier,
   validateTenantManagementAuthorizationConfig,
   verifyTenantManagementAuthorizationMainHead,
   type AuthorizationImpact,
+  type AuthorizationDependencies,
   type AuthorizationQueryable,
 } from "../../scripts/fieldgrid-staging-tenant-management-authorization.mts";
 import { TENANT_MANAGEMENT_MIGRATION_NAME } from "../../scripts/fieldgrid-tenant-management-authorization-contract.mts";
@@ -29,14 +32,15 @@ const policyReconciliation = {
   sql: "SELECT 41;",
   hash: TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH,
 };
+const repair = { name: TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME, sql: "SELECT 43;", hash: hash("SELECT 43;") };
 const legacy = { name: "001_fixture.sql", sql: "SELECT 1;", hash: hash("SELECT 1;") };
 const predecessor = { name: "20260101000000_fixture.sql", sql: "SELECT 2;", hash: hash("SELECT 2;") };
 const successor = { name: "29990101000000_fixture.sql", sql: "SELECT 3;", hash: hash("SELECT 3;") };
 const base = {
-  committed: [legacy, predecessor, policyReconciliation, source, successor],
+  committed: [legacy, predecessor, policyReconciliation, source, repair],
   predecessors: [legacy],
   required: [predecessor],
-  successors: new Set([source.name, successor.name]),
+  successors: new Set([source.name, repair.name]),
   legacyNames: new Set([legacy.name]),
   historical: new Map<string, { kind: "renamed" | "tombstone"; canonicalName: string | null; hash: string }>(),
 };
@@ -99,27 +103,37 @@ test("live configuration pins staging, main, purpose, TLS, project and separate 
   assert.deepEqual(validateTenantManagementAuthorizationConfig({ mode: "check", expectedSha: "" }, {}), []);
 });
 
-test("frontier permits only the source-owned migration after every exact predecessor", () => {
-  const frontier = tenantManagementAuthorizationFrontier(base, source);
-  assert.deepEqual(frontier.required, [policyReconciliation, source]);
+test("frontier pins the exact three-source suffix and accepts only complete pair states", () => {
+  const frontier = tenantManagementAuthorizationFrontier(base, source, repair);
+  assert.deepEqual(frontier.required, [policyReconciliation, source, repair]);
   assert.deepEqual(frontier.predecessors, [legacy, predecessor]);
-  assert.deepEqual(frontier.successors, new Set([successor.name]));
+  assert.deepEqual(frontier.successors, new Set());
   assert.deepEqual(base.required, [predecessor]);
-  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, initialHistory()), [policyReconciliation, source]);
-  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier,
-    [...initialHistory(), historyRecord(policyReconciliation, 2), historyRecord(source, 3)]), []);
+  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, initialHistory()), [policyReconciliation, source, repair]);
+  const pairHistory = [...initialHistory(), historyRecord(policyReconciliation, 2), historyRecord(source, 3)];
+  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, pairHistory), [repair]);
+  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, [...pairHistory, historyRecord(repair, 4)]), []);
   for (const records of [
     [historyRecord(legacy, 0)],
     [...initialHistory(), historyRecord(successor, 4)],
-    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), baselined: true }],
-    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), hash: "b".repeat(64) }],
+    [...initialHistory(), historyRecord(policyReconciliation, 2)],
+    [...initialHistory(), historyRecord(source, 3)],
+    [...initialHistory(), historyRecord(repair, 4)],
+    [...pairHistory, { ...historyRecord(repair, 4), baselined: true }],
+    [...pairHistory, { ...historyRecord(repair, 4), hash: "b".repeat(64) }],
     [...initialHistory(), historyRecord(predecessor, 2)],
-    [...initialHistory(), historyRecord(policyReconciliation, 2), { ...historyRecord(source, 3), name: "20260101000001_unreviewed.sql" }],
+    [...pairHistory, { ...historyRecord(repair, 4), name: "20260101000001_unreviewed.sql" }],
     [{ ...historyRecord(legacy, 0), hash: "c".repeat(64) }, historyRecord(predecessor, 1)],
     [historyRecord(legacy, 0), { ...historyRecord(predecessor, 1), baselined: true }],
   ]) assert.throws(() => assertTenantManagementAuthorizationHistory(frontier, records), /history_invalid/u);
-  assert.throws(() => tenantManagementAuthorizationFrontier(base, { ...source, sql: "SELECT 43;" }), /source_invalid/u);
-  assert.throws(() => tenantManagementAuthorizationFrontier(base, { ...source, name: successor.name }), /source_invalid/u);
+  for (const candidate of [
+    { ...base, committed: [...base.committed, successor] },
+    { ...base, committed: [legacy, predecessor, policyReconciliation, source, successor, repair] },
+    { ...base, committed: [legacy, predecessor, policyReconciliation, source] },
+  ]) assert.throws(() => tenantManagementAuthorizationFrontier(candidate, source, repair), /source_invalid/u);
+  assert.throws(() => tenantManagementAuthorizationFrontier(base, { ...source, sql: "SELECT 99;" }, repair), /source_invalid/u);
+  assert.throws(() => tenantManagementAuthorizationFrontier(base, source, { ...repair, sql: "SELECT 99;" }), /source_invalid/u);
+  assert.throws(() => tenantManagementAuthorizationFrontier(base, source, { ...repair, name: successor.name }), /source_invalid/u);
 });
 
 test("impact exports only consistent, nonnegative safe integer counts", () => {
@@ -134,41 +148,74 @@ test("impact exports only consistent, nonnegative safe integer counts", () => {
 
 function fixture(options: {
   applied?: boolean;
+  scopeApplied?: boolean;
+  repaired?: boolean;
+  clean?: boolean;
   impacts?: readonly AuthorizationImpact[];
-  contract?: readonly boolean[];
+  scopeContract?: readonly unknown[];
+  scopeCatalog?: readonly unknown[];
+  repairCatalog?: readonly unknown[];
+  repairReadiness?: unknown;
+  scopeReadiness?: readonly unknown[];
   lock?: boolean;
   failSql?: string;
   invalidJournal?: boolean;
+  journalDrift?: boolean;
   records?: Readonly<ReturnType<typeof initialHistory>>;
 } = {}) {
   const calls: string[] = [];
-  let installed = options.applied ?? false;
-  let recorded = installed;
-  let impactReads = 0;
-  let contractReads = 0;
-  const records = options.records ?? [...initialHistory(), ...(recorded ? [historyRecord(policyReconciliation, 2), historyRecord(source, 3)] : [])];
+  const journalNames: string[] = [];
+  let scopeInstalled = options.applied ?? options.scopeApplied ?? false;
+  let repairInstalled = options.repaired ?? (!options.clean && scopeInstalled);
+  let impactReads = 0, scopeContractReads = 0, scopeCatalogReads = 0, repairCatalogReads = 0, scopeReadinessReads = 0;
+  const records = [...(options.records ?? [...initialHistory(), ...(scopeInstalled
+    ? [historyRecord(policyReconciliation, 2), historyRecord(source, 3)] : []),
+  ...(options.applied ? [historyRecord(repair, 4)] : [])])];
   const queryable = {
     async query(sql: string, values?: unknown[]) {
       calls.push(sql);
       if (options.failSql && sql.startsWith(options.failSql)) throw new Error("sensitive database error: fixture-secret");
       if (sql.includes("pg_try_advisory_lock")) return { rows: [{ acquired: options.lock ?? true }], rowCount: 1 };
       if (sql.includes("pg_advisory_unlock")) return { rows: [{ released: true }], rowCount: 1 };
-      if (sql.includes('applied_at AS "appliedAt"')) return { rows: records, rowCount: records.length };
-      if (sql === policyReconciliation.sql || sql === source.sql) installed = true;
+      if (sql.includes('applied_at AS "appliedAt"')) return { rows: [...records], rowCount: records.length };
+      if (sql === source.sql) scopeInstalled = true;
+      if (sql === repair.sql) repairInstalled = true;
       if (sql.startsWith("INSERT INTO drizzle.veele_sql_migrations")) {
-        assert.ok(values?.[0] === policyReconciliation.name || values?.[0] === source.name);
-        recorded = true;
+        const entry = [policyReconciliation, source, repair].find((candidate) => candidate.name === values?.[0]);
+        assert.ok(entry);
+        journalNames.push(entry.name);
+        records.push({ ...historyRecord(entry, records.length), ...(options.journalDrift ? { hash: "c".repeat(64) } : {}) });
         return { rows: [{ name: values?.[0], hash: values?.[1], baselined: false }], rowCount: options.invalidJournal ? 0 : 1 };
       }
       return { rows: [], rowCount: 0 };
     },
   } as unknown as AuthorizationQueryable;
-  const dependencies = {
+  const dependencies: AuthorizationDependencies = {
     loadFrontier: async () => base,
     loadSource: async () => source,
-    verifyContract: async () => {
-      calls.push("VERIFY CONTRACT");
-      return options.contract?.[contractReads++] ?? (installed && recorded);
+    loadRepairSource: async () => repair,
+    verifyScopeContract: async () => {
+      calls.push("VERIFY SCOPE CONTRACT");
+      return (options.scopeContract?.[scopeContractReads++] ??
+        (scopeInstalled && records.some((entry) => entry.name === source.name))) as boolean;
+    },
+    verifyScopeCatalog: async () => {
+      calls.push("VERIFY SCOPE CATALOG");
+      return (options.scopeCatalog?.[scopeCatalogReads++] ?? scopeInstalled) as boolean;
+    },
+    verifyRepairCatalog: async () => {
+      calls.push("VERIFY REPAIR CATALOG");
+      return (options.repairCatalog?.[repairCatalogReads++] ?? repairInstalled) as boolean;
+    },
+    readRepairReadiness: async () => {
+      calls.push("READ REPAIR READINESS");
+      return (options.repairReadiness ?? {
+        legacyDefinitionMatches: !repairInstalled && !options.clean, cleanDefinitionMatches: options.clean ?? false, targetDefinitionMatches: repairInstalled, dependenciesValid: true,
+      }) as Awaited<ReturnType<AuthorizationDependencies["readRepairReadiness"]>>;
+    },
+    readScopeReadiness: async () => {
+      calls.push("READ SCOPE READINESS");
+      return (options.scopeReadiness?.[scopeReadinessReads++] ?? { readyForApply: repairInstalled }) as { readyForApply: boolean };
     },
     readImpact: async () => {
       calls.push("READ IMPACT");
@@ -176,81 +223,307 @@ function fixture(options: {
       return impacts[Math.min(impactReads++, impacts.length - 1)]!;
     },
   };
-  return { calls, queryable, dependencies };
+  return { calls, journalNames, queryable, dependencies };
 }
 
-test("diagnose uses a read-only repeatable snapshot and reports missing entitlements without writes", async () => {
-  const f = fixture({ impacts: [missing] });
-  const result = await runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies);
-  assert.deepEqual(result, { result: "diagnosed", migrationRecorded: false, contractVerified: false, impact: missing });
-  assert.ok(f.calls.includes("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"));
-  assert.ok(f.calls.includes("ROLLBACK"));
-  assert.ok(!f.calls.some((sql) => /^(?:LOCK TABLE|INSERT|UPDATE|DELETE|COMMIT)/u.test(sql)));
-  assert.ok(f.calls.at(-1)?.includes("pg_advisory_unlock"));
+test("diagnose is read-only and distinguishes prerequisite readiness from legacy apply readiness", async () => {
+  for (const impacts of [[preserved], [missing]]) {
+    const f = fixture({ impacts });
+    const result = await runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies);
+    assert.deepEqual(result, {
+      result: "diagnosed", state: "legacy-state", migrationRecorded: false, scopeMigrationRecorded: false,
+      repairMigrationRecorded: false, contractVerified: false, readyForApply: false,
+      readyForPrerequisiteRepair: impacts[0] === preserved,
+      repairReadiness: {
+        legacyDefinitionMatches: true, cleanDefinitionMatches: false,
+        targetDefinitionMatches: false, dependenciesValid: true,
+      },
+      impact: impacts[0],
+    });
+    assert.ok(f.calls.includes("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"));
+    assert.ok(f.calls.includes("ROLLBACK"));
+    assert.ok(!f.calls.some((sql) => /^(?:LOCK TABLE|INSERT|UPDATE|DELETE|COMMIT)/u.test(sql)));
+    assert.ok(!f.calls.includes(source.sql) && !f.calls.includes(repair.sql));
+    assert.ok(f.calls.at(-1)?.includes("pg_advisory_unlock"));
+  }
 });
 
-test("apply locks in migration order, preserves counts, and verifies catalog after atomic journal insertion", async () => {
+test("diagnose reports repaired and unknown states without inventing readiness", async () => {
+  const repaired = fixture({ repaired: true });
+  const diagnosed = await runTenantManagementAuthorization(repaired.queryable, "diagnose", repaired.dependencies);
+  assert.equal(diagnosed.state, "repaired-state");
+  assert.equal(diagnosed.readyForApply, true);
+  assert.equal(diagnosed.readyForPrerequisiteRepair, true);
+  const unknown = fixture({ repairReadiness: { legacyDefinitionMatches: false, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: true } });
+  const blocked = await runTenantManagementAuthorization(unknown.queryable, "diagnose", unknown.dependencies);
+  assert.equal(blocked.state, "unknown-state");
+  assert.equal(blocked.readyForPrerequisiteRepair, false);
+  await assert.rejects(runTenantManagementAuthorization(unknown.queryable, "apply", unknown.dependencies), /repair_not_ready/u);
+  assert.ok(!unknown.calls.includes(repair.sql));
+});
+
+test("diagnose cannot report apply readiness from raw scope preconditions alone", async () => {
+  const cases = [
+    {
+      options: { repaired: true, impacts: [missing], scopeReadiness: [{ readyForApply: true }] },
+      state: "repaired-state", prerequisite: false,
+    },
+    {
+      options: {
+        repairReadiness: { legacyDefinitionMatches: false, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: true },
+        scopeReadiness: [{ readyForApply: true }],
+      },
+      state: "unknown-state", prerequisite: false,
+    },
+    {
+      options: {
+        repaired: true,
+        repairReadiness: { legacyDefinitionMatches: false, cleanDefinitionMatches: false, targetDefinitionMatches: true, dependenciesValid: false },
+        scopeReadiness: [{ readyForApply: true }],
+      },
+      state: "unknown-state", prerequisite: false,
+    },
+    {
+      options: { scopeReadiness: [{ readyForApply: true }] },
+      state: "legacy-state", prerequisite: true,
+    },
+    {
+      options: { scopeReadiness: [{ readyForApply: false }] },
+      state: "legacy-state", prerequisite: true,
+    },
+    {
+      options: { repaired: true, scopeReadiness: [{ readyForApply: false }] },
+      state: "repaired-state", prerequisite: true,
+    },
+  ];
+  for (const { options, state, prerequisite } of cases) {
+    const f = fixture(options);
+    const result = await runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies);
+    assert.equal(result.state, state);
+    assert.equal(result.readyForApply, false);
+    assert.equal(result.readyForPrerequisiteRepair, prerequisite);
+    assert.ok(f.calls.includes("READ SCOPE READINESS"));
+    assert.ok(!f.calls.includes(repair.sql) && !f.calls.includes(source.sql));
+  }
+});
+
+test("apply executes repair before the immutable pair, proves transitions, then journals chronologically", async () => {
   const f = fixture();
   const result = await runTenantManagementAuthorization(f.queryable, "apply", f.dependencies);
   assert.equal(result.result, "applied");
+  assert.equal(result.state, "canonical-state");
+  assert.equal(result.readyForApply, false);
   const locks = f.calls.findIndex((sql) => sql.startsWith("LOCK TABLE\n"));
   assert.match(f.calls[locks]!, /public\.platform_users, public\.role_permissions, public\.roles/u);
   assert.ok(locks < f.calls.indexOf("READ IMPACT"));
+  const policyLocks = f.calls.findIndex((sql) => sql.startsWith("LOCK TABLE public.invoices"));
+  assert.ok(locks < policyLocks && policyLocks < f.calls.indexOf("READ REPAIR READINESS"));
+  assert.equal(f.calls[policyLocks], `LOCK TABLE public.invoices IN SHARE MODE;
+LOCK TABLE public.object_contacts, public.object_personnel IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.objects IN SHARE MODE;
+LOCK TABLE public.payments IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.personnel IN SHARE MODE`);
   assert.ok(f.calls.includes("BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED READ WRITE"));
-  const migrationIndex = f.calls.indexOf(source.sql);
+  const repairIndex = f.calls.indexOf(repair.sql);
+  const policyIndex = f.calls.indexOf(policyReconciliation.sql);
+  const scopeIndex = f.calls.indexOf(source.sql);
   const journalIndex = f.calls.findIndex((sql) => sql.startsWith("INSERT INTO drizzle.veele_sql_migrations"));
-  const policyMigrationIndex = f.calls.indexOf(policyReconciliation.sql);
-  assert.ok(policyMigrationIndex < migrationIndex);
-  assert.ok(migrationIndex < journalIndex);
-  const lastJournalIndex = f.calls.findLastIndex((sql) => sql.startsWith("INSERT INTO drizzle.veele_sql_migrations"));
-  assert.ok(lastJournalIndex < f.calls.lastIndexOf("VERIFY CONTRACT"));
-  assert.ok(f.calls.lastIndexOf("VERIFY CONTRACT") < f.calls.indexOf("COMMIT"));
+  assert.ok(repairIndex < policyIndex && policyIndex < scopeIndex && scopeIndex < journalIndex);
+  assert.deepEqual(f.journalNames, [policyReconciliation.name, source.name, repair.name]);
+  assert.ok(f.calls.slice(repairIndex + 1, policyIndex).includes("VERIFY REPAIR CATALOG"));
+  assert.ok(f.calls.slice(policyIndex + 1, scopeIndex).includes("READ SCOPE READINESS"));
+  assert.ok(f.calls.slice(scopeIndex + 1, journalIndex).includes("VERIFY SCOPE CATALOG"));
+  assert.ok(f.calls.lastIndexOf("VERIFY SCOPE CONTRACT") < f.calls.indexOf("COMMIT"));
+  assert.equal(f.calls.filter((sql) => sql === repair.sql).length, 1);
   assert.equal(f.calls.filter((sql) => sql === policyReconciliation.sql).length, 1);
   assert.equal(f.calls.filter((sql) => sql === source.sql).length, 1);
-  assert.ok(!f.calls.some((sql) => /^(?:UPDATE|DELETE)/u.test(sql)));
 });
 
-test("already-applied requires exact catalog but allows subsequent legitimate scoped revocation", async () => {
+test("pair-installed state executes only target repair and preserves subsequent legitimate scoped revocation", async () => {
+  const f = fixture({ scopeApplied: true, impacts: [missing] });
+  assert.equal((await runTenantManagementAuthorization(f.queryable, "apply", f.dependencies)).result, "applied");
+  assert.ok(f.calls.includes(repair.sql));
+  assert.ok(!f.calls.includes(source.sql) && !f.calls.includes(policyReconciliation.sql));
+  assert.ok(!f.calls.includes("READ SCOPE READINESS"));
+  assert.deepEqual(f.journalNames, [repair.name]);
+  const reintroducedLegacy = fixture({ scopeApplied: true, repaired: false });
+  await assert.rejects(runTenantManagementAuthorization(reintroducedLegacy.queryable, "apply", reintroducedLegacy.dependencies), /catalog_invalid/u);
+  assert.ok(!reintroducedLegacy.calls.includes(repair.sql));
+});
+
+test("clean repair is accepted only after the complete historical pair", async () => {
+  const clean = fixture({ scopeApplied: true, clean: true, impacts: [missing] });
+  const diagnostic = await runTenantManagementAuthorization(clean.queryable, "diagnose", clean.dependencies);
+  assert.equal(diagnostic.state, "clean-state");
+  assert.equal(diagnostic.contractVerified, false);
+  assert.equal(diagnostic.readyForApply, false);
+  assert.equal(diagnostic.readyForPrerequisiteRepair, true);
+  assert.deepEqual(diagnostic.repairReadiness, {
+    legacyDefinitionMatches: false, cleanDefinitionMatches: true,
+    targetDefinitionMatches: false, dependenciesValid: true,
+  });
+  const applied = await runTenantManagementAuthorization(clean.queryable, "apply", clean.dependencies);
+  assert.equal(applied.state, "canonical-state");
+  assert.equal(applied.contractVerified, true);
+  assert.deepEqual(applied.repairReadiness, {
+    legacyDefinitionMatches: false, cleanDefinitionMatches: false,
+    targetDefinitionMatches: true, dependenciesValid: true,
+  });
+  assert.deepEqual(clean.journalNames, [repair.name]);
+  assert.ok(!clean.calls.includes(policyReconciliation.sql) && !clean.calls.includes(source.sql));
+
+  const beforeScope = fixture({ clean: true, scopeReadiness: [{ readyForApply: true }] });
+  const unsupported = await runTenantManagementAuthorization(beforeScope.queryable, "diagnose", beforeScope.dependencies);
+  assert.equal(unsupported.state, "clean-state");
+  assert.equal(unsupported.readyForApply, false);
+  assert.equal(unsupported.readyForPrerequisiteRepair, false);
+  await assert.rejects(runTenantManagementAuthorization(beforeScope.queryable, "apply", beforeScope.dependencies), /repair_not_ready/u);
+  assert.ok(!beforeScope.calls.includes(repair.sql));
+
+  const falseJournal = fixture({ applied: true, clean: true });
+  await assert.rejects(runTenantManagementAuthorization(falseJournal.queryable, "apply", falseJournal.dependencies), /catalog_invalid/u);
+  assert.ok(!falseJournal.calls.includes(repair.sql));
+});
+
+test("target policy state remains repaired until all journal records are present", async () => {
+  const pendingRepair = fixture({ scopeApplied: true });
+  const result = await runTenantManagementAuthorization(pendingRepair.queryable, "diagnose", pendingRepair.dependencies);
+  assert.equal(result.state, "repaired-state");
+  assert.equal(result.contractVerified, false);
+  assert.equal(result.repairMigrationRecorded, false);
+  assert.equal(result.readyForPrerequisiteRepair, true);
+});
+
+test("already-applied is a non-mutating complete contract postcheck", async () => {
   const f = fixture({ applied: true, impacts: [missing] });
-  assert.equal((await runTenantManagementAuthorization(f.queryable, "apply", f.dependencies)).result, "already-applied");
-  assert.ok(!f.calls.includes(source.sql));
+  const result = await runTenantManagementAuthorization(f.queryable, "apply", f.dependencies);
+  assert.equal(result.result, "already-applied");
+  assert.equal(result.contractVerified, true);
+  assert.ok(!f.calls.includes(source.sql) && !f.calls.includes(repair.sql));
   assert.ok(!f.calls.some((sql) => sql.startsWith("INSERT")));
-  const drift = fixture({ applied: true, contract: [false] });
-  await assert.rejects(runTenantManagementAuthorization(drift.queryable, "apply", drift.dependencies), /catalog_invalid/u);
-  assert.ok(drift.calls.includes("ROLLBACK"));
+  assert.ok(!f.calls.includes("COMMIT"));
+  assert.ok(f.calls.includes("ROLLBACK"));
+  for (const drift of [fixture({ applied: true, scopeContract: [false] }), fixture({ applied: true, repairCatalog: [false] })]) {
+    await assert.rejects(runTenantManagementAuthorization(drift.queryable, "apply", drift.dependencies), /catalog_invalid/u);
+  }
 });
 
-test("missing access, history drift and unavailable locks prevent migration execution", async () => {
+test("missing access, history drift and unavailable locks prevent all migration SQL", async () => {
   for (const [options, error] of [
     [{ impacts: [missing] }, /access_preservation_failed/u],
     [{ records: [historyRecord(legacy, 0)] }, /history_invalid/u],
     [{ lock: false }, /lock_unavailable/u],
-    [{ contract: [true] }, /catalog_invalid/u],
+    [{ scopeContract: [true] }, /catalog_invalid/u],
+    [{ repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: false } }, /repair_not_ready/u],
   ] as const) {
     const f = fixture(options);
     await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies), error);
-    assert.ok(!f.calls.includes(source.sql));
+    assert.ok(!f.calls.includes(repair.sql));
     assert.ok(!f.calls.includes("COMMIT"));
   }
 });
 
-test("SQL, journal, preservation, postcondition and commit failures roll back without retries or raw errors", async () => {
-  for (const options of [
-    { failSql: policyReconciliation.sql }, { failSql: source.sql }, { failSql: "INSERT INTO drizzle.veele_sql_migrations" },
-    { invalidJournal: true }, { contract: [false, false] },
-    { impacts: [preserved, { ...preserved, scoped_pairs: 4 }] }, { failSql: "COMMIT" },
-  ]) {
+test("every transition, SQL, journal and commit failure rolls back once without raw output or retry", async () => {
+  for (const [options, error] of [
+    [{ failSql: repair.sql }, /repair_failed/u],
+    [{ failSql: policyReconciliation.sql }, /repair_failed/u],
+    [{ failSql: source.sql }, /scope_failed/u],
+    [{ repairCatalog: [false, false] }, /repair_failed/u],
+    [{ scopeReadiness: [{ readyForApply: false }, { readyForApply: false }] }, /scope_not_ready/u],
+    [{ scopeReadiness: [{ readyForApply: false }, { readyForApply: true }, { readyForApply: false }] }, /scope_not_ready/u],
+    [{ scopeCatalog: [false, false] }, /catalog_invalid/u],
+    [{ failSql: "INSERT INTO drizzle.veele_sql_migrations" }, /history_write_failed/u],
+    [{ invalidJournal: true }, /history_write_failed/u],
+    [{ journalDrift: true }, /history_invalid/u],
+    [{ scopeContract: [false, false] }, /catalog_invalid/u],
+    [{ impacts: [preserved, { ...preserved, scoped_pairs: 4 }] }, /access_preservation_failed/u],
+    [{ failSql: "COMMIT" }, /commit_uncertain/u],
+  ] as const) {
     const f = fixture(options);
-    await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies), (error: unknown) => {
-      assert.doesNotMatch(formatSafeTenantManagementAuthorizationError(error), /fixture-secret|sensitive database/u);
-      return true;
-    });
+    await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies), error);
     assert.ok(f.calls.includes("ROLLBACK"));
     assert.ok(f.calls.at(-1)?.includes("pg_advisory_unlock"));
-    assert.ok(f.calls.filter((sql) => sql === policyReconciliation.sql).length <= 1);
-    assert.ok(f.calls.filter((sql) => sql === source.sql).length <= 1);
+    for (const migration of [repair, policyReconciliation, source]) assert.ok(f.calls.filter((sql) => sql === migration.sql).length <= 1);
+    assert.ok(f.calls.filter((sql) => sql === "COMMIT").length <= 1);
   }
-  assert.doesNotMatch(formatSafeTenantManagementAuthorizationError(new Error("secret")), /secret/u);
+  assert.doesNotMatch(formatSafeTenantManagementAuthorizationError(new Error("fixture-secret")), /fixture-secret/u);
+});
+
+test("non-boolean or contradictory readiness and contract outputs fail closed", async () => {
+  for (const options of [
+    { scopeContract: ["false"] }, { scopeCatalog: [0] }, { repairCatalog: ["true"] },
+    { repairReadiness: {} }, { repairReadiness: [] },
+    { repairReadiness: { legacyDefinitionMatches: true, targetDefinitionMatches: false, dependenciesValid: true } },
+    { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: "false", targetDefinitionMatches: false, dependenciesValid: true } },
+    { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: true, targetDefinitionMatches: false, dependenciesValid: true } },
+    { repairReadiness: { legacyDefinitionMatches: false, cleanDefinitionMatches: true, targetDefinitionMatches: true, dependenciesValid: true } },
+    { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: true, dependenciesValid: true } },
+    { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: "true" } },
+    { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: true, policySql: "must-not-export" } },
+    { scopeReadiness: [{ readyForApply: "true" }] },
+    { repairCatalog: [false, "true"] },
+    { scopeCatalog: [false, "true"] },
+    { scopeContract: [false, "true"] },
+  ]) {
+    const f = fixture(options);
+    await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies), /catalog_invalid/u);
+    assert.ok(!f.calls.includes("COMMIT"));
+  }
+});
+
+test("rollback and advisory unlock errors remain bounded and preserve uncertain commit classification", async () => {
+  for (const commitFailure of [false, true]) {
+    for (const cleanupPhase of ["ROLLBACK", "pg_advisory_unlock"]) {
+      const f = fixture({ failSql: commitFailure ? "COMMIT" : repair.sql });
+      const original = f.queryable.query.bind(f.queryable);
+      f.queryable.query = async (sql, values) => {
+        if (sql.includes(cleanupPhase)) throw new Error("fixture-secret cleanup error");
+        return original(sql, values);
+      };
+      await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies),
+        commitFailure ? /commit_uncertain/u : /cleanup_failed/u);
+      assert.ok(f.calls.filter((sql) => sql === repair.sql).length <= 1);
+    }
+  }
+  const f = fixture();
+  const original = f.queryable.query.bind(f.queryable);
+  f.queryable.query = async (sql, values) => {
+    if (sql.includes("pg_advisory_unlock")) return { rows: [{ released: false }] as never[], rowCount: 1 };
+    return original(sql, values);
+  };
+  await assert.rejects(runTenantManagementAuthorization(f.queryable, "apply", f.dependencies), /cleanup_failed/u);
+  assert.equal(f.calls.filter((sql) => sql === "COMMIT").length, 1);
+});
+
+test("session cleanup attempts release and pool end and never returns successful evidence on failure", async () => {
+  for (const failure of ["connect", "release", "end", "both", "none"] as const) {
+    const f = fixture();
+    const cleanup: string[] = [];
+    const database = { pool: {
+      connect: async () => {
+        if (failure === "connect") throw new Error("fixture-secret");
+        return { ...f.queryable, release: (discard?: boolean) => {
+          assert.equal(discard, true);
+          cleanup.push("release");
+          if (["release", "both"].includes(failure)) throw new Error("fixture-secret");
+        } };
+      },
+      end: async () => {
+        cleanup.push("end");
+        if (["end", "both"].includes(failure)) throw new Error("fixture-secret");
+      },
+    } };
+    if (failure === "none") assert.equal((await runTenantManagementAuthorizationSession(database, "diagnose", f.dependencies)).result, "diagnosed");
+    else await assert.rejects(runTenantManagementAuthorizationSession(database, "diagnose", f.dependencies),
+      failure === "connect" ? /operation_failed/u : /cleanup_failed/u);
+    assert.deepEqual(cleanup, failure === "connect" ? ["end"] : ["release", "end"]);
+  }
+  const uncertain = fixture({ failSql: "COMMIT" });
+  const database = { pool: {
+    connect: async () => ({ ...uncertain.queryable, release: () => { throw new Error("fixture-secret"); } }),
+    end: async () => { throw new Error("fixture-secret"); },
+  } };
+  await assert.rejects(runTenantManagementAuthorizationSession(database, "apply", uncertain.dependencies), /commit_uncertain/u);
 });
 
 const successfulRun = {

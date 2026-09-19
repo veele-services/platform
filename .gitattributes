@@ -1,0 +1,3 @@
+# This vendored SQL is verified byte-for-byte against its pinned upstream hash.
+# Preserve its original end-of-line spaces; authored files keep normal checks.
+tests/fixtures/fieldgrid-supabase-auth-functions.sql whitespace=-blank-at-eol

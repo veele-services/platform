@@ -345,9 +345,12 @@ export async function verifyTenantManagementAuthorization(client, context) {
           }
         }),
     );
-    // Only repair the local shim within this rolled-back fixture transaction.
-    // Do not grant any access to the private authorization helper or change RLS.
-    await client.query("GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated");
+    // A fresh source bootstrap supplies the exact Auth helper ACL. An extra
+    // direct GRANT would itself be drift under the full policy dependency
+    // contract, even when PUBLIC already supplies effective execution.
+    assert.equal((await client.query(
+      "SELECT has_function_privilege('authenticated','auth.uid()','EXECUTE') AS allowed",
+    )).rows[0].allowed, true);
     assert.equal(
       await verifyTenantManagementAuthorizationContract(client),
       true,

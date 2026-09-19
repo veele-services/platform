@@ -14,145 +14,150 @@ bestaande databasetoegang wegnemen. De backoffice bepaalt rechten al met rollen
 binnen de gekozen tenant. Deze correctie brengt de databasecontrole daarmee in
 lijn zonder account- of rolgegevens te wijzigen.
 
-## Migratie en veiligheidsgrenzen
+## Bewezen policy-identities en herstelcontract
 
-Nieuwe forward-only reparatiemigratie:
-`20260914125400_reconcile_legacy_global_rbac_policies.sql`, gevolgd door de
-ongewijzigde scope-migratie `20260914125503_scope_tenant_management_authorization.sql`.
-Geen bestaande migratie is gewijzigd. Geen productieafhankelijkheid toegevoegd.
+De read-only stagingrun `35472119062` op main
+`e048738e98f2c3fbdc6bf13d0fe7facd7c2b8025` bevestigde deze drie identities:
 
-- De eerste migratie herstelt uitsluitend de drie bekende oude globale
-  `user_roles`-policy-consumers naar de bestaande platformbevoegdheid
-  `global.rbac.manage`. Onbekende consumers blokkeren; accounts, rollen,
-  lidmaatschappen en toepassingsdata worden niet gewijzigd.
+| Policy | Historische bron | Afgebakende wijziging |
+| --- | --- | --- |
+| `object_contacts_management_all` | `migrations/023_objects_extended.sql` | Verwijder het oude globale ALL-pad; behoud bestaande tenant-, klant- en runtimepolicies. |
+| `object_personnel_management_all` | dezelfde bron | Verwijder het globale ALL-pad. Begrens ook de overlappende `object_personnel_management`: object én personeel moeten dezelfde tenant hebben. |
+| `owner_or_staff_read_payments` | `migrations/013_sprint5_payments.sql` | Authenticated SELECT via de gekoppelde factuur binnen dezelfde tenant; behoud factuurmaker en canonieke tenantmanager. |
 
-- Publieke helpersignatuur blijft gelijk. De functie gebruikt uitsluitend
-  `auth.uid()` en de opgegeven tenant.
-- De nieuwe private, alleen door de vertrouwde eigenaar bereikbare predicate
-  vereist een actief lidmaatschap, een ingeschakelde tenant met ondersteunde
-  status en een canonieke Managementrol met exacte, niet-lege templaterechten.
-  Een gelijknamige aangepaste rol, vreemd-tenantrol of globale rol is geen bewijs.
-- Platformidentiteiten zijn geen tenant-managementprincipal. De bestaande
-  afzonderlijke platformautorisatie wordt niet veranderd.
-- Alleen de publieke wrapper heeft `SECURITY DEFINER`; beide functies hebben een
-  vast `search_path`. De private functie krijgt geen uitvoerrecht voor PUBLIC,
-  anon, authenticated of service_role. De wrapper blijft authenticated-only.
-- Schrijfbarrières op alle negen betrokken autorisatietabellen voorkomen dat
-  de behoudcontrole op tussentijds veranderende rechten berust. De operatie
-  gebruikt READ COMMITTED en beoordeelt de gegevens ná het verkrijgen van locks.
-  De migratie zelf weigert andere isolatieniveaus vóór het verkrijgen van locks,
-  ook als de gewone migratierunner een afwijkende sessiestandaard heeft.
-- Elk bestaand actief legacy-beheerpaar moet al een geldige tenantgebonden
-  Managementrol hebben. Ontbreekt er één, dan wordt de hele migratietransactie
-  afgebroken. Er worden geen rollen automatisch toegevoegd of verwijderd.
-- Geldige scoped-only managers worden voortaan ook op databaseniveau toegelaten;
-  dat is de bedoelde correctie. Een gewoon lid krijgt geen beheerrechten door
-  de achtergebleven globale rol.
-- De oude helper zonder tenantparameter blijft bestaan, maar mag geen policy-,
-  view/rule- of functieconsumer hebben. Onverwachte globale consumers blokkeren.
+Identities bewijzen geen definities. Vóór apply vergelijkt de diagnose intern de
+volledige brongebonden policysets, afhankelijkheden en helpercontracten. Alleen
+booleans verlaten de database; live policy-SQL en rijen worden niet geëxporteerd.
+De historische `service_role_all_payments` hoort verplicht bij de legacyset en
+blijft daar ongewijzigd. Een schone installatie krijgt die policy niet alsnog.
+Geen rechten, accounts, lidmaatschappen, rollen, permissions of bedrijfsrijen
+worden toegevoegd of gewijzigd.
 
-Auth, sessies, uitnodigingen, lidmaatschappen, rolkoppelingen, rechtenrecords,
-domeinen, websitebindings en bedrijfsgegevens blijven ongewijzigd. Geen UI-impact.
+De manifesten zijn gereconstrueerd uit vertrouwde SQL in een lokale PostgreSQL
+17-database. Vergelijking gebruikt `pg_get_expr(..., false)` met `pg_catalog`
+als search_path, exact commandtype, rollen, permissiviteit, NULL-semantiek en
+alle policies op de betrokken tabellen. Afhankelijkheden omvatten kolomtypen,
+RLS/FORCE RLS en helperbody, signature, eigenaar, security mode, search_path,
+directe en effectieve EXECUTE-rechten. Geen whitespace-normalisatie van bodies
+of expressies. Providerfuncties gebruiken een expliciet gepinde officiële bron;
+de lokale Auth-shim is een afzonderlijk exact profiel.
+
+## Migratievolgorde en ondersteunde toestanden
+
+Nieuwe forward-only migratie:
+`20260919220633_repair_tenant_management_policy_consumers.sql`.
+De twee bestaande migraties blijven byte-inhoudelijk ongewijzigd:
+
+- `20260914125400_reconcile_legacy_global_rbac_policies.sql`, SHA-256
+  `421fde7810185af215b46b733bcf09878c78812a6a151850bb52536ddcc7ba5c`.
+- `20260914125503_scope_tenant_management_authorization.sql`, SHA-256
+  `23b1aa33b626a114694a748e3e2d391ea02460071c865d2b20df2ec582df9902`.
+
+Een gewone schone migratie voert de chronologische volgorde uit. Op de bewezen
+stagingfrontier voert de begrensde runner binnen één transactie eerst de nieuwe
+prerequisite uit, daarna de oude reconciliatie, daarna tenant-scope. Iedere fase
+moet opnieuw haar echte precondities bewijzen. Pas na de eindcontrole worden
+alle drie journalrecords in chronologische volgorde geschreven en gecommit.
+Dit is één expliciete suffix; geen algemene herordening of force-runner.
+
+| Toestand | Toegestaan gedrag |
+| --- | --- |
+| `legacy-state` | Exacte volledige historische set, oude helper, beide oude migraties pending: prerequisite, reconciliatie en scope atomair. |
+| `clean-state` | Schone bronset met beide oude migraties al exact geregistreerd: alleen nieuwe reparatie. Schone pre-scope is geen begrensd stagingpad. |
+| `repaired-state` | Exacte doelpolicies, oude helper en beide oude migraties pending: verifieer idempotente prerequisite en voer beide fasen uit. |
+| `canonical-state` | Doelpolicies, canonical helper en alle drie exacte journalrecords: read-only eindcontrole; geen herstel van later ingetrokken tenantrechten. |
+| `unknown-state` | Afwijkende, gedeeltelijk ontbrekende of extra policies/helpers/history: blokkeren vóór mutatie. |
+
+De gedeelde migration-advisory-lock, journallock en negen bestaande
+autorisatielocks blijven verplicht. Daarna worden in vaste volgorde invoices,
+object_contacts/object_personnel, objects, payments en personnel vergrendeld.
+READ COMMITTED beoordeelt toegang ná de locks; iedere bestaande legacyrelatie
+moet al onafhankelijk canonieke tenantrechten hebben (`missing_pairs = 0`,
+`preserved_pairs = legacy_pairs`). Dit kopieert geen globale rechten naar tenants.
+Lock- en statement-timeouts blijven actief. De private canonical helper ontstaat
+pas in de ongewijzigde scope-migratie.
 
 ## Uitvoeren via de begrensde stagingworkflow
 
 Workflow: `.github/workflows/fieldgrid-staging-tenant-management-authorization.yml`.
-Geen rechtstreekse stagingdatabaseverbinding vanuit featurewerk. Geen Supabase
-Auth API of service-role key nodig. De workflow gebruikt de bestaande staging-
-migratieverbinding, projectbinding en gepinde TLS-controle.
+Gebruik uitsluitend de exacte gereviewde main-SHA met geslaagde Main Exact Head
+Validation. De bestaande stagingomgeving, concurrencygroep `veele-staging`,
+migratieverbinding, projectbinding en gepinde TLS blijven vereist.
 
-1. Laat de volledige wijziging beoordelen en alle checks op de exacte PR-head
-   slagen. Merge via de normale bescherming, niet rechtstreeks op main/staging.
-2. Voer op exact main `diagnose` uit met bevestiging
-   `fieldgrid-staging-tenant-management-authorization-v1`.
-3. Controleer de geheime-vrije tellingen: `legacy_pairs`, `preserved_pairs`,
-   `missing_pairs`, `scoped_pairs`. `missing_pairs = 0` en
-   `preserved_pairs = legacy_pairs` zijn noodzakelijk maar niet voldoende:
-   vereis daarnaast echte policy-/history-readiness. Bij
-   `unknown_policy_consumer` of `readyForApply=false` blijft apply geblokkeerd;
-   volg eerst [de policy-identiteitsroute](staging-tenant-management-policy-identity-diagnostic.md).
-   Bij ontbrekende dekking: geen automatische beheertoekenning; eerst
-   de bedoelde rolverdeling bepalen. De aantallen zijn geen toestemming voor
-   het uitbreiden van rollen van andere accounts.
-4. `apply` verifieert exact main en succesvolle Main Exact Head Validation,
-   gebruikt de gedeelde migratielock en accepteert alleen deze twee direct
-   opeenvolgende, exact gehashte migraties. Alle voorgangers moeten al exact en
-   in volgorde zijn geregistreerd. Geen historische hashreconciliatie of
-   ongerelateerde migratie wordt uitgevoerd.
-5. SQL en journalrecord worden samen gecommit, na behoudcontrole en exacte
-   cataloguscontrole. Herhaling wijzigt niets en controleert het geïnstalleerde
-   contract opnieuw. Legitieme latere intrekking van een tenantrol is geen reden
-   om de oude globale bevoegdheid terug te brengen.
-6. Controleer een nieuwe read-only diagnose en de bestaande owner-/domeingate.
-   Daarna pas domeinherstel, managed proof, backup/restore-preflight, promotie
-   en deploy volgens de bestaande enterprise-activation-runbook.
+1. Dispatch met `operation=diagnose`, `expected_main_sha=<exact-main-SHA>` en
+   `confirmation=fieldgrid-staging-tenant-management-authorization-v1`.
+2. Vereis bron/history-validatie en een exact ondersteunde toestand.
+   `repairReadiness.dependenciesValid` moet waar zijn. Bij legacy moet
+   `legacyDefinitionMatches` waar zijn en `readyForPrerequisiteRepair` waar.
+   `readyForApply` blijft dan terecht onwaar: de tenant-scopefase is nog geblokkeerd.
+3. Dispatch dezelfde workflow met `operation=apply` en dezelfde SHA/bevestiging.
+   Deze samengestelde operatie voert uitsluitend de afgebakende prerequisite
+   uit voordat de scopefase haar eigen readiness opnieuw beoordeelt. Een
+   onwaar scope-resultaat wordt nooit geforceerd.
+4. Dispatch opnieuw `diagnose`. Vereis `canonical-state`,
+   `contractVerified=true`, beide migrationRecorded-vlaggen waar en exacte
+   targetdefinitie. Oude legacy-precondities zijn na scope bewust onwaar en
+   worden niet meer als postcheck gebruikt.
+5. Controleer bestaande owner-/domeingates en behoud van beide tenants. Volg
+   daarna managed proof, W00/ACL, backup/restore-preflight, promotie, deploy en
+   ingelogde acceptatie uit `docs/website-module-enterprise-activation.md`.
 
-Bewijs bevat uitsluitend SHA, migratienaam, operatie/status en tellingen; geen
-account-ID's, e-mails, tokens of databaseverbindingsgegevens. GitHub-artifacts
-hebben een bewaartermijn van één dag.
+De owner-, proof- en historische replaycontroles gebruiken hetzelfde volledige
+canonical contract, inclusief nieuwe policies en journal; een functienaam of
+scope-journalrecord alleen volstaat niet. Onbekende globale policy-, functie-
+en view/rule-consumers blijven geblokkeerd, inclusief
+`assignment_material_usage_backoffice_all`.
+
+Bij een fout vóór COMMIT worden alle metadata en journalrecords teruggedraaid.
+`commit_uncertain` of cleanupfouten worden nooit blind opnieuw toegepast. De
+workflow voert na een mislukte apply een nieuwe, toestandbewuste read-only
+controle uit via een nieuwe verbinding. Alleen bewezen canonical history én
+catalogus bewijzen dat commit is gelukt; anders blijft verdere promotie gestopt.
+Andere vaste foutcategorieën omvatten `source_invalid`, `history_invalid`,
+`repair_not_ready`, `repair_failed`, `scope_not_ready`, `scope_failed`,
+`access_preservation_failed`, `catalog_invalid` en `lock_unavailable`.
+
+Artifacts bevatten alleen SHA, operatie, vaste statuscategorieën, booleans en
+geaggregeerde tellingen. Geen ruwe driverdetails, definities of persoonsgegevens.
+Bewaartermijn: één dag. Applicatierollback heropent geen globale autorisatie;
+een noodzakelijke databasecorrectie vereist een nieuwe forward-only migratie.
 
 ## Verificatie en resterende releasegates
 
-De eerste lokale PostgreSQL 17-proef heeft de volledige scope-migratie uitgevoerd,
-het exacte journal plus geïnstalleerde cataloguscontract bevestigd en alles
-teruggedraaid. Runtime-regressies bewijzen behoud in twee tenants, tenantisolatie,
-weigering van onjuiste rollen, ongewijzigde gegevens en transactionele rollback.
-De nieuwe policy-reconciliatie is afzonderlijk tegen een lokale reconstructie van
-de drie oude policies uitgevoerd; alleen policy metadata veranderde en de proef
-werd teruggedraaid.
-De afzonderlijke operationele tests toetsen bron/history-drift, lockfouten,
-ontbrekende dekking, idempotentie en geheime-vrije foutafhandeling.
+Reconstructie: `scripts/fieldgrid-reconstruct-tenant-management-policy-contract.mts`
+verwerkt uitsluitend de lokale synthetische database op `127.0.0.1:55436`.
+`--write` maakt de bronmanifestbundle; `--check` vereist identieke bytes.
+Alle lokale DDL en providerprofielen worden teruggedraaid. De gepinde upstream
+Auth-fixture behoudt bewust originele bytes, inclusief trailing spaces.
 
-Definitieve lokale resultaten op de beoordeelde migratie, SHA-256
-`23b1aa33b626a114694a748e3e2d391ea02460071c865d2b20df2ec582df9902`:
+De nieuwe runtimesuite is geregistreerd in
+`tests/fieldgrid-realtime-projection-migration.test.mjs` en draait daardoor echt
+in de PostgreSQL 17-lane van Main Exact Head Validation. De 53 gerichte tests
+zijn lokaal geslaagd, waaronder:
 
-- Twee opeenvolgende runs van 142 PostgreSQL-regressies geslaagd, zonder skips.
-  Inclusief echte secundaire verbindingen voor isolatie- en write-locktests.
-- 232 TypeScript-domeintests, waaronder 12 runner-/workflowtests, geslaagd.
-- 330 security/source-tests, workspace-typecheck en afzonderlijke strikte
-  script-typechecks geslaagd.
-- Negen database-integratiecontroles en vijftien authenticated-RLS-controles
-  geslaagd. De definitieve RLS-proef draaide op een verse lokale database.
-- De echte begrensde runner is lokaal door diagnose → apply → already-applied →
-  diagnose gegaan. Twee legacy-beheerrelaties bleven twee geldige scoped
-  relaties; geen ontbrekende dekking en identieke account-/rolgegevens voor/na.
-- Migratievolgorde, runtime-inventaris, fixturecontract, testlagen, dashboardaudit
-  en visuele statische contractcheck geslaagd. Geen UI-wijzigingen.
+- Werkelijke historische blocker, schone installatie, repaired/canonical state,
+  herhaling en ontbrekende/afwijkende policies, helpers en journalrecords.
+- Volledige inhoudshashes vóór/na; behoud van accounts, rechten en bedrijfsdata.
+- Authenticated contacts-CRUD binnen de juiste tenant; beide ownertenants,
+  scoped-only manager, gewone leden, niet-leden, globale-rol-only, platform,
+  NULL-identiteit en afwijkende/inactieve rechten.
+- Afzonderlijke RLS-semantiekproef voor personnel/payment met uitsluitend
+  lokale, teruggedraaide simulatietabelrechten. Dit bewijst de predicates;
+  het is geen bewijs dat die browserrechten werkelijk in staging bestaan.
+  De echte schone tabel-ACL-weigeringen blijven afzonderlijk getoetst.
+- Echte tweede verbindingen voor policy-DDL, membership-/permissionwrites,
+  locktimeouts en het lezen van intrekking ná verkrijging van de locks.
+- Fouten na alle drie migratiefasen, vóór en na ieder journalrecord en vóór
+  COMMIT; volledige rollback. Werkelijke commit met verloren bevestiging,
+  gevolgd door canonical diagnose via een nieuwe verbinding, zonder retry.
 
-De bredere RLS-harness speelde historische migraties opnieuw af en liet daarmee
-de oude Managementfunctie achter. Die historische ACL-proef draait nu volledig
-binnen een teruggedraaide transactie; de oude drift- en herstelasserties blijven
-intact. Exacte cataloguscontroles vóór en na de proef bewaken dat de overige
-vijftien RLS-controles het huidige contract toetsen. Dit is ook onafhankelijk
-beoordeeld, zonder open P0/P1.
-
-Bewijspaden: `/tmp/fieldgrid-tenant-management-reviewed-pg17-{1,2}.log`,
-`/tmp/fieldgrid-tenant-management-runner-rehearsal.log`,
-`/tmp/fieldgrid-tenant-management-final-domain.log`,
-`/tmp/fieldgrid-tenant-management-corrected-security.log`, en
-`artifacts/runtime-safety-harness/reports/{db-harness,rls-harness}.json`.
-Een eerste lokale poging trof ontbrekende `auth.uid()`-rechten in de al gebruikte
-shimdatabase; de bestaande historische helper had daar dezelfde fout. De nieuwe
-autorisatietest corrigeert uitsluitend die lokale shim binnen haar rollback-
-transactie. Een verse setup heeft het verwachte providerrecht al. Er is geen
-productie-Auth-grant gewijzigd. Een hergebruikte RLS-fixture gaf daarnaast een
-duplicaattoewijzing; de definitieve proef gebruikt daarom een verse database,
-zoals de geïsoleerde CI-job.
-
-Supabase `db advisors` is uitgevoerd op de lokale wegwerpdatabase, nooit staging.
-De nulmeting bevat 34 bestaande meldingen: één `security_definer_view`-melding
-voor `public.customer_assignment_projection`, 32 mutable-search-path-waarschuwingen
-en één extension-in-public-waarschuwing. De voor/na-vergelijking en gerichte
-catalogus-/ACL-tests moeten aantonen dat deze correctie niets toevoegt. Die
-historische meldingen worden niet als nieuwe bevinding of opgelost gepresenteerd.
-De vergelijking bevestigt exact dezelfde 34 meldingen vóór en na de wijziging.
-
-De lokale schijf heeft minder dan 200 MiB vrij. De volledige build wordt daarom
-door de bestaande schone GitHub-CI op de nieuwe exacte head bewezen. Vereist:
-workspace-typecheck, volledige build, PostgreSQL-migraties, authenticated RLS,
-Tenant A/B-integratie, vorige-releasecompatibiliteit en de overige exact-head-
-checks. Dashboard- en visuele contractchecks blijven vereist; geen UI-wijziging
-betekent niet dat ingelogde stagingacceptatie mag worden overgeslagen.
+Gerichte bewijslogs: `/tmp/fieldgrid-policy-repair-runtime.log`,
+`/tmp/fieldgrid-policy-repair-full-smoke.log`,
+`/tmp/fieldgrid-repair-{unit-domain,all-security,typecheck,build,contract-static,dashboard,visual}.log`.
+De definitieve PR koppelt deze resultaten en de overige vereiste CI-lanes aan
+haar exacte commit en workflow-run. Bron-/statische visualchecks vervangen geen
+ingelogde stagingacceptatie. De uiteindelijke main-mergecommit moet opnieuw
+alle authoritative gates doorlopen voordat live apply is toegestaan.
 
 ## Herstel en risico
 

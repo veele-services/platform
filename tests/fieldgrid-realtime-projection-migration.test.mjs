@@ -10,6 +10,7 @@ import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/field
 import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
 import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-management-authorization.test.mjs";
 import { verifyPolicyIdentityDiagnostic } from "./runtime/fieldgrid-policy-identity-diagnostic.test.mjs";
+import { verifyTenantManagementPolicyRepair } from "./runtime/fieldgrid-tenant-management-policy-repair.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -60,6 +61,11 @@ test(
   "installed customer realtime policy requires an active linked user",
   { skip: !process.env.DATABASE_URL },
   async (context) => {
+    // Share the existing database gate instead of creating another skipped
+    // top-level test in the static lane. Clone before opening the template's
+    // shared connection; every real-commit repair case still runs in PG CI.
+    await context.test("bounded tenant-management policy repair on disposable PostgreSQL",
+      verifyTenantManagementPolicyRepair);
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,
