@@ -9,6 +9,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { verifyFieldDemoOwnerPlatformPrivilegeDiagnostic } from "./runtime/fieldgrid-staging-field-demo-owner-binding-diagnostic.test.mjs";
 import { verifyFieldDemoExistingOwner } from "./runtime/fieldgrid-staging-existing-owner.test.mjs";
 import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-management-authorization.test.mjs";
+import { verifyPolicyIdentityDiagnostic } from "./runtime/fieldgrid-policy-identity-diagnostic.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -81,6 +82,12 @@ test(
       assert.match(policy.rows[0].qual, /cu\.user_id = auth\.uid\(\)/u);
       assert.match(policy.rows[0].qual, /cu\.status.*active/u);
       assert.match(policy.rows[0].qual, /c\.is_active IS TRUE/u);
+      await context.test(
+        "policy identity diagnostic executes read-only against real PostgreSQL catalogs",
+        async (subcontext) => {
+          await verifyPolicyIdentityDiagnostic(client, subcontext);
+        },
+      );
       await context.test(
         "owner platform-privilege diagnostic executes against the migrated schema",
         async () => {

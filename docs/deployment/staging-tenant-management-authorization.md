@@ -66,8 +66,12 @@ migratieverbinding, projectbinding en gepinde TLS-controle.
 2. Voer op exact main `diagnose` uit met bevestiging
    `fieldgrid-staging-tenant-management-authorization-v1`.
 3. Controleer de geheime-vrije tellingen: `legacy_pairs`, `preserved_pairs`,
-   `missing_pairs`, `scoped_pairs`. Alleen bij `missing_pairs = 0` mag `apply`
-   volgen. Bij ontbrekende dekking: geen automatische beheertoekenning; eerst
+   `missing_pairs`, `scoped_pairs`. `missing_pairs = 0` en
+   `preserved_pairs = legacy_pairs` zijn noodzakelijk maar niet voldoende:
+   vereis daarnaast echte policy-/history-readiness. Bij
+   `unknown_policy_consumer` of `readyForApply=false` blijft apply geblokkeerd;
+   volg eerst [de policy-identiteitsroute](staging-tenant-management-policy-identity-diagnostic.md).
+   Bij ontbrekende dekking: geen automatische beheertoekenning; eerst
    de bedoelde rolverdeling bepalen. De aantallen zijn geen toestemming voor
    het uitbreiden van rollen van andere accounts.
 4. `apply` verifieert exact main en succesvolle Main Exact Head Validation,
