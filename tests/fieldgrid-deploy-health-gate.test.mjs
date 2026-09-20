@@ -903,7 +903,7 @@ test("API root HTTP 404 is allowed while API health requires exact 200", async (
 
 test("staging overrides cannot rename, duplicate or omit a canonical core probe", async (t) => {
   for (const group of ["local", "public"]) {
-    for (const variant of ["renamed", "duplicated", "missing", "unconfigured-website"]) {
+    for (const variant of ["renamed", "duplicated", "missing", "unconfigured-website", "compound-labels"]) {
       await t.test(`${group}: ${variant}`, async (child) => {
         const f = await fixture(child);
         await run(f.bash, f.activateArgs, { env: f.commonEnv });
@@ -914,6 +914,17 @@ test("staging overrides cannot rename, duplicate or omit a canonical core probe"
         if (variant === "duplicated") endpoints[api] = endpoints.find(value => value.startsWith(`${group}-customer|`));
         if (variant === "missing") endpoints.splice(api, 1);
         if (variant === "unconfigured-website") endpoints[api] = endpoints[api].replace(`${group}-api-health|`, `${group}-website-health|`);
+        if (variant === "compound-labels") {
+          const names = [
+            `${group}-backoffice ${group}-personnel`,
+            `${group}-personnel ${group}-customer`,
+            `${group}-customer ${group}-api-health`,
+            `${group}-backoffice ${group}-personnel ${group}-customer`,
+          ];
+          for (let index = 0; index < endpoints.length; index += 1) {
+            endpoints[index] = names[index] + endpoints[index].slice(endpoints[index].indexOf("|"));
+          }
+        }
         const result = await run(f.bash, f.healthArgs, {
           env: { ...f.commonEnv, [key]: endpoints.join("\n") }, allowFailure: true,
         });

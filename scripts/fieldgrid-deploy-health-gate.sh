@@ -641,8 +641,16 @@ check_endpoint_group() {
       continue
     fi
     if [ -n "$expected_names" ]; then
-      case " $expected_names " in
-        *" $name "*) ;;
+      case "$name" in
+        "$group_name-backoffice"|"$group_name-personnel"|"$group_name-customer"|"$group_name-api-health") ;;
+        "$group_name-website-health")
+          if [ -z "${WEBSITE_SERVICE_NAME:-}" ] || [ -z "${WEBSITE_PORT:-}" ]; then
+            invalid_labels=1; failed=1; continue
+          fi ;;
+        "$group_name-marketing-health")
+          if [ -z "${MARKETING_SERVICE_NAME:-}" ] || [ -z "${MARKETING_PORT:-}" ]; then
+            invalid_labels=1; failed=1; continue
+          fi ;;
         *) invalid_labels=1; failed=1; continue ;;
       esac
       case "$seen_names" in
