@@ -132,7 +132,7 @@ async function fixture(t) {
   await mkdir(newRelease, { recursive: true });
   await mkdir(shared, { recursive: true });
   await mkdir(mockbin, { recursive: true });
-  await writeFile(join(oldRelease, ".fieldgrid-release-sha"), "old-sha\n");
+  await writeFile(join(oldRelease, ".fieldgrid-release-sha"), `${"b".repeat(40)}\n`);
   await writeFile(
     join(newRelease, ".fieldgrid-release-sha"),
     `${expectedSha}\n`,
@@ -213,6 +213,32 @@ echo "curl $@" >> "$MOCK_LOG"
 url=""
 for arg in "$@"; do url="$arg"; done
 current="$(readlink "$MOCK_BASE/current" 2>/dev/null || true)"
+for arg in "$@"; do
+  if [ "$arg" = "--include" ]; then
+    environment="$APP_ENV"
+    sha="$(cat "$current/.fieldgrid-release-sha")"
+    service="backoffice"
+    case "$url" in
+      *personeel*|*personnel*) service="personnel" ;;
+      *klant*|*customer*) service="customer" ;;
+      *api*) service="api" ;;
+    esac
+    case "$url" in https:*)
+      if [ "$current" = "$MOCK_BASE/releases/new" ]; then
+        [ -z "$MOCK_IDENTITY_ENV" ] || environment="$MOCK_IDENTITY_ENV"
+        [ -z "$MOCK_IDENTITY_SHA" ] || sha="$MOCK_IDENTITY_SHA"
+        [ -z "$MOCK_IDENTITY_SERVICE" ] || service="$MOCK_IDENTITY_SERVICE"
+        if [ "$MOCK_IDENTITY_MISSING" = "1" ]; then printf 'HTTP/1.1 200 OK\\r\\n\\r\\nOK'; exit 0; fi
+      fi ;;
+    esac
+    status=200
+    body='OK'
+    case "$url" in */api/) status=401; body='{"error":"Authenticatie vereist"}' ;;
+    esac
+    printf 'HTTP/1.1 %s Result\\r\\nContent-Type: application/json\\r\\nCache-Control: no-store\\r\\nX-Fieldgrid-Environment: %s\\r\\nX-Fieldgrid-Release: %s\\r\\nX-Fieldgrid-Service: %s\\r\\n\\r\\n%s' "$status" "$environment" "$sha" "$service" "$body"
+    exit 0
+  fi
+done
 case "$url" in
   *curl-dead*) exit 7 ;;
   *public-bad*) if printf '%s' "$current" | grep -q '/new$'; then printf '502'; else printf '200'; fi; exit 0 ;;
@@ -245,6 +271,7 @@ esac
     SLEEP_BIN: sleepBin,
     SYSTEMCTL_SUDO: sudoBin,
     MOCK_LISTEN_PORTS: "3100 3200 3300 3400",
+    APP_ENV: "staging",
     APP_URL: "https://staging.fieldgrid.nl",
     BACKOFFICE_PORT: "3100",
     FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "1",
@@ -338,6 +365,7 @@ async function productionFixture(t) {
   // The deploy scripts retain a fixed real production root. Rewrite only that
   // literal in isolated test copies; tests never touch /var/www or add a runtime
   // environment-variable bypass to the release-path boundary.
+  await writeFile(join(f.root, "fieldgrid-runtime-health-proof.mjs"), await readFile(join(repoRoot, "scripts", "fieldgrid-runtime-health-proof.mjs")));
   const copies = [];
   for (const source of [activateScript, healthScript]) {
     const script = await readFile(source, "utf8");
@@ -374,7 +402,7 @@ async function productionFixture(t) {
     PERSONEEL_PUBLIC_HEALTH_URL: "https://personeel.fieldgrid.nl/personeel/healthz",
     KLANT_PUBLIC_HEALTH_URL: "https://app.fieldgrid.nl/klant/healthz",
     API_PUBLIC_HEALTH_URL: "https://api.fieldgrid.nl/api/healthz",
-    API_PUBLIC_ROOT_URL: "https://api.fieldgrid.nl/rest/v1/",
+    API_PUBLIC_ROOT_URL: "https://api.fieldgrid.nl/api/",
     MOCK_LISTEN_PORTS: "3300 3402 3403 3404",
     MOCK_PRODUCTION_PUBLIC_FAILURE: "", MOCK_PRODUCTION_ROLLBACK_FAILURE: "",
   };
@@ -383,8 +411,35 @@ echo "curl $@" >> "$MOCK_LOG"
 url=""
 for arg in "$@"; do url="$arg"; done
 current="$(readlink "$MOCK_BASE/current" 2>/dev/null || true)"
+for arg in "$@"; do
+  if [ "$arg" = "--include" ]; then
+    environment="$APP_ENV"
+    sha="$(cat "$current/.fieldgrid-release-sha")"
+    service="backoffice"
+    case "$url" in
+      *personeel*|*personnel*) service="personnel" ;;
+      *klant*|*customer*) service="customer" ;;
+      *api*) service="api" ;;
+    esac
+    case "$url" in https:*)
+      if [ "$current" = "$MOCK_BASE/releases/new" ]; then
+        [ -z "$MOCK_IDENTITY_ENV" ] || environment="$MOCK_IDENTITY_ENV"
+        [ -z "$MOCK_IDENTITY_SHA" ] || sha="$MOCK_IDENTITY_SHA"
+        [ -z "$MOCK_IDENTITY_SERVICE" ] || service="$MOCK_IDENTITY_SERVICE"
+        if [ "$MOCK_IDENTITY_MISSING" = "1" ]; then printf 'HTTP/1.1 200 OK\\r\\n\\r\\nOK'; exit 0; fi
+      fi ;;
+    esac
+    status=200
+    body='OK'
+    case "$url" in */api/) status=401; body='{"error":"Authenticatie vereist"}' ;;
+    esac
+    printf 'HTTP/1.1 %s Result\\r\\nContent-Type: application/json\\r\\nCache-Control: no-store\\r\\nX-Fieldgrid-Environment: %s\\r\\nX-Fieldgrid-Release: %s\\r\\nX-Fieldgrid-Service: %s\\r\\n\\r\\n%s' "$status" "$environment" "$sha" "$service" "$body"
+    exit 0
+  fi
+done
 case "$url" in
-  http://127.0.0.1:*/|*/rest/v1/) printf '404'; exit 0 ;;
+  http://127.0.0.1:*/) printf '404'; exit 0 ;;
+  https://api.fieldgrid.nl/api/) printf '401'; exit 0 ;;
   https://api.fieldgrid.nl/api/healthz)
     if [ "$MOCK_PRODUCTION_ROLLBACK_FAILURE" = "1" ]; then printf '502'; exit 0; fi
     if [ "$MOCK_PRODUCTION_PUBLIC_FAILURE" = "1" ] && [ "$current" = "$MOCK_BASE/releases/new" ]; then printf '502'; exit 0; fi ;;
@@ -443,6 +498,26 @@ test("production public failure restores the exact release and runtime environme
   assert.equal(report.rollbackStatus, "pass");
   assert.equal(report.checks.find(({ name }) => name === "rollback:health")?.status, "pass");
   assert.equal(countOccurrences(await readSystemctlLog(f.root), /^systemctl reload caddy$/u), 2);
+});
+
+test("production rejects a public 200 from staging, a stale commit, another service or an unidentified runtime and verifies rollback identity", async (t) => {
+  for (const mismatch of [
+    { MOCK_IDENTITY_ENV: "staging" },
+    { MOCK_IDENTITY_SHA: "c".repeat(40) },
+    { MOCK_IDENTITY_SERVICE: "website" },
+    { MOCK_IDENTITY_MISSING: "1" },
+  ]) {
+    await t.test(JSON.stringify(mismatch), async (child) => {
+      const f = await productionFixture(child);
+      await run(f.bash, f.activateArgs, { env: f.commonEnv });
+      const result = await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, ...mismatch }, allowFailure: true });
+      assert.notEqual(result.status, 0);
+      assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+      const report = await readJson(join(f.root, "health.json"));
+      assert.equal(report.rollbackStatus, "pass");
+      assert.ok(report.checks.some(({ name, status, detail }) => name === "endpoint:public-api-health" && status === "fail" && detail.includes("identity")));
+    });
+  }
 });
 
 test("production supports configured non-staging ports and a tenant backoffice hostname", async (t) => {
@@ -824,6 +899,57 @@ test("API root HTTP 404 is allowed while API health requires exact 200", async (
   );
   assert.equal(apiRoot?.status, "pass");
   assert.match(apiRoot.detail, /HTTP 404 accepted/);
+});
+
+test("staging overrides cannot rename, duplicate or omit a canonical core probe", async (t) => {
+  for (const group of ["local", "public"]) {
+    for (const variant of ["renamed", "duplicated", "missing", "unconfigured-website"]) {
+      await t.test(`${group}: ${variant}`, async (child) => {
+        const f = await fixture(child);
+        await run(f.bash, f.activateArgs, { env: f.commonEnv });
+        const key = `FIELDGRID_DEPLOY_${group.toUpperCase()}_ENDPOINTS`;
+        const endpoints = f.commonEnv[key].split("\n");
+        const api = endpoints.findIndex(value => value.startsWith(`${group}-api-health|`));
+        if (variant === "renamed") endpoints[api] = endpoints[api].replace(`${group}-api-health|`, "custom-api|");
+        if (variant === "duplicated") endpoints[api] = endpoints.find(value => value.startsWith(`${group}-customer|`));
+        if (variant === "missing") endpoints.splice(api, 1);
+        if (variant === "unconfigured-website") endpoints[api] = endpoints[api].replace(`${group}-api-health|`, `${group}-website-health|`);
+        const result = await run(f.bash, f.healthArgs, {
+          env: { ...f.commonEnv, [key]: endpoints.join("\n") }, allowFailure: true,
+        });
+        assert.notEqual(result.status, 0);
+        const report = await readJson(join(f.root, "health.json"));
+        assert.equal(report.checks.find(({ name }) => name === `endpoints:${group}-labels`)?.status, "fail");
+        if (variant !== "missing") {
+          // These fixtures preserve the old count check, reproducing the actual bypass.
+          assert.equal(report.checks.find(({ name }) => name === `endpoints:${group}-count`)?.status, "pass");
+        }
+        assert.ok(!report.checks.some(({ name, status }) => name === "endpoint:custom-api" && status === "pass"));
+      });
+    }
+  }
+});
+
+test("staging canonical names allow custom URLs but always enforce runtime identity", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  const env = {
+    ...f.commonEnv,
+    FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: f.commonEnv.FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS.replace(
+      "https://api-staging.example.test/api/healthz", "https://custom-api.staging.example.test/api/healthz",
+    ),
+  };
+  await run(f.bash, f.healthArgs, { env });
+  const passing = await readJson(join(f.root, "health.json"));
+  assert.equal(passing.checks.find(({ name }) => name === "endpoints:public-labels")?.status, "pass");
+  assert.equal(passing.checks.find(({ name }) => name === "endpoint:public-api-health")?.status, "pass");
+  const result = await run(f.bash, f.healthArgs, {
+    env: { ...env, MOCK_IDENTITY_ENV: "production" }, allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  const failing = await readJson(join(f.root, "health.json"));
+  assert.equal(failing.checks.find(({ name }) => name === "endpoints:public-labels")?.status, "pass");
+  assert.equal(failing.checks.find(({ name }) => name === "endpoint:public-api-health")?.status, "fail");
 });
 
 test("health gate requires exactly four services, ports, and local endpoints", async (t) => {
@@ -1691,11 +1817,12 @@ test("rollback is blocked if current no longer points at the failed release", as
   );
 });
 
-test("evidence files are machine-readable, mode 0640, and redact URL paths and credentials", async (t) => {
+test("credential-bearing probe URLs fail closed and evidence remains machine-readable, mode 0640 and secret-free", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
 
-  await run(f.bash, f.healthArgs, {
+  const result = await run(f.bash, f.healthArgs, {
+    allowFailure: true,
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
@@ -1706,6 +1833,7 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
       ].join("\n"),
     },
   });
+  assert.notEqual(result.status, 0);
 
   const evidencePath = join(f.root, "health.json");
   const evidence = await readJson(evidencePath);
@@ -1714,9 +1842,8 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
   const backoffice = evidence.checks.find(
     (check) => check.name === "endpoint:public-backoffice",
   );
-  assert.equal(backoffice?.status, "pass");
-  assert.match(backoffice.detail, /https:\/\/platform-staging\.example\.test$/);
-  assert.doesNotMatch(backoffice.detail, /user|pass|login|token|frag/);
+  assert.equal(backoffice?.status, "fail");
+  assert.doesNotMatch(JSON.stringify(evidence), /user:pass|token=secret|#frag/);
 });
 
 test("deploy workflow keeps production activation body free of staging health scripts", async () => {

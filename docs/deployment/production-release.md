@@ -17,7 +17,7 @@ In the GitHub `production` environment configure:
 - `FIELDGRID_RUNTIME_DATABASE_PASSWORD`: a newly generated 64-character lowercase hexadecimal secret, distinct from the administrator password.
 - `FIELDGRID_RUNTIME_DATABASE_URL`: `postgresql://fieldgrid_runtime_app.ckdtiuemeygrnujjibnw:<password>@<verified-production-pooler>:5432/postgres`, using exactly that generated password.
 - Variable `FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST`: the verified production pooler hostname.
-- Variables `BACKOFFICE_PUBLIC_LOGIN_URL`, `PERSONEEL_PUBLIC_HEALTH_URL`, `KLANT_PUBLIC_HEALTH_URL`, `API_PUBLIC_HEALTH_URL`, and `API_PUBLIC_ROOT_URL`: explicit production routes verified against the inventory. Personnel/customer/API routes normally end in `/personeel/healthz`, `/klant/healthz`, `/api/healthz`, and `/rest/v1/` respectively.
+- Variables `BACKOFFICE_PUBLIC_LOGIN_URL`, `PERSONEEL_PUBLIC_HEALTH_URL`, `KLANT_PUBLIC_HEALTH_URL`, `API_PUBLIC_HEALTH_URL`, and `API_PUBLIC_ROOT_URL`: explicit production routes verified against the inventory. Personnel/customer/API health routes end in `/personeel/healthz`, `/klant/healthz`, and `/api/healthz`. The public API root must end in `/api/` and return the identified API's exact unauthenticated 401 response.
 
 The four existing services are `veele-production`, `veele-production-personeel`, `veele-production-klant`, and `veele-production-api`, on distinct ports 3300, 3402, 3403 and 3404. `APP_ENV=production`, `APP_URL=https://app.fieldgrid.nl`, Node 24 and pnpm 11.5.2 are required. Keep the existing independent session, JWT, provider and encryption secrets. Configure `FIELDGRID_CREDENTIAL_RECOVERY_SECRET` before enabling credential recovery. Optional provider secrets retain their existing application behavior.
 
@@ -43,6 +43,8 @@ The migration administrator is available only to migration/provisioning steps an
 ## Rollback and recovery
 
 Before first deployment, an absent legacy release SHA marker is created only after every deployed source blob matches the immutable legacy commit `eedbf033ec08a12411760acf8ea7f5d5acf8cc20`. Existing markers are preserved. The new release and environment become active together. The health gate restarts the four services, verifies systemd, loopback/public endpoints and release SHA, and automatically restores the previous release and environment if health fails.
+
+Each core health response must also prove the expected environment, full release SHA and service through the [runtime health identity contract](runtime-health-identity.md). A staging response cannot satisfy production health. Legacy rollback releases without these headers can be restored but cannot receive a successful health proof.
 
 Migrations are forward-only; application rollback does not reverse database migrations. Keep the private verified backup and both release directories until acceptance is complete. Previous source/backup compatibility must be assessed before any manual database restoration. A failed pre-activation step leaves the original application environment active. If a failed activation leaves `.env.rollback-<sha>` material, retain it and diagnose the recorded health/activation evidence before retrying that exact SHA; the workflow deliberately refuses to overwrite rollback material.
 

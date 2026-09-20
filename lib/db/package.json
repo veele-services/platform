@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./runtime-health-identity": "./src/runtime-health-identity.ts",
     "./schema": "./src/schema/index.ts",
     "./tenant-context": "./src/tenant-context.ts",
     "./email-service": "./src/email-service.ts",

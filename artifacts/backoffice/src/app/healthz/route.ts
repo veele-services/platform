@@ -2,8 +2,8 @@ import { runtimeHealthHeaders } from "@workspace/db/runtime-health-identity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-const headers = runtimeHealthHeaders("personnel");
+const headers = runtimeHealthHeaders("backoffice");
 
 export function GET() {
-  return new Response("OK", { status: 200, headers });
+  return Response.json({ status: "ok" }, { headers });
 }

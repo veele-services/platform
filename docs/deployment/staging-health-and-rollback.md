@@ -55,6 +55,8 @@ activation adds two explicit endpoints:
 
 API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root-404`; 404 remains a failure for `exact-200` service endpoints. Public API root is not also added to the public healthz endpoint group, so the API root contract is checked once.
 
+The canonical core service probes additionally verify the response's environment, full release SHA and service identity. Backoffice probes its same-host `/admin/healthz` alongside the login page. See [runtime health identity](runtime-health-identity.md) for the response headers and the separate production `/api/` 401 contract. Rollback checks use the restored release's SHA; a legacy release without identity headers can be restored but its health proof remains failed.
+
 The gate requires exactly four services, ports and local/public endpoints by
 default, exactly five when the website pair is configured, or exactly six when
 both website pairs are configured. Any partial pair fails closed.
