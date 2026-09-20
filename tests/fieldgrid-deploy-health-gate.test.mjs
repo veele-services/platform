@@ -7,6 +7,7 @@ import {
   readFile,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -330,6 +331,199 @@ async function readCurrentTarget(bash, base) {
 async function readSystemctlLog(root) {
   return await readFile(join(root, "systemctl.log"), "utf8");
 }
+
+async function productionFixture(t) {
+  const f = await fixture(t);
+  await writeFile(join(f.oldRelease, ".fieldgrid-release-sha"), `${"a".repeat(40)}\n`);
+  // The deploy scripts retain a fixed real production root. Rewrite only that
+  // literal in isolated test copies; tests never touch /var/www or add a runtime
+  // environment-variable bypass to the release-path boundary.
+  const copies = [];
+  for (const source of [activateScript, healthScript]) {
+    const script = await readFile(source, "utf8");
+    assert.equal(script.split('"/var/www/veele/production"').length, 2);
+    const copy = join(f.root, source === activateScript ? "activate.sh" : "health.sh");
+    await writeFile(copy, script.replace('"/var/www/veele/production"', shellQuote(f.baseBash)));
+    copies.push(await toBashPath(f.bash, copy));
+  }
+  const replaceArgs = (args, script) => args.map((value, index) =>
+    index === 0 ? script : value === "staging" ? "production" : value);
+  f.activateArgs = [
+    ...replaceArgs(f.activateArgs, copies[0]),
+    "--prepared-env", `${f.newReleaseBash}/.env`,
+    "--shared-env", `${f.baseBash}/shared/.env`,
+    "--rollback-env", f.rollbackEnvBash,
+  ];
+  f.healthArgs = [
+    ...replaceArgs(f.healthArgs, copies[1]),
+    "--previous-release", f.oldReleaseBash,
+    "--restart-before-check", "--rollback-on-failure",
+    "--shared-env", `${f.baseBash}/shared/.env`,
+    "--rollback-env", f.rollbackEnvBash,
+  ];
+  f.commonEnv = {
+    ...f.commonEnv,
+    APP_ENV: "production", TARGET_ENVIRONMENT: "production",
+    APP_URL: "https://app.fieldgrid.nl",
+    BACKOFFICE_SERVICE_NAME: "", PERSONEEL_SERVICE_NAME: "", KLANT_SERVICE_NAME: "", API_SERVICE_NAME: "",
+    SERVICE_NAME: "", PORT: "", BACKOFFICE_PORT: "", PERSONEEL_PORT: "", KLANT_PORT: "", API_PORT: "",
+    WEBSITE_SERVICE_NAME: "", WEBSITE_PORT: "", MARKETING_SERVICE_NAME: "", MARKETING_PORT: "",
+    FIELDGRID_DEPLOY_SERVICES: "", FIELDGRID_DEPLOY_PORTS: "",
+    FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: "", FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "", FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
+    BACKOFFICE_PUBLIC_LOGIN_URL: "https://platform.fieldgrid.nl/admin/login",
+    PERSONEEL_PUBLIC_HEALTH_URL: "https://personeel.fieldgrid.nl/personeel/healthz",
+    KLANT_PUBLIC_HEALTH_URL: "https://app.fieldgrid.nl/klant/healthz",
+    API_PUBLIC_HEALTH_URL: "https://api.fieldgrid.nl/api/healthz",
+    API_PUBLIC_ROOT_URL: "https://api.fieldgrid.nl/rest/v1/",
+    MOCK_LISTEN_PORTS: "3300 3402 3403 3404",
+    MOCK_PRODUCTION_PUBLIC_FAILURE: "", MOCK_PRODUCTION_ROLLBACK_FAILURE: "",
+  };
+  await makeExecutable(join(f.root, "mockbin", "curl"), `#!/usr/bin/env sh
+echo "curl $@" >> "$MOCK_LOG"
+url=""
+for arg in "$@"; do url="$arg"; done
+current="$(readlink "$MOCK_BASE/current" 2>/dev/null || true)"
+case "$url" in
+  http://127.0.0.1:*/|*/rest/v1/) printf '404'; exit 0 ;;
+  https://api.fieldgrid.nl/api/healthz)
+    if [ "$MOCK_PRODUCTION_ROLLBACK_FAILURE" = "1" ]; then printf '502'; exit 0; fi
+    if [ "$MOCK_PRODUCTION_PUBLIC_FAILURE" = "1" ] && [ "$current" = "$MOCK_BASE/releases/new" ]; then printf '502'; exit 0; fi ;;
+esac
+printf '200'
+`);
+  return f;
+}
+
+test("production preflight and activation preserve the runtime environment until configured health succeeds", async (t) => {
+  const f = await productionFixture(t);
+  await run(f.bash, [...f.healthArgs, "--validate-configuration"], { env: f.commonEnv });
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+  assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=old\n");
+  assert.equal(existsSync(join(f.root, "systemctl.log")), false);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=new\n");
+  assert.equal(await readFile(f.rollbackEnv, "utf8"), "RELEASE_ENV=old\n");
+  await run(f.bash, f.healthArgs, { env: f.commonEnv });
+  const report = await readJson(join(f.root, "health.json"));
+  assert.equal(report.environment, "production");
+  assert.equal(report.status, "pass");
+  assert.equal(existsSync(f.rollbackEnv), false);
+  const log = await readSystemctlLog(f.root);
+  for (const suffix of ["", "-personeel", "-klant", "-api"]) {
+    assert.match(log, new RegExp(`systemctl restart veele-production${suffix}$`, "m"));
+  }
+  assert.match(log, /--header Host: platform\.fieldgrid\.nl --url http:\/\/127\.0\.0\.1:3300\/admin\/login/m);
+  assert.doesNotMatch(log, /veele-staging|Host: app\.fieldgrid\.nl/u);
+  assert.equal(report.checks.find(({ name }) => name === "endpoint:public-api-root")?.status, "pass");
+});
+
+test("unmodified production scripts reject a noncanonical base without touching its release", async (t) => {
+  const f = await productionFixture(t);
+  for (const [source, args] of [[activateScript, f.activateArgs], [healthScript, [...f.healthArgs, "--validate-configuration"]]]) {
+    const result = await run(f.bash, [await toBashPath(f.bash, source), ...args.slice(1)], {
+      env: f.commonEnv, allowFailure: true,
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+    assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=old\n");
+    assert.equal(existsSync(join(f.root, "systemctl.log")), false);
+  }
+});
+
+test("production public failure restores the exact release and runtime environment and checks rollback health", async (t) => {
+  const f = await productionFixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  const result = await run(f.bash, f.healthArgs, {
+    env: { ...f.commonEnv, MOCK_PRODUCTION_PUBLIC_FAILURE: "1" }, allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+  assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=old\n");
+  const report = await readJson(join(f.root, "health.json"));
+  assert.equal(report.rollbackStatus, "pass");
+  assert.equal(report.checks.find(({ name }) => name === "rollback:health")?.status, "pass");
+  assert.equal(countOccurrences(await readSystemctlLog(f.root), /^systemctl reload caddy$/u), 2);
+});
+
+test("production supports configured non-staging ports and a tenant backoffice hostname", async (t) => {
+  const f = await productionFixture(t);
+  const env = { ...f.commonEnv, BACKOFFICE_PORT: "3500", PERSONEEL_PORT: "3502",
+    KLANT_PORT: "3503", API_PORT: "3504", MOCK_LISTEN_PORTS: "3500 3502 3503 3504",
+    BACKOFFICE_PUBLIC_LOGIN_URL: "https://veeleservices.fieldgrid.nl/admin/login" };
+  await run(f.bash, [...f.healthArgs, "--validate-configuration"], { env });
+  await run(f.bash, f.activateArgs, { env });
+  await run(f.bash, f.healthArgs, { env });
+  assert.equal((await readJson(join(f.root, "health.json"))).status, "pass");
+  assert.match(await readSystemctlLog(f.root), /--header Host: veeleservices\.fieldgrid\.nl --url http:\/\/127\.0\.0\.1:3500\/admin\/login/m);
+});
+
+test("production rollback health failure remains a failed deployment", async (t) => {
+  const f = await productionFixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  const result = await run(f.bash, f.healthArgs, {
+    env: { ...f.commonEnv, MOCK_PRODUCTION_ROLLBACK_FAILURE: "1" }, allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+  assert.equal((await readJson(join(f.root, "health.json"))).rollbackStatus, "failed");
+});
+
+test("production configuration rejects opposite-environment hosts, services, ports and probe bypasses before activation", async (t) => {
+  const cases = [
+    { APP_URL: "https://staging.fieldgrid.nl" },
+    { BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/admin/login" },
+    { BACKOFFICE_PUBLIC_LOGIN_URL: "https://field-demo.staging.fieldgrid.nl/admin/login" },
+    { BACKOFFICE_PUBLIC_LOGIN_URL: "https://platform.fieldgrid.nl/admin/login?token=secret" },
+    { API_PUBLIC_HEALTH_URL: "http://api.fieldgrid.nl/api/healthz" },
+    { API_PUBLIC_HEALTH_URL: "https://api.fieldgrid.nl.attacker.test/api/healthz" },
+    { API_PUBLIC_ROOT_URL: "" },
+    { BACKOFFICE_SERVICE_NAME: "veele-staging" },
+    { PERSONEEL_PORT: "3302" },
+    { PERSONEEL_PORT: "3300" },
+    { API_PORT: "65536" },
+    { FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "bypass|https://app.fieldgrid.nl|exact-200" },
+    { WEBSITE_SERVICE_NAME: "veele-production-website", WEBSITE_PORT: "3405" },
+  ];
+  for (const overrides of cases) {
+    await t.test(JSON.stringify(overrides), async (t) => {
+      const f = await productionFixture(t);
+      const result = await run(f.bash, [...f.healthArgs, "--validate-configuration"], {
+        env: { ...f.commonEnv, ...overrides }, allowFailure: true,
+      });
+      assert.notEqual(result.status, 0);
+      assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+      assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=old\n");
+      assert.equal(existsSync(join(f.root, "systemctl.log")), false);
+    });
+  }
+});
+
+test("production activation refuses an invalid or symlinked rollback marker and escaped release paths", async (t) => {
+  for (const variant of ["invalid-marker", "symlink-marker", "outside-root", "missing-env-pair", "missing-existing-env"]) {
+    await t.test(variant, async (t) => {
+      const f = await productionFixture(t);
+      let args = f.activateArgs;
+      if (variant === "invalid-marker") await writeFile(join(f.oldRelease, ".fieldgrid-release-sha"), "old-sha\n");
+      if (variant === "symlink-marker") {
+        await rm(join(f.oldRelease, ".fieldgrid-release-sha"));
+        await symlink(join(f.newRelease, ".fieldgrid-release-sha"), join(f.oldRelease, ".fieldgrid-release-sha"));
+      }
+      if (variant === "outside-root") {
+        const outside = join(f.root, "outside");
+        await mkdir(outside);
+        args = args.map((value) => value === f.newReleaseBash ? outside : value);
+      }
+      if (variant === "missing-env-pair") args = args.slice(0, args.indexOf("--prepared-env"));
+      if (variant === "missing-existing-env") await rm(join(f.shared, ".env"));
+      const result = await run(f.bash, args, { env: f.commonEnv, allowFailure: true });
+      assert.notEqual(result.status, 0);
+      assert.equal(await readCurrentTarget(f.bash, f.base), f.oldReleaseBash);
+      if (variant === "missing-existing-env") assert.equal(existsSync(join(f.shared, ".env")), false);
+      else assert.equal(await readFile(join(f.shared, ".env"), "utf8"), "RELEASE_ENV=old\n");
+      assert.equal(existsSync(f.rollbackEnv), false);
+    });
+  }
+});
 
 test("healthy activation switches current and passes the health gate", async (t) => {
   const f = await fixture(t);
@@ -1292,7 +1486,7 @@ test("missing SHA marker before activation leaves current symlink untouched", as
   assert.match(evidence.detail, /missing/);
 });
 
-test("production is rejected by staging-only shell scripts before symlink changes", async (t) => {
+test("production rejects staging bindings before symlink or service changes", async (t) => {
   const f = await fixture(t);
 
   const activateResult = await run(

@@ -1,0 +1,161 @@
+name: Fieldgrid Production Inventory
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed main SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-production
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Verify protected source before checkout
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_main_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          node --input-type=module -e '
+            const response = await fetch("https://api.github.com/repos/veele-services/platform/git/ref/heads/main", {
+              headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: "application/vnd.github+json" },
+            });
+            if (!response.ok || (await response.json()).object?.sha !== process.env.EXPECTED_SHA) {
+              throw new Error("Inventory requires the exact protected main head");
+            }
+          '
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Inspect release and service metadata without credentials
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/fieldgrid-deployment-inventory.py > "$RUNNER_TEMP/fieldgrid-deployment-inventory.json"
+
+      - name: Inspect bounded proxy metadata and fixed health routes
+        run: |
+          set -euo pipefail
+          python3 - <<'PYROUTES' > "$RUNNER_TEMP/fieldgrid-production-routing.json"
+          import json, os, re, subprocess, urllib.request, urllib.error
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(NoRedirect)
+          report = {'version': 1, 'sourceSha': os.environ.get('GITHUB_SHA'), 'proxyMetadata': {'status': 'unavailable'}, 'probes': []}
+          config = None
+          try:
+              with urllib.request.urlopen('http://127.0.0.1:2019/config/', timeout=5) as response:
+                  raw = response.read(2 * 1024 * 1024 + 1)
+              if len(raw) <= 2 * 1024 * 1024:
+                  config = json.loads(raw)
+          except Exception:
+              try:
+                  adapted = subprocess.run(['caddy', 'adapt', '--config', '/etc/caddy/Caddyfile', '--adapter', 'caddyfile'], capture_output=True, timeout=15)
+                  if adapted.returncode == 0 and len(adapted.stdout) <= 2 * 1024 * 1024:
+                      config = json.loads(adapted.stdout)
+              except Exception:
+                  pass
+
+          routes = []
+          host_pattern = re.compile(r'^(?:\*|[a-z0-9-]+)(?:\.[a-z0-9-]+)*\.fieldgrid\.nl$')
+          path_pattern = re.compile(r'^/[A-Za-z0-9_./*%-]{0,255}$')
+          def inspect(value, hosts=(), paths=()):
+              if len(routes) >= 100: return
+              if isinstance(value, list):
+                  for child in value: inspect(child, hosts, paths)
+              elif isinstance(value, dict):
+                  hosts = list(hosts)
+                  paths = list(paths)
+                  for matcher in value.get('match', []):
+                      if not isinstance(matcher, dict): continue
+                      hosts += [item for item in matcher.get('host', []) if isinstance(item, str) and host_pattern.fullmatch(item)]
+                      paths += [item for item in matcher.get('path', []) if isinstance(item, str) and path_pattern.fullmatch(item)]
+                  if value.get('handler') == 'reverse_proxy':
+                      upstreams = [item.get('dial') for item in value.get('upstreams', []) if isinstance(item, dict) and re.fullmatch(r'(?:127\.0\.0\.1|localhost):[0-9]{2,5}', str(item.get('dial', '')))]
+                      if upstreams: routes.append({'hosts': sorted(set(hosts)), 'paths': sorted(set(paths)), 'upstreams': upstreams})
+                  # Never emit arbitrary config fields, headers, tokens, URLs or response bodies.
+                  for key in ('apps', 'http', 'servers', 'routes', 'handle', 'route'):
+                      if key in value: inspect(value[key], hosts, paths)
+                  if 'servers' in value and isinstance(value['servers'], dict):
+                      for server in value['servers'].values(): inspect(server, hosts, paths)
+          if config is not None:
+              inspect(config)
+              report['proxyMetadata'] = {'status': 'available', 'routes': routes}
+
+          def probe(url, host=None):
+              record = {'url': url}
+              if host: record['host'] = host
+              try:
+                  req = urllib.request.Request(url, headers={'Host': host} if host else {}, method='GET')
+                  with opener.open(req, timeout=8) as response: record['status'] = response.status
+              except urllib.error.HTTPError as error: record['status'] = error.code
+              except Exception: record['status'] = 'unavailable'
+              report['probes'].append(record)
+          for host in ['app.fieldgrid.nl', 'platform.fieldgrid.nl', 'admin.fieldgrid.nl']:
+              probe('http://127.0.0.1:3300/admin/login', host)
+              probe('https://' + host + '/admin/login')
+          for port, route in [(3402, '/personeel/healthz'), (3403, '/klant/healthz'), (3404, '/api/healthz'), (3404, '/rest/v1/')]:
+              probe('http://127.0.0.1:' + str(port) + route)
+              probe('https://app.fieldgrid.nl' + route)
+          print(json.dumps(report, indent=2))
+          PYROUTES
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Install pinned database certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-inventory-ca-$GITHUB_RUN_ID.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Read bounded production database metadata
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_ENV: production
+          TARGET_ENVIRONMENT: production
+          DB_SSL: "true"
+          DB_SSL_REJECT_UNAUTHORIZED: "true"
+          PGSSLMODE: verify-full
+        run: node scripts/fieldgrid-production-db-inventory.mjs > "$RUNNER_TEMP/fieldgrid-deployment-db-inventory.json"
+
+      - name: Upload infrastructure metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldgrid-production-inventory-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/fieldgrid-deployment-inventory.json
+            ${{ runner.temp }}/fieldgrid-production-routing.json
+            ${{ runner.temp }}/fieldgrid-deployment-db-inventory.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Remove temporary certificate
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/fieldgrid-inventory-ca-$GITHUB_RUN_ID.crt"

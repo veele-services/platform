@@ -7,6 +7,8 @@ import {
   type PolicyDefinitionQueryable,
 } from "./fieldgrid-tenant-management-policy-definition-contract.mts";
 import { tenantManagementScopeContractSql } from "./fieldgrid-tenant-management-authorization-contract.mts";
+import { withHostedAuthVariants } from "./fieldgrid-hosted-policy-variants.mts";
+import { HOSTED_POLICY_REPLACEMENT } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 
 export const TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME =
   "20260919220633_repair_tenant_management_policy_consumers.sql";
@@ -114,7 +116,7 @@ export async function loadTenantManagementPolicyRepairSource() {
 
 export async function readTenantManagementPolicyRepairReadiness(queryable: PolicyDefinitionQueryable): Promise<PolicyRepairReadiness> {
   try {
-    const result = await queryable.query(repairSource().readinessSql);
+    const result = await queryable.query(policyRepairReadinessSql(withHostedAuthVariants(repairSource().variants)));
     const row = result.rows[0];
     if (result.rowCount !== 1 || result.rows.length !== 1 || !row || Object.keys(row).length !== 4 ||
         readinessKeys.some((key) => typeof row[key] !== "boolean")) throw new Error();
@@ -128,8 +130,11 @@ export function tenantManagementPolicyRepairContractSql(includeJournal = true): 
     { name: source.name, hash: source.hash },
     { name: reconciliationName, hash: reconciliationHash },
   ].map(({ name, hash }) => `(SELECT count(*) FROM drizzle.veele_sql_migrations WHERE name = ${quote(name)}) = 1
-    AND EXISTS (SELECT 1 FROM drizzle.veele_sql_migrations WHERE name = ${quote(name)} AND hash = ${quote(hash)} AND baselined = false)`).join(" AND ");
-  return `(EXISTS (SELECT 1 FROM (${policyRepairReadinessSql(source.variants, undefined, true)}) repair
+    AND EXISTS (SELECT 1 FROM drizzle.veele_sql_migrations WHERE name = ${quote(name)} AND hash = ${quote(hash)}
+      AND (baselined = false${name === source.name ? ` OR (baselined = true AND EXISTS (
+        SELECT 1 FROM drizzle.veele_sql_migrations WHERE name = ${quote(HOSTED_POLICY_REPLACEMENT.name)}
+          AND hash = ${quote(HOSTED_POLICY_REPLACEMENT.hash)} AND baselined = false))` : ""}))`).join(" AND ");
+  return `(EXISTS (SELECT 1 FROM (${policyRepairReadinessSql(withHostedAuthVariants(source.variants), undefined, true)}) repair
     WHERE repair."targetDefinitionMatches" AND repair."dependenciesValid")${includeJournal ? ` AND ${journal}` : ""})`;
 }
 

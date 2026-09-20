@@ -21,32 +21,47 @@ import {
 export const RUNTIME_ROLE = "fieldgrid_runtime_app";
 export const CAPABILITY_ROLE = "fieldgrid_runtime_data";
 export const STAGING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
+export const PRODUCTION_PROJECT_REF = "ckdtiuemeygrnujjibnw";
 export const STAGING_POOLER_PORT = "5432";
 export const STAGING_DATABASE = "postgres";
 export const CONFIRMATION = "fieldgrid-w00-runtime-principal-staging-v1";
+export const PRODUCTION_CONFIRMATION = "fieldgrid-w00-runtime-principal-production-v1";
 export const MIGRATION_NAME =
   "20260909120000_runtime_least_privilege_principals.sql";
 
-const runtimeUsername = `${RUNTIME_ROLE}.${STAGING_PROJECT_REF}`;
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const POOLER_HOST_ENV = "FIELDGRID_STAGING_DATABASE_POOLER_HOST";
+const profiles = Object.freeze({
+  staging: Object.freeze({ environment: "staging", projectRef: STAGING_PROJECT_REF,
+    username: `${RUNTIME_ROLE}.${STAGING_PROJECT_REF}`, poolerHostEnv: POOLER_HOST_ENV }),
+  production: Object.freeze({ environment: "production", projectRef: PRODUCTION_PROJECT_REF,
+    username: `${RUNTIME_ROLE}.${PRODUCTION_PROJECT_REF}`, poolerHostEnv: "FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST" }),
+});
+
+export function runtimePrincipalProfile(environment = "staging") {
+  if (environment !== "staging" && environment !== "production") {
+    throw new Error("Runtime principal environment must be staging or production.");
+  }
+  return profiles[environment];
+}
 
 export function describeRuntimeEndpoint(env = process.env) {
-  assertStagingBindings(env, { requireConfirmation: false });
+  assertRuntimeBindings(env, { requireConfirmation: false });
+  const profile = runtimePrincipalProfile(env.APP_ENV);
   const exactSha = assertExactCheckoutSha(env);
   const adminUrl = requireEnv(env, "FIELDGRID_MIGRATION_DATABASE_URL");
-  const poolerHost = resolveStagingPoolerHost(adminUrl, env);
+  const poolerHost = resolveRuntimePoolerHost(adminUrl, env);
   databaseNodePostgresSslConfig(env);
   return {
     schemaVersion: 1,
-    environment: "staging",
+    environment: profile.environment,
     exactSha,
-    projectRef: STAGING_PROJECT_REF,
+    projectRef: profile.projectRef,
     connectionMode: "Supavisor session pooler",
     host: poolerHost,
     port: Number(STAGING_POOLER_PORT),
     database: STAGING_DATABASE,
-    username: runtimeUsername,
+    username: profile.username,
     tls: "verify-full with pinned Supabase Root 2021 CA",
     rootCertificateSha256: SUPABASE_ROOT_2021_CA_SHA256,
     passwordGeneration: "Run locally: openssl rand -hex 32",
@@ -56,7 +71,7 @@ export function describeRuntimeEndpoint(env = process.env) {
       FIELDGRID_DATABASE_SSL_ROOT_CERT_ENV,
     ],
     runtimeUrlTemplate:
-      `postgresql://${runtimeUsername}:<GENERATED_HEX_PASSWORD>`
+      `postgresql://${profile.username}:<GENERATED_HEX_PASSWORD>`
       + `@${poolerHost}:${STAGING_POOLER_PORT}/${STAGING_DATABASE}`,
     note: "Generate once locally; store the same value in both runtime secrets. Never paste it into logs or workflow inputs.",
   };
@@ -116,8 +131,8 @@ export function assertRuntimePassword(password) {
   }
 }
 
-export function assertRuntimeUrl(value, password, expectedPoolerHost) {
-  const parsed = assertRuntimeUrlDescriptor(value, expectedPoolerHost);
+export function assertRuntimeUrl(value, password, expectedPoolerHost, environment = "staging") {
+  const parsed = assertRuntimeUrlDescriptor(value, expectedPoolerHost, environment);
   if (
     decodeURIComponent(parsed.password) !== password
   ) {
@@ -126,34 +141,36 @@ export function assertRuntimeUrl(value, password, expectedPoolerHost) {
   return value;
 }
 
-export function assertRuntimeUrlDescriptor(value, expectedPoolerHost) {
-  assertStagingPoolerHost(expectedPoolerHost);
+export function assertRuntimeUrlDescriptor(value, expectedPoolerHost, environment = "staging") {
+  const profile = runtimePrincipalProfile(environment);
+  assertRuntimePoolerHost(expectedPoolerHost, environment);
   const parsed = parseBoundPostgresUrl(value, "runtime");
   if (
     parsed.hostname !== expectedPoolerHost
     || parsed.port !== STAGING_POOLER_PORT
     || databaseName(parsed) !== STAGING_DATABASE
-    || decodeURIComponent(parsed.username) !== runtimeUsername
+    || decodeURIComponent(parsed.username) !== profile.username
   ) {
-    throw new Error("The runtime URL does not match the canonical staging descriptor.");
+    throw new Error(`The runtime URL does not match the canonical ${environment} descriptor.`);
   }
   return parsed;
 }
 
-export function assertMigrationAdminUrl(value) {
+export function assertMigrationAdminUrl(value, environment = "staging") {
+  const profile = runtimePrincipalProfile(environment);
   const parsed = parseBoundPostgresUrl(value, "migration-admin");
   const username = decodeURIComponent(parsed.username);
-  const directHost = `db.${STAGING_PROJECT_REF}.supabase.co`;
+  const directHost = `db.${profile.projectRef}.supabase.co`;
   if (
-    isStagingPoolerHost(parsed.hostname)
+    isRuntimePoolerHost(parsed.hostname, environment)
     && parsed.port !== STAGING_POOLER_PORT
   ) {
     throw new Error(
       "The migration-admin URL must use the Supavisor session pooler on port 5432.",
     );
   }
-  const poolerBound = isStagingPoolerHost(parsed.hostname)
-    && username.endsWith(`.${STAGING_PROJECT_REF}`)
+  const poolerBound = isRuntimePoolerHost(parsed.hostname, environment)
+    && username.endsWith(`.${profile.projectRef}`)
     && parsed.port === STAGING_POOLER_PORT;
   const directBound = parsed.hostname === directHost
     && username === "postgres"
@@ -161,9 +178,9 @@ export function assertMigrationAdminUrl(value) {
   if (
     databaseName(parsed) !== STAGING_DATABASE
     || (!poolerBound && !directBound)
-    || username === runtimeUsername
+    || username === profile.username
   ) {
-    throw new Error("The migration-admin URL is not bound to the staging project.");
+    throw new Error(`The migration-admin URL is not bound to the ${environment} project.`);
   }
   return value;
 }
@@ -187,6 +204,34 @@ export function resolveStagingPoolerHost(adminUrl, env = process.env) {
   }
   assertStagingPoolerHost(configuredHost);
   return configuredHost;
+}
+
+export function resolveRuntimePoolerHost(adminUrl, env = process.env) {
+  if (env.APP_ENV === "staging") return resolveStagingPoolerHost(adminUrl, env);
+  const profile = runtimePrincipalProfile(env.APP_ENV);
+  if (profile.environment !== "production") throw new Error("Runtime environment is missing.");
+  // Production always needs its own explicit host, even for a pooler admin URL.
+  // A staging variable must never supply or infer this endpoint.
+  const configuredHost = assertRuntimePoolerHost(requireEnv(env, profile.poolerHostEnv), "production");
+  const parsed = parseBoundPostgresUrl(assertMigrationAdminUrl(adminUrl, "production"), "migration-admin");
+  if (isRuntimePoolerHost(parsed.hostname, "production") && parsed.hostname !== configuredHost) {
+    throw new Error("Configured production pooler host conflicts with the migration-admin endpoint.");
+  }
+  return configuredHost;
+}
+
+export function assertRuntimePoolerHost(value, environment = "staging") {
+  if (environment === "staging") return assertStagingPoolerHost(value);
+  runtimePrincipalProfile(environment);
+  if (!isRuntimePoolerHost(value, environment)) {
+    throw new Error("The production database pooler host is not a Supabase shared pooler.");
+  }
+  return value;
+}
+
+function isRuntimePoolerHost(value, environment) {
+  if (environment === "staging") return isStagingPoolerHost(value);
+  return /^aws-[0-9]+-[a-z]{2}(?:-[a-z]+)+-[0-9]+\.pooler\.supabase\.com$/u.test(value ?? "");
 }
 
 export function assertStagingPoolerHost(value) {
@@ -269,12 +314,43 @@ export function assertStagingBindings(
   }
 }
 
+export function assertProductionBindings(env, { requireConfirmation = true } = {}) {
+  const expectedSha = env.FIELDGRID_RUNTIME_EXPECTED_SHA;
+  if (
+    env.APP_ENV !== "production"
+    || env.TARGET_ENVIRONMENT !== "production"
+    || env.TARGET !== "production"
+    || env.EXPECTED_SUPABASE_PROJECT_REF !== PRODUCTION_PROJECT_REF
+    || env.NEXT_PUBLIC_SUPABASE_URL !== `https://${PRODUCTION_PROJECT_REF}.supabase.co`
+    || env.GITHUB_ACTIONS !== "true"
+    || env.GITHUB_EVENT_NAME !== "workflow_dispatch"
+    || env.GITHUB_REPOSITORY !== "veele-services/platform"
+    || env.GITHUB_REF !== "refs/heads/main"
+    || env.DEPLOYMENT_MODE !== "production"
+    || env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha"
+    || !/^[0-9a-f]{40}$/u.test(expectedSha ?? "")
+    || env.GITHUB_SHA !== expectedSha
+    || env.EXPECTED_MAIN_SHA !== expectedSha
+    || (requireConfirmation && env.FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM !== PRODUCTION_CONFIRMATION)
+  ) {
+    throw new Error("Runtime provisioning accepts only an exact-main production dispatch.");
+  }
+  if (env.PGOPTIONS?.trim()) throw new Error("Ambient PostgreSQL session options are forbidden.");
+}
+
+export function assertRuntimeBindings(env, options) {
+  if (env.APP_ENV === "production") return assertProductionBindings(env, options);
+  return assertStagingBindings(env, options);
+}
+
 export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
   const expectedSha = requireEnv(env, "FIELDGRID_RUNTIME_EXPECTED_SHA");
   if (!/^[0-9a-f]{40}$/u.test(expectedSha)) {
     throw new Error("FIELDGRID_RUNTIME_EXPECTED_SHA must be a full commit SHA.");
   }
   const sourceRoot = realpathSync(root);
+  const production = env.APP_ENV === "production";
+  if (production) assertProductionBindings(env, { requireConfirmation: false });
   const gitEntry = lstatSync(path.join(sourceRoot, ".git"), {
     throwIfNoEntry: false,
   });
@@ -294,6 +370,11 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
     if (realpathSync(checkoutRoot) !== sourceRoot || actualSha !== expectedSha) {
       throw new Error("Runtime provisioning checkout does not match the exact SHA.");
     }
+    if (production && execFileSync("git", ["rev-parse", "refs/remotes/origin/main"], {
+      cwd: sourceRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+    }).trim() !== expectedSha) {
+      throw new Error("Runtime provisioning checkout does not match the fetched production main SHA.");
+    }
     return expectedSha;
   }
 
@@ -307,22 +388,27 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
     || env.GITHUB_EVENT_NAME !== "workflow_dispatch"
     || env.GITHUB_REPOSITORY !== "veele-services/platform"
     || env.GITHUB_SHA !== expectedSha
-    || env.APP_ENV !== "staging"
-    || env.TARGET_ENVIRONMENT !== "staging"
-    || !["normal", "staging-recovery"].includes(env.DEPLOYMENT_MODE)
-    || env.GITHUB_REF !== (recovery ? "refs/heads/main" : "refs/heads/staging")
-    || env.DEPLOY_CONFIRMATION !== (
-      recovery ? "staging-recovery-only" : "fieldgrid-staging-deploy-exact-sha"
-    )
-    || !/^[0-9a-f]{40}$/u.test(env.EXPECTED_STAGING_SHA ?? "")
-    || (recovery ? env.EXPECTED_STAGING_SHA === expectedSha : env.EXPECTED_STAGING_SHA !== expectedSha)
+    || (production ? (
+      env.DEPLOYMENT_MODE !== "production"
+      || env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha"
+    ) : (
+      env.APP_ENV !== "staging"
+      || env.TARGET_ENVIRONMENT !== "staging"
+      || !["normal", "staging-recovery"].includes(env.DEPLOYMENT_MODE)
+      || env.GITHUB_REF !== (recovery ? "refs/heads/main" : "refs/heads/staging")
+      || env.DEPLOY_CONFIRMATION !== (
+        recovery ? "staging-recovery-only" : "fieldgrid-staging-deploy-exact-sha"
+      )
+      || !/^[0-9a-f]{40}$/u.test(env.EXPECTED_STAGING_SHA ?? "")
+      || (recovery ? env.EXPECTED_STAGING_SHA === expectedSha : env.EXPECTED_STAGING_SHA !== expectedSha)
+    ))
     || !path.isAbsolute(baseDir)
     || realpathSync(baseDir) !== path.resolve(baseDir)
     || releasePath !== sourceRoot
     || path.dirname(sourceRoot) !== path.join(baseDir, "releases")
     || !new RegExp(`^\\d{14}-${expectedSha.slice(0, 7)}$`, "u").test(path.basename(sourceRoot))
   ) {
-    throw new Error("Runtime provisioning release is not bound to the exact staging dispatch.");
+    throw new Error("Runtime provisioning release is not bound to the exact deployment dispatch.");
   }
   const markerPath = path.join(sourceRoot, ".fieldgrid-release-sha");
   const marker = lstatSync(markerPath, { throwIfNoEntry: false });
@@ -339,6 +425,28 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
 export function assertExactStagingEnvironment(env) {
   assertStagingBindings(env);
   return assertExactCheckoutSha(env);
+}
+
+export function assertExactRuntimeEnvironment(env, options) {
+  assertRuntimeBindings(env);
+  return assertExactCheckoutSha(env, options);
+}
+
+export function validateProductionRuntimeConfig(env, options) {
+  assertProductionBindings(env);
+  const exactSha = assertExactCheckoutSha(env, options);
+  const adminUrl = assertMigrationAdminUrl(requireEnv(env, "FIELDGRID_MIGRATION_DATABASE_URL"), "production");
+  const poolerHost = resolveRuntimePoolerHost(adminUrl, env);
+  const password = requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_PASSWORD");
+  assertRuntimePassword(password);
+  assertRuntimeUrl(requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_URL"), password, poolerHost, "production");
+  if (decodeURIComponent(new URL(adminUrl).password) === password) {
+    throw new Error("Production migration-admin and runtime passwords must be distinct.");
+  }
+  databaseNodePostgresSslConfig(env);
+  return { environment: "production", projectRef: PRODUCTION_PROJECT_REF,
+    exactSha, host: poolerHost, port: 5432, database: "postgres",
+    username: profiles.production.username, rootCertificateSha256: SUPABASE_ROOT_2021_CA_SHA256 };
 }
 
 async function assertAdminTopology(client) {
@@ -505,17 +613,20 @@ async function proveRuntimeHandshake(Client, runtimeUrl, ssl) {
 }
 
 async function apply(env) {
-  const exactSha = assertExactStagingEnvironment(env);
+  const exactSha = assertExactRuntimeEnvironment(env);
+  if (env.APP_ENV === "production") validateProductionRuntimeConfig(env);
   const password = requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_PASSWORD");
   assertRuntimePassword(password);
   const adminUrl = assertMigrationAdminUrl(
     requireEnv(env, "FIELDGRID_MIGRATION_DATABASE_URL"),
+    env.APP_ENV,
   );
-  const poolerHost = resolveStagingPoolerHost(adminUrl, env);
+  const poolerHost = resolveRuntimePoolerHost(adminUrl, env);
   const runtimeUrl = assertRuntimeUrl(
     requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_URL"),
     password,
     poolerHost,
+    env.APP_ENV,
   );
   const ssl = databaseNodePostgresSslConfig(env);
   const dbRequire = createRequire(
@@ -538,6 +649,7 @@ async function apply(env) {
   return {
     status: "passed",
     action: "apply",
+    environment: env.APP_ENV,
     exactSha,
     role: RUNTIME_ROLE,
     passwordFormat: "SCRAM-SHA-256",

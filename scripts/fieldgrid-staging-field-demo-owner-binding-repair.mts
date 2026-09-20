@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import { isVerifiedHostedPolicyBaseline } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -2379,7 +2380,7 @@ export function assertPlatformPrivilegeMigrationFrontier(
       );
     }
     if (
-      record.baselined &&
+      record.baselined && !isVerifiedHostedPolicyBaseline(record, records) &&
       (historical?.kind === "renamed" ||
         (committed && !frontier.legacyNames.has(record.name)))
     ) {
@@ -2454,7 +2455,8 @@ export function assertPlatformPrivilegeMigrationFrontier(
       if (firstPendingIndex < 0) firstPendingIndex = index;
       continue;
     }
-    if (!reviewedMigrationHashMatches(migration, record) || record.baselined) {
+    if (!reviewedMigrationHashMatches(migration, record) ||
+        (record.baselined && !isVerifiedHostedPolicyBaseline(record, records))) {
       throw new FieldDemoOwnerBindingError(
         "field_demo_owner_binding_precondition_invalid",
         "Platform-privilege migration record does not match reviewed source.",

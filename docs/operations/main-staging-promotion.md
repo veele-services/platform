@@ -9,7 +9,7 @@ This document is the canonical branch and environment contract for the current F
 - `staging` is a release pointer for the live staging environment.
 - `staging` must resolve to the exact promoted `main` commit SHA.
 - `staging` is not an independent integration branch and must not accumulate merge-only history.
-- Production is outside the current operating scope and must not be used until staging is explicitly declared complete. The shared deploy workflow therefore accepts only an exact-SHA manual `staging` dispatch for this W00 partial rollout; restoring production deploys requires a separate reviewed package that provisions and verifies the production runtime principal, pinned database CA, activation health gate and rollback path first.
+- The shared deploy workflow therefore accepts only an exact-SHA manual `staging` dispatch. The separate `fieldgrid-production-deploy.yml` workflow accepts an exact `main` SHA only after that same SHA has passed staging deployment and remains active there. Its production environment owns separate credentials, a verified private backup and restore rehearsal, runtime-principal checks, and paired application/environment rollback. See [Production release](../deployment/production-release.md). An ordinary push to `main` does not deploy either environment.
 
 ## Normal development flow
 
@@ -58,8 +58,11 @@ new main SHA before using the normal exact-ref promotion command.
   Supabase project. Staging requires `olyfmekyqozxrbrwwszu`.
 - GitHub secret `FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64` must contain the
   pinned Supabase Root 2021 CA. Every live workflow verifies its fingerprint,
-  installs it as a private regular file and passes that exact path to Node.js
-  and libpq (`PGSSLMODE=verify-full`). `PGSSLROOTCERT=system`, URL
+  installs it as a private regular file for administrative checks and passes
+  that exact path to Node.js and libpq (`PGSSLMODE=verify-full`). The separately
+  pinned runtime copy may be `0640` so the `veele-deploy` service group can read
+  this public certificate; group writes and all access by other users remain
+  forbidden. `PGSSLROOTCERT=system`, URL
   query/fragment overrides and TLS opt-outs fail closed.
 - A push or merge to `main` must never migrate a database.
 - The regular staging deploy runs migrations before activating the release.

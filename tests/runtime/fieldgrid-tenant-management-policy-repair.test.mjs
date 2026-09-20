@@ -63,13 +63,13 @@ async function installHistoricalProviderRoleFixture(client) {
   assert.deepEqual(await contactHelperAccess(), retainedAccess);
 }
 
-async function restoreOriginalCleanPolicies(client) {
+export async function restoreOriginalCleanPolicies(client) {
   await client.query("DROP POLICY IF EXISTS owner_or_staff_read_payments ON public.payments");
   await client.query("DROP POLICY object_personnel_management ON public.object_personnel");
   await client.query(originalPersonnelPolicy);
 }
 
-async function restoreLegacyPrescope(client) {
+export async function restoreLegacyPrescope(client) {
   await client.query("BEGIN");
   try {
     await installHistoricalTenantManagementHelper(client);
@@ -79,6 +79,8 @@ async function restoreLegacyPrescope(client) {
     await client.query("DROP POLICY IF EXISTS service_role_all_payments ON public.payments");
     await client.query(originalServicePaymentPolicy);
     for (const [path, start] of legacyPolicySources) await client.query(sourceStatement(path, start));
+    await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name = $1",
+      ["20260920131458_reconcile_hosted_policy_contract.sql"]);
     const deleted = await client.query(
       "DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])", [migrationNames],
     );
@@ -90,7 +92,7 @@ async function restoreLegacyPrescope(client) {
   }
 }
 
-async function seedPreservedManagementPair(client) {
+export async function seedPreservedManagementPair(client) {
   const tenant = randomUUID(), user = randomUUID(), scopedRole = randomUUID();
   await client.query("BEGIN");
   try {
@@ -260,7 +262,7 @@ async function connected(address) {
 // Each case owns a real database and real COMMIT boundaries. In particular,
 // wrapping BEGIN/COMMIT in savepoints would not prove uncertain-commit recovery.
 // The caller registers this gate before opening any source-database connection.
-async function withClonedDatabase(run) {
+export async function withClonedDatabase(run) {
   const { address, database } = disposableConnection();
   const fixtureDatabase = `fg_policy_repair_${randomUUID().replaceAll("-", "")}`;
   const adminAddress = new URL(address);
@@ -330,7 +332,7 @@ async function catalogSnapshot(client) {
   return digest(result.rows);
 }
 
-async function fullSnapshot(client) {
+export async function fullSnapshot(client) {
   return { catalog: await catalogSnapshot(client), data: await dataSnapshot(client) };
 }
 
@@ -458,7 +460,8 @@ export async function verifyTenantManagementPolicyRepair(context) {
 
   await context.test("previously installed immutable pair runs only the new verification migration", () =>
     withClonedDatabase(async (client) => {
-      await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [migrationNames[2]]);
+      await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])",
+        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql"]]);
       const before = await dataSnapshot(client);
       const executionOrder = [];
       const journalOrder = [];
@@ -480,7 +483,8 @@ export async function verifyTenantManagementPolicyRepair(context) {
     withClonedDatabase(async (client) => {
       await client.query("BEGIN");
       await restoreOriginalCleanPolicies(client);
-      await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [migrationNames[2]]);
+      await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])",
+        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql"]]);
       await client.query("COMMIT");
       const before = await dataSnapshot(client);
       const diagnostic = await runTenantManagementAuthorization(client, "diagnose");
@@ -871,7 +875,7 @@ export async function verifyTenantManagementPolicyRepair(context) {
     ["missing predecessor", "DELETE FROM drizzle.veele_sql_migrations WHERE name=(SELECT name FROM drizzle.veele_sql_migrations WHERE name < $1 ORDER BY name DESC LIMIT 1)", [migrationNames[0]], "history_invalid"],
     ["wrong predecessor hash", "UPDATE drizzle.veele_sql_migrations SET hash=$2 WHERE name=(SELECT name FROM drizzle.veele_sql_migrations WHERE name < $1 ORDER BY name DESC LIMIT 1)", [migrationNames[0], "0".repeat(64)], "history_invalid"],
     ["wrong repair hash", "UPDATE drizzle.veele_sql_migrations SET hash=$2 WHERE name=$1", [migrationNames[2], "0".repeat(64)], "history_invalid"],
-    ["baselined repair", "UPDATE drizzle.veele_sql_migrations SET baselined=true WHERE name=$1", [migrationNames[2]], "history_invalid"],
+    ["baselined repair without verified replacement", "WITH removed AS (DELETE FROM drizzle.veele_sql_migrations WHERE name='20260920131458_reconcile_hosted_policy_contract.sql') UPDATE drizzle.veele_sql_migrations SET baselined=true WHERE name=$1", [migrationNames[2]], "history_invalid"],
     ["private helper ACL drift", "GRANT EXECUTE ON FUNCTION app_private.fieldgrid_has_canonical_tenant_management(uuid,uuid) TO authenticated", [], "catalog_invalid"],
     ["public helper ACL drift", "GRANT EXECUTE ON FUNCTION public.is_management_for_tenant(uuid) TO anon", [], "catalog_invalid"],
     ["private helper security-mode drift", "ALTER FUNCTION app_private.fieldgrid_has_canonical_tenant_management(uuid,uuid) SECURITY DEFINER", [], "catalog_invalid"],

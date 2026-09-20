@@ -852,7 +852,9 @@ jobs:
 
           chown -R github-runner:veele-deploy "$RELEASE"
           chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
-          chmod 600 "$RELEASE/.fieldgrid/supabase-root-2021-ca.crt"
+          # Administrative gates have finished with the private certificate.
+          # The pinned public CA must now be readable by the veele service group.
+          chmod 640 "$RELEASE/.fieldgrid/supabase-root-2021-ca.crt"
 
           bash "$RELEASE/scripts/fieldgrid-atomic-release-activate.sh" \
             --environment "$TARGET" \

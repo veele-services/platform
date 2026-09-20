@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import { HOSTED_POLICY_REPLACEMENT } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -258,14 +259,16 @@ export function tenantManagementAuthorizationFrontier(
       policySource.hash !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH ||
       !exactSource(source, committedSource, TENANT_MANAGEMENT_MIGRATION_NAME) ||
       !exactSource(repair, committedRepair, TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME) ||
-      base.committed.length !== index + 2) {
+      !(base.committed.length === index + 2 || (base.committed.length === index + 3 &&
+        base.committed[index + 2]?.name === HOSTED_POLICY_REPLACEMENT.name &&
+        base.committed[index + 2]?.hash === HOSTED_POLICY_REPLACEMENT.hash))) {
     throw new AuthorizationError("source_invalid");
   }
   return {
     ...base,
     predecessors: base.committed.slice(0, policyIndex),
     required: [policySource, committedSource!, committedRepair!],
-    successors: new Set(),
+    successors: new Set(base.committed.slice(index + 2).map((entry) => entry.name)),
   };
 }
 

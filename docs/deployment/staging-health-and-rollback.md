@@ -1,6 +1,6 @@
 # Staging Health Gate And Symlink Rollback
 
-This runbook defines the staging-only post-deploy health gate added to the deploy workflow. It does not dispatch a workflow, access staging, read live secrets or run down migrations. The production deploy path remains the existing direct symlink activation and service restart path from `origin/main`; the new activation script and health gate are guarded to reject non-staging use.
+This runbook defines the staging post-deploy health gate. It does not dispatch a workflow, access staging, read live secrets or run down migrations. The same activation and health scripts also support the separately guarded [production release workflow](production-release.md), with an exact production directory, service list, endpoint configuration and verified rollback marker.
 
 The scripts are Linux deployment tooling. They run under `bash` on the self-hosted Linux runner and use GNU `mv -T` for atomic symlink replacement.
 
