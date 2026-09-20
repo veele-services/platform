@@ -12,6 +12,7 @@ const RELEASE_WORKFLOWS = [
   ".github/workflows/fieldgrid-material-inventory-phase11.yml",
   ".github/workflows/fieldgrid-material-inventory-phase12.yml",
   ".github/workflows/fieldgrid-migration-smoke.yml",
+  ".github/workflows/fieldgrid-staging-document-storage-backfill.yml",
   ".github/workflows/fieldgrid-staging-field-demo-domain-repair.yml",
   ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
   ".github/workflows/fieldgrid-staging-field-demo-owner-repair.yml",
@@ -109,5 +110,5 @@ test("every release-critical action has an exact reviewed SHA and provenance lab
     }
   }
 
-  assert.equal(actionCount, 116);
+  assert.equal(actionCount, 120);
 });

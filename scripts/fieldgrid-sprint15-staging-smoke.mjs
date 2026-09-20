@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -146,6 +146,8 @@ export function parseArgs(argv = process.argv.slice(2)) {
     json: false,
     runReadOnly: false,
     help: false,
+    expectedStaging: "",
+    canonicalMarkerBootstrap: false,
     apiUrl:
       process.env.FIELDGRID_STAGING_SMOKE_API_URL ||
       DEFAULT_STAGING_SMOKE_API_URL,
@@ -167,6 +169,14 @@ export function parseArgs(argv = process.argv.slice(2)) {
       case "--run-read-only":
       case "--run":
         options.runReadOnly = true;
+        break;
+      case "--expected-staging":
+        options.expectedStaging = nextValue();
+        break;
+      case "--canonical-marker-bootstrap":
+        if (inlineValue !== undefined)
+          throw new Error("Canonical marker bootstrap takes no value.");
+        options.canonicalMarkerBootstrap = true;
         break;
       case "--api-url":
         options.apiUrl = nextValue();
@@ -212,7 +222,8 @@ export function buildSprint15StagingSmokePlan(env = process.env) {
         "FIELDGRID_STAGING_SMOKE_COOKIE",
         "FIELDGRID_STAGING_SMOKE_BEARER",
       ],
-      command: "pnpm fieldgrid:sprint15-staging-smoke --run-read-only",
+      command:
+        "pnpm fieldgrid:sprint15-staging-smoke --run-read-only --expected-staging ACTIVE_SHA",
     },
     migrationSmokeStatus: {
       command: "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
@@ -311,23 +322,183 @@ function authHeaders(env = process.env) {
   return headers;
 }
 
+const STAGING_BASE = "/var/www/veele/staging";
+const STAGING_CURRENT = `${STAGING_BASE}/current`;
+const RELEASE_PATH =
+  /^\/var\/www\/veele\/staging\/releases\/\d{14}-[a-f0-9]{7}$/u;
+const FULL_SHA = /^[a-f0-9]{40}$/u;
+
+// Bootstrap only the older deployed API that predates releaseSha. Never accept
+// an arbitrary marker path, symlinked marker or a marker outside staging.
+export async function readCanonicalStagingRelease({
+  lstatImpl = lstat,
+  realpathImpl = realpath,
+  readFileImpl = readFile,
+} = {}) {
+  try {
+    if (
+      (await realpathImpl(STAGING_BASE)) !== STAGING_BASE ||
+      !(await lstatImpl(STAGING_CURRENT)).isSymbolicLink()
+    )
+      throw new Error();
+    const releasePath = await realpathImpl(STAGING_CURRENT);
+    if (!RELEASE_PATH.test(releasePath)) throw new Error();
+    const markerPath = `${releasePath}/.fieldgrid-release-sha`;
+    const marker = await lstatImpl(markerPath);
+    if (
+      !marker.isFile() ||
+      marker.isSymbolicLink() ||
+      marker.size < 40 ||
+      marker.size > 42 ||
+      (await realpathImpl(markerPath)) !== markerPath
+    )
+      throw new Error();
+    const sha = (await readFileImpl(markerPath, "utf8")).trim();
+    if (
+      !FULL_SHA.test(sha) ||
+      !releasePath.endsWith(`-${sha.slice(0, 7)}`) ||
+      (await realpathImpl(STAGING_CURRENT)) !== releasePath
+    )
+      throw new Error();
+    return { releasePath, sha };
+  } catch {
+    throw new Error(
+      "Canonical staging release marker is unavailable or invalid.",
+    );
+  }
+}
+
+function releaseIdentity(expectedStaging, apiSha, before, after) {
+  const apiReleaseSha = apiSha == null ? null : apiSha;
+  if (
+    apiReleaseSha !== null &&
+    (!FULL_SHA.test(apiReleaseSha) || apiReleaseSha !== expectedStaging)
+  ) {
+    throw new Error(
+      "Staging API release identity differs from the expected active release.",
+    );
+  }
+  if (
+    before &&
+    (!after ||
+      before.sha !== expectedStaging ||
+      after.sha !== expectedStaging ||
+      before.releasePath !== after.releasePath)
+  ) {
+    throw new Error(
+      "Canonical staging release changed during the smoke snapshot.",
+    );
+  }
+  if (!apiReleaseSha && !before)
+    throw new Error(
+      "Staging API has no release identity; explicit canonical marker bootstrap is required.",
+    );
+  return {
+    expectedStagingSha: expectedStaging,
+    deployedStagingSha: apiReleaseSha ?? before.sha,
+    apiReleaseSha,
+    canonicalMarkerSha: before?.sha ?? null,
+    source: before
+      ? apiReleaseSha
+        ? "api-and-canonical-marker"
+        : "canonical-marker-bootstrap"
+      : "api",
+  };
+}
+
+async function readSmokeResponse(response) {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const chunks = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > 1024 * 1024) throw new Error();
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  } catch {
+    await reader.cancel().catch(() => {});
+    throw new Error(
+      "Authenticated staging smoke response could not be read within its size limit.",
+    );
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function runReadOnlySnapshot(
   options = parseArgs([]),
   env = process.env,
+  {
+    fetchImpl = fetch,
+    readCanonicalRelease = readCanonicalStagingRelease,
+  } = {},
 ) {
-  const headers = authHeaders(env);
-  const startedAt = new Date();
-  const response = await fetch(options.apiUrl, { headers });
-  const finishedAt = new Date();
-  const body = await response.text();
-  let dashboard = null;
-
-  try {
-    dashboard = JSON.parse(body);
-  } catch {
-    dashboard = { error: body.slice(0, 500) };
+  if (!FULL_SHA.test(options.expectedStaging ?? "")) {
+    throw new Error(
+      "Read-only staging smoke requires --expected-staging with the exact active release SHA.",
+    );
   }
-
+  if (options.apiUrl !== DEFAULT_STAGING_SMOKE_API_URL) {
+    throw new Error(
+      "Read-only staging smoke requires the canonical HTTPS staging API URL.",
+    );
+  }
+  const headers = authHeaders(env);
+  if (!headers.cookie && !headers.authorization)
+    throw new Error("Authenticated staging smoke credentials are required.");
+  const before = options.canonicalMarkerBootstrap
+    ? await readCanonicalRelease()
+    : null;
+  if (before && before.sha !== options.expectedStaging)
+    throw new Error(
+      "Canonical staging marker differs from the expected active release.",
+    );
+  const startedAt = new Date();
+  let response;
+  try {
+    response = await fetchImpl(options.apiUrl, {
+      headers,
+      redirect: "error",
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    throw new Error("Authenticated staging smoke request failed.");
+  }
+  const body = await readSmokeResponse(response);
+  let dashboard = null;
+  // Error pages and malformed responses never become persisted raw payloads.
+  if (response.status === 200) {
+    try {
+      const parsed = JSON.parse(body);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        parsed.environment &&
+        typeof parsed.environment === "object" &&
+        !Array.isArray(parsed.environment) &&
+        Array.isArray(parsed.checks)
+      )
+        dashboard = parsed;
+    } catch {
+      /* Fixed semantic failure below. */
+    }
+  }
+  const after = options.canonicalMarkerBootstrap
+    ? await readCanonicalRelease()
+    : null;
+  const identity = releaseIdentity(
+    options.expectedStaging,
+    dashboard?.environment?.releaseSha,
+    before,
+    after,
+  );
+  const finishedAt = new Date();
   const report = {
     version: SPRINT15_STAGING_SMOKE_VERSION,
     createdAt: finishedAt.toISOString(),
@@ -335,31 +506,50 @@ export async function runReadOnlySnapshot(
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
     apiUrl: options.apiUrl,
-    status: response.ok ? "pass" : "fail",
+    expectedStagingSha: options.expectedStaging,
+    deployedStagingSha: identity.deployedStagingSha,
+    releaseIdentity: identity,
+    status: response.status === 200 ? "pass" : "fail",
     httpStatus: response.status,
     summary: {
-      status: response.ok ? "pass" : "fail",
-      message: response.ok
-        ? "Read-only staging smoke snapshot opgehaald."
-        : "Read-only staging smoke snapshot faalde.",
+      status: response.status === 200 ? "pass" : "fail",
+      message: "Authenticated exact-release read-only staging smoke snapshot.",
     },
     checks: Array.isArray(dashboard?.checks)
-      ? dashboard.checks.map((check) => check.id).filter(Boolean)
+      ? dashboard.checks.map((check) => check?.id).filter(Boolean)
       : [],
     dashboard,
   };
-
-  await mkdir(options.outDir, { recursive: true });
+  // Lazy import reuses the promotion consumer after this module initializes;
+  // there is no second, weaker minimum-green or release-identity definition.
+  const { validateStagingSmokeEvidence } =
+    await import("./fieldgrid-staging-promotion-gate.mjs");
+  const validationErrors = validateStagingSmokeEvidence(report, {
+    expectedStaging: options.expectedStaging,
+  });
+  if (validationErrors.length > 0) {
+    report.status = "fail";
+    report.summary = {
+      status: "fail",
+      message: "Staging smoke semantic evidence is incomplete.",
+    };
+    report.validationErrors = validationErrors;
+  }
+  await mkdir(options.outDir, { recursive: true, mode: 0o700 });
   const reportPath = join(
     options.outDir,
     `${new Date().toISOString().replace(/[:.]/gu, "-")}-staging-smoke.json`,
   );
-  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  });
   return { report, reportPath };
 }
 
 function usage() {
-  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL      Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_COOKIE       Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER       Optional bearer token for the read-only API\n  FIELDGRID_STAGING_PILOT_TENANT_SLUG  Defaults to ${DEFAULT_STAGING_PILOT_TENANT_SLUG}\n  FIELDGRID_MUTATING_SMOKE_CONFIRM     Must be ${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE} before any future mutating runner exists\n`;
+  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only --expected-staging ACTIVE_SHA [--canonical-marker-bootstrap]\n\nThe expected SHA identifies the active release, which may differ from the staging\nGit ref only with the separately verified Phase2E rollback proof. Bootstrap reads\nonly /var/www/veele/staging/current/.fieldgrid-release-sha before and after capture.\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL      Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_COOKIE       Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER       Optional bearer token for the read-only API\n  FIELDGRID_STAGING_PILOT_TENANT_SLUG  Defaults to ${DEFAULT_STAGING_PILOT_TENANT_SLUG}\n  FIELDGRID_MUTATING_SMOKE_CONFIRM     Must be ${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE} before any future mutating runner exists\n`;
 }
 
 function printPlan(plan) {

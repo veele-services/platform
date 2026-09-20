@@ -45,6 +45,10 @@ import {
   KNOWN_LEGACY_ROLLBACK_RECOVERY,
   LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
 } from "../scripts/fieldgrid-phase2e-staging-preflight.mjs";
+import {
+  parseArgs as parseStagingSmokeArgs,
+  runReadOnlySnapshot,
+} from "../scripts/fieldgrid-sprint15-staging-smoke.mjs";
 
 function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -1249,20 +1253,38 @@ test("strict promotion keeps the Git ref binding while validating a proven activ
       join(phase2eDirectory, "phase2e-staging-preflight.json"),
       phase2e,
     );
-    writeJson(
-      join(fixture, "artifacts", "staging-smoke", "staging.json"),
-      greenStagingSmokeReport({
+    const legacyDashboard = greenStagingSmokeReport({
+      expectedStaging: expectedActive,
+      nowMs,
+    }).dashboard;
+    delete legacyDashboard.environment.releaseSha;
+    const smokeDirectory = join(fixture, "artifacts", "staging-smoke");
+    rmSync(join(smokeDirectory, "staging.json"));
+    const { report } = await runReadOnlySnapshot(
+      {
+        ...parseStagingSmokeArgs([]),
+        outDir: smokeDirectory,
         expectedStaging: expectedActive,
-        nowMs,
-      }),
+        canonicalMarkerBootstrap: true,
+      },
+      { FIELDGRID_STAGING_SMOKE_BEARER: "synthetic-test-bearer" },
+      {
+        fetchImpl: async () => Response.json(legacyDashboard),
+        readCanonicalRelease: async () => ({
+          sha: expectedActive,
+          releasePath: phase2e.rollback.currentRelease,
+        }),
+      },
     );
+    assert.equal(report.releaseIdentity.source, "canonical-marker-bootstrap");
+    assert.equal(report.deployedStagingSha, expectedActive);
 
     const plan = await buildStagingPromotionGatePlan({
       strictEvidence: true,
       repoRoot: fixture,
       expectedMain,
       expectedStaging,
-      nowMs,
+      nowMs: Date.now(),
     });
 
     assert.deepEqual(await validateStagingPromotionGatePlan(plan), []);
@@ -1272,6 +1294,32 @@ test("strict promotion keeps the Git ref binding while validating a proven activ
         (artifact) => artifact.kind === "staging-smoke",
       )?.semanticStatus,
       "valid",
+    );
+    // A marker-bound producer does not independently authorize a Git/live split.
+    // Removing the externally verified rollback provenance must reject promotion.
+    phase2e.rollback.recoveryProof.deployRun.apiVerified = false;
+    writeJson(
+      join(phase2eDirectory, "phase2e-staging-preflight.json"),
+      phase2e,
+    );
+    const unprovenPlan = await buildStagingPromotionGatePlan({
+      strictEvidence: true,
+      repoRoot: fixture,
+      expectedMain,
+      expectedStaging,
+      nowMs: Date.now(),
+    });
+    assert.ok(
+      (await validateStagingPromotionGatePlan(unprovenPlan)).length > 0,
+    );
+    const unprovenSmoke = unprovenPlan.evidence["artifacts/staging-smoke"].find(
+      (artifact) => artifact.kind === "staging-smoke",
+    );
+    assert.equal(unprovenSmoke?.semanticStatus, "invalid");
+    assert.ok(
+      unprovenSmoke.validationErrors.some((error) =>
+        error.includes("exact staging SHA"),
+      ),
     );
   } finally {
     rmSync(fixture, { recursive: true, force: true });

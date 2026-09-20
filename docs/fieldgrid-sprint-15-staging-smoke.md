@@ -29,10 +29,17 @@ Read-only snapshot:
 
 ```bash
 FIELDGRID_STAGING_SMOKE_COOKIE="..." \
-pnpm fieldgrid:sprint15-staging-smoke:run-read-only
+pnpm fieldgrid:sprint15-staging-smoke:run-read-only --expected-staging ACTIVE_RELEASE_SHA
 ```
 
-Het read-only script haalt `GET /api/platform/staging-smoke` op en schrijft een JSON-rapport naar:
+Gebruik de volledige SHA van de actieve release. Voor een oudere actieve API
+zonder release-identiteit is op de stagingrunner bovendien
+`--canonical-marker-bootstrap` vereist. Dat leest de vaste releasemarker vóór en
+na de meting. Een afwijkende API-identiteit wordt nooit overschreven. De preflight
+vereist afzonderlijk rollbackbewijs als de actieve SHA afwijkt van de stagingbranch.
+
+Het read-only script haalt `GET /api/platform/staging-smoke` op, valideert alle
+verplichte checks en schrijft een JSON-rapport naar:
 
 ```text
 artifacts/staging-smoke/*.json
