@@ -6,12 +6,13 @@ umask 027
 usage() {
   cat <<'USAGE'
 Usage:
-  fieldgrid-deploy-health-gate.sh --environment staging --base-dir DIR --release-path DIR --expected-sha SHA [options]
+  fieldgrid-deploy-health-gate.sh --environment staging|production --base-dir DIR --release-path DIR --expected-sha SHA [options]
 
 Options:
   --previous-release DIR       Previous current symlink target for rollback.
   --rollback-on-failure        Restore previous symlink, restart services, reload Caddy and verify rollback health.
   --restart-before-check       Restart services and reload Caddy before the new-release health check.
+  --validate-configuration     Production-only pre-activation validation; does not restart or activate services.
   --shared-env PATH            Exact shared runtime env paired with --rollback-env.
   --rollback-env PATH          Pre-activation env copy retained by atomic activation.
   --evidence-file PATH         Write structured JSON evidence.
@@ -28,6 +29,8 @@ Configuration:
 
 The staging backoffice loopback probe derives its Host header only from the
 exact canonical APP_URL=https://staging.fieldgrid.nl origin.
+Production binds APP_URL to https://app.fieldgrid.nl and derives the backoffice
+Host header from its explicitly configured, validated production login URL.
 
 Endpoint modes:
   exact-200     Only HTTP 200 is healthy.
@@ -46,6 +49,8 @@ EVIDENCE_FILE=""
 EVIDENCE_GROUP="${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}"
 CHECK_EXPECTED_SHA="1"
 RESTART_BEFORE_CHECK="0"
+VALIDATE_CONFIGURATION="0"
+PRODUCTION_PREVIOUS_SHA=""
 SHARED_ENV=""
 ROLLBACK_ENV=""
 ENVIRONMENT_GROUP="${FIELDGRID_DEPLOY_ENV_GROUP:-${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}}"
@@ -59,6 +64,7 @@ while [ "$#" -gt 0 ]; do
     --previous-release) PREVIOUS_RELEASE="${2:-}"; shift 2 ;;
     --rollback-on-failure) ROLLBACK_ON_FAILURE="1"; shift ;;
     --restart-before-check) RESTART_BEFORE_CHECK="1"; shift ;;
+    --validate-configuration) VALIDATE_CONFIGURATION="1"; shift ;;
     --shared-env) SHARED_ENV="${2:-}"; shift 2 ;;
     --rollback-env) ROLLBACK_ENV="${2:-}"; shift 2 ;;
     --evidence-file) EVIDENCE_FILE="${2:-}"; shift 2 ;;
@@ -89,6 +95,10 @@ sanitize_url() {
 }
 
 canonical_platform_probe_host() {
+  if [ "$ENVIRONMENT" = "production" ]; then
+    production_public_host "${BACKOFFICE_PUBLIC_LOGIN_URL:-}"
+    return
+  fi
   case "${APP_URL:-}" in
     https://staging.fieldgrid.nl|https://staging.fieldgrid.nl/)
       printf '%s' "staging.fieldgrid.nl"
@@ -97,6 +107,95 @@ canonical_platform_probe_host() {
       return 1
       ;;
   esac
+}
+
+production_public_host() {
+  local url="$1"
+  local host
+  # Exactly one Fieldgrid tenant label; no credentials, port, query, fragment,
+  # whitespace or multi-label staging hostname can enter a production probe.
+  if [[ ! "$url" =~ ^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\.fieldgrid\.nl)(/[a-zA-Z0-9_./%-]*)?$ ]]; then
+    return 1
+  fi
+  host="${BASH_REMATCH[1]}"
+  [ "$host" != "staging.fieldgrid.nl" ] || return 1
+  printf '%s' "$host"
+}
+
+production_release_is_valid() {
+  local release="$1"
+  local marker="$release/.fieldgrid-release-sha"
+  local size
+  [ -d "$release" ] && [ ! -L "$release" ] || return 1
+  [ "$(dirname "$release")" = "$BASE_DIR/releases" ] && \
+    [ "$(realpath -e "$release")" = "$release" ] || return 1
+  [ -f "$marker" ] && [ ! -L "$marker" ] || return 1
+  size="$(wc -c < "$marker")"
+  [ "$size" -ge 40 ] && [ "$size" -le 41 ] && \
+    [[ "$(cat "$marker")" =~ ^[a-f0-9]{40}$ ]]
+}
+
+configure_production_health() {
+  local name
+  local value
+  local previous
+  local configured_ports=""
+  [ "${APP_ENV:-}" = "production" ] && [ "${TARGET_ENVIRONMENT:-}" = "production" ] || return 1
+  [ "$BASE_DIR" = "/var/www/veele/production" ] && \
+    [ "$(realpath -e "$BASE_DIR")" = "$BASE_DIR" ] && \
+    [ "$(realpath -e "$BASE_DIR/releases")" = "$BASE_DIR/releases" ] && \
+    [ "$(realpath -e "$BASE_DIR/shared")" = "$BASE_DIR/shared" ] || return 1
+  case "${APP_URL:-}" in https://app.fieldgrid.nl|https://app.fieldgrid.nl/) ;; *) return 1 ;; esac
+  [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]] || return 1
+  [ "$ROLLBACK_ON_FAILURE" = "1" ] && [ "$RESTART_BEFORE_CHECK" = "1" ] || return 1
+  [ -n "$SHARED_ENV" ] && [ -n "$ROLLBACK_ENV" ] || return 1
+  [ "$RELEASE_PATH" != "$PREVIOUS_RELEASE" ] || return 1
+  production_release_is_valid "$RELEASE_PATH" && production_release_is_valid "$PREVIOUS_RELEASE" || return 1
+  PRODUCTION_PREVIOUS_SHA="$(cat "$PREVIOUS_RELEASE/.fieldgrid-release-sha")"
+  [ -L "$BASE_DIR/current" ] || return 1
+  if [ "$VALIDATE_CONFIGURATION" = "1" ]; then
+    [ "$(readlink "$BASE_DIR/current")" = "$PREVIOUS_RELEASE" ] || return 1
+  else
+    [ "$(readlink "$BASE_DIR/current")" = "$RELEASE_PATH" ] || return 1
+    [ -f "$ROLLBACK_ENV" ] && [ ! -L "$ROLLBACK_ENV" ] || return 1
+  fi
+  [ "$(cat "$RELEASE_PATH/.fieldgrid-release-sha")" = "$EXPECTED_SHA" ] || return 1
+
+  # Production currently has four core runtimes. Endpoint-list overrides and
+  # website runtimes require their own reviewed production release contract.
+  for name in FIELDGRID_DEPLOY_SERVICES FIELDGRID_DEPLOY_PORTS FIELDGRID_DEPLOY_LOCAL_ENDPOINTS \
+    FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS \
+    WEBSITE_SERVICE_NAME WEBSITE_PORT WEBSITE_PUBLIC_URL WEBSITE_PUBLIC_HEALTH_URL \
+    MARKETING_SERVICE_NAME MARKETING_PORT MARKETING_PUBLIC_URL MARKETING_PUBLIC_HEALTH_URL; do
+    [ -z "${!name:-}" ] || return 1
+  done
+  BACKOFFICE_SERVICE_NAME="${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-veele-production}}"
+  PERSONEEL_SERVICE_NAME="${PERSONEEL_SERVICE_NAME:-veele-production-personeel}"
+  KLANT_SERVICE_NAME="${KLANT_SERVICE_NAME:-veele-production-klant}"
+  API_SERVICE_NAME="${API_SERVICE_NAME:-veele-production-api}"
+  [ "$BACKOFFICE_SERVICE_NAME" = "veele-production" ] && \
+    [ "$PERSONEEL_SERVICE_NAME" = "veele-production-personeel" ] && \
+    [ "$KLANT_SERVICE_NAME" = "veele-production-klant" ] && \
+    [ "$API_SERVICE_NAME" = "veele-production-api" ] || return 1
+  BACKOFFICE_PORT="${BACKOFFICE_PORT:-${PORT:-3300}}"
+  PERSONEEL_PORT="${PERSONEEL_PORT:-3402}"
+  KLANT_PORT="${KLANT_PORT:-3403}"
+  API_PORT="${API_PORT:-3404}"
+  for value in "$BACKOFFICE_PORT" "$PERSONEEL_PORT" "$KLANT_PORT" "$API_PORT"; do
+    [[ "$value" =~ ^[1-9][0-9]{0,4}$ ]] && [ "$value" -le 65535 ] || return 1
+    # The shared VPS staging ports must never satisfy production health.
+    case "$value" in 330[1-6]) return 1 ;; esac
+    for previous in $configured_ports; do [ "$value" != "$previous" ] || return 1; done
+    configured_ports="$configured_ports $value"
+  done
+  for name in BACKOFFICE_PUBLIC_LOGIN_URL PERSONEEL_PUBLIC_HEALTH_URL KLANT_PUBLIC_HEALTH_URL \
+    API_PUBLIC_HEALTH_URL API_PUBLIC_ROOT_URL; do
+    production_public_host "${!name:-}" >/dev/null || return 1
+  done
+  case "$BACKOFFICE_PUBLIC_LOGIN_URL" in */admin/login|*/login) ;; *) return 1 ;; esac
+  for value in "$PERSONEEL_PUBLIC_HEALTH_URL" "$KLANT_PUBLIC_HEALTH_URL" "$API_PUBLIC_HEALTH_URL"; do
+    case "$value" in */healthz) ;; *) return 1 ;; esac
+  done
 }
 
 record_check() {
@@ -534,12 +633,19 @@ verify_release_metadata() {
   fi
 
   sha_file="$RELEASE_PATH/.fieldgrid-release-sha"
-  if [ ! -f "$sha_file" ]; then
+  if [ "$ENVIRONMENT" = "production" ] && ! production_release_is_valid "$RELEASE_PATH"; then
+    record_check "release:sha" "fail" "production release path or SHA marker is invalid"
+    failed=1
+  elif [ ! -f "$sha_file" ]; then
     record_check "release:sha" "fail" "release SHA marker is missing"
     failed=1
   else
     actual_sha="$(sed -n '1p' "$sha_file" | tr -d '[:space:]')"
-    if [ "$CHECK_EXPECTED_SHA" != "1" ]; then
+    if [ "$ENVIRONMENT" = "production" ] && [ "$CHECK_EXPECTED_SHA" != "1" ] && \
+      [ "$actual_sha" != "$PRODUCTION_PREVIOUS_SHA" ]; then
+      record_check "release:sha" "fail" "production rollback SHA differs from the recorded rollback release"
+      failed=1
+    elif [ "$CHECK_EXPECTED_SHA" != "1" ]; then
       record_check "release:sha" "pass" "release SHA marker exists for rollback release"
     elif [ "$actual_sha" = "$EXPECTED_SHA" ]; then
       record_check "release:sha" "pass" "release SHA marker matches expected SHA"
@@ -705,6 +811,15 @@ rollback() {
     return 1
   fi
 
+  if [ "$ENVIRONMENT" = "production" ]; then
+    if ! production_release_is_valid "$PREVIOUS_RELEASE" || \
+      [ "$(cat "$PREVIOUS_RELEASE/.fieldgrid-release-sha")" != "$PRODUCTION_PREVIOUS_SHA" ]; then
+      record_check "rollback:previous-release" "fail" "production rollback release metadata is invalid"
+      write_evidence "fail" "health gate failed and production rollback metadata changed" "unavailable"
+      return 1
+    fi
+  fi
+
   case "$PREVIOUS_RELEASE" in
     "$BASE_DIR"/releases/*) ;;
     *)
@@ -792,17 +907,36 @@ rollback() {
 }
 
 [ -n "$ENVIRONMENT" ] || fail_now "--environment is required"
-if [ "$ENVIRONMENT" != "staging" ]; then
-  fail_now "only the staging environment may use the deploy health gate"
-fi
+case "$ENVIRONMENT" in
+  staging|production) ;;
+  *) fail_now "only staging or production may use the deploy health gate" ;;
+esac
 [ -n "$BASE_DIR" ] || fail_now "--base-dir is required"
 [ -n "$RELEASE_PATH" ] || fail_now "--release-path is required"
 [ -n "$EXPECTED_SHA" ] || fail_now "--expected-sha is required"
+if [ "$ENVIRONMENT" = "production" ] && ! configure_production_health; then
+  fail_now "production health configuration or release bindings are invalid"
+fi
+if [ "$VALIDATE_CONFIGURATION" = "1" ]; then
+  [ "$ENVIRONMENT" = "production" ] || fail_now "configuration-only validation is production-only"
+  if [ "$SHARED_ENV" != "$BASE_DIR/shared/.env" ] || \
+    [ "$ROLLBACK_ENV" != "$BASE_DIR/shared/.env.rollback-$EXPECTED_SHA" ] || \
+    [ ! -f "$SHARED_ENV" ] || [ -L "$SHARED_ENV" ] || \
+    [ -e "$ROLLBACK_ENV" ] || [ -L "$ROLLBACK_ENV" ] || \
+    [ -e "$ROLLBACK_ENV.absent" ] || [ -L "$ROLLBACK_ENV.absent" ]; then
+    fail_now "production pre-activation runtime environment paths are invalid"
+  fi
+  write_evidence "pass" "production activation configuration validated without mutation"
+  exit 0
+fi
 if ! validate_rollback_environment_paths; then
   fail_now "runtime environment rollback paths or material are invalid"
 fi
 if ! PLATFORM_PROBE_HOST="$(canonical_platform_probe_host)"; then
-  fail_now "APP_URL must be the canonical staging origin for loopback Host routing"
+  if [ "$ENVIRONMENT" = "staging" ]; then
+    fail_now "APP_URL must be the canonical staging origin for loopback Host routing"
+  fi
+  fail_now "production backoffice login URL is invalid for loopback Host routing"
 fi
 
 if [ "$RESTART_BEFORE_CHECK" = "1" ]; then

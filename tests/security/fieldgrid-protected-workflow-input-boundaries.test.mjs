@@ -122,8 +122,9 @@ test("protected dispatch inputs never select or shell-interpolate repository cod
   }
 });
 
-test("the W00 partial rollout keeps production deployment frozen", () => {
+test("the staging rollout stays separate from the guarded production deployment", () => {
   const deploy = read(".github/workflows/deploy.yml");
+  const production = read(".github/workflows/fieldgrid-production-deploy.yml");
   const operations = read("docs/operations/main-staging-promotion.md");
 
   assert.match(deploy, /^  workflow_dispatch:$/mu);
@@ -143,7 +144,11 @@ test("the W00 partial rollout keeps production deployment frozen", () => {
     operations,
     /shared deploy workflow therefore accepts only an exact-SHA manual `staging` dispatch/u,
   );
-  assert.match(operations, /separate reviewed package/u);
+  assert.match(operations, /separate `fieldgrid-production-deploy.yml` workflow/u);
+  assert.match(production, /^  workflow_dispatch:$/mu);
+  assert.doesNotMatch(production, /^  push:$/mu);
+  assert.match(production, /^    environment: production$/mu);
+  assert.match(production, /fieldgrid-production-release-proof\.mjs/u);
 });
 
 test("required preflight and deploy jobs fail invalid dispatches before checkout", () => {

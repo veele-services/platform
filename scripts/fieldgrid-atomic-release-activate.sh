@@ -5,7 +5,7 @@ umask 027
 usage() {
   cat <<'USAGE'
 Usage:
-  fieldgrid-atomic-release-activate.sh --environment staging --base-dir DIR --release-path DIR --expected-sha SHA [options]
+  fieldgrid-atomic-release-activate.sh --environment staging|production --base-dir DIR --release-path DIR --expected-sha SHA [options]
 
 Options:
   --migration-status STATUS   Must be success to activate. Any other value fails before symlink changes.
@@ -36,6 +36,7 @@ SHARED_ENV_TEMP=""
 SHARED_ENV_HAD_ORIGINAL="false"
 ENV_PUBLISHED="false"
 ACTIVATION_COMMITTED="false"
+CURRENT_SWITCH_ATTEMPTED="false"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -145,12 +146,13 @@ restore_activation_state() {
   if [ -L "$BASE_DIR/current" ]; then
     current_target="$(readlink "$BASE_DIR/current" || true)"
   fi
-  if [ "$current_target" = "$RELEASE_PATH" ]; then
+  if [ "$CURRENT_SWITCH_ATTEMPTED" = "true" ] && [ "$current_target" = "$RELEASE_PATH" ]; then
     if [ -n "$PREVIOUS_CURRENT" ]; then
       switch_current "$PREVIOUS_CURRENT" || restore_failed="true"
     else
       rm -f "$BASE_DIR/current" || restore_failed="true"
     fi
+    [ "$restore_failed" != "false" ] || CURRENT_SWITCH_ATTEMPTED="false"
   fi
   [ "$restore_failed" = "false" ]
 }
@@ -187,9 +189,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 [ -n "$ENVIRONMENT" ] || fail "--environment is required"
-if [ "$ENVIRONMENT" != "staging" ]; then
-  fail "only the staging environment may use atomic release activation"
-fi
+case "$ENVIRONMENT" in
+  staging|production) ;;
+  *) fail "only staging or production may use atomic release activation" ;;
+esac
 [ -n "$BASE_DIR" ] || fail "--base-dir is required"
 [ -n "$RELEASE_PATH" ] || fail "--release-path is required"
 [ -n "$EXPECTED_SHA" ] || fail "--expected-sha is required"
@@ -204,6 +207,41 @@ fi
 
 [ -d "$BASE_DIR" ] || fail "base directory does not exist"
 [ -d "$RELEASE_PATH" ] || fail "release path does not exist"
+
+if [ "$ENVIRONMENT" = "production" ]; then
+  if [ "${APP_ENV:-}" != "production" ] || [ "${TARGET_ENVIRONMENT:-}" != "production" ]; then
+    fail "production environment bindings differ"
+  fi
+  [ "$BASE_DIR" = "/var/www/veele/production" ] || fail "production base directory is not canonical"
+  [ "$(realpath -e "$BASE_DIR")" = "$BASE_DIR" ] || fail "production base directory must not traverse symlinks"
+  [ "$(realpath -e "$BASE_DIR/releases")" = "$BASE_DIR/releases" ] || fail "production release root must not traverse symlinks"
+  [ "$(realpath -e "$BASE_DIR/shared")" = "$BASE_DIR/shared" ] || fail "production shared directory must not traverse symlinks"
+  if [ ! -f "$BASE_DIR/shared/.env" ] || [ -L "$BASE_DIR/shared/.env" ]; then
+    fail "production requires a regular existing runtime environment for rollback"
+  fi
+  [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]] || fail "production requires a full release SHA"
+  [ -n "$PREPARED_ENV" ] || fail "production requires prepared and rollback runtime environments"
+  [ -L "$BASE_DIR/current" ] || fail "production requires an existing rollback release"
+  [ "$PREVIOUS_CURRENT" != "$RELEASE_PATH" ] || fail "production candidate must differ from the rollback release"
+  for production_release in "$RELEASE_PATH" "$PREVIOUS_CURRENT"; do
+    if [ ! -d "$production_release" ] || [ -L "$production_release" ]; then
+      fail "production release must be a regular directory"
+    fi
+    if [ "$(dirname "$production_release")" != "$BASE_DIR/releases" ] || \
+      [ "$(realpath -e "$production_release")" != "$production_release" ]; then
+      fail "production release is outside the exact release root"
+    fi
+    production_marker="$production_release/.fieldgrid-release-sha"
+    if [ ! -f "$production_marker" ] || [ -L "$production_marker" ]; then
+      fail "production release SHA marker must be a regular file"
+    fi
+    production_marker_size="$(wc -c < "$production_marker")"
+    if [ "$production_marker_size" -lt 40 ] || [ "$production_marker_size" -gt 41 ] || \
+      [[ ! "$(cat "$production_marker")" =~ ^[a-f0-9]{40}$ ]]; then
+      fail "production release SHA marker is invalid"
+    fi
+  done
+fi
 
 if { [ -n "$PREPARED_ENV" ] && { [ -z "$SHARED_ENV" ] || [ -z "$ROLLBACK_ENV" ]; }; } || \
    { [ -z "$PREPARED_ENV" ] && { [ -n "$SHARED_ENV" ] || [ -n "$ROLLBACK_ENV" ]; }; }; then
@@ -266,6 +304,7 @@ if [ -n "$PREPARED_ENV" ]; then
   SHARED_ENV_TEMP=""
 fi
 
+CURRENT_SWITCH_ATTEMPTED="true"
 if ! switch_current "$RELEASE_PATH"; then
   restore_activation_state ||
     fail "failed to atomically activate release and restore activation state"

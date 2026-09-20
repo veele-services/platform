@@ -8,11 +8,12 @@ import { fileURLToPath } from "node:url";
 import {
   CAPABILITY_ROLE,
   RUNTIME_ROLE,
-  assertExactStagingEnvironment,
+  assertExactRuntimeEnvironment,
   assertRuntimePassword,
   assertRuntimeUrlDescriptor,
-  assertStagingPoolerHost,
+  assertRuntimePoolerHost,
   requireEnv,
+  runtimePrincipalProfile,
 } from "./fieldgrid-w00-runtime-principal.mjs";
 import { databaseNodePostgresSslConfig } from "./fieldgrid-database-root-cert.mjs";
 
@@ -797,12 +798,14 @@ async function assertRepresentativeRuntime(client, migrationAdministrator) {
 }
 
 async function runStrictGate(env = process.env) {
-  const exactSha = assertExactStagingEnvironment(env);
+  const exactSha = assertExactRuntimeEnvironment(env);
+  const profile = runtimePrincipalProfile(env.APP_ENV);
   const runtimeUrl = requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_URL");
-  const poolerHost = assertStagingPoolerHost(
-    requireEnv(env, "FIELDGRID_STAGING_DATABASE_POOLER_HOST"),
+  const poolerHost = assertRuntimePoolerHost(
+    requireEnv(env, profile.poolerHostEnv),
+    profile.environment,
   );
-  const descriptor = assertRuntimeUrlDescriptor(runtimeUrl, poolerHost);
+  const descriptor = assertRuntimeUrlDescriptor(runtimeUrl, poolerHost, profile.environment);
   assertRuntimePassword(decodeURIComponent(descriptor.password));
   const ssl = databaseNodePostgresSslConfig(env);
   const manifests = loadCapabilityManifest();
@@ -846,6 +849,7 @@ async function runStrictGate(env = process.env) {
   return {
     status: "passed",
     gate: "fieldgrid-w00-runtime-principal",
+    environment: profile.environment,
     exactSha,
     role: RUNTIME_ROLE,
     relationCapabilities: manifests.relations.size,

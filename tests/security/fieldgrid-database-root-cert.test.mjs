@@ -58,11 +58,13 @@ test("certificate validation rejects tampering, permissive modes and symlinks", 
   const { directory, certificatePath } = fixture(t);
   writeFileSync(certificatePath, SUPABASE_ROOT_2021_CA_PEM, { mode: 0o600 });
 
-  chmodSync(certificatePath, 0o644);
-  assert.throws(
-    () => validateDatabaseRootCertificateFile(certificatePath),
-    /permissions must be 0600/u,
-  );
+  for (const mode of [0o640, 0o644]) {
+    chmodSync(certificatePath, mode);
+    assert.throws(
+      () => validateDatabaseRootCertificateFile(certificatePath),
+      /permissions must be 0600/u,
+    );
+  }
   chmodSync(certificatePath, 0o600);
 
   const linkPath = join(directory, "linked-root.crt");

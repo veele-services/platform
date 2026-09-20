@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -260,6 +260,41 @@ test("live connection overrides and TLS opt-outs fail closed", () => {
     /exactly one canonical PEM certificate/u,
   );
   writeFileSync(certificatePath, SUPABASE_ROOT_2021_CA_PEM, { mode: 0o600 });
+});
+
+test("pinned runtime CA accepts exactly owner-private or deployment-group-readable files", () => {
+  const environment = deploymentEnvironment("production", productionProject);
+  try {
+    for (const mode of [0o600, 0o640]) {
+      chmodSync(certificatePath, mode);
+      const runtime = databaseConnectionConfig("runtime", environment);
+      assert.equal(runtime.ssl && runtime.ssl.rejectUnauthorized, true);
+      assert.equal(runtime.ssl && runtime.ssl.ca, SUPABASE_ROOT_2021_CA_PEM);
+    }
+    for (const mode of [0o400, 0o440, 0o604, 0o644, 0o660, 0o700, 0o740, 0o1640, 0o2640, 0o4640]) {
+      chmodSync(certificatePath, mode);
+      assert.throws(
+        () => databaseConnectionConfig("runtime", environment),
+        /permissions must be 0600 or 0640/u,
+        `mode ${mode.toString(8)} must fail`,
+      );
+    }
+    chmodSync(certificatePath, 0o640);
+    const linkedCertificate = join(certificateDirectory, "runtime-linked-root.crt");
+    symlinkSync(certificatePath, linkedCertificate);
+    assert.throws(
+      () => databaseConnectionConfig("runtime", { ...environment, FIELDGRID_DATABASE_SSL_ROOT_CERT: linkedCertificate }),
+      /bounded regular file/u,
+    );
+    writeFileSync(certificatePath, `${SUPABASE_ROOT_2021_CA_PEM}${SUPABASE_ROOT_2021_CA_PEM}`);
+    assert.throws(
+      () => databaseConnectionConfig("runtime", environment),
+      /exactly one canonical PEM certificate/u,
+    );
+  } finally {
+    chmodSync(certificatePath, 0o600);
+    writeFileSync(certificatePath, SUPABASE_ROOT_2021_CA_PEM);
+  }
 });
 
 test("guard errors never expose database credentials or project refs", () => {

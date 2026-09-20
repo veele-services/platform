@@ -1,0 +1,446 @@
+name: Fieldgrid Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed main SHA
+        required: true
+        type: string
+      operation:
+        description: Rehearse privately or deploy the proven release
+        required: true
+        default: preflight
+        type: choice
+        options: [preflight, deploy]
+      staging_deploy_run_id:
+        description: Successful same-SHA staging deploy run (required for deploy)
+        required: false
+        type: string
+      confirmation:
+        description: production-backup-rehearsal-only-v1 or fieldgrid-production-deploy-exact-sha
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: veele-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 90
+    environment: production
+    env:
+      OPERATION: ${{ inputs.operation }}
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      STAGING_DEPLOY_RUN_ID: ${{ inputs.staging_deploy_run_id }}
+      DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
+      DEPLOYMENT_MODE: production
+      TARGET: production
+      TARGET_ENVIRONMENT: production
+      SERVICE_NAME: veele-production
+      BASE_DIR: /var/www/veele/production
+      APP_ENV: ${{ vars.APP_ENV }}
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      PORT: ${{ vars.PORT }}
+      APP_URL: ${{ vars.APP_URL }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+      BASE_PATH: ${{ vars.BASE_PATH }}
+      SITE_URL: ${{ vars.SITE_URL || vars.APP_URL }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
+
+      BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
+      PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
+      KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
+      API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
+
+      BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
+      PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
+      KLANT_PORT: ${{ vars.KLANT_PORT }}
+      API_PORT: ${{ vars.API_PORT }}
+      FIELDGRID_RECOVERY_ALLOWED_ORIGINS: ${{ vars.FIELDGRID_RECOVERY_ALLOWED_ORIGINS }}
+      EXPECTED_SUPABASE_PROJECT_REF: ckdtiuemeygrnujjibnw
+      FORBIDDEN_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+
+      DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+      MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+      MOLLIE_WEBHOOK_SECRET: ${{ secrets.MOLLIE_WEBHOOK_SECRET }}
+      MOLLIE_WEBHOOK_URL: ${{ vars.MOLLIE_WEBHOOK_URL }}
+      ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY: ${{ secrets.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY }}
+      FIELDGRID_CREDENTIAL_RECOVERY_SECRET: ${{ secrets.FIELDGRID_CREDENTIAL_RECOVERY_SECRET }}
+      FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED: ${{ vars.FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED || 'false' }}
+      FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS: ${{ secrets.FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS }}
+      FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION: ${{ secrets.FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION }}
+      FIELDGRID_OBJECT_SECURITY_OTP_PEPPER: ${{ secrets.FIELDGRID_OBJECT_SECURITY_OTP_PEPPER }}
+      RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+      # GitHub stores the browser key as a secret; Next receives it under the
+      # canonical NEXT_PUBLIC name during the build so Maps JS can load it.
+      NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_API_KEY || secrets.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY }}
+      GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+      GOOGLE_MAPS_MAP_ID: ${{ vars.GOOGLE_MAPS_MAP_ID }}
+      GOOGLE_MAPS_ENABLED: ${{ vars.GOOGLE_MAPS_ENABLED || 'true' }}
+      GOOGLE_MAPS_DEFAULT_COUNTRY: ${{ vars.GOOGLE_MAPS_DEFAULT_COUNTRY || 'NL' }}
+      GOOGLE_MAPS_DEFAULT_LANGUAGE: ${{ vars.GOOGLE_MAPS_DEFAULT_LANGUAGE || 'nl' }}
+      GOOGLE_MAPS_DEFAULT_REGION: ${{ vars.GOOGLE_MAPS_DEFAULT_REGION || 'NL' }}
+      GOOGLE_PLACES_AUTOCOMPLETE_ENABLED: ${{ vars.GOOGLE_PLACES_AUTOCOMPLETE_ENABLED || 'true' }}
+      GOOGLE_ROUTES_ENABLED: ${{ vars.GOOGLE_ROUTES_ENABLED || 'true' }}
+      GOOGLE_ROUTES_TRAFFIC_ENABLED: ${{ vars.GOOGLE_ROUTES_TRAFFIC_ENABLED || 'true' }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+      NOTIFICATION_WORKER_LIMIT: ${{ vars.NOTIFICATION_WORKER_LIMIT || '100' }}
+      NOTIFICATION_WORKER_EMAIL_RATE_PER_RUN: ${{ vars.NOTIFICATION_WORKER_EMAIL_RATE_PER_RUN || '50' }}
+      NOTIFICATION_WORKER_PUSH_RATE_PER_RUN: ${{ vars.NOTIFICATION_WORKER_PUSH_RATE_PER_RUN || '100' }}
+      NOTIFICATION_WORKER_MAX_ATTEMPTS: ${{ vars.NOTIFICATION_WORKER_MAX_ATTEMPTS || '5' }}
+      NOTIFICATION_WORKER_LOCK_SECONDS: ${{ vars.NOTIFICATION_WORKER_LOCK_SECONDS || '300' }}
+      NOTIFICATION_WORKER_BASE_RETRY_SECONDS: ${{ vars.NOTIFICATION_WORKER_BASE_RETRY_SECONDS || '60' }}
+      NOTIFICATION_WORKER_MAX_RETRY_SECONDS: ${{ vars.NOTIFICATION_WORKER_MAX_RETRY_SECONDS || '3600' }}
+      NOTIFICATION_WORKER_SEND_DELAY_MS: ${{ vars.NOTIFICATION_WORKER_SEND_DELAY_MS || '0' }}
+      FCM_ENABLED: ${{ vars.FCM_ENABLED || secrets.FCM_ENABLED || 'false' }}
+      FCM_PROJECT_ID: ${{ vars.FCM_PROJECT_ID }}
+      FCM_CLIENT_EMAIL: ${{ secrets.FCM_CLIENT_EMAIL }}
+      FCM_PRIVATE_KEY: ${{ secrets.FCM_PRIVATE_KEY }}
+      FCM_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON_BASE64 }}
+      FCM_ANDROID_CHANNEL_ID: ${{ vars.FCM_ANDROID_CHANNEL_ID || secrets.FCM_ANDROID_CHANNEL_ID || 'veele_operations' }}
+      FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST }}
+      FIELDGRID_RUNTIME_EXPECTED_SHA: ${{ github.sha }}
+      FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM: fieldgrid-w00-runtime-principal-production-v1
+      FIELDGRID_PRODUCTION_PREFLIGHT_CONFIRM: production-backup-rehearsal-only-v1
+      BACKOFFICE_PUBLIC_LOGIN_URL: ${{ vars.BACKOFFICE_PUBLIC_LOGIN_URL }}
+      PERSONEEL_PUBLIC_HEALTH_URL: ${{ vars.PERSONEEL_PUBLIC_HEALTH_URL }}
+      KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
+      API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
+      API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL }}
+      FIELDGRID_DEPLOY_EVIDENCE_GROUP: veele-deploy
+      FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "12"
+      FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: "5"
+      FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS: "5"
+      WEBSITE_FORM_HASH_SECRET: ${{ secrets.WEBSITE_FORM_HASH_SECRET }}
+
+    steps:
+      - name: Verify protected source before checkout
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$APP_ENV" = production
+          if [ "$OPERATION" = deploy ]; then
+            test "$DEPLOY_CONFIRMATION" = fieldgrid-production-deploy-exact-sha
+            [[ "$STAGING_DEPLOY_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+          else
+            test "$OPERATION" = preflight
+            test "$DEPLOY_CONFIRMATION" = production-backup-rehearsal-only-v1
+          fi
+          node --input-type=module -e '
+            const r = await fetch("https://api.github.com/repos/veele-services/platform/git/ref/heads/main", {
+              headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+              signal: AbortSignal.timeout(15000),
+            });
+            if (!r.ok || (await r.json()).object?.sha !== process.env.EXPECTED_MAIN_SHA) {
+              throw new Error("Production requires the current protected main commit");
+            }
+          '
+
+      - name: Checkout exact main and legacy rollback source
+        id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify runtime and immutable checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test "$(git rev-parse refs/remotes/origin/main)" = "$EXPECTED_MAIN_SHA"
+          node -e 'if (Number(process.versions.node.split(".")[0]) !== 24) process.exit(1)'
+          test "$(pnpm --version)" = 11.5.2
+          install -d -m 0700 "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID"
+
+      - name: Verify successful same-SHA staging deployment
+        if: inputs.operation == 'deploy'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/fieldgrid-production-release-proof.mjs
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Install pinned database certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-production-ca-$GITHUB_RUN_ID.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Set up pinned unprivileged PostgreSQL 17
+        run: scripts/fieldgrid-setup-postgresql17.sh
+
+      - name: Prove private backup, isolated restore and migration idempotence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/fieldgrid-production-preflight.mjs --run
+
+      - name: Validate production runtime credentials and environment isolation
+        if: inputs.operation == 'deploy'
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-environment-isolation-preflight.mjs --validate --require-migration-database
+          node --input-type=module -e '
+            import { validateProductionRuntimeConfig } from "./scripts/fieldgrid-w00-runtime-principal.mjs";
+            validateProductionRuntimeConfig(process.env);
+          '
+
+      - name: Verify and identify legacy rollback release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -L "$BASE_DIR/current"
+          previous="$(readlink "$BASE_DIR/current")"
+          if [ ! -f "$previous/.fieldgrid-release-sha" ]; then
+            mode=--diagnose
+            if [ "$OPERATION" = deploy ]; then mode=--apply; fi
+            node scripts/fieldgrid-production-rollback-marker.mjs "$mode" \
+              --expected-main-sha "$EXPECTED_MAIN_SHA" \
+              --expected-rollback-sha eedbf033ec08a12411760acf8ea7f5d5acf8cc20 \
+              --confirmation fieldgrid-production-rollback-marker-v1 \
+              > "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/legacy-rollback.json"
+          fi
+          printf 'PREVIOUS_CURRENT=%s\n' "$previous" >> "$GITHUB_ENV"
+
+      - name: Prepare isolated candidate release
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          umask 027
+          release="$BASE_DIR/releases/$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          test ! -e "$release"
+          mkdir -p "$release"
+          rsync -a --delete --exclude='.git' --exclude='.github' --exclude='node_modules' \
+            --exclude='.next' --exclude='dist' --exclude='.env' ./ "$release/"
+          # Administrative gates retain the private runner-temp certificate.
+          # Only the application's saved environment uses the group-readable copy.
+          certificate_destination="$release/.fieldgrid/supabase-root-2021-ca.crt"
+          install -D -m 640 "$FIELDGRID_DATABASE_SSL_ROOT_CERT" "$certificate_destination"
+          chgrp veele-deploy "$certificate_destination"
+          printf '%s\n' "$GITHUB_SHA" > "$release/.fieldgrid-release-sha"
+          printf 'RELEASE=%s\nFIELDGRID_RUNTIME_DATABASE_SSL_ROOT_CERT=%s\n' "$release" "$certificate_destination" >> "$GITHUB_ENV"
+
+      - name: Write isolated runtime environment
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          umask 027
+          {
+            printf 'APP_ENV=%s\n' "$APP_ENV"
+            printf 'TARGET_ENVIRONMENT=%s\n' "$TARGET"
+            printf 'EXPECTED_SUPABASE_PROJECT_REF=%s\n' "$EXPECTED_SUPABASE_PROJECT_REF"
+            printf 'FORBIDDEN_SUPABASE_PROJECT_REF=%s\n' "$FORBIDDEN_SUPABASE_PROJECT_REF"
+            printf 'NODE_ENV=%s\n' "$NODE_ENV"
+            printf 'PORT=%s\n' "$PORT"
+            printf 'APP_URL=%s\n' "$APP_URL"
+            printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
+            printf 'SITE_URL=%s\n' "$SITE_URL"
+            printf 'NEXT_PUBLIC_SITE_URL=%s\n' "$NEXT_PUBLIC_SITE_URL"
+            printf 'BASE_PATH=%s\n' "$BASE_PATH"
+            printf 'LOG_LEVEL=%s\n' "$LOG_LEVEL"
+            printf 'BACKOFFICE_PORT=%s\n' "$BACKOFFICE_PORT"
+            printf 'PERSONEEL_PORT=%s\n' "$PERSONEEL_PORT"
+            printf 'KLANT_PORT=%s\n' "$KLANT_PORT"
+            printf 'API_PORT=%s\n' "$API_PORT"
+            printf 'FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST=%s\n' "$FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST"
+            printf 'FIELDGRID_RECOVERY_ALLOWED_ORIGINS=%s\n' "$FIELDGRID_RECOVERY_ALLOWED_ORIGINS"
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'DB_SSL=%s\n' "$DB_SSL"
+            printf 'DB_SSL_REJECT_UNAUTHORIZED=%s\n' "$DB_SSL_REJECT_UNAUTHORIZED"
+            printf 'PGSSLMODE=%s\n' "$PGSSLMODE"
+            printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$FIELDGRID_RUNTIME_DATABASE_SSL_ROOT_CERT"
+            printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
+            printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
+            printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+            printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_JWT_SECRET=%s\n' "$SUPABASE_JWT_SECRET"
+            printf 'MOLLIE_API_KEY=%s\n' "$MOLLIE_API_KEY"
+            printf 'MOLLIE_WEBHOOK_SECRET=%s\n' "$MOLLIE_WEBHOOK_SECRET"
+            printf 'MOLLIE_WEBHOOK_URL=%s\n' "$MOLLIE_WEBHOOK_URL"
+            printf 'ADMIN_API_SECRET=%s\n' "$ADMIN_API_SECRET"
+            printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
+            printf 'FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY=%s\n' "$FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY"
+            printf 'FIELDGRID_CREDENTIAL_RECOVERY_SECRET=%s\n' "$FIELDGRID_CREDENTIAL_RECOVERY_SECRET"
+            printf 'FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED=%s\n' "$FIELDGRID_OBJECT_SECURITY_MANAGEMENT_ACCESS_ENABLED"
+            printf 'FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS=%s\n' "$FIELDGRID_OBJECT_SECURITY_ENCRYPTION_KEYS"
+            printf 'FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION=%s\n' "$FIELDGRID_OBJECT_SECURITY_ACTIVE_KEY_VERSION"
+            printf 'FIELDGRID_OBJECT_SECURITY_OTP_PEPPER=%s\n' "$FIELDGRID_OBJECT_SECURITY_OTP_PEPPER"
+            printf 'RESEND_FROM_EMAIL=%s\n' "$RESEND_FROM_EMAIL"
+            printf 'NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY=%s\n' "$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY"
+            printf 'GOOGLE_MAPS_SERVER_API_KEY=%s\n' "$GOOGLE_MAPS_SERVER_API_KEY"
+            printf 'GOOGLE_MAPS_MAP_ID=%s\n' "$GOOGLE_MAPS_MAP_ID"
+            printf 'GOOGLE_MAPS_ENABLED=%s\n' "$GOOGLE_MAPS_ENABLED"
+            printf 'GOOGLE_MAPS_DEFAULT_COUNTRY=%s\n' "$GOOGLE_MAPS_DEFAULT_COUNTRY"
+            printf 'GOOGLE_MAPS_DEFAULT_LANGUAGE=%s\n' "$GOOGLE_MAPS_DEFAULT_LANGUAGE"
+            printf 'GOOGLE_MAPS_DEFAULT_REGION=%s\n' "$GOOGLE_MAPS_DEFAULT_REGION"
+            printf 'GOOGLE_PLACES_AUTOCOMPLETE_ENABLED=%s\n' "$GOOGLE_PLACES_AUTOCOMPLETE_ENABLED"
+            printf 'GOOGLE_ROUTES_ENABLED=%s\n' "$GOOGLE_ROUTES_ENABLED"
+            printf 'GOOGLE_ROUTES_TRAFFIC_ENABLED=%s\n' "$GOOGLE_ROUTES_TRAFFIC_ENABLED"
+            printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+            printf 'VAPID_PUBLIC_KEY=%s\n' "$VAPID_PUBLIC_KEY"
+            printf 'VAPID_PRIVATE_KEY=%s\n' "$VAPID_PRIVATE_KEY"
+            printf 'VAPID_SUBJECT=%s\n' "$VAPID_SUBJECT"
+            printf 'NOTIFICATION_WORKER_LIMIT=%s\n' "$NOTIFICATION_WORKER_LIMIT"
+            printf 'NOTIFICATION_WORKER_EMAIL_RATE_PER_RUN=%s\n' "$NOTIFICATION_WORKER_EMAIL_RATE_PER_RUN"
+            printf 'NOTIFICATION_WORKER_PUSH_RATE_PER_RUN=%s\n' "$NOTIFICATION_WORKER_PUSH_RATE_PER_RUN"
+            printf 'NOTIFICATION_WORKER_MAX_ATTEMPTS=%s\n' "$NOTIFICATION_WORKER_MAX_ATTEMPTS"
+            printf 'NOTIFICATION_WORKER_LOCK_SECONDS=%s\n' "$NOTIFICATION_WORKER_LOCK_SECONDS"
+            printf 'NOTIFICATION_WORKER_BASE_RETRY_SECONDS=%s\n' "$NOTIFICATION_WORKER_BASE_RETRY_SECONDS"
+            printf 'NOTIFICATION_WORKER_MAX_RETRY_SECONDS=%s\n' "$NOTIFICATION_WORKER_MAX_RETRY_SECONDS"
+            printf 'NOTIFICATION_WORKER_SEND_DELAY_MS=%s\n' "$NOTIFICATION_WORKER_SEND_DELAY_MS"
+            printf 'FCM_ENABLED=%s\n' "$FCM_ENABLED"
+            printf 'FCM_PROJECT_ID=%s\n' "$FCM_PROJECT_ID"
+            printf 'FCM_CLIENT_EMAIL=%s\n' "$FCM_CLIENT_EMAIL"
+            printf 'FCM_PRIVATE_KEY=%s\n' "$FCM_PRIVATE_KEY"
+            printf 'FCM_SERVICE_ACCOUNT_JSON_BASE64=%s\n' "$FCM_SERVICE_ACCOUNT_JSON_BASE64"
+            printf 'FCM_ANDROID_CHANNEL_ID=%s\n' "$FCM_ANDROID_CHANNEL_ID"
+            printf 'WEBSITE_FORM_HASH_SECRET=%s\n' "$WEBSITE_FORM_HASH_SECRET"
+          } > "$RELEASE/.env"
+
+          chmod 640 "$RELEASE/.env"
+          chgrp veele-deploy "$RELEASE/.env"
+          ln -s "$RELEASE/.env" "$RELEASE/.env.production"
+
+      - name: Build candidate and validate release contracts
+        if: inputs.operation == 'deploy'
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --prod=false
+          pnpm fieldgrid:migration-order-check:check
+          pnpm fieldgrid:test-layers:check
+          pnpm fieldgrid:staging-promotion-gate:check
+          pnpm build
+
+      - name: Validate production activation and health configuration
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          bash "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" \
+            --environment production --base-dir "$BASE_DIR" --release-path "$RELEASE" \
+            --expected-sha "$GITHUB_SHA" --previous-release "$PREVIOUS_CURRENT" \
+            --rollback-on-failure --restart-before-check --validate-configuration \
+            --shared-env "$BASE_DIR/shared/.env" --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
+            --evidence-file "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/configuration.json"
+
+      - name: Apply forward-only production migrations
+        if: inputs.operation == 'deploy'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm run db:migrate
+
+      - name: Verify encrypted SMTP credential storage
+        if: inputs.operation == 'deploy'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm fieldgrid:smtp-credential-backfill
+
+      - name: Provision and verify least-privileged production runtime
+        if: inputs.operation == 'deploy'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-w00-runtime-principal.mjs --apply
+          node scripts/fieldgrid-w00-runtime-principal-gate.mjs --strict \
+            > "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/runtime-principal.json"
+
+      - name: Reverify source and staging before activation
+        if: inputs.operation == 'deploy'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/fieldgrid-production-release-proof.mjs
+
+      - name: Atomically activate production with rollback environment
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          chown -R github-runner:veele-deploy "$RELEASE"
+          chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
+          bash "$RELEASE/scripts/fieldgrid-atomic-release-activate.sh" \
+            --environment production --base-dir "$BASE_DIR" --release-path "$RELEASE" \
+            --expected-sha "$GITHUB_SHA" --migration-status success \
+            --prepared-env "$RELEASE/.env" --shared-env "$BASE_DIR/shared/.env" \
+            --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
+            --evidence-file "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/activation.json"
+
+      - name: Verify production services, routes and automatic rollback
+        if: inputs.operation == 'deploy'
+        run: |
+          set -euo pipefail
+          SYSTEMCTL_SUDO=sudo bash "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" \
+            --environment production --base-dir "$BASE_DIR" --release-path "$RELEASE" \
+            --expected-sha "$GITHUB_SHA" --previous-release "$PREVIOUS_CURRENT" \
+            --rollback-on-failure --restart-before-check \
+            --shared-env "$BASE_DIR/shared/.env" --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
+            --evidence-file "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/health.json"
+
+      - name: Collect bounded secret-free evidence
+        if: always() && steps.checkout.outcome == 'success'
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID"
+          install -d -m 0700 "$evidence"
+          if [ -f artifacts/production-preflight/report.json ]; then
+            install -m 0600 artifacts/production-preflight/report.json "$evidence/preflight.json"
+          fi
+          python3 scripts/fieldgrid-deployment-inventory.py > "$evidence/infrastructure.json"
+
+      - name: Upload production deployment evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldgrid-production-${{ inputs.operation }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/fieldgrid-production-evidence-${{ github.run_id }}/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove temporary certificate
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/fieldgrid-production-ca-$GITHUB_RUN_ID.crt"

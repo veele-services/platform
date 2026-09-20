@@ -172,8 +172,12 @@ function liveDatabaseCertificateAuthority(env: RuntimeEnvironment): string {
       "Database root certificate must be a bounded regular file.",
     );
   }
-  if ((fileInfo.mode & 0o077) !== 0) {
-    throw new Error("Database root certificate permissions must be 0600.");
+  // The pinned CA is public trust material. A runtime service may read a
+  // runner-owned deployment copy through its dedicated group, but neither
+  // group writes, executable/special bits nor access by other users is allowed.
+  const certificateMode = fileInfo.mode & 0o7777;
+  if (certificateMode !== 0o600 && certificateMode !== 0o640) {
+    throw new Error("Database root certificate permissions must be 0600 or 0640.");
   }
 
   const certificateBytes = readFileSync(certificatePath);
