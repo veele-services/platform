@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { runtimeHealthHeaders } from "@workspace/db/runtime-health-identity";
+import { runtimeHealthHeaders } from "../../../../lib/db/src/runtime-health-identity";
 
 const router: IRouter = Router();
 const identityHeaders = runtimeHealthHeaders("api");

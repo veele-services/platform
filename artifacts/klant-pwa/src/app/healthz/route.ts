@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runtimeHealthHeaders } from "@workspace/db/runtime-health-identity";
+import { runtimeHealthHeaders } from "../../../../../lib/db/src/runtime-health-identity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

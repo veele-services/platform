@@ -126,7 +126,10 @@ test('all four server routes use isolated shared identity and the backoffice byp
   for (const [path, service] of paths) {
     const text = readFileSync(new URL(path, import.meta.url), 'utf8');
     assert.match(text, new RegExp(`runtimeHealthHeaders\\("${service}"\\)`));
-    assert.match(text, /@workspace\/db\/runtime-health-identity/);
+    const identityImport = /import \{ runtimeHealthHeaders \} from "([^"]+)";/.exec(text);
+    assert.ok(identityImport, 'server route imports the isolated identity helper');
+    assert.equal(new URL(`${identityImport[1]}.ts`, new URL(path, import.meta.url)).href,
+      new URL('../../lib/db/src/runtime-health-identity.ts', import.meta.url).href);
     if (service !== 'api') assert.match(text, /dynamic = "force-dynamic"/);
   }
   const middleware = readFileSync(new URL('../../artifacts/backoffice/src/middleware.ts', import.meta.url), 'utf8');

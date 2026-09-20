@@ -47,3 +47,8 @@ Validation:
 node --test tests/security/fieldgrid-runtime-health-identity.test.mjs
 node --test tests/fieldgrid-deploy-health-gate.test.mjs
 ```
+
+The four server entrypoints import the internal `lib/db/src/runtime-health-identity.ts`
+module directly. It imports only Node filesystem/path utilities and never initializes
+the database. The existing database TypeScript project reference and full-repository
+release copy retain this module for builds; no new public package export is required.
