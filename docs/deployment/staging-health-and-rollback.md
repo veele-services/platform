@@ -40,6 +40,7 @@ Endpoint lists can be overridden with newline-separated `name|url|mode` entries 
 - `exact-200`: only HTTP 200 is healthy. Personnel, customer and API healthz probes use this mode locally and publicly.
 - `login`: HTTP 200 and the explicitly documented login-safe redirects 301, 302, 303, 307 and 308 are healthy. Backoffice `/login` uses this mode locally and publicly.
 - `api-root-404`: only the deliberately expected API-root HTTP 404 is healthy.
+- `api-auth-required`: a configured public `/api/` must return the exact unauthenticated 401 JSON response with the expected API identity.
 
 Default local probes are exactly four core service endpoints. Staging website
 activation adds two explicit endpoints:

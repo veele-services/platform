@@ -1918,7 +1918,7 @@ test("public API root is checked only in the API-root endpoint group", async () 
 
   assert.match(
     apiRootBlock,
-    /append_endpoint "public-api-root" "\$API_PUBLIC_ROOT_URL" "api-root-404"/,
+    /append_endpoint "public-api-root" "\$API_PUBLIC_ROOT_URL" "api-auth-required"/,
   );
   assert.doesNotMatch(publicBlock, /public-api-root/);
 });
@@ -1979,6 +1979,23 @@ test("permanently inactive service fails with exit diagnostics", async (t) => {
   );
   assert.equal(failed?.status, "fail");
   assert.match(failed.detail, /exit=3/);
+});
+
+test("configured staging API root requires its identified unauthenticated 401", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  const env = { ...f.commonEnv, FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
+    API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/api/" };
+  const valid = await run(f.bash, f.healthArgs, { env, allowFailure: true });
+  assert.equal(valid.status, 0);
+  const passed = await readJson(join(f.root, "health.json"));
+  assert.equal(passed.checks.find(check => check.name === "endpoint:public-api-root")?.status, "pass");
+  const wrong = await run(f.bash, f.healthArgs, {
+    env: { ...env, API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/" }, allowFailure: true,
+  });
+  assert.notEqual(wrong.status, 0);
+  const failed = await readJson(join(f.root, "health.json"));
+  assert.equal(failed.checks.find(check => check.name === "endpoint:public-api-root")?.status, "fail");
 });
 
 test("exact public health URL variables have precedence and API root is optional", async (t) => {

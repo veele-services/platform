@@ -19,6 +19,11 @@ test('private migration logs yield only fixed categories, codes and known migrat
   assert.deepEqual(classifyPrivateLog("code: 'ALICE'").sqlStates, []);
   const legacy = '001_rbac_rls.sql';
   assert.equal(classifyPrivateLog(`[db:migrate] SQL applying: ${legacy}`, [legacy]).lastKnownMigration, legacy);
+  const repair = classifyPrivateLog("tenant_management_policy_repair_definition_drift private_payload code: 'P0001'");
+  assert.equal(repair.categories.policyRepairDefinitionDrift, true);
+  assert.equal(repair.categories.policyRepairPostconditionFailed, false);
+  assert.equal(repair.categories.policyRepairIsolationMismatch, false);
+  assert.ok(!JSON.stringify(repair).includes('private_payload'));
 });
 
 test('diagnostics bind private regular files to the exact numeric run and distinguish retained reruns', t => {

@@ -197,7 +197,7 @@ function validEnvironment() {
         upstreamOrigin: "https://veeleservices-origin.staging.fieldgrid.nl",
       },
     ]),
-    API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/rest/v1/",
+    API_PUBLIC_ROOT_URL: "https://staging.fieldgrid.nl/api/",
     PILOT_TENANT_LOGIN_URL:
       "https://field-demo.staging.fieldgrid.nl/admin/login",
   });
@@ -1179,6 +1179,8 @@ test("routing policies accept only explicit healthy outcomes", () => {
   assert.equal(isAllowedRouteStatus("exact-200", 302), false);
   assert.equal(isAllowedRouteStatus("login", 307), true);
   assert.equal(isAllowedRouteStatus("api-root", 401), true);
+  assert.equal(isAllowedRouteStatus("api-root", 200), false);
+  assert.equal(isAllowedRouteStatus("api-root", 308), false);
   assert.equal(isAllowedRouteStatus("api-root", 404), false);
   assert.equal(isAllowedRouteStatus("api-root", 500), false);
 });

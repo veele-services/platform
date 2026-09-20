@@ -24,13 +24,16 @@ Backoffice login retains its page probe and additionally requires the same
 host's `/admin/healthz` identity. A staging response with the same commit and
 HTTP 200 therefore cannot satisfy production health.
 
-Production `API_PUBLIC_ROOT_URL` must end in `/api/`. Its exact expected
+The configured public `API_PUBLIC_ROOT_URL` must end in `/api/`. Its exact expected
 unauthenticated response is HTTP 401 with JSON
 `{"error":"Authenticatie vereist"}`, from `requireAuth` in
 `artifacts/api-server/src/middleware/auth.ts`. It must also carry the expected
 API identity. The private API process root `/` still requires HTTP 404.
 Public `/api` without the trailing slash and a generic backoffice 404 are not
 accepted as evidence of the API route.
+
+Staging promotion preflight also requires the public root's HTTP 401. A redirect
+from the unrelated `/rest/v1/` path is not API routing evidence.
 
 Rollback checks use the restored release's marker. A legacy release without
 identity headers may be restored but cannot be reported as a proven healthy

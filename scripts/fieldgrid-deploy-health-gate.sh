@@ -36,7 +36,7 @@ Endpoint modes:
   exact-200     Only HTTP 200 is healthy.
   login         HTTP 200 and explicit login-safe redirects 301, 302, 303, 307 and 308 are healthy.
   api-root-404  Only the expected API-root HTTP 404 is healthy.
-  api-auth-required  Production public /api/ must return the identified API's exact unauthenticated 401.
+  api-auth-required  Public /api/ must return the identified API's exact unauthenticated 401.
 USAGE
 }
 
@@ -356,11 +356,7 @@ default_api_root_endpoints() {
     append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root-404"
   fi
   if [ -n "${API_PUBLIC_ROOT_URL:-}" ]; then
-    if [ "$ENVIRONMENT" = "production" ]; then
-      append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-auth-required"
-    else
-      append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-root-404"
-    fi
+    append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-auth-required"
   fi
 }
 
