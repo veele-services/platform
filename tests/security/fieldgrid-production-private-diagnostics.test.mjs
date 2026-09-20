@@ -17,6 +17,8 @@ test('private migration logs yield only fixed categories, codes and known migrat
   assert.deepEqual(result.processCodes, ['ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY']);
   for (const value of [secret, 'private_customer', 'unknown_payload']) assert.ok(!JSON.stringify(result).includes(value));
   assert.deepEqual(classifyPrivateLog("code: 'ALICE'").sqlStates, []);
+  const legacy = '001_rbac_rls.sql';
+  assert.equal(classifyPrivateLog(`[db:migrate] SQL applying: ${legacy}`, [legacy]).lastKnownMigration, legacy);
 });
 
 test('diagnostics bind one private regular file to the exact numeric run and reject ambiguous or linked paths', t => {

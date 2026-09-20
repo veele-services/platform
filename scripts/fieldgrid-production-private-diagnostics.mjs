@@ -29,7 +29,7 @@ const categories = {
 // reviewed migration manifest. Never return a log line, SQL text or stack trace.
 export function classifyPrivateLog(contents, migrationNames = []) {
   const known = new Set(migrationNames);
-  const applied = [...contents.matchAll(/\[db:migrate\] SQL (?:applying|applied|skipped): ([0-9]{14}_[a-z0-9_]+\.sql)/gu)]
+  const applied = [...contents.matchAll(/\[db:migrate\] SQL (?:applying|applied|skipped): ([0-9][a-z0-9_-]{0,160}\.sql)/gu)]
     .map(match => match[1]).filter(name => known.has(name));
   const sqlStates = [...new Set([...contents.matchAll(/\bcode:\s*['"]([0-9A-Z]{5})['"]/gu)].map(match => match[1]).filter(code => knownSqlStates.has(code)))].slice(-10);
   return { categories: Object.fromEntries(Object.entries(categories).map(([name, pattern]) => [name, pattern.test(contents)])),
@@ -57,7 +57,7 @@ export function diagnosePrivateRun(runId, { root = backupRoot, migrationDirector
   const pattern = new RegExp(`^[a-f0-9]{12}-${runId}-[a-zA-Z0-9]{6}$`, 'u');
   const entries = readdirSync(root, { withFileTypes: true }).filter(entry => pattern.test(entry.name) && entry.isDirectory());
   if (entries.length !== 1) throw new Error('Private run is missing or ambiguous');
-  const migrations = readdirSync(migrationDirectory).filter(name => /^[0-9]{14}_[a-z0-9_]+\.sql$/u.test(name));
+  const migrations = readdirSync(migrationDirectory).filter(name => /^[0-9][a-z0-9_-]{0,160}\.sql$/u.test(name));
   return { version: 1, runId, ...readPrivateLogDiagnostics(path.join(root, entries[0].name, 'private-operations.log'), migrations) };
 }
 
