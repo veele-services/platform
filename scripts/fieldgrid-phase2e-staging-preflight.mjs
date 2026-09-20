@@ -839,6 +839,28 @@ function isFreshTimestamp(value, nowMs, maxAgeMs) {
   );
 }
 
+export function validateRollbackRecoveryTimestamp(value, identity) {
+  const nowMs = identity.nowMs ?? Date.now();
+  if (typeof value !== "string" || !Number.isFinite(nowMs)) return false;
+  // This immutable bootstrap incident proves why Git and the active release
+  // differ. Its age cannot prove current health: every preflight still checks
+  // the live symlink, marker, services, routes and a new backup/restore rehearsal.
+  const pinnedHistoricalIncident =
+    String(identity.deployRunId) === KNOWN_LEGACY_ROLLBACK_RECOVERY.runId &&
+    identity.expectedGitStagingSha ===
+      KNOWN_LEGACY_ROLLBACK_RECOVERY.failedReleaseSha &&
+    identity.expectedActiveStagingReleaseSha ===
+      KNOWN_LEGACY_ROLLBACK_RECOVERY.restoredReleaseSha &&
+    identity.artifactId === KNOWN_LEGACY_ROLLBACK_RECOVERY.artifactId &&
+    identity.diagnosticsSha256 === KNOWN_LEGACY_ROLLBACK_RECOVERY.diagnosticsSha256 &&
+    identity.schemaVersion === LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION;
+  return isFreshTimestamp(
+    value,
+    nowMs,
+    pinnedHistoricalIncident ? Infinity : ROLLBACK_RECOVERY_MAX_AGE_MS,
+  );
+}
+
 function assertReleasePathForSha(path, baseDir, sha, label) {
   if (typeof path !== "string" || /[\r\n]/u.test(path)) {
     throw new Error(`${label} is not a valid release path.`);
@@ -1083,7 +1105,10 @@ export async function verifyRollbackDeployRecovery(
     run?.conclusion !== "failure" ||
     !Number.isSafeInteger(run?.run_attempt) ||
     run.run_attempt < 1 ||
-    !isFreshTimestamp(run?.updated_at, nowMs, ROLLBACK_RECOVERY_MAX_AGE_MS)
+    // Defer only the pinned incident's age limit until its downloaded content
+    // hash is verified below. Invalid and future timestamps still fail here.
+    !isFreshTimestamp(run?.updated_at, nowMs,
+      isPinnedLegacyRecovery ? Infinity : ROLLBACK_RECOVERY_MAX_AGE_MS)
   ) {
     throw new Error(
       "GitHub deploy run does not prove the exact failed staging release.",
@@ -1148,7 +1173,8 @@ export async function verifyRollbackDeployRecovery(
     String(artifact.workflow_run?.id) !== String(deployRunId) ||
     artifact.workflow_run?.head_branch !== "staging" ||
     artifact.workflow_run?.head_sha !== expectedGitStagingSha ||
-    !isFreshTimestamp(artifact.updated_at, nowMs, ROLLBACK_RECOVERY_MAX_AGE_MS)
+    !isFreshTimestamp(artifact.updated_at, nowMs,
+      isPinnedLegacyRecovery ? Infinity : ROLLBACK_RECOVERY_MAX_AGE_MS)
   ) {
     throw new Error(
       "GitHub deploy diagnostics artifact is missing, expired or stale.",
@@ -1174,6 +1200,19 @@ export async function verifyRollbackDeployRecovery(
     deployRunId,
     diagnosticsSha256,
   });
+  const timestampIdentity = {
+    nowMs,
+    deployRunId,
+    expectedGitStagingSha,
+    expectedActiveStagingReleaseSha,
+    artifactId: artifact.id,
+    diagnosticsSha256,
+    schemaVersion: validated.schemaVersion,
+  };
+  if (!validateRollbackRecoveryTimestamp(run.updated_at, timestampIdentity) ||
+      !validateRollbackRecoveryTimestamp(artifact.updated_at, timestampIdentity)) {
+    throw new Error("GitHub deploy rollback evidence is stale and is not the pinned historical incident.");
+  }
 
   return {
     version: ROLLBACK_RECOVERY_PROOF_VERSION,

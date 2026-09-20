@@ -1,0 +1,89 @@
+name: Fieldgrid Deployment Inventory
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed main SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - name: Verify protected source before checkout
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_main_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          node --input-type=module -e '
+            const response = await fetch("https://api.github.com/repos/veele-services/platform/git/ref/heads/main", {
+              headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: "application/vnd.github+json" },
+            });
+            if (!response.ok || (await response.json()).object?.sha !== process.env.EXPECTED_SHA) {
+              throw new Error("Inventory requires the exact protected main head");
+            }
+          '
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Inspect release and service metadata without credentials
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/fieldgrid-deployment-inventory.py > "$RUNNER_TEMP/fieldgrid-deployment-inventory.json"
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Install pinned database certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-inventory-ca-$GITHUB_RUN_ID.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Read bounded staging database metadata
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_ENV: staging
+          TARGET_ENVIRONMENT: staging
+          DB_SSL: "true"
+          DB_SSL_REJECT_UNAUTHORIZED: "true"
+          PGSSLMODE: verify-full
+        run: node scripts/fieldgrid-deployment-db-inventory.mjs > "$RUNNER_TEMP/fieldgrid-deployment-db-inventory.json"
+
+      - name: Upload infrastructure metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldgrid-deployment-inventory-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/fieldgrid-deployment-inventory.json
+            ${{ runner.temp }}/fieldgrid-deployment-db-inventory.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Remove temporary certificate
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/fieldgrid-inventory-ca-$GITHUB_RUN_ID.crt"

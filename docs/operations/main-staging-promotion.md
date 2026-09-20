@@ -249,8 +249,15 @@ run, deploy-job and
 diagnostics-artifact readback proves a fresh failed staging deploy and a
 successful paired rollback. The one pinned legacy recovery run above predates
 the manual-only trigger and remains accepted only with its exact immutable run,
-artifact and digest tuple. If Git and the active marker are aligned, omit the
-rollback run ID.
+artifact and digest tuple. That historical incident is exempt from the ordinary
+seven-day run/artifact age limit in both preflight and promotion; its artifact
+must still be available and non-expired, and invalid or future timestamps remain
+rejected. The exception requires the pinned legacy schema and downloaded content
+digest, so an altered or versioned replacement cannot inherit it. Every new
+preflight still reads the current symlink, exact release marker, active services
+and public routes, and creates and rehearses a fresh backup. The resulting
+preflight, live smoke and migration evidence retain their existing freshness
+requirements. If Git and the active marker are aligned, omit the rollback run ID.
 
 ## Current Sprint 0 recovery points
 

@@ -41,6 +41,10 @@ import {
   validateStrictW00StagingPrincipalArtifact,
   validateW00StagingPrincipalEvidence,
 } from "../scripts/fieldgrid-staging-promotion-gate.mjs";
+import {
+  KNOWN_LEGACY_ROLLBACK_RECOVERY,
+  LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
+} from "../scripts/fieldgrid-phase2e-staging-preflight.mjs";
 
 function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -1269,6 +1273,72 @@ test("strict promotion keeps the Git ref binding while validating a proven activ
       )?.semanticStatus,
       "valid",
     );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("strict promotion accepts only the pinned historical incident with fresh live and rehearsal evidence", async () => {
+  const fixture = mkdtempSync(join(tmpdir(), "fieldgrid-historical-recovery-"));
+  const pinned = KNOWN_LEGACY_ROLLBACK_RECOVERY;
+  const expectedMain = "d".repeat(40);
+  const expectedStaging = pinned.failedReleaseSha;
+  const expectedActive = pinned.restoredReleaseSha;
+  const nowMs = Date.parse("2026-09-20T12:00:00.000Z");
+  const historical = "2026-09-08T06:11:53.000Z";
+  try {
+    const { phase2e, phase2eDirectory } = writeGreenPromotionEvidence(fixture, expectedMain, expectedStaging, nowMs);
+    phase2e.rollback = {
+      ...phase2e.rollback,
+      currentRelease: `/var/www/veele/staging/releases/20260823232608-${expectedActive.slice(0, 7)}`,
+      marker: expectedActive,
+      expectedActiveStagingReleaseSha: expectedActive,
+      gitAndActiveAligned: false,
+      recoveryMode: "verified-deploy-rollback",
+      recoveryProof: {
+        version: "phase2e-staging-rollback-recovery-v1", mode: "verified-deploy-rollback",
+        expectedGitStagingSha: expectedStaging, expectedActiveStagingReleaseSha: expectedActive,
+        deployRun: { id: pinned.runId, headSha: expectedStaging, branch: "staging", attempt: 1,
+          status: "completed", conclusion: "failure", updatedAt: historical, apiVerified: true },
+        diagnostics: { artifactId: pinned.artifactId,
+          artifactName: `fieldgrid-staging-deploy-diagnostics-${pinned.runId}`,
+          updatedAt: historical, sha256: pinned.diagnosticsSha256,
+          schemaVersion: LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
+          exactSchemaVerified: true, checkCount: 81, failedCheckCount: 1 },
+      },
+    };
+    const smokePath = join(fixture, "artifacts", "staging-smoke", "staging.json");
+    const freshSmoke = greenStagingSmokeReport({ expectedStaging: expectedActive, nowMs });
+    writeJson(smokePath, freshSmoke);
+    const validate = async (report) => {
+      writeJson(join(phase2eDirectory, "phase2e-staging-preflight.json"), report);
+      return validateStagingPromotionGatePlan(await buildStagingPromotionGatePlan({
+        strictEvidence: true, repoRoot: fixture, expectedMain, expectedStaging, nowMs,
+      }));
+    };
+    assert.deepEqual(await validate(phase2e), []);
+    for (const mutate of [
+      (r) => { r.rollback.recoveryProof.deployRun.id = "12345"; },
+      (r) => { r.rollback.recoveryProof.diagnostics.artifactId++; },
+      (r) => { r.rollback.recoveryProof.diagnostics.sha256 = "0".repeat(64); },
+      (r) => { r.rollback.recoveryProof.diagnostics.schemaVersion = "fieldgrid-deploy-health-gate-v2"; },
+      (r) => { r.rollback.recoveryProof.deployRun.updatedAt = "invalid"; },
+      (r) => { r.rollback.recoveryProof.diagnostics.updatedAt = new Date(nowMs + 300_001).toISOString(); },
+      (r) => { r.rollback.marker = "a".repeat(40); },
+      (r) => { r.rollback.currentRelease = "/var/www/veele/staging/releases/wrong"; },
+      (r) => { r.rollback.servicesActive = []; },
+      (r) => { r.database.backup.sizeBytes = 0; },
+      (r) => { r.database.restore.isolated = false; },
+      (r) => { r.finishedAt = historical; r.startedAt = historical; },
+    ]) {
+      const changed = structuredClone(phase2e);
+      mutate(changed);
+      assert.notDeepEqual(await validate(changed), []);
+    }
+    writeJson(smokePath, greenStagingSmokeReport({ expectedStaging: expectedActive, nowMs: Date.parse(historical) }));
+    assert.notDeepEqual(await validate(phase2e), []);
+    writeJson(smokePath, freshSmoke);
+    assert.deepEqual(await validate(phase2e), []);
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
