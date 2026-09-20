@@ -146,6 +146,37 @@ test("impact exports only consistent, nonnegative safe integer counts", () => {
   }
 });
 
+test("detailed drift is confined to blocked read-only diagnosis and fails safely", async () => {
+  const unknown = { legacyDefinitionMatches: false, cleanDefinitionMatches: false,
+    targetDefinitionMatches: false, dependenciesValid: false };
+  const f = fixture({ repairReadiness: unknown });
+  f.dependencies.readDriftDiagnostic = async () => {
+    f.calls.push("READ DRIFT DIAGNOSTIC");
+    throw new Error("raw-private-catalog-detail");
+  };
+  await assert.rejects(runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies),
+    (error: Error) => /catalog_invalid/u.test(error.message) && !error.message.includes("raw-private"));
+  assert.ok(f.calls.indexOf("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY") <
+    f.calls.indexOf("READ DRIFT DIAGNOSTIC"));
+  assert.ok(f.calls.indexOf("READ DRIFT DIAGNOSTIC") < f.calls.indexOf("ROLLBACK"));
+  assert.deepEqual(f.journalNames, []);
+
+  const malicious = fixture({ repairReadiness: unknown });
+  malicious.dependencies.readDriftDiagnostic = async () => ({ query: "must-not-leak" });
+  await assert.rejects(runTenantManagementAuthorization(malicious.queryable, "diagnose", malicious.dependencies), /catalog_invalid/u);
+  assert.ok(malicious.calls.includes("ROLLBACK"));
+
+  for (const operation of ["diagnose", "apply"] as const) {
+    const ready = fixture({});
+    ready.dependencies.readDriftDiagnostic = async () => { throw new Error("must-not-run"); };
+    const result = await runTenantManagementAuthorization(ready.queryable, operation, ready.dependencies);
+    assert.equal(Object.hasOwn(result, "driftDiagnostic"), false);
+  }
+  const blockedApply = fixture({ repairReadiness: unknown });
+  blockedApply.dependencies.readDriftDiagnostic = async () => { throw new Error("must-not-run"); };
+  await assert.rejects(runTenantManagementAuthorization(blockedApply.queryable, "apply", blockedApply.dependencies), /repair_not_ready/u);
+});
+
 function fixture(options: {
   applied?: boolean;
   scopeApplied?: boolean;

@@ -21,6 +21,11 @@ import {
   readTenantManagementPolicyRepairReadiness,
   verifyTenantManagementPolicyRepairCatalog,
 } from "./fieldgrid-tenant-management-policy-repair-contract.mts";
+import {
+  readTenantManagementPolicyDriftDiagnostic,
+  sanitizeTenantManagementPolicyDriftDiagnostic,
+  type TenantManagementPolicyDriftDiagnostic,
+} from "./fieldgrid-tenant-management-policy-drift-diagnostic.mts";
 
 export const TENANT_MANAGEMENT_AUTHORIZATION_VERSION =
   "fieldgrid-staging-tenant-management-authorization-v1";
@@ -320,6 +325,7 @@ export type AuthorizationDependencies = {
   readRepairReadiness: (queryable: AuthorizationQueryable) => Promise<RepairReadiness>;
   readScopeReadiness: (queryable: AuthorizationQueryable) => Promise<{ readyForApply: boolean }>;
   readImpact: (queryable: AuthorizationQueryable) => Promise<unknown>;
+  readDriftDiagnostic?: (queryable: AuthorizationQueryable) => Promise<unknown>;
 };
 const defaultDependencies: AuthorizationDependencies = {
   loadFrontier: loadPlatformPrivilegeMigrationFrontier,
@@ -338,6 +344,7 @@ const defaultDependencies: AuthorizationDependencies = {
     return readTenantManagementSqlDiagnostic(queryable);
   },
   readImpact: readTenantManagementAuthorizationImpact,
+  readDriftDiagnostic: readTenantManagementPolicyDriftDiagnostic,
 };
 
 export type AuthorizationState = "legacy-state" | "clean-state" | "repaired-state" | "canonical-state" | "unknown-state";
@@ -352,6 +359,7 @@ export type AuthorizationResult = {
   readyForPrerequisiteRepair: boolean;
   repairReadiness: RepairReadiness;
   impact: AuthorizationImpact;
+  driftDiagnostic?: TenantManagementPolicyDriftDiagnostic;
 };
 
 function contractBoolean(value: unknown): boolean {
@@ -476,9 +484,17 @@ export async function runTenantManagementAuthorization(
     });
     if (operation === "diagnose" || pending.length === 0) {
       // Even apply/already-applied is a non-mutating postcheck.
+      const diagnosed = result(operation === "diagnose" ? "diagnosed" : "already-applied");
+      if (operation === "diagnose" && state === "unknown-state" && dependencies.readDriftDiagnostic) {
+        // Explain only an already-blocked state, in the same read-only snapshot.
+        // These observations never participate in either readiness decision.
+        diagnosed.driftDiagnostic = sanitizeTenantManagementPolicyDriftDiagnostic(
+          await dependencies.readDriftDiagnostic(queryable),
+        );
+      }
       await queryable.query("ROLLBACK");
       transactionStarted = false;
-      return result(operation === "diagnose" ? "diagnosed" : "already-applied");
+      return diagnosed;
     }
     if (!scopeRecorded && !preserved) throw new AuthorizationError("access_preservation_failed");
     if (!readyForPrerequisiteRepair) throw new AuthorizationError("repair_not_ready");
