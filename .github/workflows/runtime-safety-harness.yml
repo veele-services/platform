@@ -188,6 +188,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Empty database migrations
+        env:
+          FIELDGRID_PG17_TOOLS_CONTAINER: ${{ job.services.postgres.id }}
         run: pnpm fieldgrid:test:postgres17-migration-smoke
 
       - name: Teardown local runtime database

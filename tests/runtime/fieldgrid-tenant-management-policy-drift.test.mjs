@@ -525,8 +525,14 @@ export async function verifyTenantManagementPolicyDrift(context) {
         await client.query("DROP POLICY object_personnel_management ON public.object_personnel");
         await client.query(originalPersonnelPolicy);
         await client.query(historicalOwnUpdate);
-        await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1",
-          ["20260920131458_reconcile_hosted_policy_contract.sql"]);
+        // Reconstruct a contiguous historical prefix: none of the later
+        // compatibility sources existed while this repair was still pending.
+        const followups = ["20260920131458_reconcile_hosted_policy_contract.sql",
+          "20260920145343_close_legacy_personnel_browser_updates.sql",
+          "20260920150424_close_hosted_clean_customer_helper_grants.sql"];
+        const removed = await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[]) RETURNING name",
+          [followups]);
+        assert.deepEqual(removed.rows.map(({ name }) => name).sort(), [...followups].sort());
         assert.equal((await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [migrationNames[2]])).rowCount, 1);
         await client.query("COMMIT");
       } catch (error) {

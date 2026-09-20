@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   HOSTED_POLICY_PERSONNEL_PATH_SQL,
   loadHostedPolicyCompatibilitySource,
+  loadHostedPolicyPersonnelClosureSource,
   readHostedPolicyPersonnelPath,
   runHostedPolicyCompatibility,
   type HostedPolicyPersonnelPath,
@@ -21,6 +22,7 @@ const closedPath: HostedPolicyPersonnelPath = {
   runtimeRoleRestricted: true,
 };
 const source = loadHostedPolicyCompatibilitySource();
+const closure = loadHostedPolicyPersonnelClosureSource();
 const historyPromise = loadPlatformPrivilegeMigrationFrontier().then((frontier) => {
   const pendingIndex = frontier.committed.findIndex((migration) =>
     migration.name === "20260914125400_reconcile_legacy_global_rbac_policies.sql");
@@ -31,7 +33,7 @@ const historyPromise = loadPlatformPrivilegeMigrationFrontier().then((frontier) 
   }));
 });
 
-async function fixture(personnelPath: HostedPolicyPersonnelPath) {
+async function fixture(personnelPath: HostedPolicyPersonnelPath, repairable = false) {
   const history = await historyPromise;
   const statements: string[] = [];
   const queryable = { async query(sql: string) {
@@ -41,6 +43,7 @@ async function fixture(personnelPath: HostedPolicyPersonnelPath) {
     if (sql.startsWith("SELECT name, hash, baselined")) return { rows: history };
     if (sql === source.readinessSql) return { rows: [{ legacyDefinitionMatches: true,
       cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: true }] };
+    if (sql === closure.readinessSql) return { rows: [{ repairable }] };
     if (sql === HOSTED_POLICY_PERSONNEL_PATH_SQL) return { rows: [personnelPath] };
     if (/^(BEGIN|SET LOCAL|LOCK TABLE drizzle\.veele_sql_migrations|ROLLBACK)/u.test(sql)) return { rows: [] };
     throw new Error("Unexpected statement: the blocked runner must not reach DDL or journal writes");
@@ -105,4 +108,17 @@ test("personnel evidence rejects incomplete, nonboolean and additional payload f
     const queryable = { async query() { return { rows: [row] }; } } as unknown as AuthorizationQueryable;
     await assert.rejects(readHostedPolicyPersonnelPath(queryable), /hosted_policy_personnel_diagnostic_invalid/u);
   }
+});
+
+
+test("exact reviewed browser ACL closure can make a pending repair ready without mutating diagnosis", async () => {
+  const path = { ...closedPath, anonTableUpdate: true, anonColumnUpdate: true,
+    authenticatedTableUpdate: true, authenticatedColumnUpdate: true };
+  const { queryable, statements } = await fixture(path, true);
+  const result = await runHostedPolicyCompatibility(queryable, "diagnose");
+  assert.equal(result.ready, true);
+  assert.equal(result.personnelPath.closed, false);
+  assert.equal(result.personnelClosureRepairable, true);
+  assert.ok(statements.includes("ROLLBACK"));
+  assert.ok(!statements.includes(closure.sql));
 });

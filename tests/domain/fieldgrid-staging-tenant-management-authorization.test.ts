@@ -1,3 +1,4 @@
+import { HOSTED_POLICY_CLEAN_HELPER_CLOSURE, HOSTED_POLICY_PERSONNEL_CLOSURE, HOSTED_POLICY_REPLACEMENT } from "../../lib/db/src/hosted-policy-compatibility-identity.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -134,6 +135,27 @@ test("frontier pins the exact three-source suffix and accepts only complete pair
   assert.throws(() => tenantManagementAuthorizationFrontier(base, { ...source, sql: "SELECT 99;" }, repair), /source_invalid/u);
   assert.throws(() => tenantManagementAuthorizationFrontier(base, source, { ...repair, sql: "SELECT 99;" }), /source_invalid/u);
   assert.throws(() => tenantManagementAuthorizationFrontier(base, source, { ...repair, name: successor.name }), /source_invalid/u);
+});
+
+test("frontier accepts only the pinned replacement and personnel closure in chronological order", () => {
+  const replacement = { ...HOSTED_POLICY_REPLACEMENT, sql: "pinned replacement fixture" };
+  const closure = { ...HOSTED_POLICY_PERSONNEL_CLOSURE, sql: "pinned closure fixture" };
+  const exact = { ...base, committed: [...base.committed, replacement, closure] };
+  const helperClosure = { ...HOSTED_POLICY_CLEAN_HELPER_CLOSURE, sql: "pinned clean helper fixture" };
+  assert.deepEqual(tenantManagementAuthorizationFrontier({ ...exact, committed: [...exact.committed, helperClosure] },
+    source, repair).successors, new Set([replacement.name, closure.name, helperClosure.name]));
+  const frontier = tenantManagementAuthorizationFrontier(exact, source, repair);
+  assert.deepEqual(frontier.successors, new Set([replacement.name, closure.name]));
+  assert.deepEqual(assertTenantManagementAuthorizationHistory(frontier, initialHistory()),
+    [policyReconciliation, source, repair]);
+  for (const suffix of [[closure], [closure, replacement], [replacement, { ...closure, hash: "0".repeat(64) }],
+    [replacement, closure, successor], [replacement, helperClosure, closure],
+    [replacement, closure, { ...helperClosure, hash: "0".repeat(64) }]]) {
+    assert.throws(() => tenantManagementAuthorizationFrontier({ ...base, committed: [...base.committed, ...suffix] },
+      source, repair), /source_invalid/u);
+  }
+  assert.throws(() => assertTenantManagementAuthorizationHistory(frontier,
+    [...initialHistory(), historyRecord(closure, 5)]), /history_invalid/u);
 });
 
 test("impact exports only consistent, nonnegative safe integer counts", () => {
@@ -454,6 +476,7 @@ test("recorded or mismatched catalog state remains diagnosable while apply stays
     { scopeContract: [true] },
   ];
   for (const options of cases) {
+    assert.ok(options);
     const f = fixture(options);
     const diagnosed = await runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies);
     assert.equal(diagnosed.result, "diagnosed");
