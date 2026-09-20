@@ -63,17 +63,33 @@ for (const key of Object.keys(closedPath).filter((key) => key !== "legacyPolicyE
     const blocked = { ...closedPath, [key]: !closedPath[key] };
     for (const operation of ["diagnose", "apply"] as const) {
       const { queryable, statements } = await fixture(blocked);
-      const result = await runHostedPolicyCompatibility(queryable, operation);
-      assert.equal(result.ready, false);
-      assert.equal(result.changed, false);
-      assert.equal(result.replacementRecorded, false);
-      assert.equal(result.pendingCount, 3);
-      assert.deepEqual(result.personnelPath, { ...blocked, closed: false });
+      if (operation === "apply") {
+        await assert.rejects(runHostedPolicyCompatibility(queryable, operation),
+          /hosted_policy_personnel_path_not_closed/u);
+      } else {
+        const result = await runHostedPolicyCompatibility(queryable, operation);
+        assert.equal(result.ready, false);
+        assert.equal(result.changed, false);
+        assert.equal(result.replacementRecorded, false);
+        assert.equal(result.pendingCount, 3);
+        assert.deepEqual(result.personnelPath, { ...blocked, closed: false });
+      }
       assert.ok(statements.includes("ROLLBACK"));
+      assert.ok(statements.at(-1)?.startsWith("SELECT pg_advisory_unlock"));
       assert.ok(statements.every((sql) => !/^(INSERT|UPDATE|DELETE|ALTER|CREATE|DROP|GRANT|REVOKE|COMMIT)\b/u.test(sql)));
     }
   });
 }
+
+test("a different migration candidate remains inapplicable even when personnel is blocked", async () => {
+  const { queryable, statements } = await fixture({ ...closedPath, anonColumnUpdate: true });
+  const result = await runHostedPolicyCompatibility(queryable, "apply",
+    "20260919220633_repair_tenant_management_policy_consumers.sql");
+  assert.equal(result.ready, false);
+  assert.equal(result.changed, false);
+  assert.equal(result.personnelPath.closed, false);
+  assert.ok(statements.includes("ROLLBACK"));
+});
 
 test("an absent historical personnel policy does not add new migration prerequisites", async () => {
   const absent = { ...closedPath, legacyPolicyExists: false, anonTableUpdate: true,

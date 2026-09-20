@@ -54,11 +54,19 @@ export function readPrivateLogDiagnostics(file, migrationNames = []) {
 
 export function diagnosePrivateRun(runId, { root = backupRoot, migrationDirectory = fileURLToPath(new URL('../lib/db/migrations/', import.meta.url)) } = {}) {
   if (!/^[1-9][0-9]{0,19}$/u.test(runId ?? '') || realpathSync(root) !== path.resolve(root)) throw new Error('Invalid private run');
-  const pattern = new RegExp(`^[a-f0-9]{12}-${runId}-[a-zA-Z0-9]{6}$`, 'u');
-  const entries = readdirSync(root, { withFileTypes: true }).filter(entry => pattern.test(entry.name) && entry.isDirectory());
-  if (entries.length !== 1) throw new Error('Private run is missing or ambiguous');
+  const pattern = /^[a-f0-9]{12}-([1-9][0-9]{0,19})-[a-zA-Z0-9]{6}$/u;
+  const entries = readdirSync(root, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && pattern.exec(entry.name)?.[1] === runId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  if (entries.length === 0 || entries.length > 20) throw new Error('Private run is missing or exceeds the diagnostic limit');
   const migrations = readdirSync(migrationDirectory).filter(name => /^[0-9][a-z0-9_-]{0,160}\.sql$/u.test(name));
-  return { version: 1, runId, ...readPrivateLogDiagnostics(path.join(root, entries[0].name, 'private-operations.log'), migrations) };
+  // GitHub reruns retain the same run ID. Report every bounded retained rehearsal
+  // by its unique backup identity instead of silently selecting one attempt.
+  const rehearsals = entries.map(entry => {
+    try { return { backupId: entry.name, ...readPrivateLogDiagnostics(path.join(root, entry.name, 'private-operations.log'), migrations) }; }
+    catch { return { backupId: entry.name, status: 'unavailable' }; }
+  });
+  return { version: 1, runId, rehearsals };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

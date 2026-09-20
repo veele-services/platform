@@ -115,6 +115,49 @@ print(json.dumps({'paths': paths, 'rejected': rejected, 'files': files, 'reads':
   assert.match(report.files.files[0].sha256, /^[a-f0-9]{64}$/);
 });
 
+test('an import directory exceeding 128 entries preserves parent evidence and marks the graph incomplete', () => {
+  const report = python(`
+with tempfile.TemporaryDirectory(prefix='fieldgrid-proxy-import-limit-') as temporary:
+    root = pathlib.Path(temporary)
+    imported = root / 'imports'; imported.mkdir()
+    for index in range(127): (imported / ('ignored-' + str(index) + '.txt')).touch()
+    child = imported / 'child.caddy'; child.write_text('# child configuration')
+    parent = root / 'Caddyfile'
+    parent.write_text('import /etc/caddy/fieldgrid.d/*.caddy\\nimport /etc/caddy/z-final.caddy\\n# ' + secret)
+    sibling = root / 'z-final.caddy'; sibling.write_text('# separate import')
+    fixtures = {
+        '/etc/caddy/Caddyfile': parent,
+        '/etc/caddy/fieldgrid.d': imported,
+        '/etc/caddy/fieldgrid.d/child.caddy': child,
+        '/etc/caddy/z-final.caddy': sibling,
+    }
+    open_file = m.open_without_symlinks
+    def fixture_open(path, flags):
+        assert path in fixtures, 'Unexpected path outside the local fixture'
+        return open_file(str(fixtures[path]), flags)
+    with patch.object(m, 'open_without_symlinks', side_effect=fixture_open):
+        complete = m.config_file_metadata(['/etc/caddy/Caddyfile'])
+        (imported / 'entry-129.txt').touch()
+        incomplete = m.config_file_metadata(['/etc/caddy/Caddyfile'])
+    assert len(list(imported.iterdir())) == 129
+    assert incomplete['files'][0]['sha256'] == m.hashlib.sha256(parent.read_bytes()).hexdigest()
+    print(json.dumps({'complete': complete, 'incomplete': incomplete}))
+`);
+  assert.equal(report.complete.truncated, false);
+  assert.equal(report.complete.files.length, 3);
+  assert.equal(report.complete.files[0].unsupportedImports, false);
+  assert.equal(report.incomplete.truncated, true);
+  assert.equal(report.incomplete.files.length, 2);
+  assert.equal(report.incomplete.files[0].status, 'available');
+  assert.equal(report.incomplete.files[0].unsupportedImports, true);
+  assert.equal(report.incomplete.files[0].sha256, report.complete.files[0].sha256);
+  assert.deepEqual(report.incomplete.files[0].imports, [
+    '/etc/caddy/fieldgrid.d/*.caddy', '/etc/caddy/z-final.caddy',
+  ]);
+  assert.equal(report.incomplete.files[1].path, '/etc/caddy/z-final.caddy');
+  assert.equal(report.incomplete.files[1].status, 'available');
+});
+
 test('bounded file reads reject symlinks at every component, FIFOs, directories and oversized files', () => {
   const report = python(`
 with tempfile.TemporaryDirectory(prefix='fieldgrid-proxy-') as temporary:

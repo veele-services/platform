@@ -95,6 +95,18 @@ export async function verifyHostedPolicyCompatibility(context) {
       assert.match(stdout, /SQL exact hosted-policy compatibility applied/u);
       await verifyResult(client);
     }));
+  await context.test("ordinary migration command stops before prerequisite commits when personnel closure is unsafe", () =>
+    withClonedDatabase(async (client) => {
+      await stagingFixture(client);
+      await client.query("GRANT UPDATE(phone) ON public.personnel TO authenticated");
+      const before = await fullSnapshot(client);
+      const diagnosis = await runHostedPolicyCompatibility(client, "diagnose");
+      assert.equal(diagnosis.ready, false);
+      assert.equal(diagnosis.personnelPath.authenticatedTableUpdate, false);
+      assert.equal(diagnosis.personnelPath.authenticatedColumnUpdate, true);
+      await assert.rejects(runMigrationCommand(client), /hosted_policy_personnel_path_not_closed/u);
+      assert.deepEqual(await fullSnapshot(client), before);
+    }));
   await context.test("completed hosted baseline permits later forward migrations and exact replay", () =>
     withClonedDatabase(async (client) => {
       await stagingFixture(client);

@@ -268,6 +268,7 @@ def config_file_metadata(paths):
     pending = sorted(set(path for path in paths if approved_path(path)))
     reports = []
     visited = set()
+    truncated = False
     while pending and len(visited) < FILE_COUNT_LIMIT:
         path = pending.pop(0)
         if path in visited:
@@ -285,11 +286,17 @@ def config_file_metadata(paths):
             record["imports"] = imports
             record["unsupportedImports"] = rejected
             for imported in imports:
-                pending.extend(expand_import(imported))
+                try:
+                    pending.extend(expand_import(imported))
+                except (OSError, ValueError, UnicodeError):
+                    # The parent was read successfully; only this import could
+                    # not be inspected completely. Keep other imports eligible.
+                    record["unsupportedImports"] = True
+                    truncated = True
         except (OSError, ValueError, UnicodeError):
             record["status"] = "unavailable"
         reports.append(record)
-    return {"files": reports, "truncated": bool(pending)}
+    return {"files": reports, "truncated": truncated or bool(pending)}
 
 
 def proxy_metadata(config):

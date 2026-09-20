@@ -119,8 +119,15 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
       throw new Error("hosted_policy_postcondition_failed");
     }
     const personnelPathReady = !(state.legacyDefinitionMatches || state.cleanDefinitionMatches) || personnelPath.closed;
-    const ready = state.dependenciesValid === true && personnelPathReady && pending.length > 0 && !replacementRecorded &&
+    const applicable = state.dependenciesValid === true && pending.length > 0 && !replacementRecorded &&
       (!candidateName || candidateName === pending[0]?.name);
+    // A rejected applicable repair must stop the ordinary migration runner.
+    // Returning changed:false would let it commit historical prerequisites.
+    // The catch below rolls back before propagating this bounded error.
+    if (operation === "apply" && applicable && !personnelPathReady) {
+      throw new Error("hosted_policy_personnel_path_not_closed");
+    }
+    const ready = applicable && personnelPathReady;
     const diagnosis = { ready, replacementRecorded, pendingCount: pending.length, state, personnelPath, changed: false };
     if (operation === "diagnose" || !ready) {
       await queryable.query("ROLLBACK"); transaction = false;
