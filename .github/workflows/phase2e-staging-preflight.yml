@@ -209,7 +209,17 @@ jobs:
           else
             test -n "${FIELDGRID_STAGING_SMOKE_BEARER:-}"
           fi
-          pnpm fieldgrid:sprint15-staging-smoke:run-read-only
+          pnpm fieldgrid:sprint15-staging-smoke:run-read-only \
+            --expected-staging "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" \
+            --canonical-marker-bootstrap
+
+      - name: Verify complete semantic promotion evidence
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-staging-promotion-gate.mjs \
+            --strict-evidence \
+            --expected-main "$EXPECTED_MAIN_SHA" \
+            --expected-staging "$EXPECTED_STAGING_SHA"
 
       - name: Assemble bounded promotion evidence tree
         if: always()

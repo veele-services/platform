@@ -21,6 +21,12 @@ function firstStepHeader(source, jobName) {
 
 const PROTECTED_SHA_WORKFLOWS = [
   {
+    path: ".github/workflows/fieldgrid-staging-document-storage-backfill.yml",
+    input: "expected_main_sha",
+    binding: "EXPECTED_MAIN_SHA",
+    branch: "main",
+  },
+  {
     path: ".github/workflows/deploy.yml",
     input: "expected_staging_sha",
     binding: "EXPECTED_STAGING_SHA",
@@ -144,7 +150,10 @@ test("the staging rollout stays separate from the guarded production deployment"
     operations,
     /shared deploy workflow therefore accepts only an exact-SHA manual `staging` dispatch/u,
   );
-  assert.match(operations, /separate `fieldgrid-production-deploy.yml` workflow/u);
+  assert.match(
+    operations,
+    /separate `fieldgrid-production-deploy.yml` workflow/u,
+  );
   assert.match(production, /^  workflow_dispatch:$/mu);
   assert.doesNotMatch(production, /^  push:$/mu);
   assert.match(production, /^    environment: production$/mu);
@@ -170,6 +179,33 @@ test("required preflight and deploy jobs fail invalid dispatches before checkout
   assert.match(deploy, /test "\$GITHUB_REF" = "refs\/heads\/staging"/u);
   assert.match(deploy, /test "\$GITHUB_SHA" = "\$EXPECTED_STAGING_SHA"/u);
   assert.match(deploy, /\["main", "staging"\]/u);
+});
+
+test("preflight binds smoke to the active release and requires semantic evidence before success", () => {
+  const source = read(".github/workflows/phase2e-staging-preflight.yml");
+  const capture = source.indexOf(
+    "- name: Capture authenticated exact-SHA live staging smoke",
+  );
+  const verify = source.indexOf(
+    "- name: Verify complete semantic promotion evidence",
+  );
+  const assemble = source.indexOf(
+    "- name: Assemble bounded promotion evidence tree",
+  );
+  assert.ok(capture > 0 && verify > capture && assemble > verify);
+  const captureStep = source.slice(capture, verify);
+  assert.match(
+    captureStep,
+    /--expected-staging "\$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"/u,
+  );
+  assert.match(captureStep, /--canonical-marker-bootstrap/u);
+  const verifyStep = source.slice(verify, assemble);
+  assert.match(verifyStep, /set -euo pipefail/u);
+  assert.match(verifyStep, /fieldgrid-staging-promotion-gate\.mjs/u);
+  assert.match(verifyStep, /--strict-evidence/u);
+  assert.match(verifyStep, /--expected-main "\$EXPECTED_MAIN_SHA"/u);
+  assert.match(verifyStep, /--expected-staging "\$EXPECTED_STAGING_SHA"/u);
+  assert.doesNotMatch(verifyStep, /continue-on-error|\|\|\s*true|if:/u);
 });
 
 test("database utilities expose secrets only from their matching protected head", () => {
