@@ -57,11 +57,11 @@ jobs:
           set -euo pipefail
           python3 - <<'PYROUTES' > "$RUNNER_TEMP/fieldgrid-production-routing.json"
           import json, os, re, subprocess, urllib.request, urllib.error
-          
+
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl):
                   return None
-          
+
           opener = urllib.request.build_opener(NoRedirect)
           report = {'version': 1, 'sourceSha': os.environ.get('GITHUB_SHA'), 'proxyMetadata': {'status': 'unavailable'}, 'probes': []}
           config = None
@@ -77,7 +77,7 @@ jobs:
                       config = json.loads(adapted.stdout)
               except Exception:
                   pass
-          
+
           routes = []
           host_pattern = re.compile(r'^(?:\*|[a-z0-9-]+)(?:\.[a-z0-9-]+)*\.fieldgrid\.nl$')
           path_pattern = re.compile(r'^/[A-Za-z0-9_./*%-]{0,255}$')
@@ -103,7 +103,7 @@ jobs:
           if config is not None:
               inspect(config)
               report['proxyMetadata'] = {'status': 'available', 'routes': routes}
-          
+
           def probe(url, host=None):
               record = {'url': url}
               if host: record['host'] = host

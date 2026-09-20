@@ -218,6 +218,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/fieldgrid-environment-isolation-preflight.mjs --validate --require-migration-database
+          node scripts/fieldgrid-production-runtime-handoff.mjs
           node --input-type=module -e '
             import { validateProductionRuntimeConfig } from "./scripts/fieldgrid-w00-runtime-principal.mjs";
             validateProductionRuntimeConfig(process.env);
@@ -387,6 +388,7 @@ jobs:
           FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
         run: |
           set -euo pipefail
+          node scripts/fieldgrid-production-runtime-handoff.mjs
           node scripts/fieldgrid-w00-runtime-principal.mjs --apply
           node scripts/fieldgrid-w00-runtime-principal-gate.mjs --strict \
             > "$RUNNER_TEMP/fieldgrid-production-evidence-$GITHUB_RUN_ID/runtime-principal.json"

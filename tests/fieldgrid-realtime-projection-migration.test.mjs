@@ -12,6 +12,7 @@ import { verifyTenantManagementAuthorization } from "./runtime/fieldgrid-tenant-
 import { verifyPolicyIdentityDiagnostic } from "./runtime/fieldgrid-policy-identity-diagnostic.test.mjs";
 import { verifyTenantManagementPolicyRepair } from "./runtime/fieldgrid-tenant-management-policy-repair.test.mjs";
 import { verifyTenantManagementPolicyDrift } from "./runtime/fieldgrid-tenant-management-policy-drift.test.mjs";
+import { verifyHostedPolicyCompatibility } from "./runtime/fieldgrid-hosted-policy-compatibility.test.mjs";
 import { FIXTURE } from "../scripts/fieldgrid-runtime-safety-lib.mjs";
 import { applyExactPlatformPrivilegePrerequisiteMigrations } from "../scripts/fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import {
@@ -69,6 +70,7 @@ test(
       verifyTenantManagementPolicyRepair);
     await context.test("policy drift diagnosis on disposable PostgreSQL",
       verifyTenantManagementPolicyDrift);
+    await context.test("hosted provider compatibility on disposable PostgreSQL", verifyHostedPolicyCompatibility);
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: false,

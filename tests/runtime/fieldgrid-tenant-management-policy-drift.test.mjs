@@ -525,6 +525,8 @@ export async function verifyTenantManagementPolicyDrift(context) {
         await client.query("DROP POLICY object_personnel_management ON public.object_personnel");
         await client.query(originalPersonnelPolicy);
         await client.query(historicalOwnUpdate);
+        await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1",
+          ["20260920131458_reconcile_hosted_policy_contract.sql"]);
         assert.equal((await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [migrationNames[2]])).rowCount, 1);
         await client.query("COMMIT");
       } catch (error) {

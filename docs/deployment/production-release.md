@@ -21,6 +21,12 @@ The four existing services are `veele-production`, `veele-production-personeel`,
 
 Generate credentials locally in memory and pass them to `gh secret set --env production NAME` over standard input using a subprocess. Do not put passwords in workflow inputs, shell command arguments, console output, artifacts, documentation or Git. Setting runtime secrets alone does not rotate the live database role; the deploy provisions it after migrations and verifies its exact capabilities before activation.
 
+Ordinary deployments reject a changed password when the active release already
+uses the same production runtime role. This is checked before building and again
+immediately before provisioning, so the previous release and its rollback
+environment remain usable. The initial transition from a legacy administrator
+connection is allowed because provisioning does not alter that administrator.
+
 ## Rehearsal and release
 
 1. Dispatch `Fieldgrid Production Deploy` on `main` with `operation=preflight`, the full `expected_main_sha`, and `confirmation=production-backup-rehearsal-only-v1`. No staging run ID is needed for rehearsal. The workflow makes a private backup, restores it to an isolated local PostgreSQL instance, applies migrations, and checks migration idempotence. Private backups remain under `/var/www/veele/production/shared/preflight-backups`; only the bounded JSON report is uploaded. The legacy release is diagnosed without modifying its marker.

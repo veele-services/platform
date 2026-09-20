@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
+import { HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED } from "./hosted-policy-compatibility-identity";
 import { loadDbRuntimeEnv } from "./runtime-env";
 import { databaseConnectionConfig } from "./database-environment";
 import {
@@ -468,12 +469,21 @@ async function sqlMigrationIsRecorded(
   client: pg.Client,
   migration: SqlMigration,
 ): Promise<boolean> {
-  const existing = await client.query<{ hash: string }>(
-    `select hash from ${drizzleSchema}.${sqlMigrationsTable} where name = $1`,
+  const existing = await client.query<{ hash: string; baselined: boolean }>(
+    `select hash, baselined from ${drizzleSchema}.${sqlMigrationsTable} where name = $1`,
     [migration.name],
   );
 
   if (existing.rows.length > 0) {
+    if (migration.name === HOSTED_POLICY_SUPERSEDED.name && existing.rows[0]?.baselined) {
+      const compatibilityPath = new URL("../../../scripts/fieldgrid-hosted-policy-compatibility.mts", import.meta.url).href;
+      const { runHostedPolicyCompatibility } = await import(compatibilityPath) as {
+        runHostedPolicyCompatibility(client: pg.Client, operation: "diagnose"): Promise<{ replacementRecorded: boolean }>;
+      };
+      if (!(await runHostedPolicyCompatibility(client, "diagnose")).replacementRecorded) {
+        throw new Error("Hosted policy compatibility baseline has no verified replacement.");
+      }
+    }
     const recordedHash = existing.rows[0]?.hash;
     const hashState = recordedHash
       ? sqlMigrationHashState(migration.name, migration.hash, recordedHash)
@@ -532,6 +542,22 @@ async function runSqlMigrations(
     if (await sqlMigrationIsRecorded(client, migration)) {
       console.log(`[db:migrate] SQL skipped: ${migration.name}`);
       continue;
+    }
+
+    // An immutable historical repair assumed a provider-owned direct ACL that
+    // hosted Supabase no longer supplies. The exact replacement narrows app
+    // permissions, preserves auth helpers and journals its supersession honestly.
+    if (["20260914125400_reconcile_legacy_global_rbac_policies.sql", HOSTED_POLICY_SUPERSEDED.name].includes(migration.name) &&
+        migrations.some((entry) => entry.name === HOSTED_POLICY_REPLACEMENT.name && entry.hash === HOSTED_POLICY_REPLACEMENT.hash)) {
+      const compatibilityPath = new URL("../../../scripts/fieldgrid-hosted-policy-compatibility.mts", import.meta.url).href;
+      const { runHostedPolicyCompatibility } = await import(compatibilityPath) as {
+        runHostedPolicyCompatibility(client: pg.Client, operation: "apply", name: string): Promise<{ changed: boolean }>;
+      };
+      const compatibility = await runHostedPolicyCompatibility(client, "apply", migration.name);
+      if (compatibility.changed) {
+        console.log(`[db:migrate] SQL exact hosted-policy compatibility applied: ${HOSTED_POLICY_REPLACEMENT.name}`);
+        continue;
+      }
     }
 
     const skipReason = await compatibilitySkipReason(client, migration);
