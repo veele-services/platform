@@ -159,11 +159,14 @@ function assertSafeFailure(error, suffix) {
 }
 
 export async function verifyTenantManagementPolicyDrift(context) {
-  const { readTenantManagementPolicyDriftDiagnostic } = await tsImport(
+  const { readTenantManagementPolicyDriftDiagnostic, loadTenantManagementPolicyDriftDiagnosticSource } = await tsImport(
     "../../scripts/fieldgrid-tenant-management-policy-drift-diagnostic.mts", import.meta.url,
   );
   const { readTenantManagementPolicyRepairReadiness } = await tsImport(
     "../../scripts/fieldgrid-tenant-management-policy-repair-contract.mts", import.meta.url,
+  );
+  const { runTenantManagementAuthorization } = await tsImport(
+    "../../scripts/fieldgrid-staging-tenant-management-authorization.mts", import.meta.url,
   );
   const diagnose = async (client, afterRead) => {
     const before = await fullSnapshot(client);
@@ -402,6 +405,140 @@ export async function verifyTenantManagementPolicyDrift(context) {
       await assert.rejects(diagnose(client), (error) => {
         assert.equal(error.message.includes("synthetic-unsafe-policy"), false);
         return assertSafeFailure(error, "catalog_invalid");
+      });
+    }),
+  );
+
+  const migrationNames = [
+    "20260914125400_reconcile_legacy_global_rbac_policies.sql",
+    "20260914125503_scope_tenant_management_authorization.sql",
+    "20260919220633_repair_tenant_management_policy_consumers.sql",
+  ];
+  const driftSql = loadTenantManagementPolicyDriftDiagnosticSource().sql;
+  const assertRunnerDiagnosesAndBlocks = async (client, {
+    repairRecorded = true, scopeMatches = true, inspectDetails,
+  }) => {
+    const before = await fullSnapshot(client);
+    const searchPath = (await client.query("SHOW search_path")).rows;
+    const readJournal = async () => (await client.query(`SELECT name,hash,baselined
+      FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[]) ORDER BY name`, [migrationNames])).rows;
+    const journal = await readJournal();
+    const recordedNames = repairRecorded ? migrationNames : migrationNames.slice(0, 2);
+    assert.deepEqual(journal.map(({ name }) => name), recordedNames);
+    assert.equal(journal.every(({ hash, baselined }) => /^[a-f0-9]{64}$/u.test(hash) && baselined === false), true);
+
+    const statements = [];
+    const snapshots = [];
+    const transactionState = async () => (await client.query(`SELECT
+      pg_catalog.current_setting('transaction_read_only')='on' AS readonly,
+      pg_catalog.current_setting('transaction_isolation')='repeatable read' AS repeatable,
+      pg_catalog.pg_current_snapshot()::text AS snapshot`)).rows[0];
+    const queryable = { async query(sql, values) {
+      statements.push(sql);
+      const result = await client.query(sql, values);
+      if (sql === "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY" || sql === driftSql) {
+        snapshots.push(await transactionState());
+      }
+      return result;
+    } };
+    const diagnosed = await runTenantManagementAuthorization(queryable, "diagnose");
+    assert.equal(diagnosed.result, "diagnosed");
+    assert.equal(diagnosed.state, "unknown-state");
+    assert.equal(diagnosed.migrationRecorded, repairRecorded);
+    assert.equal(diagnosed.scopeMigrationRecorded, true);
+    assert.equal(diagnosed.repairMigrationRecorded, repairRecorded);
+    assert.equal(diagnosed.contractVerified, false);
+    assert.equal(diagnosed.readyForApply, false);
+    assert.equal(diagnosed.readyForPrerequisiteRepair, false);
+    assert.equal(diagnosed.repairReadiness.dependenciesValid, false);
+    assert.deepEqual(diagnosed.catalogChecks, {
+      scopeContractMatches: scopeMatches,
+      scopeCatalogMatches: scopeMatches,
+      repairCatalogMatches: false,
+    });
+    assert.ok(diagnosed.driftDiagnostic);
+    assert.equal(diagnosed.driftDiagnostic.transactionReadOnly, true);
+    assert.equal(diagnosed.driftDiagnostic.repeatableRead, true);
+    assert.equal(diagnosed.driftDiagnostic.postgresMajor, 17);
+    assert.equal(diagnosed.driftDiagnostic.searchPathMatches, true);
+    assert.equal(JSON.stringify(diagnosed).includes(canary), false);
+    assert.equal(snapshots.length, 2);
+    assert.equal(snapshots[0].readonly, true);
+    assert.equal(snapshots[0].repeatable, true);
+    assert.deepEqual(snapshots[1], snapshots[0]);
+    assert.equal(statements.includes("ROLLBACK"), true);
+    assert.equal(statements.includes("COMMIT"), false);
+    inspectDetails(diagnosed.driftDiagnostic);
+    assert.deepEqual(await readJournal(), journal);
+    assert.deepEqual((await client.query("SHOW search_path")).rows, searchPath);
+    assert.deepEqual(await fullSnapshot(client), before);
+
+    statements.length = 0;
+    await assert.rejects(runTenantManagementAuthorization(queryable, "apply"), { message: "catalog_invalid" });
+    assert.equal(statements.some((sql) => /\bWITH\s+access_pairs\s+AS\b/u.test(sql)), false,
+      "inconsistent recorded catalogs must be refused before reading impact");
+    assert.equal(statements.includes(driftSql), false);
+    assert.equal(statements.some((sql) => /^\s*(?:DO|CREATE|ALTER|DROP|INSERT|UPDATE|DELETE)\b/imu.test(sql)), false,
+      "refused apply must execute no migration or journal mutation");
+    assert.equal(statements.includes("ROLLBACK"), true);
+    assert.equal(statements.includes("COMMIT"), false);
+    assert.deepEqual(await readJournal(), journal);
+    assert.deepEqual((await client.query("SHOW search_path")).rows, searchPath);
+    assert.deepEqual(await fullSnapshot(client), before);
+    assert.equal((await client.query(`SELECT count(*)::int AS count FROM pg_catalog.pg_locks
+      WHERE pid=pg_catalog.pg_backend_pid() AND locktype='advisory'`)).rows[0].count, 0);
+  };
+
+  for (const [label, mutation, scopeMatches, inspectDetails] of [
+    ["policy", "ALTER POLICY object_contacts_management ON public.object_contacts USING (false)", true,
+      (details) => {
+        assert.equal(variant(details).policySetMatches, false);
+        assertComponentBooleans(policy(details), ["usingMatches"]);
+      }],
+    ["helper", "ALTER FUNCTION public.customer_has_access(uuid,uuid) SET search_path=pg_catalog", true,
+      (details) => {
+        assert.equal(variant(details).helperContractsMatch, false);
+        assertComponentBooleans(helper(details), ["configMatches"]);
+      }],
+    ["scope wrapper", "ALTER FUNCTION public.is_management_for_tenant(uuid) SET search_path=pg_catalog,public", false,
+      (details) => {
+        // This wrapper belongs to the separate scope contract. Its failure must
+        // remain explicit even when all policy-manifest components still match.
+        assert.equal(variant(details).policySetMatches, true);
+        assert.equal(variant(details).helperContractsMatch, true);
+        assert.equal(variant(details).relationsMatch, true);
+      }],
+  ]) {
+    await context.test(`fully recorded ${label} drift is diagnosed by the runner and apply remains blocked`, () =>
+      withClonedDatabase(async (client) => {
+        await client.query(mutation);
+        await assertRunnerDiagnosesAndBlocks(client, { scopeMatches, inspectDetails });
+      }),
+    );
+  }
+
+  await context.test("an installed clean pair with a pending repair and historical extra stays diagnosable but cannot apply", () =>
+    withClonedDatabase(async (client) => {
+      await client.query("BEGIN");
+      try {
+        await client.query("DROP POLICY owner_or_staff_read_payments ON public.payments");
+        await client.query("DROP POLICY object_personnel_management ON public.object_personnel");
+        await client.query(originalPersonnelPolicy);
+        await client.query(historicalOwnUpdate);
+        assert.equal((await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=$1", [migrationNames[2]])).rowCount, 1);
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
+      await assertRunnerDiagnosesAndBlocks(client, {
+        repairRecorded: false,
+        inspectDetails: (details) => {
+          assert.equal(details.exactHistoricalOwnUpdateMatches, true);
+          assert.equal(variant(details, "clean").policySetMatches, false);
+          assert.equal(variant(details, "clean").baselinePlusHistoricalOwnUpdateSetMatches, true);
+          assert.deepEqual(variant(details, "clean").unexpectedPolicies, [historicalPolicyIdentity]);
+        },
       });
     }),
   );

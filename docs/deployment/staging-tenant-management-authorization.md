@@ -50,6 +50,16 @@ bedrijfsrijen verlaten de database niet. Onverwachte policy-identities blijven
 begrensd tot tien, met strikte identifiercontrole; overschrijding blokkeert de
 diagnose in plaats van een afgekapt rapport op te leveren.
 
+Ook wanneer het journal de scope- of repairmigratie al registreert, geeft een
+geldige maar afwijkende catalogus bij `diagnose` een `unknown-state` met deze
+details. `catalogChecks` toont afzonderlijk de bestaande scopecontract-,
+scopecatalogus- en repaircataloguscontrole. De journalvlaggen behouden hun
+werkelijke waarden; `contractVerified` en beide readinessvlaggen blijven
+onwaar. `apply` weigert diezelfde afwijking nog steeds met `catalog_invalid`,
+vóór migratie-SQL of journalwrites. Ongeldige history, niet-booleaanse of
+tegenstrijdige vergelijkingsresultaten en databasefouten blijven harde fouten,
+ook bij diagnose.
+
 De historische bron `migrations/015_pwa_rls_policies.sql` bevat daarnaast
 `personnel_update_own_phone`, die in de oorspronkelijke manifesten ontbreekt.
 De detaildiagnose vergelijkt deze concrete brondefinitie en de volledige set

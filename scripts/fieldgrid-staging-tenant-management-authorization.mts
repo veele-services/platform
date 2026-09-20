@@ -359,6 +359,7 @@ export type AuthorizationResult = {
   readyForPrerequisiteRepair: boolean;
   repairReadiness: RepairReadiness;
   impact: AuthorizationImpact;
+  catalogChecks?: { scopeContractMatches: boolean; scopeCatalogMatches: boolean; repairCatalogMatches: boolean };
   driftDiagnostic?: TenantManagementPolicyDriftDiagnostic;
 };
 
@@ -450,29 +451,29 @@ export async function runTenantManagementAuthorization(
     stage = "catalog_invalid";
     const scopeInstalled = contractBoolean(await dependencies.verifyScopeContract(queryable));
     const scopeCatalog = contractBoolean(await dependencies.verifyScopeCatalog(queryable));
-    if (scopeInstalled !== scopeRecorded || scopeCatalog !== scopeRecorded) throw new AuthorizationError(stage);
     const readiness = repairReadiness(await dependencies.readRepairReadiness(queryable));
     const repairCanonical = contractBoolean(await dependencies.verifyRepairCatalog(queryable));
-    if (repairCanonical !== readiness.targetDefinitionMatches) throw new AuthorizationError(stage);
     // A clean sorted installation reaches the repair after the historical pair.
     // An installed scope never makes reintroduced legacy policies repairable.
-    if (scopeRecorded && (!readiness.dependenciesValid ||
-        (!readiness.cleanDefinitionMatches && !repairCanonical) ||
-        (repairRecorded && !repairCanonical))) throw new AuthorizationError(stage);
+    const catalogConsistent = scopeInstalled === scopeRecorded && scopeCatalog === scopeRecorded &&
+      repairCanonical === readiness.targetDefinitionMatches && (!scopeRecorded ||
+        (readiness.dependenciesValid && (readiness.cleanDefinitionMatches || repairCanonical) &&
+          (!repairRecorded || repairCanonical)));
+    if (!catalogConsistent && operation === "apply") throw new AuthorizationError(stage);
     stage = "impact_invalid";
     const before = sanitizeTenantManagementAuthorizationImpact(await dependencies.readImpact(queryable));
     const preserved = before.missing_pairs === 0 && before.preserved_pairs === before.legacy_pairs;
     stage = "catalog_invalid";
-    const rawScopeReady = scopeRecorded ? false : await scopeReadiness(queryable, dependencies);
-    const readyForApply = !scopeRecorded && preserved && readiness.dependenciesValid &&
+    const rawScopeReady = scopeRecorded || !catalogConsistent ? false : await scopeReadiness(queryable, dependencies);
+    const readyForApply = catalogConsistent && !scopeRecorded && preserved && readiness.dependenciesValid &&
       repairCanonical && rawScopeReady;
     const acceptedRepairDefinition = scopeRecorded
       ? readiness.cleanDefinitionMatches || readiness.targetDefinitionMatches
       : readiness.legacyDefinitionMatches || readiness.targetDefinitionMatches;
-    const readyForPrerequisiteRepair = !repairRecorded && readiness.dependenciesValid &&
+    const readyForPrerequisiteRepair = catalogConsistent && !repairRecorded && readiness.dependenciesValid &&
       acceptedRepairDefinition && (scopeRecorded || preserved);
-    const installed = scopeInstalled && repairCanonical && repairRecorded;
-    const state: AuthorizationState = !readiness.dependenciesValid ||
+    const installed = catalogConsistent && scopeInstalled && repairCanonical && repairRecorded;
+    const state: AuthorizationState = !catalogConsistent || !readiness.dependenciesValid ||
       (!readiness.legacyDefinitionMatches && !readiness.cleanDefinitionMatches && !readiness.targetDefinitionMatches)
       ? "unknown-state" : installed ? "canonical-state"
       : readiness.cleanDefinitionMatches ? "clean-state"
@@ -485,12 +486,16 @@ export async function runTenantManagementAuthorization(
     if (operation === "diagnose" || pending.length === 0) {
       // Even apply/already-applied is a non-mutating postcheck.
       const diagnosed = result(operation === "diagnose" ? "diagnosed" : "already-applied");
-      if (operation === "diagnose" && state === "unknown-state" && dependencies.readDriftDiagnostic) {
+      if (operation === "diagnose" && state === "unknown-state") {
         // Explain only an already-blocked state, in the same read-only snapshot.
         // These observations never participate in either readiness decision.
-        diagnosed.driftDiagnostic = sanitizeTenantManagementPolicyDriftDiagnostic(
-          await dependencies.readDriftDiagnostic(queryable),
-        );
+        diagnosed.catalogChecks = { scopeContractMatches: scopeInstalled,
+          scopeCatalogMatches: scopeCatalog, repairCatalogMatches: repairCanonical };
+        if (dependencies.readDriftDiagnostic) {
+          diagnosed.driftDiagnostic = sanitizeTenantManagementPolicyDriftDiagnostic(
+            await dependencies.readDriftDiagnostic(queryable),
+          );
+        }
       }
       await queryable.query("ROLLBACK");
       transactionStarted = false;
