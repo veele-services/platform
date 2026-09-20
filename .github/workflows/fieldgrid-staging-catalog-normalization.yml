@@ -109,7 +109,7 @@ jobs:
           set -euo pipefail
           pnpm --filter @workspace/db exec tsc --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --allowImportingTsExtensions --esModuleInterop --skipLibCheck --strict --types node ../../scripts/fieldgrid-staging-catalog-normalization.mts
           pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-staging-catalog-normalization.mts --check
-          pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-staging-catalog-normalization.test.ts
+          pnpm --filter @workspace/db exec tsx --test ../../tests/domain/fieldgrid-staging-catalog-normalization.test.ts ../../tests/domain/fieldgrid-hosted-policy-personnel-path.test.ts
           node --test tests/security/fieldgrid-staging-catalog-normalization-source.test.mjs
 
       - name: Install exact pinned database root certificate

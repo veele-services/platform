@@ -13,6 +13,48 @@ import { loadTenantManagementPolicyRepairSource, policyRepairReadinessSql, valid
 const lockKey = "fieldgrid:database-migrations:v1";
 const reconciliation = "20260914125400_reconcile_legacy_global_rbac_policies.sql";
 type MigrationRecord = { name: string; hash: string; baselined: boolean; appliedAt: string };
+const personnelPathKeys = ["legacyPolicyExists", "anonTableUpdate", "anonColumnUpdate",
+  "authenticatedTableUpdate", "authenticatedColumnUpdate", "runtimeSelect", "runtimeUpdate",
+  "runtimeRoleRestricted"] as const;
+export type HostedPolicyPersonnelPath = Record<typeof personnelPathKeys[number], boolean>;
+
+// Observe the immutable replacement's personnel closure guard without exposing
+// role members, policy expressions, row data or connection details. Resolve OIDs
+// first so a missing runtime role reports false rather than a driver exception.
+export const HOSTED_POLICY_PERSONNEL_PATH_SQL = `SELECT
+  EXISTS (SELECT 1 FROM pg_catalog.pg_policy
+    WHERE polrelid = pg_catalog.to_regclass('public.personnel')
+      AND polname = 'personnel_update_own_phone') AS "legacyPolicyExists",
+  coalesce(pg_catalog.has_table_privilege(pg_catalog.to_regrole('anon')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'UPDATE'), false) AS "anonTableUpdate",
+  coalesce(pg_catalog.has_any_column_privilege(pg_catalog.to_regrole('anon')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'UPDATE'), false) AS "anonColumnUpdate",
+  coalesce(pg_catalog.has_table_privilege(pg_catalog.to_regrole('authenticated')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'UPDATE'), false) AS "authenticatedTableUpdate",
+  coalesce(pg_catalog.has_any_column_privilege(pg_catalog.to_regrole('authenticated')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'UPDATE'), false) AS "authenticatedColumnUpdate",
+  coalesce(pg_catalog.has_table_privilege(pg_catalog.to_regrole('fieldgrid_runtime_app')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'SELECT'), false) AS "runtimeSelect",
+  coalesce(pg_catalog.has_table_privilege(pg_catalog.to_regrole('fieldgrid_runtime_app')::oid,
+    pg_catalog.to_regclass('public.personnel')::oid, 'UPDATE'), false) AS "runtimeUpdate",
+  EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'fieldgrid_runtime_app'
+    AND NOT rolsuper AND NOT rolbypassrls) AS "runtimeRoleRestricted"`;
+
+export async function readHostedPolicyPersonnelPath(queryable: AuthorizationQueryable) {
+  const result = await queryable.query<HostedPolicyPersonnelPath>(HOSTED_POLICY_PERSONNEL_PATH_SQL);
+  const row = result.rows[0];
+  if (result.rows.length !== 1 || !row || Object.keys(row).length !== personnelPathKeys.length ||
+      personnelPathKeys.some((key) => typeof row[key] !== "boolean")) {
+    throw new Error("hosted_policy_personnel_diagnostic_invalid");
+  }
+  const personnelPath = Object.fromEntries(personnelPathKeys.map((key) => [key, row[key]])) as HostedPolicyPersonnelPath;
+  const closed = !personnelPath.legacyPolicyExists || (!personnelPath.anonTableUpdate &&
+    !personnelPath.anonColumnUpdate && !personnelPath.authenticatedTableUpdate &&
+    !personnelPath.authenticatedColumnUpdate && personnelPath.runtimeSelect &&
+    personnelPath.runtimeUpdate && personnelPath.runtimeRoleRestricted);
+  return { ...personnelPath, closed };
+}
+
 export function loadHostedPolicyCompatibilitySource() {
   const sql = readFileSync(new URL(`../lib/db/migrations/${HOSTED_POLICY_REPLACEMENT.name}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
   if (createHash("sha256").update(sql).digest("hex") !== HOSTED_POLICY_REPLACEMENT.hash) throw new Error("hosted_policy_source_invalid");
@@ -70,14 +112,16 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
     const state = result.rows[0];
     if (result.rows.length !== 1 || !state || Object.keys(state).length !== 4 ||
         Object.values(state).some((value) => typeof value !== "boolean")) throw new Error("hosted_policy_catalog_invalid");
+    const personnelPath = await readHostedPolicyPersonnelPath(queryable);
     const replacementRecorded = records.some((record) => record.name === source.name && record.hash === source.hash && !record.baselined);
     if (replacementRecorded && (!await verifyTenantManagementScopeContract(queryable) ||
         !await verifyTenantManagementPolicyRepairCatalog(queryable))) {
       throw new Error("hosted_policy_postcondition_failed");
     }
-    const ready = state.dependenciesValid === true && pending.length > 0 && !replacementRecorded &&
+    const personnelPathReady = !(state.legacyDefinitionMatches || state.cleanDefinitionMatches) || personnelPath.closed;
+    const ready = state.dependenciesValid === true && personnelPathReady && pending.length > 0 && !replacementRecorded &&
       (!candidateName || candidateName === pending[0]?.name);
-    const diagnosis = { ready, replacementRecorded, pendingCount: pending.length, state, changed: false };
+    const diagnosis = { ready, replacementRecorded, pendingCount: pending.length, state, personnelPath, changed: false };
     if (operation === "diagnose" || !ready) {
       await queryable.query("ROLLBACK"); transaction = false;
       return diagnosis;

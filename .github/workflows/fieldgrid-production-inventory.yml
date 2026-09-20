@@ -7,6 +7,10 @@ on:
         description: Exact reviewed main SHA
         required: true
         type: string
+      preflight_run_id:
+        description: Optional failed private rehearsal run for bounded diagnostic categories
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -125,6 +129,15 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --prod=false
 
+      - name: Inspect persistent proxy configuration capabilities without secrets
+        run: python3 -B scripts/fieldgrid-production-proxy-inventory.py > "$RUNNER_TEMP/fieldgrid-production-proxy-capabilities.json"
+
+      - name: Classify private rehearsal failure without exposing logs
+        if: inputs.preflight_run_id != ''
+        env:
+          PREFLIGHT_RUN_ID: ${{ inputs.preflight_run_id }}
+        run: node scripts/fieldgrid-production-private-diagnostics.mjs --run-id "$PREFLIGHT_RUN_ID" > "$RUNNER_TEMP/fieldgrid-production-private-diagnostics.json"
+
       - name: Install pinned database certificate
         env:
           FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
@@ -153,6 +166,8 @@ jobs:
             ${{ runner.temp }}/fieldgrid-deployment-inventory.json
             ${{ runner.temp }}/fieldgrid-production-routing.json
             ${{ runner.temp }}/fieldgrid-deployment-db-inventory.json
+            ${{ runner.temp }}/fieldgrid-production-proxy-capabilities.json
+            ${{ runner.temp }}/fieldgrid-production-private-diagnostics.json
           if-no-files-found: error
           retention-days: 3
 
