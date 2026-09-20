@@ -26,6 +26,7 @@ import {
   REQUIRED_SECRET_NAMES,
   REQUIRED_VARIABLE_NAMES,
   ROLLBACK_RECOVERY_PROOF_VERSION,
+  ROLLBACK_RECOVERY_MAX_AGE_MS,
   TENANT_USER_ROLE_CONSTRAINT_PROOF_VERSION,
   TENANT_USER_ROLE_CONSTRAINT_READINESS_QUERY,
   TENANT_USER_ROLE_CONSTRAINT_READINESS_VERSION,
@@ -50,6 +51,7 @@ import {
   sanitizePublicUrl,
   validateCustomCandidateConfig,
   validateRollbackDeployDiagnostics,
+  validateRollbackRecoveryTimestamp,
   validateRuntimeConfig,
   verifyRollbackDeployRecovery,
 } from "../scripts/fieldgrid-phase2e-staging-preflight.mjs";
@@ -391,6 +393,106 @@ test("legacy bootstrap rollback diagnostics is accepted only by its pinned run a
   );
 });
 
+test("only the complete immutable legacy incident may outlive the recovery age limit", () => {
+  const nowMs = Date.parse("2026-09-20T12:00:00.000Z");
+  const historical = "2026-09-08T06:11:53.000Z";
+  const identity = {
+    nowMs,
+    deployRunId: KNOWN_LEGACY_ROLLBACK_RECOVERY.runId,
+    expectedGitStagingSha: KNOWN_LEGACY_ROLLBACK_RECOVERY.failedReleaseSha,
+    expectedActiveStagingReleaseSha: KNOWN_LEGACY_ROLLBACK_RECOVERY.restoredReleaseSha,
+    artifactId: KNOWN_LEGACY_ROLLBACK_RECOVERY.artifactId,
+    diagnosticsSha256: KNOWN_LEGACY_ROLLBACK_RECOVERY.diagnosticsSha256,
+    schemaVersion: LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
+  };
+  assert.equal(validateRollbackRecoveryTimestamp(historical, identity), true);
+  for (const [key, replacement] of [
+    ["deployRunId", "12345"],
+    ["expectedGitStagingSha", "a".repeat(40)],
+    ["expectedActiveStagingReleaseSha", "b".repeat(40)],
+    ["artifactId", KNOWN_LEGACY_ROLLBACK_RECOVERY.artifactId + 1],
+    ["diagnosticsSha256", "0".repeat(64)],
+    ["schemaVersion", DEPLOY_HEALTH_EVIDENCE_VERSION],
+  ]) {
+    assert.equal(validateRollbackRecoveryTimestamp(historical, {
+      ...identity, [key]: replacement,
+    }), false, key);
+    assert.equal(validateRollbackRecoveryTimestamp(historical, {
+      ...identity, [key]: undefined,
+    }), false, `missing ${key}`);
+  }
+  const ordinary = { ...identity, deployRunId: "12345" };
+  assert.equal(validateRollbackRecoveryTimestamp(
+    new Date(nowMs - ROLLBACK_RECOVERY_MAX_AGE_MS).toISOString(), ordinary,
+  ), true);
+  assert.equal(validateRollbackRecoveryTimestamp(
+    new Date(nowMs - ROLLBACK_RECOVERY_MAX_AGE_MS - 1).toISOString(), ordinary,
+  ), false);
+  for (const value of [undefined, null, "invalid", new Date(nowMs + 300_001).toISOString()]) {
+    assert.equal(validateRollbackRecoveryTimestamp(value, identity), false);
+    assert.equal(validateRollbackRecoveryTimestamp(value, ordinary), false);
+  }
+  assert.equal(validateRollbackRecoveryTimestamp(historical, { ...identity, nowMs: Infinity }), false);
+});
+
+test("historical recovery still rejects replaced content, expired artifacts and invalid server identity", async () => {
+  const pinned = KNOWN_LEGACY_ROLLBACK_RECOVERY;
+  const nowMs = Date.parse("2026-09-20T12:00:00.000Z");
+  const historical = "2026-09-08T06:11:53.000Z";
+  const options = {
+    deployRunId: pinned.runId,
+    expectedGitStagingSha: pinned.failedReleaseSha,
+    expectedActiveStagingReleaseSha: pinned.restoredReleaseSha,
+    baseDir: "/var/www/veele/staging", tempDir: "/tmp", nowMs,
+  };
+  function fixture() {
+    const run = { id: Number(pinned.runId), name: "Deploy VEELE", path: ".github/workflows/deploy.yml",
+      event: "push", head_branch: "staging", head_sha: pinned.failedReleaseSha,
+      status: "completed", conclusion: "failure", run_attempt: 1, updated_at: historical };
+    const job = { name: "deploy", status: "completed", conclusion: "failure",
+      steps: [["Activate staging release", "success"], ["Run staging deploy health gate", "failure"],
+        ["Collect staging deploy diagnostics", "success"], ["Upload staging deploy diagnostics", "success"]]
+        .map(([name, conclusion]) => ({ name, status: "completed", conclusion })) };
+    const artifact = { id: pinned.artifactId, name: `fieldgrid-staging-deploy-diagnostics-${pinned.runId}`,
+      expired: false, size_in_bytes: 500, updated_at: historical,
+      workflow_run: { id: Number(pinned.runId), head_branch: "staging", head_sha: pinned.failedReleaseSha } };
+    const report = rollbackDeployDiagnostics({ failedSha: pinned.failedReleaseSha, activeSha: pinned.restoredReleaseSha });
+    let downloads = 0;
+    const verify = () => verifyRollbackDeployRecovery(options, {}, {
+      githubApiJson: async (path) => path.endsWith("/jobs?per_page=100") ? { jobs: [job] }
+        : path.endsWith("/artifacts?per_page=100") ? { artifacts: [artifact] } : run,
+      downloadRollbackDiagnostics: async () => { downloads++; return Buffer.from(JSON.stringify(report)); },
+    });
+    return { run, job, artifact, report, verify, downloads: () => downloads };
+  }
+  // A versioned replacement passes ordinary schema checks but cannot borrow
+  // this old run's age exception. Unversioned modified bytes fail the hash pin.
+  const versioned = fixture();
+  await assert.rejects(versioned.verify, /stale and is not the pinned historical incident/u);
+  assert.equal(versioned.downloads(), 1);
+  const modified = fixture();
+  delete modified.report.version;
+  await assert.rejects(modified.verify, /pinned bootstrap recovery/u);
+  assert.equal(modified.downloads(), 1);
+  for (const mutate of [
+    (f) => { f.run.head_sha = "a".repeat(40); },
+    (f) => { f.run.event = "workflow_dispatch"; },
+    (f) => { f.run.updated_at = "invalid"; },
+    (f) => { f.run.updated_at = new Date(nowMs + 300_001).toISOString(); },
+    (f) => { f.job.steps[0].conclusion = "skipped"; },
+    (f) => { f.artifact.id++; },
+    (f) => { f.artifact.expired = true; },
+    (f) => { f.artifact.workflow_run.head_sha = "a".repeat(40); },
+    (f) => { f.artifact.updated_at = "invalid"; },
+    (f) => { f.artifact.updated_at = new Date(nowMs + 300_001).toISOString(); },
+  ]) {
+    const candidate = fixture();
+    mutate(candidate);
+    await assert.rejects(candidate.verify, /failed staging release|activation, failure|missing, expired or stale/u);
+    assert.equal(candidate.downloads(), 0);
+  }
+});
+
 test("rollback recovery proof binds GitHub run, job and diagnostics artifact", async () => {
   const activeSha = "c".repeat(40);
   const runId = "12345";
@@ -458,7 +560,7 @@ test("rollback recovery proof binds GitHub run, job and diagnostics artifact", a
       },
     ],
   ]);
-  const proof = await verifyRollbackDeployRecovery(
+  const verify = () => verifyRollbackDeployRecovery(
     {
       deployRunId: runId,
       expectedGitStagingSha: stagingSha,
@@ -476,6 +578,7 @@ test("rollback recovery proof binds GitHub run, job and diagnostics artifact", a
       downloadRollbackDiagnostics: async () => reportBytes,
     },
   );
+  const proof = await verify();
 
   assert.equal(proof.version, ROLLBACK_RECOVERY_PROOF_VERSION);
   assert.equal(proof.deployRun.apiVerified, true);
@@ -485,27 +588,16 @@ test("rollback recovery proof binds GitHub run, job and diagnostics artifact", a
     createHash("sha256").update(reportBytes).digest("hex"),
   );
 
+  for (const target of [apiPayloads.get(`/actions/runs/${runId}`),
+    apiPayloads.get(`/actions/runs/${runId}/artifacts?per_page=100`).artifacts[0]]) {
+    const original = target.updated_at;
+    target.updated_at = new Date(nowMs - ROLLBACK_RECOVERY_MAX_AGE_MS - 1).toISOString();
+    await assert.rejects(verify, /failed staging release|missing, expired or stale/u);
+    target.updated_at = original;
+  }
   apiPayloads.get(`/actions/runs/${runId}`).event = "push";
   await assert.rejects(
-    () =>
-      verifyRollbackDeployRecovery(
-        {
-          deployRunId: runId,
-          expectedGitStagingSha: stagingSha,
-          expectedActiveStagingReleaseSha: activeSha,
-          baseDir: "/var/www/veele/staging",
-          tempDir: "/tmp",
-          nowMs,
-        },
-        {
-          GITHUB_REPOSITORY: "veele-services/platform",
-          GITHUB_TOKEN: "test-token",
-        },
-        {
-          githubApiJson: async (path) => apiPayloads.get(path),
-          downloadRollbackDiagnostics: async () => reportBytes,
-        },
-      ),
+    verify,
     /does not prove the exact failed staging release/u,
   );
 });

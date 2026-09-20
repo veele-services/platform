@@ -7,7 +7,7 @@ import {
   randomBytes,
 } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -269,18 +269,69 @@ export function assertStagingBindings(
   }
 }
 
-export function assertExactCheckoutSha(env) {
+export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
   const expectedSha = requireEnv(env, "FIELDGRID_RUNTIME_EXPECTED_SHA");
   if (!/^[0-9a-f]{40}$/u.test(expectedSha)) {
     throw new Error("FIELDGRID_RUNTIME_EXPECTED_SHA must be a full commit SHA.");
   }
-  const actualSha = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  }).trim();
-  if (actualSha !== expectedSha) {
-    throw new Error("Runtime provisioning checkout does not match the exact SHA.");
+  const sourceRoot = realpathSync(root);
+  const gitEntry = lstatSync(path.join(sourceRoot, ".git"), {
+    throwIfNoEntry: false,
+  });
+  if (gitEntry) {
+    if (!gitEntry.isDirectory() && !gitEntry.isFile()) {
+      throw new Error("Runtime provisioning Git metadata must not be a symlink.");
+    }
+    const [checkoutRoot, actualSha] = execFileSync(
+      "git",
+      ["rev-parse", "--show-toplevel", "HEAD"],
+      {
+        cwd: sourceRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    ).trim().split("\n");
+    if (realpathSync(checkoutRoot) !== sourceRoot || actualSha !== expectedSha) {
+      throw new Error("Runtime provisioning checkout does not match the exact SHA.");
+    }
+    return expectedSha;
+  }
+
+  // Deployment copies the already verified checkout without .git. Only the
+  // exact managed release from that dispatch may use its workflow-written marker.
+  const baseDir = requireEnv(env, "BASE_DIR");
+  const releasePath = requireEnv(env, "RELEASE");
+  const recovery = env.DEPLOYMENT_MODE === "staging-recovery";
+  if (
+    env.GITHUB_ACTIONS !== "true"
+    || env.GITHUB_EVENT_NAME !== "workflow_dispatch"
+    || env.GITHUB_REPOSITORY !== "veele-services/platform"
+    || env.GITHUB_SHA !== expectedSha
+    || env.APP_ENV !== "staging"
+    || env.TARGET_ENVIRONMENT !== "staging"
+    || !["normal", "staging-recovery"].includes(env.DEPLOYMENT_MODE)
+    || env.GITHUB_REF !== (recovery ? "refs/heads/main" : "refs/heads/staging")
+    || env.DEPLOY_CONFIRMATION !== (
+      recovery ? "staging-recovery-only" : "fieldgrid-staging-deploy-exact-sha"
+    )
+    || !/^[0-9a-f]{40}$/u.test(env.EXPECTED_STAGING_SHA ?? "")
+    || (recovery ? env.EXPECTED_STAGING_SHA === expectedSha : env.EXPECTED_STAGING_SHA !== expectedSha)
+    || !path.isAbsolute(baseDir)
+    || realpathSync(baseDir) !== path.resolve(baseDir)
+    || releasePath !== sourceRoot
+    || path.dirname(sourceRoot) !== path.join(baseDir, "releases")
+    || !new RegExp(`^\\d{14}-${expectedSha.slice(0, 7)}$`, "u").test(path.basename(sourceRoot))
+  ) {
+    throw new Error("Runtime provisioning release is not bound to the exact staging dispatch.");
+  }
+  const markerPath = path.join(sourceRoot, ".fieldgrid-release-sha");
+  const marker = lstatSync(markerPath, { throwIfNoEntry: false });
+  if (!marker?.isFile() || marker.size < 40 || marker.size > 41) {
+    throw new Error("Runtime provisioning release SHA marker must be a regular SHA file.");
+  }
+  const markerSha = readFileSync(markerPath, "utf8");
+  if (markerSha !== expectedSha && markerSha !== `${expectedSha}\n`) {
+    throw new Error("Runtime provisioning release SHA marker does not match the exact SHA.");
   }
   return expectedSha;
 }

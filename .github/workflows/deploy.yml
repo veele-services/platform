@@ -391,8 +391,28 @@ jobs:
           echo "Marketing service: ${MARKETING_SERVICE_NAME:-<not configured>}"
 
       - name: Validate service configuration
+        env:
+          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
         run: |
           set -euo pipefail
+
+          missing_staging_bindings=()
+          for required_name in \
+            FIELDGRID_W00_STAGING_TENANT_A_HOST \
+            FIELDGRID_W00_STAGING_TENANT_A_ID \
+            FIELDGRID_W00_STAGING_TENANT_B_HOST \
+            FIELDGRID_W00_STAGING_TENANT_B_ID; do
+            if [ -z "${!required_name:-}" ]; then
+              missing_staging_bindings+=("$required_name")
+            fi
+          done
+          if [ "${#missing_staging_bindings[@]}" -gt 0 ]; then
+            printf '::error::Missing required staging binding: %s\n' "${missing_staging_bindings[@]}" >&2
+            exit 1
+          fi
 
           require_pair() {
             local service_name="$1"

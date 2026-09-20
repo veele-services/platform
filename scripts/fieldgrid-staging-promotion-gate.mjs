@@ -33,11 +33,11 @@ import {
   DEPLOY_HEALTH_EVIDENCE_VERSION,
   KNOWN_LEGACY_ROLLBACK_RECOVERY,
   LEGACY_DEPLOY_HEALTH_EVIDENCE_VERSION,
-  ROLLBACK_RECOVERY_MAX_AGE_MS,
   ROLLBACK_RECOVERY_PROOF_VERSION,
   assertMigrationRehearsalReport,
   assertTenantUserRoleConstraintProof,
   assertTenantUserRoleConstraintReadiness,
+  validateRollbackRecoveryTimestamp,
 } from "./fieldgrid-phase2e-staging-preflight.mjs";
 import { SUPABASE_ROOT_2021_CA_SHA256 } from "./fieldgrid-database-root-cert.mjs";
 import {
@@ -910,6 +910,15 @@ function validatePhase2eRollbackEvidence(rollback, expectedStaging, nowMs) {
   const proof = rollback.recoveryProof;
   const run = proof?.deployRun;
   const diagnostics = proof?.diagnostics;
+  const timestampIdentity = {
+    nowMs,
+    deployRunId: run?.id,
+    expectedGitStagingSha: expectedStaging,
+    expectedActiveStagingReleaseSha: activeSha,
+    artifactId: diagnostics?.artifactId,
+    diagnosticsSha256: diagnostics?.sha256,
+    schemaVersion: diagnostics?.schemaVersion,
+  };
   if (
     rollback.recoveryMode !== "verified-deploy-rollback" ||
     !isRecord(proof) ||
@@ -926,19 +935,13 @@ function validatePhase2eRollbackEvidence(rollback, expectedStaging, nowMs) {
     run.status !== "completed" ||
     run.conclusion !== "failure" ||
     run.apiVerified !== true ||
-    !validateFreshTimestamp(run.updatedAt, {
-      nowMs,
-      maxAgeMs: ROLLBACK_RECOVERY_MAX_AGE_MS,
-    }) ||
+    !validateRollbackRecoveryTimestamp(run.updatedAt, timestampIdentity) ||
     !isRecord(diagnostics) ||
     !Number.isSafeInteger(diagnostics.artifactId) ||
     diagnostics.artifactId < 1 ||
     diagnostics.artifactName !==
       `fieldgrid-staging-deploy-diagnostics-${run?.id}` ||
-    !validateFreshTimestamp(diagnostics.updatedAt, {
-      nowMs,
-      maxAgeMs: ROLLBACK_RECOVERY_MAX_AGE_MS,
-    }) ||
+    !validateRollbackRecoveryTimestamp(diagnostics.updatedAt, timestampIdentity) ||
     !isSha256(diagnostics.sha256) ||
     ![
       DEPLOY_HEALTH_EVIDENCE_VERSION,
