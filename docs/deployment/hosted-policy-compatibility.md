@@ -1,5 +1,12 @@
 # Hosted PostgreSQL policy compatibility
 
+The diagnosis includes `personnelPath`: fixed boolean checks for the historical
+phone-update policy, anonymous/authenticated table and column UPDATE rights,
+and the restricted runtime role's SELECT/UPDATE access. A blocked immutable
+personnel guard reports `ready=false` before any migration DDL. These checks do
+not repair grants or weaken the committed migration; investigate the exact
+failed condition before proposing a separate forward repair.
+
 Supabase owns `auth.uid()` and `auth.role()`. Hosted PostgreSQL 17 can omit the
 redundant direct `postgres` EXECUTE grant while preserving the same effective
 permissions through PUBLIC. The historical policy repair pinned that redundant

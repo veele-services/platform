@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { databaseNodePostgresSslConfig, SUPABASE_ROOT_2021_CA_SHA256 } from "./fieldgrid-database-root-cert.mjs";
+import { readPrivateLogDiagnostics } from "./fieldgrid-production-private-diagnostics.mjs";
 import {
   BACKUP_SCHEMAS,
   DURABLE_MIGRATION_RELATIONS,
@@ -301,6 +302,10 @@ export async function runProductionPreflight(options = {}, env = process.env, de
   } catch (error) {
     evidence.phases[phase] = "fail";
     evidence.errorCode = /^[A-Z_]{1,80}$/u.test(error?.safeCode ?? "") ? error.safeCode : "PREFLIGHT_PHASE_FAILED";
+    if (logPath) {
+      try { evidence.diagnostics = readPrivateLogDiagnostics(logPath, await services.manifest()); }
+      catch { evidence.diagnostics = { status: "unavailable" }; }
+    }
   } finally {
     enter("cleanup");
     let cleanupSucceeded = true;
