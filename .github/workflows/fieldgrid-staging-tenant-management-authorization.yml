@@ -126,9 +126,11 @@ jobs:
           node --test tests/security/fieldgrid-tenant-management-authorization-source.test.mjs
           node --test tests/security/fieldgrid-tenant-management-sql-diagnostic-source.test.mjs
           node --test tests/security/fieldgrid-tenant-management-policy-repair-source.test.mjs
+          node --test tests/security/fieldgrid-tenant-management-policy-drift-source.test.mjs
           pnpm --filter @workspace/db exec tsx --test \
             ../../tests/domain/fieldgrid-staging-tenant-management-authorization.test.ts \
             ../../tests/domain/fieldgrid-tenant-management-policy-definition-contract.test.ts \
+            ../../tests/domain/fieldgrid-tenant-management-policy-drift-diagnostic.test.ts \
             ../../tests/domain/fieldgrid-staging-tenant-management-sql-diagnostic.test.ts
 
       - name: Install exact pinned database root certificate

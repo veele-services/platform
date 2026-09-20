@@ -146,6 +146,37 @@ test("impact exports only consistent, nonnegative safe integer counts", () => {
   }
 });
 
+test("detailed drift is confined to blocked read-only diagnosis and fails safely", async () => {
+  const unknown = { legacyDefinitionMatches: false, cleanDefinitionMatches: false,
+    targetDefinitionMatches: false, dependenciesValid: false };
+  const f = fixture({ repairReadiness: unknown });
+  f.dependencies.readDriftDiagnostic = async () => {
+    f.calls.push("READ DRIFT DIAGNOSTIC");
+    throw new Error("raw-private-catalog-detail");
+  };
+  await assert.rejects(runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies),
+    (error: Error) => /catalog_invalid/u.test(error.message) && !error.message.includes("raw-private"));
+  assert.ok(f.calls.indexOf("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY") <
+    f.calls.indexOf("READ DRIFT DIAGNOSTIC"));
+  assert.ok(f.calls.indexOf("READ DRIFT DIAGNOSTIC") < f.calls.indexOf("ROLLBACK"));
+  assert.deepEqual(f.journalNames, []);
+
+  const malicious = fixture({ repairReadiness: unknown });
+  malicious.dependencies.readDriftDiagnostic = async () => ({ query: "must-not-leak" });
+  await assert.rejects(runTenantManagementAuthorization(malicious.queryable, "diagnose", malicious.dependencies), /catalog_invalid/u);
+  assert.ok(malicious.calls.includes("ROLLBACK"));
+
+  for (const operation of ["diagnose", "apply"] as const) {
+    const ready = fixture({});
+    ready.dependencies.readDriftDiagnostic = async () => { throw new Error("must-not-run"); };
+    const result = await runTenantManagementAuthorization(ready.queryable, operation, ready.dependencies);
+    assert.equal(Object.hasOwn(result, "driftDiagnostic"), false);
+  }
+  const blockedApply = fixture({ repairReadiness: unknown });
+  blockedApply.dependencies.readDriftDiagnostic = async () => { throw new Error("must-not-run"); };
+  await assert.rejects(runTenantManagementAuthorization(blockedApply.queryable, "apply", blockedApply.dependencies), /repair_not_ready/u);
+});
+
 function fixture(options: {
   applied?: boolean;
   scopeApplied?: boolean;
@@ -408,6 +439,42 @@ test("already-applied is a non-mutating complete contract postcheck", async () =
   }
 });
 
+test("recorded or mismatched catalog state remains diagnosable while apply stays blocked", async () => {
+  const cases: Parameters<typeof fixture>[0][] = [
+    { applied: true, repairCatalog: [false], repairReadiness: {
+      legacyDefinitionMatches: false, cleanDefinitionMatches: false,
+      targetDefinitionMatches: false, dependenciesValid: false,
+    } },
+    { applied: true, scopeContract: [false] },
+    { applied: true, scopeCatalog: [false] },
+    { applied: true, repairCatalog: [false] },
+    { scopeApplied: true, repaired: false },
+    { scopeApplied: true, clean: true, scopeCatalog: [false] },
+    { applied: true, clean: true, repaired: false },
+    { scopeContract: [true] },
+  ];
+  for (const options of cases) {
+    const f = fixture(options);
+    const diagnosed = await runTenantManagementAuthorization(f.queryable, "diagnose", f.dependencies);
+    assert.equal(diagnosed.result, "diagnosed");
+    assert.equal(diagnosed.state, "unknown-state");
+    assert.equal(diagnosed.contractVerified, false);
+    assert.equal(diagnosed.readyForApply, false);
+    assert.equal(diagnosed.readyForPrerequisiteRepair, false);
+    assert.equal(diagnosed.scopeMigrationRecorded, Boolean(options.applied || options.scopeApplied));
+    assert.equal(diagnosed.repairMigrationRecorded, Boolean(options.applied));
+    assert.ok(diagnosed.catalogChecks);
+    assert.equal(f.calls.includes("READ SCOPE READINESS"), false);
+    assert.equal(f.calls.includes("COMMIT"), false);
+    assert.ok(f.calls.includes("ROLLBACK"));
+    assert.deepEqual(f.journalNames, []);
+    const apply = fixture(options);
+    await assert.rejects(runTenantManagementAuthorization(apply.queryable, "apply", apply.dependencies), /catalog_invalid/u);
+    assert.equal(apply.calls.includes("READ IMPACT"), false);
+    assert.equal(apply.calls.includes(repair.sql), false);
+  }
+});
+
 test("missing access, history drift and unavailable locks prevent all migration SQL", async () => {
   for (const [options, error] of [
     [{ impacts: [missing] }, /access_preservation_failed/u],
@@ -461,6 +528,19 @@ test("non-boolean or contradictory readiness and contract outputs fail closed", 
     { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: "true" } },
     { repairReadiness: { legacyDefinitionMatches: true, cleanDefinitionMatches: false, targetDefinitionMatches: false, dependenciesValid: true, policySql: "must-not-export" } },
     { scopeReadiness: [{ readyForApply: "true" }] },
+  ]) {
+    for (const operation of ["diagnose", "apply"] as const) {
+      const f = fixture(options);
+      let detailRead = false;
+      f.dependencies.readDriftDiagnostic = async () => { detailRead = true; throw new Error("must-not-run"); };
+      await assert.rejects(runTenantManagementAuthorization(f.queryable, operation, f.dependencies), /catalog_invalid/u);
+      assert.equal(detailRead, false);
+      assert.ok(f.calls.includes("ROLLBACK"));
+      assert.ok(!f.calls.includes("COMMIT"));
+      assert.deepEqual(f.journalNames, []);
+    }
+  }
+  for (const options of [
     { repairCatalog: [false, "true"] },
     { scopeCatalog: [false, "true"] },
     { scopeContract: [false, "true"] },

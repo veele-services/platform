@@ -33,6 +33,42 @@ blijft daar ongewijzigd. Een schone installatie krijgt die policy niet alsnog.
 Geen rechten, accounts, lidmaatschappen, rollen, permissions of bedrijfsrijen
 worden toegevoegd of gewijzigd.
 
+De volledige live diagnose `35477379077` op main
+`2f8e316c47e97f9c1254cc4ab0d2c359a8b7aef1` gaf vervolgens `unknown-state`:
+geen van de drie policysets paste, beide readinessvlaggen waren onwaar en
+`legacy_pairs=preserved_pairs=2`, `missing_pairs=0`. Er is geen apply uitgevoerd.
+`dependenciesValid=false` bewijst hier niet afzonderlijk een helperafwijking:
+die vlag vereist ook een passende policyset. De samenvattende policyvergelijking
+vereist bovendien PostgreSQL 17. Een groene diagnoseworkflow betekent daarom
+niet dat reparatie is toegestaan.
+
+Bij `unknown-state` voegt dezelfde diagnose nu `driftDiagnostic` toe, vóór
+ROLLBACK en binnen dezelfde REPEATABLE READ READ ONLY-snapshot. Deze bevat
+afzonderlijke context-, policy-, relatie/kolom- en helpervergelijkingen met de
+gevalideerde bronmanifesten. Live expressies, function bodies, ACL-waarden en
+bedrijfsrijen verlaten de database niet. Onverwachte policy-identities blijven
+begrensd tot tien, met strikte identifiercontrole; overschrijding blokkeert de
+diagnose in plaats van een afgekapt rapport op te leveren.
+
+Ook wanneer het journal de scope- of repairmigratie al registreert, geeft een
+geldige maar afwijkende catalogus bij `diagnose` een `unknown-state` met deze
+details. `catalogChecks` toont afzonderlijk de bestaande scopecontract-,
+scopecatalogus- en repaircataloguscontrole. De journalvlaggen behouden hun
+werkelijke waarden; `contractVerified` en beide readinessvlaggen blijven
+onwaar. `apply` weigert diezelfde afwijking nog steeds met `catalog_invalid`,
+vóór migratie-SQL of journalwrites. Ongeldige history, niet-booleaanse of
+tegenstrijdige vergelijkingsresultaten en databasefouten blijven harde fouten,
+ook bij diagnose.
+
+De historische bron `migrations/015_pwa_rls_policies.sql` bevat daarnaast
+`personnel_update_own_phone`, die in de oorspronkelijke manifesten ontbreekt.
+De detaildiagnose vergelijkt deze concrete brondefinitie en de volledige set
+met die ene toevoeging afzonderlijk. Dit is uitsluitend een brongebonden
+hypothesetoets, geen live bevestiging en geen nieuw toegestaan applyprofiel.
+De bestaande migratiebestanden, readinessvoorwaarden en volledige
+policysetvergelijking blijven ongewijzigd. Een afwijking vereist eerst bewezen
+bronreconstructie en een afzonderlijke forward-only correctie.
+
 De manifesten zijn gereconstrueerd uit vertrouwde SQL in een lokale PostgreSQL
 17-database. Vergelijking gebruikt `pg_get_expr(..., false)` met `pg_catalog`
 als search_path, exact commandtype, rollen, permissiviteit, NULL-semantiek en
