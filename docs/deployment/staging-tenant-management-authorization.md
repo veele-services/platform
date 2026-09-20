@@ -207,3 +207,58 @@ wijzigen en niet stilzwijgend de globale bevoegdheid herstellen.
 De wijziging raakt gedeelde databasebeveiliging. Vooral rolprovenance,
 rechtenpariteit, uitsluiting van platformidentiteiten en concurrente wijzigingen
 moeten onafhankelijk worden beoordeeld voordat live toepassing mag plaatsvinden.
+
+
+### Hosted personnel UPDATE prerequisite
+
+`20260920145343_close_legacy_personnel_browser_updates.sql` closes the direct
+`anon` and `authenticated` UPDATE grants on `public.personnel` only while the
+exact historical `personnel_update_own_phone` policy remains. PostgreSQL's table
+UPDATE revoke also removes explicit column UPDATE grants. The source checks the
+relation owner, RLS, exact policy expression/role, restricted runtime role
+hierarchy, retained runtime SELECT/UPDATE, and direct grant provenance first.
+PUBLIC grants, inherited UPDATE access, grant options, changed owners, unknown
+policy definitions and unsupported runtime roles fail closed. SELECT, runtime
+memberships, tenant bindings and row data are preserved. A fresh installation
+without this historical policy executes the migration as a no-op.
+
+The catalog-normalization diagnosis exposes `personnelClosureRepairable` beside
+the unchanged eight `personnelPath` booleans. `ready` can be true for the exact
+reviewed direct-grant state even while `personnelPath.closed` is false. The apply
+runner executes the SHA-pinned prerequisite before the immutable replacement's
+closure guard, then executes the unchanged historical pair. Their journal rows
+are inserted in source order only after all catalog and access-preservation
+postconditions pass: historical pair, superseded historical repair (explicitly
+baselined), applied replacement, applied personnel prerequisite. One transaction
+covers all ACL/policy changes and journal rows. Failure rolls all of them back;
+no standalone journal repair or restoration of browser UPDATE is appropriate.
+Completed installations retain ordinary forward-migration and replay behavior.
+
+Local PG17 caller coverage: exact hosted table/column grant correction,
+SELECT/runtime/owner/membership preservation, clean hosted installation,
+PUBLIC and inherited denial, unsupported policy denial, final-journal rollback,
+and replay with a later forward migration. Existing committed migrations remain
+byte-for-byte unchanged.
+
+### Clean hosted provider helper prerequisite
+
+`20260920150424_close_hosted_clean_customer_helper_grants.sql` additionally accepts
+one exact clean provider-default catalog: `customer_has_access(uuid,uuid)` has
+owner, authenticated, anon and service_role EXECUTE, while its body, owner,
+tenant predicate and every other policy/helper/relation contract match the
+reviewed clean profile. Only anon and service_role EXECUTE are revoked, using
+RESTRICT. The canonical clean catalog must match immediately afterward. Other
+known legacy/clean/target catalogs are no-ops; unknown ACLs and policies fail.
+
+Diagnosis reports `cleanHelperClosureRepairable` without changing the original
+catalog booleans. The runner executes this prerequisite before the personnel
+prerequisite and immutable replacement in the same transaction. Its applied,
+non-baselined journal row follows the personnel prerequisite chronologically.
+The embedded manifest also recognizes the exact reviewed PG17 restored target
+expressions, so a pending forward prerequisite remains reachable after restore.
+Existing committed SQL, provider-owned helpers and owners remain untouched.
+
+The PG17 gate includes an ordinary installation from an empty application
+schema with all six provider public-schema default ACL rows, plus real caller
+replay, exact helper-grant correction, unexpected PUBLIC-grant denial and
+rollback of all changes on the final journal write.

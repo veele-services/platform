@@ -148,3 +148,33 @@ test('administrative gates keep a private CA while the saved runtime uses its re
   assert.ok(!preparation.includes('\\nFIELDGRID_DATABASE_SSL_ROOT_CERT=%s'));
   assert.ok(runtime.includes('printf \'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\\n\' "$FIELDGRID_RUNTIME_DATABASE_SSL_ROOT_CERT"'));
 });
+
+test('production generic hosts are fixed, validated before persistence and inherited by the build', () => {
+  const workflow = readFileSync('.github/workflows/fieldgrid-production-deploy.yml', 'utf8');
+  const expected = 'admin.fieldgrid.nl,platform.fieldgrid.nl,app.fieldgrid.nl,fieldgrid.nl';
+  assert.equal(/^      PLATFORM_HOSTS: (.+)$/mu.exec(workflow)?.[1], expected);
+  assert.equal((workflow.match(/^\s+PLATFORM_HOSTS:/gmu) ?? []).length, 1);
+  const validation = workflow.split('- name: Validate production runtime credentials and environment isolation')[1]
+    .split('- name: Verify and identify legacy rollback release')[0];
+  const guard = validation.split('\n').map(line => line.trim()).find(line => line.startsWith('test "$PLATFORM_HOSTS"'));
+  assert.equal(guard, `test "$PLATFORM_HOSTS" = '${expected}'`);
+  const runtime = workflow.split('- name: Write isolated runtime environment')[1].split('- name: Build candidate')[0];
+  const persistence = runtime.split('\n').map(line => line.trim()).find(line => line.startsWith("printf 'PLATFORM_HOSTS="));
+  assert.equal(persistence, 'printf \'PLATFORM_HOSTS=%s\\n\' "$PLATFORM_HOSTS"');
+  assert.ok(workflow.indexOf(guard) < workflow.indexOf(persistence));
+  const build = workflow.split('- name: Build candidate')[1].split('- name: Validate production activation')[0];
+  assert.doesNotMatch(build, /PLATFORM_HOSTS|env -i|unset/u);
+  for (const hosts of [expected, '', 'staging.fieldgrid.nl', `${expected},unknown.fieldgrid.nl`,
+    `${expected}\nAPP_ENV=staging`, `app.fieldgrid.nl,$(printf injected)`]) {
+    const result = spawnSync('bash', ['-c', `set -euo pipefail\n${guard}\n${persistence}`], {
+      encoding: 'utf8', env: { PATH: process.env.PATH, PLATFORM_HOSTS: hosts },
+    });
+    if (hosts === expected) {
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout, `PLATFORM_HOSTS=${expected}\n`);
+    } else {
+      assert.notEqual(result.status, 0);
+      assert.equal(result.stdout, '');
+    }
+  }
+});

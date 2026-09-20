@@ -36,6 +36,7 @@ Endpoint modes:
   exact-200     Only HTTP 200 is healthy.
   login         HTTP 200 and explicit login-safe redirects 301, 302, 303, 307 and 308 are healthy.
   api-root-404  Only the expected API-root HTTP 404 is healthy.
+  api-auth-required  Public /api/ must return the identified API's exact unauthenticated 401.
 USAGE
 }
 
@@ -78,6 +79,7 @@ SYSTEMCTL_SUDO="${SYSTEMCTL_SUDO:-}"
 SYSTEMCTL_READ_SUDO="${SYSTEMCTL_READ_SUDO:-}"
 CURL_BIN="${CURL_BIN:-curl}"
 SS_BIN="${SS_BIN:-ss}"
+RUNTIME_PROOF_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fieldgrid-runtime-health-proof.mjs"
 SLEEP_BIN="${SLEEP_BIN:-sleep}"
 ROLLBACK_LN_BIN="${ROLLBACK_LN_BIN:-ln}"
 ATTEMPTS="${FIELDGRID_DEPLOY_HEALTH_ATTEMPTS:-12}"
@@ -193,6 +195,7 @@ configure_production_health() {
     production_public_host "${!name:-}" >/dev/null || return 1
   done
   case "$BACKOFFICE_PUBLIC_LOGIN_URL" in */admin/login|*/login) ;; *) return 1 ;; esac
+  case "$API_PUBLIC_ROOT_URL" in */api/) ;; *) return 1 ;; esac
   for value in "$PERSONEEL_PUBLIC_HEALTH_URL" "$KLANT_PUBLIC_HEALTH_URL" "$API_PUBLIC_HEALTH_URL"; do
     case "$value" in */healthz) ;; *) return 1 ;; esac
   done
@@ -353,7 +356,7 @@ default_api_root_endpoints() {
     append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root-404"
   fi
   if [ -n "${API_PUBLIC_ROOT_URL:-}" ]; then
-    append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-root-404"
+    append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-auth-required"
   fi
 }
 
@@ -523,6 +526,10 @@ endpoint_is_healthy() {
   local status
   local host_header=""
   local expected_local_url
+  local identity_service=""
+  local identity_url
+  local identity_sha
+  local identity_mode="health"
   name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
   url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
   mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
@@ -533,6 +540,37 @@ endpoint_is_healthy() {
       return 1
     fi
     host_header="$PLATFORM_PROBE_HOST"
+  fi
+  case "$name" in
+    local-backoffice|public-backoffice) identity_service="backoffice" ;;
+    local-personnel|public-personnel) identity_service="personnel" ;;
+    local-customer|public-customer) identity_service="customer" ;;
+    local-api-health|public-api-health) identity_service="api" ;;
+    public-api-root) if [ "$mode" = "api-auth-required" ]; then identity_service="api"; identity_mode="api-auth-required"; fi ;;
+  esac
+  if [ -n "$identity_service" ]; then
+    identity_url="$url"
+    if [ "$identity_service" = "backoffice" ]; then
+      case "$url" in
+        */admin/login) identity_url="${url%/admin/login}/admin/healthz" ;;
+        */login) identity_url="${url%/login}/admin/healthz" ;;
+        *) record_check "endpoint:$name" "fail" "backoffice identity probe requires a canonical login URL"; return 1 ;;
+      esac
+    fi
+    identity_sha="$EXPECTED_SHA"
+    if [ "$CHECK_EXPECTED_SHA" != "1" ]; then
+      identity_sha="$(cat "$RELEASE_PATH/.fieldgrid-release-sha" 2>/dev/null || true)"
+    fi
+    if ! node "$RUNTIME_PROOF_SCRIPT" --url "$identity_url" --environment "$ENVIRONMENT" \
+      --sha "$identity_sha" --service "$identity_service" --host "$host_header" \
+      --mode "$identity_mode" --curl "$CURL_BIN" --timeout "$CURL_MAX_TIME" >/dev/null 2>&1; then
+      record_check "endpoint:$name" "fail" "runtime environment, release or service identity did not match"
+      return 1
+    fi
+    if [ "$mode" = "api-auth-required" ]; then
+      record_check "endpoint:$name" "pass" "identified API returned the expected unauthenticated HTTP 401"
+      return 0
+    fi
   fi
   status="$(http_status "$url" "$host_header" 2>/dev/null || printf '000')"
 
@@ -570,6 +608,23 @@ check_endpoint_group() {
   local name
   local url
   local mode
+  local expected_names=""
+  local seen_names=" "
+  local invalid_labels=0
+
+  # Names bind each core probe to its mandatory runtime identity check. Count
+  # equality alone would let an override rename or duplicate a probe to skip it.
+  case "$group_name" in
+    local|public)
+      expected_names="$group_name-backoffice $group_name-personnel $group_name-customer $group_name-api-health"
+      if [ -n "${WEBSITE_SERVICE_NAME:-}" ] && [ -n "${WEBSITE_PORT:-}" ]; then
+        expected_names="$expected_names $group_name-website-health"
+      fi
+      if [ -n "${MARKETING_SERVICE_NAME:-}" ] && [ -n "${MARKETING_PORT:-}" ]; then
+        expected_names="$expected_names $group_name-marketing-health"
+      fi
+      ;;
+  esac
 
   while IFS= read -r spec; do
     [ -n "$spec" ] || continue
@@ -581,10 +636,42 @@ check_endpoint_group() {
       failed=1
       continue
     fi
+    if [ -n "$expected_names" ]; then
+      case "$name" in
+        "$group_name-backoffice"|"$group_name-personnel"|"$group_name-customer"|"$group_name-api-health") ;;
+        "$group_name-website-health")
+          if [ -z "${WEBSITE_SERVICE_NAME:-}" ] || [ -z "${WEBSITE_PORT:-}" ]; then
+            invalid_labels=1; failed=1; continue
+          fi ;;
+        "$group_name-marketing-health")
+          if [ -z "${MARKETING_SERVICE_NAME:-}" ] || [ -z "${MARKETING_PORT:-}" ]; then
+            invalid_labels=1; failed=1; continue
+          fi ;;
+        *) invalid_labels=1; failed=1; continue ;;
+      esac
+      case "$seen_names" in
+        *" $name "*) invalid_labels=1; failed=1; continue ;;
+      esac
+      seen_names="$seen_names$name "
+    fi
     retry endpoint_is_healthy "$spec" || failed=1
   done <<EOF
 $specs
 EOF
+
+  if [ -n "$expected_names" ]; then
+    for name in $expected_names; do
+      case "$seen_names" in
+        *" $name "*) ;;
+        *) invalid_labels=1; failed=1 ;;
+      esac
+    done
+    if [ "$invalid_labels" = "1" ]; then
+      record_check "endpoints:$group_name-labels" "fail" "each configured service requires its canonical endpoint name exactly once"
+    else
+      record_check "endpoints:$group_name-labels" "pass" "canonical endpoint names bind every configured service exactly once"
+    fi
+  fi
 
   count="$(printf '%s\n' "$specs" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
   if [ "$count_mode" = "exact" ]; then

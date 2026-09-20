@@ -8,6 +8,7 @@ import {
 } from "./fieldgrid-tenant-management-policy-definition-contract.mts";
 import { tenantManagementScopeContractSql } from "./fieldgrid-tenant-management-authorization-contract.mts";
 import { withHostedAuthVariants } from "./fieldgrid-hosted-policy-variants.mts";
+import { withPg17RestoredTargetVariants } from "./fieldgrid-pg17-restored-policy-variants.mts";
 import { HOSTED_POLICY_REPLACEMENT } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 
 export const TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME =
@@ -116,7 +117,8 @@ export async function loadTenantManagementPolicyRepairSource() {
 
 export async function readTenantManagementPolicyRepairReadiness(queryable: PolicyDefinitionQueryable): Promise<PolicyRepairReadiness> {
   try {
-    const result = await queryable.query(policyRepairReadinessSql(withHostedAuthVariants(repairSource().variants)));
+    const result = await queryable.query(policyRepairReadinessSql(withPg17RestoredTargetVariants(
+      withHostedAuthVariants(repairSource().variants))));
     const row = result.rows[0];
     if (result.rowCount !== 1 || result.rows.length !== 1 || !row || Object.keys(row).length !== 4 ||
         readinessKeys.some((key) => typeof row[key] !== "boolean")) throw new Error();
@@ -134,7 +136,7 @@ export function tenantManagementPolicyRepairContractSql(includeJournal = true): 
       AND (baselined = false${name === source.name ? ` OR (baselined = true AND EXISTS (
         SELECT 1 FROM drizzle.veele_sql_migrations WHERE name = ${quote(HOSTED_POLICY_REPLACEMENT.name)}
           AND hash = ${quote(HOSTED_POLICY_REPLACEMENT.hash)} AND baselined = false))` : ""}))`).join(" AND ");
-  return `(EXISTS (SELECT 1 FROM (${policyRepairReadinessSql(withHostedAuthVariants(source.variants), undefined, true)}) repair
+  return `(EXISTS (SELECT 1 FROM (${policyRepairReadinessSql(withPg17RestoredTargetVariants(withHostedAuthVariants(source.variants)), undefined, true)}) repair
     WHERE repair."targetDefinitionMatches" AND repair."dependenciesValid")${includeJournal ? ` AND ${journal}` : ""})`;
 }
 

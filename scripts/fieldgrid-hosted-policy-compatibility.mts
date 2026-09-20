@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
+import { HOSTED_POLICY_CLEAN_HELPER_CLOSURE, HOSTED_POLICY_PERSONNEL_CLOSURE, HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 import { sqlForManagedMigrationTransaction } from "../lib/db/src/migration-transaction-retry.ts";
 import { loadPlatformPrivilegeMigrationFrontier, assertPlatformPrivilegeMigrationFrontier } from "./fieldgrid-staging-field-demo-owner-binding-repair.mts";
 import { assertTenantManagementAuthorizationHistory, tenantManagementAuthorizationFrontier,
@@ -9,6 +9,8 @@ import { loadTenantManagementAuthorizationSource, readTenantManagementAuthorizat
   verifyTenantManagementScopeCatalog, verifyTenantManagementScopeContract } from "./fieldgrid-tenant-management-authorization-contract.mts";
 import { loadTenantManagementPolicyRepairSource, policyRepairReadinessSql, validateRepairVariants,
   verifyTenantManagementPolicyRepairCatalog, tenantManagementPolicyRepairContractSql } from "./fieldgrid-tenant-management-policy-repair-contract.mts";
+
+import { withPg17RestoredTargetVariants } from "./fieldgrid-pg17-restored-policy-variants.mts";
 
 const lockKey = "fieldgrid:database-migrations:v1";
 const reconciliation = "20260914125400_reconcile_legacy_global_rbac_policies.sql";
@@ -64,7 +66,32 @@ export function loadHostedPolicyCompatibilitySource() {
   if (!sql.includes(policyRepairReadinessSql(variants, "repair_manifest"))) throw new Error("hosted_policy_source_invalid");
   const hosted = variants.filter((variant) => variant.profile.startsWith("hosted"));
   if (hosted.length !== 5) throw new Error("hosted_policy_source_invalid");
-  return { ...HOSTED_POLICY_REPLACEMENT, sql, readinessSql: policyRepairReadinessSql(hosted) };
+  return { ...HOSTED_POLICY_REPLACEMENT, sql, readinessSql: policyRepairReadinessSql(withPg17RestoredTargetVariants(hosted)) };
+}
+
+export function loadHostedPolicyPersonnelClosureSource() {
+  const sql = readFileSync(new URL(`../lib/db/migrations/${HOSTED_POLICY_PERSONNEL_CLOSURE.name}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
+  if (createHash("sha256").update(sql).digest("hex") !== HOSTED_POLICY_PERSONNEL_CLOSURE.hash) {
+    throw new Error("hosted_policy_source_invalid");
+  }
+  const parts = sql.split("$personnel_closure_readiness$");
+  if (parts.length !== 3) throw new Error("hosted_policy_source_invalid");
+  return { ...HOSTED_POLICY_PERSONNEL_CLOSURE, sql, readinessSql: parts[1]! };
+}
+
+export function loadHostedCleanHelperClosureSource() {
+  const sql = readFileSync(new URL(`../lib/db/migrations/${HOSTED_POLICY_CLEAN_HELPER_CLOSURE.name}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
+  if (createHash("sha256").update(sql).digest("hex") !== HOSTED_POLICY_CLEAN_HELPER_CLOSURE.hash) {
+    throw new Error("hosted_policy_source_invalid");
+  }
+  const parts = sql.split("$clean_helper_manifest$");
+  if (parts.length !== 3) throw new Error("hosted_policy_source_invalid");
+  const variants = validateRepairVariants(JSON.parse(parts[1]!));
+  if (!sql.includes(policyRepairReadinessSql(variants, "observed_manifest"))) throw new Error("hosted_policy_source_invalid");
+  const observed = variants.filter((variant) => variant.state === "clean" && variant.profile === "hostedObservedClean");
+  if (observed.length !== 1) throw new Error("hosted_policy_source_invalid");
+  const manifest = `'${JSON.stringify(observed).replaceAll("'", "''")}'::jsonb`;
+  return { ...HOSTED_POLICY_CLEAN_HELPER_CLOSURE, sql, readinessSql: policyRepairReadinessSql(variants, manifest) };
 }
 
 export function boundedHostedPolicyHistory(base: Awaited<ReturnType<typeof loadPlatformPrivilegeMigrationFrontier>>,
@@ -78,9 +105,15 @@ export function boundedHostedPolicyHistory(base: Awaited<ReturnType<typeof loadP
   if (replacementIndex < 0 || base.committed[replacementIndex]?.hash !== HOSTED_POLICY_REPLACEMENT.hash) {
     throw new Error("hosted_policy_source_invalid");
   }
-  const boundedBase = { ...base, committed: base.committed.slice(0, replacementIndex + 1) };
+  const closureIndex = replacementIndex + 1;
+  if (base.committed[closureIndex]?.name !== HOSTED_POLICY_PERSONNEL_CLOSURE.name ||
+      base.committed[closureIndex]?.hash !== HOSTED_POLICY_PERSONNEL_CLOSURE.hash) throw new Error("hosted_policy_source_invalid");
+  const helperClosureIndex = closureIndex + 1;
+  if (base.committed[helperClosureIndex]?.name !== HOSTED_POLICY_CLEAN_HELPER_CLOSURE.name ||
+      base.committed[helperClosureIndex]?.hash !== HOSTED_POLICY_CLEAN_HELPER_CLOSURE.hash) throw new Error("hosted_policy_source_invalid");
+  const boundedBase = { ...base, committed: base.committed.slice(0, helperClosureIndex + 1) };
   const frontier = tenantManagementAuthorizationFrontier(boundedBase, scope, repair);
-  const laterNames = new Set(base.committed.slice(replacementIndex + 1).map((entry) => entry.name));
+  const laterNames = new Set(base.committed.slice(helperClosureIndex + 1).map((entry) => entry.name));
   const pending = assertTenantManagementAuthorizationHistory(frontier, records.filter((record) => !laterNames.has(record.name)));
   return { frontier, records, pending };
 }
@@ -97,6 +130,8 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
   operation: "diagnose" | "apply", candidateName?: string) {
   if (!["diagnose", "apply"].includes(operation)) throw new Error("hosted_policy_configuration_invalid");
   const source = loadHostedPolicyCompatibilitySource();
+  const closure = loadHostedPolicyPersonnelClosureSource();
+  const helperClosure = loadHostedCleanHelperClosureSource();
   let locked = false, transaction = false;
   try {
     const lock = await queryable.query("SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired", [lockKey]);
@@ -112,14 +147,30 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
     const state = result.rows[0];
     if (result.rows.length !== 1 || !state || Object.keys(state).length !== 4 ||
         Object.values(state).some((value) => typeof value !== "boolean")) throw new Error("hosted_policy_catalog_invalid");
+    let cleanHelperClosureRepairable = false;
+    if (!state.dependenciesValid && state.cleanDefinitionMatches) {
+      const readiness = await queryable.query(helperClosure.readinessSql);
+      const candidate = readiness.rows[0];
+      if (readiness.rows.length !== 1 || !candidate || Object.keys(candidate).length !== 4 ||
+          Object.values(candidate).some((value) => typeof value !== "boolean")) throw new Error("hosted_policy_catalog_invalid");
+      cleanHelperClosureRepairable = candidate.cleanDefinitionMatches === true && candidate.dependenciesValid === true;
+    }
     const personnelPath = await readHostedPolicyPersonnelPath(queryable);
     const replacementRecorded = records.some((record) => record.name === source.name && record.hash === source.hash && !record.baselined);
     if (replacementRecorded && (!await verifyTenantManagementScopeContract(queryable) ||
         !await verifyTenantManagementPolicyRepairCatalog(queryable))) {
       throw new Error("hosted_policy_postcondition_failed");
     }
-    const personnelPathReady = !(state.legacyDefinitionMatches || state.cleanDefinitionMatches) || personnelPath.closed;
-    const applicable = state.dependenciesValid === true && pending.length > 0 && !replacementRecorded &&
+    let personnelClosureRepairable = false;
+    const requiresClosedPersonnel = state.legacyDefinitionMatches || state.cleanDefinitionMatches;
+    if (requiresClosedPersonnel && !personnelPath.closed) {
+      const readiness = await queryable.query(closure.readinessSql);
+      if (readiness.rows.length !== 1 || Object.keys(readiness.rows[0] ?? {}).length !== 1 ||
+          typeof readiness.rows[0]?.repairable !== "boolean") throw new Error("hosted_policy_catalog_invalid");
+      personnelClosureRepairable = readiness.rows[0].repairable;
+    }
+    const personnelPathReady = !requiresClosedPersonnel || personnelPath.closed || personnelClosureRepairable;
+    const applicable = (state.dependenciesValid === true || cleanHelperClosureRepairable) && pending.length > 0 && !replacementRecorded &&
       (!candidateName || candidateName === pending[0]?.name);
     // A rejected applicable repair must stop the ordinary migration runner.
     // Returning changed:false would let it commit historical prerequisites.
@@ -128,7 +179,7 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
       throw new Error("hosted_policy_personnel_path_not_closed");
     }
     const ready = applicable && personnelPathReady;
-    const diagnosis = { ready, replacementRecorded, pendingCount: pending.length, state, personnelPath, changed: false };
+    const diagnosis = { ready, replacementRecorded, pendingCount: pending.length, state, personnelPath, personnelClosureRepairable, cleanHelperClosureRepairable, changed: false };
     if (operation === "diagnose" || !ready) {
       await queryable.query("ROLLBACK"); transaction = false;
       return diagnosis;
@@ -138,8 +189,19 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
     if (pending.length === 3 && (before.missing_pairs !== 0 || before.preserved_pairs !== before.legacy_pairs)) {
       throw new Error("hosted_policy_access_preservation_failed");
     }
-    // Execute the new reviewed migration first, then the unchanged historical
-    // pair. Journal insertion remains chronological and commits with all DDL.
+    // Apply the exact ACL prerequisite before the immutable personnel guard.
+    // All source execution and chronological journal writes share this transaction.
+    await queryable.query(sqlForManagedMigrationTransaction(helperClosure.sql));
+    if (cleanHelperClosureRepairable) {
+      const normalized = (await queryable.query(source.readinessSql)).rows[0];
+      if (normalized?.cleanDefinitionMatches !== true || normalized.dependenciesValid !== true) {
+        throw new Error("hosted_policy_clean_helper_postcondition_failed");
+      }
+    }
+    await queryable.query(sqlForManagedMigrationTransaction(closure.sql));
+    if (requiresClosedPersonnel && !(await readHostedPolicyPersonnelPath(queryable)).closed) {
+      throw new Error("hosted_policy_personnel_path_not_closed");
+    }
     await queryable.query(sqlForManagedMigrationTransaction(source.sql));
     for (const migration of pending) {
       if (migration.name !== HOSTED_POLICY_SUPERSEDED.name) {
@@ -151,7 +213,7 @@ export async function runHostedPolicyCompatibility(queryable: AuthorizationQuery
     }
     const after = await readTenantManagementAuthorizationImpact(queryable);
     if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error("hosted_policy_access_preservation_failed");
-    for (const migration of [...pending, source]) {
+    for (const migration of [...pending, source, closure, helperClosure]) {
       const baselined = migration.name === HOSTED_POLICY_SUPERSEDED.name;
       const recorded = await queryable.query<{ name: string; hash: string; baselined: boolean }>(
         "INSERT INTO drizzle.veele_sql_migrations(name,hash,baselined) VALUES($1,$2,$3) RETURNING name,hash,baselined",

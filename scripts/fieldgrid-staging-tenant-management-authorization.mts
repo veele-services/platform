@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { HOSTED_POLICY_REPLACEMENT } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
+import { HOSTED_POLICY_CLEAN_HELPER_CLOSURE, HOSTED_POLICY_PERSONNEL_CLOSURE, HOSTED_POLICY_REPLACEMENT } from "../lib/db/src/hosted-policy-compatibility-identity.ts";
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -259,9 +259,13 @@ export function tenantManagementAuthorizationFrontier(
       policySource.hash !== TENANT_MANAGEMENT_POLICY_RECONCILIATION_MIGRATION_HASH ||
       !exactSource(source, committedSource, TENANT_MANAGEMENT_MIGRATION_NAME) ||
       !exactSource(repair, committedRepair, TENANT_MANAGEMENT_POLICY_REPAIR_MIGRATION_NAME) ||
-      !(base.committed.length === index + 2 || (base.committed.length === index + 3 &&
+      !(base.committed.length === index + 2 || ([index + 3, index + 4, index + 5].includes(base.committed.length) &&
         base.committed[index + 2]?.name === HOSTED_POLICY_REPLACEMENT.name &&
-        base.committed[index + 2]?.hash === HOSTED_POLICY_REPLACEMENT.hash))) {
+        base.committed[index + 2]?.hash === HOSTED_POLICY_REPLACEMENT.hash &&
+        (base.committed.length === index + 3 || (base.committed[index + 3]?.name === HOSTED_POLICY_PERSONNEL_CLOSURE.name &&
+          base.committed[index + 3]?.hash === HOSTED_POLICY_PERSONNEL_CLOSURE.hash &&
+          (base.committed.length === index + 4 || (base.committed[index + 4]?.name === HOSTED_POLICY_CLEAN_HELPER_CLOSURE.name &&
+            base.committed[index + 4]?.hash === HOSTED_POLICY_CLEAN_HELPER_CLOSURE.hash))))))) {
     throw new AuthorizationError("source_invalid");
   }
   return {

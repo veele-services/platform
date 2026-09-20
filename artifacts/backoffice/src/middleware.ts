@@ -63,6 +63,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const normalizedPathname = stripBackofficeBasePath(pathname);
+  // This exact read-only endpoint exposes only deployment identity, never auth data.
+  if ((request.method === "GET" || request.method === "HEAD") && normalizedPathname === "/healthz") {
+    return NextResponse.next({ request });
+  }
   if (
     isStagingSmokeAutomationRequest(
       request.method,

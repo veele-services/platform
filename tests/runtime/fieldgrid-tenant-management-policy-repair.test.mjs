@@ -79,8 +79,8 @@ export async function restoreLegacyPrescope(client) {
     await client.query("DROP POLICY IF EXISTS service_role_all_payments ON public.payments");
     await client.query(originalServicePaymentPolicy);
     for (const [path, start] of legacyPolicySources) await client.query(sourceStatement(path, start));
-    await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name = $1",
-      ["20260920131458_reconcile_hosted_policy_contract.sql"]);
+    await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name = ANY($1::text[])",
+      [["20260920131458_reconcile_hosted_policy_contract.sql", "20260920145343_close_legacy_personnel_browser_updates.sql", "20260920150424_close_hosted_clean_customer_helper_grants.sql"]]);
     const deleted = await client.query(
       "DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])", [migrationNames],
     );
@@ -461,7 +461,7 @@ export async function verifyTenantManagementPolicyRepair(context) {
   await context.test("previously installed immutable pair runs only the new verification migration", () =>
     withClonedDatabase(async (client) => {
       await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])",
-        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql"]]);
+        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql", "20260920145343_close_legacy_personnel_browser_updates.sql", "20260920150424_close_hosted_clean_customer_helper_grants.sql"]]);
       const before = await dataSnapshot(client);
       const executionOrder = [];
       const journalOrder = [];
@@ -484,7 +484,7 @@ export async function verifyTenantManagementPolicyRepair(context) {
       await client.query("BEGIN");
       await restoreOriginalCleanPolicies(client);
       await client.query("DELETE FROM drizzle.veele_sql_migrations WHERE name=ANY($1::text[])",
-        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql"]]);
+        [[migrationNames[2], "20260920131458_reconcile_hosted_policy_contract.sql", "20260920145343_close_legacy_personnel_browser_updates.sql", "20260920150424_close_hosted_clean_customer_helper_grants.sql"]]);
       await client.query("COMMIT");
       const before = await dataSnapshot(client);
       const diagnostic = await runTenantManagementAuthorization(client, "diagnose");

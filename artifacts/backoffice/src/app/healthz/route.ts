@@ -2,8 +2,8 @@ import { runtimeHealthHeaders } from "../../../../../lib/db/src/runtime-health-i
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-const headers = runtimeHealthHeaders("personnel");
+const headers = runtimeHealthHeaders("backoffice");
 
 export function GET() {
-  return new Response("OK", { status: 200, headers });
+  return Response.json({ status: "ok" }, { headers });
 }

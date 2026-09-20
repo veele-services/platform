@@ -411,8 +411,7 @@ export function isAllowedRouteStatus(mode, status) {
   if (mode === "exact-200") return status === 200;
   if (mode === "login")
     return status === 200 || [301, 302, 303, 307, 308].includes(status);
-  if (mode === "api-root")
-    return status >= 200 && status < 500 && status !== 404;
+  if (mode === "api-root") return status === 401;
   return false;
 }
 

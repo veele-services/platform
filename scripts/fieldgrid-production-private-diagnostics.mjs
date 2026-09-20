@@ -23,6 +23,9 @@ const categories = {
   alreadyExists: /already exists/iu,
   unsupportedTransaction: /transaction control|managed migration transaction/iu,
   hostedPolicyDrift: /tenant_management_legacy_policy_consumer_drift|hosted.policy.*(?:unknown|mismatch|drift)/iu,
+  policyRepairDefinitionDrift: /\btenant_management_policy_repair_definition_drift\b/u,
+  policyRepairPostconditionFailed: /\btenant_management_policy_repair_postcondition_failed\b/u,
+  policyRepairIsolationMismatch: /\btenant_management_policy_repair_requires_read_committed\b/u,
 };
 
 // Return only fixed categories, standard error codes and names present in the

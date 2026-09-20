@@ -40,6 +40,7 @@ Endpoint lists can be overridden with newline-separated `name|url|mode` entries 
 - `exact-200`: only HTTP 200 is healthy. Personnel, customer and API healthz probes use this mode locally and publicly.
 - `login`: HTTP 200 and the explicitly documented login-safe redirects 301, 302, 303, 307 and 308 are healthy. Backoffice `/login` uses this mode locally and publicly.
 - `api-root-404`: only the deliberately expected API-root HTTP 404 is healthy.
+- `api-auth-required`: a configured public `/api/` must return the exact unauthenticated 401 JSON response with the expected API identity.
 
 Default local probes are exactly four core service endpoints. Staging website
 activation adds two explicit endpoints:
@@ -54,6 +55,8 @@ activation adds two explicit endpoints:
 | Marketing (optional pair) | `http://127.0.0.1:${MARKETING_PORT}/healthz`           |
 
 API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root-404`; 404 remains a failure for `exact-200` service endpoints. Public API root is not also added to the public healthz endpoint group, so the API root contract is checked once.
+
+The canonical core service probes additionally verify the response's environment, full release SHA and service identity. Backoffice probes its same-host `/admin/healthz` alongside the login page. See [runtime health identity](runtime-health-identity.md) for the response headers and the separate production `/api/` 401 contract. Rollback checks use the restored release's SHA; a legacy release without identity headers can be restored but its health proof remains failed.
 
 The gate requires exactly four services, ports and local/public endpoints by
 default, exactly five when the website pair is configured, or exactly six when

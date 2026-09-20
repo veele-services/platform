@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { withHostedAuthVariants } from "../../scripts/fieldgrid-hosted-policy-variants.mts";
 import { validateRepairVariants } from "../../scripts/fieldgrid-tenant-management-policy-repair-contract.mts";
-import { loadHostedPolicyCompatibilitySource } from "../../scripts/fieldgrid-hosted-policy-compatibility.mts";
+import { loadHostedPolicyCompatibilitySource, loadHostedCleanHelperClosureSource } from "../../scripts/fieldgrid-hosted-policy-compatibility.mts";
 import { safeNormalizationError } from "../../scripts/fieldgrid-staging-catalog-normalization.mts";
-import { HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED, isVerifiedHostedPolicyBaseline } from "../../lib/db/src/hosted-policy-compatibility-identity.ts";
+import { HOSTED_POLICY_CLEAN_HELPER_CLOSURE, HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED, isVerifiedHostedPolicyBaseline } from "../../lib/db/src/hosted-policy-compatibility-identity.ts";
 
 test("hosted provider variants remove only the redundant direct postgres auth grants", () => {
   const sql = readFileSync(new URL("../../lib/db/migrations/20260919220633_repair_tenant_management_policy_consumers.sql", import.meta.url), "utf8");
@@ -44,4 +44,25 @@ test("normalization errors never expose database payloads", () => {
     "fieldgrid-staging-catalog-normalization-v1: hosted_policy_operation_failed");
   assert.equal(safeNormalizationError(new Error("hosted_policy_catalog_invalid")),
     "fieldgrid-staging-catalog-normalization-v1: hosted_policy_catalog_invalid");
+});
+
+
+test("clean helper closure adds only the exact observed provider ACL to the full clean manifest", () => {
+  const source = loadHostedCleanHelperClosureSource();
+  assert.equal(source.hash, HOSTED_POLICY_CLEAN_HELPER_CLOSURE.hash);
+  const variants = validateRepairVariants(JSON.parse(source.sql.split("$clean_helper_manifest$")[1]!));
+  const canonical = variants.find((v) => v.state === "clean" && v.profile === "hostedProvider")!;
+  const observed = variants.find((v) => v.state === "clean" && v.profile === "hostedObservedClean")!;
+  const copy = structuredClone(observed);
+  copy.profile = canonical.profile;
+  const helper = copy.manifest.helpers.find((h) => h.name === "customer_has_access")!;
+  const expected = canonical.manifest.helpers.find((h) => h.name === "customer_has_access")!;
+  assert.deepEqual(helper.directAcl.filter((acl) => ["anon", "service_role"].includes(acl.grantee))
+    .map(({ grantee, grantor, privilege, grantable }) => ({ grantee, grantor, privilege, grantable })),
+    ["anon", "service_role"].map((grantee) => ({ grantee, grantor: "$owner", privilege: "EXECUTE", grantable: false })));
+  assert.ok(helper.effectiveExecute.filter((acl) => ["anon", "service_role"].includes(acl.role)).every((acl) => acl.allowed));
+  helper.directAcl = structuredClone(expected.directAcl);
+  helper.effectiveExecute = structuredClone(expected.effectiveExecute);
+  assert.deepEqual(copy, canonical);
+  assert.doesNotMatch(source.sql, /ALTER (?:ROLE|FUNCTION)|SET (?:LOCAL )?ROLE|GRANT\s+EXECUTE|CREATE OR REPLACE FUNCTION/iu);
 });
