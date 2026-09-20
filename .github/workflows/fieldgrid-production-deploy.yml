@@ -54,6 +54,8 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL || vars.APP_URL }}
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
       LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
+      # Generic production entrypoints must not be resolved as tenant domains.
+      PLATFORM_HOSTS: admin.fieldgrid.nl,platform.fieldgrid.nl,app.fieldgrid.nl,fieldgrid.nl
 
       BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
       PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
@@ -217,6 +219,7 @@ jobs:
           FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
         run: |
           set -euo pipefail
+          test "$PLATFORM_HOSTS" = 'admin.fieldgrid.nl,platform.fieldgrid.nl,app.fieldgrid.nl,fieldgrid.nl'
           node scripts/fieldgrid-environment-isolation-preflight.mjs --validate --require-migration-database
           node scripts/fieldgrid-production-runtime-handoff.mjs
           node --input-type=module -e '
@@ -276,6 +279,7 @@ jobs:
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
             printf 'SITE_URL=%s\n' "$SITE_URL"
             printf 'NEXT_PUBLIC_SITE_URL=%s\n' "$NEXT_PUBLIC_SITE_URL"
+            printf 'PLATFORM_HOSTS=%s\n' "$PLATFORM_HOSTS"
             printf 'BASE_PATH=%s\n' "$BASE_PATH"
             printf 'LOG_LEVEL=%s\n' "$LOG_LEVEL"
             printf 'BACKOFFICE_PORT=%s\n' "$BACKOFFICE_PORT"
