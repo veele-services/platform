@@ -122,6 +122,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/fieldgrid-v1-wp1-clean-base.mjs --check
+          node --check scripts/fieldgrid-v1-wp1-runner.mjs
+          node --check scripts/wp1/services.mjs
           node --test tests/fieldgrid-v1-wp1-clean-base.test.mjs tests/fieldgrid-v1-wp1-runner-wiring.test.mjs
 
       - name: Install pinned Supabase database root certificate
