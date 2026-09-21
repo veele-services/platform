@@ -11,7 +11,10 @@ export async function journalSnapshot(client) {
   return values;
 }
 export async function verifyMigrationSource(client) {
-  const rows = (await client.query(`SELECT name,hash,baselined,applied_at AS "appliedAt" FROM drizzle.veele_sql_migrations ORDER BY applied_at,name`)).rows;
+  const records = (await client.query(`SELECT name,hash,baselined,applied_at AS "appliedAt" FROM drizzle.veele_sql_migrations ORDER BY applied_at,name`)).rows;
+  // The existing shared verifier consumes JSON evidence (ISO timestamps), while
+  // node-postgres returns Date instances. Preserve its strict validation.
+  const rows = records.map(row => ({ ...row, appliedAt: row.appliedAt instanceof Date ? row.appliedAt.toISOString() : row.appliedAt }));
   const committed = await committedMigrationManifest();
   assertMatchingMigrationHistory(rows,committed);
   const active = new Set(committed);
@@ -24,13 +27,13 @@ export async function verifyMigrationSource(client) {
   }
   const generatedRoot = new URL('../../lib/db/migrations/generated/',import.meta.url);
   const generated = JSON.parse(await readFile(new URL('meta/_journal.json',generatedRoot),'utf8'));
-  const records = (await client.query('SELECT hash,created_at::text AS created_at FROM drizzle.__drizzle_migrations ORDER BY created_at')).rows;
-  requireThat(records.length === generated.entries.length, 'GENERATED_HISTORY');
-  for (let i=0;i<records.length;i++) {
+  const generatedRecords = (await client.query('SELECT hash,created_at::text AS created_at FROM drizzle.__drizzle_migrations ORDER BY created_at')).rows;
+  requireThat(generatedRecords.length === generated.entries.length, 'GENERATED_HISTORY');
+  for (let i=0;i<generatedRecords.length;i++) {
     const entry = generated.entries[i];
     requireThat(/^[A-Za-z0-9_-]+$/.test(entry.tag), 'GENERATED_NAME');
     const sql = await readFile(new URL(`${entry.tag}.sql`,generatedRoot));
-    requireThat(records[i].hash === textHash(sql) && records[i].created_at === String(entry.when), 'GENERATED_HASH');
+    requireThat(generatedRecords[i].hash === textHash(sql) && generatedRecords[i].created_at === String(entry.when), 'GENERATED_HASH');
   }
 }
 export async function catalogSnapshot(client) {
