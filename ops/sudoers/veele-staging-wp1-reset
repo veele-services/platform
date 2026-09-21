@@ -1,0 +1,13 @@
+# Fieldgrid WP1 staging reset writer controls.
+# Exact commands only. No wildcards, shells, file writes, restart or reload.
+Cmnd_Alias FIELDGRID_WP1_RESET_CONTROL = \
+    /usr/bin/systemctl stop veele-staging.service, \
+    /usr/bin/systemctl start veele-staging.service, \
+    /usr/bin/systemctl stop veele-staging-personeel.service, \
+    /usr/bin/systemctl start veele-staging-personeel.service, \
+    /usr/bin/systemctl stop veele-staging-klant.service, \
+    /usr/bin/systemctl start veele-staging-klant.service, \
+    /usr/bin/systemctl stop veele-staging-api.service, \
+    /usr/bin/systemctl start veele-staging-api.service
+
+github-runner ALL=(root) NOPASSWD: FIELDGRID_WP1_RESET_CONTROL
