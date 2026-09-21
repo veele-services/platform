@@ -52,3 +52,6 @@ jobs:
           name: fieldgrid-migration-smoke-local-dual-target
           path: artifacts/migration-smoke/*.json
           if-no-files-found: warn
+
+      - name: Validate WP1 PostgreSQL 17 reset integration contract
+        run: pnpm fieldgrid:test:wp1-postgres17

@@ -24,7 +24,10 @@ export async function runWp1Reset(adapter, { mode, preflight, fingerprint } = {}
     state = transition(state, "resume"); await adapter.resume(); quiesced = false;
     return { state, verified };
   } catch (error) {
-    if (quiesced) await adapter.resume().catch(() => undefined);
+    if (quiesced) {
+      try { await adapter.resume(); }
+      catch (resumeError) { throw new Error(`recovery_required: writers could not be resumed (${String(resumeError.message ?? "unknown")})`); }
+    }
     throw error;
   }
 }

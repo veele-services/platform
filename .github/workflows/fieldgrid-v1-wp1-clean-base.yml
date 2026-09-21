@@ -17,6 +17,14 @@ on:
         description: Type fieldgrid-v1-wp1-clean-reset-v1 to produce the staging reset manifest
         required: true
         type: string
+      phase2e_run_id:
+        description: Successful Phase2E backup/restore preflight run ID (required for apply)
+        required: false
+        type: string
+      diagnose_run_id:
+        description: Successful WP1 diagnose run ID (required for apply)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -37,6 +45,12 @@ jobs:
       RESET_CONFIRMATION: ${{ inputs.confirmation }}
       RESET_MODE: ${{ inputs.mode }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+      PHASE2E_RUN_ID: ${{ inputs.phase2e_run_id }}
+      WP1_DIAGNOSE_RUN_ID: ${{ inputs.diagnose_run_id }}
     steps:
       - name: Reject unreviewed dispatch
         run: |
@@ -66,21 +80,41 @@ jobs:
             const p = await r.json(); if (!r.ok || p.object?.sha !== process.env.EXPECTED_MAIN_SHA) throw new Error("expected SHA is not current main");'
       - name: Validate bounded reset contract
         run: node scripts/fieldgrid-v1-wp1-clean-base.mjs --check
+      - name: Require green exact-head validation for apply
+        if: ${{ inputs.mode == 'apply' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const r=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/commits/${process.env.EXPECTED_MAIN_SHA}/check-runs`,{headers:{Authorization:`Bearer ${process.env.GITHUB_TOKEN}`,Accept:"application/vnd.github+json"}}); const p=await r.json(); if(!r.ok||!p.check_runs?.some(x=>x.name==="Main Exact Head Validation"&&x.conclusion==="success")) throw new Error("Main Exact Head Validation is not green for expected SHA");'
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-wp1-root-${GITHUB_RUN_ID}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          echo "FIELDGRID_DATABASE_SSL_ROOT_CERT=$certificate_path" >> "$GITHUB_ENV"
       - name: Write redacted manifest
         run: |
           set -euo pipefail
           mkdir -p artifacts/fieldgrid-v1-wp1-clean-base
           node scripts/fieldgrid-v1-wp1-clean-base.mjs --manifest > artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
-      - name: Reverify exact main before any operator-approved mutation
+      - name: Run bounded live WP1 runner
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIELDGRID_WP1_WRITER_UNITS: ${{ vars.BACKOFFICE_SERVICE_NAME }},${{ vars.PERSONEEL_SERVICE_NAME }},${{ vars.KLANT_SERVICE_NAME }},${{ vars.API_SERVICE_NAME }},${{ vars.NOTIFICATION_WORKER_SERVICE_NAME }},${{ vars.SCHEDULER_SERVICE_NAME }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
-          # Apply is deliberately fail-closed until the current preflight artifact,
-          # verified backup evidence, quiesce proof and provider-aware executor are supplied.
-          test "$RESET_MODE" != "apply" || { echo "::error::Apply requires the reviewed WP1 executor evidence."; exit 1; }
+          node scripts/fieldgrid-v1-wp1-runner.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fieldgrid-v1-wp1-clean-base-${{ github.run_id }}
-          path: artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
+          path: artifacts/fieldgrid-v1-wp1-clean-base/
           retention-days: 7

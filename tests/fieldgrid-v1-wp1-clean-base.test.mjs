@@ -26,4 +26,9 @@ test("WP1 workflow is manual, main-bound, approval-protected and exact-SHA gated
   assert.match(workflow, /GITHUB_SHA" = "\$EXPECTED_MAIN_SHA/);
   assert.match(workflow, /refs\/heads\/main/);
   assert.match(workflow, /fieldgrid-v1-wp1-clean-base\.mjs --check/);
+  assert.match(workflow, /fieldgrid-v1-wp1-runner\.mjs/);
+  assert.match(workflow, /Main Exact Head Validation/);
+  assert.match(workflow, /PHASE2E_RUN_ID/);
+  assert.match(workflow, /WP1_DIAGNOSE_RUN_ID/);
+  assert.doesNotMatch(workflow, /test "\$RESET_MODE" != "apply"/);
 });
