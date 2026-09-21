@@ -5,6 +5,7 @@ import { assertBootstrapContext, bootstrapCanonical, verifyCanonical } from './b
 import { assertMatchingMigrationHistory, committedMigrationManifest, assertRecordedHistoricalMigrationHashes } from '../fieldgrid-phase2e-staging-preflight.mjs';
 
 const DELETE_SET = new Set(DELETE_TABLES);
+const QUEUES = new Set(['notification_delivery_attempts','notification_delivery_queue','notification_dispatches','domain_events','portal_realtime_events','personnel_notifications','customer_notifications']);
 export async function journalSnapshot(client) {
   const values = {};
   for (const table of JOURNALS) values[table] = (await client.query(`SELECT to_jsonb(t) AS row FROM ${relation(table)} t ORDER BY to_jsonb(t)::text`)).rows.map(row => row.row);
@@ -12,8 +13,6 @@ export async function journalSnapshot(client) {
 }
 export async function verifyMigrationSource(client) {
   const records = (await client.query(`SELECT name,hash,baselined,applied_at AS "appliedAt" FROM drizzle.veele_sql_migrations ORDER BY applied_at,name`)).rows;
-  // The existing shared verifier consumes JSON evidence (ISO timestamps), while
-  // node-postgres returns Date instances. Preserve its strict validation.
   const rows = records.map(row => ({ ...row, appliedAt: row.appliedAt instanceof Date ? row.appliedAt.toISOString() : row.appliedAt }));
   const committed = await committedMigrationManifest();
   assertMatchingMigrationHistory(rows,committed);
@@ -49,11 +48,12 @@ export async function catalogSnapshot(client) {
     WHERE schemaname='public' ORDER BY tablename,policyname`)).rows;
   const fks = (await client.query(`SELECT ns.nspname AS "childSchema",c.relname AS child,pns.nspname AS "parentSchema",p.relname AS parent,
     co.conname AS name,co.confdeltype AS action,pg_get_constraintdef(co.oid) AS definition,
-    ARRAY(SELECT a.attname FROM unnest(co.conkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.num ORDER BY k.ord) AS "childColumns",
-    ARRAY(SELECT a.attname FROM unnest(co.confkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=p.oid AND a.attnum=k.num ORDER BY k.ord) AS "parentColumns"
+    ARRAY(SELECT a.attname::text FROM unnest(co.conkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.num ORDER BY k.ord) AS "childColumns",
+    ARRAY(SELECT a.attname::text FROM unnest(co.confkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=p.oid AND a.attnum=k.num ORDER BY k.ord) AS "parentColumns"
     FROM pg_constraint co JOIN pg_class c ON c.oid=co.conrelid JOIN pg_namespace ns ON ns.oid=c.relnamespace
     JOIN pg_class p ON p.oid=co.confrelid JOIN pg_namespace pns ON pns.oid=p.relnamespace
     WHERE co.contype='f' AND (ns.nspname='public' OR pns.nspname='public') ORDER BY ns.nspname,c.relname,co.conname`)).rows;
+  for(const fk of fks) requireThat(Array.isArray(fk.childColumns)&&Array.isArray(fk.parentColumns)&&fk.childColumns.length===fk.parentColumns.length&&fk.childColumns.length>0,'FK_CATALOG_INVALID');
   return {tables,triggers,policies,fks};
 }
 export function paymentBlockers(data) {
@@ -69,7 +69,6 @@ export function paymentBlockers(data) {
   }
   return total;
 }
-
 export async function inventoryDatabase(client, context) {
   await verifyMigrationSource(client);
   const catalog = await catalogSnapshot(client);
@@ -92,25 +91,17 @@ export async function inventoryDatabase(client, context) {
     if ((await client.query(`SELECT 1 FROM public.${identifier(fk.child)} c JOIN public.${identifier(fk.parent)} p ON ${join} LIMIT 1`)).rows.length) blockers.push('PRESERVED_REFERENCE');
   }
   const order=deletionOrder(catalog.fks);
-  const linked=new Set([...data.personnel,...data.customer_users].map(row=>row.user_id).filter(Boolean));
-  const retained=new Set([context.adminId]);
-  // Retain every identity referenced by retained application configuration,
-  // including memberships, roles, ownership, audit and website records.
-  for (const table of PRESERVE_TABLES) for (const row of data[table]) for (const [key,value] of Object.entries(row)) {
-    if (typeof value==='string' && (key==='user_id'||key==='created_by'||key==='updated_by'||key.endsWith('_user_id')||key==='actor_id')) retained.add(value);
-  }
-  const authCandidates=[...linked].filter(id=>!retained.has(id)).sort();
   const rowDigests=Object.fromEntries(ALL_TABLES.map(table=>[table,rowsDigest(data[table])]));
-  return { context, counts, data, catalog, order, journals, authCandidates, retainedAuthIds:[...retained].sort(), blockers,
+  // Provider accounts/memberships are retained, not recreated or reassigned.
+  // Their operational personnel/customer rows can be removed independently.
+  return { context, counts, data, catalog, order, journals, authCandidates:[], blockers,
     rowDigests, catalogDigest:hash(catalog), journalDigest:hash(journals), fingerprint:hash({rowDigests,catalog:hash(catalog),journals:hash(journals),context}) };
 }
-
 function unchangedExisting(before,after,table) {
   const seen = new Set(after[table].map(row=>JSON.stringify(row)));
   return before[table].every(row=>seen.has(JSON.stringify(row)));
 }
-
-export async function resetDatabase(client, expected, { rehearsal=false, inject=async()=>{} }={}) {
+export async function resetDatabase(client, expected, { rehearsal=false, inject=async()=>{}, beforeCommit=async()=>{} }={}) {
   requireThat(expected.blockers.length===0,'RESET_BLOCKED');
   await client.query('BEGIN ISOLATION LEVEL READ COMMITTED');
   let commitStarted=false;
@@ -133,6 +124,10 @@ export async function resetDatabase(client, expected, { rehearsal=false, inject=
       changedGuards.push(trigger);
     }
     for (const table of current.order) await client.query(`DELETE FROM public.${identifier(table)}`);
+    // Retained triggers may enqueue deletion notifications. Remove these old
+    // test deliveries as well before seeding; never dispatch them after resume.
+    for(const table of current.order.filter(name=>QUEUES.has(name))) await client.query(`DELETE FROM public.${identifier(table)}`);
+    for(const table of DELETE_TABLES) requireThat((await client.query(`SELECT 1 FROM public.${identifier(table)} LIMIT 1`)).rows.length===0,'TEST_ROWS_REMAIN');
     for (const trigger of changedGuards) {
       const mode=trigger.enabled==='A'?'ENABLE ALWAYS':trigger.enabled==='R'?'ENABLE REPLICA':'ENABLE';
       await client.query(`ALTER TABLE public.${identifier(trigger.table)} ${mode} TRIGGER ${identifier(trigger.name)}`);
@@ -143,13 +138,15 @@ export async function resetDatabase(client, expected, { rehearsal=false, inject=
     const proof=await verifyCanonical(client,expected.context);
     requireThat(hash(await journalSnapshot(client))===expected.journalDigest,'JOURNAL_CHANGED');
     requireThat(hash(await catalogSnapshot(client))===expected.catalogDigest,'CATALOG_CHANGED');
-    // Verify all original retained rows are unchanged; new isolation configuration
-    // is allowed, but existing settings/permissions/identities may not be rewritten.
     for (const table of PRESERVE_TABLES) {
       const rows=(await client.query(`SELECT to_jsonb(t) AS row FROM public.${identifier(table)} t LIMIT ${MAX_ROWS+1}`)).rows.map(row=>row.row);
       requireThat(unchangedExisting(current.data,{[table]:rows},table),'PRESERVED_DATA_CHANGED');
     }
     await inject('before-commit');
+    // The real runner stages recoverable Storage changes only AFTER database
+    // cleanup, canonical seeding, RLS and preservation checks have succeeded.
+    // A provider error still rolls this entire DB transaction back.
+    if(!rehearsal) await beforeCommit(await inventoryDatabase(client,expected.context));
     if (rehearsal) await client.query('ROLLBACK');
     else { commitStarted=true; await client.query('COMMIT'); }
     return { committed:!rehearsal, proof, fixture };
