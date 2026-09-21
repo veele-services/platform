@@ -15,70 +15,109 @@ concurrency:
 
 jobs:
   migration-smoke:
+    if: github.event_name == 'workflow_dispatch'
     name: Migration smoke
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout exact run head
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 0
           persist-credentials: false
-
-      # Temporary development transport: tracked source/history only, no runner
-      # configuration, credentials, databases or application data are included.
-      - name: Export exact source for isolated local review
-        run: git bundle create "$RUNNER_TEMP/fieldgrid-wp1-source.bundle" --all
-      - name: Upload exact source
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: wp1-source-${{ github.sha }}
-          path: ${{ runner.temp }}/fieldgrid-wp1-source.bundle
-          retention-days: 1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11.5.2
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
+      - run: pnpm install --frozen-lockfile
       - name: Set up pinned unprivileged PostgreSQL 17
         run: scripts/fieldgrid-setup-postgresql17.sh
-
-      - name: Check local migration-smoke runtime
-        run: |
-          set -euo pipefail
-          postgres --version
-          initdb --version
-          pg_ctl --version
-          createdb --version
-          psql --version
-
-      - name: Validate migration order
-        run: pnpm fieldgrid:migration-order-check:check
-
-      - name: Validate smoke contract
-        run: pnpm fieldgrid:sprint7-migration-smoke:check
-
+      - run: pnpm fieldgrid:migration-order-check:check
+      - run: pnpm fieldgrid:sprint7-migration-smoke:check
       - name: Run self-contained dual-target migration smoke
         run: node scripts/fieldgrid-local-migration-smoke.mjs --run --out artifacts/migration-smoke
-
-      - name: Run current WP1 unit and contract tests
-        run: node --test tests/fieldgrid-v1-wp1-*.test.mjs
-
       - name: Upload migration smoke report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fieldgrid-migration-smoke-local-dual-target
           path: artifacts/migration-smoke/*.json
+          if-no-files-found: warn
+          retention-days: 1
+
+  wp1-postgresql:
+    name: WP1 isolated PostgreSQL 17
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: 'false'
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Temporary offline-development transport. Only installed packages and
+      # public tool binaries; no credentials, service data, or database volumes.
+      - name: Export offline development tools
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          find . -type d -name node_modules -prune -print0 > "$RUNNER_TEMP/wp1-module-paths"
+          tar --null -T "$RUNNER_TEMP/wp1-module-paths" -czf "$RUNNER_TEMP/wp1-node-modules.tar.gz"
+          mkdir -p "$RUNNER_TEMP/wp1-tools/bin"
+          cp "$(command -v node)" "$RUNNER_TEMP/wp1-tools/bin/node"
+          cp -a "$(dirname "$(dirname "$(readlink -f "$(command -v pnpm)")")")" "$RUNNER_TEMP/wp1-tools/pnpm"
+          docker cp "$PG_CONTAINER:/usr/lib/postgresql/17" "$RUNNER_TEMP/wp1-tools/postgresql"
+          docker cp "$PG_CONTAINER:/usr/share/postgresql/17" "$RUNNER_TEMP/wp1-tools/pgshare"
+          docker cp "$PG_CONTAINER:/usr/lib/x86_64-linux-gnu" "$RUNNER_TEMP/wp1-tools/pg-lib"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/wp1-tools.tar.gz" wp1-tools
+      - name: Upload offline development tools
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wp1-offline-tools-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/wp1-node-modules.tar.gz
+            ${{ runner.temp }}/wp1-tools.tar.gz
+          compression-level: 0
+          retention-days: 1
+      - name: Install complete committed migration chain
+        run: pnpm fieldgrid:runtime-safety:setup
+      - name: Current WP1 tests
+        run: node --test tests/fieldgrid-v1-wp1-*.test.mjs
+      - name: Upload database setup proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wp1-postgresql-${{ github.sha }}
+          path: artifacts/runtime-safety-harness/reports/*.json
           if-no-files-found: warn
           retention-days: 1
