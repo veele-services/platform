@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { paymentBlockers } from '../scripts/wp1/database.mjs';
-import { ALL_TABLES,assertCatalogCoverage,HISTORY_DELETE_GUARDS } from '../scripts/wp1/relations.mjs';
+import { ALL_TABLES,assertCatalogCoverage,deletionOrder,HISTORY_DELETE_GUARDS } from '../scripts/wp1/relations.mjs';
 import { fixtureId } from '../scripts/wp1/bootstrap.mjs';
 import { hash,rowsDigest } from '../scripts/wp1/contract.mjs';
 
@@ -27,4 +27,35 @@ test('new fixtures use operation-specific identities rather than deleted user id
   const op='10000000-0000-4000-8000-000000000001';
   assert.equal(fixtureId(op,'personnel'),fixtureId(op,'personnel'));
   assert.notEqual(fixtureId(op,'personnel'),fixtureId(op,'isolation'));
+});
+
+
+test('delete order treats CASCADE and SET NULL as resolving edges but preserves hard-cycle failure', () => {
+  const edge = (child, parent, action) => ({
+    childSchema: 'public',
+    child,
+    parentSchema: 'public',
+    parent,
+    action,
+  });
+
+  const order = deletionOrder([
+    edge('assignments', 'customers', 'c'),
+    edge('customers', 'assignments', 'r'),
+  ]);
+  assert.ok(order.indexOf('customers') < order.indexOf('assignments'));
+
+  const setNullOrder = deletionOrder([
+    edge('assignments', 'customers', 'n'),
+    edge('customers', 'assignments', 'r'),
+  ]);
+  assert.ok(setNullOrder.indexOf('customers') < setNullOrder.indexOf('assignments'));
+
+  assert.throws(
+    () => deletionOrder([
+      edge('assignments', 'customers', 'r'),
+      edge('customers', 'assignments', 'a'),
+    ]),
+    /FK_CYCLE/,
+  );
 });
