@@ -14,8 +14,12 @@ on:
         type: choice
         options: [diagnose, apply, verify]
       confirmation:
-        description: Type fieldgrid-v1-wp1-clean-reset-v1 to produce the staging reset manifest
+        description: Exact versioned confirmation for the selected mode
         required: true
+        type: string
+      diagnose_run_id:
+        description: Successful WP1 diagnose run ID (required for apply and verify)
+        required: false
         type: string
 
 permissions:
@@ -27,8 +31,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  preflight:
+  wp1:
+    name: Fieldgrid WP1 ${{ inputs.mode }}
     runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 45
     environment: staging
     env:
       APP_ENV: staging
@@ -37,6 +43,13 @@ jobs:
       RESET_CONFIRMATION: ${{ inputs.confirmation }}
       RESET_MODE: ${{ inputs.mode }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+      WP1_DIAGNOSE_RUN_ID: ${{ inputs.diagnose_run_id }}
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
+
     steps:
       - name: Reject unreviewed dispatch
         run: |
@@ -45,16 +58,29 @@ jobs:
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
-          case "$RESET_MODE" in
-            diagnose|verify) test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-clean-reset-v1" ;;
-            apply) test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-staging-application-cleanup-v1" ;;
-            *) exit 1 ;;
-          esac
           [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+          case "$RESET_MODE" in
+            diagnose|verify)
+              test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-clean-reset-v1"
+              ;;
+            apply)
+              test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-staging-application-cleanup-v2"
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
+          if [ "$RESET_MODE" = "apply" ] || [ "$RESET_MODE" = "verify" ]; then
+            [[ "$WP1_DIAGNOSE_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+          fi
+
+      - name: Checkout exact reviewed main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 1
           persist-credentials: false
+
       - name: Verify immutable current main
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -62,25 +88,90 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
           node --input-type=module -e '
-            const r = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`, {headers:{Authorization:`Bearer ${process.env.GITHUB_TOKEN}`,Accept:"application/vnd.github+json"}});
-            const p = await r.json(); if (!r.ok || p.object?.sha !== process.env.EXPECTED_MAIN_SHA) throw new Error("expected SHA is not current main");'
-      - name: Validate bounded reset contract
-        run: node scripts/fieldgrid-v1-wp1-clean-base.mjs --check
-      - name: Write redacted manifest
+            const response = await fetch(
+              `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`,
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                  Accept: "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              },
+            );
+            const payload = await response.json();
+            if (!response.ok || payload.object?.sha !== process.env.EXPECTED_MAIN_SHA) {
+              throw new Error("Expected SHA is not the current main head");
+            }
+          '
+
+      - name: Set up pnpm 11.5.2
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11.5.2
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+
+      - name: Validate bounded WP1 source contract
         run: |
           set -euo pipefail
-          mkdir -p artifacts/fieldgrid-v1-wp1-clean-base
-          node scripts/fieldgrid-v1-wp1-clean-base.mjs --manifest > artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
-      - name: Reverify exact main before any operator-approved mutation
+          node scripts/fieldgrid-v1-wp1-clean-base.mjs --check
+          node --check scripts/fieldgrid-v1-wp1-runner.mjs
+          node --check scripts/wp1/services.mjs
+          node --test tests/fieldgrid-v1-wp1-clean-base.test.mjs tests/fieldgrid-v1-wp1-runner-wiring.test.mjs
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-wp1-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          node scripts/fieldgrid-database-root-cert.mjs --check --file "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Execute bounded WP1 operation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+          FIELDGRID_WP1_TENANT_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_WP1_ADMIN_USER_ID: ${{ secrets.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID }}
+          FIELDGRID_WP1_WRITER_UNITS: ${{ vars.BACKOFFICE_SERVICE_NAME }},${{ vars.PERSONEEL_SERVICE_NAME }},${{ vars.KLANT_SERVICE_NAME }},${{ vars.API_SERVICE_NAME }},${{ vars.NOTIFICATION_WORKER_SERVICE_NAME }},${{ vars.SCHEDULER_SERVICE_NAME }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
-          # Apply is deliberately fail-closed until the current preflight artifact,
-          # verified backup evidence, quiesce proof and provider-aware executor are supplied.
-          test "$RESET_MODE" != "apply" || { echo "::error::Apply requires the reviewed WP1 executor evidence."; exit 1; }
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+          node scripts/fieldgrid-v1-wp1-runner.mjs
+
+      - name: Upload bounded WP1 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: fieldgrid-v1-wp1-clean-base-${{ github.run_id }}
-          path: artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
-          retention-days: 7
+          name: wp1-${{ inputs.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/fieldgrid-v1-wp1-clean-base/result.json
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Remove temporary database root certificate
+        if: always()
+        run: |
+          set -euo pipefail
+          certificate_path="${FIELDGRID_DATABASE_SSL_ROOT_CERT:-}"
+          if [ -z "$certificate_path" ]; then
+            exit 0
+          fi
+          expected_path="$RUNNER_TEMP/fieldgrid-wp1-root-${GITHUB_RUN_ID}-${GITHUB_JOB}.crt"
+          test "$certificate_path" = "$expected_path"
+          rm -f -- "$certificate_path"
