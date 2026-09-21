@@ -48,7 +48,7 @@ test('Mollie uses only test credentials and validates real response identity/amo
   assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'paid',amount:{value:'1.00',currency:'EUR'}})})),1);
 });
 test('systemd unit scope and state cannot be replaced by input flags',()=>{
-  const units='veele-staging-backoffice,veele-staging-personeel,veele-staging-klant,veele-staging-api';
+  const units='veele-staging,veele-staging-personeel,veele-staging-klant,veele-staging-api';
   assert.equal(parseWriterUnits(units).length,4);assert.throws(()=>parseWriterUnits(`${units},ssh.service`));
   assert.equal(parseUnitState('Id=veele-staging-api.service\nLoadState=loaded\nActiveState=inactive\nSubState=dead\nMainPID=0\nFragmentPath=/etc/systemd/system/veele-staging-api.service').active,false);
   assert.throws(()=>parseUnitState('Id=veele-staging-api.service\nLoadState=not-found\nActiveState=inactive\nMainPID=0'));
