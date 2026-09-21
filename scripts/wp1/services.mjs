@@ -5,7 +5,7 @@ import { hash, requireThat, fail } from "./contract.mjs";
 
 const run = promisify(execFile);
 const REQUIRED = [
-  "veele-staging-backoffice.service",
+  "veele-staging.service",
   "veele-staging-personeel.service",
   "veele-staging-klant.service",
   "veele-staging-api.service",
