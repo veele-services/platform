@@ -3,12 +3,10 @@ name: Fieldgrid Migration Smoke
 on:
   workflow_dispatch:
   push:
-    branches:
-      - 'codex/continue-wp1-implementation-from-pr-#516'
+    branches: ['codex/continue-wp1-implementation-from-pr-#516']
 
 permissions:
   contents: read
-
 concurrency:
   group: fieldgrid-migration-smoke-${{ github.ref }}
   cancel-in-progress: true
@@ -50,13 +48,12 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:17
+        image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
         env:
           POSTGRES_DB: fieldgrid_runtime_safety
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
+        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
           --health-interval 5s --health-timeout 5s --health-retries 20
@@ -81,16 +78,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install complete committed migration chain
         run: pnpm fieldgrid:runtime-safety:setup
-      - name: Inspect synthetic database catalog for reviewed reset scope
-        env:
-          PGPASSWORD: postgres
-        run: |
-          set -euo pipefail
-          psql "$DATABASE_URL" -X -A -t -c "SELECT string_agg(quote_ident(tablename),',' ORDER BY tablename) FROM pg_tables WHERE schemaname='public'"
-          psql "$DATABASE_URL" -X -A -t -c "SELECT c.relname || '|' || t.tgname || '|' || p.proname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid WHERE NOT t.tgisinternal AND n.nspname='public' AND (t.tgtype & 8)=8 ORDER BY 1"
-          psql "$DATABASE_URL" -X -A -t -c "SELECT table_name || '|' || column_name || '|' || data_type || '|' || coalesce(column_default,'') FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('customers','objects','personnel','tenant_users','tenant_user_roles','tenants','organization_settings','assignment_tasks','payments') AND (is_nullable='NO' OR column_name IN ('provider_mode','provider_status')) ORDER BY table_name, ordinal_position"
-      - name: Current WP1 tests
+      - name: Install canonical role templates in disposable database
+        run: pnpm --filter @workspace/db exec tsx src/seed/rbac.ts
+      - name: Execute actual WP1 reset and rollback tests against PostgreSQL
+        run: node --test tests/runtime/fieldgrid-wp1-database.test.mjs
+      - name: WP1 unit and provider tests
         run: node --test tests/fieldgrid-v1-wp1-*.test.mjs
+      - name: Fieldflow protected input integrity
+        run: pnpm fieldgrid:fieldflow-calm-handoff:check
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
