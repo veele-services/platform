@@ -200,7 +200,8 @@
     "fieldgrid:phase2d:runtime-journeys": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-phase2d-runtime-journeys.mts",
     "fieldgrid:phase2-w11": "node scripts/fieldgrid-phase2-w11-cross-surface-acceptance.mjs",
     "fieldgrid:phase2-w11:check": "node scripts/fieldgrid-phase2-w11-cross-surface-acceptance.mjs --check && node --test tests/fieldgrid-phase2-w11-cross-surface-acceptance.test.mjs tests/fieldgrid-playwright-journey-evidence.test.mjs",
-    "fieldgrid:v1-wp1-clean-base:check": "node scripts/fieldgrid-v1-wp1-clean-base.mjs --check"
+    "fieldgrid:v1-wp1-clean-base:check": "node scripts/fieldgrid-v1-wp1-clean-base.mjs --check",
+    "fieldgrid:v1-wp1-reset-plan:check": "node --test tests/fieldgrid-v1-wp1-reset-plan.test.mjs"
   },
   "private": true,
   "devDependencies": {

@@ -17,6 +17,8 @@ test("WP1 workflow is manual, main-bound, approval-protected and exact-SHA gated
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /pull_request:|\npush:/);
   assert.match(workflow, /expected_main_sha:/);
+  assert.match(workflow, /options: \[diagnose, apply, verify\]/);
+  assert.match(workflow, /fieldgrid-v1-wp1-staging-application-cleanup-v1/);
   assert.match(workflow, /fieldgrid-v1-wp1-clean-reset-v1/);
   assert.match(workflow, /environment:\s*staging/);
   assert.match(workflow, /group:\s*veele-staging/);

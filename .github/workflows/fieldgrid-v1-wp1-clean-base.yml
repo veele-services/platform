@@ -7,6 +7,12 @@ on:
         description: Exact reviewed current main SHA
         required: true
         type: string
+      mode:
+        description: diagnose (read only), apply, or verify
+        required: true
+        default: diagnose
+        type: choice
+        options: [diagnose, apply, verify]
       confirmation:
         description: Type fieldgrid-v1-wp1-clean-reset-v1 to produce the staging reset manifest
         required: true
@@ -29,6 +35,7 @@ jobs:
       TARGET_ENVIRONMENT: staging
       EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       RESET_CONFIRMATION: ${{ inputs.confirmation }}
+      RESET_MODE: ${{ inputs.mode }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
     steps:
       - name: Reject unreviewed dispatch
@@ -38,7 +45,11 @@ jobs:
           test "$GITHUB_REPOSITORY" = "veele-services/platform"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
-          test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-clean-reset-v1"
+          case "$RESET_MODE" in
+            diagnose|verify) test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-clean-reset-v1" ;;
+            apply) test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-staging-application-cleanup-v1" ;;
+            *) exit 1 ;;
+          esac
           [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -65,8 +76,9 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
-          # This workflow deliberately stops here: apply requires a reviewed,
-          # provider-aware executor and a separately approved manifest/backup.
+          # Apply is deliberately fail-closed until the current preflight artifact,
+          # verified backup evidence, quiesce proof and provider-aware executor are supplied.
+          test "$RESET_MODE" != "apply" || { echo "::error::Apply requires the reviewed WP1 executor evidence."; exit 1; }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fieldgrid-v1-wp1-clean-base-${{ github.run_id }}
