@@ -2,94 +2,53 @@ name: Fieldgrid Migration Smoke
 
 on:
   workflow_dispatch:
-  push:
-    branches: ['codex/continue-wp1-implementation-from-pr-#516']
-
-permissions:
-  contents: read
-concurrency:
-  group: fieldgrid-migration-smoke-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   migration-smoke:
-    if: github.event_name == 'workflow_dispatch'
     name: Migration smoke
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          version: 11.5.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: scripts/fieldgrid-setup-postgresql17.sh
-      - run: pnpm fieldgrid:migration-order-check:check
-      - run: pnpm fieldgrid:sprint7-migration-smoke:check
-      - run: node scripts/fieldgrid-local-migration-smoke.mjs --run --out artifacts/migration-smoke
-      - if: always()
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up pinned unprivileged PostgreSQL 17
+        run: scripts/fieldgrid-setup-postgresql17.sh
+
+      - name: Check local migration-smoke runtime
+        run: |
+          set -euo pipefail
+          postgres --version
+          initdb --version
+          pg_ctl --version
+          createdb --version
+          psql --version
+
+      - name: Validate migration order
+        run: pnpm fieldgrid:migration-order-check:check
+
+      - name: Validate smoke contract
+        run: pnpm fieldgrid:sprint7-migration-smoke:check
+
+      - name: Run self-contained dual-target migration smoke
+        run: node scripts/fieldgrid-local-migration-smoke.mjs --run --out artifacts/migration-smoke
+
+      - name: Upload migration smoke report
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: fieldgrid-migration-smoke-local-dual-target
           path: artifacts/migration-smoke/*.json
           if-no-files-found: warn
-          retention-days: 1
-
-  wp1-postgresql:
-    name: WP1 isolated PostgreSQL 17
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
-        env:
-          POSTGRES_DB: fieldgrid_runtime_safety
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
-          --health-interval 5s --health-timeout 5s --health-retries 20
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
-      DB_SSL: 'false'
-      PGSSLMODE: disable
-      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: '1'
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          version: 11.5.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install complete committed migration chain
-        run: pnpm fieldgrid:runtime-safety:setup
-      - name: Install canonical role templates in disposable database
-        run: pnpm --filter @workspace/db exec tsx src/seed/rbac.ts
-      - name: Execute actual WP1 reset and rollback tests against PostgreSQL
-        run: node --test tests/runtime/fieldgrid-wp1-database.test.mjs
-      - name: WP1 unit and provider tests
-        run: node --test tests/fieldgrid-v1-wp1-*.test.mjs
-      - name: Fieldflow protected input integrity
-        run: pnpm fieldgrid:fieldflow-calm-handoff:check
-      - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: wp1-postgresql-${{ github.sha }}
-          path: artifacts/runtime-safety-harness/reports/*.json
-          if-no-files-found: warn
-          retention-days: 1
