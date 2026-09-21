@@ -25,3 +25,10 @@ test("Auth adapter treats 404 as idempotent and redacts provider failures", asyn
   const broken = createWp1SupabaseAdapters(client({ users: [], listError: { status: 429, message: "https://secret.example/token" } }), { candidateIdentity: () => "candidate", preserveIdentity: () => false });
   await assert.rejects(broken.auth.candidates(), (error) => !error.message.includes("secret.example"));
 });
+test("Storage adapter inventories beyond 100 objects and deletes bounded batches", async () => {
+  const removed = []; let objects = Array.from({ length: 151 }, (_, index) => ({ name: `file-${index}` }));
+  const provider = { auth: { admin: {} }, storage: { from(bucket) { return { async list(_prefix, { limit, offset }) { return { data: bucket === "documents" ? objects.slice(offset, offset + limit) : [], error: null }; }, async remove(paths) { removed.push(paths.length); objects = objects.filter((item) => !paths.includes(`staging-demo/${item.name}`)); return { error: null }; } }; } } };
+  const adapter = createWp1SupabaseAdapters(provider, { candidateIdentity: () => "preserve", preserveIdentity: () => true });
+  const inventory = await adapter.storage.inventory(); assert.equal(inventory.length, 151);
+  await adapter.storage.removeInventoryExactly(inventory); assert.deepEqual(removed, [50, 50, 50, 1]);
+});
