@@ -7,6 +7,11 @@ const sudoers = readFileSync(
   "utf8",
 );
 
+const effective = sudoers
+  .split("\n")
+  .filter((line) => !line.trimStart().startsWith("#"))
+  .join("\n");
+
 const units = [
   "veele-staging.service",
   "veele-staging-personeel.service",
@@ -16,14 +21,14 @@ const units = [
 
 test("WP1 sudoers grants only exact staging writer start/stop commands", () => {
   assert.ok(
-    sudoers.includes(
+    effective.includes(
       "github-runner ALL=(root) NOPASSWD: FIELDGRID_WP1_RESET_CONTROL",
     ),
   );
 
   for (const unit of units) {
-    assert.ok(sudoers.includes(`/usr/bin/systemctl stop ${unit}`));
-    assert.ok(sudoers.includes(`/usr/bin/systemctl start ${unit}`));
+    assert.ok(effective.includes(`/usr/bin/systemctl stop ${unit}`));
+    assert.ok(effective.includes(`/usr/bin/systemctl start ${unit}`));
   }
 
   for (const forbidden of [
@@ -40,7 +45,7 @@ test("WP1 sudoers grants only exact staging writer start/stop commands", () => {
     " /usr/bin/chown ",
   ]) {
     assert.equal(
-      sudoers.includes(forbidden),
+      effective.includes(forbidden),
       false,
       `forbidden sudoers capability marker: ${forbidden}`,
     );
