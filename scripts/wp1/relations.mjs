@@ -60,11 +60,18 @@ export function assertCatalogCoverage(names) {
   const current = [...new Set(names)].sort();
   requireThat(current.length === names.length && JSON.stringify(current) === JSON.stringify(ALL_TABLES), 'CATALOG_COVERAGE');
 }
+function requiresChildFirst(fk) {
+  // CASCADE and SET NULL resolve the dependency when the parent is deleted.
+  // NO ACTION, RESTRICT and SET DEFAULT remain hard ordering constraints.
+  return !['c', 'n'].includes(fk.action);
+}
 export function deletionOrder(fks) {
   const remaining = new Set(DELETE_TABLES), result = [];
   while (remaining.size) {
     const next = [...remaining].sort().find(parent => !fks.some(fk =>
-      fk.parentSchema === 'public' && fk.childSchema === 'public' && fk.parent === parent && fk.child !== parent && remaining.has(fk.child)));
+      fk.parentSchema === 'public' && fk.childSchema === 'public' &&
+      fk.parent === parent && fk.child !== parent && remaining.has(fk.child) &&
+      requiresChildFirst(fk)));
     if (!next) fail('FK_CYCLE');
     result.push(next); remaining.delete(next);
   }
