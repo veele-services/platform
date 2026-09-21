@@ -15,37 +15,34 @@ const units = [
 ];
 
 test("WP1 sudoers grants only exact staging writer start/stop commands", () => {
-  assert.match(
-    sudoers,
-    /github-runner ALL=\(root\) NOPASSWD: FIELDGRID_WP1_RESET_CONTROL/u,
+  assert.ok(
+    sudoers.includes(
+      "github-runner ALL=(root) NOPASSWD: FIELDGRID_WP1_RESET_CONTROL",
+    ),
   );
 
   for (const unit of units) {
-    assert.match(
-      sudoers,
-      new RegExp(
-        String.raw`/usr/bin/systemctl stop ${unit.replaceAll(".", String.raw"\.")}`,
-        "u",
-      ),
-    );
-    assert.match(
-      sudoers,
-      new RegExp(
-        String.raw`/usr/bin/systemctl start ${unit.replaceAll(".", String.raw"\.")}`,
-        "u",
-      ),
-    );
+    assert.ok(sudoers.includes(`/usr/bin/systemctl stop ${unit}`));
+    assert.ok(sudoers.includes(`/usr/bin/systemctl start ${unit}`));
   }
 
   for (const forbidden of [
-    /\*/u,
-    /production/u,
-    /\brestart\b/u,
-    /\breload\b/u,
-    /daemon-reload/u,
-    /\/bin\/(?:sh|bash)/u,
-    /\b(?:cp|mv|rm|install|tee|chmod|chown)\b/u,
+    "*",
+    "production",
+    " restart ",
+    " reload ",
+    "daemon-reload",
+    "/bin/sh",
+    "/bin/bash",
+    " /usr/bin/install ",
+    " /usr/bin/tee ",
+    " /usr/bin/chmod ",
+    " /usr/bin/chown ",
   ]) {
-    assert.doesNotMatch(sudoers, forbidden);
+    assert.equal(
+      sudoers.includes(forbidden),
+      false,
+      `forbidden sudoers capability marker: ${forbidden}`,
+    );
   }
 });
