@@ -357,7 +357,7 @@ async function verify(config, evidence, client, providers, services) {
     "WRITER_STATE_DRIFT",
   );
 
-  await client.query("BEGIN TRANSACTION ISOLATION LEVELDREPEATABLE READ READ ONLY");
+  await client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
   let database;
   let proof;
   try {
