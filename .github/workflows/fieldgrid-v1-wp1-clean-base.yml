@@ -1,0 +1,74 @@
+name: Fieldgrid V1 WP1 Clean Base Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed current main SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type fieldgrid-v1-wp1-clean-reset-v1 to produce the staging reset manifest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: [self-hosted, linux, x64, veele]
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      RESET_CONFIRMATION: ${{ inputs.confirmation }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+    steps:
+      - name: Reject unreviewed dispatch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REPOSITORY" = "veele-services/platform"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$RESET_CONFIRMATION" = "fieldgrid-v1-wp1-clean-reset-v1"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify immutable current main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          node --input-type=module -e '
+            const r = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`, {headers:{Authorization:`Bearer ${process.env.GITHUB_TOKEN}`,Accept:"application/vnd.github+json"}});
+            const p = await r.json(); if (!r.ok || p.object?.sha !== process.env.EXPECTED_MAIN_SHA) throw new Error("expected SHA is not current main");'
+      - name: Validate bounded reset contract
+        run: node scripts/fieldgrid-v1-wp1-clean-base.mjs --check
+      - name: Write redacted manifest
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/fieldgrid-v1-wp1-clean-base
+          node scripts/fieldgrid-v1-wp1-clean-base.mjs --manifest > artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
+      - name: Reverify exact main before any operator-approved mutation
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          # This workflow deliberately stops here: apply requires a reviewed,
+          # provider-aware executor and a separately approved manifest/backup.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fieldgrid-v1-wp1-clean-base-${{ github.run_id }}
+          path: artifacts/fieldgrid-v1-wp1-clean-base/manifest.json
+          retention-days: 7
