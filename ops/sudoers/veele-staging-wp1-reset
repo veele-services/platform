@@ -1,5 +1,5 @@
 # Fieldgrid WP1 staging reset writer controls.
-# Exact commands only. No wildcards, shells, file writes, restart, reload, or production access.
+# Exact commands only. No wildcards, shells, file writes, restart or reload.
 Cmnd_Alias FIELDGRID_WP1_RESET_CONTROL = \
     /usr/bin/systemctl stop veele-staging.service, \
     /usr/bin/systemctl start veele-staging.service, \
