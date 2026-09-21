@@ -89,6 +89,7 @@ export const HISTORY_DELETE_GUARDS = Object.freeze([
   ['checklist_waivers', 'trg_checklist_waivers_append_only', 'checklist_history_guard'],
   ['dossier_events', 'trg_dossier_events_append_only', 'fieldgrid_dossier_append_only'],
   ['dossier_notes', 'trg_dossier_notes_append_only', 'fieldgrid_dossier_append_only'],
+  ['dossier_profiles', 'trg_dossier_profile_delete_guard', 'fieldgrid_dossier_legal_hold_delete_guard'],
   ['invoice_line_item_snapshots', 'prevent_finalized_invoice_line_snapshot_delete', 'fieldgrid_prevent_finalized_invoice_line_snapshot_mutation'],
   ['object_security_access_audit', 'trg_object_security_audit_append_only', 'fieldgrid_object_security_audit_append_only'],
   ['object_security_records', 'trg_object_security_record_revision_guard', 'fieldgrid_object_security_record_revision_guard'],
