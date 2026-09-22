@@ -32,8 +32,8 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   assert.match(copy, /COPY_SANDBOX_HELPER_PERMISSION_UNAVAILABLE/);
   assert.match(copy, /COPY_SANDBOX_HELPER_PROBE_FAILED/);
   assert.match(copy, /COPY_ISOLATION_STRATEGY_UNAVAILABLE/);
-  assert.match(copy, /\/^\\d\{1,20\}\$\/\.test\(runtime\.GITHUB_RUN_ID/);
-  assert.match(copy, /\/^\\d\{1,5\}\$\/\.test\(runtime\.GITHUB_RUN_ATTEMPT/);
+  assert.match(copy, /\/\^\\d\{1,20\}\$\/\.test\(runtime\.GITHUB_RUN_ID/);
+  assert.match(copy, /\/\^\\d\{1,5\}\$\/\.test\(runtime\.GITHUB_RUN_ATTEMPT/);
   assert.match(copy, /\/usr\/local\/sbin\/fieldgrid-wp1-copy-sandbox/);
   assert.match(copy, /--kill-child=SIGKILL/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
