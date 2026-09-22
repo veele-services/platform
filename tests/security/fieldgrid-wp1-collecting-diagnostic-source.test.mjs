@@ -40,7 +40,8 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
 
   const helper = read('ops/bin/fieldgrid-wp1-copy-sandbox');
   assert.match(helper, /\[\[ "\$\{EUID\}" -eq 0 \]\]/);
-  assert.match(helper, /\$\{SUDO_USER:-\}.*github-runner/);
+  assert.match(helper, /readonly EXPECTED_USER="github-runner"/);
+  assert.match(helper, /\$\{SUDO_USER:-\}.*\$\{EXPECTED_USER\}/);
   assert.match(helper, /unshare.*--net.*--pid.*--mount-proc/s);
   assert.match(helper, /setpriv.*--reuid=github-runner.*--regid=veele-deploy.*--clear-groups.*--no-new-privs/s);
   assert.match(helper, /env.*-i HOME=/s);
