@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+const read = path => readFileSync(path, 'utf8');
+test('collecting workflow has no apply mode and uses protected exact staging main', () => {
+  const workflow = read('.github/workflows/fieldgrid-v1-wp1-diagnostic.yml');
+  for (const value of ['workflow_dispatch:', 'environment: staging', 'group: veele-staging', 'persist-credentials: false', 'fieldgrid-wp1-collect-only-v1', 'scripts/fieldgrid-v1-wp1-diagnostic.mjs', 'test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"']) assert.ok(workflow.includes(value));
+  assert.doesNotMatch(workflow, /\n  (push|pull_request):|options:.*apply|contents: write|actions: write/);
+  const runner = read('scripts/fieldgrid-v1-wp1-diagnostic.mjs');
+  assert.match(runner, /default_transaction_read_only=on/);
+  assert.match(runner, /assertMain[\s\S]*assertValidation/);
+  assert.doesNotMatch(runner, /resetDatabase\(|blockers\.length\s*===\s*0/);
+  assert.match(runner, /\['source\.snapshot', 'private\.directory', 'backup\.runtime'\]/);
+});
+test('live external diagnostic has only read capabilities; DML belongs to isolated copy', () => {
+  const external = read('scripts/wp1/diagnostic-external.mjs');
+  assert.doesNotMatch(external, /\.remove\(|\.upload\(|deleteUser\(|updateUserById\(|inviteUserByEmail\(/);
+  assert.match(external, /\['-n', '-l', '\/usr\/bin\/systemctl'/);
+  const copy = read('scripts/wp1/diagnostic-copy.mjs');
+  assert.match(copy, /await assertDisposable\(client, target, directory\)/);
+  assert.match(copy, /COPY_NETWORK_NOT_ISOLATED/);
+  assert.match(copy, /--kill-child=SIGKILL/);
+  assert.match(copy, /COPY_CREDENTIAL_LEAK/);
+  assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
+  assert.doesNotMatch(copy, /SUPABASE_SERVICE_ROLE_KEY\s*:/);
+});

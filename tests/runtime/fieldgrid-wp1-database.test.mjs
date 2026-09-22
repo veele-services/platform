@@ -1,3 +1,4 @@
+import './fieldgrid-wp1-collecting-diagnostic.test.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
