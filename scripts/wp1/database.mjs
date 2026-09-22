@@ -56,12 +56,26 @@ export async function catalogSnapshot(client) {
   for(const fk of fks) requireThat(Array.isArray(fk.childColumns)&&Array.isArray(fk.parentColumns)&&fk.childColumns.length===fk.parentColumns.length&&fk.childColumns.length>0,'FK_CATALOG_INVALID');
   return {tables,triggers,policies,fks};
 }
+export function isLocalStagingDemoPayment(data,payment) {
+  const allocations=Array.isArray(data?.payment_allocations)?data.payment_allocations:[];
+  return payment?.payment_method==='mollie'
+    && typeof payment.id==='string'
+    && typeof payment.tenant_id==='string'
+    && typeof payment.source_id==='string'
+    && typeof payment.mollie_payment_id==='string'
+    && payment.mollie_payment_id.startsWith('tr_staging_demo_')
+    && typeof payment.checkout_url==='string'
+    && payment.checkout_url.startsWith('https://www.mollie.com/checkout/staging-demo/')
+    && !payment.paid_at
+    && !allocations.some(allocation=>allocation.payment_id===payment.id);
+}
 export function paymentBlockers(data) {
   let total=0;
   const terminal = new Set(['paid','failed','canceled','cancelled','expired']);
   const mollieId = value => typeof value==='string' && /^tr_[A-Za-z0-9]+$/.test(value);
   for (const payment of data.payments) {
     if (payment.payment_method === 'mollie' || payment.mollie_payment_id) {
+      if (isLocalStagingDemoPayment(data,payment)) continue;
       // Local Mollie status can lag behind webhook/provider truth. Diagnose/apply
       // separately query Mollie and require test mode + terminal provider state
       // before any reset can proceed.
@@ -69,7 +83,7 @@ export function paymentBlockers(data) {
     } else if (!['manual_bank','cash','correction','settlement','other'].includes(payment.payment_method) || !terminal.has(payment.status)) total++;
   }
   for (const batch of data.customer_payment_batches) {
-    if (batch.mollie_payment_id && !data.payments.some(row => row.mollie_payment_id===batch.mollie_payment_id && row.provider_mode==='test' && mollieId(row.mollie_payment_id))) total++;
+    if (batch.mollie_payment_id && !data.payments.some(row => row.mollie_payment_id===batch.mollie_payment_id && (isLocalStagingDemoPayment(data,row) || (row.provider_mode==='test' && mollieId(row.mollie_payment_id))))) total++;
   }
   return total;
 }
