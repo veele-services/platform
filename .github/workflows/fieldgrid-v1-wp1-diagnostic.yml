@@ -71,6 +71,7 @@ jobs:
           set -euo pipefail
           node --check scripts/fieldgrid-v1-wp1-diagnostic.mjs
           node --check scripts/wp1/diagnostic-copy.mjs
+          bash -n ops/bin/fieldgrid-wp1-copy-sandbox
           node --test tests/fieldgrid-v1-wp1-collecting-diagnostic.test.mjs tests/security/fieldgrid-wp1-collecting-diagnostic-source.test.mjs
 
       - name: Install pinned certificate
