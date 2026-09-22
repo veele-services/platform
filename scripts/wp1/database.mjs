@@ -61,7 +61,6 @@ export function isLocalStagingDemoPayment(data,payment) {
   return payment?.payment_method==='mollie'
     && typeof payment.id==='string'
     && typeof payment.tenant_id==='string'
-    && typeof payment.source_id==='string'
     && typeof payment.mollie_payment_id==='string'
     && payment.mollie_payment_id.startsWith('tr_staging_demo_')
     && typeof payment.checkout_url==='string'
