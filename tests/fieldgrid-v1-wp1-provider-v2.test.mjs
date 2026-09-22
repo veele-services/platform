@@ -51,6 +51,23 @@ test('Mollie uses provider truth for terminality while retaining exact financial
     error=>error.code==='PAYMENT_PROVIDER_ACTIVE',
   );
 });
+test('proven local staging-demo Mollie placeholders never call the provider',async()=>{
+  const source={data:{
+    payments:[{
+      id:'30000000-0000-4000-8000-000000000001',
+      tenant_id:tenant,
+      source_id:'40000000-0000-4000-8000-000000000001',
+      payment_method:'mollie',
+      mollie_payment_id:'tr_staging_demo_legacy',
+      checkout_url:'https://www.mollie.com/checkout/staging-demo/legacy',
+      paid_at:null,
+    }],
+    payment_allocations:[],
+  }};
+  let called=false;
+  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>{called=true;throw new Error('must not call');}),0);
+  assert.equal(called,false);
+});
 test('systemd unit scope and state cannot be replaced by input flags',()=>{
   const units='veele-staging,veele-staging-personeel,veele-staging-klant,veele-staging-api';
   assert.equal(parseWriterUnits(units).length,4);assert.throws(()=>parseWriterUnits(`${units},ssh.service`));
