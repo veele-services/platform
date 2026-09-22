@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hash, textHash, uuid, requireThat, fail, MAX_OBJECTS, MAX_BYTES, Wp1Error } from './contract.mjs';
+import { isLocalStagingDemoPayment } from './database.mjs';
 
 const PAGE_SIZE = 100;
 const BATCH_SIZE = 50;
@@ -181,6 +182,7 @@ export async function verifyTestPayments(database,keys,request=fetch) {
   let count=0;
   for(const row of database.data.payments) {
     if(row.payment_method!=='mollie'&&!row.mollie_payment_id) continue;
+    if(isLocalStagingDemoPayment(database.data,row)) continue;
     requireThat(row.provider_mode==='test'&&/^tr_[A-Za-z0-9]+$/.test(row.mollie_payment_id??''),'PAYMENT_NOT_TEST');
     const key=keys?.[row.tenant_id];
     requireThat(typeof key==='string'&&/^test_[A-Za-z0-9]+$/.test(key),'MOLLIE_TEST_KEY_REQUIRED');
