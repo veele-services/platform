@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { Collector, DiagnosticError, ReadOnlySession, check, DIAGNOSTIC_CONFIRMATION, DIAGNOSTIC_WORKFLOW, markdown } from './wp1/diagnostic-core.mjs';
 import { inspectDatabase, inspectPayments } from './wp1/diagnostic-inspection.mjs';
 import { REQUIRED_UNITS, inspectWriters, inspectAuth, inspectStorage, providerReader } from './wp1/diagnostic-external.mjs';
-import { launchCopy } from './wp1/diagnostic-copy.mjs';
+import { inspectCopyHost, launchCopy } from './wp1/diagnostic-copy.mjs';
 
 const exec = promisify(execFile);
 const OUTPUT = 'artifacts/fieldgrid-wp1-diagnostic';
@@ -115,6 +115,8 @@ export async function main(env = process.env) {
     // End the live read snapshot before the potentially lengthy copy rehearsal.
     await collector.run('source.rollback', async () => { if (session) await session.close(); }, [], 'SOURCE_ROLLBACK_FAILED');
 
+    await inspectCopyHost(collector, directory, env);
+
     await collector.run('copy.launch', async () => {
       const input = join(directory, 'copy-input.json'), output = join(directory, 'copy-output.json');
       const expected = {
@@ -125,7 +127,7 @@ export async function main(env = process.env) {
       await writeFile(input, JSON.stringify({ dump: dump.path, expected }), { mode: 0o600, flag: 'wx' });
       copyReport = await launchCopy(input, output, directory, env);
       for (const item of copyReport.checks) collector.add(item.id, item.status, item.code, item.counts, item.dependencies);
-    }, ['backup.database', 'source.rollback'], 'COPY_NAMESPACE_OR_WORKER_UNAVAILABLE');
+    }, ['backup.database', 'source.rollback', 'copy.host.combined_namespace'], 'COPY_NAMESPACE_OR_WORKER_UNAVAILABLE');
     if (!copyReport) {
       for (const stage of ['restore', 'delete', 'bootstrap', 'verify', 'rollback_equality']) collector.skip(`copy.${stage}`, ['copy.launch']);
     }
