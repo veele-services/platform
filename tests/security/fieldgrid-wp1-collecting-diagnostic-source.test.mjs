@@ -51,7 +51,9 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
 
   const sudoers = read('ops/sudoers/veele-staging-wp1-copy-sandbox');
   assert.match(sudoers, /github-runner ALL=\(root\) NOPASSWD: FIELDGRID_WP1_COPY_SANDBOX/);
-  assert.match(sudoers, /fieldgrid-wp1-copy-sandbox probe/);
-  assert.match(sudoers, /fieldgrid-wp1-copy-sandbox run \[0-9\]\* \[0-9\]\*/);
-  assert.doesNotMatch(sudoers, /\/bin\/(?:sh|bash)|\/usr\/bin\/(?:unshare|mount|setpriv)|ALL=\(ALL/);
+  assert.match(sudoers, /Cmnd_Alias FIELDGRID_WP1_COPY_SANDBOX = \\\n    \/usr\/local\/sbin\/fieldgrid-wp1-copy-sandbox\n/);
+  assert.doesNotMatch(sudoers, /fieldgrid-wp1-copy-sandbox\s+(?:probe|run)|\[[0-9-]+\]\*|24\.\*|\/bin\/(?:sh|bash)|\/usr\/bin\/(?:unshare|mount|setpriv)|ALL=\(ALL/);
+
+  const workflow = read('.github/workflows/fieldgrid-v1-wp1-diagnostic.yml');
+  assert.match(workflow, /visudo -cf ops\/sudoers\/veele-staging-wp1-copy-sandbox/);
 });
