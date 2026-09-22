@@ -100,7 +100,7 @@ export async function main(env = process.env) {
       const path = join(directory, 'database.dump');
       const pgEnv = { ...postgresProcessEnv(config, env), HOME: directory, PGOPTIONS: '-c timezone=UTC' };
       try {
-        await exec(pgDump, ['--format=custom', '--compress=6', '--large-objects', '--no-owner', '--no-subscriptions', '--strict-names', '--lock-wait-timeout=15s', `--snapshot=${snapshot}`,
+        await exec(pgDump, ['--format=custom', '--compress=6', '--large-objects', '--no-owner', '--strict-names', '--lock-wait-timeout=15s', `--snapshot=${snapshot}`,
           ...['public', 'auth', 'storage', 'drizzle', 'app_private'].flatMap(schema => ['--schema', schema]), '--file', path], { env: pgEnv, timeout: 300000, maxBuffer: 65536 });
       } catch { throw new DiagnosticError('DATABASE_DUMP_COMMAND_FAILED'); }
       await chmod(path, 0o600);
