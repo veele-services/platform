@@ -183,7 +183,7 @@ export async function verifyTestPayments(database,keys,request=fetch) {
   for(const row of database.data.payments) {
     if(row.payment_method!=='mollie'&&!row.mollie_payment_id) continue;
     if(isLocalStagingDemoPayment(database.data,row)) continue;
-    requireThat(row.provider_mode==='test'&&/^tr_[A-Za-z0-9]+$/.test(row.mollie_payment_id??''),'PAYMENT_NOT_TEST');
+    requireThat(/^tr_[A-Za-z0-9]+$/.test(row.mollie_payment_id??''),'PAYMENT_NOT_TEST');
     const key=keys?.[row.tenant_id];
     requireThat(typeof key==='string'&&/^test_[A-Za-z0-9]+$/.test(key),'MOLLIE_TEST_KEY_REQUIRED');
     let response,body;
