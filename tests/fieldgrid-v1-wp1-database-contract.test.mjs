@@ -20,7 +20,7 @@ test('payment preflight blocks malformed/live rows but leaves Mollie terminality
   }
   assert.equal(paymentBlockers(data([{payment_method:'mollie',provider_mode:'live',mollie_payment_id:'tr_Test123'}])),0);
   assert.equal(paymentBlockers(data([{payment_method:'mollie',provider_mode:null,mollie_payment_id:'tr_Test123'}])),0);
-  const localDemo={id:'30000000-0000-4000-8000-000000000001',tenant_id:'10000000-0000-4000-8000-000000000001',source_id:'40000000-0000-4000-8000-000000000001',payment_method:'mollie',mollie_payment_id:'tr_staging_demo_old',checkout_url:'https://www.mollie.com/checkout/staging-demo/old',paid_at:null,status:'failed'};
+  const localDemo={id:'30000000-0000-4000-8000-000000000001',tenant_id:'10000000-0000-4000-8000-000000000001',source_id:null,payment_method:'mollie',mollie_payment_id:'tr_staging_demo_old',checkout_url:'https://www.mollie.com/checkout/staging-demo/old',paid_at:null,status:'failed'};
   assert.equal(paymentBlockers({...data([localDemo]),payment_allocations:[]}),0);
   assert.ok(paymentBlockers({...data([localDemo]),payment_allocations:[{payment_id:localDemo.id}]})>0);
   const pending={payment_method:'mollie',provider_mode:'test',mollie_payment_id:'tr_Test123',status:'pending',provider_status:'open'};
