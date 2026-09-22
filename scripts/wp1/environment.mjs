@@ -25,7 +25,7 @@ export function validateEnvironment(env=process.env,{checkCheckout=true}={}) {
   const a=new URL(migration),b=new URL(env.DATABASE_URL);
   requireThat(a.username!==b.username&&decodeURIComponent(a.password)!==decodeURIComponent(b.password),'PRINCIPAL_SEPARATION');
   const ssl=databaseNodePostgresSslConfig(env);
-  requireThat(uuid(env.FIELDGRID_WP1_TENANT_ID)&&uuid(env.FIELDGRID_WP1_ADMIN_USER_ID),'BOOTSTRAP_CONFIGURATION');
+  requireThat(uuid(env.FIELDGRID_WP1_TENANT_ID),'BOOTSTRAP_CONFIGURATION');
   requireThat(/^[1-9][0-9]{0,19}$/.test(env.GITHUB_RUN_ID??'')&&Number.isSafeInteger(Number(env.GITHUB_RUN_ID)),'RUN_ID');
   requireThat(/^[1-9][0-9]{0,4}$/.test(env.GITHUB_RUN_ATTEMPT??''),'RUN_ATTEMPT');
   if(checkCheckout) {
@@ -34,7 +34,7 @@ export function validateEnvironment(env=process.env,{checkCheckout=true}={}) {
   }
   const units=parseWriterUnits(env.FIELDGRID_WP1_WRITER_UNITS);
   const sourceRun=mode==='diagnose'?env.GITHUB_RUN_ID:env.WP1_DIAGNOSE_RUN_ID;
-  const context={tenantId:env.FIELDGRID_WP1_TENANT_ID,adminId:env.FIELDGRID_WP1_ADMIN_USER_ID,operationId:operationId(sourceRun,env.EXPECTED_MAIN_SHA)};
+  const context={tenantId:env.FIELDGRID_WP1_TENANT_ID,adminId:null,operationId:operationId(sourceRun,env.EXPECTED_MAIN_SHA)};
   return {mode,sha:env.EXPECTED_MAIN_SHA,runId:Number(env.GITHUB_RUN_ID),attempt:Number(env.GITHUB_RUN_ATTEMPT),sourceRunId:Number(sourceRun),context,units,migration,ssl,origin:env.NEXT_PUBLIC_SUPABASE_URL};
 }
 export function databaseClient(config) {
