@@ -167,11 +167,37 @@ export async function rehearseCopy(client, target, directory, expected, collecto
   }, ['copy.restored_snapshot', 'copy.rollback']);
 }
 
+function copyProcessEnv(directory, runtime) {
+  const env = { PATH: runtime.PATH, HOME: directory, LANG: 'C.UTF-8' };
+  for (const key of ['FIELDGRID_POSTGRESQL_SHAREDIR', 'LD_LIBRARY_PATH']) if (runtime[key]) env[key] = runtime[key];
+  return env;
+}
+
+export async function inspectCopyHost(collector, directory, runtime, command = exec) {
+  const env = copyProcessEnv(directory, runtime);
+  const options = { env, timeout: 15000, maxBuffer: 16384 };
+  await collector.run('copy.host.ip', async () => {
+    await command('ip', ['-Version'], options);
+  }, [], 'COPY_IP_UNAVAILABLE');
+  await collector.run('copy.host.user_namespace', async () => {
+    await command('unshare', ['--user', '--map-current-user', 'true'], options);
+  }, [], 'COPY_USER_NAMESPACE_UNAVAILABLE');
+  await collector.run('copy.host.network_namespace', async () => {
+    await command('unshare', ['--user', '--map-current-user', '--net', 'ip', 'link', 'set', 'lo', 'up'], options);
+  }, ['copy.host.ip', 'copy.host.user_namespace'], 'COPY_NETWORK_NAMESPACE_UNAVAILABLE');
+  await collector.run('copy.host.pid_namespace', async () => {
+    await command('unshare', ['--user', '--map-current-user', '--pid', '--fork', '--mount-proc', 'true'], options);
+  }, ['copy.host.user_namespace'], 'COPY_PID_NAMESPACE_UNAVAILABLE');
+  await collector.run('copy.host.combined_namespace', async () => {
+    await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc',
+      'sh', '-c', 'ip link set lo up && ip -json link show >/dev/null'], options);
+  }, ['copy.host.network_namespace', 'copy.host.pid_namespace'], 'COPY_COMBINED_NAMESPACE_UNAVAILABLE');
+}
+
 export async function launchCopy(inputFile, outputFile, directory, runtime, command = exec) {
   const parentNamespace = await readlink('/proc/self/ns/net');
   // No fallback to the host network; unavailable user namespaces are a finding.
-  const env = { PATH: runtime.PATH, HOME: directory, LANG: 'C.UTF-8' };
-  for (const key of ['FIELDGRID_POSTGRESQL_SHAREDIR', 'LD_LIBRARY_PATH']) if (runtime[key]) env[key] = runtime[key];
+  const env = copyProcessEnv(directory, runtime);
   await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc', process.execPath, FILE, inputFile, outputFile, parentNamespace], {
     env, timeout: 900000, maxBuffer: 65536,
   });

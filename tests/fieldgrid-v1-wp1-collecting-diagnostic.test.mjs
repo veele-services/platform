@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { Collector, ReadOnlySession, DiagnosticError, markdown } from '../scripts/wp1/diagnostic-core.mjs';
 import { inspectPayments, paymentKind } from '../scripts/wp1/diagnostic-inspection.mjs';
 import { providerReader, inspectAuth, inspectStorage, inspectWriters } from '../scripts/wp1/diagnostic-external.mjs';
-import { launchCopy, assertDisposable } from '../scripts/wp1/diagnostic-copy.mjs';
+import { inspectCopyHost, launchCopy, assertDisposable } from '../scripts/wp1/diagnostic-copy.mjs';
 
 const tenant = '10000000-0000-4000-8000-000000000001';
 const user = '20000000-0000-4000-8000-000000000001';
@@ -157,6 +157,24 @@ test('writer checks only inspect systemctl state and sudo -l permissions', async
   assert.equal(c.status('writer.0.stop_permission'), 'PASS');
   assert.equal(calls.filter(([bin]) => bin.endsWith('sudo')).length, 4);
 });
+test('copy host capability checks collect namespace failures independently', async () => {
+  const c = new Collector({}), calls = [];
+  await inspectCopyHost(c, '/tmp/wp1-copy-host-test', { PATH: process.env.PATH }, async (binary, args, options) => {
+    calls.push([binary, args]);
+    assert.deepEqual(Object.keys(options.env).sort(), ['HOME', 'LANG', 'PATH']);
+    if (binary === 'ip') return { stdout: 'ip utility' };
+    if (args.includes('--net') && !args.includes('--pid')) throw new Error('network namespace denied');
+    return { stdout: '' };
+  });
+  assert.equal(c.status('copy.host.ip'), 'PASS');
+  assert.equal(c.status('copy.host.user_namespace'), 'PASS');
+  assert.equal(c.status('copy.host.network_namespace'), 'FAIL');
+  assert.equal(c.status('copy.host.pid_namespace'), 'PASS');
+  assert.equal(c.status('copy.host.combined_namespace'), 'NOT_TESTED');
+  assert.ok(calls.some(([, args]) => args.includes('--pid') && !args.includes('--net')));
+  assert.ok(!JSON.stringify(c.report()).includes('network namespace denied'));
+});
+
 test('copy launch strips credentials, requires network/PID namespaces, and has no fallback', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'wp1-copy-test-'));
   const output = join(directory, 'output.json'); let calls = 0;

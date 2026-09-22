@@ -15,6 +15,8 @@ test('collecting workflow has no apply mode and uses protected exact staging mai
   assert.match(runner, /DATABASE_DUMP_COMMAND_FAILED/);
   assert.match(runner, /DATABASE_DUMP_LIST_FAILED/);
   assert.match(runner, /session\.exportSnapshot\(\)/);
+  assert.match(runner, /inspectCopyHost\(collector, directory, env\)/);
+  assert.match(runner, /\['backup\.database', 'source\.rollback', 'copy\.host\.combined_namespace'\]/);
   assert.doesNotMatch(runner, /session\.read\(async read =>[\s\S]*pg_export_snapshot/);
   assert.doesNotMatch(runner, /writeFile\(path, '', \{ mode: 0o600, flag: 'wx' \}\)/);
 });
@@ -25,6 +27,10 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   const copy = read('scripts/wp1/diagnostic-copy.mjs');
   assert.match(copy, /await assertDisposable\(client, target, directory\)/);
   assert.match(copy, /COPY_NETWORK_NOT_ISOLATED/);
+  assert.match(copy, /COPY_USER_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_NETWORK_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_PID_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_COMBINED_NAMESPACE_UNAVAILABLE/);
   assert.match(copy, /--kill-child=SIGKILL/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
   assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
