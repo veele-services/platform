@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
-import { Collector, ReadOnlySession, check, DIAGNOSTIC_CONFIRMATION, DIAGNOSTIC_WORKFLOW, markdown } from './wp1/diagnostic-core.mjs';
+import { Collector, DiagnosticError, ReadOnlySession, check, DIAGNOSTIC_CONFIRMATION, DIAGNOSTIC_WORKFLOW, markdown } from './wp1/diagnostic-core.mjs';
 import { inspectDatabase, inspectPayments } from './wp1/diagnostic-inspection.mjs';
 import { REQUIRED_UNITS, inspectWriters, inspectAuth, inspectStorage, providerReader } from './wp1/diagnostic-external.mjs';
 import { launchCopy } from './wp1/diagnostic-copy.mjs';
@@ -94,14 +94,22 @@ export async function main(env = process.env) {
       const { hashFile } = await import('./wp1/backup.mjs');
       const snapshot = (await read.query('SELECT pg_export_snapshot() AS snapshot')).rows[0]?.snapshot;
       check(typeof snapshot === 'string' && /^[0-9A-Fa-f]+-[0-9A-Fa-f]+-[0-9]+$/.test(snapshot), 'SNAPSHOT_INVALID');
+      const bindir = env.FIELDGRID_POSTGRESQL_BINDIR;
+      check(typeof bindir === 'string' && bindir.length > 0, 'POSTGRES17_BINDIR_MISSING');
+      const pgDump = join(bindir, 'pg_dump'), pgRestore = join(bindir, 'pg_restore');
       const path = join(directory, 'database.dump');
-      await writeFile(path, '', { mode: 0o600, flag: 'wx' });
-      const pgEnv = { ...postgresProcessEnv(config, env), HOME: directory, PGOPTIONS: '-c timezone=UTC -c default_transaction_read_only=on' };
-      await exec('pg_dump', ['--format=custom', '--compress=6', '--large-objects', '--no-owner', '--no-subscriptions', '--strict-names', '--lock-wait-timeout=15s', `--snapshot=${snapshot}`,
-        ...['public', 'auth', 'storage', 'drizzle', 'app_private'].flatMap(schema => ['--schema', schema]), '--file', path], { env: pgEnv, timeout: 300000, maxBuffer: 65536 });
+      const pgEnv = { ...postgresProcessEnv(config, env), HOME: directory, PGOPTIONS: '-c timezone=UTC' };
+      try {
+        await exec(pgDump, ['--format=custom', '--compress=6', '--large-objects', '--no-owner', '--no-subscriptions', '--strict-names', '--lock-wait-timeout=15s', `--snapshot=${snapshot}`,
+          ...['public', 'auth', 'storage', 'drizzle', 'app_private'].flatMap(schema => ['--schema', schema]), '--file', path], { env: pgEnv, timeout: 300000, maxBuffer: 65536 });
+      } catch { throw new DiagnosticError('DATABASE_DUMP_COMMAND_FAILED'); }
+      await chmod(path, 0o600);
       const info = await lstat(path);
       check(info.isFile() && !info.isSymbolicLink() && info.size > 0 && info.size <= 512 * 1024 * 1024 && (info.mode & 0o077) === 0, 'BACKUP_INVALID');
-      const listing = await exec('pg_restore', ['--list', path], { env: { PATH: env.PATH, HOME: directory, LANG: 'C.UTF-8' }, timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
+      let listing;
+      try {
+        listing = await exec(pgRestore, ['--list', path], { env: { PATH: env.PATH, HOME: directory, LANG: 'C.UTF-8' }, timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
+      } catch { throw new DiagnosticError('DATABASE_DUMP_LIST_FAILED'); }
       check(listing.stdout.includes('TABLE DATA'), 'BACKUP_CONTENTS');
       return { value: { path, sha256: await hashFile(path) }, counts: { bytes: info.size } };
     }), ['source.snapshot', 'private.directory', 'backup.runtime'], 'DATABASE_BACKUP_FAILED');
