@@ -59,13 +59,17 @@ export async function catalogSnapshot(client) {
 export function paymentBlockers(data) {
   let total=0;
   const terminal = new Set(['paid','failed','canceled','cancelled','expired']);
+  const mollieId = value => typeof value==='string' && /^tr_[A-Za-z0-9]+$/.test(value);
   for (const payment of data.payments) {
     if (payment.payment_method === 'mollie' || payment.mollie_payment_id) {
-      if (payment.provider_mode !== 'test' || !terminal.has(payment.status) || !terminal.has(payment.provider_status) || !payment.provider_finalized_at) total++;
+      // Local Mollie status can lag behind webhook/provider truth. Diagnose/apply
+      // separately query Mollie and require test mode + terminal provider state
+      // before any reset can proceed.
+      if (payment.provider_mode !== 'test' || !mollieId(payment.mollie_payment_id)) total++;
     } else if (!['manual_bank','cash','correction','settlement','other'].includes(payment.payment_method) || !terminal.has(payment.status)) total++;
   }
   for (const batch of data.customer_payment_batches) {
-    if (batch.mollie_payment_id && !data.payments.some(row => row.mollie_payment_id===batch.mollie_payment_id && row.provider_mode==='test' && terminal.has(row.status) && terminal.has(row.provider_status) && row.provider_finalized_at)) total++;
+    if (batch.mollie_payment_id && !data.payments.some(row => row.mollie_payment_id===batch.mollie_payment_id && row.provider_mode==='test' && mollieId(row.mollie_payment_id))) total++;
   }
   return total;
 }
