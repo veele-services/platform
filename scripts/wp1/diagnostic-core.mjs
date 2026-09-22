@@ -86,6 +86,18 @@ export class ReadOnlySession {
     check(result.rows[0]?.transaction_read_only === 'on', 'SOURCE_NOT_READ_ONLY');
     this.usable = true;
   }
+  async exportSnapshot() {
+    check(this.usable, 'SOURCE_SESSION_UNAVAILABLE');
+    try {
+      const result = await this.client.query('SELECT pg_export_snapshot() AS snapshot');
+      const snapshot = result.rows[0]?.snapshot;
+      check(typeof snapshot === 'string' && /^[0-9A-Fa-f]+-[0-9A-Fa-f]+-[0-9]+$/.test(snapshot), 'SNAPSHOT_INVALID');
+      return snapshot;
+    } catch (error) {
+      if (error instanceof DiagnosticError) throw error;
+      throw new DiagnosticError('SNAPSHOT_EXPORT_FAILED');
+    }
+  }
   async read(operation) {
     check(this.usable, 'SOURCE_SESSION_UNAVAILABLE');
     const query = async (text, values) => {
