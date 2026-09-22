@@ -89,11 +89,10 @@ export async function main(env = process.env) {
       const { ensurePostgresRuntime } = await import('./fieldgrid-phase2e-staging-preflight.mjs');
       await ensurePostgresRuntime(env);
     }, [], 'POSTGRES17_RUNTIME_UNAVAILABLE');
-    const dump = await collector.run('backup.database', () => session.read(async read => {
+    const dump = await collector.run('backup.database', async () => {
       const { postgresProcessEnv } = await import('./wp1/environment.mjs');
       const { hashFile } = await import('./wp1/backup.mjs');
-      const snapshot = (await read.query('SELECT pg_export_snapshot() AS snapshot')).rows[0]?.snapshot;
-      check(typeof snapshot === 'string' && /^[0-9A-Fa-f]+-[0-9A-Fa-f]+-[0-9]+$/.test(snapshot), 'SNAPSHOT_INVALID');
+      const snapshot = await session.exportSnapshot();
       const bindir = env.FIELDGRID_POSTGRESQL_BINDIR;
       check(typeof bindir === 'string' && bindir.length > 0, 'POSTGRES17_BINDIR_MISSING');
       const pgDump = join(bindir, 'pg_dump'), pgRestore = join(bindir, 'pg_restore');
@@ -112,7 +111,7 @@ export async function main(env = process.env) {
       } catch { throw new DiagnosticError('DATABASE_DUMP_LIST_FAILED'); }
       check(listing.stdout.includes('TABLE DATA'), 'BACKUP_CONTENTS');
       return { value: { path, sha256: await hashFile(path) }, counts: { bytes: info.size } };
-    }), ['source.snapshot', 'private.directory', 'backup.runtime'], 'DATABASE_BACKUP_FAILED');
+    }, ['source.snapshot', 'private.directory', 'backup.runtime'], 'DATABASE_BACKUP_FAILED');
     // End the live read snapshot before the potentially lengthy copy rehearsal.
     await collector.run('source.rollback', async () => { if (session) await session.close(); }, [], 'SOURCE_ROLLBACK_FAILED');
 
