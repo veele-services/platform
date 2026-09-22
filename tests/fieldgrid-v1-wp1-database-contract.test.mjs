@@ -11,12 +11,19 @@ test('reset relation inventory is explicit and rejects drift, not default classi
   assert.throws(()=>assertCatalogCoverage(ALL_TABLES.slice(1)));
   assert.equal(new Set(HISTORY_DELETE_GUARDS.map(row=>row.slice(0,2).join('.'))).size,HISTORY_DELETE_GUARDS.length);
 });
-test('unknown/missing/live/pending payment state is never counted as zero',()=>{
-  const data=payments=>({payments,customer_payment_batches:[]});
+test('payment preflight blocks malformed/live rows but leaves Mollie terminality to provider truth',()=>{
+  const data=(payments,batches=[])=>({payments,customer_payment_batches:batches});
   assert.equal(paymentBlockers(data([])),0);
-  for(const row of [{},{payment_method:'mollie'},{payment_method:'mollie',provider_mode:'live',status:'paid'},
-    {payment_method:'mollie',provider_mode:'test',status:'pending'}]) assert.ok(paymentBlockers(data([row]))>0);
-  assert.equal(paymentBlockers(data([{payment_method:'mollie',provider_mode:'test',status:'paid',provider_status:'paid',provider_finalized_at:'2026-01-01'}])),0);
+  for(const row of [{},{payment_method:'mollie'},{payment_method:'mollie',provider_mode:'live',mollie_payment_id:'tr_Test123'},
+    {payment_method:'mollie',provider_mode:'test',mollie_payment_id:'tr_staging_demo_bad'}]) {
+    assert.ok(paymentBlockers(data([row]))>0);
+  }
+  const pending={payment_method:'mollie',provider_mode:'test',mollie_payment_id:'tr_Test123',status:'pending',provider_status:'open'};
+  assert.equal(paymentBlockers(data([pending])),0);
+  assert.equal(paymentBlockers(data([pending],[{mollie_payment_id:'tr_Test123'}])),0);
+  assert.ok(paymentBlockers(data([],[{mollie_payment_id:'tr_Test123'}]))>0);
+  assert.ok(paymentBlockers(data([{payment_method:'manual_bank',status:'pending'}]))>0);
+  assert.equal(paymentBlockers(data([{payment_method:'manual_bank',status:'paid'}])),0);
 });
 test('approved inventory binds content rather than counts and is order stable',()=>{
   assert.equal(hash({b:1,a:2}),hash({a:2,b:1}));
