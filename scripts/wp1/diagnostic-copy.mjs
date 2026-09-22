@@ -10,6 +10,7 @@ import { CATALOG_SQL } from './diagnostic-inspection.mjs';
 
 const exec = promisify(execFile);
 const FILE = fileURLToPath(import.meta.url);
+const SANDBOX_HELPER = '/usr/local/sbin/fieldgrid-wp1-copy-sandbox';
 const safeSql = error => ({ '23503': 'FOREIGN_KEY_REFERENCE', '42501': 'DATABASE_PERMISSION', '42P01': 'RELATION_MISSING', '42703': 'COLUMN_MISSING', 'P0001': 'BUSINESS_TRIGGER_BLOCK' }[error?.code] ?? 'COPY_SQL_FAILED');
 async function sqlStep(client, operation) {
   await client.query('SAVEPOINT diagnostic_mutation');
@@ -173,34 +174,90 @@ function copyProcessEnv(directory, runtime) {
   return env;
 }
 
+async function optionalHostProbe(collector, id, operation, code, dependencies = []) {
+  const blocked = dependencies.some(item => collector.status(item) !== 'PASS');
+  if (blocked) {
+    collector.add(id, 'NOT_APPLICABLE', 'OPTIONAL_STRATEGY_PREREQUISITE_UNAVAILABLE', {}, dependencies);
+    return false;
+  }
+  try {
+    await operation();
+    collector.add(id, 'PASS');
+    return true;
+  } catch {
+    collector.add(id, 'NOT_APPLICABLE', code);
+    return false;
+  }
+}
+
 export async function inspectCopyHost(collector, directory, runtime, command = exec) {
   const env = copyProcessEnv(directory, runtime);
   const options = { env, timeout: 15000, maxBuffer: 16384 };
   await collector.run('copy.host.ip', async () => {
     await command('ip', ['-Version'], options);
   }, [], 'COPY_IP_UNAVAILABLE');
-  await collector.run('copy.host.user_namespace', async () => {
+
+  const userNamespace = await optionalHostProbe(collector, 'copy.host.user_namespace', async () => {
     await command('unshare', ['--user', '--map-current-user', 'true'], options);
-  }, [], 'COPY_USER_NAMESPACE_UNAVAILABLE');
-  await collector.run('copy.host.network_namespace', async () => {
-    await command('unshare', ['--user', '--map-current-user', '--net', 'ip', 'link', 'set', 'lo', 'up'], options);
-  }, ['copy.host.ip', 'copy.host.user_namespace'], 'COPY_NETWORK_NAMESPACE_UNAVAILABLE');
-  await collector.run('copy.host.pid_namespace', async () => {
-    await command('unshare', ['--user', '--map-current-user', '--pid', '--fork', '--mount-proc', 'true'], options);
-  }, ['copy.host.user_namespace'], 'COPY_PID_NAMESPACE_UNAVAILABLE');
-  await collector.run('copy.host.combined_namespace', async () => {
-    await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc',
-      'sh', '-c', 'ip link set lo up && ip -json link show >/dev/null'], options);
-  }, ['copy.host.network_namespace', 'copy.host.pid_namespace'], 'COPY_COMBINED_NAMESPACE_UNAVAILABLE');
+  }, 'COPY_USER_NAMESPACE_UNAVAILABLE');
+
+  let combinedNamespace = false;
+  if (userNamespace) {
+    const networkNamespace = await optionalHostProbe(collector, 'copy.host.network_namespace', async () => {
+      await command('unshare', ['--user', '--map-current-user', '--net', 'ip', 'link', 'set', 'lo', 'up'], options);
+    }, 'COPY_NETWORK_NAMESPACE_UNAVAILABLE', ['copy.host.ip', 'copy.host.user_namespace']);
+    const pidNamespace = await optionalHostProbe(collector, 'copy.host.pid_namespace', async () => {
+      await command('unshare', ['--user', '--map-current-user', '--pid', '--fork', '--mount-proc', 'true'], options);
+    }, 'COPY_PID_NAMESPACE_UNAVAILABLE', ['copy.host.user_namespace']);
+    if (networkNamespace && pidNamespace) {
+      combinedNamespace = await optionalHostProbe(collector, 'copy.host.combined_namespace', async () => {
+        await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc',
+          'sh', '-c', 'ip link set lo up && ip -json link show >/dev/null'], options);
+      }, 'COPY_COMBINED_NAMESPACE_UNAVAILABLE', ['copy.host.network_namespace', 'copy.host.pid_namespace']);
+    } else {
+      collector.add('copy.host.combined_namespace', 'NOT_APPLICABLE', 'OPTIONAL_STRATEGY_PREREQUISITE_UNAVAILABLE', {},
+        ['copy.host.network_namespace', 'copy.host.pid_namespace']);
+    }
+  } else {
+    for (const id of ['copy.host.network_namespace', 'copy.host.pid_namespace', 'copy.host.combined_namespace']) {
+      collector.add(id, 'NOT_APPLICABLE', 'OPTIONAL_STRATEGY_PREREQUISITE_UNAVAILABLE', {}, ['copy.host.user_namespace']);
+    }
+  }
+
+  const helperPermission = await optionalHostProbe(collector, 'copy.host.helper_permission', async () => {
+    await command('/usr/bin/sudo', ['-n', '-l', SANDBOX_HELPER, 'probe'], options);
+  }, 'COPY_SANDBOX_HELPER_PERMISSION_UNAVAILABLE');
+  const helperProbe = helperPermission && await optionalHostProbe(collector, 'copy.host.helper_probe', async () => {
+    await command('/usr/bin/sudo', ['-n', SANDBOX_HELPER, 'probe'], options);
+  }, 'COPY_SANDBOX_HELPER_PROBE_FAILED', ['copy.host.helper_permission']);
+  if (!helperPermission) collector.add('copy.host.helper_probe', 'NOT_APPLICABLE', 'OPTIONAL_STRATEGY_PREREQUISITE_UNAVAILABLE', {}, ['copy.host.helper_permission']);
+
+  if (combinedNamespace) {
+    collector.add('copy.host.isolation_strategy', 'PASS', null, { unprivileged: 1 });
+    return 'unprivileged';
+  }
+  if (helperProbe) {
+    collector.add('copy.host.isolation_strategy', 'PASS', null, { helper: 1 });
+    return 'helper';
+  }
+  collector.add('copy.host.isolation_strategy', 'FAIL', 'COPY_ISOLATION_STRATEGY_UNAVAILABLE');
+  return null;
 }
 
-export async function launchCopy(inputFile, outputFile, directory, runtime, command = exec) {
-  const parentNamespace = await readlink('/proc/self/ns/net');
-  // No fallback to the host network; unavailable user namespaces are a finding.
-  const env = copyProcessEnv(directory, runtime);
-  await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc', process.execPath, FILE, inputFile, outputFile, parentNamespace], {
-    env, timeout: 900000, maxBuffer: 65536,
-  });
+export async function launchCopy(inputFile, outputFile, directory, runtime, strategy, command = exec) {
+  check(strategy === 'unprivileged' || strategy === 'helper', 'COPY_ISOLATION_STRATEGY_INVALID');
+  if (strategy === 'unprivileged') {
+    const parentNamespace = await readlink('/proc/self/ns/net');
+    const env = copyProcessEnv(directory, runtime);
+    await command('unshare', ['--user', '--map-current-user', '--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc', process.execPath, FILE, inputFile, outputFile, parentNamespace], {
+      env, timeout: 900000, maxBuffer: 65536,
+    });
+  } else {
+    check(/^\\d{1,20}$/.test(runtime.GITHUB_RUN_ID ?? '') && /^\\d{1,5}$/.test(runtime.GITHUB_RUN_ATTEMPT ?? ''), 'COPY_HELPER_RUN_ID');
+    await command('/usr/bin/sudo', ['-n', SANDBOX_HELPER, 'run', runtime.GITHUB_RUN_ID, runtime.GITHUB_RUN_ATTEMPT, process.execPath], {
+      env: { PATH: runtime.PATH, LANG: 'C.UTF-8' }, timeout: 900000, maxBuffer: 65536,
+    });
+  }
   const result = JSON.parse(await readFile(outputFile, 'utf8'));
   check(result.contract === 'fieldgrid-wp1-collecting-diagnostic-v1' && result.resetAuthorized === false && Array.isArray(result.checks), 'COPY_REPORT_INVALID');
   return result;
