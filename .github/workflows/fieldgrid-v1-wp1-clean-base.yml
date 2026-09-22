@@ -147,7 +147,10 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
           FIELDGRID_WP1_TENANT_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
-          # Existing reviewed field-demo staging owner. This identity is already\n          # source-controlled as FIELD_DEMO_RETAINED_OWNER_ID and is intentionally\n          # distinct from the website automation actor.\n          FIELDGRID_WP1_ADMIN_USER_ID: cafccef6-ba37-4fe0-879e-55c566b6136e
+          # Existing reviewed field-demo staging owner. This identity is already
+          # source-controlled as FIELD_DEMO_RETAINED_OWNER_ID and is intentionally
+          # distinct from the website automation actor.
+          FIELDGRID_WP1_ADMIN_USER_ID: cafccef6-ba37-4fe0-879e-55c566b6136e
           FIELDGRID_WP1_WRITER_UNITS: ${{ vars.BACKOFFICE_SERVICE_NAME }},${{ vars.PERSONEEL_SERVICE_NAME }},${{ vars.KLANT_SERVICE_NAME }},${{ vars.API_SERVICE_NAME }},${{ vars.NOTIFICATION_WORKER_SERVICE_NAME }},${{ vars.SCHEDULER_SERVICE_NAME }}
         run: |
           set -euo pipefail
