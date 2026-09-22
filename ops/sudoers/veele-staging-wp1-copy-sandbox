@@ -1,10 +1,11 @@
 # Fieldgrid WP1 isolated-copy sandbox.
 # The helper is installed root-owned at /usr/local/sbin/fieldgrid-wp1-copy-sandbox.
-# It validates all dynamic arguments, creates only network/PID/mount namespaces,
-# brings up loopback, drops to github-runner:veele-deploy with no supplementary
-# groups and no-new-privileges, then executes the reviewed worker.
+# Sudo authorizes only that fixed root-owned executable. The helper itself
+# fail-closes on every argument and accepts only:
+#   probe
+#   run <numeric-run-id> <numeric-attempt> <reviewed-node-24-path>
+# This avoids sudoers argument wildcard incompatibilities on the staging host.
 Cmnd_Alias FIELDGRID_WP1_COPY_SANDBOX = \
-    /usr/local/sbin/fieldgrid-wp1-copy-sandbox probe, \
-    /usr/local/sbin/fieldgrid-wp1-copy-sandbox run [0-9]* [0-9]* /home/github-runner/actions-runner/_work/_tool/node/24.*/*/bin/node
+    /usr/local/sbin/fieldgrid-wp1-copy-sandbox
 
 github-runner ALL=(root) NOPASSWD: FIELDGRID_WP1_COPY_SANDBOX

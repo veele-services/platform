@@ -33,6 +33,8 @@ sudo install -o root -g root -m 0755 \
   ops/bin/fieldgrid-wp1-copy-sandbox \
   /usr/local/sbin/fieldgrid-wp1-copy-sandbox
 
+sudo visudo -cf ops/sudoers/veele-staging-wp1-copy-sandbox
+
 sudo install -o root -g root -m 0440 \
   ops/sudoers/veele-staging-wp1-copy-sandbox \
   /etc/sudoers.d/veele-staging-wp1-copy-sandbox
@@ -64,7 +66,11 @@ Expected ownership/mode:
 - sudoers: `root root 440`.
 
 Do not grant `github-runner` generic `unshare`, shell, install, mount,
-setpriv, Docker or unrestricted sudo rights.
+setpriv, Docker or unrestricted sudo rights. The sudoers entry intentionally
+authorizes only the fixed root-owned helper path and does not use command-
+argument wildcards; the helper performs strict fail-closed argument validation
+for `probe` and `run`. Always validate the reviewed sudoers source with
+`visudo -cf` before installing it.
 
 ## Rollback
 
