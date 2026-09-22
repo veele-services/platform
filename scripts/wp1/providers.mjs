@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hash, textHash, uuid, requireThat, fail, MAX_OBJECTS, MAX_BYTES, Wp1Error } from './contract.mjs';
+import { isLocalStagingDemoPayment } from './database.mjs';
 
 const PAGE_SIZE = 100;
 const BATCH_SIZE = 50;
@@ -181,6 +182,7 @@ export async function verifyTestPayments(database,keys,request=fetch) {
   let count=0;
   for(const row of database.data.payments) {
     if(row.payment_method!=='mollie'&&!row.mollie_payment_id) continue;
+    if(isLocalStagingDemoPayment(database.data,row)) continue;
     requireThat(row.provider_mode==='test'&&/^tr_[A-Za-z0-9]+$/.test(row.mollie_payment_id??''),'PAYMENT_NOT_TEST');
     const key=keys?.[row.tenant_id];
     requireThat(typeof key==='string'&&/^test_[A-Za-z0-9]+$/.test(key),'MOLLIE_TEST_KEY_REQUIRED');
@@ -189,7 +191,11 @@ export async function verifyTestPayments(database,keys,request=fetch) {
       response=await request(`https://api.mollie.com/v2/payments/${row.mollie_payment_id}`,{headers:{Authorization:`Bearer ${key}`},redirect:'error',signal:AbortSignal.timeout(15000)});
       requireThat(response.ok,'PAYMENT_PROVIDER_UNAVAILABLE');body=await response.json();
     } catch(error) {if(error instanceof Wp1Error) throw error;fail('PAYMENT_PROVIDER_UNAVAILABLE');}
-    requireThat(body.id===row.mollie_payment_id&&body.mode==='test'&&terminal.has(body.status)&&body.status===row.provider_status,'PAYMENT_PROVIDER_MISMATCH');
+    requireThat(body.id===row.mollie_payment_id&&body.mode==='test','PAYMENT_PROVIDER_MISMATCH');
+    // Provider truth is authoritative for staging cleanup. A stale local
+    // webhook/provider_status may lag behind, but an active provider payment
+    // must never be deleted by WP1.
+    requireThat(terminal.has(body.status),'PAYMENT_PROVIDER_ACTIVE');
     const cents=typeof body.amount?.value==='string'&&/^\d+\.\d{2}$/.test(body.amount.value)?Number(body.amount.value.replace('.','')):NaN;
     requireThat(Number.isSafeInteger(cents)&&cents===row.amount_cents&&body.amount.currency===row.currency,'PAYMENT_AMOUNT_MISMATCH');
     if(row.provider_profile_id) requireThat(body.profileId===row.provider_profile_id,'PAYMENT_PROFILE_MISMATCH');

@@ -41,11 +41,32 @@ test('provider failures are bounded, retried and redact every raw error detail',
   assert.equal(attempts,3);
   await assert.rejects(providerCall(async()=>undefined,{sleep:async()=>{}}),error=>error.code==='PROVIDER_RESPONSE');
 });
-test('Mollie uses only test credentials and validates real response identity/amount',async()=>{
-  const source={data:{payments:[{tenant_id:tenant,payment_method:'mollie',mollie_payment_id:'tr_Test123',provider_mode:'test',provider_status:'paid',amount_cents:100,currency:'EUR'}]}};
+test('Mollie uses provider truth for terminality while retaining exact financial checks',async()=>{
+  const source={data:{payments:[{tenant_id:tenant,payment_method:'mollie',mollie_payment_id:'tr_Test123',provider_mode:'test',provider_status:'open',amount_cents:100,currency:'EUR'}]}};
   let called=false;
   await assert.rejects(verifyTestPayments(source,{[tenant]:'live_abc'},async()=>{called=true;}));assert.equal(called,false);
-  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'paid',amount:{value:'1.00',currency:'EUR'}})})),1);
+  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'expired',amount:{value:'1.00',currency:'EUR'}})})),1);
+  await assert.rejects(
+    verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'open',amount:{value:'1.00',currency:'EUR'}})})),
+    error=>error.code==='PAYMENT_PROVIDER_ACTIVE',
+  );
+});
+test('proven local staging-demo Mollie placeholders never call the provider',async()=>{
+  const source={data:{
+    payments:[{
+      id:'30000000-0000-4000-8000-000000000001',
+      tenant_id:tenant,
+      source_id:'40000000-0000-4000-8000-000000000001',
+      payment_method:'mollie',
+      mollie_payment_id:'tr_staging_demo_legacy',
+      checkout_url:'https://www.mollie.com/checkout/staging-demo/legacy',
+      paid_at:null,
+    }],
+    payment_allocations:[],
+  }};
+  let called=false;
+  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>{called=true;throw new Error('must not call');}),0);
+  assert.equal(called,false);
 });
 test('systemd unit scope and state cannot be replaced by input flags',()=>{
   const units='veele-staging,veele-staging-personeel,veele-staging-klant,veele-staging-api';
