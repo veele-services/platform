@@ -62,7 +62,7 @@ test('exact historical paid staging seed with an allocation is local test data',
   const payment='30000000-0000-4000-8000-000000000001';
   const source={data:{
     payments:[{
-      id:payment,tenant_id:tenant,invoice_id:invoice,payment_method:'mollie',
+      id:payment,tenant_id:tenant,invoice_id:invoice,payment_method:'mollie',status:'paid',
       mollie_payment_id:'tr_staging_demo_40000000_paid',
       checkout_url:`https://www.mollie.com/checkout/staging-demo/${invoice}`,
       paid_at:'2026-01-01T00:00:00Z',
