@@ -108,6 +108,19 @@ test('every payment is inspected despite earlier provider/local failures', async
   assert.equal(c.report().totals.failures, 4);
   assert.ok(!JSON.stringify(c.report()).includes('raw provider'));
 });
+test('terminal test-payment metadata drift is an observation, not a blocker', async () => {
+  const c = new Collector({}); ready(c);
+  const row = { id: '1', tenant_id: tenant, mollie_payment_id: 'tr_Test1', payment_method: 'mollie' };
+  await inspectPayments(c, { data: { payments: [row], invoices: [], payment_allocations: [], customer_payment_batches: [], customer_payment_batch_items: [] } }, 'test_abc', undefined, {
+    paymentBlockers: () => 0,
+    verifyResetSafeTestPayments: async () => ({ count: 1, metadataMismatches: 1 }),
+  });
+  assert.equal(c.status('payment.0001.provider'), 'PASS');
+  assert.equal(c.status('payment.0001.metadata'), 'NOT_APPLICABLE');
+  assert.equal(c.checks.find(item => item.id === 'payment.0001.metadata')?.code, 'PAYMENT_METADATA_DRIFT_OBSERVED');
+  assert.equal(c.report().totals.failures, 0);
+});
+
 test('historical paid seed signature is observed, not declared cleanup-safe', () => {
   const invoice = { id: tenant, tenant_id: tenant, notes: 'VEELE_STAGING_DEMO_DEN_HAAG: demo' };
   const row = { tenant_id: tenant, invoice_id: tenant, mollie_payment_id: 'tr_staging_demo_10000000_paid', checkout_url: `https://www.mollie.com/checkout/staging-demo/${tenant}`, paid_at: '2026-01-01' };
@@ -157,38 +170,75 @@ test('writer checks only inspect systemctl state and sudo -l permissions', async
   assert.equal(c.status('writer.0.stop_permission'), 'PASS');
   assert.equal(calls.filter(([bin]) => bin.endsWith('sudo')).length, 4);
 });
-test('copy host capability checks collect namespace failures independently', async () => {
+test('copy host chooses helper when unprivileged user namespaces are unavailable', async () => {
   const c = new Collector({}), calls = [];
-  await inspectCopyHost(c, '/tmp/wp1-copy-host-test', { PATH: process.env.PATH }, async (binary, args, options) => {
+  const strategy = await inspectCopyHost(c, '/tmp/wp1-copy-host-test', { PATH: process.env.PATH }, async (binary, args, options) => {
     calls.push([binary, args]);
     assert.deepEqual(Object.keys(options.env).sort(), ['HOME', 'LANG', 'PATH']);
     if (binary === 'ip') return { stdout: 'ip utility' };
-    if (args.includes('--net') && !args.includes('--pid')) throw new Error('network namespace denied');
-    return { stdout: '' };
+    if (binary === 'unshare') throw new Error('user namespace denied');
+    if (binary === '/usr/bin/sudo') return { stdout: '' };
+    throw new Error('unexpected command');
   });
+  assert.equal(strategy, 'helper');
   assert.equal(c.status('copy.host.ip'), 'PASS');
-  assert.equal(c.status('copy.host.user_namespace'), 'PASS');
-  assert.equal(c.status('copy.host.network_namespace'), 'FAIL');
-  assert.equal(c.status('copy.host.pid_namespace'), 'PASS');
-  assert.equal(c.status('copy.host.combined_namespace'), 'NOT_TESTED');
-  assert.ok(calls.some(([, args]) => args.includes('--pid') && !args.includes('--net')));
-  assert.ok(!JSON.stringify(c.report()).includes('network namespace denied'));
+  assert.equal(c.status('copy.host.user_namespace'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.network_namespace'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.pid_namespace'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.combined_namespace'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.helper_permission'), 'PASS');
+  assert.equal(c.status('copy.host.helper_probe'), 'PASS');
+  assert.equal(c.status('copy.host.isolation_strategy'), 'PASS');
+  assert.ok(calls.some(([binary, args]) => binary === '/usr/bin/sudo' && args.includes('probe')));
+  assert.ok(!JSON.stringify(c.report()).includes('user namespace denied'));
 });
 
-test('copy launch strips credentials, requires network/PID namespaces, and has no fallback', async () => {
+test('copy host fails only the final isolation strategy when neither safe path exists', async () => {
+  const c = new Collector({});
+  const strategy = await inspectCopyHost(c, '/tmp/wp1-copy-host-test', { PATH: process.env.PATH }, async (binary) => {
+    if (binary === 'ip') return { stdout: 'ip utility' };
+    throw new Error('unavailable');
+  });
+  assert.equal(strategy, null);
+  assert.equal(c.status('copy.host.user_namespace'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.helper_permission'), 'NOT_APPLICABLE');
+  assert.equal(c.status('copy.host.isolation_strategy'), 'FAIL');
+  assert.equal(c.report().totals.failures, 1);
+});
+
+test('copy launch strips credentials for both unprivileged and helper strategies', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'wp1-copy-test-'));
-  const output = join(directory, 'output.json'); let calls = 0;
+  const output = join(directory, 'output.json');
   try {
-    await launchCopy(join(directory, 'input.json'), output, directory, { PATH: process.env.PATH, GITHUB_TOKEN: 'secret', MOLLIE_API_KEY: 'live_secret', DATABASE_URL: 'private' }, async (binary, args, options) => {
-      calls++;
-      assert.equal(binary, 'unshare');
-      for (const flag of ['--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc']) assert.ok(args.includes(flag));
-      assert.deepEqual(Object.keys(options.env).sort(), ['HOME', 'LANG', 'PATH']);
-      await writeFile(output, JSON.stringify(new Collector({}).report()));
-    });
+    let calls = 0;
+    await launchCopy(join(directory, 'input.json'), output, directory,
+      { PATH: process.env.PATH, GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1', GITHUB_TOKEN: 'secret', MOLLIE_API_KEY: 'live_secret', DATABASE_URL: 'private' },
+      'unprivileged', async (binary, args, options) => {
+        calls++;
+        assert.equal(binary, 'unshare');
+        for (const flag of ['--net', '--pid', '--fork', '--kill-child=SIGKILL', '--mount-proc']) assert.ok(args.includes(flag));
+        assert.deepEqual(Object.keys(options.env).sort(), ['HOME', 'LANG', 'PATH']);
+        await writeFile(output, JSON.stringify(new Collector({}).report()));
+      });
     assert.equal(calls, 1);
-    await assert.rejects(launchCopy('unused', 'unused', directory, { PATH: process.env.PATH }, async () => { calls++; throw new Error('unshare forbidden'); }));
-    assert.equal(calls, 2);
+
+    await rm(output, { force: true });
+    calls = 0;
+    await launchCopy(join(directory, 'input.json'), output, directory,
+      { PATH: process.env.PATH, GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1', GITHUB_TOKEN: 'secret', MOLLIE_API_KEY: 'live_secret', DATABASE_URL: 'private' },
+      'helper', async (binary, args, options) => {
+        calls++;
+        assert.equal(binary, '/usr/bin/sudo');
+        assert.deepEqual(args.slice(0, 4), ['-n', '/usr/local/sbin/fieldgrid-wp1-copy-sandbox', 'run', '123']);
+        assert.equal(args[4], '1');
+        assert.equal(args[5], process.execPath);
+        assert.deepEqual(Object.keys(options.env).sort(), ['LANG', 'PATH']);
+        await writeFile(output, JSON.stringify(new Collector({}).report()));
+      });
+    assert.equal(calls, 1);
+
+    await assert.rejects(launchCopy('unused', 'unused', directory, { PATH: process.env.PATH }, 'unsafe', async () => assert.fail('must not execute')),
+      error => error.code === 'COPY_ISOLATION_STRATEGY_INVALID');
     await assert.rejects(assertDisposable({ query: () => assert.fail('must not touch remote') }, { pgEnv: { PGHOST: 'remote.supabase.co' } }, directory));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
