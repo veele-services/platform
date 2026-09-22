@@ -15,8 +15,9 @@ test('collecting workflow has no apply mode and uses protected exact staging mai
   assert.match(runner, /DATABASE_DUMP_COMMAND_FAILED/);
   assert.match(runner, /DATABASE_DUMP_LIST_FAILED/);
   assert.match(runner, /session\.exportSnapshot\(\)/);
-  assert.match(runner, /inspectCopyHost\(collector, directory, env\)/);
-  assert.match(runner, /\['backup\.database', 'source\.rollback', 'copy\.host\.combined_namespace'\]/);
+  assert.match(runner, /const copyStrategy = await inspectCopyHost\(collector, directory, env\)/);
+  assert.match(runner, /launchCopy\(input, output, directory, env, copyStrategy\)/);
+  assert.match(runner, /\['backup\.database', 'source\.rollback', 'copy\.host\.isolation_strategy'\]/);
   assert.doesNotMatch(runner, /session\.read\(async read =>[\s\S]*pg_export_snapshot/);
   assert.doesNotMatch(runner, /writeFile\(path, '', \{ mode: 0o600, flag: 'wx' \}\)/);
 });
@@ -28,11 +29,29 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   assert.match(copy, /await assertDisposable\(client, target, directory\)/);
   assert.match(copy, /COPY_NETWORK_NOT_ISOLATED/);
   assert.match(copy, /COPY_USER_NAMESPACE_UNAVAILABLE/);
-  assert.match(copy, /COPY_NETWORK_NAMESPACE_UNAVAILABLE/);
-  assert.match(copy, /COPY_PID_NAMESPACE_UNAVAILABLE/);
-  assert.match(copy, /COPY_COMBINED_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_SANDBOX_HELPER_PERMISSION_UNAVAILABLE/);
+  assert.match(copy, /COPY_SANDBOX_HELPER_PROBE_FAILED/);
+  assert.match(copy, /COPY_ISOLATION_STRATEGY_UNAVAILABLE/);
+  assert.match(copy, /\/\^\\d\{1,20\}\$\/\.test\(runtime\.GITHUB_RUN_ID/);
+  assert.match(copy, /\/\^\\d\{1,5\}\$\/\.test\(runtime\.GITHUB_RUN_ATTEMPT/);
+  assert.match(copy, /\/usr\/local\/sbin\/fieldgrid-wp1-copy-sandbox/);
   assert.match(copy, /--kill-child=SIGKILL/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
   assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
   assert.doesNotMatch(copy, /SUPABASE_SERVICE_ROLE_KEY\s*:/);
+
+  const helper = read('ops/bin/fieldgrid-wp1-copy-sandbox');
+  assert.match(helper, /\[\[ "\$\{EUID\}" -eq 0 \]\]/);
+  assert.match(helper, /readonly EXPECTED_USER="github-runner"/);
+  assert.match(helper, /\$\{SUDO_USER:-\}.*\$\{EXPECTED_USER\}/);
+  assert.match(helper, /unshare.*--net.*--pid.*--mount-proc/s);
+  assert.match(helper, /setpriv.*--reuid=github-runner.*--regid=veele-deploy.*--clear-groups.*--no-new-privs/s);
+  assert.match(helper, /env.*-i HOME=/s);
+  assert.doesNotMatch(helper, /DATABASE_URL|MOLLIE_API_KEY|SUPABASE_SERVICE_ROLE_KEY|GITHUB_TOKEN/);
+
+  const sudoers = read('ops/sudoers/veele-staging-wp1-copy-sandbox');
+  assert.match(sudoers, /github-runner ALL=\(root\) NOPASSWD: FIELDGRID_WP1_COPY_SANDBOX/);
+  assert.match(sudoers, /fieldgrid-wp1-copy-sandbox probe/);
+  assert.match(sudoers, /fieldgrid-wp1-copy-sandbox run \[0-9\]\* \[0-9\]\*/);
+  assert.doesNotMatch(sudoers, /\/bin\/(?:sh|bash)|\/usr\/bin\/(?:unshare|mount|setpriv)|ALL=\(ALL/);
 });

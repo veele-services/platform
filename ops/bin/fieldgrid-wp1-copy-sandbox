@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+readonly DIAGNOSTIC_ROOT="/var/www/veele/staging/shared/wp1-diagnostic"
+readonly WORKSPACE="/home/github-runner/actions-runner/_work/platform/platform"
+readonly RUNTIME_TEMP="/home/github-runner/actions-runner/_work/_temp"
+readonly EXPECTED_USER="github-runner"
+readonly EXPECTED_GROUP="veele-deploy"
+readonly PG_VERSION="17.10"
+
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+fail() {
+  printf '%s\n' "FIELDGRID_WP1_COPY_SANDBOX_FAILED" >&2
+  exit 1
+}
+
+[[ "${EUID}" -eq 0 ]] || fail
+[[ "${SUDO_USER:-}" == "${EXPECTED_USER}" ]] || fail
+[[ -d "${DIAGNOSTIC_ROOT}" && ! -L "${DIAGNOSTIC_ROOT}" ]] || fail
+
+UNSHARE_BIN="$(command -v unshare)" || fail
+IP_BIN="$(command -v ip)" || fail
+SETPRIV_BIN="$(command -v setpriv)" || fail
+ENV_BIN="$(command -v env)" || fail
+ID_BIN="$(command -v id)" || fail
+SH_BIN="$(command -v sh)" || fail
+REALPATH_BIN="$(command -v realpath)" || fail
+STAT_BIN="$(command -v stat)" || fail
+
+runner_uid="$("${ID_BIN}" -u "${EXPECTED_USER}")" || fail
+runner_gid="$("${ID_BIN}" -g "${EXPECTED_USER}")" || fail
+group_gid="$("${ID_BIN}" -g "${EXPECTED_GROUP}")" || fail
+[[ "${runner_uid}" =~ ^[0-9]+$ && "${runner_gid}" =~ ^[0-9]+$ && "${group_gid}" =~ ^[0-9]+$ ]] || fail
+
+probe() {
+  local output
+  output="$("${UNSHARE_BIN}" --net --pid --fork --kill-child=SIGKILL --mount --mount-proc     "${SH_BIN}" -c '
+      set -eu
+      ip_bin="$1"
+      setpriv_bin="$2"
+      id_bin="$3"
+      "$ip_bin" link set lo up
+      exec "$setpriv_bin" --reuid=github-runner --regid=veele-deploy --clear-groups --no-new-privs "$id_bin" -u
+    ' sh "${IP_BIN}" "${SETPRIV_BIN}" "${ID_BIN}")" || fail
+  [[ "${output}" == "${runner_uid}" ]] || fail
+}
+
+run_worker() {
+  [[ "$#" -eq 3 ]] || fail
+  local run_id="$1" attempt="$2" node_path="$3"
+  [[ "${run_id}" =~ ^[1-9][0-9]{0,19}$ ]] || fail
+  [[ "${attempt}" =~ ^[1-9][0-9]{0,4}$ ]] || fail
+  [[ "${node_path}" == /home/github-runner/actions-runner/_work/_tool/node/24.*/*/bin/node ]] || fail
+
+  local node_real script_real runtime_root bindir sharedir worker_path parent_net
+  node_real="$("${REALPATH_BIN}" -- "${node_path}")" || fail
+  [[ "${node_real}" == /home/github-runner/actions-runner/_work/_tool/node/24.*/*/bin/node && -x "${node_real}" ]] || fail
+
+  script_real="$("${REALPATH_BIN}" -- "${WORKSPACE}/scripts/wp1/diagnostic-copy.mjs")" || fail
+  [[ "${script_real}" == "${WORKSPACE}/scripts/wp1/diagnostic-copy.mjs" && -f "${script_real}" && ! -L "${script_real}" ]] || fail
+
+  runtime_root="${RUNTIME_TEMP}/fieldgrid-postgresql-${PG_VERSION}-${run_id}-${attempt}/root"
+  bindir="${runtime_root}/usr/lib/postgresql/17/bin"
+  sharedir="${runtime_root}/usr/share/postgresql/17"
+  [[ -x "${bindir}/postgres" && -x "${bindir}/pg_restore" && -d "${sharedir}" ]] || fail
+
+  shopt -s nullglob
+  local matches=("${DIAGNOSTIC_ROOT}/collect-${run_id}-${attempt}-"*)
+  shopt -u nullglob
+  [[ "${#matches[@]}" -eq 1 ]] || fail
+
+  local directory input output owner mode input_owner input_mode
+  directory="$("${REALPATH_BIN}" -- "${matches[0]}")" || fail
+  [[ "${directory}" == "${DIAGNOSTIC_ROOT}/collect-${run_id}-${attempt}-"* ]] || fail
+  [[ -d "${directory}" && ! -L "${directory}" ]] || fail
+  owner="$("${STAT_BIN}" -c '%u' -- "${directory}")" || fail
+  mode="$("${STAT_BIN}" -c '%a' -- "${directory}")" || fail
+  [[ "${owner}" == "${runner_uid}" && "${mode}" == "700" ]] || fail
+
+  input="${directory}/copy-input.json"
+  output="${directory}/copy-output.json"
+  [[ -f "${input}" && ! -L "${input}" && ! -e "${output}" ]] || fail
+  input_owner="$("${STAT_BIN}" -c '%u' -- "${input}")" || fail
+  input_mode="$("${STAT_BIN}" -c '%a' -- "${input}")" || fail
+  [[ "${input_owner}" == "${runner_uid}" && "${input_mode}" == "600" ]] || fail
+
+  parent_net="$(readlink /proc/self/ns/net)" || fail
+  [[ "${parent_net}" == net:\[*\] ]] || fail
+
+  worker_path="${bindir}:$(dirname "${node_real}"):/usr/bin:/usr/sbin:/bin:/sbin"
+
+  exec "${UNSHARE_BIN}" --net --pid --fork --kill-child=SIGKILL --mount --mount-proc     "${SH_BIN}" -c '
+      set -eu
+      ip_bin="$1"
+      setpriv_bin="$2"
+      env_bin="$3"
+      home="$4"
+      worker_path="$5"
+      sharedir="$6"
+      node="$7"
+      script="$8"
+      input="$9"
+      output="${10}"
+      parent_net="${11}"
+
+      "$ip_bin" link set lo up
+      exec "$setpriv_bin" --reuid=github-runner --regid=veele-deploy --clear-groups --no-new-privs         "$env_bin" -i HOME="$home" LANG=C.UTF-8 PATH="$worker_path" FIELDGRID_POSTGRESQL_SHAREDIR="$sharedir"         "$node" "$script" "$input" "$output" "$parent_net"
+    ' sh "${IP_BIN}" "${SETPRIV_BIN}" "${ENV_BIN}" "${directory}" "${worker_path}" "${sharedir}"       "${node_real}" "${script_real}" "${input}" "${output}" "${parent_net}"
+}
+
+case "${1:-}" in
+  probe)
+    [[ "$#" -eq 1 ]] || fail
+    probe
+    ;;
+  run)
+    shift
+    run_worker "$@"
+    ;;
+  *)
+    fail
+    ;;
+esac

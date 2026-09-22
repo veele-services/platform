@@ -142,7 +142,8 @@ export async function inspectDatabase(session, collector, context) {
 
 export async function inspectPayments(collector, database, key, request = fetch, dependencies) {
   const { paymentBlockers } = dependencies ?? await import('./database.mjs');
-  const { verifyTestPayments } = dependencies ?? await import('./providers.mjs');
+  const providerChecks = dependencies ?? await import('./providers.mjs');
+  const verifyResetSafeTestPayments = providerChecks.verifyResetSafeTestPayments ?? providerChecks.verifyTestPayments;
   const data = database.data;
   if (!data.payments) { collector.skip('payments.rows', ['table.payments']); return; }
   const rows = data.payments;
@@ -162,13 +163,23 @@ export async function inspectPayments(collector, database, key, request = fetch,
     }, ['table.payment_allocations'], 'LOCAL_PAYMENT_CHECK_FAILED');
     if (kind === 'provider_reference') {
       if (++lookups > 100) { collector.skip(`${id}.provider`, [], 'PROVIDER_LOOKUP_BUDGET'); continue; }
-      await collector.run(`${id}.provider`, async () => {
-        try { await verifyTestPayments({ data: { ...data, payments: [row] } }, { [row.tenant_id]: key }, request); }
-        catch (error) {
+      const providerObservation = await collector.run(`${id}.provider`, async () => {
+        try {
+          const result = await verifyResetSafeTestPayments({ data: { ...data, payments: [row] } }, { [row.tenant_id]: key }, request);
+          const metadataMismatches = Number(result?.metadataMismatches ?? 0);
+          check(Number.isSafeInteger(metadataMismatches) && metadataMismatches >= 0, 'PAYMENT_LOOKUP_FAILED');
+          return { value: { metadataMismatches }, counts: { verified: 1, metadata_mismatches: metadataMismatches } };
+        } catch (error) {
           const codes = new Set(['PAYMENT_NOT_TEST', 'MOLLIE_TEST_KEY_REQUIRED', 'PAYMENT_PROVIDER_UNAVAILABLE', 'PAYMENT_PROVIDER_MISMATCH', 'PAYMENT_PROVIDER_ACTIVE', 'PAYMENT_AMOUNT_MISMATCH', 'PAYMENT_PROFILE_MISMATCH', 'PAYMENT_METADATA_MISMATCH']);
           throw new DiagnosticError(codes.has(error.code) ? error.code : 'PAYMENT_LOOKUP_FAILED');
         }
       }, ['payments.test_key']);
+      if (providerObservation) {
+        if (providerObservation.metadataMismatches > 0) {
+          collector.add(`${id}.metadata`, 'NOT_APPLICABLE', 'PAYMENT_METADATA_DRIFT_OBSERVED',
+            { mismatches: providerObservation.metadataMismatches });
+        } else collector.add(`${id}.metadata`, 'PASS');
+      } else collector.skip(`${id}.metadata`, [`${id}.provider`]);
     } else if (kind === 'seed_signature' || kind === 'non_provider') {
       collector.add(`${id}.provider`, 'NOT_APPLICABLE', 'NO_PROVIDER_LOOKUP_APPLICABLE');
     } else collector.skip(`${id}.provider`, [`${id}.classification`], 'UNVERIFIED_PROVIDER_REFERENCE');

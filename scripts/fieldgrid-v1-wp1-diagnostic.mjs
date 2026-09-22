@@ -115,7 +115,7 @@ export async function main(env = process.env) {
     // End the live read snapshot before the potentially lengthy copy rehearsal.
     await collector.run('source.rollback', async () => { if (session) await session.close(); }, [], 'SOURCE_ROLLBACK_FAILED');
 
-    await inspectCopyHost(collector, directory, env);
+    const copyStrategy = await inspectCopyHost(collector, directory, env);
 
     await collector.run('copy.launch', async () => {
       const input = join(directory, 'copy-input.json'), output = join(directory, 'copy-output.json');
@@ -125,9 +125,9 @@ export async function main(env = process.env) {
         counts: Object.fromEntries(Object.entries(database.data).map(([name, rows]) => [name, rows.length])),
       };
       await writeFile(input, JSON.stringify({ dump: dump.path, expected }), { mode: 0o600, flag: 'wx' });
-      copyReport = await launchCopy(input, output, directory, env);
+      copyReport = await launchCopy(input, output, directory, env, copyStrategy);
       for (const item of copyReport.checks) collector.add(item.id, item.status, item.code, item.counts, item.dependencies);
-    }, ['backup.database', 'source.rollback', 'copy.host.combined_namespace'], 'COPY_NAMESPACE_OR_WORKER_UNAVAILABLE');
+    }, ['backup.database', 'source.rollback', 'copy.host.isolation_strategy'], 'COPY_NAMESPACE_OR_WORKER_UNAVAILABLE');
     if (!copyReport) {
       for (const stage of ['restore', 'delete', 'bootstrap', 'verify', 'rollback_equality']) collector.skip(`copy.${stage}`, ['copy.launch']);
     }
