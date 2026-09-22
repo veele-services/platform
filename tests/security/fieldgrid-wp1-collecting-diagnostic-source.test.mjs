@@ -15,6 +15,8 @@ test('collecting workflow has no apply mode and uses protected exact staging mai
   assert.match(runner, /DATABASE_DUMP_COMMAND_FAILED/);
   assert.match(runner, /DATABASE_DUMP_LIST_FAILED/);
   assert.match(runner, /session\.exportSnapshot\(\)/);
+  assert.match(runner, /inspectCopyHost\(collector, directory, env\)/);
+  assert.match(runner, /\['backup\.database', 'source\.rollback', 'copy\.host\.combined_namespace'\]/);
   assert.doesNotMatch(runner, /session\.read\(async read =>[\s\S]*pg_export_snapshot/);
   assert.doesNotMatch(runner, /writeFile\(path, '', \{ mode: 0o600, flag: 'wx' \}\)/);
 });
