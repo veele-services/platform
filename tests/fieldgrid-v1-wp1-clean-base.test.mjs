@@ -49,14 +49,7 @@ test("WP1 workflow is manual, main-bound and evidence-gated", () => {
     workflow,
     /FIELDGRID_WP1_TENANT_ID:\s*\$\{\{\s*secrets\.FIELDGRID_W00_STAGING_TENANT_A_ID\s*\}\}/u,
   );
-  assert.match(
-    workflow,
-    /FIELDGRID_WP1_ADMIN_USER_ID:\s*cafccef6-ba37-4fe0-879e-55c566b6136e/u,
-  );
-  assert.doesNotMatch(
-    workflow,
-    /FIELDGRID_WP1_ADMIN_USER_ID:\s*\$\{\{\s*secrets\.FIELDGRID_WEBSITE_AUTOMATION_ACTOR_USER_ID\s*\}\}/u,
-  );
+  assert.doesNotMatch(workflow, /FIELDGRID_WP1_ADMIN_USER_ID/u);
   assert.match(workflow, /MOLLIE_API_KEY:/u);
   assert.match(
     workflow,

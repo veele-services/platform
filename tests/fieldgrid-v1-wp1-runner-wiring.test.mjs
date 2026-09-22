@@ -18,6 +18,7 @@ test("WP1 live runner uses reviewed concrete reset modules", () => {
     "./wp1/database.mjs",
     "./wp1/providers.mjs",
     "./wp1/bootstrap.mjs",
+    "resolveCanonicalManager",
     "backupAndRehearse",
     "inventoryDatabase",
     "resetDatabase",

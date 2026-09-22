@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { inventoryDatabase, resetDatabase, journalSnapshot } from '../../scripts/wp1/database.mjs';
-import { copyRoles, bootstrapCanonical, verifyCanonical } from '../../scripts/wp1/bootstrap.mjs';
+import { copyRoles, bootstrapCanonical, resolveCanonicalManager, verifyCanonical } from '../../scripts/wp1/bootstrap.mjs';
 import { hash } from '../../scripts/wp1/contract.mjs';
 
 const require = createRequire(new URL('../../lib/db/package.json',import.meta.url));
@@ -30,6 +30,7 @@ test('WP1 uses the full migrated PostgreSQL 17 database: rollback, bootstrap and
     await client.query("INSERT INTO public.tenant_user_roles(tenant_id,user_id,tenant_role_id) SELECT $1,$2,id FROM public.tenant_roles WHERE tenant_id=$1 AND name='Management' AND is_system",[context.tenantId,context.adminId]);
     const old=await bootstrapCanonical(client,{...context,operationId:randomUUID()});
     await client.query('COMMIT');
+    assert.equal(await resolveCanonicalManager(client,context.tenantId),context.adminId);
     async function inventory() {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       try { return await inventoryDatabase(client,context); }
