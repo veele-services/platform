@@ -8,6 +8,58 @@ export function fixtureId(operationId, kind) {
 }
 export const REQUIRED_TEMPLATES = Object.freeze(['Management', 'Administration', 'Planning', 'Employee']);
 
+export async function resolveCanonicalManager(client, tenantId) {
+  requireThat(uuid(tenantId), 'BOOTSTRAP_CONFIGURATION');
+  await client.query('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  try {
+    const candidates = (await client.query(`
+      SELECT DISTINCT membership.user_id
+      FROM public.tenant_users membership
+      JOIN auth.users account ON account.id=membership.user_id
+      JOIN public.tenant_user_roles grant_link
+        ON grant_link.user_id=membership.user_id
+       AND grant_link.tenant_id=membership.tenant_id
+      JOIN public.tenant_roles scoped_role
+        ON scoped_role.id=grant_link.tenant_role_id
+       AND scoped_role.tenant_id=grant_link.tenant_id
+      JOIN public.roles template ON template.id=scoped_role.template_role_id
+      WHERE membership.tenant_id=$1
+        AND membership.status='active'
+        AND scoped_role.name='Management'
+        AND scoped_role.is_system IS TRUE
+        AND scoped_role.is_custom IS FALSE
+        AND template.name='Management'
+        AND template.is_system IS TRUE
+      ORDER BY membership.user_id
+      LIMIT 21
+    `, [tenantId])).rows;
+    requireThat(candidates.length <= 20, 'ADMIN_CANDIDATE_LIMIT');
+
+    const allowed = [];
+    for (const candidate of candidates) {
+      requireThat(uuid(candidate.user_id), 'ADMIN_CANDIDATE_INVALID');
+      const claims = JSON.stringify({ sub: candidate.user_id, role: 'authenticated' });
+      await client.query(
+        `SELECT set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',$2,true)`,
+        [candidate.user_id, claims],
+      );
+      const result = (await client.query(
+        'SELECT public.is_management_for_tenant($1::uuid) AS allowed',
+        [tenantId],
+      )).rows[0];
+      if (result?.allowed === true) allowed.push(candidate.user_id);
+    }
+
+    requireThat(
+      allowed.length === 1,
+      allowed.length === 0 ? 'ADMIN_NOT_TENANT_MANAGER' : 'ADMIN_MANAGER_AMBIGUOUS',
+    );
+    return allowed[0];
+  } finally {
+    await client.query('ROLLBACK').catch(() => {});
+  }
+}
+
 export async function assertBootstrapContext(client, context) {
   requireThat(uuid(context?.tenantId) && uuid(context?.adminId) && uuid(context?.operationId), 'BOOTSTRAP_CONTEXT');
   const tenant = (await client.query(`SELECT id FROM public.tenants WHERE id=$1 AND is_active AND status IN ('active','trial')`, [context.tenantId])).rows;
