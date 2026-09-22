@@ -30,7 +30,7 @@ import {
 } from "./wp1/database.mjs";
 import {
   createProviderAdapter,
-  verifyTestPayments,
+  verifyResetSafeTestPayments,
 } from "./wp1/providers.mjs";
 import { resolveCanonicalManager, verifyCanonical } from "./wp1/bootstrap.mjs";
 
@@ -63,7 +63,10 @@ function paymentKeys(database, environment = process.env) {
 }
 
 async function verifyProviderPayments(database, environment = process.env) {
-  return verifyTestPayments(database, paymentKeys(database, environment));
+  return verifyResetSafeTestPayments(
+    database,
+    paymentKeys(database, environment),
+  );
 }
 
 async function readPrivate(path) {
