@@ -60,7 +60,7 @@ test('proven local staging-demo Mollie placeholders never call the provider',asy
     payments:[{
       id:'30000000-0000-4000-8000-000000000001',
       tenant_id:tenant,
-      source_id:'40000000-0000-4000-8000-000000000001',
+      source_id:null,
       payment_method:'mollie',
       mollie_payment_id:'tr_staging_demo_legacy',
       checkout_url:'https://www.mollie.com/checkout/staging-demo/legacy',
