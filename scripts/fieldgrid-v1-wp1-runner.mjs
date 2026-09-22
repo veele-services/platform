@@ -32,7 +32,7 @@ import {
   createProviderAdapter,
   verifyTestPayments,
 } from "./wp1/providers.mjs";
-import { verifyCanonical } from "./wp1/bootstrap.mjs";
+import { resolveCanonicalManager, verifyCanonical } from "./wp1/bootstrap.mjs";
 
 const ARTIFACT_DIR = "artifacts/fieldgrid-v1-wp1-clean-base";
 const PRIVATE_RECEIPT = "diagnose-private.json";
@@ -423,6 +423,10 @@ async function main() {
     const services = createServiceControl(config.units);
     client = databaseClient(config);
     await client.connect();
+    config.context.adminId = await resolveCanonicalManager(
+      client,
+      config.context.tenantId,
+    );
 
     if (config.mode === "diagnose") {
       await diagnose(config, evidence, client, providers, services);
