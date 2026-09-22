@@ -25,13 +25,16 @@ IP_BIN="$(command -v ip)" || fail
 SETPRIV_BIN="$(command -v setpriv)" || fail
 ENV_BIN="$(command -v env)" || fail
 ID_BIN="$(command -v id)" || fail
+GETENT_BIN="$(command -v getent)" || fail
 SH_BIN="$(command -v sh)" || fail
 REALPATH_BIN="$(command -v realpath)" || fail
 STAT_BIN="$(command -v stat)" || fail
 
 runner_uid="$("${ID_BIN}" -u "${EXPECTED_USER}")" || fail
 runner_gid="$("${ID_BIN}" -g "${EXPECTED_USER}")" || fail
-group_gid="$("${ID_BIN}" -g "${EXPECTED_GROUP}")" || fail
+group_entry="$("${GETENT_BIN}" group "${EXPECTED_GROUP}")" || fail
+IFS=: read -r group_name _ group_gid _ <<< "${group_entry}"
+[[ "${group_name}" == "${EXPECTED_GROUP}" ]] || fail
 [[ "${runner_uid}" =~ ^[0-9]+$ && "${runner_gid}" =~ ^[0-9]+$ && "${group_gid}" =~ ^[0-9]+$ ]] || fail
 
 probe() {
