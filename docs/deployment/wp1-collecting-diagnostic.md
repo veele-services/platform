@@ -18,9 +18,13 @@ failed prerequisites remain NOT_TESTED, never PASS.
 Payment classification is an observation, not a cleanup exemption. Historical
 seed signatures (including synthetic `paid` rows) are reported separately from
 real provider references. Test-provider GETs are performed independently per
-payment, capped at 100 lookups. Exceeding a bound leaves explicit NOT_TESTED
-findings and diagnosticComplete=false. No Mollie mutation or live API key is
-used. Files, identifiers, metadata and keys never enter public reports.
+payment, capped at 100 lookups. Provider mode=test, terminal state, amount,
+currency and configured profile remain hard safety checks. Historical expected
+metadata drift on an otherwise-proven terminal test payment is reported as
+`PAYMENT_METADATA_DRIFT_OBSERVED` and does not count as a reset-safety failure.
+Exceeding a bound leaves explicit NOT_TESTED findings and
+diagnosticComplete=false. No Mollie mutation or live API key is used. Files,
+identifiers, metadata values and keys never enter public reports.
 
 The dump does not depend on payment eligibility, manager availability or writer
 permissions. It uses the same exported read snapshot as observed source data.
@@ -28,12 +32,22 @@ A backup/restore problem therefore no longer stays hidden behind a payment error
 
 ## Disposable-copy boundary
 
-The copy worker is spawned with unprivileged user, network and PID namespaces:
+The preferred copy-worker path uses unprivileged user, network and PID
+namespaces:
 `unshare --user --map-current-user --net --pid --fork --kill-child=SIGKILL --mount-proc`.
-It receives no source database URL, provider credential, JWT, mail credential or
-GitHub token. Its HOME is the private temporary directory. It verifies that the
-network namespace differs from its parent and that only loopback is present.
-No fallback to the host network is allowed.
+On hardened hosts where unprivileged user namespaces are disabled, a reviewed
+root-owned helper may provide only the namespace setup. That helper creates a
+network/PID/mount namespace, enables loopback and then drops to
+`github-runner:veele-deploy`, clears supplementary groups, enables
+`no_new_privs` and strips the environment **before repository Node code
+executes**. Installation is documented in
+`docs/deployment/wp1-copy-sandbox-host-setup.md`.
+
+Both strategies give the worker no source database URL, provider credential,
+JWT, mail credential or GitHub token. Its HOME is the private temporary
+directory. The worker verifies that it is non-root, PID 1 in its namespace, that
+the network namespace differs from its parent and that only loopback is
+present. There is no host-network fallback.
 
 It reuses the existing unprivileged PostgreSQL 17 restore helper, restores into a
 new loopback-only cluster and checks the actual database, server port, major
@@ -52,12 +66,18 @@ flag is introduced. Copy PostgreSQL processes cannot survive PID namespace exit.
 ## Runner prerequisites
 
 Existing protected staging secrets/variables, certificate, migration/runtime
-principal separation and exact-main validation are reused. The host also needs
-`unshare` and `ip`, with unprivileged user/network/PID namespaces enabled for the
-runner. No new sudo/root privileges are requested. An unsupported namespace is
-reported as COPY_NAMESPACE_OR_WORKER_UNAVAILABLE; source, payments, Auth, Storage
-and backup results still remain available. This limitation must be resolved
-without relaxing network isolation before claiming copy rehearsal is complete.
+principal separation and exact-main validation are reused. The host needs
+`unshare`, `ip` and `setpriv`. The collector first tries the fully
+unprivileged namespace path. If hardened host policy disables user namespaces,
+it may use the narrowly scoped root-owned sandbox helper after both sudo
+permission and a live helper probe pass. Do not grant generic shell, mount,
+unshare, Docker or unrestricted sudo access and do not globally relax namespace
+security solely for WP1.
+
+If neither safe isolation strategy works,
+`copy.host.isolation_strategy` fails while source, payments, Auth, Storage and
+backup evidence remains available. Network isolation may never be bypassed to
+make the rehearsal green.
 
 Source connection failures block source-dependent checks, not independent
 provider/service inventory. Invalid source identity, environment, TLS or exact
