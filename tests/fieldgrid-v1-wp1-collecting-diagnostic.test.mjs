@@ -58,6 +58,28 @@ test('SQL failure recovers a savepoint before the next independent query', async
   await session.close();
   assert.equal(calls.at(-1), 'ROLLBACK');
 });
+test('snapshot export runs outside diagnostic savepoints', async () => {
+  const calls = [];
+  let inSavepoint = false;
+  const client = { async query(text) {
+    calls.push(text);
+    if (text === 'SHOW transaction_read_only') return { rows: [{ transaction_read_only: 'on' }] };
+    if (text === 'SAVEPOINT diagnostic_read') { inSavepoint = true; return { rows: [] }; }
+    if (text === 'RELEASE SAVEPOINT diagnostic_read') { inSavepoint = false; return { rows: [] }; }
+    if (text === 'SELECT pg_export_snapshot() AS snapshot') {
+      assert.equal(inSavepoint, false);
+      return { rows: [{ snapshot: '00000003-0000001B-1' }] };
+    }
+    return { rows: [{ value: 1 }] };
+  } };
+  const session = new ReadOnlySession(client);
+  await session.start();
+  await session.read(async read => read.query('SELECT 1'));
+  assert.equal(await session.exportSnapshot(), '00000003-0000001B-1');
+  assert.notEqual(calls.at(-1), 'SAVEPOINT diagnostic_read');
+  await session.close();
+});
+
 test('failed SQL cleanup poisons the session rather than falsely continuing', async () => {
   const session = new ReadOnlySession({ async query(text) {
     if (text === 'SHOW transaction_read_only') return { rows: [{ transaction_read_only: 'on' }] };
