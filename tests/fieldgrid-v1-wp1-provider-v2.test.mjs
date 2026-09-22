@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createProviderAdapter,providerCall,storageSelection,verifyTestPayments } from '../scripts/wp1/providers.mjs';
+import { createProviderAdapter,providerCall,storageSelection,verifyResetSafeTestPayments,verifyTestPayments } from '../scripts/wp1/providers.mjs';
 import { parseWriterUnits,parseUnitState } from '../scripts/wp1/services.mjs';
 import { operationId } from '../scripts/wp1/environment.mjs';
 import { assertRun,assertDiagnoseReport } from '../scripts/wp1/evidence.mjs';
@@ -41,35 +41,37 @@ test('provider failures are bounded, retried and redact every raw error detail',
   assert.equal(attempts,3);
   await assert.rejects(providerCall(async()=>undefined,{sleep:async()=>{}}),error=>error.code==='PROVIDER_RESPONSE');
 });
-test('Mollie uses provider truth for mode and terminality while retaining exact financial checks',async()=>{
-  const source={data:{payments:[{tenant_id:tenant,payment_method:'mollie',mollie_payment_id:'tr_Test123',provider_mode:null,provider_status:'open',amount_cents:100,currency:'EUR'}]}};
+test('Mollie reset safety uses provider truth and records terminal test metadata drift',async()=>{
+  const source={data:{payments:[{tenant_id:tenant,payment_method:'mollie',mollie_payment_id:'tr_Test123',provider_mode:null,provider_status:'open',amount_cents:100,currency:'EUR',expected_provider_metadata:{invoiceId:'local'}}],invoices:[],payment_allocations:[]}};
   let called=false;
   await assert.rejects(verifyTestPayments(source,{[tenant]:'live_abc'},async()=>{called=true;}));assert.equal(called,false);
-  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'expired',amount:{value:'1.00',currency:'EUR'}})})),1);
+  const terminalResponse=async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'expired',amount:{value:'1.00',currency:'EUR'},metadata:{invoiceId:'provider'}})});
+  await assert.rejects(verifyTestPayments(source,{[tenant]:'test_abc'},terminalResponse),error=>error.code==='PAYMENT_METADATA_MISMATCH');
+  assert.deepEqual(await verifyResetSafeTestPayments(source,{[tenant]:'test_abc'},terminalResponse),{count:1,metadataMismatches:1});
   await assert.rejects(
-    verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'live',status:'expired',amount:{value:'1.00',currency:'EUR'}})})),
+    verifyResetSafeTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'live',status:'expired',amount:{value:'1.00',currency:'EUR'}})})),
     error=>error.code==='PAYMENT_PROVIDER_MISMATCH',
   );
   await assert.rejects(
-    verifyTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'open',amount:{value:'1.00',currency:'EUR'}})})),
+    verifyResetSafeTestPayments(source,{[tenant]:'test_abc'},async()=>({ok:true,json:async()=>({id:'tr_Test123',mode:'test',status:'open',amount:{value:'1.00',currency:'EUR'}})})),
     error=>error.code==='PAYMENT_PROVIDER_ACTIVE',
   );
 });
-test('proven local staging-demo Mollie placeholders never call the provider',async()=>{
+test('exact historical paid staging seed with an allocation is local test data',async()=>{
+  const invoice='40000000-0000-4000-8000-000000000001';
+  const payment='30000000-0000-4000-8000-000000000001';
   const source={data:{
     payments:[{
-      id:'30000000-0000-4000-8000-000000000001',
-      tenant_id:tenant,
-      source_id:'40000000-0000-4000-8000-000000000001',
-      payment_method:'mollie',
-      mollie_payment_id:'tr_staging_demo_legacy',
-      checkout_url:'https://www.mollie.com/checkout/staging-demo/legacy',
-      paid_at:null,
+      id:payment,tenant_id:tenant,invoice_id:invoice,payment_method:'mollie',
+      mollie_payment_id:'tr_staging_demo_40000000_paid',
+      checkout_url:`https://www.mollie.com/checkout/staging-demo/${invoice}`,
+      paid_at:'2026-01-01T00:00:00Z',
     }],
-    payment_allocations:[],
+    invoices:[{id:invoice,tenant_id:tenant,notes:'VEELE_STAGING_DEMO_DEN_HAAG: demo factuur'}],
+    payment_allocations:[{payment_id:payment}],
   }};
   let called=false;
-  assert.equal(await verifyTestPayments(source,{[tenant]:'test_abc'},async()=>{called=true;throw new Error('must not call');}),0);
+  assert.deepEqual(await verifyResetSafeTestPayments(source,{[tenant]:'test_abc'},async()=>{called=true;throw new Error('must not call');}),{count:0,metadataMismatches:0});
   assert.equal(called,false);
 });
 test('systemd unit scope and state cannot be replaced by input flags',()=>{
