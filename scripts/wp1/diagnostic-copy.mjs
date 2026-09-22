@@ -267,9 +267,13 @@ async function worker() {
   const [inputFile, outputFile, parentNamespace] = process.argv.slice(2);
   check(await readlink('/proc/self/ns/net') !== parentNamespace, 'COPY_NETWORK_NOT_ISOLATED');
   check(!Object.keys(process.env).some(key => /TOKEN|SECRET|DATABASE_URL|MOLLIE|SUPABASE|^PG/.test(key)), 'COPY_CREDENTIAL_LEAK');
-  await exec('ip', ['link', 'set', 'lo', 'up'], { timeout: 5000 });
-  const links = JSON.parse((await exec('ip', ['-json', 'link', 'show'], { timeout: 5000 })).stdout);
+  let links = JSON.parse((await exec('ip', ['-json', 'link', 'show'], { timeout: 5000 })).stdout);
   check(links.length === 1 && links[0].ifname === 'lo', 'COPY_NETWORK_INTERFACE');
+  if (!Array.isArray(links[0].flags) || !links[0].flags.includes('UP')) {
+    await exec('ip', ['link', 'set', 'lo', 'up'], { timeout: 5000 });
+    links = JSON.parse((await exec('ip', ['-json', 'link', 'show'], { timeout: 5000 })).stdout);
+    check(links.length === 1 && links[0].ifname === 'lo' && Array.isArray(links[0].flags) && links[0].flags.includes('UP'), 'COPY_NETWORK_INTERFACE');
+  }
   const info = await lstat(inputFile), root = await realpath(dirname(inputFile));
   check(info.isFile() && !info.isSymbolicLink() && info.uid === process.getuid() && (info.mode & 0o077) === 0, 'COPY_INPUT_PERMISSIONS');
   check(await realpath(inputFile) === resolve(inputFile) && dirname(outputFile) === root, 'COPY_INPUT_PATH');
