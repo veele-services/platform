@@ -1,0 +1,133 @@
+name: Fieldgrid WP1 Collecting Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed current main SHA with green Main Exact Head Validation
+        required: true
+        type: string
+      confirmation:
+        description: Type fieldgrid-wp1-collect-only-v1 (diagnostic only, never authorizes reset)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    name: Collect independent staging findings and isolated-copy evidence
+    runs-on: [self-hosted, linux, x64, veele]
+    environment: staging
+    timeout-minutes: 45
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      DIAGNOSTIC_CONFIRMATION: ${{ inputs.confirmation }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
+      DB_SSL: 'true'
+      DB_SSL_REJECT_UNAUTHORIZED: 'true'
+      PGSSLMODE: verify-full
+    steps:
+      - name: Reject unreviewed source before checkout
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$DIAGNOSTIC_CONFIRMATION" = fieldgrid-wp1-collect-only-v1
+
+      - name: Checkout exact reviewed main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up pnpm 11.5.2
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11.5.2
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --prod=false
+      - name: Check diagnostic code without live credentials
+        run: |
+          set -euo pipefail
+          node --check scripts/fieldgrid-v1-wp1-diagnostic.mjs
+          node --check scripts/wp1/diagnostic-copy.mjs
+          node --test tests/fieldgrid-v1-wp1-collecting-diagnostic.test.mjs tests/security/fieldgrid-wp1-collecting-diagnostic-source.test.mjs
+
+      - name: Install pinned certificate
+        id: certificate
+        continue-on-error: true
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/wp1-diagnostic-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          node scripts/fieldgrid-database-root-cert.mjs --check --file "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Prepare unprivileged PostgreSQL 17 runtime
+        id: postgres
+        continue-on-error: true
+        run: scripts/fieldgrid-setup-postgresql17.sh
+
+      # Preparation failures are recorded by the runner, not silently accepted.
+      # There is deliberately no mode/apply input and no reset receipt output.
+      - name: Collect diagnostic evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+          FIELDGRID_WP1_TENANT_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_WP1_WRITER_UNITS: ${{ vars.BACKOFFICE_SERVICE_NAME }},${{ vars.PERSONEEL_SERVICE_NAME }},${{ vars.KLANT_SERVICE_NAME }},${{ vars.API_SERVICE_NAME }},${{ vars.NOTIFICATION_WORKER_SERVICE_NAME }},${{ vars.SCHEDULER_SERVICE_NAME }}
+        run: node scripts/fieldgrid-v1-wp1-diagnostic.mjs
+
+      - name: Record preparation failure when runner could not start
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -s artifacts/fieldgrid-wp1-diagnostic/result.json ]; then
+            mkdir -p artifacts/fieldgrid-wp1-diagnostic
+            printf '%s\n' '{"contract":"fieldgrid-wp1-collecting-diagnostic-v1","artifactKind":"diagnostic-only","mode":"collect","collectionFinished":false,"diagnosticComplete":false,"resetAuthorized":false,"readyForReset":false,"resetReadiness":"NOT_EVALUATED","status":"preparation_failed","checks":[{"id":"preparation","status":"FAIL","code":"PREPARATION_FAILED","counts":{},"dependencies":[]}]}' > artifacts/fieldgrid-wp1-diagnostic/result.json
+            printf '%s\n' '## WP1 collecting diagnostic did not start' 'Preparation failed. No reset is authorized.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload redacted diagnostic report only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wp1-collecting-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/fieldgrid-wp1-diagnostic/result.json
+            artifacts/fieldgrid-wp1-diagnostic/summary.md
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Remove temporary certificate
+        if: always()
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/wp1-diagnostic-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.crt"
+          rm -f -- "$certificate_path"
