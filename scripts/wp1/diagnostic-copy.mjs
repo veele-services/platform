@@ -253,7 +253,7 @@ export async function launchCopy(inputFile, outputFile, directory, runtime, stra
       env, timeout: 900000, maxBuffer: 65536,
     });
   } else {
-    check(/^\\d{1,20}$/.test(runtime.GITHUB_RUN_ID ?? '') && /^\\d{1,5}$/.test(runtime.GITHUB_RUN_ATTEMPT ?? ''), 'COPY_HELPER_RUN_ID');
+    check(/^\d{1,20}$/.test(runtime.GITHUB_RUN_ID ?? '') && /^\d{1,5}$/.test(runtime.GITHUB_RUN_ATTEMPT ?? ''), 'COPY_HELPER_RUN_ID');
     await command('/usr/bin/sudo', ['-n', SANDBOX_HELPER, 'run', runtime.GITHUB_RUN_ID, runtime.GITHUB_RUN_ATTEMPT, process.execPath], {
       env: { PATH: runtime.PATH, LANG: 'C.UTF-8' }, timeout: 900000, maxBuffer: 65536,
     });
