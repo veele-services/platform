@@ -58,6 +58,22 @@ export async function catalogSnapshot(client) {
 }
 export function isLocalStagingDemoPayment(data,payment) {
   const allocations=Array.isArray(data?.payment_allocations)?data.payment_allocations:[];
+  const invoices=Array.isArray(data?.invoices)?data.invoices:[];
+  const invoice=invoices.find(row=>row.id===payment?.invoice_id&&row.tenant_id===payment?.tenant_id);
+  const seedStatuses=new Set(['open','pending','paid','failed','canceled','expired']);
+  const expectedSeedId=typeof payment?.invoice_id==='string'&&typeof payment?.status==='string'
+    ? 'tr_staging_demo_'+payment.invoice_id.slice(0,8)+'_'+payment.status
+    : null;
+  const historicalSeed=payment?.payment_method==='mollie'
+    && typeof payment.id==='string'
+    && typeof payment.tenant_id==='string'
+    && typeof payment.invoice_id==='string'
+    && seedStatuses.has(payment.status)
+    && payment.mollie_payment_id===expectedSeedId
+    && payment.checkout_url==='https://www.mollie.com/checkout/staging-demo/'+payment.invoice_id
+    && typeof invoice?.notes==='string'
+    && invoice.notes.includes('VEELE_STAGING_DEMO_DEN_HAAG');
+  if(historicalSeed) return true;
   return payment?.payment_method==='mollie'
     && typeof payment.id==='string'
     && typeof payment.tenant_id==='string'

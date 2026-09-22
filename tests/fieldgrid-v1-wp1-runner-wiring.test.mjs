@@ -23,7 +23,7 @@ test("WP1 live runner uses reviewed concrete reset modules", () => {
     "inventoryDatabase",
     "resetDatabase",
     "createProviderAdapter",
-    "verifyTestPayments",
+    "verifyResetSafeTestPayments",
     "verifyCanonical",
     "readDiagnose",
     "assertValidation",

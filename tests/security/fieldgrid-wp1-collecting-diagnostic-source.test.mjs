@@ -11,6 +11,10 @@ test('collecting workflow has no apply mode and uses protected exact staging mai
   assert.match(runner, /assertMain[\s\S]*assertValidation/);
   assert.doesNotMatch(runner, /resetDatabase\(|blockers\.length\s*===\s*0/);
   assert.match(runner, /\['source\.snapshot', 'private\.directory', 'backup\.runtime'\]/);
+  assert.match(runner, /FIELDGRID_POSTGRESQL_BINDIR/);
+  assert.match(runner, /DATABASE_DUMP_COMMAND_FAILED/);
+  assert.match(runner, /DATABASE_DUMP_LIST_FAILED/);
+  assert.doesNotMatch(runner, /writeFile\(path, '', \{ mode: 0o600, flag: 'wx' \}\)/);
 });
 test('live external diagnostic has only read capabilities; DML belongs to isolated copy', () => {
   const external = read('scripts/wp1/diagnostic-external.mjs');

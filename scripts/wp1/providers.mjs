@@ -178,8 +178,8 @@ export function createProviderAdapter(admin,{origin,sleep=wait}={}) {
   return {inventory,authIdentitySnapshot,allObjects,backupObjects,removeObjects,restoreObjects};
 }
 
-export async function verifyTestPayments(database,keys,request=fetch) {
-  let count=0;
+async function verifyPaymentSet(database,keys,request,{metadataRequired}) {
+  let count=0,metadataMismatches=0;
   for(const row of database.data.payments) {
     if(row.payment_method!=='mollie'&&!row.mollie_payment_id) continue;
     if(isLocalStagingDemoPayment(database.data,row)) continue;
@@ -192,15 +192,22 @@ export async function verifyTestPayments(database,keys,request=fetch) {
       requireThat(response.ok,'PAYMENT_PROVIDER_UNAVAILABLE');body=await response.json();
     } catch(error) {if(error instanceof Wp1Error) throw error;fail('PAYMENT_PROVIDER_UNAVAILABLE');}
     requireThat(body.id===row.mollie_payment_id&&body.mode==='test','PAYMENT_PROVIDER_MISMATCH');
-    // Provider truth is authoritative for staging cleanup. A stale local
-    // webhook/provider_status may lag behind, but an active provider payment
-    // must never be deleted by WP1.
     requireThat(terminal.has(body.status),'PAYMENT_PROVIDER_ACTIVE');
     const cents=typeof body.amount?.value==='string'&&/^\d+\.\d{2}$/.test(body.amount.value)?Number(body.amount.value.replace('.','')):NaN;
     requireThat(Number.isSafeInteger(cents)&&cents===row.amount_cents&&body.amount.currency===row.currency,'PAYMENT_AMOUNT_MISMATCH');
     if(row.provider_profile_id) requireThat(body.profileId===row.provider_profile_id,'PAYMENT_PROFILE_MISMATCH');
-    for(const [key,value] of Object.entries(row.expected_provider_metadata??{})) requireThat(body.metadata?.[key]===value,'PAYMENT_METADATA_MISMATCH');
+    const metadataMatches=Object.entries(row.expected_provider_metadata??{}).every(([name,value])=>body.metadata?.[name]===value);
+    if(!metadataMatches) {
+      metadataMismatches++;
+      requireThat(!metadataRequired,'PAYMENT_METADATA_MISMATCH');
+    }
     count++;
   }
-  return count;
+  return {count,metadataMismatches};
+}
+export async function verifyTestPayments(database,keys,request=fetch) {
+  return (await verifyPaymentSet(database,keys,request,{metadataRequired:true})).count;
+}
+export async function verifyResetSafeTestPayments(database,keys,request=fetch) {
+  return verifyPaymentSet(database,keys,request,{metadataRequired:false});
 }
