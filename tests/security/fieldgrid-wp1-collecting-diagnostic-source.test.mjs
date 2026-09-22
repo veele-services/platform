@@ -36,6 +36,9 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   assert.match(copy, /\/\^\\d\{1,5\}\$\/\.test\(runtime\.GITHUB_RUN_ATTEMPT/);
   assert.match(copy, /\/usr\/local\/sbin\/fieldgrid-wp1-copy-sandbox/);
   assert.match(copy, /--kill-child=SIGKILL/);
+  assert.match(copy, /links\[0\]\.flags.*includes\('UP'\)/);
+  assert.match(copy, /if \(!Array\.isArray\(links\[0\]\.flags\).*!links\[0\]\.flags\.includes\('UP'\)\)/s);
+  assert.match(copy, /ip', \['link', 'set', 'lo', 'up'\]/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
   assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
   assert.doesNotMatch(copy, /SUPABASE_SERVICE_ROLE_KEY\s*:/);
