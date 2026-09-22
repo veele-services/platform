@@ -60,71 +60,17 @@ export function isLocalStagingDemoPayment(data,payment) {
   const allocations=Array.isArray(data?.payment_allocations)?data.payment_allocations:[];
   const invoices=Array.isArray(data?.invoices)?data.invoices:[];
   const invoice=invoices.find(row=>row.id===payment?.invoice_id&&row.tenant_id===payment?.tenant_id);
+  const seedStatuses=new Set(['open','pending','paid','failed','canceled','expired']);
+  const expectedSeedId=typeof payment?.invoice_id==='string'&&typeof payment?.status==='string'
+    ? 'tr_staging_demo_'+payment.invoice_id.slice(0,8)+'_'+payment.status
+    : null;
   const historicalSeed=payment?.payment_method==='mollie'
     && typeof payment.id==='string'
     && typeof payment.tenant_id==='string'
     && typeof payment.invoice_id==='string'
-    && typeof payment.mollie_payment_id==='string'
-    && new RegExp(`^tr_staging_demo_${payment.invoice_id.slice(0,8)}_(open|pending|paid|failed|canceled|expired)import { readFile } from 'node:fs/promises';
-import { ALL_TABLES, DELETE_TABLES, PRESERVE_TABLES, JOURNALS, HISTORY_DELETE_GUARDS, assertCatalogCoverage, deletionOrder } from './relations.mjs';
-import { hash, textHash, rowsDigest, identifier, relation, requireThat, fail, MAX_ROWS, MAX_BYTES } from './contract.mjs';
-import { assertBootstrapContext, bootstrapCanonical, verifyCanonical } from './bootstrap.mjs';
-import { assertMatchingMigrationHistory, committedMigrationManifest, assertRecordedHistoricalMigrationHashes } from '../fieldgrid-phase2e-staging-preflight.mjs';
-
-const DELETE_SET = new Set(DELETE_TABLES);
-const QUEUES = new Set(['notification_delivery_attempts','notification_delivery_queue','notification_dispatches','domain_events','portal_realtime_events','personnel_notifications','customer_notifications']);
-export async function journalSnapshot(client) {
-  const values = {};
-  for (const table of JOURNALS) values[table] = (await client.query(`SELECT to_jsonb(t) AS row FROM ${relation(table)} t ORDER BY to_jsonb(t)::text`)).rows.map(row => row.row);
-  return values;
-}
-export async function verifyMigrationSource(client) {
-  const records = (await client.query(`SELECT name,hash,baselined,applied_at AS "appliedAt" FROM drizzle.veele_sql_migrations ORDER BY applied_at,name`)).rows;
-  const rows = records.map(row => ({ ...row, appliedAt: row.appliedAt instanceof Date ? row.appliedAt.toISOString() : row.appliedAt }));
-  const committed = await committedMigrationManifest();
-  assertMatchingMigrationHistory(rows,committed);
-  const active = new Set(committed);
-  const historical = rows.filter(row => !active.has(row.name));
-  if (historical.length) assertRecordedHistoricalMigrationHashes(historical);
-  for (const row of rows.filter(row => active.has(row.name))) {
-    requireThat(/^[A-Za-z0-9_-]+\.sql$/.test(row.name), 'JOURNAL_NAME');
-    const sql = await readFile(new URL(`../../lib/db/migrations/${row.name}`,import.meta.url),'utf8');
-    requireThat(textHash(sql.replaceAll('\r\n','\n')) === row.hash, 'MIGRATION_HASH');
-  }
-  const generatedRoot = new URL('../../lib/db/migrations/generated/',import.meta.url);
-  const generated = JSON.parse(await readFile(new URL('meta/_journal.json',generatedRoot),'utf8'));
-  const generatedRecords = (await client.query('SELECT hash,created_at::text AS created_at FROM drizzle.__drizzle_migrations ORDER BY created_at')).rows;
-  requireThat(generatedRecords.length === generated.entries.length, 'GENERATED_HISTORY');
-  for (let i=0;i<generatedRecords.length;i++) {
-    const entry = generated.entries[i];
-    requireThat(/^[A-Za-z0-9_-]+$/.test(entry.tag), 'GENERATED_NAME');
-    const sql = await readFile(new URL(`${entry.tag}.sql`,generatedRoot));
-    requireThat(generatedRecords[i].hash === textHash(sql) && generatedRecords[i].created_at === String(entry.when), 'GENERATED_HASH');
-  }
-}
-export async function catalogSnapshot(client) {
-  const tables = (await client.query(`SELECT c.relname AS name,c.relrowsecurity AS rls,c.relforcerowsecurity AS force,c.relacl::text AS acl
-    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') ORDER BY c.relname`)).rows;
-  assertCatalogCoverage(tables.map(row=>row.name));
-  const triggers = (await client.query(`SELECT c.relname AS table,t.tgname AS name,t.tgenabled AS enabled,t.tgtype AS type,
-    p.proname AS function,pn.nspname AS "functionSchema",pg_get_triggerdef(t.oid) AS definition,pg_get_functiondef(p.oid) AS body
-    FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
-    JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace pn ON pn.oid=p.pronamespace
-    WHERE n.nspname='public' AND NOT t.tgisinternal ORDER BY c.relname,t.tgname`)).rows;
-  const policies = (await client.query(`SELECT schemaname,tablename,policyname,permissive,roles,cmd,qual,with_check FROM pg_policies
-    WHERE schemaname='public' ORDER BY tablename,policyname`)).rows;
-  const fks = (await client.query(`SELECT ns.nspname AS "childSchema",c.relname AS child,pns.nspname AS "parentSchema",p.relname AS parent,
-    co.conname AS name,co.confdeltype AS action,pg_get_constraintdef(co.oid) AS definition,
-    ARRAY(SELECT a.attname::text FROM unnest(co.conkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.num ORDER BY k.ord) AS "childColumns",
-    ARRAY(SELECT a.attname::text FROM unnest(co.confkey) WITH ORDINALITY k(num,ord) JOIN pg_attribute a ON a.attrelid=p.oid AND a.attnum=k.num ORDER BY k.ord) AS "parentColumns"
-    FROM pg_constraint co JOIN pg_class c ON c.oid=co.conrelid JOIN pg_namespace ns ON ns.oid=c.relnamespace
-    JOIN pg_class p ON p.oid=co.confrelid JOIN pg_namespace pns ON pns.oid=p.relnamespace
-    WHERE co.contype='f' AND (ns.nspname='public' OR pns.nspname='public') ORDER BY ns.nspname,c.relname,co.conname`)).rows;
-  for(const fk of fks) requireThat(Array.isArray(fk.childColumns)&&Array.isArray(fk.parentColumns)&&fk.childColumns.length===fk.parentColumns.length&&fk.childColumns.length>0,'FK_CATALOG_INVALID');
-  return {tables,triggers,policies,fks};
-}
-).test(payment.mollie_payment_id)
-    && payment.checkout_url===`https://www.mollie.com/checkout/staging-demo/${payment.invoice_id}`
+    && seedStatuses.has(payment.status)
+    && payment.mollie_payment_id===expectedSeedId
+    && payment.checkout_url==='https://www.mollie.com/checkout/staging-demo/'+payment.invoice_id
     && typeof invoice?.notes==='string'
     && invoice.notes.includes('VEELE_STAGING_DEMO_DEN_HAAG');
   if(historicalSeed) return true;
