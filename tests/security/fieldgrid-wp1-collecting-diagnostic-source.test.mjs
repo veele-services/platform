@@ -25,6 +25,10 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   const copy = read('scripts/wp1/diagnostic-copy.mjs');
   assert.match(copy, /await assertDisposable\(client, target, directory\)/);
   assert.match(copy, /COPY_NETWORK_NOT_ISOLATED/);
+  assert.match(copy, /COPY_USER_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_NETWORK_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_PID_NAMESPACE_UNAVAILABLE/);
+  assert.match(copy, /COPY_COMBINED_NAMESPACE_UNAVAILABLE/);
   assert.match(copy, /--kill-child=SIGKILL/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
   assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
