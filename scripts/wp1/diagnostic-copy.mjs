@@ -285,7 +285,25 @@ async function worker() {
   const temp = await mkdtemp(join(root, 'copy-'));
   let target, client;
   try {
-    target = await collector.run('copy.cluster', async () => ({ value: await startRestoreTarget(temp) }), [], 'COPY_CLUSTER_FAILED');
+    let clusterFailureStage = null;
+    target = await collector.run('copy.cluster', async () => ({ value: await startRestoreTarget(temp, {
+      onStageFailure: async stage => { clusterFailureStage = stage; },
+    }) }), [], 'COPY_CLUSTER_FAILED');
+    if (!target && clusterFailureStage) {
+      const stageCode = {
+        port: 'COPY_CLUSTER_PORT_FAILED',
+        prepare: 'COPY_CLUSTER_PREPARE_FAILED',
+        initdb: 'COPY_CLUSTER_INITDB_FAILED',
+        pg_ctl: 'COPY_CLUSTER_PG_CTL_FAILED',
+        ready: 'COPY_CLUSTER_READY_FAILED',
+        createdb: 'COPY_CLUSTER_CREATEDB_FAILED',
+        schema: 'COPY_CLUSTER_SCHEMA_FAILED',
+        roles: 'COPY_CLUSTER_ROLES_FAILED',
+      }[clusterFailureStage] ?? 'COPY_CLUSTER_STAGE_UNKNOWN';
+      collector.add('copy.cluster.failure_stage', 'FAIL', stageCode, {}, ['copy.cluster']);
+    } else {
+      collector.add('copy.cluster.failure_stage', 'NOT_APPLICABLE', 'OPTIONAL_DIAGNOSTIC_NOT_NEEDED', {}, ['copy.cluster']);
+    }
     await collector.run('copy.restore', async () => {
       check(target.pgEnv.PGHOST === '127.0.0.1' && target.database === 'fieldgrid_phase2e_staging_copy', 'COPY_TARGET_INVALID');
       await exec('pg_restore', ['--exit-on-error', '--no-owner', '--no-subscriptions', '--dbname', target.database, input.dump], {
