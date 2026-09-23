@@ -78,6 +78,20 @@ olyfmekyqozxrbrwwszu
 
 ## Staging promotion guard
 
+There are two authenticated evidence routes. The existing Phase2E route remains
+available for a data-preserving promotion. A disposable rebuild uses the manual
+`Fieldgrid Disposable Staging Rebuild` workflow from the exact current `main`
+SHA. Its default `plan` operation is read-only and is never valid promotion
+evidence. Only a successful `rebuild` artifact whose report is `COMPLETE`, active,
+smoke-passed and post-rebuild acceptance-passed can authorize the ref move.
+
+Before this change is used after merge, change the sole required status check on
+the protected `staging` branch from `Backup, restore and migration rehearsal` to
+`Main exact-head gate` (GitHub Actions app id `15368`). Keep strict checks,
+linear history, conversation resolution, the `TIXOCEO` actor restriction,
+force-push/deletion bans and all other protection fields unchanged. The promoter
+fails closed until its readback sees that exact contract.
+
 Before moving the staging ref:
 
 1. Record the approved `main` candidate SHA and the expected current `staging` SHA.
@@ -129,6 +143,25 @@ pnpm fieldgrid:phase2e-staging-promote --run \
   --preflight-run-id "${PREFLIGHT_RUN_ID}" \
   --confirm phase2e-fast-forward-staging
 ```
+
+Disposable rebuild promotion (only after the rebuild workflow is green):
+
+```bash
+REBUILD_RUN_ID="<successful rebuild workflow run ID>"
+
+pnpm fieldgrid:phase2e-staging-promote --run \
+  --approved-main "${APPROVED_MAIN_SHA}" \
+  --expected-staging "${EXPECTED_STAGING_SHA}" \
+  --rebuild-run-id "${REBUILD_RUN_ID}" \
+  --confirm disposable-rebuild-fast-forward-staging
+```
+
+The promoter authenticates the workflow/run/repository/head SHA, GitHub artifact
+digest and bounded `result.json`. It rejects plan artifacts, prepared-only
+reports and failed/partial rebuilds. After the atomic ref advance it still
+dispatches the normal exact-SHA `deploy.yml`; that ordinary deploy remains the
+staging proof consumed by the separate production-release workflow. Production
+backup, restore rehearsal and production runtime proof are unchanged.
 
 The `:check` calls in pull-request and deploy workflows validate only the
 static contract. They intentionally do not claim runtime proof. The mutating
@@ -222,6 +255,12 @@ environment stay active. An already-applied forward migration remains in place
 and must be compatible with that previous release.
 
 ## Rollback
+
+For a disposable rebuild, old staging data and the previous code release are not
+rollback targets. Any failure after writers are stopped leaves every staging
+writer stopped. Fix the reviewed code/configuration on `main` and rerun the full
+rebuild. Do not manually start old code against the rebuilt schema/data. This is
+intentionally different from the data-preserving deployment rollback below.
 
 A staging rollback may use:
 

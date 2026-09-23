@@ -17,7 +17,10 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
-import { HOSTED_POLICY_REPLACEMENT, HOSTED_POLICY_SUPERSEDED } from "./hosted-policy-compatibility-identity";
+import {
+  HOSTED_POLICY_REPLACEMENT,
+  HOSTED_POLICY_SUPERSEDED,
+} from "./hosted-policy-compatibility-identity";
 import { loadDbRuntimeEnv } from "./runtime-env";
 import { databaseConnectionConfig } from "./database-environment";
 import {
@@ -475,13 +478,29 @@ async function sqlMigrationIsRecorded(
   );
 
   if (existing.rows.length > 0) {
-    if (migration.name === HOSTED_POLICY_SUPERSEDED.name && existing.rows[0]?.baselined) {
-      const compatibilityPath = new URL("../../../scripts/fieldgrid-hosted-policy-compatibility.mts", import.meta.url).href;
-      const { runHostedPolicyCompatibility } = await import(compatibilityPath) as {
-        runHostedPolicyCompatibility(client: pg.Client, operation: "diagnose"): Promise<{ replacementRecorded: boolean }>;
+    if (
+      migration.name === HOSTED_POLICY_SUPERSEDED.name &&
+      existing.rows[0]?.baselined
+    ) {
+      const compatibilityPath = new URL(
+        "../../../scripts/fieldgrid-hosted-policy-compatibility.mts",
+        import.meta.url,
+      ).href;
+      const { runHostedPolicyCompatibility } = (await import(
+        compatibilityPath
+      )) as {
+        runHostedPolicyCompatibility(
+          client: pg.Client,
+          operation: "diagnose",
+        ): Promise<{ replacementRecorded: boolean }>;
       };
-      if (!(await runHostedPolicyCompatibility(client, "diagnose")).replacementRecorded) {
-        throw new Error("Hosted policy compatibility baseline has no verified replacement.");
+      if (
+        !(await runHostedPolicyCompatibility(client, "diagnose"))
+          .replacementRecorded
+      ) {
+        throw new Error(
+          "Hosted policy compatibility baseline has no verified replacement.",
+        );
       }
     }
     const recordedHash = existing.rows[0]?.hash;
@@ -547,15 +566,39 @@ async function runSqlMigrations(
     // An immutable historical repair assumed a provider-owned direct ACL that
     // hosted Supabase no longer supplies. The exact replacement narrows app
     // permissions, preserves auth helpers and journals its supersession honestly.
-    if (["20260914125400_reconcile_legacy_global_rbac_policies.sql", HOSTED_POLICY_SUPERSEDED.name].includes(migration.name) &&
-        migrations.some((entry) => entry.name === HOSTED_POLICY_REPLACEMENT.name && entry.hash === HOSTED_POLICY_REPLACEMENT.hash)) {
-      const compatibilityPath = new URL("../../../scripts/fieldgrid-hosted-policy-compatibility.mts", import.meta.url).href;
-      const { runHostedPolicyCompatibility } = await import(compatibilityPath) as {
-        runHostedPolicyCompatibility(client: pg.Client, operation: "apply", name: string): Promise<{ changed: boolean }>;
+    if (
+      [
+        "20260914125400_reconcile_legacy_global_rbac_policies.sql",
+        HOSTED_POLICY_SUPERSEDED.name,
+      ].includes(migration.name) &&
+      migrations.some(
+        (entry) =>
+          entry.name === HOSTED_POLICY_REPLACEMENT.name &&
+          entry.hash === HOSTED_POLICY_REPLACEMENT.hash,
+      )
+    ) {
+      const compatibilityPath = new URL(
+        "../../../scripts/fieldgrid-hosted-policy-compatibility.mts",
+        import.meta.url,
+      ).href;
+      const { runHostedPolicyCompatibility } = (await import(
+        compatibilityPath
+      )) as {
+        runHostedPolicyCompatibility(
+          client: pg.Client,
+          operation: "apply",
+          name: string,
+        ): Promise<{ changed: boolean }>;
       };
-      const compatibility = await runHostedPolicyCompatibility(client, "apply", migration.name);
+      const compatibility = await runHostedPolicyCompatibility(
+        client,
+        "apply",
+        migration.name,
+      );
       if (compatibility.changed) {
-        console.log(`[db:migrate] SQL exact hosted-policy compatibility applied: ${HOSTED_POLICY_REPLACEMENT.name}`);
+        console.log(
+          `[db:migrate] SQL exact hosted-policy compatibility applied: ${HOSTED_POLICY_REPLACEMENT.name}`,
+        );
         continue;
       }
     }
@@ -621,25 +664,29 @@ async function baseline(): Promise<void> {
   console.log("[db:baseline] Complete.");
 }
 
-async function migrate(): Promise<void> {
+export async function migrateWithClient(client: pg.Client): Promise<void> {
   const drizzleMigrations = readDrizzleMigrations();
   const sqlMigrations = readSqlMigrations();
   const expectedTables =
     expectedTablesFromGeneratedMigrations(drizzleMigrations);
 
+  await withDatabaseMigrationLock(client, async () => {
+    await ensureHistoryTables(client);
+    await assertNoUnbaselinedExistingSchema(client, expectedTables);
+
+    console.log("[db:migrate] Applying Drizzle generated migrations.");
+    await runDrizzleGeneratedMigrations(client);
+
+    await ensureHistoryTables(client);
+    await ensureLegacySqlPrerequisites(client);
+    await runSqlMigrations(client, sqlMigrations);
+  });
+}
+
+async function migrate(): Promise<void> {
   const client = await createClient();
   try {
-    await withDatabaseMigrationLock(client, async () => {
-      await ensureHistoryTables(client);
-      await assertNoUnbaselinedExistingSchema(client, expectedTables);
-
-      console.log("[db:migrate] Applying Drizzle generated migrations.");
-      await runDrizzleGeneratedMigrations(client);
-
-      await ensureHistoryTables(client);
-      await ensureLegacySqlPrerequisites(client);
-      await runSqlMigrations(client, sqlMigrations);
-    });
+    await migrateWithClient(client);
   } finally {
     await client.end();
   }
@@ -647,8 +694,14 @@ async function migrate(): Promise<void> {
   console.log("[db:migrate] Complete.");
 }
 
+const invokedDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === __filename;
 if (mode === "baseline") {
-  await baseline();
+  if (invokedDirectly) {
+    await baseline();
+  }
 } else {
-  await migrate();
+  if (invokedDirectly) {
+    await migrate();
+  }
 }

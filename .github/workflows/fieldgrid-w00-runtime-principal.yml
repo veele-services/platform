@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: fieldgrid-w00-runtime-principal-staging
+  group: veele-staging
   cancel-in-progress: false
 
 jobs:

@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
 jobs:
   seed:
     name: Seed staging demo dataset

@@ -190,30 +190,30 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   ],
 };
 
-export async function seedRbac() {
+export async function seedRbac(database: typeof db = db) {
   console.log("Seeding RBAC roles, permissions and role-permission mappings…");
 
   // 1. Upsert roles
-  const insertedRoles = await db
+  const insertedRoles = await database
     .insert(rolesTable)
     .values(BASE_ROLES.map((r) => ({ name: r.name, description: r.description, isSystem: r.isSystem })))
     .onConflictDoNothing({ target: rolesTable.name })
     .returning();
 
   // Fetch all roles (including pre-existing ones)
-  const allRoles = await db.select().from(rolesTable);
+  const allRoles = await database.select().from(rolesTable);
   const roleByName = Object.fromEntries(allRoles.map((r) => [r.name, r]));
 
   console.log(`  Roles: ${insertedRoles.length} inserted, ${allRoles.length} total`);
 
   // 2. Upsert permissions
-  const insertedPerms = await db
+  const insertedPerms = await database
     .insert(permissionsTable)
     .values(ALL_PERMISSIONS)
     .onConflictDoNothing()
     .returning();
 
-  const allPerms = await db.select().from(permissionsTable);
+  const allPerms = await database.select().from(permissionsTable);
   const permByKey = Object.fromEntries(allPerms.map((p) => [`${p.resource}:${p.action}`, p]));
 
   console.log(`  Permissions: ${insertedPerms.length} inserted, ${allPerms.length} total`);
@@ -228,7 +228,7 @@ export async function seedRbac() {
       const perm = permByKey[key];
       if (!perm) { console.warn(`  Permission not found: ${key}`); continue; }
 
-      await db
+      await database
         .insert(rolePermissionsTable)
         .values({ roleId: role.id, permissionId: perm.id })
         .onConflictDoNothing();

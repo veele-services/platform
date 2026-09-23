@@ -197,7 +197,7 @@ function githubProtectionFixture(branch, enforceAdmins = true) {
         {
           context: isMain
             ? "Main exact-head gate"
-            : "Backup, restore and migration rehearsal",
+            : "Main exact-head gate",
           app_id: 15368,
         },
       ],

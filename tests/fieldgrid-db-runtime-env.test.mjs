@@ -34,6 +34,8 @@ test("db package and cli entrypoints load deployment env before DATABASE_URL", (
       "process.cwd()",
       "fileURLToPath(import.meta.url)",
       "if (!process.env[rawKey]) process.env[rawKey] = value",
+      "FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING",
+      'fileLoading === "disabled"',
     ],
     "db runtime env loader",
   );
@@ -114,19 +116,19 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
   const migrate = read("lib/db/src/migrate.ts");
   const retry = read("lib/db/src/migration-transaction-retry.ts");
   const migrateFunctionStart = migrate.indexOf(
-    "async function migrate(): Promise<void> {",
+    "export async function migrateWithClient(client: pg.Client): Promise<void> {",
   );
   const migrateFunctionEnd = migrate.indexOf(
-    '\nif (mode === "baseline") {',
+    "\nasync function migrate(): Promise<void> {",
     migrateFunctionStart,
   );
   assert.ok(
     migrateFunctionStart >= 0,
-    "migration runner should define migrate()",
+    "migration runner should define migrateWithClient()",
   );
   assert.ok(
     migrateFunctionEnd > migrateFunctionStart,
-    "migration runner should expose a bounded migrate() source region",
+    "migration runner should expose a bounded migrateWithClient() source region",
   );
   const migrateFunction = migrate.slice(
     migrateFunctionStart,

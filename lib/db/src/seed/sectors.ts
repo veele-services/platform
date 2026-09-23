@@ -16,10 +16,10 @@ const SECTORS = [
   },
 ];
 
-async function seedSectors() {
+export async function seedSectors(database: typeof db = db) {
   console.log("Seeding sectors…");
 
-  const inserted = await db
+  const inserted = await database
     .insert(sectorsTable)
     .values(SECTORS)
     .onConflictDoNothing()
@@ -32,10 +32,13 @@ async function seedSectors() {
     inserted.forEach(s => console.log(`  • ${s.name} (${s.id})`));
   }
 
-  process.exit(0);
 }
 
-seedSectors().catch(err => {
-  console.error("Sector seed failed:", err);
-  process.exit(1);
-});
+if (process.argv[1]?.endsWith("sectors.ts")) {
+  seedSectors()
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error("Sector seed failed:", err);
+      process.exit(1);
+    });
+}

@@ -1,0 +1,25 @@
+# Fieldgrid disposable staging rebuild writer controls.
+# Exact staging-only commands. No wildcards, shells, file writes or production units.
+Cmnd_Alias FIELDGRID_DISPOSABLE_STAGING_CONTROL = \
+    /usr/bin/systemctl stop veele-staging-scheduler.timer, \
+    /usr/bin/systemctl start veele-staging-scheduler.timer, \
+    /usr/bin/systemctl stop veele-staging-scheduler.service, \
+    /usr/bin/systemctl start veele-staging-scheduler.service, \
+    /usr/bin/systemctl stop veele-staging-notification-worker.service, \
+    /usr/bin/systemctl start veele-staging-notification-worker.service, \
+    /usr/bin/systemctl stop veele-staging-notifications.service, \
+    /usr/bin/systemctl start veele-staging-notifications.service, \
+    /usr/bin/systemctl stop veele-staging-api.service, \
+    /usr/bin/systemctl start veele-staging-api.service, \
+    /usr/bin/systemctl stop veele-staging-klant.service, \
+    /usr/bin/systemctl start veele-staging-klant.service, \
+    /usr/bin/systemctl stop veele-staging-personeel.service, \
+    /usr/bin/systemctl start veele-staging-personeel.service, \
+    /usr/bin/systemctl stop veele-staging.service, \
+    /usr/bin/systemctl start veele-staging.service, \
+    /usr/bin/systemctl stop veele-staging-marketing.service, \
+    /usr/bin/systemctl start veele-staging-marketing.service, \
+    /usr/bin/systemctl stop veele-staging-website.service, \
+    /usr/bin/systemctl start veele-staging-website.service
+
+github-runner ALL=(root) NOPASSWD: FIELDGRID_DISPOSABLE_STAGING_CONTROL

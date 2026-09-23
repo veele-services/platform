@@ -43,7 +43,8 @@ function unquoteEnvValue(value: string): string {
   if (trimmed.length < 2) return trimmed;
 
   const quote = trimmed[0];
-  if ((quote !== "\"" && quote !== "'") || trimmed.at(-1) !== quote) return trimmed;
+  if ((quote !== '"' && quote !== "'") || trimmed.at(-1) !== quote)
+    return trimmed;
 
   const inner = trimmed.slice(1, -1);
   if (quote === "'") return inner;
@@ -52,7 +53,7 @@ function unquoteEnvValue(value: string): string {
     .replace(/\\n/gu, "\n")
     .replace(/\\r/gu, "\r")
     .replace(/\\t/gu, "\t")
-    .replace(/\\"/gu, "\"")
+    .replace(/\\"/gu, '"')
     .replace(/\\\\/gu, "\\");
 }
 
@@ -63,7 +64,10 @@ function loadEnvLine(line: string): void {
   const equalsIndex = trimmed.indexOf("=");
   if (equalsIndex === -1) return;
 
-  const rawKey = trimmed.slice(0, equalsIndex).replace(/^export\s+/u, "").trim();
+  const rawKey = trimmed
+    .slice(0, equalsIndex)
+    .replace(/^export\s+/u, "")
+    .trim();
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/u.test(rawKey)) return;
 
   const value = unquoteEnvValue(trimmed.slice(equalsIndex + 1));
@@ -73,6 +77,14 @@ function loadEnvLine(line: string): void {
 export function loadDbRuntimeEnv(): void {
   if (loaded) return;
   loaded = true;
+
+  const fileLoading = process.env.FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING;
+  if (fileLoading === "disabled") return;
+  if (fileLoading !== undefined && fileLoading !== "enabled") {
+    throw new Error(
+      "FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING must be enabled or disabled",
+    );
+  }
 
   const envFile = findRuntimeEnvFile();
   if (!envFile) return;
