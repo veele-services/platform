@@ -1,6 +1,34 @@
 name: Deploy VEELE
 
 on:
+  workflow_call:
+    inputs:
+      expected_staging_sha:
+        required: true
+        type: string
+      expected_main_sha:
+        required: false
+        default: ""
+        type: string
+      confirmation:
+        required: true
+        type: string
+      deployment_mode:
+        required: false
+        default: normal
+        type: string
+      expected_active_staging_release_sha:
+        required: false
+        default: ""
+        type: string
+      rollback_deploy_run_id:
+        required: false
+        default: ""
+        type: string
+      recovery_preflight_run_id:
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       expected_staging_sha:
@@ -12,7 +40,7 @@ on:
         required: true
         type: string
       deployment_mode:
-        description: "normal or staging-recovery"
+        description: "normal, staging-recovery or disposable-rebuild"
         required: false
         default: normal
         type: string
@@ -31,13 +59,20 @@ on:
         required: false
         default: ""
         type: string
+      expected_main_sha:
+        description: "Exact main SHA (required only for disposable rebuild)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: veele-staging
+  # The caller owns the canonical lock for the reusable disposable route.
+  # Direct deploys retain the canonical lock themselves.
+  group: ${{ github.workflow == 'Fieldgrid Disposable Staging Rebuild' && format('veele-staging-rebuild-{0}', github.run_id) || 'veele-staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -53,6 +88,7 @@ jobs:
       TARGET: staging
       TARGET_ENVIRONMENT: staging
       EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
       DEPLOYMENT_MODE: ${{ inputs.deployment_mode || 'normal' }}
       EXPECTED_ACTIVE_STAGING_RELEASE_SHA: ${{ inputs.expected_active_staging_release_sha }}
@@ -95,7 +131,7 @@ jobs:
       FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
       FIELDGRID_RECOVERY_ALLOWED_ORIGINS: ${{ vars.FIELDGRID_RECOVERY_ALLOWED_ORIGINS }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
-      FORBIDDEN_SUPABASE_PROJECT_REF: ""
+      FORBIDDEN_SUPABASE_PROJECT_REF: ckdtiuemeygrnujjibnw
 
       DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
       DB_SSL: "true"
@@ -174,6 +210,12 @@ jobs:
             [[ "$RECOVERY_PREFLIGHT_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
             test "$GITHUB_SHA" != "$EXPECTED_STAGING_SHA"
             test "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" != "$EXPECTED_STAGING_SHA"
+          elif [ "$DEPLOYMENT_MODE" = "disposable-rebuild" ]; then
+            test "$GITHUB_REF" = "refs/heads/main"
+            [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+            test "$EXPECTED_STAGING_SHA" != "$EXPECTED_MAIN_SHA"
+            test "$DEPLOY_CONFIRMATION" = "fieldgrid-disposable-staging-rebuild-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA"
           else
             echo "Unknown deployment mode: $DEPLOYMENT_MODE" >&2
             exit 1
@@ -670,6 +712,7 @@ jobs:
           pnpm build
 
       - name: Run database migrations
+        if: env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -677,8 +720,39 @@ jobs:
           set -euo pipefail
           pnpm run db:migrate
 
+      - name: Rebuild disposable staging data
+        if: env.DEPLOYMENT_MODE == 'disposable-rebuild'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REBUILD_CONFIRMATION: ${{ inputs.confirmation }}
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
+          FIELDGRID_REBUILD_TENANT_A_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_A_SLUG }}
+          FIELDGRID_REBUILD_TENANT_A_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_NAME }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME }}
+          FIELDGRID_REBUILD_TENANT_B_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_B_SLUG }}
+          FIELDGRID_REBUILD_TENANT_B_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_NAME }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME }}
+          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/disposable-staging-rebuild"
+          node scripts/fieldgrid-disposable-staging-rebuild.mjs \
+            --rebuild \
+            --output-dir="$GITHUB_WORKSPACE/disposable-staging-rebuild"
+
       - name: Backfill staging SMTP credentials
-        if: env.TARGET == 'staging'
+        if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -711,6 +785,7 @@ jobs:
           set -euo pipefail
           pnpm fieldgrid:object-security-legacy-backfill
       - name: Verify no plaintext SMTP credentials remain
+        if: env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -719,7 +794,7 @@ jobs:
           pnpm fieldgrid:smtp-credential-backfill
 
       - name: Verify staging e-mail provider readiness
-        if: env.TARGET == 'staging'
+        if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
           # This server-only pre-activation check must run with the migration
@@ -890,19 +965,68 @@ jobs:
         run: |
           set -euo pipefail
 
-          SYSTEMCTL_SUDO=sudo bash "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" \
+          health_args=(
             --environment "$TARGET" \
             --base-dir "$BASE_DIR" \
             --release-path "$RELEASE" \
             --expected-sha "$GITHUB_SHA" \
             --previous-release "${PREVIOUS_CURRENT:-}" \
-            --rollback-on-failure \
             --restart-before-check \
             --shared-env "$BASE_DIR/shared/.env" \
             --rollback-env "$BASE_DIR/shared/.env.rollback-$GITHUB_SHA" \
             --evidence-file "$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
+          )
+          if [ "$DEPLOYMENT_MODE" != "disposable-rebuild" ]; then
+            health_args+=(--rollback-on-failure)
+          fi
+          SYSTEMCTL_SUDO=sudo bash "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" "${health_args[@]}"
 
           echo "FIELDGRID_HEALTH_EVIDENCE=$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json" >> "$GITHUB_ENV"
+
+      - name: Finalize disposable staging rebuild evidence
+        if: env.DEPLOYMENT_MODE == 'disposable-rebuild'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
+          FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
+          FIELDGRID_REBUILD_TENANT_A_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_A_SLUG }}
+          FIELDGRID_REBUILD_TENANT_A_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_NAME }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD }}
+          FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME }}
+          FIELDGRID_REBUILD_TENANT_B_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_B_SLUG }}
+          FIELDGRID_REBUILD_TENANT_B_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_NAME }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD }}
+          FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME }}
+          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
+          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-disposable-staging-rebuild.mjs \
+            --finalize \
+            --output-dir="$GITHUB_WORKSPACE/disposable-staging-rebuild"
+
+      - name: Recover disposable staging safely after failure
+        if: ${{ (failure() || cancelled()) && env.DEPLOYMENT_MODE == 'disposable-rebuild' }}
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          node scripts/fieldgrid-disposable-staging-rebuild.mjs \
+            --safe-stop \
+            --output-dir="$GITHUB_WORKSPACE/disposable-staging-rebuild"
+
+      - name: Upload disposable staging rebuild evidence
+        if: always() && env.DEPLOYMENT_MODE == 'disposable-rebuild'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: disposable-staging-rebuild-${{ github.run_id }}-${{ github.sha }}
+          path: disposable-staging-rebuild/result.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Collect staging deploy diagnostics
         if: always() && env.TARGET == 'staging'

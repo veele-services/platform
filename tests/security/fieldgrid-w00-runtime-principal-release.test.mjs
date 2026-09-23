@@ -73,6 +73,24 @@ test("recovery release verification binds the main dispatch SHA separately from 
   assert.throws(() => assertExactCheckoutSha({ ...env, EXPECTED_STAGING_SHA: expectedSha }, fixture));
 });
 
+test("disposable rebuild release verification binds the exact main candidate and old staging ref", (context) => {
+  const fixture = releaseFixture(context);
+  const env = {
+    ...fixture.env,
+    DEPLOYMENT_MODE: "disposable-rebuild",
+    DEPLOY_CONFIRMATION: `fieldgrid-disposable-staging-rebuild-v1:olyfmekyqozxrbrwwszu:${expectedSha}`,
+    GITHUB_REF: "refs/heads/main",
+    EXPECTED_STAGING_SHA: otherSha,
+  };
+  assert.equal(assertExactCheckoutSha(env, fixture), expectedSha);
+  assert.throws(() =>
+    assertExactCheckoutSha({ ...env, EXPECTED_STAGING_SHA: expectedSha }, fixture),
+  );
+  assert.throws(() =>
+    assertExactCheckoutSha({ ...env, DEPLOY_CONFIRMATION: "staging-recovery-only" }, fixture),
+  );
+});
+
 test("release markers cannot bypass dispatch identity or staging scope", (context) => {
   const fixture = releaseFixture(context);
   const invalidBindings = {

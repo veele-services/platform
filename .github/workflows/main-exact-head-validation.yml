@@ -199,6 +199,8 @@ jobs:
         include:
           - lane: postgres17-migration-smoke
             command: pnpm fieldgrid:test:postgres17-migration-smoke && pnpm --filter @workspace/db exec tsx src/seed/rbac.ts && node --test tests/runtime/fieldgrid-wp1-database.test.mjs
+          - lane: disposable-rebuild-postgres17-twice
+            command: node scripts/fieldgrid-disposable-staging-postgres17-twice.mjs
           - lane: db-integration-tenant-ab
             command: pnpm fieldgrid:test:db-integration-tenant-ab
           - lane: rls-security

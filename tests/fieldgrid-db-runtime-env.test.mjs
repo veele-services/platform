@@ -34,6 +34,8 @@ test("db package and cli entrypoints load deployment env before DATABASE_URL", (
       "process.cwd()",
       "fileURLToPath(import.meta.url)",
       "if (!process.env[rawKey]) process.env[rawKey] = value",
+      'FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING',
+      'fileLoading === "disabled"',
     ],
     "db runtime env loader",
   );

@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
-import {
-  createHash,
-  createHmac,
-  pbkdf2Sync,
-  randomBytes,
-} from "node:crypto";
+import { createHash, createHmac, pbkdf2Sync, randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -25,22 +20,33 @@ export const PRODUCTION_PROJECT_REF = "ckdtiuemeygrnujjibnw";
 export const STAGING_POOLER_PORT = "5432";
 export const STAGING_DATABASE = "postgres";
 export const CONFIRMATION = "fieldgrid-w00-runtime-principal-staging-v1";
-export const PRODUCTION_CONFIRMATION = "fieldgrid-w00-runtime-principal-production-v1";
+export const PRODUCTION_CONFIRMATION =
+  "fieldgrid-w00-runtime-principal-production-v1";
 export const MIGRATION_NAME =
   "20260909120000_runtime_least_privilege_principals.sql";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const POOLER_HOST_ENV = "FIELDGRID_STAGING_DATABASE_POOLER_HOST";
 const profiles = Object.freeze({
-  staging: Object.freeze({ environment: "staging", projectRef: STAGING_PROJECT_REF,
-    username: `${RUNTIME_ROLE}.${STAGING_PROJECT_REF}`, poolerHostEnv: POOLER_HOST_ENV }),
-  production: Object.freeze({ environment: "production", projectRef: PRODUCTION_PROJECT_REF,
-    username: `${RUNTIME_ROLE}.${PRODUCTION_PROJECT_REF}`, poolerHostEnv: "FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST" }),
+  staging: Object.freeze({
+    environment: "staging",
+    projectRef: STAGING_PROJECT_REF,
+    username: `${RUNTIME_ROLE}.${STAGING_PROJECT_REF}`,
+    poolerHostEnv: POOLER_HOST_ENV,
+  }),
+  production: Object.freeze({
+    environment: "production",
+    projectRef: PRODUCTION_PROJECT_REF,
+    username: `${RUNTIME_ROLE}.${PRODUCTION_PROJECT_REF}`,
+    poolerHostEnv: "FIELDGRID_PRODUCTION_DATABASE_POOLER_HOST",
+  }),
 });
 
 export function runtimePrincipalProfile(environment = "staging") {
   if (environment !== "staging" && environment !== "production") {
-    throw new Error("Runtime principal environment must be staging or production.");
+    throw new Error(
+      "Runtime principal environment must be staging or production.",
+    );
   }
   return profiles[environment];
 }
@@ -71,8 +77,8 @@ export function describeRuntimeEndpoint(env = process.env) {
       FIELDGRID_DATABASE_SSL_ROOT_CERT_ENV,
     ],
     runtimeUrlTemplate:
-      `postgresql://${profile.username}:<GENERATED_HEX_PASSWORD>`
-      + `@${poolerHost}:${STAGING_POOLER_PORT}/${STAGING_DATABASE}`,
+      `postgresql://${profile.username}:<GENERATED_HEX_PASSWORD>` +
+      `@${poolerHost}:${STAGING_POOLER_PORT}/${STAGING_DATABASE}`,
     note: "Generate once locally; store the same value in both runtime secrets. Never paste it into logs or workflow inputs.",
   };
 }
@@ -91,8 +97,10 @@ export function buildScramVerifier(password, salt = randomBytes(16)) {
   const serverKey = createHmac("sha256", saltedPassword)
     .update("Server Key")
     .digest();
-  return `SCRAM-SHA-256$${iterations}:${salt.toString("base64")}`
-    + `$${storedKey.toString("base64")}:${serverKey.toString("base64")}`;
+  return (
+    `SCRAM-SHA-256$${iterations}:${salt.toString("base64")}` +
+    `$${storedKey.toString("base64")}:${serverKey.toString("base64")}`
+  );
 }
 
 export async function applyRuntimePassword(client, password) {
@@ -110,10 +118,7 @@ export async function applyRuntimePassword(client, password) {
        where rolname = $1`,
       [RUNTIME_ROLE],
     );
-    if (
-      result.rows.length !== 1
-      || result.rows[0].rolcanlogin !== true
-    ) {
+    if (result.rows.length !== 1 || result.rows[0].rolcanlogin !== true) {
       throw new Error("The runtime role was not provisioned as LOGIN.");
     }
     await client.query("commit");
@@ -131,27 +136,42 @@ export function assertRuntimePassword(password) {
   }
 }
 
-export function assertRuntimeUrl(value, password, expectedPoolerHost, environment = "staging") {
-  const parsed = assertRuntimeUrlDescriptor(value, expectedPoolerHost, environment);
-  if (
-    decodeURIComponent(parsed.password) !== password
-  ) {
-    throw new Error("The runtime URL password does not match the generated secret.");
+export function assertRuntimeUrl(
+  value,
+  password,
+  expectedPoolerHost,
+  environment = "staging",
+) {
+  const parsed = assertRuntimeUrlDescriptor(
+    value,
+    expectedPoolerHost,
+    environment,
+  );
+  if (decodeURIComponent(parsed.password) !== password) {
+    throw new Error(
+      "The runtime URL password does not match the generated secret.",
+    );
   }
   return value;
 }
 
-export function assertRuntimeUrlDescriptor(value, expectedPoolerHost, environment = "staging") {
+export function assertRuntimeUrlDescriptor(
+  value,
+  expectedPoolerHost,
+  environment = "staging",
+) {
   const profile = runtimePrincipalProfile(environment);
   assertRuntimePoolerHost(expectedPoolerHost, environment);
   const parsed = parseBoundPostgresUrl(value, "runtime");
   if (
-    parsed.hostname !== expectedPoolerHost
-    || parsed.port !== STAGING_POOLER_PORT
-    || databaseName(parsed) !== STAGING_DATABASE
-    || decodeURIComponent(parsed.username) !== profile.username
+    parsed.hostname !== expectedPoolerHost ||
+    parsed.port !== STAGING_POOLER_PORT ||
+    databaseName(parsed) !== STAGING_DATABASE ||
+    decodeURIComponent(parsed.username) !== profile.username
   ) {
-    throw new Error(`The runtime URL does not match the canonical ${environment} descriptor.`);
+    throw new Error(
+      `The runtime URL does not match the canonical ${environment} descriptor.`,
+    );
   }
   return parsed;
 }
@@ -162,25 +182,29 @@ export function assertMigrationAdminUrl(value, environment = "staging") {
   const username = decodeURIComponent(parsed.username);
   const directHost = `db.${profile.projectRef}.supabase.co`;
   if (
-    isRuntimePoolerHost(parsed.hostname, environment)
-    && parsed.port !== STAGING_POOLER_PORT
+    isRuntimePoolerHost(parsed.hostname, environment) &&
+    parsed.port !== STAGING_POOLER_PORT
   ) {
     throw new Error(
       "The migration-admin URL must use the Supavisor session pooler on port 5432.",
     );
   }
-  const poolerBound = isRuntimePoolerHost(parsed.hostname, environment)
-    && username.endsWith(`.${profile.projectRef}`)
-    && parsed.port === STAGING_POOLER_PORT;
-  const directBound = parsed.hostname === directHost
-    && username === "postgres"
-    && parsed.port === "5432";
+  const poolerBound =
+    isRuntimePoolerHost(parsed.hostname, environment) &&
+    username.endsWith(`.${profile.projectRef}`) &&
+    parsed.port === STAGING_POOLER_PORT;
+  const directBound =
+    parsed.hostname === directHost &&
+    username === "postgres" &&
+    parsed.port === "5432";
   if (
-    databaseName(parsed) !== STAGING_DATABASE
-    || (!poolerBound && !directBound)
-    || username === profile.username
+    databaseName(parsed) !== STAGING_DATABASE ||
+    (!poolerBound && !directBound) ||
+    username === profile.username
   ) {
-    throw new Error(`The migration-admin URL is not bound to the ${environment} project.`);
+    throw new Error(
+      `The migration-admin URL is not bound to the ${environment} project.`,
+    );
   }
   return value;
 }
@@ -209,13 +233,25 @@ export function resolveStagingPoolerHost(adminUrl, env = process.env) {
 export function resolveRuntimePoolerHost(adminUrl, env = process.env) {
   if (env.APP_ENV === "staging") return resolveStagingPoolerHost(adminUrl, env);
   const profile = runtimePrincipalProfile(env.APP_ENV);
-  if (profile.environment !== "production") throw new Error("Runtime environment is missing.");
+  if (profile.environment !== "production")
+    throw new Error("Runtime environment is missing.");
   // Production always needs its own explicit host, even for a pooler admin URL.
   // A staging variable must never supply or infer this endpoint.
-  const configuredHost = assertRuntimePoolerHost(requireEnv(env, profile.poolerHostEnv), "production");
-  const parsed = parseBoundPostgresUrl(assertMigrationAdminUrl(adminUrl, "production"), "migration-admin");
-  if (isRuntimePoolerHost(parsed.hostname, "production") && parsed.hostname !== configuredHost) {
-    throw new Error("Configured production pooler host conflicts with the migration-admin endpoint.");
+  const configuredHost = assertRuntimePoolerHost(
+    requireEnv(env, profile.poolerHostEnv),
+    "production",
+  );
+  const parsed = parseBoundPostgresUrl(
+    assertMigrationAdminUrl(adminUrl, "production"),
+    "migration-admin",
+  );
+  if (
+    isRuntimePoolerHost(parsed.hostname, "production") &&
+    parsed.hostname !== configuredHost
+  ) {
+    throw new Error(
+      "Configured production pooler host conflicts with the migration-admin endpoint.",
+    );
   }
   return configuredHost;
 }
@@ -224,19 +260,25 @@ export function assertRuntimePoolerHost(value, environment = "staging") {
   if (environment === "staging") return assertStagingPoolerHost(value);
   runtimePrincipalProfile(environment);
   if (!isRuntimePoolerHost(value, environment)) {
-    throw new Error("The production database pooler host is not a Supabase shared pooler.");
+    throw new Error(
+      "The production database pooler host is not a Supabase shared pooler.",
+    );
   }
   return value;
 }
 
 function isRuntimePoolerHost(value, environment) {
   if (environment === "staging") return isStagingPoolerHost(value);
-  return /^aws-[0-9]+-[a-z]{2}(?:-[a-z]+)+-[0-9]+\.pooler\.supabase\.com$/u.test(value ?? "");
+  return /^aws-[0-9]+-[a-z]{2}(?:-[a-z]+)+-[0-9]+\.pooler\.supabase\.com$/u.test(
+    value ?? "",
+  );
 }
 
 export function assertStagingPoolerHost(value) {
   if (!isStagingPoolerHost(value)) {
-    throw new Error("The database pooler host is not in the staging Supabase region.");
+    throw new Error(
+      "The database pooler host is not in the staging Supabase region.",
+    );
   }
   return value;
 }
@@ -253,14 +295,14 @@ function parseBoundPostgresUrl(value, label) {
     throw new Error(`The ${label} database URL is invalid.`);
   }
   if (
-    !["postgres:", "postgresql:"].includes(parsed.protocol)
-    || !parsed.hostname
-    || !parsed.port
-    || !parsed.username
-    || !parsed.password
-    || !databaseName(parsed)
-    || parsed.search
-    || parsed.hash
+    !["postgres:", "postgresql:"].includes(parsed.protocol) ||
+    !parsed.hostname ||
+    !parsed.port ||
+    !parsed.username ||
+    !parsed.password ||
+    !databaseName(parsed) ||
+    parsed.search ||
+    parsed.hash
   ) {
     throw new Error(
       `The ${label} URL must bind protocol, host, port, database, and credentials without overrides.`,
@@ -298,55 +340,67 @@ export function assertStagingBindings(
   { requireConfirmation = true } = {},
 ) {
   if (
-    env.APP_ENV !== "staging"
-    || env.TARGET_ENVIRONMENT !== "staging"
-    || env.EXPECTED_SUPABASE_PROJECT_REF !== STAGING_PROJECT_REF
-    || env.NEXT_PUBLIC_SUPABASE_URL !== `https://${STAGING_PROJECT_REF}.supabase.co`
-    || (
-      requireConfirmation
-      && env.FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM !== CONFIRMATION
-    )
+    env.APP_ENV !== "staging" ||
+    env.TARGET_ENVIRONMENT !== "staging" ||
+    env.EXPECTED_SUPABASE_PROJECT_REF !== STAGING_PROJECT_REF ||
+    env.NEXT_PUBLIC_SUPABASE_URL !==
+      `https://${STAGING_PROJECT_REF}.supabase.co` ||
+    (requireConfirmation &&
+      env.FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM !== CONFIRMATION)
   ) {
-    throw new Error("Runtime provisioning accepts only the exact staging bindings.");
+    throw new Error(
+      "Runtime provisioning accepts only the exact staging bindings.",
+    );
   }
   if (env.PGOPTIONS?.trim()) {
     throw new Error("Ambient PostgreSQL session options are forbidden.");
   }
 }
 
-export function assertProductionBindings(env, { requireConfirmation = true } = {}) {
+export function assertProductionBindings(
+  env,
+  { requireConfirmation = true } = {},
+) {
   const expectedSha = env.FIELDGRID_RUNTIME_EXPECTED_SHA;
   if (
-    env.APP_ENV !== "production"
-    || env.TARGET_ENVIRONMENT !== "production"
-    || env.TARGET !== "production"
-    || env.EXPECTED_SUPABASE_PROJECT_REF !== PRODUCTION_PROJECT_REF
-    || env.NEXT_PUBLIC_SUPABASE_URL !== `https://${PRODUCTION_PROJECT_REF}.supabase.co`
-    || env.GITHUB_ACTIONS !== "true"
-    || env.GITHUB_EVENT_NAME !== "workflow_dispatch"
-    || env.GITHUB_REPOSITORY !== "veele-services/platform"
-    || env.GITHUB_REF !== "refs/heads/main"
-    || env.DEPLOYMENT_MODE !== "production"
-    || env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha"
-    || !/^[0-9a-f]{40}$/u.test(expectedSha ?? "")
-    || env.GITHUB_SHA !== expectedSha
-    || env.EXPECTED_MAIN_SHA !== expectedSha
-    || (requireConfirmation && env.FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM !== PRODUCTION_CONFIRMATION)
+    env.APP_ENV !== "production" ||
+    env.TARGET_ENVIRONMENT !== "production" ||
+    env.TARGET !== "production" ||
+    env.EXPECTED_SUPABASE_PROJECT_REF !== PRODUCTION_PROJECT_REF ||
+    env.NEXT_PUBLIC_SUPABASE_URL !==
+      `https://${PRODUCTION_PROJECT_REF}.supabase.co` ||
+    env.GITHUB_ACTIONS !== "true" ||
+    env.GITHUB_EVENT_NAME !== "workflow_dispatch" ||
+    env.GITHUB_REPOSITORY !== "veele-services/platform" ||
+    env.GITHUB_REF !== "refs/heads/main" ||
+    env.DEPLOYMENT_MODE !== "production" ||
+    env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha" ||
+    !/^[0-9a-f]{40}$/u.test(expectedSha ?? "") ||
+    env.GITHUB_SHA !== expectedSha ||
+    env.EXPECTED_MAIN_SHA !== expectedSha ||
+    (requireConfirmation &&
+      env.FIELDGRID_RUNTIME_PRINCIPAL_CONFIRM !== PRODUCTION_CONFIRMATION)
   ) {
-    throw new Error("Runtime provisioning accepts only an exact-main production dispatch.");
+    throw new Error(
+      "Runtime provisioning accepts only an exact-main production dispatch.",
+    );
   }
-  if (env.PGOPTIONS?.trim()) throw new Error("Ambient PostgreSQL session options are forbidden.");
+  if (env.PGOPTIONS?.trim())
+    throw new Error("Ambient PostgreSQL session options are forbidden.");
 }
 
 export function assertRuntimeBindings(env, options) {
-  if (env.APP_ENV === "production") return assertProductionBindings(env, options);
+  if (env.APP_ENV === "production")
+    return assertProductionBindings(env, options);
   return assertStagingBindings(env, options);
 }
 
 export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
   const expectedSha = requireEnv(env, "FIELDGRID_RUNTIME_EXPECTED_SHA");
   if (!/^[0-9a-f]{40}$/u.test(expectedSha)) {
-    throw new Error("FIELDGRID_RUNTIME_EXPECTED_SHA must be a full commit SHA.");
+    throw new Error(
+      "FIELDGRID_RUNTIME_EXPECTED_SHA must be a full commit SHA.",
+    );
   }
   const sourceRoot = realpathSync(root);
   const production = env.APP_ENV === "production";
@@ -356,7 +410,9 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
   });
   if (gitEntry) {
     if (!gitEntry.isDirectory() && !gitEntry.isFile()) {
-      throw new Error("Runtime provisioning Git metadata must not be a symlink.");
+      throw new Error(
+        "Runtime provisioning Git metadata must not be a symlink.",
+      );
     }
     const [checkoutRoot, actualSha] = execFileSync(
       "git",
@@ -366,14 +422,28 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
       },
-    ).trim().split("\n");
-    if (realpathSync(checkoutRoot) !== sourceRoot || actualSha !== expectedSha) {
-      throw new Error("Runtime provisioning checkout does not match the exact SHA.");
+    )
+      .trim()
+      .split("\n");
+    if (
+      realpathSync(checkoutRoot) !== sourceRoot ||
+      actualSha !== expectedSha
+    ) {
+      throw new Error(
+        "Runtime provisioning checkout does not match the exact SHA.",
+      );
     }
-    if (production && execFileSync("git", ["rev-parse", "refs/remotes/origin/main"], {
-      cwd: sourceRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-    }).trim() !== expectedSha) {
-      throw new Error("Runtime provisioning checkout does not match the fetched production main SHA.");
+    if (
+      production &&
+      execFileSync("git", ["rev-parse", "refs/remotes/origin/main"], {
+        cwd: sourceRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim() !== expectedSha
+    ) {
+      throw new Error(
+        "Runtime provisioning checkout does not match the fetched production main SHA.",
+      );
     }
     return expectedSha;
   }
@@ -383,41 +453,57 @@ export function assertExactCheckoutSha(env, { root = repoRoot } = {}) {
   const baseDir = requireEnv(env, "BASE_DIR");
   const releasePath = requireEnv(env, "RELEASE");
   const recovery = env.DEPLOYMENT_MODE === "staging-recovery";
+  const disposableRebuild = env.DEPLOYMENT_MODE === "disposable-rebuild";
+  const mainDispatch = recovery || disposableRebuild;
   if (
-    env.GITHUB_ACTIONS !== "true"
-    || env.GITHUB_EVENT_NAME !== "workflow_dispatch"
-    || env.GITHUB_REPOSITORY !== "veele-services/platform"
-    || env.GITHUB_SHA !== expectedSha
-    || (production ? (
-      env.DEPLOYMENT_MODE !== "production"
-      || env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha"
-    ) : (
-      env.APP_ENV !== "staging"
-      || env.TARGET_ENVIRONMENT !== "staging"
-      || !["normal", "staging-recovery"].includes(env.DEPLOYMENT_MODE)
-      || env.GITHUB_REF !== (recovery ? "refs/heads/main" : "refs/heads/staging")
-      || env.DEPLOY_CONFIRMATION !== (
-        recovery ? "staging-recovery-only" : "fieldgrid-staging-deploy-exact-sha"
-      )
-      || !/^[0-9a-f]{40}$/u.test(env.EXPECTED_STAGING_SHA ?? "")
-      || (recovery ? env.EXPECTED_STAGING_SHA === expectedSha : env.EXPECTED_STAGING_SHA !== expectedSha)
-    ))
-    || !path.isAbsolute(baseDir)
-    || realpathSync(baseDir) !== path.resolve(baseDir)
-    || releasePath !== sourceRoot
-    || path.dirname(sourceRoot) !== path.join(baseDir, "releases")
-    || !new RegExp(`^\\d{14}-${expectedSha.slice(0, 7)}$`, "u").test(path.basename(sourceRoot))
+    env.GITHUB_ACTIONS !== "true" ||
+    env.GITHUB_EVENT_NAME !== "workflow_dispatch" ||
+    env.GITHUB_REPOSITORY !== "veele-services/platform" ||
+    env.GITHUB_SHA !== expectedSha ||
+    (production
+      ? env.DEPLOYMENT_MODE !== "production" ||
+        env.DEPLOY_CONFIRMATION !== "fieldgrid-production-deploy-exact-sha"
+      : env.APP_ENV !== "staging" ||
+        env.TARGET_ENVIRONMENT !== "staging" ||
+        !["normal", "staging-recovery", "disposable-rebuild"].includes(
+          env.DEPLOYMENT_MODE,
+        ) ||
+        env.GITHUB_REF !==
+          (mainDispatch ? "refs/heads/main" : "refs/heads/staging") ||
+        env.DEPLOY_CONFIRMATION !==
+          (recovery
+            ? "staging-recovery-only"
+            : disposableRebuild
+              ? `fieldgrid-disposable-staging-rebuild-v1:${STAGING_PROJECT_REF}:${expectedSha}`
+              : "fieldgrid-staging-deploy-exact-sha") ||
+        !/^[0-9a-f]{40}$/u.test(env.EXPECTED_STAGING_SHA ?? "") ||
+        (mainDispatch
+          ? env.EXPECTED_STAGING_SHA === expectedSha
+          : env.EXPECTED_STAGING_SHA !== expectedSha)) ||
+    !path.isAbsolute(baseDir) ||
+    realpathSync(baseDir) !== path.resolve(baseDir) ||
+    releasePath !== sourceRoot ||
+    path.dirname(sourceRoot) !== path.join(baseDir, "releases") ||
+    !new RegExp(`^\\d{14}-${expectedSha.slice(0, 7)}$`, "u").test(
+      path.basename(sourceRoot),
+    )
   ) {
-    throw new Error("Runtime provisioning release is not bound to the exact deployment dispatch.");
+    throw new Error(
+      "Runtime provisioning release is not bound to the exact deployment dispatch.",
+    );
   }
   const markerPath = path.join(sourceRoot, ".fieldgrid-release-sha");
   const marker = lstatSync(markerPath, { throwIfNoEntry: false });
   if (!marker?.isFile() || marker.size < 40 || marker.size > 41) {
-    throw new Error("Runtime provisioning release SHA marker must be a regular SHA file.");
+    throw new Error(
+      "Runtime provisioning release SHA marker must be a regular SHA file.",
+    );
   }
   const markerSha = readFileSync(markerPath, "utf8");
   if (markerSha !== expectedSha && markerSha !== `${expectedSha}\n`) {
-    throw new Error("Runtime provisioning release SHA marker does not match the exact SHA.");
+    throw new Error(
+      "Runtime provisioning release SHA marker does not match the exact SHA.",
+    );
   }
   return expectedSha;
 }
@@ -435,18 +521,35 @@ export function assertExactRuntimeEnvironment(env, options) {
 export function validateProductionRuntimeConfig(env, options) {
   assertProductionBindings(env);
   const exactSha = assertExactCheckoutSha(env, options);
-  const adminUrl = assertMigrationAdminUrl(requireEnv(env, "FIELDGRID_MIGRATION_DATABASE_URL"), "production");
+  const adminUrl = assertMigrationAdminUrl(
+    requireEnv(env, "FIELDGRID_MIGRATION_DATABASE_URL"),
+    "production",
+  );
   const poolerHost = resolveRuntimePoolerHost(adminUrl, env);
   const password = requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_PASSWORD");
   assertRuntimePassword(password);
-  assertRuntimeUrl(requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_URL"), password, poolerHost, "production");
+  assertRuntimeUrl(
+    requireEnv(env, "FIELDGRID_RUNTIME_DATABASE_URL"),
+    password,
+    poolerHost,
+    "production",
+  );
   if (decodeURIComponent(new URL(adminUrl).password) === password) {
-    throw new Error("Production migration-admin and runtime passwords must be distinct.");
+    throw new Error(
+      "Production migration-admin and runtime passwords must be distinct.",
+    );
   }
   databaseNodePostgresSslConfig(env);
-  return { environment: "production", projectRef: PRODUCTION_PROJECT_REF,
-    exactSha, host: poolerHost, port: 5432, database: "postgres",
-    username: profiles.production.username, rootCertificateSha256: SUPABASE_ROOT_2021_CA_SHA256 };
+  return {
+    environment: "production",
+    projectRef: PRODUCTION_PROJECT_REF,
+    exactSha,
+    host: poolerHost,
+    port: 5432,
+    database: "postgres",
+    username: profiles.production.username,
+    rootCertificateSha256: SUPABASE_ROOT_2021_CA_SHA256,
+  };
 }
 
 async function assertAdminTopology(client) {
@@ -476,13 +579,13 @@ async function assertAdminTopology(client) {
     `);
     const row = identity.rows[0];
     if (
-      !row
-      || row.current_user !== row.session_user
-      || row.rolsuper
-      || row.rolbypassrls
-      || !row.rolcreaterole
-      || row.can_set_runtime
-      || row.can_set_data
+      !row ||
+      row.current_user !== row.session_user ||
+      row.rolsuper ||
+      row.rolbypassrls ||
+      !row.rolcreaterole ||
+      row.can_set_runtime ||
+      row.can_set_data
     ) {
       throw new Error("Migration-admin identity/topology is not exact.");
     }
@@ -524,22 +627,22 @@ async function assertAdminTopology(client) {
       (edge) => edge.member_role === RUNTIME_ROLE,
     );
     if (
-      !topologyRow
-      || topologyRow.expected_admin !== row.current_user
-      || appEdges.length !== 1
-      || dataEdges.length !== 2
-      || appAdminEdge.member_role !== row.current_user
-      || !appAdminEdge.admin_option
-      || appAdminEdge.inherit_option
-      || appAdminEdge.set_option
-      || appAdminEdge.grantor_role !== topologyRow.expected_app_grantor
-      || !dataAdminEdge?.admin_option
-      || dataAdminEdge.inherit_option
-      || dataAdminEdge.set_option
-      || dataAdminEdge.grantor_role !== topologyRow.expected_data_grantor
-      || appCapabilityEdge?.admin_option
-      || !appCapabilityEdge?.inherit_option
-      || appCapabilityEdge?.set_option
+      !topologyRow ||
+      topologyRow.expected_admin !== row.current_user ||
+      appEdges.length !== 1 ||
+      dataEdges.length !== 2 ||
+      appAdminEdge.member_role !== row.current_user ||
+      !appAdminEdge.admin_option ||
+      appAdminEdge.inherit_option ||
+      appAdminEdge.set_option ||
+      appAdminEdge.grantor_role !== topologyRow.expected_app_grantor ||
+      !dataAdminEdge?.admin_option ||
+      dataAdminEdge.inherit_option ||
+      dataAdminEdge.set_option ||
+      dataAdminEdge.grantor_role !== topologyRow.expected_data_grantor ||
+      appCapabilityEdge?.admin_option ||
+      !appCapabilityEdge?.inherit_option ||
+      appCapabilityEdge?.set_option
     ) {
       throw new Error("Runtime role administrator membership has drifted.");
     }
@@ -556,10 +659,15 @@ async function assertAdminTopology(client) {
         and not relation.relforcerowsecurity
     `);
     if (owners.rows[0]?.exact_owner_rows !== 2) {
-      throw new Error("Migration admin is not the non-forced RLS owner for both W00 targets.");
+      throw new Error(
+        "Migration admin is not the non-forced RLS owner for both W00 targets.",
+      );
     }
 
-    const migrationPath = new URL(`../lib/db/migrations/${MIGRATION_NAME}`, import.meta.url);
+    const migrationPath = new URL(
+      `../lib/db/migrations/${MIGRATION_NAME}`,
+      import.meta.url,
+    );
     const expectedHash = normalizedSha256(readFileSync(migrationPath, "utf8"));
     const history = await client.query(
       `select hash from drizzle.veele_sql_migrations where name = $1`,
@@ -595,17 +703,19 @@ async function proveRuntimeHandshake(Client, runtimeUrl, ssl) {
     `);
     const row = identity.rows[0];
     if (
-      !row
-      || row.current_user !== RUNTIME_ROLE
-      || row.session_user !== RUNTIME_ROLE
-      || !row.rolcanlogin
-      || row.rolsuper
-      || row.rolcreatedb
-      || row.rolcreaterole
-      || row.rolreplication
-      || row.rolbypassrls
+      !row ||
+      row.current_user !== RUNTIME_ROLE ||
+      row.session_user !== RUNTIME_ROLE ||
+      !row.rolcanlogin ||
+      row.rolsuper ||
+      row.rolcreatedb ||
+      row.rolcreaterole ||
+      row.rolreplication ||
+      row.rolbypassrls
     ) {
-      throw new Error("The pre-set runtime URL did not prove the exact runtime identity.");
+      throw new Error(
+        "The pre-set runtime URL did not prove the exact runtime identity.",
+      );
     }
   } finally {
     await client.end().catch(() => {});
@@ -666,15 +776,17 @@ async function main(argv = process.argv.slice(2), env = process.env) {
     );
   }
   if (argv[0] === "--describe") {
-    process.stdout.write(`${JSON.stringify(describeRuntimeEndpoint(env), null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(describeRuntimeEndpoint(env), null, 2)}\n`,
+    );
     return;
   }
   process.stdout.write(`${JSON.stringify(await apply(env))}\n`);
 }
 
 if (
-  process.argv[1]
-  && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
 ) {
   main().catch((error) => {
     const failure = {

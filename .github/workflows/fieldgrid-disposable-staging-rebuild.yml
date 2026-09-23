@@ -1,0 +1,139 @@
+name: Fieldgrid Disposable Staging Rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Read-only plan (default) or explicit rebuild"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - rebuild
+      expected_main_sha:
+        description: "Exact current main SHA"
+        required: true
+        type: string
+      expected_staging_sha:
+        description: "Exact current staging SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "For rebuild: fieldgrid-disposable-staging-rebuild-v1:olyfmekyqozxrbrwwszu:<main-sha>"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: inputs.operation == 'plan'
+    name: Read-only disposable rebuild plan
+    runs-on: [self-hosted, linux, x64, veele]
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FORBIDDEN_SUPABASE_PROJECT_REF: ckdtiuemeygrnujjibnw
+      NEXT_PUBLIC_SUPABASE_URL: https://olyfmekyqozxrbrwwszu.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+      FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+      FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
+      FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
+      FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
+      FIELDGRID_REBUILD_TENANT_A_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_A_SLUG }}
+      FIELDGRID_REBUILD_TENANT_A_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_NAME }}
+      FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL }}
+      FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD }}
+      FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME }}
+      FIELDGRID_REBUILD_TENANT_B_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_B_SLUG }}
+      FIELDGRID_REBUILD_TENANT_B_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_NAME }}
+      FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL }}
+      FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD }}
+      FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME }}
+      FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
+      FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
+      FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
+      FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
+    steps:
+      - name: Verify exact read-only dispatch before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_STAGING_SHA" =~ ^[0-9a-f]{40}$ ]]
+          live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          live_staging="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/staging" --jq .object.sha)"
+          test "$live_main" = "$EXPECTED_MAIN_SHA"
+          test "$live_staging" = "$EXPECTED_STAGING_SHA"
+
+      - name: Checkout exact main candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-rebuild-plan-${GITHUB_RUN_ID}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Produce read-only rebuild plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p disposable-staging-plan
+          node scripts/fieldgrid-disposable-staging-rebuild.mjs \
+            --plan \
+            --output-dir="$GITHUB_WORKSPACE/disposable-staging-plan"
+
+      - name: Upload non-promotable plan
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: disposable-staging-plan-${{ github.run_id }}-${{ github.sha }}
+          path: disposable-staging-plan/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  rebuild:
+    if: inputs.operation == 'rebuild'
+    name: Destructive disposable rebuild
+    uses: ./.github/workflows/deploy.yml
+    with:
+      deployment_mode: disposable-rebuild
+      expected_main_sha: ${{ inputs.expected_main_sha }}
+      expected_staging_sha: ${{ inputs.expected_staging_sha }}
+      confirmation: ${{ inputs.confirmation }}
+    secrets: inherit

@@ -11,7 +11,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { readReportZip } from "./wp1/evidence.mjs";
+
 export const CONFIRMATION = "phase2e-fast-forward-staging";
+export const DISPOSABLE_REBUILD_CONFIRMATION =
+  "disposable-rebuild-fast-forward-staging";
 export const SOURCE_BRANCH = "main";
 export const TARGET_BRANCH = "staging";
 export const REMOTE = "origin";
@@ -21,6 +25,8 @@ export const STAGING_DEPLOY_CONFIRMATION = "fieldgrid-staging-deploy-exact-sha";
 export const PHASE2E_PREFLIGHT_WORKFLOW_PATH =
   ".github/workflows/phase2e-staging-preflight.yml";
 export const PHASE2E_PREFLIGHT_RUN_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+export const DISPOSABLE_REBUILD_WORKFLOW_PATH =
+  ".github/workflows/fieldgrid-disposable-staging-rebuild.yml";
 
 const MAX_PREFLIGHT_ARCHIVE_BYTES = 25 * 1024 * 1024;
 const MAX_PREFLIGHT_EXTRACTED_BYTES = 50 * 1024 * 1024;
@@ -38,7 +44,7 @@ const FORBIDDEN_UPDATE_ARGUMENTS = new Set(["--force", "--force-with-lease"]);
 const PROMOTION_BRANCHES = Object.freeze([SOURCE_BRANCH, TARGET_BRANCH]);
 const EXPECTED_PROTECTION_CHECKS = Object.freeze({
   [SOURCE_BRANCH]: "Main exact-head gate",
-  [TARGET_BRANCH]: "Backup, restore and migration rehearsal",
+  [TARGET_BRANCH]: "Main exact-head gate",
 });
 const GITHUB_ACTIONS_APP_ID = 15368;
 
@@ -66,6 +72,7 @@ export function parseArgs(argv) {
     approvedMain: "",
     expectedStaging: "",
     preflightRunId: "",
+    rebuildRunId: "",
     confirmation: "",
   };
 
@@ -102,6 +109,10 @@ export function parseArgs(argv) {
         break;
       case "--preflight-run-id":
         options.preflightRunId = takeValue(argv, index, argument);
+        index += 1;
+        break;
+      case "--rebuild-run-id":
+        options.rebuildRunId = takeValue(argv, index, argument);
         index += 1;
         break;
       case "--confirm":
@@ -145,10 +156,19 @@ export function assertPromotionContract(
     throw new Error(
       "--expected-staging must be a lowercase 40-character commit SHA",
     );
-  if (!isRunId(options.preflightRunId))
-    throw new Error("--preflight-run-id must be a positive GitHub run ID");
-  if (options.confirmation !== CONFIRMATION)
-    throw new Error(`--confirm must equal ${CONFIRMATION}`);
+  const legacyEvidence =
+    isRunId(options.preflightRunId) && !options.rebuildRunId;
+  const rebuildEvidence =
+    isRunId(options.rebuildRunId) && !options.preflightRunId;
+  if (!legacyEvidence && !rebuildEvidence)
+    throw new Error(
+      "choose exactly one positive --preflight-run-id or --rebuild-run-id",
+    );
+  const expectedConfirmation = rebuildEvidence
+    ? DISPOSABLE_REBUILD_CONFIRMATION
+    : CONFIRMATION;
+  if (options.confirmation !== expectedConfirmation)
+    throw new Error(`--confirm must equal ${expectedConfirmation}`);
   return true;
 }
 
@@ -863,6 +883,143 @@ export function acquireAuthenticatedPreflightEvidence(
   }
 }
 
+export function selectAuthenticatedRebuildArtifact(
+  { approvedMain, rebuildRunId },
+  { run, artifactsPayload, nowMs = Date.now() },
+) {
+  if (!isFullSha(approvedMain) || !isRunId(rebuildRunId)) {
+    throw new Error(
+      "Authenticated disposable rebuild evidence inputs are invalid.",
+    );
+  }
+  if (
+    String(run?.id) !== String(rebuildRunId) ||
+    run?.name !== "Fieldgrid Disposable Staging Rebuild" ||
+    run?.path !== DISPOSABLE_REBUILD_WORKFLOW_PATH ||
+    run?.event !== "workflow_dispatch" ||
+    run?.head_branch !== SOURCE_BRANCH ||
+    run?.head_sha !== approvedMain ||
+    run?.status !== "completed" ||
+    run?.conclusion !== "success" ||
+    !Number.isSafeInteger(run?.run_attempt) ||
+    run.run_attempt < 1 ||
+    run?.repository?.full_name !== EXPECTED_GITHUB_REPOSITORY ||
+    !Number.isSafeInteger(run?.repository?.id) ||
+    run.repository.id < 1
+  ) {
+    throw new Error(
+      "GitHub run does not prove a successful exact-main disposable rebuild.",
+    );
+  }
+  assertFreshGithubTimestamp(run.updated_at, nowMs);
+  const expectedName = `disposable-staging-rebuild-${rebuildRunId}-${approvedMain}`;
+  const artifacts = Array.isArray(artifactsPayload?.artifacts)
+    ? artifactsPayload.artifacts.filter(
+        (candidate) => candidate?.name === expectedName,
+      )
+    : [];
+  const artifact = artifacts[0];
+  const expectedArchiveUrl = `https://api.github.com/repos/${EXPECTED_GITHUB_REPOSITORY}/actions/artifacts/${artifact?.id}/zip`;
+  if (
+    artifacts.length !== 1 ||
+    !Number.isSafeInteger(artifact?.id) ||
+    artifact.id < 1 ||
+    artifact.expired !== false ||
+    !Number.isSafeInteger(artifact.size_in_bytes) ||
+    artifact.size_in_bytes < 1 ||
+    artifact.size_in_bytes > MAX_PREFLIGHT_ARCHIVE_BYTES ||
+    artifact.archive_download_url !== expectedArchiveUrl ||
+    !/^sha256:[0-9a-f]{64}$/u.test(artifact.digest ?? "") ||
+    String(artifact.workflow_run?.id) !== String(rebuildRunId) ||
+    artifact.workflow_run?.head_branch !== SOURCE_BRANCH ||
+    artifact.workflow_run?.head_sha !== approvedMain ||
+    artifact.workflow_run?.repository_id !== run.repository.id
+  ) {
+    throw new Error(
+      "GitHub disposable rebuild artifact is not bound to the exact run.",
+    );
+  }
+  assertFreshGithubTimestamp(artifact.updated_at, nowMs);
+  return artifact;
+}
+
+export function assertDisposableRebuildReport(
+  report,
+  { approvedMain, expectedStaging, rebuildRunId, run },
+) {
+  if (
+    report?.contract !== "fieldgrid-disposable-staging-rebuild-v1" ||
+    report?.repository !== EXPECTED_GITHUB_REPOSITORY ||
+    report?.project !== "olyfmekyqozxrbrwwszu" ||
+    report?.environment !== "staging" ||
+    report?.mode !== "rebuild" ||
+    report?.status !== "passed" ||
+    report?.candidateSha !== approvedMain ||
+    report?.expectedStagingSha !== expectedStaging ||
+    String(report?.runId) !== String(rebuildRunId) ||
+    report?.attempt !== run.run_attempt ||
+    report?.phase !== "COMPLETE" ||
+    report?.destructiveBoundaryPassed !== true ||
+    report?.releaseActive !== true ||
+    report?.smokePassed !== true ||
+    report?.acceptancePassed !== true ||
+    report?.backupRequired !== false ||
+    report?.oldDataRestored !== false ||
+    report?.mutationsPerformed !== true ||
+    !/^[0-9a-f]{64}$/u.test(report?.proofDigest ?? "")
+  ) {
+    throw new Error(
+      "Disposable rebuild report is incomplete or not bound to the promotion refs.",
+    );
+  }
+  return true;
+}
+
+export function acquireAuthenticatedRebuildEvidence(
+  { approvedMain, expectedStaging, rebuildRunId },
+  {
+    repoDir = repoRoot,
+    env = process.env,
+    nowMs = Date.now(),
+    readGithubJson = authenticatedGithubJson,
+    readGithubBytes = authenticatedGithubBytes,
+  } = {},
+) {
+  const runEndpoint = `repos/${EXPECTED_GITHUB_REPOSITORY}/actions/runs/${rebuildRunId}`;
+  const context = { repoDir, env };
+  const run = readGithubJson(runEndpoint, context);
+  const artifactsPayload = readGithubJson(
+    `${runEndpoint}/artifacts?per_page=100`,
+    context,
+  );
+  const artifact = selectAuthenticatedRebuildArtifact(
+    { approvedMain, rebuildRunId },
+    { run, artifactsPayload, nowMs },
+  );
+  const archiveBytes = readGithubBytes(
+    `repos/${EXPECTED_GITHUB_REPOSITORY}/actions/artifacts/${artifact.id}/zip`,
+    context,
+  );
+  if (
+    !Buffer.isBuffer(archiveBytes) ||
+    archiveBytes.length !== artifact.size_in_bytes ||
+    createHash("sha256").update(archiveBytes).digest("hex") !==
+      artifact.digest.slice("sha256:".length)
+  ) {
+    throw new Error(
+      "Downloaded disposable rebuild artifact digest does not match GitHub.",
+    );
+  }
+  const report = readReportZip(archiveBytes);
+  assertDisposableRebuildReport(report, {
+    approvedMain,
+    expectedStaging,
+    rebuildRunId,
+    run,
+  });
+  return { artifactDigest: artifact.digest, artifactId: artifact.id, report };
+}
+
 export function runStrictPromotionEvidenceGate(
   { approvedMain, expectedStaging, preflightRunId },
   {
@@ -914,6 +1071,7 @@ export function promoteExactMainToStaging(
     repoDir = repoRoot,
     env = process.env,
     runPromotionEvidenceGate = runStrictPromotionEvidenceGate,
+    acquireRebuildEvidence = acquireAuthenticatedRebuildEvidence,
     updateRemoteRefs = updateGithubRefsAtomically,
     dispatchDeployment = dispatchStagingDeployment,
   } = {},
@@ -968,14 +1126,25 @@ export function promoteExactMainToStaging(
   // pre-promotion artifact to the exact refs checked above. The W00 principal
   // gate runs after forward migrations and before activation in deploy.yml, so
   // the first ACL-hardening rollout cannot deadlock on its pre-migration schema.
-  runPromotionEvidenceGate(
-    {
-      approvedMain: options.approvedMain,
-      expectedStaging: options.expectedStaging,
-      preflightRunId: options.preflightRunId,
-    },
-    { repoDir, env },
-  );
+  if (options.rebuildRunId) {
+    acquireRebuildEvidence(
+      {
+        approvedMain: options.approvedMain,
+        expectedStaging: options.expectedStaging,
+        rebuildRunId: options.rebuildRunId,
+      },
+      { repoDir, env },
+    );
+  } else {
+    runPromotionEvidenceGate(
+      {
+        approvedMain: options.approvedMain,
+        expectedStaging: options.expectedStaging,
+        preflightRunId: options.preflightRunId,
+      },
+      { repoDir, env },
+    );
+  }
 
   // GitHub's updateRefs mutation evaluates both beforeOid values and applies
   // both ref updates atomically. Unlike git push, it does not omit the no-op
@@ -1029,6 +1198,9 @@ function usage() {
     "  pnpm fieldgrid:phase2e-staging-promote --run \\",
     "    --approved-main SHA --expected-staging SHA --preflight-run-id RUN_ID \\",
     `    --confirm ${CONFIRMATION}`,
+    "  pnpm fieldgrid:phase2e-staging-promote --run \\",
+    "    --approved-main SHA --expected-staging SHA --rebuild-run-id RUN_ID \\",
+    `    --confirm ${DISPOSABLE_REBUILD_CONFIRMATION}`,
     "",
     "The run fetches only main and staging, verifies both exact refs and their",
     "fast-forward relationship plus the exact branch-protection contract, then",
