@@ -1,0 +1,136 @@
+name: Fieldgrid Disposable Staging Rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact reviewed current main SHA (40 lowercase hex characters)
+        required: true
+        type: string
+      mode:
+        description: Plan performs read-only checks; apply permanently discards staging data
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply]
+      confirmation:
+        description: 'For apply: REBUILD:olyfmekyqozxrbrwwszu:<expected_main_sha>:DISCARD_DATA'
+        required: false
+        type: string
+      recover_failed_rebuild:
+        description: Explicit recovery dispatch; all four core staging services must already be stopped
+        required: true
+        default: false
+        type: boolean
+      maintenance_confirmed:
+        description: External staging clients, signup, webhooks and scheduled writers have been paused
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    name: Disposable staging / ${{ inputs.mode }}
+    runs-on: [self-hosted, linux, x64, veele]
+    environment: staging
+    timeout-minutes: 60
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      REBUILD_MODE: ${{ inputs.mode }}
+      REBUILD_RECOVERY: ${{ inputs.recover_failed_rebuild }}
+      REBUILD_CONFIRMATION: ${{ inputs.confirmation }}
+      REBUILD_MAINTENANCE_CONFIRMED: ${{ inputs.maintenance_confirmed }}
+      FIELDGRID_DATABASE_CONNECTION_PURPOSE: migration
+      DB_SSL: 'true'
+      DB_SSL_REJECT_UNAUTHORIZED: 'true'
+      PGSSLMODE: verify-full
+    steps:
+      - name: Reject unreviewed source and accidental destructive reruns
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          case "$REBUILD_MODE" in
+            plan) ;;
+            apply)
+              test "$GITHUB_RUN_ATTEMPT" = 1
+              test "$REBUILD_MAINTENANCE_CONFIRMED" = true
+              test "$REBUILD_CONFIRMATION" = "REBUILD:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA:DISCARD_DATA"
+              ;;
+            *) exit 1 ;;
+          esac
+      - name: Checkout exact reviewed main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --prod=false
+      - name: Verify behavior before supplying live credentials
+        run: |
+          node --check scripts/fieldgrid-disposable-staging-rebuild.mjs
+          node --test tests/fieldgrid-disposable-staging-rebuild.test.mjs
+      - name: Install pinned public database CA
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/disposable-rebuild-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 --out "$certificate_path"
+          node scripts/fieldgrid-database-root-cert.mjs --check --file "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+      - name: Run guarded plan or destructive rebuild
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIELDGRID_REBUILD_PLATFORM_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_EMAIL }}
+          FIELDGRID_REBUILD_PLATFORM_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_PASSWORD }}
+          FIELDGRID_REBUILD_TENANT_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_EMAIL }}
+          FIELDGRID_REBUILD_TENANT_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_PASSWORD }}
+          FIELDGRID_WP1_WRITER_UNITS: ${{ vars.BACKOFFICE_SERVICE_NAME }},${{ vars.PERSONEEL_SERVICE_NAME }},${{ vars.KLANT_SERVICE_NAME }},${{ vars.API_SERVICE_NAME }},${{ vars.NOTIFICATION_WORKER_SERVICE_NAME }},${{ vars.SCHEDULER_SERVICE_NAME }}
+          BACKOFFICE_PUBLIC_HEALTH_URL: ${{ vars.BACKOFFICE_PUBLIC_HEALTH_URL }}
+          PERSONEEL_PUBLIC_HEALTH_URL: ${{ vars.PERSONEEL_PUBLIC_HEALTH_URL }}
+          KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
+          API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
+        run: node scripts/fieldgrid-disposable-staging-rebuild.mjs
+      - name: Upload redacted result only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: disposable-staging-${{ inputs.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/fieldgrid-disposable-staging-rebuild/result.json
+          if-no-files-found: warn
+          retention-days: 1
+      - name: Remove temporary public CA
+        if: always()
+        run: |
+          set -euo pipefail
+          certificate_path="${FIELDGRID_DATABASE_SSL_ROOT_CERT:-}"
+          if [ -n "$certificate_path" ]; then
+            test "$certificate_path" = "$RUNNER_TEMP/disposable-rebuild-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.crt"
+            rm -f -- "$certificate_path"
+          fi

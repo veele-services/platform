@@ -74,6 +74,10 @@ export function loadDbRuntimeEnv(): void {
   if (loaded) return;
   loaded = true;
 
+  // Reviewed one-off operations supply their entire environment explicitly.
+  // Never let an ancestor .env file reintroduce credentials or migration overrides.
+  if (process.env.FIELDGRID_RUNTIME_ENV_FILE_MODE === "disabled") return;
+
   const envFile = findRuntimeEnvFile();
   if (!envFile) return;
 
