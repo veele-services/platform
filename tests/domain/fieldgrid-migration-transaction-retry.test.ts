@@ -581,6 +581,13 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   );
   const sqlStart = source.indexOf("async function runSqlMigrations(");
   const sqlEnd = source.indexOf("\nasync function baseline():", sqlStart);
+  const migrateWithClientStart = source.indexOf(
+    "export async function migrateWithClient(",
+  );
+  const migrateWithClientEnd = source.indexOf(
+    "\nasync function migrate(): Promise<void> {",
+    migrateWithClientStart,
+  );
   const migrateStart = source.indexOf(
     "async function migrate(): Promise<void> {",
   );
@@ -592,11 +599,19 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   assert.ok(drizzleStart >= 0 && drizzleEnd > drizzleStart);
   assert.ok(lockStart >= 0 && lockEnd > lockStart);
   assert.ok(sqlStart >= 0 && sqlEnd > sqlStart);
+  assert.ok(
+    migrateWithClientStart >= 0 &&
+      migrateWithClientEnd > migrateWithClientStart,
+  );
   assert.ok(migrateStart >= 0 && migrateEnd > migrateStart);
 
   const drizzleRunner = source.slice(drizzleStart, drizzleEnd);
   const lockRunner = source.slice(lockStart, lockEnd);
   const sqlRunner = source.slice(sqlStart, sqlEnd);
+  const migrateWithClientRunner = source.slice(
+    migrateWithClientStart,
+    migrateWithClientEnd,
+  );
   const migrateRunner = source.slice(migrateStart, migrateEnd);
   assert.match(drizzleRunner, /client: pg\.Client/u);
   assert.match(drizzleRunner, /const db = drizzle\(client\);/u);
@@ -636,12 +651,17 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   ];
   let previousIndex = -1;
   for (const stage of orderedStages) {
-    const stageIndex = migrateRunner.indexOf(stage);
+    const stageIndex = migrateWithClientRunner.indexOf(stage);
     assert.ok(
       stageIndex > previousIndex,
       `migration stage is missing or out of order: ${stage}`,
     );
     previousIndex = stageIndex;
   }
+  assert.doesNotMatch(
+    migrateWithClientRunner,
+    /connectionConfig\(|\.connect\(|\.end\(/u,
+  );
+  assert.match(migrateRunner, /await migrateWithClient\(client\);/u);
   assert.match(migrateRunner, /finally \{\s+await client\.end\(\);\s+\}/u);
 });
