@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
 import {
   bootstrapDatabase,
@@ -43,12 +44,10 @@ const configuration = {
   ],
 };
 
-async function main() {
-  if (process.env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET !== "1") {
-    throw new Error("local runtime-safety reset guard is required");
-  }
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
+export async function verifyPostgres17Rebuild(
+  client,
+  { allowedSamePrincipalPids = [] } = {},
+) {
   try {
     // Plain postgres:17 lacks Supabase's managed publication. Install only this
     // provider compatibility object after canonical migration so the same
@@ -75,19 +74,37 @@ async function main() {
     await bootstrapDatabase(client, configuration, identities);
     const database = await verifyRebuiltDatabase(client);
     const bootstrap = await verifyBootstrap(client, configuration, identities);
-    const writerFence = await assertNoExternalWriters(client);
-    process.stdout.write(
-      `${JSON.stringify({ database, bootstrap, writerFence })}\n`,
-    );
+    const writerFence = await assertNoExternalWriters(client, {
+      allowedSamePrincipalPids,
+    });
+    return { database, bootstrap, writerFence };
   } finally {
     await client.query("DROP PUBLICATION IF EXISTS supabase_realtime");
+  }
+}
+
+async function main() {
+  if (process.env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET !== "1") {
+    throw new Error("local runtime-safety reset guard is required");
+  }
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const proof = await verifyPostgres17Rebuild(client);
+    process.stdout.write(`${JSON.stringify(proof)}\n`);
+  } finally {
     await client.end();
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(
-    `[fieldgrid:disposable-postgres17] FAIL: ${error instanceof Error ? error.message : String(error)}\n`,
-  );
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error) => {
+    process.stderr.write(
+      `[fieldgrid:disposable-postgres17] FAIL: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  });
+}

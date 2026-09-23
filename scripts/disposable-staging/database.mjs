@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { join } from "node:path";
 
 import {
   APP_SCHEMAS,
@@ -69,7 +71,10 @@ export async function databaseInventory(client) {
   };
 }
 
-export async function assertNoExternalWriters(client) {
+export async function assertNoExternalWriters(
+  client,
+  { allowedSamePrincipalPids = [] } = {},
+) {
   const unknown = await client.query(
     `
     SELECT role.rolname AS effective_writer
@@ -129,11 +134,53 @@ export async function assertNoExternalWriters(client) {
     true,
   );
 
+  async function terminateWriterSessions() {
+    const result = await client.query(
+      `
+      SELECT pid,pg_terminate_backend(pid) AS stopped
+      FROM pg_stat_activity
+      WHERE datname=current_database()
+        AND pid<>pg_backend_pid()
+        AND NOT (pid=ANY($1::int[]))
+        AND backend_type='client backend'
+        AND (
+          usename=current_user
+          OR usename=ANY(ARRAY[
+            'fieldgrid_runtime_app','authenticator','anon','authenticated','service_role'
+          ]::text[])
+        )
+      ORDER BY pid
+    `,
+      [allowedSamePrincipalPids],
+    );
+    requireThat(
+      result.rows.every(({ stopped }) => stopped === true),
+      "DATABASE_WRITER_TERMINATION_FAILED",
+      "QUIESCED",
+      true,
+    );
+    return result.rows.length;
+  }
+
+  let terminatedSessionCount = await terminateWriterSessions();
+  const existingSchemas = await client.query(
+    `SELECT nspname FROM pg_namespace WHERE nspname=ANY($1::text[]) ORDER BY nspname`,
+    [[...APP_SCHEMAS]],
+  );
+
   await client.query("BEGIN");
   try {
     await client.query("SET LOCAL lock_timeout='15s'");
-    await client.query("ALTER ROLE fieldgrid_runtime_app NOLOGIN");
-    for (const schema of APP_SCHEMAS) {
+    await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='fieldgrid_runtime_app') THEN
+          ALTER ROLE fieldgrid_runtime_app NOLOGIN;
+        END IF;
+      END
+      $$
+    `);
+    for (const { nspname: schema } of existingSchemas.rows) {
       await client.query(
         `REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA ${schema} FROM anon, authenticated, service_role`,
       );
@@ -147,41 +194,37 @@ export async function assertNoExternalWriters(client) {
     throw error;
   }
 
-  const terminated = await client.query(`
-    SELECT pg_terminate_backend(pid)
-    FROM pg_stat_activity
-    WHERE datname=current_database()
-      AND pid<>pg_backend_pid()
-      AND backend_type='client backend'
-      AND usename=ANY(ARRAY[
-        'fieldgrid_runtime_app','authenticator','anon','authenticated','service_role'
-      ]::text[])
-  `);
-  requireThat(
-    terminated.rows.every(
-      ({ pg_terminate_backend: stopped }) => stopped === true,
-    ),
-    "DATABASE_WRITER_TERMINATION_FAILED",
-    "QUIESCED",
-    true,
-  );
+  // Close a same-principal session that arrived while privileges were fenced.
+  // Known hosted migration-admin writers are additionally serialized by the
+  // canonical veele-staging workflow concurrency group.
+  terminatedSessionCount += await terminateWriterSessions();
   const proof = await client.query(
     `
     SELECT
-      NOT runtime.rolcanlogin AS runtime_login_disabled,
-      NOT has_table_privilege('anon','public.tenants','INSERT')
-        AND NOT has_table_privilege('anon','public.tenants','UPDATE')
-        AND NOT has_table_privilege('anon','public.tenants','DELETE')
-        AND NOT has_table_privilege('anon','public.tenants','TRUNCATE')
-        AND NOT has_table_privilege('authenticated','public.tenants','INSERT')
-        AND NOT has_table_privilege('authenticated','public.tenants','UPDATE')
-        AND NOT has_table_privilege('authenticated','public.tenants','DELETE')
-        AND NOT has_table_privilege('authenticated','public.tenants','TRUNCATE')
-        AND NOT has_table_privilege('service_role','public.tenants','INSERT')
-        AND NOT has_table_privilege('service_role','public.tenants','UPDATE')
-        AND NOT has_table_privilege('service_role','public.tenants','DELETE')
-        AND NOT has_table_privilege('service_role','public.tenants','TRUNCATE')
-        AS public_dml_revoked,
+      COALESCE((
+        SELECT NOT rolcanlogin FROM pg_roles WHERE rolname='fieldgrid_runtime_app'
+      ),true) AS runtime_login_disabled,
+      NOT EXISTS (
+        SELECT 1
+        FROM pg_class relation
+        JOIN pg_namespace namespace ON namespace.oid=relation.relnamespace
+        WHERE namespace.nspname=ANY($1::text[])
+          AND relation.relkind IN ('r','p')
+          AND (
+            has_table_privilege('anon',relation.oid,'INSERT')
+            OR has_table_privilege('anon',relation.oid,'UPDATE')
+            OR has_table_privilege('anon',relation.oid,'DELETE')
+            OR has_table_privilege('anon',relation.oid,'TRUNCATE')
+            OR has_table_privilege('authenticated',relation.oid,'INSERT')
+            OR has_table_privilege('authenticated',relation.oid,'UPDATE')
+            OR has_table_privilege('authenticated',relation.oid,'DELETE')
+            OR has_table_privilege('authenticated',relation.oid,'TRUNCATE')
+            OR has_table_privilege('service_role',relation.oid,'INSERT')
+            OR has_table_privilege('service_role',relation.oid,'UPDATE')
+            OR has_table_privilege('service_role',relation.oid,'DELETE')
+            OR has_table_privilege('service_role',relation.oid,'TRUNCATE')
+          )
+      ) AS public_dml_revoked,
       NOT EXISTS (
         SELECT 1
         FROM pg_proc function_row
@@ -197,24 +240,45 @@ export async function assertNoExternalWriters(client) {
         SELECT 1 FROM pg_stat_activity
         WHERE datname=current_database()
           AND pid<>pg_backend_pid()
+          AND NOT (pid=ANY($2::int[]))
           AND backend_type='client backend'
-          AND usename=ANY(ARRAY[
-            'fieldgrid_runtime_app','authenticator','anon','authenticated','service_role'
-          ]::text[])
-          AND (state<>'idle' OR xact_start IS NOT NULL)
+          AND (
+            usename=current_user
+            OR usename=ANY(ARRAY[
+              'fieldgrid_runtime_app','authenticator','anon','authenticated','service_role'
+            ]::text[])
+          )
       ) AS target_transactions_drained
-    FROM pg_roles runtime
-    WHERE runtime.rolname='fieldgrid_runtime_app'
   `,
-    [[...APP_SCHEMAS]],
+    [[...APP_SCHEMAS], allowedSamePrincipalPids],
   );
   requireThat(
-    proof.rows.length === 1 &&
-      proof.rows[0].runtime_login_disabled === true &&
-      proof.rows[0].public_dml_revoked === true &&
-      proof.rows[0].app_function_execute_revoked === true &&
-      proof.rows[0].target_transactions_drained === true,
-    "DATABASE_WRITER_FENCE_FAILED",
+    proof.rows.length === 1,
+    "DATABASE_WRITER_FENCE_PROOF_INVALID",
+    "QUIESCED",
+    true,
+  );
+  requireThat(
+    proof.rows[0].runtime_login_disabled === true,
+    "DATABASE_RUNTIME_LOGIN_FENCE_FAILED",
+    "QUIESCED",
+    true,
+  );
+  requireThat(
+    proof.rows[0].public_dml_revoked === true,
+    "DATABASE_DML_FENCE_FAILED",
+    "QUIESCED",
+    true,
+  );
+  requireThat(
+    proof.rows[0].app_function_execute_revoked === true,
+    "DATABASE_FUNCTION_FENCE_FAILED",
+    "QUIESCED",
+    true,
+  );
+  requireThat(
+    proof.rows[0].target_transactions_drained === true,
+    "DATABASE_SESSION_FENCE_FAILED",
     "QUIESCED",
     true,
   );
@@ -223,7 +287,282 @@ export async function assertNoExternalWriters(client) {
     publicDmlRevoked: true,
     appFunctionExecuteRevoked: true,
     targetTransactionsDrained: true,
+    terminatedSessionCount,
   };
+}
+
+function migrationChildEnvironment(env) {
+  return {
+    PATH: env.PATH,
+    HOME: env.HOME,
+    LANG: "C.UTF-8",
+    APP_ENV: env.APP_ENV,
+    TARGET_ENVIRONMENT: env.TARGET_ENVIRONMENT,
+    EXPECTED_SUPABASE_PROJECT_REF: env.EXPECTED_SUPABASE_PROJECT_REF,
+    FORBIDDEN_SUPABASE_PROJECT_REF: env.FORBIDDEN_SUPABASE_PROJECT_REF,
+    DATABASE_URL: env.DATABASE_URL,
+    FIELDGRID_MIGRATION_DATABASE_URL: env.FIELDGRID_MIGRATION_DATABASE_URL,
+    FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
+    FIELDGRID_DATABASE_SSL_ROOT_CERT: env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
+    FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING: "disabled",
+    FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET:
+      env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET,
+    FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM:
+      env.FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM,
+    DB_SSL: env.DB_SSL ?? "true",
+    DB_SSL_REJECT_UNAUTHORIZED: env.DB_SSL_REJECT_UNAUTHORIZED ?? "true",
+    PGSSLMODE: env.PGSSLMODE ?? "verify-full",
+  };
+}
+
+async function startMigrationWorker({ repoRoot, env }) {
+  const child = spawn(
+    process.execPath,
+    [
+      "--import",
+      "tsx",
+      join(repoRoot, "scripts/disposable-staging/migration-worker.mts"),
+    ],
+    {
+      cwd: join(repoRoot, "lib/db"),
+      env: migrationChildEnvironment(env),
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
+    },
+  );
+  let buffer = "";
+  let settled = false;
+  const exited = once(child, "exit");
+  const waiters = new Map();
+  const messages = new Map();
+
+  function rejectWaiters(error) {
+    for (const { reject } of waiters.values()) reject(error);
+    waiters.clear();
+  }
+
+  function receive(message) {
+    const state = message?.state;
+    if (typeof state !== "string") return;
+    if (state === "failed") {
+      const suffix =
+        env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET === "1" &&
+        typeof message.localCode === "string"
+          ? `:${message.localCode}`
+          : "";
+      rejectWaiters(new Error(`MIGRATION_WORKER_FAILED${suffix}`));
+      return;
+    }
+    const waiter = waiters.get(state);
+    if (waiter) {
+      waiters.delete(state);
+      waiter.resolve(message);
+    } else {
+      messages.set(state, message);
+    }
+  }
+
+  child.stdout.on("data", (chunk) => {
+    buffer += String(chunk);
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("FIELDGRID_WORKER:")) {
+        if (env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET === "1" && line) {
+          process.stdout.write(`[fieldgrid:worker] ${line}\n`);
+        }
+        continue;
+      }
+      try {
+        receive(JSON.parse(line.slice("FIELDGRID_WORKER:".length)));
+      } catch {
+        rejectWaiters(new Error("MIGRATION_WORKER_PROTOCOL_INVALID"));
+      }
+    }
+  });
+  child.stderr.on("data", (chunk) => {
+    if (env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET === "1") {
+      process.stderr.write(chunk);
+    }
+  });
+  child.on("message", receive);
+  child.once("error", (error) => rejectWaiters(error));
+  child.once("exit", (code, signal) => {
+    settled = true;
+    if (code !== 0) {
+      const error = new Error("MIGRATION_WORKER_FAILED");
+      error.code = "MIGRATION_WORKER_FAILED";
+      error.exitCode = code;
+      error.signal = signal;
+      rejectWaiters(error);
+    }
+  });
+
+  function waitFor(state) {
+    const existing = messages.get(state);
+    if (existing) {
+      messages.delete(state);
+      return Promise.resolve(existing);
+    }
+    if (settled) return Promise.reject(new Error("MIGRATION_WORKER_EXITED"));
+    return new Promise((resolve, reject) => {
+      waiters.set(state, { resolve, reject });
+    });
+  }
+
+  const ready = await waitFor("ready");
+  return {
+    pid: ready.pid,
+    role: ready.role,
+    async arm(originalPassword) {
+      child.send({ command: "arm", originalPassword });
+      await waitFor("armed");
+    },
+    async migrate() {
+      child.send({ command: "run" });
+      await waitFor("migrated");
+    },
+    async release({ restoreCredential = false } = {}) {
+      if (!settled)
+        child.send({
+          command: restoreCredential ? "recover-release" : "release",
+        });
+      await exited.catch(() => {});
+    },
+  };
+}
+
+export async function createWriterAdmissionGuard(
+  client,
+  { repoRoot, env = process.env, startWorker = startMigrationWorker } = {},
+) {
+  const worker = await startWorker({ repoRoot, env });
+  let admissionApplied = false;
+  const configuredUrl =
+    env.APP_ENV === "staging" || env.APP_ENV === "production"
+      ? env.FIELDGRID_MIGRATION_DATABASE_URL
+      : (env.DATABASE_URL ?? env.FIELDGRID_MIGRATION_DATABASE_URL);
+  let originalPassword;
+  try {
+    originalPassword = decodeURIComponent(new URL(configuredUrl).password);
+  } catch {
+    originalPassword = "";
+  }
+
+  async function setCurrentRolePassword(password) {
+    await client.query(
+      "SELECT set_config('fieldgrid.rebuild_role_password',$1,false)",
+      [password],
+    );
+    try {
+      await client.query(`
+        DO $$
+        BEGIN
+          EXECUTE format(
+            'ALTER ROLE %I PASSWORD %L',
+            current_user,
+            current_setting('fieldgrid.rebuild_role_password')
+          );
+        END
+        $$
+      `);
+    } finally {
+      await client
+        .query("RESET fieldgrid.rebuild_role_password")
+        .catch(() => {});
+    }
+  }
+
+  try {
+    const identity = await client.query(`
+      SELECT pg_backend_pid()::int AS pid,current_user::text AS role_name
+      FROM pg_roles WHERE rolname=current_user
+    `);
+    const current = identity.rows[0];
+    requireThat(
+      current &&
+        worker.role === current.role_name &&
+        Number.isInteger(worker.pid) &&
+        worker.pid > 0 &&
+        worker.pid !== current.pid &&
+        typeof originalPassword === "string" &&
+        originalPassword.length > 0,
+      "MIGRATION_ADMISSION_IDENTITY_INVALID",
+      "QUIESCED",
+      true,
+    );
+    const terminateUnadmitted = () =>
+      client.query(
+        `
+        SELECT pid,pg_terminate_backend(pid) AS stopped
+        FROM pg_stat_activity
+        WHERE usename=current_user
+          AND backend_type='client backend'
+          AND NOT (pid=ANY($1::int[]))
+        ORDER BY pid
+      `,
+        [[current.pid, worker.pid]],
+      );
+    let terminated = await terminateUnadmitted();
+    requireThat(
+      terminated.rows.every(({ stopped }) => stopped === true),
+      "MIGRATION_ADMISSION_TERMINATION_FAILED",
+      "QUIESCED",
+      true,
+    );
+    await worker.arm(originalPassword);
+    await setCurrentRolePassword(randomBytes(32).toString("base64url"));
+    admissionApplied = true;
+    const lateSessions = await terminateUnadmitted();
+    terminated = { rows: [...terminated.rows, ...lateSessions.rows] };
+    requireThat(
+      terminated.rows.every(({ stopped }) => stopped === true),
+      "MIGRATION_ADMISSION_TERMINATION_FAILED",
+      "QUIESCED",
+      true,
+    );
+    const proof = await client.query(
+      `
+        SELECT COALESCE(array_agg(pid ORDER BY pid),'{}'::int[])
+          AS admitted_pids
+        FROM pg_stat_activity
+        WHERE usename=current_user
+          AND backend_type='client backend'
+      `,
+    );
+    requireThat(
+      JSON.stringify(proof.rows[0]?.admitted_pids) ===
+        JSON.stringify([current.pid, worker.pid].sort((a, b) => a - b)),
+      "MIGRATION_ADMISSION_PROOF_FAILED",
+      "QUIESCED",
+      true,
+    );
+    let released = false;
+    return {
+      allowedSamePrincipalPids: [worker.pid],
+      async migrate() {
+        await worker.migrate();
+      },
+      async release() {
+        if (released) return;
+        released = true;
+        await setCurrentRolePassword(originalPassword);
+        await worker.release();
+      },
+    };
+  } catch (error) {
+    let credentialRestored = !admissionApplied;
+    if (admissionApplied) {
+      await setCurrentRolePassword(originalPassword)
+        .then(() => {
+          credentialRestored = true;
+        })
+        .catch(() => {});
+    }
+    await worker
+      .release({ restoreCredential: !credentialRestored })
+      .catch(() => {});
+    throw error;
+  }
 }
 
 export async function resetApplicationSchemas(client) {
@@ -303,23 +642,7 @@ export async function runCanonicalMigrations({
   env = process.env,
   command = runCommand,
 } = {}) {
-  const childEnv = {
-    PATH: env.PATH,
-    HOME: env.HOME,
-    LANG: "C.UTF-8",
-    APP_ENV: env.APP_ENV,
-    TARGET_ENVIRONMENT: env.TARGET_ENVIRONMENT,
-    EXPECTED_SUPABASE_PROJECT_REF: env.EXPECTED_SUPABASE_PROJECT_REF,
-    FORBIDDEN_SUPABASE_PROJECT_REF: env.FORBIDDEN_SUPABASE_PROJECT_REF,
-    DATABASE_URL: env.DATABASE_URL,
-    FIELDGRID_MIGRATION_DATABASE_URL: env.FIELDGRID_MIGRATION_DATABASE_URL,
-    FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
-    FIELDGRID_DATABASE_SSL_ROOT_CERT: env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
-    FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING: "disabled",
-    DB_SSL: "true",
-    DB_SSL_REJECT_UNAUTHORIZED: "true",
-    PGSSLMODE: "verify-full",
-  };
+  const childEnv = migrationChildEnvironment(env);
   await command("pnpm", ["--filter", "@workspace/db", "run", "db:migrate"], {
     cwd: repoRoot,
     env: childEnv,

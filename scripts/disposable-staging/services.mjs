@@ -68,13 +68,20 @@ export function createServiceControl({ command = execute } = {}) {
         "--plain",
         "--no-legend",
         "--no-pager",
+        "veele-staging.service",
         "veele-staging-*",
       ],
       "WRITER_INVENTORY_FAILED",
     );
     const files = await run(
       "/usr/bin/systemctl",
-      ["list-unit-files", "--no-legend", "--no-pager", "veele-staging-*"],
+      [
+        "list-unit-files",
+        "--no-legend",
+        "--no-pager",
+        "veele-staging.service",
+        "veele-staging-*",
+      ],
       "WRITER_INVENTORY_FAILED",
     );
     const names = [

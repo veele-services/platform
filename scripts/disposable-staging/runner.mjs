@@ -16,9 +16,9 @@ import {
 import { bootstrapDatabase, verifyBootstrap } from "./bootstrap.mjs";
 import {
   assertNoExternalWriters,
+  createWriterAdmissionGuard,
   databaseInventory,
   resetApplicationSchemas,
-  runCanonicalMigrations,
   verifyRebuiltDatabase,
 } from "./database.mjs";
 import {
@@ -203,6 +203,7 @@ export async function runRebuild({
   const services = deps.services ?? createServiceControl(deps.serviceOptions);
   let originalServices;
   let database;
+  let writerAdmission;
   try {
     const connections = (deps.validateConnections ?? validateConnections)(env);
     const evidence =
@@ -241,17 +242,26 @@ export async function runRebuild({
     await services.stop(currentServices);
     receipt.destructiveBoundaryPassed = true;
     await save(path, receipt, "QUIESCED", now);
-    const writerFence = await (
-      deps.assertNoExternalWriters ?? assertNoExternalWriters
-    )(database);
+    const fenceWriters =
+      deps.assertNoExternalWriters ?? assertNoExternalWriters;
+    const writerFence = await fenceWriters(database);
     await save(path, receipt, "QUIESCED", now, {
       writerFenceDigest: digest(writerFence),
     });
+    writerAdmission = await (
+      deps.createWriterAdmissionGuard ?? createWriterAdmissionGuard
+    )(database, { repoRoot, env });
+    const guardedFence = () =>
+      fenceWriters(database, {
+        allowedSamePrincipalPids:
+          writerAdmission.allowedSamePrincipalPids ?? [],
+      });
 
     const storage = await provider.emptyStorage(providerInventory.storage);
     await save(path, receipt, "STORAGE_EMPTY", now, {
       storageDigest: storage.digest,
     });
+    await guardedFence();
     const catalog = await (
       deps.resetApplicationSchemas ?? resetApplicationSchemas
     )(database);
@@ -261,15 +271,17 @@ export async function runRebuild({
     const auth = await provider.emptyAuth(providerInventory.auth);
     await save(path, receipt, "AUTH_EMPTY", now, { authDigest: auth.digest });
 
-    await (deps.runCanonicalMigrations ?? runCanonicalMigrations)({
-      repoRoot,
-      env,
-    });
+    if (deps.runCanonicalMigrations) {
+      await deps.runCanonicalMigrations({ repoRoot, env });
+    } else {
+      await writerAdmission.migrate();
+    }
     await save(path, receipt, "MIGRATED", now);
+    await guardedFence();
     const identities = {
       platform: await provider.createIdentity({
         ...bootstrap.platform,
-        portal: "platform",
+        portal: "platform-admin",
         role: "owner",
       }),
       tenants: [],
@@ -280,7 +292,7 @@ export async function runRebuild({
           email: tenant.managerEmail,
           password: tenant.managerPassword,
           name: tenant.managerName,
-          portal: "backoffice",
+          portal: "tenant-admin",
           role: "owner",
         }),
       );
@@ -290,6 +302,7 @@ export async function runRebuild({
       bootstrap,
       identities,
     );
+    await guardedFence();
     await save(path, receipt, "BOOTSTRAPPED", now, {
       bootstrapIdentityDigest: digest(identities),
     });
@@ -341,7 +354,11 @@ export async function runRebuild({
       ).catch(() => {});
     throw error;
   } finally {
-    await database?.end().catch(() => {});
+    try {
+      await writerAdmission?.release();
+    } finally {
+      await database?.end().catch(() => {});
+    }
   }
 }
 

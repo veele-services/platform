@@ -11,7 +11,10 @@ import {
   validateDispatchEnvironment,
 } from "../scripts/disposable-staging/contract.mjs";
 import { runPostRebuildAcceptance } from "../scripts/disposable-staging/acceptance.mjs";
-import { assertNoExternalWriters } from "../scripts/disposable-staging/database.mjs";
+import {
+  assertNoExternalWriters,
+  createWriterAdmissionGuard,
+} from "../scripts/disposable-staging/database.mjs";
 import { validateConnections } from "../scripts/disposable-staging/environment.mjs";
 import { createProviderControl } from "../scripts/disposable-staging/providers.mjs";
 import {
@@ -72,6 +75,7 @@ function fixtures({
   ],
 } = {}) {
   const calls = [];
+  const createdIdentities = [];
   const services = {
     async inventory() {
       calls.push("services.inventory");
@@ -125,8 +129,9 @@ function fixtures({
       calls.push("provider.emptyAuth");
       return { count: 0, digest: "auth-empty" };
     },
-    async createIdentity() {
+    async createIdentity(identity) {
       calls.push("provider.createIdentity");
+      createdIdentities.push(identity);
       if (
         calls.filter((value) => value === "provider.createIdentity").length ===
         3
@@ -168,6 +173,11 @@ function fixtures({
     provider,
     services,
     assertNoExternalWriters: async () => calls.push("db.noWriters"),
+    createWriterAdmissionGuard: async () => ({
+      allowedSamePrincipalPids: [4242],
+      async migrate() {},
+      async release() {},
+    }),
     resetApplicationSchemas: async () => {
       calls.push("db.reset");
       return { after: "managed" };
@@ -178,7 +188,7 @@ function fixtures({
     verifyBootstrap: async () => ({ tenants: 2 }),
     now: () => Date.parse("2026-09-23T10:00:00Z"),
   };
-  return { calls, deps, services };
+  return { calls, createdIdentities, deps, services };
 }
 
 test("dispatch is bound to exact main, staging project and confirmation", () => {
@@ -243,7 +253,7 @@ test("plan performs inventories but zero mutations and redacts credentials", asy
 
 test("rebuild preserves the destructive order and produces promotable evidence only after finalize", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fieldgrid-rebuild-"));
-  const { calls, deps } = fixtures();
+  const { calls, createdIdentities, deps } = fixtures();
   deps.receiptPath = join(directory, "private", "receipt.json");
   const prepared = await runRebuild({
     env: environment(),
@@ -268,11 +278,18 @@ test("rebuild preserves the destructive order and produces promotable evidence o
       "services.stop",
       "db.noWriters",
       "provider.emptyStorage",
+      "db.noWriters",
       "db.reset",
       "provider.emptyAuth",
       "db.migrate",
+      "db.noWriters",
       "db.bootstrap",
+      "db.noWriters",
     ],
+  );
+  assert.deepEqual(
+    createdIdentities.map(({ portal }) => portal),
+    ["platform-admin", "tenant-admin", "tenant-admin"],
   );
   const final = await finalizeRebuild({
     env: environment("finalize"),
@@ -321,6 +338,46 @@ test("a retry preserves the service baseline captured before the destructive bou
     { unit: "veele-staging.service", active: true },
     { unit: "veele-staging-api.service", active: true },
   ]);
+});
+
+test("migration and bootstrap retries preserve the original mixed service state", async (t) => {
+  for (const fault of ["migration", "bootstrap"]) {
+    await t.test(fault, async () => {
+      const directory = await mkdtemp(
+        join(tmpdir(), `fieldgrid-rebuild-${fault}-retry-`),
+      );
+      const path = join(directory, "private", "receipt.json");
+      const first = fixtures({
+        states: [
+          { unit: "veele-staging.service", active: true, pid: 1 },
+          { unit: "veele-staging-api.service", active: false, pid: 0 },
+        ],
+      });
+      first.deps.receiptPath = path;
+      first.deps[
+        fault === "migration" ? "runCanonicalMigrations" : "bootstrapDatabase"
+      ] = async () => {
+        throw new Error(`synthetic ${fault} fault`);
+      };
+      await assert.rejects(
+        runRebuild({ env: environment(), deps: first.deps }),
+      );
+
+      const second = fixtures({
+        states: [
+          { unit: "veele-staging.service", active: false, pid: 0 },
+          { unit: "veele-staging-api.service", active: false, pid: 0 },
+        ],
+      });
+      second.deps.receiptPath = path;
+      await runRebuild({ env: environment(), deps: second.deps });
+      const receipt = JSON.parse(await readFile(path, "utf8"));
+      assert.deepEqual(receipt.originalServices, [
+        { unit: "veele-staging.service", active: true },
+        { unit: "veele-staging-api.service", active: false },
+      ]);
+    });
+  }
 });
 
 test("workflow failure recovery restores the baseline before the destructive boundary", async () => {
@@ -438,14 +495,63 @@ test("provider pagination deletes all pages in bounded batches and verifies empt
   assert.deepEqual(removed, []);
 });
 
+test("provider persists canonical portal metadata and reads it back", async () => {
+  const stored = new Map();
+  const admin = {
+    auth: {
+      admin: {
+        async createUser(input) {
+          const user = {
+            id: `user-${stored.size + 1}`,
+            app_metadata: input.app_metadata,
+            user_metadata: input.user_metadata,
+          };
+          stored.set(user.id, user);
+          return { data: { user }, error: null };
+        },
+        async getUserById(id) {
+          return { data: { user: stored.get(id) }, error: null };
+        },
+      },
+    },
+  };
+  const provider = createProviderControl(admin, { sleep: async () => {} });
+  await provider.createIdentity({
+    email: "platform@example.test",
+    password: "secret",
+    name: "Platform beheerder",
+    portal: "platform-admin",
+    role: "owner",
+  });
+  await provider.createIdentity({
+    email: "tenant@example.test",
+    password: "secret",
+    name: "Tenant beheerder",
+    portal: "tenant-admin",
+    role: "owner",
+  });
+  assert.deepEqual(stored.get("user-1").app_metadata, {
+    portal: "platform-admin",
+    platform_role: "owner",
+    rebuilt_by: "disposable-staging-v1",
+  });
+  assert.deepEqual(stored.get("user-2").app_metadata, {
+    portal: "tenant-admin",
+    rebuilt_by: "disposable-staging-v1",
+  });
+});
+
 test("database writer fence disables runtime login and effective app writes", async () => {
   const statements = [];
   const client = {
     async query(sql) {
       statements.push(String(sql));
       if (String(sql).includes("effective_writer")) return { rows: [] };
+      if (String(sql).includes("SELECT nspname FROM pg_namespace")) {
+        return { rows: [{ nspname: "public" }] };
+      }
       if (String(sql).includes("pg_terminate_backend")) {
-        return { rows: [{ pg_terminate_backend: true }] };
+        return { rows: [{ pid: 99, stopped: true }] };
       }
       if (String(sql).includes("runtime_login_disabled")) {
         return {
@@ -464,6 +570,7 @@ test("database writer fence disables runtime login and effective app writes", as
   };
   const proof = await assertNoExternalWriters(client);
   assert.equal(proof.runtimeLoginDisabled, true);
+  assert.equal(proof.terminatedSessionCount, 2);
   assert.ok(
     statements.some((statement) =>
       statement.includes("ALTER ROLE fieldgrid_runtime_app NOLOGIN"),
@@ -474,6 +581,116 @@ test("database writer fence disables runtime login and effective app writes", as
       statement.includes("FROM PUBLIC, anon, authenticated, service_role"),
     ),
   );
+});
+
+test("writer admission guard rotates the migration credential until release", async () => {
+  const statements = [];
+  const parameters = [];
+  let migrated = false;
+  let armed = false;
+  let workerReleased = false;
+  const client = {
+    async query(sql, values) {
+      statements.push(String(sql));
+      parameters.push(values);
+      if (String(sql).includes("AS role_name")) {
+        return {
+          rows: [
+            {
+              pid: 101,
+              role_name: "migration_admin",
+            },
+          ],
+        };
+      }
+      if (String(sql).includes("pg_terminate_backend")) return { rows: [] };
+      if (String(sql).includes("AS admitted_pids")) {
+        return { rows: [{ admitted_pids: [101, 202] }] };
+      }
+      return { rows: [] };
+    },
+  };
+  const guard = await createWriterAdmissionGuard(client, {
+    repoRoot: process.cwd(),
+    env: {
+      DATABASE_URL: "postgresql://migration_admin:original@localhost/db",
+    },
+    startWorker: async () => ({
+      pid: 202,
+      role: "migration_admin",
+      async arm(password) {
+        armed = password === "original";
+      },
+      async migrate() {
+        migrated = true;
+      },
+      async release() {
+        workerReleased = true;
+      },
+    }),
+  });
+  assert.deepEqual(guard.allowedSamePrincipalPids, [202]);
+  await guard.migrate();
+  await guard.release();
+  assert.equal(migrated, true);
+  assert.equal(armed, true);
+  assert.equal(workerReleased, true);
+  assert.ok(
+    statements.some((statement) =>
+      statement.includes("ALTER ROLE %I PASSWORD %L"),
+    ),
+  );
+  assert.equal(
+    parameters.filter((values) => values?.[0] === "original").length,
+    1,
+  );
+});
+
+test("service discovery includes the exact root unit and rejects unknown wildcard matches", async () => {
+  const required = [
+    "veele-staging.service",
+    "veele-staging-personeel.service",
+    "veele-staging-klant.service",
+    "veele-staging-api.service",
+    "veele-staging-website.service",
+    "veele-staging-marketing.service",
+  ];
+  const discoveryArguments = [];
+  const services = createServiceControl({
+    command: async (_binary, args) => {
+      if (args[0] === "list-units" || args[0] === "list-unit-files") {
+        discoveryArguments.push(args);
+        return { stdout: required.map((unit) => `${unit} loaded`).join("\n") };
+      }
+      if (args[0] === "show") {
+        return {
+          stdout:
+            `Id=${args[1]}\nLoadState=loaded\nActiveState=inactive\n` +
+            "SubState=dead\nMainPID=0\n",
+        };
+      }
+      return { stdout: "" };
+    },
+  });
+  assert.equal((await services.inventory()).length, required.length);
+  for (const args of discoveryArguments) {
+    assert.ok(args.includes("veele-staging.service"));
+    assert.ok(args.includes("veele-staging-*"));
+  }
+
+  const unknown = createServiceControl({
+    command: async (_binary, args) => {
+      if (args[0] === "list-units" || args[0] === "list-unit-files") {
+        return {
+          stdout: [...required, "veele-staging-rogue.service"]
+            .map((unit) => `${unit} loaded`)
+            .join("\n"),
+        };
+      }
+      return { stdout: "" };
+    },
+  });
+  await assert.rejects(unknown.inventory(), /UNKNOWN_STAGING_WRITER/u);
 });
 
 test("service restoration returns inactive and active units to the captured baseline", async () => {
@@ -528,7 +745,24 @@ test("post-rebuild acceptance proves login, tenant isolation and storage denial"
     return {
       auth: {
         async signInWithPassword({ email }) {
-          return { data: { user: { id: identity.id, email } }, error: null };
+          return {
+            data: {
+              user: {
+                id: identity.id,
+                email,
+                app_metadata: {
+                  portal:
+                    identity.label === "platform"
+                      ? "platform-admin"
+                      : "tenant-admin",
+                  ...(identity.label === "platform"
+                    ? { platform_role: "owner" }
+                    : {}),
+                },
+              },
+            },
+            error: null,
+          };
         },
         async signOut() {
           return { error: null };
@@ -597,6 +831,7 @@ test("post-rebuild acceptance proves login, tenant isolation and storage denial"
     },
   });
   assert.equal(result.tenantIsolation, true);
+  assert.equal(result.portalMetadata, true);
   assert.equal(result.unauthorizedStorageDenied, true);
   assert.equal(objects.size, 0);
 });

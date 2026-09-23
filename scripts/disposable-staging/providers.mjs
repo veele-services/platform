@@ -216,12 +216,17 @@ export function createProviderControl(admin, options = {}) {
   }
 
   async function createIdentity({ email, password, name, portal, role }) {
+    const appMetadata = {
+      portal,
+      rebuilt_by: "disposable-staging-v1",
+      ...(portal === "platform-admin" ? { platform_role: role } : {}),
+    };
     const result = await providerCall(() =>
       admin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        app_metadata: { portal, role, rebuilt_by: "disposable-staging-v1" },
+        app_metadata: appMetadata,
         user_metadata: { full_name: name, name },
       }),
     );
@@ -231,7 +236,22 @@ export function createProviderControl(admin, options = {}) {
       "MIGRATED",
       true,
     );
-    return result.data.user.id;
+    const id = result.data.user.id;
+    const stored = await providerCall(() => admin.auth.admin.getUserById(id));
+    const storedUser = stored.data?.user;
+    requireThat(
+      storedUser?.id === id &&
+        storedUser.app_metadata?.portal === portal &&
+        storedUser.app_metadata?.rebuilt_by === "disposable-staging-v1" &&
+        (portal !== "platform-admin" ||
+          storedUser.app_metadata?.platform_role === role) &&
+        storedUser.user_metadata?.full_name === name &&
+        storedUser.user_metadata?.name === name,
+      "AUTH_METADATA_PERSISTENCE_FAILED",
+      "MIGRATED",
+      true,
+    );
+    return id;
   }
 
   async function preflight() {

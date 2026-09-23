@@ -3,7 +3,7 @@ import { requireThat } from "./contract.mjs";
 
 const BUCKET = "documents";
 
-async function signIn(client, identity, code) {
+async function signIn(client, identity, expectedPortal, code) {
   const result = await client.auth.signInWithPassword({
     email: identity.email,
     password: identity.password,
@@ -11,7 +11,10 @@ async function signIn(client, identity, code) {
   requireThat(
     !result.error &&
       typeof result.data?.user?.id === "string" &&
-      result.data.user.email?.toLowerCase() === identity.email,
+      result.data.user.email?.toLowerCase() === identity.email &&
+      result.data.user.app_metadata?.portal === expectedPortal &&
+      (expectedPortal !== "platform-admin" ||
+        result.data.user.app_metadata?.platform_role === "owner"),
     code,
     "ACTIVATED",
     true,
@@ -117,6 +120,7 @@ export async function runPostRebuildAcceptance({
     await signIn(
       platform,
       bootstrap.platform,
+      "platform-admin",
       "POST_REBUILD_PLATFORM_LOGIN_FAILED",
     );
     const tenantAUser = await signIn(
@@ -125,6 +129,7 @@ export async function runPostRebuildAcceptance({
         email: bootstrap.tenants[0].managerEmail,
         password: bootstrap.tenants[0].managerPassword,
       },
+      "tenant-admin",
       "POST_REBUILD_MANAGER_LOGIN_FAILED",
     );
     const tenantBUser = await signIn(
@@ -133,6 +138,7 @@ export async function runPostRebuildAcceptance({
         email: bootstrap.tenants[1].managerEmail,
         password: bootstrap.tenants[1].managerPassword,
       },
+      "tenant-admin",
       "POST_REBUILD_MANAGER_LOGIN_FAILED",
     );
     await assertTenantBoundary(
@@ -159,6 +165,7 @@ export async function runPostRebuildAcceptance({
     });
     return {
       platformLogin: true,
+      portalMetadata: true,
       managerLogins: 2,
       tenantIsolation: true,
       storageRoundTrip: true,

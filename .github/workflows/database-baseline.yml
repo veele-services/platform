@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ inputs.target == 'production' && 'veele-production' || 'veele-staging' }}
+  cancel-in-progress: false
+
 jobs:
   baseline:
     name: Baseline ${{ inputs.target }} database

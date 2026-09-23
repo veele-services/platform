@@ -2,31 +2,42 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-const RELEASE_WORKFLOWS = [
-  ".github/workflows/database-autofix.yml",
-  ".github/workflows/database-baseline.yml",
-  ".github/workflows/database-inspect.yml",
-  ".github/workflows/deploy.yml",
-  ".github/workflows/environment-isolation-preflight.yml",
-  ".github/workflows/fieldgrid-deploy-health-gate.yml",
-  ".github/workflows/fieldgrid-material-inventory-phase11.yml",
-  ".github/workflows/fieldgrid-material-inventory-phase12.yml",
-  ".github/workflows/fieldgrid-migration-smoke.yml",
-  ".github/workflows/fieldgrid-staging-document-storage-backfill.yml",
-  ".github/workflows/fieldgrid-staging-field-demo-domain-repair.yml",
-  ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
-  ".github/workflows/fieldgrid-staging-field-demo-owner-repair.yml",
-  ".github/workflows/fieldgrid-w00-runtime-principal.yml",
-  ".github/workflows/main-exact-head-validation.yml",
-  ".github/workflows/phase2e-staging-preflight.yml",
-  ".github/workflows/promotion-guard.yml",
-  ".github/workflows/runtime-entrypoint-inventory.yml",
-  ".github/workflows/runtime-safety-harness.yml",
-  ".github/workflows/seed-staging-demo.yml",
-  ".github/workflows/website-staging-acceptance.yml",
-  ".github/workflows/website-staging-proof-state.yml",
-  ".github/workflows/website-staging-stack-deploy.yml",
-];
+const RELEASE_WORKFLOWS = new Map([
+  [".github/workflows/database-autofix.yml", 1],
+  [".github/workflows/database-baseline.yml", 1],
+  [".github/workflows/database-inspect.yml", 2],
+  [".github/workflows/deploy.yml", 4],
+  [".github/workflows/environment-isolation-preflight.yml", 3],
+  [".github/workflows/fieldgrid-deploy-health-gate.yml", 4],
+  [".github/workflows/fieldgrid-disposable-staging-rebuild.yml", 2],
+  [".github/workflows/fieldgrid-material-inventory-phase11.yml", 2],
+  [".github/workflows/fieldgrid-material-inventory-phase12.yml", 2],
+  [".github/workflows/fieldgrid-migration-smoke.yml", 3],
+  [".github/workflows/fieldgrid-staging-document-storage-backfill.yml", 4],
+  [".github/workflows/fieldgrid-staging-field-demo-domain-repair.yml", 4],
+  [
+    ".github/workflows/fieldgrid-staging-field-demo-owner-binding-repair.yml",
+    4,
+  ],
+  [".github/workflows/fieldgrid-staging-field-demo-owner-repair.yml", 4],
+  [".github/workflows/fieldgrid-w00-runtime-principal.yml", 4],
+  [".github/workflows/main-exact-head-validation.yml", 28],
+  [".github/workflows/phase2e-staging-preflight.yml", 2],
+  [".github/workflows/promotion-guard.yml", 2],
+  [".github/workflows/runtime-entrypoint-inventory.yml", 3],
+  [".github/workflows/runtime-safety-harness.yml", 36],
+  [".github/workflows/seed-staging-demo.yml", 1],
+  [".github/workflows/website-staging-acceptance.yml", 2],
+  [".github/workflows/website-staging-proof-state.yml", 3],
+  [".github/workflows/website-staging-stack-deploy.yml", 2],
+]);
+
+const TRUSTED_LOCAL_WORKFLOWS = new Map([
+  [
+    ".github/workflows/fieldgrid-disposable-staging-rebuild.yml",
+    ["./.github/workflows/deploy.yml"],
+  ],
+]);
 
 const TRUSTED_ACTIONS = new Map([
   [
@@ -74,27 +85,36 @@ const TRUSTED_ACTIONS = new Map([
 ]);
 
 test("every release-critical action has an exact reviewed SHA and provenance label", () => {
-  let actionCount = 0;
-
-  for (const path of RELEASE_WORKFLOWS) {
+  for (const [path, expectedExternalActions] of RELEASE_WORKFLOWS) {
     const source = readFileSync(path, "utf8").replaceAll("\r\n", "\n");
     const usesLines = source
       .split("\n")
       .filter((line) => /^\s*-?\s*uses:/u.test(line));
-    const references = [
+    const externalReferences = [
       ...source.matchAll(
-        /^\s*-?\s*uses:\s+([^\s#]+)@([^\s#]+)(?:\s+#\s*(\S+))?/gmu,
+        /^\s*-?\s*uses:\s+((?!\.\/)[^\s#@]+)@([^\s#]+)(?:\s+#\s*(\S+))?/gmu,
       ),
     ];
-    assert.ok(references.length > 0, `${path} has no action references`);
+    const localReferences = [
+      ...source.matchAll(/^\s*-?\s*uses:\s+(\.\/[^\s#]+)\s*$/gmu),
+    ].map((match) => match[1]);
     assert.equal(
-      references.length,
+      externalReferences.length,
+      expectedExternalActions,
+      `${path} external action inventory changed`,
+    );
+    assert.equal(
+      externalReferences.length + localReferences.length,
       usesLines.length,
       `${path} contains an unpinned or unparsable action reference`,
     );
+    assert.deepEqual(
+      localReferences,
+      TRUSTED_LOCAL_WORKFLOWS.get(path) ?? [],
+      `${path} local reusable-workflow inventory changed`,
+    );
 
-    for (const [, action, revision, version] of references) {
-      actionCount += 1;
+    for (const [, action, revision, version] of externalReferences) {
       const trusted = TRUSTED_ACTIONS.get(action);
       assert.ok(trusted, `${path}: ${action} has no reviewed provenance`);
       assert.equal(
@@ -109,6 +129,4 @@ test("every release-critical action has an exact reviewed SHA and provenance lab
       );
     }
   }
-
-  assert.equal(actionCount, 120);
 });
