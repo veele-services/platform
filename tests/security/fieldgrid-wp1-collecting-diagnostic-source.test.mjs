@@ -41,6 +41,8 @@ test('live external diagnostic has only read capabilities; DML belongs to isolat
   assert.match(copy, /ip', \['link', 'set', 'lo', 'up'\]/);
   assert.match(copy, /COPY_CREDENTIAL_LEAK/);
   assert.match(copy, /COPY_ROLLBACK|copy\.rollback/);
+  assert.match(copy, /copy\.cluster\.failure_stage/);
+  for (const code of ['COPY_CLUSTER_INITDB_FAILED', 'COPY_CLUSTER_PG_CTL_FAILED', 'COPY_CLUSTER_READY_FAILED', 'COPY_CLUSTER_CREATEDB_FAILED', 'COPY_CLUSTER_SCHEMA_FAILED', 'COPY_CLUSTER_ROLES_FAILED']) assert.ok(copy.includes(code));
   assert.doesNotMatch(copy, /SUPABASE_SERVICE_ROLE_KEY\s*:/);
 
   const helper = read('ops/bin/fieldgrid-wp1-copy-sandbox');
