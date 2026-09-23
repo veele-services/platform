@@ -1862,16 +1862,26 @@ function localSupabaseCompatibilitySql() {
   `;
 }
 
-export async function startRestoreTarget(tempDir) {
+export async function startRestoreTarget(tempDir, hooks = {}) {
+  const stage = async (name, operation) => {
+    try {
+      return await operation();
+    } catch (error) {
+      if (typeof hooks.onStageFailure === "function") await hooks.onStageFailure(name, error);
+      throw error;
+    }
+  };
   const database = "fieldgrid_phase2e_staging_copy";
   const password = randomBytes(32).toString("hex");
   const passwordFile = join(tempDir, "restore-superuser-password");
   const dataDir = join(tempDir, "restore-data");
   const socketDir = join(tempDir, "restore-socket");
   const logPath = join(tempDir, "restore-postgresql.log");
-  const port = await reserveEphemeralPort();
-  await mkdir(socketDir, { mode: 0o700 });
-  await writeFile(passwordFile, `${password}\n`, { mode: 0o600 });
+  const port = await stage("port", () => reserveEphemeralPort());
+  await stage("prepare", async () => {
+    await mkdir(socketDir, { mode: 0o700 });
+    await writeFile(passwordFile, `${password}\n`, { mode: 0o600 });
+  });
   const initdbArgs = [
     "--pgdata",
     dataDir,
@@ -1890,9 +1900,9 @@ export async function startRestoreTarget(tempDir) {
   if (process.env.FIELDGRID_POSTGRESQL_SHAREDIR) {
     initdbArgs.push("-L", process.env.FIELDGRID_POSTGRESQL_SHAREDIR);
   }
-  await runCommand("initdb", initdbArgs);
+  await stage("initdb", () => runCommand("initdb", initdbArgs));
   await rm(passwordFile, { force: true });
-  await runCommand("pg_ctl", [
+  await stage("pg_ctl", () => runCommand("pg_ctl", [
     "--pgdata",
     dataDir,
     "--log",
@@ -1901,7 +1911,7 @@ export async function startRestoreTarget(tempDir) {
     "start",
     "--options",
     `-h 127.0.0.1 -p ${port} -k ${socketDir} -c fsync=off -c synchronous_commit=off -c full_page_writes=off`,
-  ]);
+  ]));
   const maintenanceEnv = {
     PGHOST: "127.0.0.1",
     PGPORT: String(port),
@@ -1910,13 +1920,13 @@ export async function startRestoreTarget(tempDir) {
     PGDATABASE: "postgres",
     PGSSLMODE: "disable",
   };
-  await waitForRestoreDatabase(maintenanceEnv);
-  await runCommand("createdb", ["--maintenance-db", "postgres", database], {
+  await stage("ready", () => waitForRestoreDatabase(maintenanceEnv));
+  await stage("createdb", () => runCommand("createdb", ["--maintenance-db", "postgres", database], {
     env: postgresCommandEnv(maintenanceEnv),
-  });
+  }));
   const pgEnv = { ...maintenanceEnv, PGDATABASE: database };
-  await psql(pgEnv, "drop schema public;");
-  await psql(pgEnv, restoreRoleSql());
+  await stage("schema", () => psql(pgEnv, "drop schema public;"));
+  await stage("roles", () => psql(pgEnv, restoreRoleSql()));
   return { dataDir, database, logPath, pgEnv, port };
 }
 
