@@ -161,8 +161,8 @@ export function createProviderControl(admin, options = {}) {
     return after;
   }
 
-  async function authInventory() {
-    const ids = [];
+  async function listAuthUsers() {
+    const collected = [];
     const seen = new Set();
     for (let page = 1; page <= Math.ceil(MAX_USERS / PAGE_SIZE); page += 1) {
       const result = await providerCall(() =>
@@ -179,17 +179,17 @@ export function createProviderControl(admin, options = {}) {
           "AUTH_PAGINATION_STALLED",
         );
         seen.add(user.id);
-        ids.push(user.id);
-        requireThat(ids.length <= MAX_USERS, "AUTH_USER_LIMIT");
+        collected.push(user);
+        requireThat(collected.length <= MAX_USERS, "AUTH_USER_LIMIT");
       }
-      if (users.length < PAGE_SIZE)
-        return {
-          ids: ids.sort(),
-          count: ids.length,
-          digest: digest(ids.sort()),
-        };
+      if (users.length < PAGE_SIZE) return collected;
     }
     fail("AUTH_PAGINATION_LIMIT");
+  }
+
+  async function authInventory() {
+    const ids = (await listAuthUsers()).map(({ id }) => id).sort();
+    return { ids, count: ids.length, digest: digest(ids) };
   }
 
   async function emptyAuth(expected) {
@@ -215,11 +215,21 @@ export function createProviderControl(admin, options = {}) {
     return after;
   }
 
-  async function createIdentity({ email, password, name, portal, role }) {
+  async function createIdentity({
+    email,
+    password,
+    name,
+    portal,
+    role,
+    acceptanceRun,
+  }) {
     const appMetadata = {
       portal,
       rebuilt_by: "disposable-staging-v1",
       ...(portal === "platform-admin" ? { platform_role: role } : {}),
+      ...(acceptanceRun
+        ? { acceptance_fixture: true, acceptance_run: acceptanceRun }
+        : {}),
     };
     const result = await providerCall(() =>
       admin.auth.admin.createUser({
@@ -245,6 +255,9 @@ export function createProviderControl(admin, options = {}) {
         storedUser.app_metadata?.rebuilt_by === "disposable-staging-v1" &&
         (portal !== "platform-admin" ||
           storedUser.app_metadata?.platform_role === role) &&
+        (!acceptanceRun ||
+          (storedUser.app_metadata?.acceptance_fixture === true &&
+            storedUser.app_metadata?.acceptance_run === acceptanceRun)) &&
         storedUser.user_metadata?.full_name === name &&
         storedUser.user_metadata?.name === name,
       "AUTH_METADATA_PERSISTENCE_FAILED",
@@ -252,6 +265,98 @@ export function createProviderControl(admin, options = {}) {
       true,
     );
     return id;
+  }
+
+  async function deleteAcceptanceIdentities(acceptanceRun) {
+    requireThat(
+      /^[0-9a-f]{64}$/u.test(acceptanceRun),
+      "ACCEPTANCE_RUN_TAG_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    const matches = (await listAuthUsers()).filter(
+      (user) =>
+        user.app_metadata?.acceptance_fixture === true &&
+        user.app_metadata?.acceptance_run === acceptanceRun,
+    );
+    requireThat(
+      matches.length <= 2,
+      "ACCEPTANCE_AUTH_CARDINALITY_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    for (const { id } of matches) {
+      await providerCall(() => admin.auth.admin.deleteUser(id, false), {
+        allow404: true,
+      });
+    }
+    const remaining = (await listAuthUsers()).filter(
+      (user) =>
+        user.app_metadata?.acceptance_fixture === true &&
+        user.app_metadata?.acceptance_run === acceptanceRun,
+    );
+    requireThat(
+      remaining.length === 0,
+      "ACCEPTANCE_AUTH_CLEANUP_INCOMPLETE",
+      "ACTIVATED",
+      true,
+    );
+    return { deletedCount: matches.length, remainingCount: 0 };
+  }
+
+  async function removeStorageObject(bucket, path) {
+    requireThat(
+      STORAGE_BUCKETS.includes(bucket),
+      "ACCEPTANCE_STORAGE_BUCKET_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    const safePath = assertObjectName(path);
+    await providerCall(() => admin.storage.from(bucket).remove([safePath]));
+    const remaining = await listBucketObjects(bucket);
+    requireThat(
+      !remaining.includes(safePath),
+      "ACCEPTANCE_STORAGE_CLEANUP_INCOMPLETE",
+      "ACTIVATED",
+      true,
+    );
+    return { removed: true };
+  }
+
+  async function verifyPlatformOnlyState(expectedPlatformId) {
+    const storage = await storageInventory();
+    const auth = await authInventory();
+    requireThat(
+      storage.count === 0 &&
+        auth.count === 1 &&
+        auth.ids[0] === expectedPlatformId,
+      "PROVIDER_FINAL_STATE_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    const stored = await providerCall(() =>
+      admin.auth.admin.getUserById(expectedPlatformId),
+    );
+    const user = stored.data?.user;
+    requireThat(
+      user?.id === expectedPlatformId &&
+        user.app_metadata?.portal === "platform-admin" &&
+        user.app_metadata?.platform_role === "owner" &&
+        user.app_metadata?.rebuilt_by === "disposable-staging-v1" &&
+        user.app_metadata?.acceptance_fixture !== true,
+      "PROVIDER_PLATFORM_IDENTITY_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    return {
+      authAccountCount: 1,
+      platformAdminCount: 1,
+      canonicalMetadata: true,
+      temporaryTenantAdminCount: 0,
+      authDigest: auth.digest,
+      storageObjectCount: 0,
+      storageDigest: storage.digest,
+    };
   }
 
   async function preflight() {
@@ -264,9 +369,12 @@ export function createProviderControl(admin, options = {}) {
     authInventory,
     bucketInventory,
     createIdentity,
+    deleteAcceptanceIdentities,
     emptyAuth,
     emptyStorage,
     preflight,
+    removeStorageObject,
     storageInventory,
+    verifyPlatformOnlyState,
   };
 }

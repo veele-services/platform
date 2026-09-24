@@ -7,6 +7,7 @@ import {
 } from "./disposable-staging/bootstrap.mjs";
 import {
   assertNoExternalWriters,
+  verifyPlatformOnlyDatabaseState,
   verifyRebuiltDatabase,
 } from "./disposable-staging/database.mjs";
 
@@ -17,36 +18,18 @@ const { Client } = require("pg");
 
 const identities = {
   platform: "30000000-0000-4000-8000-000000000001",
-  tenants: [
-    "30000000-0000-4000-8000-000000000002",
-    "30000000-0000-4000-8000-000000000003",
-  ],
 };
 const configuration = {
-  platform: { email: "platform@example.invalid", name: "Platform beheerder" },
-  tenants: [
-    {
-      id: "00000000-0000-0000-0000-000000000010",
-      slug: "rebuild-a",
-      host: "rebuild-a.staging.fieldgrid.nl",
-      name: "Rebuild A",
-      managerEmail: "a@example.invalid",
-      managerName: "Beheerder A",
-    },
-    {
-      id: "40000000-0000-4000-8000-000000000002",
-      slug: "rebuild-b",
-      host: "rebuild-b.staging.fieldgrid.nl",
-      name: "Rebuild B",
-      managerEmail: "b@example.invalid",
-      managerName: "Beheerder B",
-    },
-  ],
+  platform: {
+    email: "platform@example.invalid",
+    password: "platform-password-123",
+    name: "Platform beheerder",
+  },
 };
 
 export async function verifyPostgres17Rebuild(
   client,
-  { allowedSamePrincipalPids = [] } = {},
+  { allowedSamePrincipalPids = [], runAcceptance } = {},
 ) {
   try {
     // Plain postgres:17 lacks Supabase's managed publication. Install only this
@@ -62,22 +45,27 @@ export async function verifyPostgres17Rebuild(
         "ALTER PUBLICATION supabase_realtime ADD TABLE public.portal_realtime_events",
       );
     }
-    for (const [index, id] of [
+    await client.query("INSERT INTO auth.users(id,email) VALUES ($1,$2)", [
       identities.platform,
-      ...identities.tenants,
-    ].entries()) {
-      await client.query("INSERT INTO auth.users(id,email) VALUES ($1,$2)", [
-        id,
-        `rebuild-${index}@example.invalid`,
-      ]);
-    }
+      "platform@example.invalid",
+    ]);
     await bootstrapDatabase(client, configuration, identities);
     const database = await verifyRebuiltDatabase(client);
     const bootstrap = await verifyBootstrap(client, configuration, identities);
+    const acceptance = runAcceptance
+      ? await runAcceptance({
+          bootstrap: configuration,
+          database: client,
+        })
+      : undefined;
+    const finalState = await verifyPlatformOnlyDatabaseState(
+      client,
+      identities.platform,
+    );
     const writerFence = await assertNoExternalWriters(client, {
       allowedSamePrincipalPids,
     });
-    return { database, bootstrap, writerFence };
+    return { database, bootstrap, acceptance, finalState, writerFence };
   } finally {
     await client.query("DROP PUBLICATION IF EXISTS supabase_realtime");
   }

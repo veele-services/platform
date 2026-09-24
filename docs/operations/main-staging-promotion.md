@@ -83,7 +83,10 @@ available for a data-preserving promotion. A disposable rebuild uses the manual
 `Fieldgrid Disposable Staging Rebuild` workflow from the exact current `main`
 SHA. Its default `plan` operation is read-only and is never valid promotion
 evidence. Only a successful `rebuild` artifact whose report is `COMPLETE`, active,
-smoke-passed and post-rebuild acceptance-passed can authorize the ref move.
+smoke-passed and post-rebuild acceptance-passed can authorize the ref move. The
+report must also prove the complete `fieldgrid-platform-only-v1` final state:
+zero persistent tenants and tenant-scoped rows, zero Storage objects, one
+canonical platform Auth account and one matching active platform owner.
 
 Before this change is used after merge, change the sole required status check on
 the protected `staging` branch from `Backup, restore and migration rehearsal` to
@@ -247,11 +250,15 @@ The staging deployment must:
 15. verify application health and, on failure, restore both the previous
     `current` symlink and previous `shared/.env`.
 
-The existing W00 ownership proof deliberately runs after every database-backed
+The W00 ownership proof deliberately runs after every database-backed
 migration/backfill but before runtime-principal provisioning or verification
-and activation. If either credential or tenant-pair configuration is not ready,
-deployment stops before activation and the previous application release and
-environment stay active. An already-applied forward migration remains in place
+and activation. Normal and recovery deploys retain the strict tenant-pair path.
+The disposable rebuild instead uses `strict-platform-only`: it accepts no
+permanent tenant bindings and proves migration-admin ownership plus the exact
+zero-tenant catalog state before runtime-principal cutover. If a required
+credential or scope-specific proof is not ready, deployment stops before
+activation and the previous application release and environment stay active.
+An already-applied forward migration remains in place
 and must be compatible with that previous release.
 
 ## Rollback

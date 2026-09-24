@@ -947,6 +947,39 @@ export function assertDisposableRebuildReport(
   report,
   { approvedMain, expectedStaging, rebuildRunId, run },
 ) {
+  const finalState = report?.finalState;
+  const database = finalState?.database;
+  const auth = finalState?.auth;
+  const storage = finalState?.storage;
+  const platform = finalState?.platform;
+  const finalStateValid =
+    finalState?.contract === "fieldgrid-platform-only-v1" &&
+    finalState?.cleanupComplete === true &&
+    database?.tenantCount === 0 &&
+    database?.tenantUserCount === 0 &&
+    database?.tenantRoleMembershipCount === 0 &&
+    database?.tenantRoleCount === 0 &&
+    database?.tenantDomainCount === 0 &&
+    database?.organizationSettingsCount === 0 &&
+    database?.operationalQueueCount === 0 &&
+    database?.tenantScopedRowCount === 0 &&
+    Number.isInteger(database?.tenantScopedTableCount) &&
+    database.tenantScopedTableCount > 0 &&
+    /^[0-9a-f]{64}$/u.test(database?.tenantScopedDigest ?? "") &&
+    database?.platformUserCount === 1 &&
+    database?.activePlatformOwnerCount === 1 &&
+    database?.platformIdentityMatches === true &&
+    auth?.accountCount === 1 &&
+    auth?.platformAdminCount === 1 &&
+    auth?.temporaryTenantAdminCount === 0 &&
+    auth?.canonicalMetadata === true &&
+    /^[0-9a-f]{64}$/u.test(auth?.digest ?? "") &&
+    storage?.objectCount === 0 &&
+    /^[0-9a-f]{64}$/u.test(storage?.digest ?? "") &&
+    platform?.platformUserCount === 1 &&
+    platform?.activeOwnerCount === 1 &&
+    platform?.identityMatchesBootstrap === true &&
+    platform?.tenantMembershipCount === 0;
   if (
     report?.contract !== "fieldgrid-disposable-staging-rebuild-v1" ||
     report?.repository !== EXPECTED_GITHUB_REPOSITORY ||
@@ -966,6 +999,7 @@ export function assertDisposableRebuildReport(
     report?.backupRequired !== false ||
     report?.oldDataRestored !== false ||
     report?.mutationsPerformed !== true ||
+    !finalStateValid ||
     !/^[0-9a-f]{64}$/u.test(report?.proofDigest ?? "")
   ) {
     throw new Error(

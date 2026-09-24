@@ -53,10 +53,7 @@ export const PHASES = Object.freeze([
   "SAFE_STOPPED",
 ]);
 
-const UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const SHA = /^[0-9a-f]{40}$/u;
-const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/u;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 export class RebuildError extends Error {
@@ -134,42 +131,6 @@ function assertPassword(value) {
   return value;
 }
 
-function assertTenant(env, suffix) {
-  const id = required(env, `FIELDGRID_W00_STAGING_TENANT_${suffix}_ID`);
-  const host = required(
-    env,
-    `FIELDGRID_W00_STAGING_TENANT_${suffix}_HOST`,
-  ).toLowerCase();
-  const slug = required(
-    env,
-    `FIELDGRID_REBUILD_TENANT_${suffix}_SLUG`,
-  ).toLowerCase();
-  const name = required(env, `FIELDGRID_REBUILD_TENANT_${suffix}_NAME`);
-  const managerEmail = assertEmail(
-    required(env, `FIELDGRID_REBUILD_TENANT_${suffix}_MANAGER_EMAIL`),
-  );
-  const managerPassword = assertPassword(
-    required(env, `FIELDGRID_REBUILD_TENANT_${suffix}_MANAGER_PASSWORD`),
-  );
-  const managerName = required(
-    env,
-    `FIELDGRID_REBUILD_TENANT_${suffix}_MANAGER_NAME`,
-  );
-  requireThat(
-    UUID.test(id) || (suffix === "A" && id === COMPATIBILITY_TENANT_ID),
-    "BOOTSTRAP_TENANT_ID_INVALID",
-  );
-  requireThat(
-    SLUG.test(slug) && host === `${slug}.staging.fieldgrid.nl`,
-    "BOOTSTRAP_TENANT_HOST_INVALID",
-  );
-  requireThat(
-    name.length <= 200 && managerName.length <= 200,
-    "BOOTSTRAP_NAME_INVALID",
-  );
-  return { id, host, slug, name, managerEmail, managerPassword, managerName };
-}
-
 export function validateBootstrapConfiguration(env = process.env) {
   const platformEmail = assertEmail(
     required(env, "FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL"),
@@ -178,23 +139,6 @@ export function validateBootstrapConfiguration(env = process.env) {
     required(env, "FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD"),
   );
   const platformName = required(env, "FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME");
-  const tenantA = assertTenant(env, "A");
-  const tenantB = assertTenant(env, "B");
-  requireThat(
-    tenantA.id === COMPATIBILITY_TENANT_ID,
-    "BOOTSTRAP_TENANT_A_ID_INVALID",
-  );
-  requireThat(
-    tenantA.id !== tenantB.id &&
-      tenantA.host !== tenantB.host &&
-      tenantA.slug !== tenantB.slug,
-    "BOOTSTRAP_TENANTS_NOT_DISTINCT",
-  );
-  requireThat(
-    new Set([platformEmail, tenantA.managerEmail, tenantB.managerEmail])
-      .size === 3,
-    "BOOTSTRAP_IDENTITIES_NOT_DISTINCT",
-  );
   requireThat(platformName.length <= 200, "BOOTSTRAP_NAME_INVALID");
   return {
     platform: {
@@ -202,7 +146,6 @@ export function validateBootstrapConfiguration(env = process.env) {
       password: platformPassword,
       name: platformName,
     },
-    tenants: [tenantA, tenantB],
   };
 }
 
@@ -282,12 +225,9 @@ export function publicPlan(config, bootstrap, inventory) {
     managedSchemasPreserved: [...MANAGED_SCHEMAS],
     storageBuckets: [...STORAGE_BUCKETS],
     writerUnits: [...WRITER_UNITS],
-    bootstrap: {
-      tenantCount: bootstrap.tenants.length,
-      distinctIdentityCount: 1 + bootstrap.tenants.length,
-      tenantHosts: bootstrap.tenants.map(({ host }) => host).sort(),
-      credentialsConfigured: true,
-    },
+    platformAdminConfigured: Boolean(bootstrap.platform),
+    finalTenantCount: 0,
+    finalPersistentAuthAccountCount: 1,
     inventory,
   };
 }

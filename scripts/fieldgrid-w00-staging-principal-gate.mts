@@ -20,22 +20,30 @@ import {
 import { assertSafeStagingDatabaseUrl } from "./fieldgrid-w00-staging-principal-url.mts";
 
 const CONFIRMATION = "fieldgrid-w00-staging-principal-read-only-v1";
+const PLATFORM_ONLY_CONFIRMATION =
+  "fieldgrid-w00-staging-principal-platform-only-read-only-v1";
 const REPORT_PATH = "reports/w00-staging-principal-gate.json";
 const TARGET_TABLES = ["organization_settings", "tenant_domains"] as const;
-const EXPLICIT_NAMES = [
+const COMMON_EXPLICIT_NAMES = [
   "FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM",
   "FIELDGRID_W00_STAGING_DATABASE_URL",
+] as const;
+const TENANT_BINDING_NAMES = [
   "FIELDGRID_W00_STAGING_TENANT_A_HOST",
   "FIELDGRID_W00_STAGING_TENANT_A_ID",
   "FIELDGRID_W00_STAGING_TENANT_B_HOST",
   "FIELDGRID_W00_STAGING_TENANT_B_ID",
 ] as const;
-const REQUIRED_NAMES = [
-  ...EXPLICIT_NAMES,
+const COMMON_REQUIRED_NAMES = [
+  ...COMMON_EXPLICIT_NAMES,
   "APP_ENV",
   "TARGET_ENVIRONMENT",
   "EXPECTED_SUPABASE_PROJECT_REF",
   "NEXT_PUBLIC_SUPABASE_URL",
+] as const;
+const PLATFORM_ONLY_REQUIRED_NAMES = [
+  ...COMMON_REQUIRED_NAMES,
+  "FORBIDDEN_SUPABASE_PROJECT_REF",
 ] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -45,7 +53,7 @@ const dbRequire = createRequire(
 );
 const { Client } = dbRequire("pg");
 
-type Mode = "check" | "strict";
+type Mode = "check" | "strict" | "strict-platform-only";
 type GateStatus = "passed" | "failed" | "skipped";
 type OwnershipRow = {
   table_name: string;
@@ -62,16 +70,24 @@ type TenantPathRow = {
 };
 
 function parseMode(argv: string[]): Mode {
-  if (argv.length !== 1 || !["--check", "--strict"].includes(argv[0] ?? "")) {
+  if (
+    argv.length !== 1 ||
+    !["--check", "--strict", "--strict-platform-only"].includes(argv[0] ?? "")
+  ) {
     throw new Error(
-      "Usage: fieldgrid-w00-staging-principal-gate.mts --check|--strict",
+      "Usage: fieldgrid-w00-staging-principal-gate.mts --check|--strict|--strict-platform-only",
     );
   }
+  if (argv[0] === "--strict-platform-only") return "strict-platform-only";
   return argv[0] === "--strict" ? "strict" : "check";
 }
 
-function missingNames(env: NodeJS.ProcessEnv): string[] {
-  return REQUIRED_NAMES.filter((name) => !env[name]?.trim());
+function missingNames(env: NodeJS.ProcessEnv, mode: Mode): string[] {
+  const required =
+    mode === "strict-platform-only"
+      ? PLATFORM_ONLY_REQUIRED_NAMES
+      : [...COMMON_REQUIRED_NAMES, ...TENANT_BINDING_NAMES];
+  return required.filter((name) => !env[name]?.trim());
 }
 
 function normalizeExplicitHost(value: string, name: string): string {
@@ -125,28 +141,76 @@ async function persist(
 
 async function runLiveReadOnlyGate(
   env: NodeJS.ProcessEnv,
+  mode: Mode,
 ): Promise<Record<string, unknown>> {
   const databaseUrl = assertSafeStagingDatabaseUrl(
     env.FIELDGRID_W00_STAGING_DATABASE_URL!.trim(),
   );
-  const tenantAHost = normalizeExplicitHost(
-    env.FIELDGRID_W00_STAGING_TENANT_A_HOST!.trim(),
-    "FIELDGRID_W00_STAGING_TENANT_A_HOST",
-  );
-  const tenantBHost = normalizeExplicitHost(
-    env.FIELDGRID_W00_STAGING_TENANT_B_HOST!.trim(),
-    "FIELDGRID_W00_STAGING_TENANT_B_HOST",
-  );
-  const tenantAId = env.FIELDGRID_W00_STAGING_TENANT_A_ID!.trim();
-  const tenantBId = env.FIELDGRID_W00_STAGING_TENANT_B_ID!.trim();
-
-  if (!UUID_PATTERN.test(tenantAId) || !UUID_PATTERN.test(tenantBId)) {
-    throw new Error("Both explicit staging tenant IDs must be UUIDs.");
+  const platformOnly = mode === "strict-platform-only";
+  let tenantInputs: ReadonlyArray<readonly [string, string, string]> = [];
+  if (platformOnly) {
+    if (TENANT_BINDING_NAMES.some((name) => Boolean(env[name]?.trim()))) {
+      throw new Error(
+        "Platform-only W00 proof forbids permanent tenant bindings.",
+      );
+    }
+    if (
+      env.FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM !== PLATFORM_ONLY_CONFIRMATION
+    ) {
+      throw new Error(
+        "The explicit platform-only W00 confirmation is invalid.",
+      );
+    }
+    if (
+      env.EXPECTED_SUPABASE_PROJECT_REF !== "olyfmekyqozxrbrwwszu" ||
+      env.FORBIDDEN_SUPABASE_PROJECT_REF !== "ckdtiuemeygrnujjibnw"
+    ) {
+      throw new Error(
+        "The platform-only staging/production binding is invalid.",
+      );
+    }
+  } else {
+    const tenantAHost = normalizeExplicitHost(
+      env.FIELDGRID_W00_STAGING_TENANT_A_HOST!.trim(),
+      "FIELDGRID_W00_STAGING_TENANT_A_HOST",
+    );
+    const tenantBHost = normalizeExplicitHost(
+      env.FIELDGRID_W00_STAGING_TENANT_B_HOST!.trim(),
+      "FIELDGRID_W00_STAGING_TENANT_B_HOST",
+    );
+    const tenantAId = env.FIELDGRID_W00_STAGING_TENANT_A_ID!.trim();
+    const tenantBId = env.FIELDGRID_W00_STAGING_TENANT_B_ID!.trim();
+    if (!UUID_PATTERN.test(tenantAId) || !UUID_PATTERN.test(tenantBId)) {
+      throw new Error("Both explicit staging tenant IDs must be UUIDs.");
+    }
+    if (tenantAHost === tenantBHost || tenantAId === tenantBId) {
+      throw new Error("Tenant A and Tenant B staging inputs must be distinct.");
+    }
+    if (env.FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM !== CONFIRMATION) {
+      throw new Error(
+        "The explicit W00 staging-principal confirmation is invalid.",
+      );
+    }
+    for (const host of [tenantAHost, tenantBHost]) {
+      if (
+        !isFieldgridHostAllowedForRuntimeEnvironment(host, "staging") ||
+        !isTenantDomainAllowedForRuntimeEnvironment(host, "staging") ||
+        isPlatformHost(host)
+      ) {
+        throw new Error(
+          "An explicit host is not an allowed staging tenant host.",
+        );
+      }
+    }
+    tenantInputs = [
+      ["tenant-a", tenantAHost, tenantAId],
+      ["tenant-b", tenantBHost, tenantBId],
+    ];
   }
-  if (tenantAHost === tenantBHost || tenantAId === tenantBId) {
-    throw new Error("Tenant A and Tenant B staging inputs must be distinct.");
-  }
-  if (env.FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM !== CONFIRMATION) {
+  if (
+    mode === "check" &&
+    env.FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM !== CONFIRMATION
+  ) {
     throw new Error(
       "The explicit W00 staging-principal confirmation is invalid.",
     );
@@ -163,17 +227,6 @@ async function runLiveReadOnlyGate(
   });
   if (isolation.environment !== "staging") {
     throw new Error("The W00 staging-principal gate only accepts staging.");
-  }
-  for (const host of [tenantAHost, tenantBHost]) {
-    if (
-      !isFieldgridHostAllowedForRuntimeEnvironment(host, "staging") ||
-      !isTenantDomainAllowedForRuntimeEnvironment(host, "staging") ||
-      isPlatformHost(host)
-    ) {
-      throw new Error(
-        "An explicit host is not an allowed staging tenant host.",
-      );
-    }
   }
 
   const client = new Client({
@@ -297,10 +350,7 @@ async function runLiveReadOnlyGate(
     });
 
     const paths = [];
-    for (const [label, host, tenantId] of [
-      ["tenant-a", tenantAHost, tenantAId],
-      ["tenant-b", tenantBHost, tenantBId],
-    ] as const) {
+    for (const [label, host, tenantId] of tenantInputs) {
       const resolved = (await client.query(
         `
           select
@@ -342,7 +392,55 @@ async function runLiveReadOnlyGate(
       });
     }
 
+    let platformOnlyProof: Record<string, unknown> | undefined;
+    if (platformOnly) {
+      const schemaOwnership = await client.query(`
+        select
+          namespace_row.nspname as schema_name,
+          pg_catalog.pg_get_userbyid(namespace_row.nspowner) as owner,
+          namespace_row.nspowner = current_user::pg_catalog.regrole::oid
+            as current_user_is_owner
+        from pg_catalog.pg_namespace namespace_row
+        where namespace_row.nspname = any(array['public','app_private','drizzle']::text[])
+        order by namespace_row.nspname
+      `);
+      if (
+        schemaOwnership.rows.length !== 3 ||
+        schemaOwnership.rows.some(
+          (row: { current_user_is_owner?: boolean }) =>
+            row.current_user_is_owner !== true,
+        )
+      ) {
+        throw new Error(
+          "The migration principal does not own every rebuilt application schema.",
+        );
+      }
+      const counts = await client.query(`
+        select
+          (select count(*)::int from public.tenants) as tenants,
+          (select count(*)::int from public.organization_settings) as organization_settings,
+          (select count(*)::int from public.tenant_domains) as tenant_domains,
+          (select count(*)::int from public.tenant_users) as tenant_users,
+          (select count(*)::int from public.tenant_roles) as tenant_roles,
+          (select count(*)::int from public.tenant_user_roles) as tenant_user_roles
+      `);
+      const zeroState = counts.rows[0] ?? {};
+      if (!Object.values(zeroState).every((count) => count === 0)) {
+        throw new Error(
+          "Platform-only W00 proof found persistent tenant state.",
+        );
+      }
+      platformOnlyProof = {
+        schemaOwnership: schemaOwnership.rows,
+        counts: zeroState,
+        permanentTenantBindingsRequired: false,
+        permanentTenantBindingsProvided: false,
+        noPermanentTenantsRequired: true,
+      };
+    }
+
     return {
+      evidenceScope: platformOnly ? "platform-only" : "tenant-pair",
       projectFingerprint: isolation.projectFingerprint,
       currentUser: identityRow.current_user,
       sessionUser: identityRow.session_user,
@@ -354,7 +452,8 @@ async function runLiveReadOnlyGate(
       tables: ownership.rows,
       catalogClosure,
       paths,
-      tenantPathsDistinct: true,
+      tenantPathsDistinct: !platformOnly,
+      ...(platformOnly ? { platformOnlyProof } : {}),
     };
   } finally {
     if (transactionOpen) await client.query("rollback").catch(() => {});
@@ -364,10 +463,11 @@ async function runLiveReadOnlyGate(
 
 async function main(): Promise<void> {
   const mode = parseMode(process.argv.slice(2));
-  const explicitConfigured = EXPLICIT_NAMES.some((name) =>
-    Boolean(process.env[name]?.trim()),
-  );
-  const missing = missingNames(process.env);
+  const explicitConfigured = [
+    ...COMMON_EXPLICIT_NAMES,
+    ...TENANT_BINDING_NAMES,
+  ].some((name) => Boolean(process.env[name]?.trim()));
+  const missing = missingNames(process.env, mode);
 
   if (!explicitConfigured && mode === "check") {
     await persist(mode, "skipped", {
@@ -388,7 +488,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    const evidence = await runLiveReadOnlyGate(process.env);
+    const evidence = await runLiveReadOnlyGate(process.env, mode);
     await persist(mode, "passed", evidence);
   } catch (error) {
     await persist(mode, "failed", {

@@ -20,7 +20,11 @@ const otherSha = "b".repeat(40);
 function releaseFixture(context) {
   const baseDir = mkdtempSync(path.join(tmpdir(), "fieldgrid-release-sha-"));
   context.after(() => rmSync(baseDir, { recursive: true, force: true }));
-  const root = path.join(baseDir, "releases", `20260920120000-${expectedSha.slice(0, 7)}`);
+  const root = path.join(
+    baseDir,
+    "releases",
+    `20260920120000-${expectedSha.slice(0, 7)}`,
+  );
   mkdirSync(root, { recursive: true });
   const markerPath = path.join(root, ".fieldgrid-release-sha");
   writeFileSync(markerPath, `${expectedSha}\n`);
@@ -70,7 +74,12 @@ test("recovery release verification binds the main dispatch SHA separately from 
     EXPECTED_STAGING_SHA: otherSha,
   };
   assert.equal(assertExactCheckoutSha(env, fixture), expectedSha);
-  assert.throws(() => assertExactCheckoutSha({ ...env, EXPECTED_STAGING_SHA: expectedSha }, fixture));
+  assert.throws(() =>
+    assertExactCheckoutSha(
+      { ...env, EXPECTED_STAGING_SHA: expectedSha },
+      fixture,
+    ),
+  );
 });
 
 test("disposable rebuild release verification binds the exact main candidate and old staging ref", (context) => {
@@ -84,10 +93,16 @@ test("disposable rebuild release verification binds the exact main candidate and
   };
   assert.equal(assertExactCheckoutSha(env, fixture), expectedSha);
   assert.throws(() =>
-    assertExactCheckoutSha({ ...env, EXPECTED_STAGING_SHA: expectedSha }, fixture),
+    assertExactCheckoutSha(
+      { ...env, EXPECTED_STAGING_SHA: expectedSha },
+      fixture,
+    ),
   );
   assert.throws(() =>
-    assertExactCheckoutSha({ ...env, DEPLOY_CONFIRMATION: "staging-recovery-only" }, fixture),
+    assertExactCheckoutSha(
+      { ...env, DEPLOY_CONFIRMATION: "staging-recovery-only" },
+      fixture,
+    ),
   );
 });
 
@@ -117,13 +132,23 @@ test("release markers cannot bypass dispatch identity or staging scope", (contex
   for (const name of Object.keys(fixture.env)) {
     const env = { ...fixture.env };
     delete env[name];
-    assert.throws(() => assertExactCheckoutSha(env, fixture), `${name} is required`);
+    assert.throws(
+      () => assertExactCheckoutSha(env, fixture),
+      `${name} is required`,
+    );
   }
 });
 
 test("release source rejects missing, mismatched, malformed and indirect SHA markers", (context) => {
   const fixture = releaseFixture(context);
-  for (const content of ["", otherSha, `${expectedSha}\r`, `${expectedSha} `, `${expectedSha}\n\n`, "x".repeat(200)]) {
+  for (const content of [
+    "",
+    otherSha,
+    `${expectedSha}\r`,
+    `${expectedSha} `,
+    `${expectedSha}\n\n`,
+    "x".repeat(200),
+  ]) {
     writeFileSync(fixture.markerPath, content);
     assert.throws(() => assertExactCheckoutSha(fixture.env, fixture));
   }
@@ -140,24 +165,47 @@ test("release source rejects missing, mismatched, malformed and indirect SHA mar
 
 test("release identity cannot borrow a marker from another release path or a symlink", (context) => {
   const fixture = releaseFixture(context);
-  for (const name of ["arbitrary-directory", `20260920120000-${otherSha.slice(0, 7)}`]) {
+  for (const name of [
+    "arbitrary-directory",
+    `20260920120000-${otherSha.slice(0, 7)}`,
+  ]) {
     const root = path.join(fixture.env.BASE_DIR, "releases", name);
     mkdirSync(root);
     writeFileSync(path.join(root, ".fieldgrid-release-sha"), expectedSha);
-    assert.throws(() => assertExactCheckoutSha({ ...fixture.env, RELEASE: root }, { root }));
+    assert.throws(() =>
+      assertExactCheckoutSha({ ...fixture.env, RELEASE: root }, { root }),
+    );
   }
   const link = path.join(fixture.env.BASE_DIR, "release-link");
   symlinkSync(fixture.root, link);
-  assert.throws(() => assertExactCheckoutSha({ ...fixture.env, RELEASE: link }, { root: link }));
+  assert.throws(() =>
+    assertExactCheckoutSha({ ...fixture.env, RELEASE: link }, { root: link }),
+  );
 });
 
 test("Git checkout identity takes precedence and cannot fall back to a matching marker", (context) => {
   const fixture = releaseFixture(context);
   git(fixture.root, "init", "--initial-branch=test");
-  git(fixture.root, "-c", "user.name=Fieldgrid Test", "-c", "user.email=release@example.test", "commit", "--allow-empty", "-m", "fixture");
+  git(
+    fixture.root,
+    "-c",
+    "user.name=Fieldgrid Test",
+    "-c",
+    "user.email=release@example.test",
+    "commit",
+    "--allow-empty",
+    "-m",
+    "fixture",
+  );
   const sha = git(fixture.root, "rev-parse", "HEAD");
-  assert.equal(assertExactCheckoutSha({ FIELDGRID_RUNTIME_EXPECTED_SHA: sha }, fixture), sha);
-  assert.throws(() => assertExactCheckoutSha(fixture.env, fixture), /checkout does not match/u);
+  assert.equal(
+    assertExactCheckoutSha({ FIELDGRID_RUNTIME_EXPECTED_SHA: sha }, fixture),
+    sha,
+  );
+  assert.throws(
+    () => assertExactCheckoutSha(fixture.env, fixture),
+    /checkout does not match/u,
+  );
   rmSync(path.join(fixture.root, ".git"), { recursive: true });
   mkdirSync(path.join(fixture.root, ".git"));
   assert.throws(() => assertExactCheckoutSha(fixture.env, fixture));
@@ -166,33 +214,67 @@ test("Git checkout identity takes precedence and cannot fall back to a matching 
 test("Git worktrees retain exact checkout verification", (context) => {
   const fixture = releaseFixture(context);
   git(fixture.root, "init", "--initial-branch=test");
-  git(fixture.root, "-c", "user.name=Fieldgrid Test", "-c", "user.email=release@example.test", "commit", "--allow-empty", "-m", "fixture");
+  git(
+    fixture.root,
+    "-c",
+    "user.name=Fieldgrid Test",
+    "-c",
+    "user.email=release@example.test",
+    "commit",
+    "--allow-empty",
+    "-m",
+    "fixture",
+  );
   const sha = git(fixture.root, "rev-parse", "HEAD");
   const worktree = path.join(fixture.env.BASE_DIR, "worktree");
   git(fixture.root, "worktree", "add", "--detach", worktree, sha);
-  assert.equal(assertExactCheckoutSha({ FIELDGRID_RUNTIME_EXPECTED_SHA: sha }, { root: worktree }), sha);
+  assert.equal(
+    assertExactCheckoutSha(
+      { FIELDGRID_RUNTIME_EXPECTED_SHA: sha },
+      { root: worktree },
+    ),
+    sha,
+  );
 });
 
 test("deploy reports every missing tenant binding before building, without revealing values", () => {
-  const workflow = readFileSync(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
-  const start = workflow.indexOf("      - name: Validate service configuration");
-  const end = workflow.indexOf("          require_pair()", start);
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/deploy.yml", import.meta.url),
+    "utf8",
+  );
+  const start = workflow.indexOf(
+    "      - name: Validate staging tenant bindings",
+  );
+  const end = workflow.indexOf(
+    "      - name: Validate service configuration",
+    start,
+  );
   const step = workflow.slice(start, end);
   assert.ok(start > 0 && end > start);
-  assert.ok(start < workflow.indexOf("      - name: Prepare release directory"));
+  assert.ok(
+    start < workflow.indexOf("      - name: Prepare release directory"),
+  );
   assert.ok(start < workflow.indexOf("      - name: Build"));
-  const script = step.slice(step.indexOf("        run: |") + "        run: |".length);
+  const script = step.slice(
+    step.indexOf("        run: |") + "        run: |".length,
+  );
   const env = {
     PATH: process.env.PATH,
     FIELDGRID_W00_STAGING_TENANT_A_HOST: "private-tenant-a.example.test",
     FIELDGRID_W00_STAGING_TENANT_B_HOST: "private-tenant-b.example.test",
   };
-  const missing = spawnSync("bash", [], { input: script, encoding: "utf8", env });
+  const missing = spawnSync("bash", [], {
+    input: script,
+    encoding: "utf8",
+    env,
+  });
   assert.equal(missing.status, 1);
   assert.equal(missing.stdout, "");
-  assert.equal(missing.stderr,
-    "::error::Missing required staging binding: FIELDGRID_W00_STAGING_TENANT_A_ID\n"
-      + "::error::Missing required staging binding: FIELDGRID_W00_STAGING_TENANT_B_ID\n");
+  assert.equal(
+    missing.stderr,
+    "::error::Missing required staging binding: FIELDGRID_W00_STAGING_TENANT_A_ID\n" +
+      "::error::Missing required staging binding: FIELDGRID_W00_STAGING_TENANT_B_ID\n",
+  );
   const complete = spawnSync("bash", [], {
     input: script,
     encoding: "utf8",

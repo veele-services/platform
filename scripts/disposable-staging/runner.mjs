@@ -19,6 +19,7 @@ import {
   createWriterAdmissionGuard,
   databaseInventory,
   resetApplicationSchemas,
+  verifyPlatformOnlyDatabaseState,
   verifyRebuiltDatabase,
 } from "./database.mjs";
 import {
@@ -109,8 +110,15 @@ function inventorySummary({ database, provider, services }) {
   return {
     database: {
       applicationSchemas: database.applicationSchemas,
+      applicationTables: database.applicationTables,
       managedCatalogDigest: database.managedCatalogDigest,
       principalDigest: digest(database.principal),
+      tenantCount: database.currentTenantCount,
+      tenantUserCount: database.currentTenantUserCount,
+      platformUserCount: database.currentPlatformUserCount,
+      tenantScopedTableCount: database.currentTenantScopedTableCount,
+      tenantScopedRowCount: database.currentTenantScopedRowCount,
+      tenantScopedDigest: database.currentTenantScopedDigest,
     },
     provider: {
       storageBucketCount: provider.storage.configured.length,
@@ -284,19 +292,7 @@ export async function runRebuild({
         portal: "platform-admin",
         role: "owner",
       }),
-      tenants: [],
     };
-    for (const tenant of bootstrap.tenants) {
-      identities.tenants.push(
-        await provider.createIdentity({
-          email: tenant.managerEmail,
-          password: tenant.managerPassword,
-          name: tenant.managerName,
-          portal: "tenant-admin",
-          role: "owner",
-        }),
-      );
-    }
     await (deps.bootstrapDatabase ?? bootstrapDatabase)(
       database,
       bootstrap,
@@ -305,6 +301,7 @@ export async function runRebuild({
     await guardedFence();
     await save(path, receipt, "BOOTSTRAPPED", now, {
       bootstrapIdentityDigest: digest(identities),
+      platformUserId: identities.platform,
     });
 
     const databaseProof = await (
@@ -315,20 +312,15 @@ export async function runRebuild({
       bootstrap,
       identities,
     );
-    const finalProvider = await provider.preflight();
-    requireThat(
-      finalProvider.storage.count === 0 && finalProvider.auth.count === 3,
-      "PROVIDER_FINAL_STATE_INVALID",
-      "BOOTSTRAPPED",
-      true,
+    const providerProof = await provider.verifyPlatformOnlyState(
+      identities.platform,
     );
     await services.assertStopped(originalServices);
     await save(path, receipt, "VERIFIED", now, {
       proofDigest: digest({
         databaseProof,
         bootstrapProof,
-        storage: finalProvider.storage.digest,
-        auth: finalProvider.auth.digest,
+        providerProof,
       }),
     });
     const result = publicResult(receipt, "prepared", {
@@ -377,7 +369,8 @@ export async function finalizeRebuild({
       receipt.expectedStagingSha === config.expectedStaging &&
       receipt.runId === config.runId &&
       receipt.attempt === config.attempt &&
-      receipt.phase === "VERIFIED",
+      receipt.phase === "VERIFIED" &&
+      typeof receipt.platformUserId === "string",
     "RECEIPT_RUN_MISMATCH",
   );
   const activeSha = (
@@ -407,22 +400,105 @@ export async function finalizeRebuild({
     true,
   );
   const bootstrap = validateBootstrapConfiguration(env);
-  const acceptance = await (
-    deps.runPostRebuildAcceptance ?? runPostRebuildAcceptance
-  )({ env, bootstrap, candidateSha: config.expectedMain });
-  await save(path, receipt, "COMPLETE", now, {
-    releaseActive: true,
-    smokePassed: true,
-    acceptancePassed: true,
-    acceptanceDigest: digest(acceptance),
-    proofDigest: digest({ prepared: receipt.proofDigest, acceptance }),
-  });
-  const result = publicResult(receipt, "passed", {
-    mutationsPerformed: true,
-    proofDigest: receipt.proofDigest,
-  });
-  if (outputDir) await writePublicResult(outputDir, result);
-  return result;
+  let database;
+  try {
+    const connections = (deps.validateConnections ?? validateConnections)(env);
+    const provider =
+      deps.provider ??
+      createProviderControl(
+        (deps.createProviderClient ?? createProviderClient)(env),
+        deps.providerOptions,
+      );
+    database = await connectDatabase(
+      (deps.createDatabaseClient ?? createDatabaseClient)(connections),
+    );
+    await save(path, receipt, "ACTIVATED", now, {
+      releaseActive: true,
+      smokePassed: true,
+    });
+    const acceptance = await (
+      deps.runPostRebuildAcceptance ?? runPostRebuildAcceptance
+    )({
+      env,
+      bootstrap,
+      candidateSha: config.expectedMain,
+      runId: config.runId,
+      attempt: config.attempt,
+      database,
+      provider,
+    });
+    requireThat(
+      acceptance.fixtureCleanupComplete === true,
+      "POST_REBUILD_FIXTURE_CLEANUP_FAILED",
+      "ACTIVATED",
+      true,
+    );
+    const databaseState = await (
+      deps.verifyPlatformOnlyDatabaseState ?? verifyPlatformOnlyDatabaseState
+    )(database, receipt.platformUserId);
+    const providerState = await provider.verifyPlatformOnlyState(
+      receipt.platformUserId,
+    );
+    const finalState = {
+      contract: "fieldgrid-platform-only-v1",
+      database: databaseState,
+      auth: {
+        accountCount: providerState.authAccountCount,
+        platformAdminCount: providerState.platformAdminCount,
+        temporaryTenantAdminCount: providerState.temporaryTenantAdminCount,
+        canonicalMetadata: providerState.canonicalMetadata,
+        digest: providerState.authDigest,
+      },
+      storage: {
+        objectCount: providerState.storageObjectCount,
+        digest: providerState.storageDigest,
+      },
+      platform: {
+        platformUserCount: databaseState.platformUserCount,
+        activeOwnerCount: databaseState.activePlatformOwnerCount,
+        identityMatchesBootstrap: databaseState.platformIdentityMatches,
+        tenantMembershipCount: databaseState.tenantUserCount,
+      },
+      cleanupComplete: true,
+    };
+    await save(path, receipt, "COMPLETE", now, {
+      releaseActive: true,
+      smokePassed: true,
+      acceptancePassed: true,
+      acceptanceDigest: digest(acceptance),
+      finalState,
+      proofDigest: digest({
+        prepared: receipt.proofDigest,
+        acceptance,
+        finalState,
+      }),
+    });
+    const result = publicResult(receipt, "passed", {
+      mutationsPerformed: true,
+      proofDigest: receipt.proofDigest,
+      finalState,
+    });
+    if (outputDir) await writePublicResult(outputDir, result);
+    return result;
+  } catch (error) {
+    const failure = safeFailure(error, receipt.phase);
+    await services.safeStop().catch(() => {});
+    await save(path, receipt, "SAFE_STOPPED", now, {
+      releaseActive: false,
+      smokePassed: false,
+      acceptancePassed: false,
+      failureCode: failure.code,
+    }).catch(() => {});
+    if (outputDir) {
+      await writePublicResult(
+        outputDir,
+        publicResult(receipt, "failed", { failureCode: failure.code }),
+      ).catch(() => {});
+    }
+    throw error;
+  } finally {
+    await database?.end().catch(() => {});
+  }
 }
 
 export async function safeStopRebuild({
