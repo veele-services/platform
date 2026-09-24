@@ -26,6 +26,69 @@ test("disposable workflow is manual, main-bound, staging-locked and plan-default
   assert.match(workflow, /disposable-staging-plan-/u);
 });
 
+test("disposable plan verifies live refs with authenticated built-in fetch before checkout", () => {
+  const workflow = read(
+    ".github/workflows/fieldgrid-disposable-staging-rebuild.yml",
+  );
+  const verification = workflow.indexOf(
+    "- name: Verify exact read-only dispatch before repository code",
+  );
+  const checkout = workflow.indexOf("- name: Checkout exact main candidate");
+  assert.ok(verification >= 0 && checkout > verification);
+  const preCheckout = workflow.slice(verification, checkout);
+
+  assert.match(workflow, /permissions:\n\s+actions: read\n\s+contents: read/u);
+  assert.doesNotMatch(workflow, /(?:^|\s)(?:gh|curl|jq)(?:\s|$)/mu);
+  assert.doesNotMatch(preCheckout, /gh api/u);
+  assert.match(preCheckout, /set -euo pipefail/u);
+  assert.match(preCheckout, /test "\$GITHUB_EVENT_NAME" = workflow_dispatch/u);
+  assert.match(
+    preCheckout,
+    /test "\$GITHUB_REPOSITORY" = veele-services\/platform/u,
+  );
+  assert.match(preCheckout, /test "\$GITHUB_REF" = refs\/heads\/main/u);
+  assert.match(preCheckout, /test "\$GITHUB_SHA" = "\$EXPECTED_MAIN_SHA"/u);
+  assert.match(preCheckout, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/u);
+  assert.match(preCheckout, /node --input-type=module -e/u);
+  assert.match(preCheckout, /read -r live_main live_staging < <\(/u);
+  assert.match(preCheckout, /const refs = await Promise\.all/u);
+  assert.match(preCheckout, /\["main", "staging"\]\.map/u);
+  assert.match(
+    preCheckout,
+    /https:\/\/api\.github\.com\/repos\/\$\{process\.env\.GITHUB_REPOSITORY\}\/git\/ref\/heads\/\$\{branch\}/u,
+  );
+  assert.match(
+    preCheckout,
+    /Authorization: `Bearer \$\{process\.env\.GITHUB_TOKEN\}`/u,
+  );
+  assert.match(preCheckout, /Accept: "application\/vnd\.github\+json"/u);
+  assert.match(preCheckout, /"X-GitHub-Api-Version": "2022-11-28"/u);
+  assert.match(preCheckout, /if \(!response\.ok\)/u);
+  assert.match(
+    preCheckout,
+    /const sha = \(await response\.json\(\)\)\.object\?\.sha \?\? ""/u,
+  );
+  assert.match(preCheckout, /!\/\^\[0-9a-f\]\{40\}\$\/u\.test\(sha\)/u);
+  assert.match(
+    preCheckout,
+    /process\.stdout\.write\(`\$\{refs\[0\]\} \$\{refs\[1\]\}\\n`\)/u,
+  );
+  assert.match(
+    preCheckout,
+    /\[\[ "\$EXPECTED_MAIN_SHA" =~ \^\[0-9a-f\]\{40\}\$ \]\]/u,
+  );
+  assert.match(
+    preCheckout,
+    /\[\[ "\$EXPECTED_STAGING_SHA" =~ \^\[0-9a-f\]\{40\}\$ \]\]/u,
+  );
+  assert.match(preCheckout, /test "\$live_main" = "\$EXPECTED_MAIN_SHA"/u);
+  assert.match(
+    preCheckout,
+    /test "\$live_staging" = "\$EXPECTED_STAGING_SHA"/u,
+  );
+  assert.doesNotMatch(workflow.slice(0, checkout), /uses: actions\/checkout@/u);
+});
+
 test("every hosted staging migration writer shares the canonical admission lock", () => {
   const stagingOnlyWriters = [
     ".github/workflows/database-autofix.yml",

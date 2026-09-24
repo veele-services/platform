@@ -69,8 +69,33 @@ jobs:
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
           [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$EXPECTED_STAGING_SHA" =~ ^[0-9a-f]{40}$ ]]
-          live_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          live_staging="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/staging" --jq .object.sha)"
+          read -r live_main live_staging < <(
+            node --input-type=module -e '
+              const refs = await Promise.all(
+                ["main", "staging"].map(async (branch) => {
+                  const response = await fetch(
+                    `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+                    {
+                      headers: {
+                        Accept: "application/vnd.github+json",
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                      },
+                    },
+                  );
+                  if (!response.ok) {
+                    throw new Error(`${branch} ref lookup failed with HTTP ${response.status}`);
+                  }
+                  const sha = (await response.json()).object?.sha ?? "";
+                  if (!/^[0-9a-f]{40}$/u.test(sha)) {
+                    throw new Error(`${branch} ref lookup returned an invalid SHA`);
+                  }
+                  return sha;
+                }),
+              );
+              process.stdout.write(`${refs[0]} ${refs[1]}\n`);
+            '
+          )
           test "$live_main" = "$EXPECTED_MAIN_SHA"
           test "$live_staging" = "$EXPECTED_STAGING_SHA"
 
