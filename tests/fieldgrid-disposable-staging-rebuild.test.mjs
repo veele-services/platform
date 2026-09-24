@@ -6,6 +6,7 @@ import { test } from "node:test";
 
 import {
   CONTRACT,
+  RebuildError,
   PRODUCTION_PROJECT_REF,
   STAGING_PROJECT_REF,
   validateDispatchEnvironment,
@@ -50,20 +51,6 @@ function environment(mode = "rebuild") {
     FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: "platform@example.test",
     FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: "platform-password-123",
     FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: "Platform beheerder",
-    FIELDGRID_W00_STAGING_TENANT_A_ID: "00000000-0000-0000-0000-000000000010",
-    FIELDGRID_W00_STAGING_TENANT_A_HOST: "alpha.staging.fieldgrid.nl",
-    FIELDGRID_REBUILD_TENANT_A_SLUG: "alpha",
-    FIELDGRID_REBUILD_TENANT_A_NAME: "Alpha",
-    FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: "alpha@example.test",
-    FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: "alpha-password-1234",
-    FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: "Alpha beheerder",
-    FIELDGRID_W00_STAGING_TENANT_B_ID: "22222222-2222-4222-8222-222222222222",
-    FIELDGRID_W00_STAGING_TENANT_B_HOST: "bravo.staging.fieldgrid.nl",
-    FIELDGRID_REBUILD_TENANT_B_SLUG: "bravo",
-    FIELDGRID_REBUILD_TENANT_B_NAME: "Bravo",
-    FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: "bravo@example.test",
-    FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: "bravo-password-1234",
-    FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: "Bravo beheerder",
     MODE: mode,
   };
 }
@@ -97,29 +84,15 @@ function fixtures({
   const provider = {
     async preflight() {
       calls.push("provider.preflight");
-      return provider.final
-        ? {
-            storage: {
-              configured: [],
-              objects: {},
-              count: 0,
-              digest: "storage-final",
-            },
-            auth: {
-              ids: ["platform", "tenant-a", "tenant-b"],
-              count: 3,
-              digest: "auth-final",
-            },
-          }
-        : {
-            storage: {
-              configured: [],
-              objects: {},
-              count: 0,
-              digest: "storage-before",
-            },
-            auth: { ids: [], count: 0, digest: "auth-before" },
-          };
+      return {
+        storage: {
+          configured: [],
+          objects: {},
+          count: 0,
+          digest: "storage-before",
+        },
+        auth: { ids: [], count: 0, digest: "auth-before" },
+      };
     },
     async emptyStorage() {
       calls.push("provider.emptyStorage");
@@ -132,14 +105,19 @@ function fixtures({
     async createIdentity(identity) {
       calls.push("provider.createIdentity");
       createdIdentities.push(identity);
-      if (
-        calls.filter((value) => value === "provider.createIdentity").length ===
-        3
-      )
-        provider.final = true;
-      return ["platform", "tenant-a", "tenant-b"][
-        calls.filter((value) => value === "provider.createIdentity").length - 1
-      ];
+      return "platform";
+    },
+    async verifyPlatformOnlyState() {
+      calls.push("provider.verifyPlatformOnlyState");
+      return {
+        authAccountCount: 1,
+        platformAdminCount: 1,
+        temporaryTenantAdminCount: 0,
+        canonicalMetadata: true,
+        authDigest: "a".repeat(64),
+        storageObjectCount: 0,
+        storageDigest: "b".repeat(64),
+      };
     },
   };
   const database = {
@@ -185,7 +163,22 @@ function fixtures({
     runCanonicalMigrations: async () => calls.push("db.migrate"),
     bootstrapDatabase: async () => calls.push("db.bootstrap"),
     verifyRebuiltDatabase: async () => ({ migrationJournal: true }),
-    verifyBootstrap: async () => ({ tenants: 2 }),
+    verifyBootstrap: async () => ({ tenants: 0 }),
+    verifyPlatformOnlyDatabaseState: async () => ({
+      tenantCount: 0,
+      tenantUserCount: 0,
+      tenantRoleMembershipCount: 0,
+      tenantRoleCount: 0,
+      tenantDomainCount: 0,
+      organizationSettingsCount: 0,
+      operationalQueueCount: 0,
+      tenantScopedRowCount: 0,
+      tenantScopedTableCount: 42,
+      tenantScopedDigest: "c".repeat(64),
+      platformUserCount: 1,
+      activePlatformOwnerCount: 1,
+      platformIdentityMatches: true,
+    }),
     now: () => Date.parse("2026-09-23T10:00:00Z"),
   };
   return { calls, createdIdentities, deps, services };
@@ -289,7 +282,7 @@ test("rebuild preserves the destructive order and produces promotable evidence o
   );
   assert.deepEqual(
     createdIdentities.map(({ portal }) => portal),
-    ["platform-admin", "tenant-admin", "tenant-admin"],
+    ["platform-admin"],
   );
   const final = await finalizeRebuild({
     env: environment("finalize"),
@@ -297,7 +290,10 @@ test("rebuild preserves the destructive order and produces promotable evidence o
     deps: {
       ...deps,
       readActiveSha: async () => `${MAIN}\n`,
-      runPostRebuildAcceptance: async () => ({ accepted: true }),
+      runPostRebuildAcceptance: async () => ({
+        accepted: true,
+        fixtureCleanupComplete: true,
+      }),
       services: {
         async restore() {},
         async inventory() {
@@ -313,6 +309,68 @@ test("rebuild preserves the destructive order and produces promotable evidence o
   assert.equal(final.releaseActive, true);
   assert.equal(final.smokePassed, true);
   assert.equal(final.acceptancePassed, true);
+});
+
+test("fixture cleanup failure safe-stops without COMPLETE and a full retry succeeds", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-rebuild-cleanup-fail-"),
+  );
+  const receiptPath = join(directory, "private", "receipt.json");
+  const first = fixtures();
+  first.deps.receiptPath = receiptPath;
+  await runRebuild({
+    env: environment(),
+    outputDir: directory,
+    deps: first.deps,
+  });
+
+  await assert.rejects(
+    finalizeRebuild({
+      env: environment("finalize"),
+      outputDir: directory,
+      deps: {
+        ...first.deps,
+        readActiveSha: async () => `${MAIN}\n`,
+        runPostRebuildAcceptance: async () => {
+          throw new RebuildError(
+            "POST_REBUILD_FIXTURE_CLEANUP_FAILED",
+            "ACTIVATED",
+            true,
+          );
+        },
+      },
+    }),
+    /POST_REBUILD_FIXTURE_CLEANUP_FAILED/u,
+  );
+  assert.ok(first.calls.includes("services.safeStop"));
+  const failedReceipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(failedReceipt.phase, "SAFE_STOPPED");
+  assert.equal(failedReceipt.acceptancePassed, false);
+  assert.notEqual(failedReceipt.phase, "COMPLETE");
+
+  const retry = fixtures();
+  retry.deps.receiptPath = receiptPath;
+  await runRebuild({
+    env: environment(),
+    outputDir: directory,
+    deps: retry.deps,
+  });
+  const final = await finalizeRebuild({
+    env: environment("finalize"),
+    outputDir: directory,
+    deps: {
+      ...retry.deps,
+      readActiveSha: async () => `${MAIN}\n`,
+      runPostRebuildAcceptance: async () => ({
+        accepted: true,
+        fixtureCleanupComplete: true,
+      }),
+    },
+  });
+  const completeReceipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(final.status, "passed");
+  assert.equal(completeReceipt.phase, "COMPLETE");
+  assert.equal(completeReceipt.acceptancePassed, true);
 });
 
 test("a retry preserves the service baseline captured before the destructive boundary", async () => {
@@ -730,7 +788,7 @@ test("service restoration returns inactive and active units to the captured base
 test("post-rebuild acceptance proves login, tenant isolation and storage denial", async () => {
   const objects = new Map();
   const tenants = [
-    { id: "00000000-0000-0000-0000-000000000010" },
+    { id: "11111111-1111-4111-8111-111111111111" },
     { id: "22222222-2222-4222-8222-222222222222" },
   ];
   const identities = [
@@ -810,28 +868,57 @@ test("post-rebuild acceptance proves login, tenant isolation and storage denial"
       },
     };
   };
+  const createdFixtures = [];
+  const provider = {
+    async createIdentity(input) {
+      createdFixtures.push(input);
+      return createdFixtures.length === 1 ? "tenant-a-user" : "tenant-b-user";
+    },
+    async removeStorageObject(_bucket, path) {
+      objects.delete(path);
+      return { removed: true };
+    },
+    async deleteAcceptanceIdentities() {
+      return { deletedCount: 2, remainingCount: 0 };
+    },
+  };
+  const database = {
+    async query(sql) {
+      const statement = String(sql);
+      if (statement.includes("INSERT INTO public.tenant_user_roles")) {
+        return { rows: [], rowCount: 1 };
+      }
+      if (
+        statement.includes("SELECT count(*)::int FROM public.tenants WHERE")
+      ) {
+        return {
+          rows: [{ tenants: 0, tenant_users: 0, tenant_user_roles: 0 }],
+        };
+      }
+      return { rows: [], rowCount: 1 };
+    },
+  };
+  const generatedTenantIds = tenants.map(({ id }) => id);
   const result = await runPostRebuildAcceptance({
     env: {},
     candidateSha: MAIN,
+    runId: 42,
+    attempt: 1,
+    database,
+    provider,
     createClient,
+    randomUuid: () => generatedTenantIds.shift(),
+    randomSecret: () => Buffer.alloc(32, 7),
     bootstrap: {
       platform: { email: "platform@example.test", password: "platform-pass" },
-      tenants: [
-        {
-          ...tenants[0],
-          managerEmail: "a@example.test",
-          managerPassword: "tenant-a-pass",
-        },
-        {
-          ...tenants[1],
-          managerEmail: "b@example.test",
-          managerPassword: "tenant-b-pass",
-        },
-      ],
     },
   });
-  assert.equal(result.tenantIsolation, true);
+  assert.equal(result.temporaryTenantCount, 2);
+  assert.equal(result.reciprocalTenantIsolation, true);
   assert.equal(result.portalMetadata, true);
   assert.equal(result.unauthorizedStorageDenied, true);
+  assert.equal(result.fixtureCleanupComplete, true);
+  assert.equal(createdFixtures.length, 2);
+  assert.ok(createdFixtures.every(({ acceptanceRun }) => acceptanceRun));
   assert.equal(objects.size, 0);
 });

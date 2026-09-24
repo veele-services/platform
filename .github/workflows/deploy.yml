@@ -432,7 +432,8 @@ jobs:
           echo "Website service: ${WEBSITE_SERVICE_NAME:-<not configured>}"
           echo "Marketing service: ${MARKETING_SERVICE_NAME:-<not configured>}"
 
-      - name: Validate service configuration
+      - name: Validate staging tenant bindings
+        if: env.DEPLOYMENT_MODE != 'disposable-rebuild'
         env:
           FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
           FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
@@ -440,7 +441,6 @@ jobs:
           FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
         run: |
           set -euo pipefail
-
           missing_staging_bindings=()
           for required_name in \
             FIELDGRID_W00_STAGING_TENANT_A_HOST \
@@ -455,6 +455,10 @@ jobs:
             printf '::error::Missing required staging binding: %s\n' "${missing_staging_bindings[@]}" >&2
             exit 1
           fi
+
+      - name: Validate service configuration
+        run: |
+          set -euo pipefail
 
           require_pair() {
             local service_name="$1"
@@ -730,20 +734,6 @@ jobs:
           FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
-          FIELDGRID_REBUILD_TENANT_A_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_A_SLUG }}
-          FIELDGRID_REBUILD_TENANT_A_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_NAME }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME }}
-          FIELDGRID_REBUILD_TENANT_B_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_B_SLUG }}
-          FIELDGRID_REBUILD_TENANT_B_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_NAME }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME }}
-          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
-          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
-          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
-          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/disposable-staging-rebuild"
@@ -806,7 +796,7 @@ jobs:
           pnpm fieldgrid:email-provider-readiness --migration-database
 
       - name: Verify migration-admin ownership before runtime principal cutover
-        if: env.TARGET == 'staging'
+        if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
           # The existing W00 ownership proof describes the migration principal,
@@ -835,6 +825,27 @@ jobs:
               ../../scripts/fieldgrid-w00-staging-principal-gate.mts --strict
           node scripts/fieldgrid-staging-promotion-gate.mjs \
             --strict-w00-principal \
+            --expected-deployed-sha "$GITHUB_SHA"
+
+      - name: Verify platform-only migration-admin ownership before runtime principal cutover
+        if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE == 'disposable-rebuild'
+        working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM: fieldgrid-w00-staging-principal-platform-only-read-only-v1
+        run: |
+          set -euo pipefail
+          test -n "$FIELDGRID_MIGRATION_DATABASE_URL"
+          test -z "${FIELDGRID_W00_STAGING_TENANT_A_HOST:-}"
+          test -z "${FIELDGRID_W00_STAGING_TENANT_A_ID:-}"
+          test -z "${FIELDGRID_W00_STAGING_TENANT_B_HOST:-}"
+          test -z "${FIELDGRID_W00_STAGING_TENANT_B_ID:-}"
+
+          FIELDGRID_W00_STAGING_DATABASE_URL="$FIELDGRID_MIGRATION_DATABASE_URL" \
+            pnpm --filter @workspace/db exec tsx \
+              ../../scripts/fieldgrid-w00-staging-principal-gate.mts --strict-platform-only
+          node scripts/fieldgrid-staging-promotion-gate.mjs \
+            --strict-w00-principal-platform-only \
             --expected-deployed-sha "$GITHUB_SHA"
 
       - name: Provision staging runtime database principal
@@ -987,23 +998,10 @@ jobs:
         if: env.DEPLOYMENT_MODE == 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
-          FIELDGRID_REBUILD_TENANT_A_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_A_SLUG }}
-          FIELDGRID_REBUILD_TENANT_A_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_NAME }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_EMAIL }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD }}
-          FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_A_MANAGER_NAME }}
-          FIELDGRID_REBUILD_TENANT_B_SLUG: ${{ vars.FIELDGRID_REBUILD_TENANT_B_SLUG }}
-          FIELDGRID_REBUILD_TENANT_B_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_NAME }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_EMAIL }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_TENANT_B_MANAGER_PASSWORD }}
-          FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME: ${{ vars.FIELDGRID_REBUILD_TENANT_B_MANAGER_NAME }}
-          FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
-          FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
-          FIELDGRID_W00_STAGING_TENANT_B_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_B_HOST }}
-          FIELDGRID_W00_STAGING_TENANT_B_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_B_ID }}
         run: |
           set -euo pipefail
           node scripts/fieldgrid-disposable-staging-rebuild.mjs \

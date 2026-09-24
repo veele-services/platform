@@ -71,7 +71,13 @@ test("deploy builds before rebuilding and never rolls old code back after the de
   assert.match(deploy, /\(failure\(\) \|\| cancelled\(\)\)/u);
   assert.match(deploy, /--safe-stop/u);
   assert.match(deploy, /--finalize/u);
-  assert.match(deploy, /FIELDGRID_REBUILD_TENANT_A_MANAGER_PASSWORD/u);
+  assert.doesNotMatch(deploy, /FIELDGRID_REBUILD_TENANT_[AB]_/u);
+  assert.match(deploy, /--strict-platform-only/u);
+  assert.match(deploy, /--strict-w00-principal-platform-only/u);
+  assert.match(
+    deploy,
+    /fieldgrid-w00-staging-principal-platform-only-read-only-v1/u,
+  );
   assert.match(
     deploy,
     /disposable-staging-rebuild-\$\{\{ github\.run_id \}\}-\$\{\{ github\.sha \}\}/u,
@@ -111,11 +117,16 @@ test("rebuilt administrators match stored metadata and existing activation route
     "artifacts/backoffice/src/app/actions/tenant-roles.ts",
   );
   assert.match(runner, /portal: "platform-admin"/u);
-  assert.match(runner, /portal: "tenant-admin"/u);
+  assert.doesNotMatch(runner, /portal: "tenant-admin"/u);
   assert.doesNotMatch(runner, /portal: "(?:platform|backoffice)"/u);
   assert.match(providers, /getUserById\(id\)/u);
   assert.match(providers, /AUTH_METADATA_PERSISTENCE_FAILED/u);
   assert.match(acceptance, /app_metadata\?\.portal === expectedPortal/u);
+  assert.match(acceptance, /acceptanceRun/u);
+  assert.match(acceptance, /temporaryTenantCount: 2/u);
+  assert.match(acceptance, /deleteAcceptanceIdentities/u);
+  assert.match(acceptance, /cleanupTemporaryDatabaseFixtures/u);
+  assert.match(providers, /acceptance_fixture: true/u);
   assert.match(invites, /existingPortal !== opts\.portal/u);
   assert.match(platformActions, /portal: "platform-admin"/u);
   assert.match(tenantActions, /portal: "tenant-admin"/u);
@@ -134,11 +145,15 @@ test("main exact-head gate executes a real PostgreSQL 17 clean migrate/bootstrap
   );
   assert.match(runner, /fieldgrid_disposable_rebuild_one/u);
   assert.match(runner, /fieldgrid_disposable_rebuild_two/u);
-  assert.match(runner, /for \(const \{ databaseName, fault \} of scenarios\)/u);
+  assert.match(
+    runner,
+    /for \(const \{ databaseName, faults \} of scenarios\)/u,
+  );
   assert.match(runner, /fieldgrid:runtime-safety:setup/u);
   assert.match(runner, /fieldgrid-disposable-staging-postgres17\.mjs/u);
   assert.match(runner, /fault-after-schema-reset/u);
-  assert.match(runner, /fault-during-migration-bootstrap/u);
+  assert.match(runner, /fault-during-migrations/u);
+  assert.match(runner, /fault-during-bootstrap/u);
   assert.match(runner, /secondaryWriter/u);
   assert.match(runner, /reentry-after-admission/u);
   assert.match(runner, /assert\.rejects\(reentrantWriter\.connect\(\)\)/u);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 
+import { bootstrapDatabase } from "./disposable-staging/bootstrap.mjs";
 import {
   assertNoExternalWriters,
   createWriterAdmissionGuard,
@@ -26,13 +27,14 @@ if (
 const scenarios = [
   {
     databaseName: "fieldgrid_disposable_rebuild_one",
-    fault: "fault-after-schema-reset",
+    faults: ["fault-after-schema-reset", "fault-during-migrations"],
   },
   {
     databaseName: "fieldgrid_disposable_rebuild_two",
-    fault: "fault-during-migration-bootstrap",
+    faults: ["fault-during-bootstrap"],
   },
 ];
+const PLATFORM_ID = "30000000-0000-4000-8000-000000000001";
 
 function run(command, args, env) {
   const result = spawnSync(command, args, {
@@ -147,13 +149,50 @@ async function injectFault(connectionString, env, fault) {
     await client.end();
   }
 
-  if (fault === "fault-during-migration-bootstrap") {
+  if (["fault-during-migrations", "fault-during-bootstrap"].includes(fault)) {
     run("pnpm", ["--filter", "@workspace/db", "run", "db:migrate"], env);
+  }
+  if (fault === "fault-during-bootstrap") {
     run(
       "pnpm",
       ["--filter", "@workspace/db", "exec", "tsx", "src/seed/rbac.ts"],
       env,
     );
+    run(
+      "pnpm",
+      ["--filter", "@workspace/db", "exec", "tsx", "src/seed/sectors.ts"],
+      env,
+    );
+    const bootstrapClient = new Client({
+      connectionString,
+      application_name: "fieldgrid-disposable-bootstrap-fault",
+    });
+    await bootstrapClient.connect();
+    try {
+      await bootstrapClient.query("DELETE FROM auth.users");
+      await bootstrapClient.query(
+        "INSERT INTO auth.users(id,email) VALUES ($1,$2)",
+        [PLATFORM_ID, "platform@example.invalid"],
+      );
+      const injectedClient = {
+        query(sql, values) {
+          if (String(sql).includes("INSERT INTO public.platform_users")) {
+            throw new Error("synthetic fault during bootstrap");
+          }
+          return bootstrapClient.query(sql, values);
+        },
+      };
+      await assert.rejects(
+        bootstrapDatabase(
+          injectedClient,
+          { platform: { email: "platform@example.invalid" } },
+          { platform: PLATFORM_ID },
+        ),
+        /synthetic fault during bootstrap/u,
+      );
+    } finally {
+      await bootstrapClient.end();
+    }
   }
   process.stdout.write(`[fieldgrid:postgres17] injected ${fault}\n`);
 
@@ -174,6 +213,18 @@ async function injectFault(connectionString, env, fault) {
 const admin = new Client({ connectionString: source.toString() });
 await admin.connect();
 const migrationRole = "fieldgrid_disposable_rebuild_admin";
+
+async function assertMigrationRoleAbsent() {
+  const existing = await admin.query(
+    "SELECT 1 FROM pg_roles WHERE rolname=$1",
+    [migrationRole],
+  );
+  assert.equal(
+    existing.rows.length,
+    0,
+    `Disposable PostgreSQL 17 harness requires a fresh cluster without role ${migrationRole}`,
+  );
+}
 try {
   await admin.query(`
     DO $$
@@ -190,11 +241,11 @@ try {
     END
     $$
   `);
-  await admin.query(`DROP ROLE IF EXISTS ${migrationRole}`);
+  await assertMigrationRoleAbsent();
   await admin.query(
     `CREATE ROLE ${migrationRole} LOGIN CREATEROLE CREATEDB PASSWORD 'fieldgrid-rebuild-test'`,
   );
-  for (const { databaseName, fault } of scenarios) {
+  for (const { databaseName, faults } of scenarios) {
     await admin.query(
       "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1",
       [databaseName],
@@ -222,8 +273,10 @@ try {
 
     await fullRebuild(env, { initial: true });
     await proveSamePrincipalFence(target.toString());
-    await injectFault(target.toString(), env, fault);
-    await fullRebuild(env);
+    for (const fault of faults) {
+      await injectFault(target.toString(), env, fault);
+      await fullRebuild(env);
+    }
 
     await admin.query(
       "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1",
@@ -243,6 +296,5 @@ try {
       .query(`DROP DATABASE IF EXISTS ${databaseName}`)
       .catch(() => {});
   }
-  await admin.query(`DROP ROLE IF EXISTS ${migrationRole}`).catch(() => {});
   await admin.end();
 }

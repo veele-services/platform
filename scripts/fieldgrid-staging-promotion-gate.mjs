@@ -253,6 +253,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     help: false,
     strictEvidence: false,
     strictW00Principal: false,
+    strictW00PrincipalScope: "tenant-pair",
     expectedMain:
       process.env.FIELDGRID_PROMOTION_EXPECTED_MAIN_SHA?.trim() ?? "",
     expectedStaging:
@@ -282,6 +283,10 @@ export function parseArgs(argv = process.argv.slice(2)) {
         break;
       case "--strict-w00-principal":
         options.strictW00Principal = true;
+        break;
+      case "--strict-w00-principal-platform-only":
+        options.strictW00Principal = true;
+        options.strictW00PrincipalScope = "platform-only";
         break;
       case "--write":
         options.write = true;
@@ -627,10 +632,21 @@ export function validateW00StagingPrincipalEvidence(report, options = {}) {
   if (!isRecord(report)) {
     return ["W00 staging-principal artifact is not an object."];
   }
+  const evidence = report.evidence;
+  const declaredScope = evidence?.evidenceScope;
+  const expectedScope = options.expectedScope ?? declaredScope;
+  const expectedMode =
+    expectedScope === "platform-only" ? "strict-platform-only" : "strict";
+  if (
+    !["tenant-pair", "platform-only"].includes(expectedScope) ||
+    declaredScope !== expectedScope
+  ) {
+    errors.push("W00 staging-principal evidence scope is invalid.");
+  }
   if (
     report.name !== "fieldgrid-w00-staging-principal-gate" ||
     report.status !== "passed" ||
-    report.mode !== "strict" ||
+    report.mode !== expectedMode ||
     report.destructive !== false ||
     report.transactionMode !== "read only"
   ) {
@@ -647,7 +663,6 @@ export function validateW00StagingPrincipalEvidence(report, options = {}) {
     errors.push("W00 staging-principal evidence is stale or future-dated.");
   }
 
-  const evidence = report.evidence;
   const tables = Array.isArray(evidence?.tables) ? evidence.tables : [];
   const tableNames = tables.map((table) => table?.table_name);
   const owners = new Set(tables.map((table) => table?.owner));
@@ -662,7 +677,6 @@ export function validateW00StagingPrincipalEvidence(report, options = {}) {
     evidence.sessionIdentityMatches !== true ||
     evidence.sessionUserCanControlPrivilegedRole !== false ||
     evidence.transactionReadOnly !== true ||
-    evidence.tenantPathsDistinct !== true ||
     !sameMembers(tableNames, ["organization_settings", "tenant_domains"]) ||
     owners.size !== 1 ||
     owners.has(undefined) ||
@@ -701,20 +715,59 @@ export function validateW00StagingPrincipalEvidence(report, options = {}) {
   }
 
   const paths = Array.isArray(evidence?.paths) ? evidence.paths : [];
-  if (
-    !sameMembers(
-      paths.map((path) => path?.label),
-      ["tenant-a", "tenant-b"],
-    ) ||
-    paths.some(
-      (path) =>
-        !isSha256(path?.inputFingerprint) ||
-        path?.resolvedExactlyOnce !== true ||
-        path?.hostTenantMatched !== true ||
-        path?.settingsTenantMatched !== true,
-    )
-  ) {
-    errors.push("W00 staging-principal tenant A/B path proof is invalid.");
+  if (expectedScope === "tenant-pair") {
+    if (
+      evidence?.tenantPathsDistinct !== true ||
+      !sameMembers(
+        paths.map((path) => path?.label),
+        ["tenant-a", "tenant-b"],
+      ) ||
+      paths.some(
+        (path) =>
+          !isSha256(path?.inputFingerprint) ||
+          path?.resolvedExactlyOnce !== true ||
+          path?.hostTenantMatched !== true ||
+          path?.settingsTenantMatched !== true,
+      )
+    ) {
+      errors.push("W00 staging-principal tenant A/B path proof is invalid.");
+    }
+  } else if (expectedScope === "platform-only") {
+    const proof = evidence?.platformOnlyProof;
+    const schemas = Array.isArray(proof?.schemaOwnership)
+      ? proof.schemaOwnership
+      : [];
+    const counts = proof?.counts;
+    if (
+      paths.length !== 0 ||
+      evidence?.tenantPathsDistinct !== false ||
+      !isRecord(proof) ||
+      proof.permanentTenantBindingsRequired !== false ||
+      proof.permanentTenantBindingsProvided !== false ||
+      proof.noPermanentTenantsRequired !== true ||
+      !sameMembers(
+        schemas.map((schema) => schema?.schema_name),
+        ["public", "app_private", "drizzle"],
+      ) ||
+      schemas.some(
+        (schema) =>
+          typeof schema?.owner !== "string" ||
+          !schema.owner ||
+          schema?.current_user_is_owner !== true,
+      ) ||
+      !isRecord(counts) ||
+      !sameMembers(Object.keys(counts), [
+        "tenants",
+        "organization_settings",
+        "tenant_domains",
+        "tenant_users",
+        "tenant_roles",
+        "tenant_user_roles",
+      ]) ||
+      Object.values(counts).some((count) => count !== 0)
+    ) {
+      errors.push("W00 staging-principal platform-only proof is invalid.");
+    }
   }
   if (options.requireReleaseBinding !== false) {
     const release = report.release;
@@ -725,6 +778,7 @@ export function validateW00StagingPrincipalEvidence(report, options = {}) {
       release.markerSha !== release.expectedDeployedSha ||
       release.exactMatch !== true ||
       release.source !== ".fieldgrid-release-sha" ||
+      release.evidenceScope !== expectedScope ||
       (isFullSha(options.expectedDeployedSha) &&
         release.expectedDeployedSha !== options.expectedDeployedSha) ||
       !validateFreshTimestamp(release.boundAt, {
@@ -941,7 +995,10 @@ function validatePhase2eRollbackEvidence(rollback, expectedStaging, nowMs) {
     diagnostics.artifactId < 1 ||
     diagnostics.artifactName !==
       `fieldgrid-staging-deploy-diagnostics-${run?.id}` ||
-    !validateRollbackRecoveryTimestamp(diagnostics.updatedAt, timestampIdentity) ||
+    !validateRollbackRecoveryTimestamp(
+      diagnostics.updatedAt,
+      timestampIdentity,
+    ) ||
     !isSha256(diagnostics.sha256) ||
     ![
       DEPLOY_HEALTH_EVIDENCE_VERSION,
@@ -1153,6 +1210,7 @@ async function classifyArtifact(
     validationErrors = validateW00StagingPrincipalEvidence(parsed, {
       nowMs: options.nowMs,
       expectedDeployedSha: options.expectedDeployedSha,
+      expectedScope: parsed?.evidence?.evidenceScope,
     });
     classification = {
       candidateDatabaseRehearsal: false,
@@ -1212,6 +1270,10 @@ async function classifyArtifact(
     evidenceTimestampMs,
     semanticStatus,
     validationErrors,
+    w00PrincipalScope:
+      kind === "w00-staging-principal"
+        ? (parsed?.evidence?.evidenceScope ?? null)
+        : null,
     classification,
     summary:
       semanticStatus === "valid"
@@ -1657,6 +1719,12 @@ async function writeReport(plan, outDir) {
 export async function bindW00StagingPrincipalArtifactToRelease(options = {}) {
   const root = options.repoRoot ?? repoRoot;
   const expectedDeployedSha = options.expectedDeployedSha ?? "";
+  const expectedScope = options.expectedScope ?? "tenant-pair";
+  if (!["tenant-pair", "platform-only"].includes(expectedScope)) {
+    throw new Error(
+      "W00 pre-activation binding requires an explicit valid evidence scope.",
+    );
+  }
   if (!isFullSha(expectedDeployedSha)) {
     throw new Error(
       "W00 pre-activation binding requires an exact deployed release SHA.",
@@ -1706,6 +1774,7 @@ export async function bindW00StagingPrincipalArtifactToRelease(options = {}) {
   const coreErrors = validateW00StagingPrincipalEvidence(report, {
     nowMs,
     requireReleaseBinding: false,
+    expectedScope,
   });
   if (coreErrors.length > 0) {
     throw new Error(coreErrors.join(" | "));
@@ -1718,6 +1787,7 @@ export async function bindW00StagingPrincipalArtifactToRelease(options = {}) {
       markerSha,
       exactMatch: true,
       source: ".fieldgrid-release-sha",
+      evidenceScope: expectedScope,
       boundAt: new Date(nowMs).toISOString(),
     },
   };
@@ -1731,8 +1801,12 @@ export async function bindW00StagingPrincipalArtifactToRelease(options = {}) {
 
 export async function validateStrictW00StagingPrincipalArtifact(options = {}) {
   const expectedDeployedSha = options.expectedDeployedSha ?? "";
+  const expectedScope = options.expectedScope ?? "tenant-pair";
   if (!isFullSha(expectedDeployedSha)) {
     return ["Pre-activation requires an exact expected deployed release SHA."];
+  }
+  if (!["tenant-pair", "platform-only"].includes(expectedScope)) {
+    return ["Pre-activation requires an explicit valid W00 evidence scope."];
   }
   const evidence = await collectPromotionEvidence({
     repoRoot: options.repoRoot,
@@ -1745,6 +1819,7 @@ export async function validateStrictW00StagingPrincipalArtifact(options = {}) {
   if (
     reports.length !== 1 ||
     reports[0]?.semanticStatus !== "valid" ||
+    reports[0]?.w00PrincipalScope !== expectedScope ||
     reports[0]?.classification?.stagingPrincipalEvidence !== true
   ) {
     return [
@@ -1770,6 +1845,8 @@ Modes:
   --strict-w00-principal validates the fresh strict W00 migration-admin ownership artifact
   after forward migrations, binds it to --expected-deployed-sha and the fixed
   .fieldgrid-release-sha marker, then validates it before release activation.
+  --strict-w00-principal-platform-only applies the same release binding while
+  requiring a zero-tenant platform-only W00 proof.
   --write writes a JSON report under ${STAGING_PROMOTION_GATE_REPORT_DIR}.
 `;
 }
@@ -1795,9 +1872,11 @@ export async function main(argv = process.argv.slice(2)) {
   if (options.strictW00Principal) {
     await bindW00StagingPrincipalArtifactToRelease({
       expectedDeployedSha: options.expectedDeployed,
+      expectedScope: options.strictW00PrincipalScope,
     });
     const errors = await validateStrictW00StagingPrincipalArtifact({
       expectedDeployedSha: options.expectedDeployed,
+      expectedScope: options.strictW00PrincipalScope,
     });
     if (errors.length > 0) {
       console.error("Fieldgrid W00 staging-principal activation gate failed:");

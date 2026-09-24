@@ -63,11 +63,23 @@ export async function databaseInventory(client) {
   `,
     [[...APP_SCHEMAS]],
   );
+  const counts = await client.query(`
+    SELECT
+      (SELECT count(*)::int FROM public.tenants) AS tenant_count,
+      (SELECT count(*)::int FROM public.tenant_users) AS tenant_user_count,
+      (SELECT count(*)::int FROM public.platform_users) AS platform_user_count
+  `);
+  const tenantScoped = await tenantScopedInventory(client);
   const managed = await managedCatalogSnapshot(client);
   return {
     principal: row.current_user,
     applicationSchemas: schemas.rows.map(({ nspname }) => nspname),
     managedCatalogDigest: managed.digest,
+    currentTenantCount: counts.rows[0]?.tenant_count,
+    currentTenantUserCount: counts.rows[0]?.tenant_user_count,
+    currentPlatformUserCount: counts.rows[0]?.platform_user_count,
+    currentTenantScopedRowCount: tenantScoped.rowCount,
+    currentTenantScopedDigest: tenantScoped.digest,
   };
 }
 
@@ -657,6 +669,110 @@ export async function runCanonicalMigrations({
     ["--filter", "@workspace/db", "exec", "tsx", "src/seed/sectors.ts"],
     { cwd: repoRoot, env: childEnv },
   );
+}
+
+function quoteIdentifier(value) {
+  requireThat(
+    typeof value === "string" && value.length > 0 && value.length <= 63,
+    "TENANT_SCOPED_CATALOG_INVALID",
+    "ACTIVATED",
+    true,
+  );
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+export async function tenantScopedInventory(client) {
+  const catalog = await client.query(`
+    SELECT DISTINCT relation.relname AS table_name
+    FROM pg_class relation
+    JOIN pg_namespace namespace ON namespace.oid=relation.relnamespace
+    JOIN pg_attribute column_row ON column_row.attrelid=relation.oid
+    WHERE namespace.nspname='public'
+      AND relation.relkind IN ('r','p')
+      AND column_row.attname='tenant_id'
+      AND column_row.attnum>0
+      AND NOT column_row.attisdropped
+    ORDER BY relation.relname
+  `);
+  const counts = {};
+  for (const { table_name: tableName } of catalog.rows) {
+    const result = await client.query(
+      `SELECT count(*)::int AS count FROM public.${quoteIdentifier(tableName)} WHERE tenant_id IS NOT NULL`,
+    );
+    requireThat(
+      Number.isInteger(result.rows[0]?.count) && result.rows[0].count >= 0,
+      "TENANT_SCOPED_COUNT_INVALID",
+      "ACTIVATED",
+      true,
+    );
+    counts[tableName] = result.rows[0].count;
+  }
+  return {
+    tableCount: Object.keys(counts).length,
+    rowCount: Object.values(counts).reduce((sum, count) => sum + count, 0),
+    digest: digest(counts),
+  };
+}
+
+export async function verifyPlatformOnlyDatabaseState(
+  client,
+  expectedPlatformUserId,
+) {
+  const counts = await client.query(`
+    SELECT
+      (SELECT count(*)::int FROM public.tenants) AS tenants,
+      (SELECT count(*)::int FROM public.tenant_users) AS tenant_users,
+      (SELECT count(*)::int FROM public.tenant_user_roles) AS tenant_user_roles,
+      (SELECT count(*)::int FROM public.tenant_roles) AS tenant_roles,
+      (SELECT count(*)::int FROM public.tenant_domains) AS tenant_domains,
+      (SELECT count(*)::int FROM public.organization_settings) AS organization_settings,
+      (SELECT count(*)::int FROM public.notification_delivery_queue) AS delivery_queue,
+      (SELECT count(*)::int FROM public.notification_dispatches) AS dispatches,
+      (SELECT count(*)::int FROM public.domain_events) AS domain_events
+  `);
+  const state = counts.rows[0] ?? {};
+  requireThat(
+    Object.values(state).every((count) => count === 0),
+    "PLATFORM_ONLY_DATABASE_STATE_INVALID",
+    "ACTIVATED",
+    true,
+  );
+  const tenantScoped = await tenantScopedInventory(client);
+  requireThat(
+    tenantScoped.rowCount === 0,
+    "PLATFORM_ONLY_TENANT_DATA_REMAINS",
+    "ACTIVATED",
+    true,
+  );
+  const platform = await client.query(`
+    SELECT user_id,role,status
+    FROM public.platform_users
+    ORDER BY user_id
+  `);
+  requireThat(
+    platform.rows.length === 1 &&
+      platform.rows[0].user_id === expectedPlatformUserId &&
+      platform.rows[0].role === "owner" &&
+      platform.rows[0].status === "active",
+    "PLATFORM_ONLY_OWNER_INVALID",
+    "ACTIVATED",
+    true,
+  );
+  return {
+    tenantCount: 0,
+    tenantUserCount: 0,
+    tenantRoleMembershipCount: 0,
+    tenantRoleCount: 0,
+    tenantDomainCount: 0,
+    organizationSettingsCount: 0,
+    operationalQueueCount: 0,
+    tenantScopedRowCount: 0,
+    tenantScopedTableCount: tenantScoped.tableCount,
+    tenantScopedDigest: tenantScoped.digest,
+    platformUserCount: 1,
+    activePlatformOwnerCount: 1,
+    platformIdentityMatches: true,
+  };
 }
 
 export async function verifyRebuiltDatabase(client) {

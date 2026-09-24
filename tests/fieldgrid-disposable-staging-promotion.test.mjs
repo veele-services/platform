@@ -132,6 +132,39 @@ test("only complete active smoke-passed rebuild evidence is promotable", () => {
     oldDataRestored: false,
     mutationsPerformed: true,
     proofDigest: "e".repeat(64),
+    finalState: {
+      contract: "fieldgrid-platform-only-v1",
+      cleanupComplete: true,
+      database: {
+        tenantCount: 0,
+        tenantUserCount: 0,
+        tenantRoleMembershipCount: 0,
+        tenantRoleCount: 0,
+        tenantDomainCount: 0,
+        organizationSettingsCount: 0,
+        operationalQueueCount: 0,
+        tenantScopedRowCount: 0,
+        tenantScopedTableCount: 42,
+        tenantScopedDigest: "a".repeat(64),
+        platformUserCount: 1,
+        activePlatformOwnerCount: 1,
+        platformIdentityMatches: true,
+      },
+      auth: {
+        accountCount: 1,
+        platformAdminCount: 1,
+        temporaryTenantAdminCount: 0,
+        canonicalMetadata: true,
+        digest: "b".repeat(64),
+      },
+      storage: { objectCount: 0, digest: "c".repeat(64) },
+      platform: {
+        platformUserCount: 1,
+        activeOwnerCount: 1,
+        identityMatchesBootstrap: true,
+        tenantMembershipCount: 0,
+      },
+    },
   };
   assert.equal(
     assertDisposableRebuildReport(report, {
