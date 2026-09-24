@@ -15,6 +15,7 @@ import { runPostRebuildAcceptance } from "../scripts/disposable-staging/acceptan
 import {
   assertNoExternalWriters,
   createWriterAdmissionGuard,
+  databaseInventory,
 } from "../scripts/disposable-staging/database.mjs";
 import { validateConnections } from "../scripts/disposable-staging/environment.mjs";
 import { createProviderControl } from "../scripts/disposable-staging/providers.mjs";
@@ -146,7 +147,13 @@ function fixtures({
     databaseInventory: async () => ({
       principal: "migration",
       applicationSchemas: ["public"],
+      applicationTables: {
+        tenants: { present: true, count: 0 },
+        tenant_users: { present: true, count: 0 },
+        platform_users: { present: true, count: 1 },
+      },
       managedCatalogDigest: "managed",
+      currentTenantScopedTableCount: 0,
     }),
     provider,
     services,
@@ -183,6 +190,79 @@ function fixtures({
   };
   return { calls, createdIdentities, deps, services };
 }
+
+test("database inventory treats absent and partially rebuilt application tables as empty", async () => {
+  const queries = [];
+  const client = {
+    async query(sql) {
+      const statement = String(sql);
+      queries.push(statement);
+      if (statement.includes("FROM pg_roles r")) {
+        return {
+          rows: [
+            {
+              current_user: "fieldgrid_disposable_rebuild_admin",
+              session_user: "fieldgrid_disposable_rebuild_admin",
+              rolsuper: false,
+              rolbypassrls: false,
+              rolcreaterole: true,
+              database_name: "postgres",
+            },
+          ],
+        };
+      }
+      if (statement.includes("SELECT nspname FROM pg_namespace")) {
+        return { rows: [{ nspname: "public" }] };
+      }
+      if (statement.includes("WITH requested(table_name)")) {
+        return {
+          rows: [
+            { table_name: "platform_users", present: false },
+            { table_name: "tenant_users", present: false },
+            { table_name: "tenants", present: true },
+          ],
+        };
+      }
+      if (statement.includes('FROM public."tenants"')) {
+        return { rows: [{ count: 2 }] };
+      }
+      if (statement.includes("column_row.attname='tenant_id'")) {
+        return { rows: [] };
+      }
+      if (statement.includes("FROM pg_namespace n")) {
+        return { rows: [] };
+      }
+      if (statement.includes("FROM pg_extension e")) {
+        return { rows: [] };
+      }
+      throw new Error(`Unexpected inventory query: ${statement}`);
+    },
+  };
+
+  const inventory = await databaseInventory(client);
+  assert.deepEqual(inventory.applicationTables, {
+    tenants: { present: true, count: 2 },
+    tenant_users: { present: false, count: 0 },
+    platform_users: { present: false, count: 0 },
+  });
+  assert.equal(inventory.currentTenantCount, 2);
+  assert.equal(inventory.currentTenantUserCount, 0);
+  assert.equal(inventory.currentPlatformUserCount, 0);
+  assert.equal(inventory.currentTenantScopedTableCount, 0);
+  assert.equal(inventory.currentTenantScopedRowCount, 0);
+  assert.equal(
+    queries.some((statement) =>
+      statement.includes('FROM public."tenant_users"'),
+    ),
+    false,
+  );
+  assert.equal(
+    queries.some((statement) =>
+      statement.includes('FROM public."platform_users"'),
+    ),
+    false,
+  );
+});
 
 test("dispatch is bound to exact main, staging project and confirmation", () => {
   assert.equal(

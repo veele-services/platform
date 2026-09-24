@@ -20,12 +20,16 @@ const identities = {
   platform: "30000000-0000-4000-8000-000000000001",
 };
 const configuration = {
-  platform: { email: "platform@example.invalid", name: "Platform beheerder" },
+  platform: {
+    email: "platform@example.invalid",
+    password: "platform-password-123",
+    name: "Platform beheerder",
+  },
 };
 
 export async function verifyPostgres17Rebuild(
   client,
-  { allowedSamePrincipalPids = [] } = {},
+  { allowedSamePrincipalPids = [], runAcceptance } = {},
 ) {
   try {
     // Plain postgres:17 lacks Supabase's managed publication. Install only this
@@ -48,6 +52,12 @@ export async function verifyPostgres17Rebuild(
     await bootstrapDatabase(client, configuration, identities);
     const database = await verifyRebuiltDatabase(client);
     const bootstrap = await verifyBootstrap(client, configuration, identities);
+    const acceptance = runAcceptance
+      ? await runAcceptance({
+          bootstrap: configuration,
+          database: client,
+        })
+      : undefined;
     const finalState = await verifyPlatformOnlyDatabaseState(
       client,
       identities.platform,
@@ -55,7 +65,7 @@ export async function verifyPostgres17Rebuild(
     const writerFence = await assertNoExternalWriters(client, {
       allowedSamePrincipalPids,
     });
-    return { database, bootstrap, finalState, writerFence };
+    return { database, bootstrap, acceptance, finalState, writerFence };
   } finally {
     await client.query("DROP PUBLICATION IF EXISTS supabase_realtime");
   }

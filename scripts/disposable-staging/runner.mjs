@@ -110,11 +110,13 @@ function inventorySummary({ database, provider, services }) {
   return {
     database: {
       applicationSchemas: database.applicationSchemas,
+      applicationTables: database.applicationTables,
       managedCatalogDigest: database.managedCatalogDigest,
       principalDigest: digest(database.principal),
       tenantCount: database.currentTenantCount,
       tenantUserCount: database.currentTenantUserCount,
       platformUserCount: database.currentPlatformUserCount,
+      tenantScopedTableCount: database.currentTenantScopedTableCount,
       tenantScopedRowCount: database.currentTenantScopedRowCount,
       tenantScopedDigest: database.currentTenantScopedDigest,
     },

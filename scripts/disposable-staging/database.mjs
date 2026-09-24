@@ -12,6 +12,11 @@ import {
 } from "./contract.mjs";
 
 const MIGRATION_LOCK = "fieldgrid:database-migrations:v1";
+const INVENTORY_APPLICATION_TABLES = Object.freeze([
+  "tenants",
+  "tenant_users",
+  "platform_users",
+]);
 
 export async function managedCatalogSnapshot(client) {
   const schemas = await client.query(
@@ -40,7 +45,59 @@ export async function managedCatalogSnapshot(client) {
   };
 }
 
-export async function databaseInventory(client) {
+async function applicationTableInventory(client) {
+  const relations = await client.query(
+    `
+    WITH requested(table_name) AS (
+      SELECT unnest($1::text[])
+    )
+    SELECT requested.table_name,
+      relation.oid IS NOT NULL AS present
+    FROM requested
+    LEFT JOIN pg_catalog.pg_class relation
+      ON relation.oid=pg_catalog.to_regclass(pg_catalog.format('%I.%I','public',requested.table_name))
+      AND relation.relkind IN ('r','p')
+    ORDER BY requested.table_name
+  `,
+    [[...INVENTORY_APPLICATION_TABLES]],
+  );
+  const presence = new Map(
+    relations.rows.map(({ table_name: tableName, present }) => [
+      tableName,
+      present,
+    ]),
+  );
+  requireThat(
+    presence.size === INVENTORY_APPLICATION_TABLES.length &&
+      INVENTORY_APPLICATION_TABLES.every(
+        (tableName) => typeof presence.get(tableName) === "boolean",
+      ),
+    "DATABASE_INVENTORY_CATALOG_INVALID",
+  );
+
+  const inventory = {};
+  for (const tableName of INVENTORY_APPLICATION_TABLES) {
+    const present = presence.get(tableName);
+    let count = 0;
+    if (present) {
+      const result = await client.query(
+        `SELECT count(*)::int AS count FROM public.${quoteIdentifier(tableName)}`,
+      );
+      count = result.rows[0]?.count;
+      requireThat(
+        Number.isInteger(count) && count >= 0,
+        "DATABASE_INVENTORY_COUNT_INVALID",
+      );
+    }
+    inventory[tableName] = { present, count };
+  }
+  return inventory;
+}
+
+export async function databaseInventory(
+  client,
+  { expectedDatabaseName = "postgres" } = {},
+) {
   const identity = await client.query(`
     SELECT current_user::text AS current_user,session_user::text AS session_user,
       r.rolsuper,r.rolbypassrls,r.rolcreaterole,current_database() AS database_name
@@ -53,7 +110,7 @@ export async function databaseInventory(client) {
       row.rolsuper === false &&
       row.rolbypassrls === false &&
       row.rolcreaterole === true &&
-      row.database_name === "postgres",
+      row.database_name === expectedDatabaseName,
     "MIGRATION_PRINCIPAL_INVALID",
   );
   const schemas = await client.query(
@@ -63,21 +120,18 @@ export async function databaseInventory(client) {
   `,
     [[...APP_SCHEMAS]],
   );
-  const counts = await client.query(`
-    SELECT
-      (SELECT count(*)::int FROM public.tenants) AS tenant_count,
-      (SELECT count(*)::int FROM public.tenant_users) AS tenant_user_count,
-      (SELECT count(*)::int FROM public.platform_users) AS platform_user_count
-  `);
+  const applicationTables = await applicationTableInventory(client);
   const tenantScoped = await tenantScopedInventory(client);
   const managed = await managedCatalogSnapshot(client);
   return {
     principal: row.current_user,
     applicationSchemas: schemas.rows.map(({ nspname }) => nspname),
+    applicationTables,
     managedCatalogDigest: managed.digest,
-    currentTenantCount: counts.rows[0]?.tenant_count,
-    currentTenantUserCount: counts.rows[0]?.tenant_user_count,
-    currentPlatformUserCount: counts.rows[0]?.platform_user_count,
+    currentTenantCount: applicationTables.tenants.count,
+    currentTenantUserCount: applicationTables.tenant_users.count,
+    currentPlatformUserCount: applicationTables.platform_users.count,
+    currentTenantScopedTableCount: tenantScoped.tableCount,
     currentTenantScopedRowCount: tenantScoped.rowCount,
     currentTenantScopedDigest: tenantScoped.digest,
   };
