@@ -151,6 +151,7 @@ test("rebuild code uses provider APIs, canonical migration and fixed application
   const providers = read("scripts/disposable-staging/providers.mjs");
   const database = read("scripts/disposable-staging/database.mjs");
   const contract = read("scripts/disposable-staging/contract.mjs");
+  const runner = read("scripts/disposable-staging/runner.mjs");
   assert.match(providers, /admin\.storage\s*\.from\(bucket\)\s*\.remove/u);
   assert.match(providers, /admin\.auth\.admin\.deleteUser\(id, false\)/u);
   assert.doesNotMatch(providers, /DELETE FROM (auth|storage)\./iu);
@@ -163,6 +164,15 @@ test("rebuild code uses provider APIs, canonical migration and fixed application
   assert.match(database, /rebuild_role_password/u);
   assert.match(database, /randomBytes\(32\)/u);
   assert.match(database, /allowedSamePrincipalPids/u);
+  assert.match(database, /REVOKE USAGE ON SCHEMA/u);
+  assert.match(database, /GRANT USAGE ON SCHEMA/u);
+  assert.match(database, /has_schema_privilege/u);
+  assert.doesNotMatch(database, /REVOKE EXECUTE ON ALL FUNCTIONS/u);
+  assert.match(database, /expectedPrincipalName/u);
+  assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_app/u);
+  assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_data/u);
+  assert.match(runner, /resetRuntimePrincipalsForCanonicalRebuild/u);
+  assert.match(runner, /expectedPrincipalName: "fieldgrid_migration_admin"/u);
   assert.doesNotMatch(database, /'public\.tenants'/u);
   assert.match(contract, /\["app_private", "drizzle", "public"\]/u);
   assert.match(contract, /"realtime"/u);

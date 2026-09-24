@@ -16,6 +16,59 @@ staging data is not retained or restored.
 3. Apply the protected-branch prerequisite documented in
    [Main and staging promotion](../operations/main-staging-promotion.md).
 
+### One-time least-privilege migration-admin cutover
+
+Before the first disposable rebuild, bootstrap the fixed staging-only role
+`fieldgrid_migration_admin` through the manual **Fieldgrid Staging Migration
+Admin Bootstrap** workflow. Provision environment secret
+`FIELDGRID_MIGRATION_DATABASE_PASSWORD` first with exactly 64 lowercase hex
+characters. The workflow never changes GitHub secrets and its default `plan`
+operation is read-only; it uses the current legacy `DATABASE_URL` only to
+report catalog metadata and digests.
+
+After reviewing a green plan, an operator may run `apply` with:
+
+```text
+fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:<exact-main-sha>
+```
+
+Apply stops only the enumerated staging writers, creates or validates the role
+as `LOGIN CREATEROLE NOCREATEDB NOSUPERUSER NOBYPASSRLS NOREPLICATION
+NOINHERIT`, and transfers only the Fieldgrid application surface in `public`,
+`app_private` and `drizzle`. It does not use `REASSIGN OWNED`. Existing
+`SECURITY DEFINER` routines remain temporarily owned by legacy `postgres` so
+the live pre-rebuild policy/configuration contract is not changed; ownership of
+the application schemas still lets the new principal remove and canonically
+recreate them during the rebuild. Two reviewed provider-bound capabilities are
+also installed: ownership of publication `supabase_realtime`, and only `USAGE`
+on `auth` plus column-level `SELECT` on
+`auth.users(id,email,raw_app_meta_data)`. All other managed-schema catalog
+state must retain the same digest. PostgreSQL 17 records an unavoidable
+creator-admin edge on the new role for member `postgres`, with
+`supabase_admin` as grantor; the bootstrap verifies that edge remains `ADMIN`
+only with both `INHERIT` and `SET` disabled. The migration admin itself is
+never a member of `postgres` or `supabase_admin`. The result artifact reports
+the publication owner and exact three Auth columns separately as
+`authorizedProviderCompatibility`; they are not presented as unchanged managed
+catalog state.
+
+On success, manually replace staging environment secret `DATABASE_URL` with:
+
+```text
+postgresql://fieldgrid_migration_admin.olyfmekyqozxrbrwwszu:<FIELDGRID_MIGRATION_DATABASE_PASSWORD>@<FIELDGRID_STAGING_DATABASE_POOLER_HOST>:5432/postgres
+```
+
+Then run **Fieldgrid Disposable Staging Rebuild** with `operation=plan` and the
+exact live main/staging SHAs. Do not consider `rebuild` until that read-only
+plan is green. A failed bootstrap before commit rolls back and restores the
+original service baseline; a failed proof after commit leaves the staging
+writers safe-stopped for reviewed recovery. Success also requires the restored
+backoffice, personnel, customer and API health endpoints to identify the exact
+expected staging SHA; active-but-unhealthy services fail closed and are
+safe-stopped. A result says `SAFE_STOPPED` only after that stop is positively
+verified; `RECOVERY_REQUIRED` means the stop or baseline restore itself failed
+and requires immediate operator recovery.
+
 ## Run
 
 Dispatch `Fieldgrid Disposable Staging Rebuild` on `main` with the exact live
