@@ -46,8 +46,11 @@ new main SHA before using the normal exact-ref promotion command.
   least-privileged application credential. Workflows map it to runtime
   `DATABASE_URL`; it is the only database credential written to the shared
   service environment.
-- The existing protected GitHub secret `DATABASE_URL` remains the queryless
-  migration/admin credential. Database steps map it locally to
+- The protected GitHub secret `DATABASE_URL` is the queryless migration/admin
+  credential. Before the one-time cutover it is the legacy `postgres`
+  bootstrap credential; after a successful reviewed bootstrap it must be
+  manually replaced with the fixed `fieldgrid_migration_admin` Supavisor
+  session-pooler URL. Database steps map it locally to
   `FIELDGRID_MIGRATION_DATABASE_URL`; it is used only for migrations, the
   Phase2E source backup, administrative backfills and the migration-admin
   ownership preflight, and is never written to service environment files.
@@ -69,6 +72,37 @@ new main SHA before using the normal exact-ref promotion command.
 - Database Autofix is manual-only and must be dispatched from the `staging` branch.
 - Database Autofix must validate both the selected branch and the expected staging Supabase project reference before running migrations.
 - Secrets must never be printed in workflow logs.
+
+### One-time staging migration-admin bootstrap
+
+This is a staging-only prerequisite and is not a promotion or deployment. It
+must run from the exact current `main` through **Fieldgrid Staging Migration
+Admin Bootstrap**, whose default `plan` performs no database or service
+mutation. Production project `ckdtiuemeygrnujjibnw` is an explicit deny target.
+
+Operator sequence after the bootstrap change has merged:
+
+1. Generate a 64-character lowercase hexadecimal password locally and store it
+   only as staging environment secret `FIELDGRID_MIGRATION_DATABASE_PASSWORD`.
+2. Record exact live `main` and `staging` SHAs and run the workflow with
+   `operation=plan`; inspect its secret-free artifact.
+3. Run `operation=apply` for those same SHAs with confirmation
+   `fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:<exact-main-sha>`.
+4. Require a `passed` artifact proving the real
+   `fieldgrid_migration_admin.olyfmekyqozxrbrwwszu` login over the Supavisor
+   session pooler on port 5432, exact role attributes, application ownership,
+   runtime ADMIN-without-INHERIT/SET topology, unchanged managed catalog,
+   rollback-only rebuild capability, restored services and all four core
+   runtime identities healthy on the exact expected staging SHA.
+5. Manually replace staging environment secret `DATABASE_URL` with
+   `postgresql://fieldgrid_migration_admin.olyfmekyqozxrbrwwszu:<FIELDGRID_MIGRATION_DATABASE_PASSWORD>@<FIELDGRID_STAGING_DATABASE_POOLER_HOST>:5432/postgres`.
+6. Run **Fieldgrid Disposable Staging Rebuild** with `operation=plan`. Only a
+   green read-only plan authorizes considering the separately confirmed
+   destructive rebuild.
+
+Never put the password in a workflow input, logs or an artifact. The bootstrap
+workflow does not modify secrets, refs, branch protection or production and it
+must not be used as evidence to move `staging`.
 
 Current expected staging Supabase project reference:
 

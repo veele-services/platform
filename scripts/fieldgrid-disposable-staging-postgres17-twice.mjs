@@ -10,6 +10,7 @@ import {
   createWriterAdmissionGuard,
   databaseInventory,
   resetApplicationSchemas,
+  resetRuntimePrincipalsForCanonicalRebuild,
 } from "./disposable-staging/database.mjs";
 import { verifyPostgres17Rebuild } from "./fieldgrid-disposable-staging-postgres17.mjs";
 
@@ -280,6 +281,7 @@ async function fullRebuild(env, { initial = false } = {}) {
     await reentrantWriter.end().catch(() => {});
 
     await resetApplicationSchemas(client);
+    await resetRuntimePrincipalsForCanonicalRebuild(client);
     await client.query("DELETE FROM auth.users");
     await admission.migrate();
     const proof = await verifyPostgres17Rebuild(client, {

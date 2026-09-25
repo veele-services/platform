@@ -1,0 +1,174 @@
+name: Fieldgrid Staging Migration Admin Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Read-only plan (default) or one-time apply"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+      expected_main_sha:
+        description: "Exact current main SHA"
+        required: true
+        type: string
+      expected_staging_sha:
+        description: "Exact current staging SHA"
+        required: true
+        type: string
+      confirmation:
+        description: "For apply: fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:<main-sha>"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: veele-staging
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: ${{ inputs.operation == 'apply' && 'Apply migration-admin bootstrap' || 'Read-only migration-admin plan' }}
+    runs-on: [self-hosted, linux, x64, veele]
+    environment: staging
+    env:
+      APP_ENV: staging
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+      EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      FORBIDDEN_SUPABASE_PROJECT_REF: ckdtiuemeygrnujjibnw
+      BOOTSTRAP_CONFIRMATION: ${{ inputs.confirmation }}
+      FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "true"
+      PGSSLMODE: verify-full
+    steps:
+      - name: Verify exact dispatch before repository code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = veele-services/platform
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_STAGING_SHA" =~ ^[0-9a-f]{40}$ ]]
+          read -r live_main live_staging < <(
+            node --input-type=module -e '
+              const refs = await Promise.all(
+                ["main", "staging"].map(async (branch) => {
+                  const response = await fetch(
+                    `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`,
+                    {
+                      headers: {
+                        Accept: "application/vnd.github+json",
+                        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                      },
+                    },
+                  );
+                  if (!response.ok) throw new Error(`${branch} ref lookup failed with HTTP ${response.status}`);
+                  const sha = (await response.json()).object?.sha ?? "";
+                  if (!/^[0-9a-f]{40}$/u.test(sha)) throw new Error(`${branch} ref lookup returned an invalid SHA`);
+                  return sha;
+                }),
+              );
+              process.stdout.write(`${refs[0]} ${refs[1]}\n`);
+            '
+          )
+          test "$live_main" = "$EXPECTED_MAIN_SHA"
+          test "$live_staging" = "$EXPECTED_STAGING_SHA"
+
+      - name: Checkout exact main candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned Supabase database root certificate
+        env:
+          FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/fieldgrid-migration-admin-bootstrap-${GITHUB_RUN_ID}.crt"
+          node scripts/fieldgrid-database-root-cert.mjs \
+            --install-from-env FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 \
+            --out "$certificate_path"
+          printf 'FIELDGRID_DATABASE_SSL_ROOT_CERT=%s\n' "$certificate_path" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Produce read-only bootstrap plan
+        if: inputs.operation == 'plan'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p staging-migration-admin-bootstrap
+          node scripts/fieldgrid-staging-migration-admin-bootstrap.mjs \
+            --plan \
+            --output-dir="$GITHUB_WORKSPACE/staging-migration-admin-bootstrap"
+
+      - name: Reverify exact refs immediately before apply
+        if: inputs.operation == 'apply'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA"
+          node --input-type=module - <<'NODE'
+          for (const [branch, expected] of [["main", process.env.EXPECTED_MAIN_SHA], ["staging", process.env.EXPECTED_STAGING_SHA]]) {
+            const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/${branch}`, {
+              headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                "X-GitHub-Api-Version": "2022-11-28",
+              },
+            });
+            if (!response.ok) throw new Error(`${branch} ref lookup failed with HTTP ${response.status}`);
+            const actual = (await response.json()).object?.sha ?? "";
+            if (!/^[0-9a-f]{40}$/u.test(actual) || actual !== expected) throw new Error(`${branch} ref mismatch`);
+          }
+          NODE
+
+      - name: Apply one-time migration-admin bootstrap
+        if: inputs.operation == 'apply'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_MIGRATION_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p staging-migration-admin-bootstrap
+          node scripts/fieldgrid-staging-migration-admin-bootstrap.mjs \
+            --apply \
+            --output-dir="$GITHUB_WORKSPACE/staging-migration-admin-bootstrap"
+
+      - name: Upload secret-free bootstrap evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: staging-migration-admin-bootstrap-${{ github.run_id }}-${{ github.sha }}
+          path: staging-migration-admin-bootstrap/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove temporary database root certificate
+        if: always()
+        run: |
+          node --input-type=module -e '
+            import { rmSync } from "node:fs";
+            if (process.env.FIELDGRID_DATABASE_SSL_ROOT_CERT) {
+              rmSync(process.env.FIELDGRID_DATABASE_SSL_ROOT_CERT, { force: true });
+            }
+          '

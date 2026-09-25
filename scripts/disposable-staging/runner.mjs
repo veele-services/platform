@@ -19,6 +19,7 @@ import {
   createWriterAdmissionGuard,
   databaseInventory,
   resetApplicationSchemas,
+  resetRuntimePrincipalsForCanonicalRebuild,
   verifyPlatformOnlyDatabaseState,
   verifyRebuiltDatabase,
 } from "./database.mjs";
@@ -170,7 +171,9 @@ export async function runPlan({
   );
   try {
     const inventory = {
-      database: await (deps.databaseInventory ?? databaseInventory)(database),
+      database: await (deps.databaseInventory ?? databaseInventory)(database, {
+        expectedPrincipalName: "fieldgrid_migration_admin",
+      }),
       provider: await provider.preflight(),
       services: await services.inventory(),
     };
@@ -228,6 +231,7 @@ export async function runRebuild({
     );
     const dbInventory = await (deps.databaseInventory ?? databaseInventory)(
       database,
+      { expectedPrincipalName: "fieldgrid_migration_admin" },
     );
     const providerInventory = await provider.preflight();
     const currentServices = await services.inventory();
@@ -276,6 +280,10 @@ export async function runRebuild({
     await save(path, receipt, "SCHEMAS_CLEAN", now, {
       managedCatalogDigest: catalog.after,
     });
+    await (
+      deps.resetRuntimePrincipalsForCanonicalRebuild ??
+      resetRuntimePrincipalsForCanonicalRebuild
+    )(database);
     const auth = await provider.emptyAuth(providerInventory.auth);
     await save(path, receipt, "AUTH_EMPTY", now, { authDigest: auth.digest });
 

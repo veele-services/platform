@@ -96,11 +96,12 @@ async function applicationTableInventory(client) {
 
 export async function databaseInventory(
   client,
-  { expectedDatabaseName = "postgres" } = {},
+  { expectedDatabaseName = "postgres", expectedPrincipalName } = {},
 ) {
   const identity = await client.query(`
     SELECT current_user::text AS current_user,session_user::text AS session_user,
-      r.rolsuper,r.rolbypassrls,r.rolcreaterole,current_database() AS database_name
+      r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolreplication,
+      r.rolinherit,r.rolcanlogin,current_database() AS database_name
     FROM pg_roles r WHERE r.rolname=current_user
   `);
   const row = identity.rows[0];
@@ -110,6 +111,12 @@ export async function databaseInventory(
       row.rolsuper === false &&
       row.rolbypassrls === false &&
       row.rolcreaterole === true &&
+      (expectedPrincipalName === undefined ||
+        (row.current_user === expectedPrincipalName &&
+          row.rolcreatedb === false &&
+          row.rolreplication === false &&
+          row.rolinherit === false &&
+          row.rolcanlogin === true)) &&
       row.database_name === expectedDatabaseName,
     "MIGRATION_PRINCIPAL_INVALID",
   );
@@ -135,6 +142,49 @@ export async function databaseInventory(
     currentTenantScopedRowCount: tenantScoped.rowCount,
     currentTenantScopedDigest: tenantScoped.digest,
   };
+}
+
+export async function resetRuntimePrincipalsForCanonicalRebuild(client) {
+  const roles = ["fieldgrid_runtime_app", "fieldgrid_runtime_data"];
+  const unsafeOwnership = await client.query(
+    `
+    SELECT role.rolname,namespace.nspname AS schema_name,relation.relname
+    FROM pg_roles role
+    JOIN pg_class relation ON relation.relowner=role.oid
+    JOIN pg_namespace namespace ON namespace.oid=relation.relnamespace
+    WHERE role.rolname=ANY($1::text[])
+    UNION ALL
+    SELECT role.rolname,namespace.nspname AS schema_name,NULL::name AS relname
+    FROM pg_roles role
+    JOIN pg_namespace namespace ON namespace.nspowner=role.oid
+    WHERE role.rolname=ANY($1::text[])
+    UNION ALL
+    SELECT role.rolname,namespace.nspname AS schema_name,routine.proname AS relname
+    FROM pg_roles role
+    JOIN pg_proc routine ON routine.proowner=role.oid
+    JOIN pg_namespace namespace ON namespace.oid=routine.pronamespace
+    WHERE role.rolname=ANY($1::text[])
+    ORDER BY 1,2,3
+  `,
+    [roles],
+  );
+  requireThat(
+    unsafeOwnership.rows.length === 0,
+    "RUNTIME_ROLE_OWNERSHIP_REMAINS",
+    "SCHEMAS_CLEAN",
+    true,
+  );
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL lock_timeout='5s'");
+    await client.query("DROP ROLE IF EXISTS fieldgrid_runtime_app");
+    await client.query("DROP ROLE IF EXISTS fieldgrid_runtime_data");
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  }
+  return { rolesReset: roles };
 }
 
 export async function assertNoExternalWriters(
@@ -247,11 +297,12 @@ export async function assertNoExternalWriters(
       $$
     `);
     for (const { nspname: schema } of existingSchemas.rows) {
+      await client.query(`GRANT USAGE ON SCHEMA ${schema} TO CURRENT_USER`);
       await client.query(
         `REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA ${schema} FROM anon, authenticated, service_role`,
       );
       await client.query(
-        `REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA ${schema} FROM PUBLIC, anon, authenticated, service_role`,
+        `REVOKE USAGE ON SCHEMA ${schema} FROM PUBLIC, anon, authenticated, service_role`,
       );
     }
     await client.query("COMMIT");
@@ -297,9 +348,18 @@ export async function assertNoExternalWriters(
         JOIN pg_namespace namespace ON namespace.oid=function_row.pronamespace
         WHERE namespace.nspname=ANY($1::text[])
           AND (
-            has_function_privilege('anon',function_row.oid,'EXECUTE')
-            OR has_function_privilege('authenticated',function_row.oid,'EXECUTE')
-            OR has_function_privilege('service_role',function_row.oid,'EXECUTE')
+            (
+              has_schema_privilege('anon',namespace.oid,'USAGE')
+              AND has_function_privilege('anon',function_row.oid,'EXECUTE')
+            )
+            OR (
+              has_schema_privilege('authenticated',namespace.oid,'USAGE')
+              AND has_function_privilege('authenticated',function_row.oid,'EXECUTE')
+            )
+            OR (
+              has_schema_privilege('service_role',namespace.oid,'USAGE')
+              AND has_function_privilege('service_role',function_row.oid,'EXECUTE')
+            )
           )
       ) AS app_function_execute_revoked,
       NOT EXISTS (

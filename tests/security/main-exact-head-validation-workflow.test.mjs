@@ -34,7 +34,7 @@ test("every validation group checks out and proves the immutable event validatio
     workflow.match(/ref: \$\{\{ env\.FIELDGRID_VALIDATION_SHA \}\}/gu) ?? [];
   const headProofs = workflow.match(/git rev-parse HEAD/gu) ?? [];
 
-  assert.equal(checkoutGroups.length, 9);
+  assert.equal(checkoutGroups.length, 10);
   assert.equal(explicitRefs.length, checkoutGroups.length);
   assert.equal(headProofs.length, checkoutGroups.length);
   assert.match(
@@ -57,6 +57,7 @@ test("exact-head validation includes every authoritative gate", () => {
     "pnpm run typecheck",
     "pnpm -r --if-present run build",
     "pnpm fieldgrid:test:postgres17-migration-smoke",
+    "node scripts/fieldgrid-staging-migration-admin-bootstrap-postgres17.mjs",
     "pnpm fieldgrid:test:db-integration-tenant-ab",
     "pnpm fieldgrid:test:rls-security",
     "node scripts/fieldgrid-w00-db-acl-hardening-runtime.mjs",

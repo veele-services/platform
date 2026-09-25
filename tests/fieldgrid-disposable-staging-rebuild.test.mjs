@@ -167,6 +167,8 @@ function fixtures({
       calls.push("db.reset");
       return { after: "managed" };
     },
+    resetRuntimePrincipalsForCanonicalRebuild: async () =>
+      calls.push("db.resetRuntimeRoles"),
     runCanonicalMigrations: async () => calls.push("db.migrate"),
     bootstrapDatabase: async () => calls.push("db.bootstrap"),
     verifyRebuiltDatabase: async () => ({ migrationJournal: true }),
@@ -342,6 +344,7 @@ test("rebuild preserves the destructive order and produces promotable evidence o
         "db.noWriters",
         "provider.emptyStorage",
         "db.reset",
+        "db.resetRuntimeRoles",
         "provider.emptyAuth",
         "db.migrate",
         "db.bootstrap",
@@ -353,6 +356,7 @@ test("rebuild preserves the destructive order and produces promotable evidence o
       "provider.emptyStorage",
       "db.noWriters",
       "db.reset",
+      "db.resetRuntimeRoles",
       "provider.emptyAuth",
       "db.migrate",
       "db.noWriters",
