@@ -3,6 +3,8 @@ import { digest, requireThat } from "../disposable-staging/contract.mjs";
 export { digest, requireThat };
 
 export const CONTRACT = "fieldgrid-staging-migration-admin-bootstrap-v1";
+export const RECOVERY_CONTRACT =
+  "fieldgrid-staging-migration-admin-bootstrap-recover-v1";
 export const REPOSITORY = "veele-services/platform";
 export const STAGING_PROJECT_REF = "olyfmekyqozxrbrwwszu";
 export const PRODUCTION_PROJECT_REF = "ckdtiuemeygrnujjibnw";
@@ -20,6 +22,7 @@ export const MANAGED_SCHEMAS = Object.freeze([
 ]);
 
 const SHA = /^[0-9a-f]{40}$/u;
+const CATALOG_DIGEST = /^[0-9a-f]{64}$/u;
 const PASSWORD = /^[0-9a-f]{64}$/u;
 
 function required(env, name) {
@@ -29,7 +32,10 @@ function required(env, name) {
 }
 
 export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
-  requireThat(mode === "plan" || mode === "apply", "MODE_INVALID");
+  requireThat(
+    mode === "plan" || mode === "apply" || mode === "recover",
+    "MODE_INVALID",
+  );
   requireThat(
     env.GITHUB_ACTIONS === "true" &&
       env.GITHUB_EVENT_NAME === "workflow_dispatch" &&
@@ -51,10 +57,25 @@ export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
       env.FORBIDDEN_SUPABASE_PROJECT_REF === PRODUCTION_PROJECT_REF,
     "ENVIRONMENT_INVALID",
   );
-  if (mode === "apply") {
+  let recoverySourceMain;
+  let expectedManagedCatalogDigest;
+  if (mode === "apply" || mode === "recover") {
+    recoverySourceMain =
+      mode === "recover"
+        ? required(env, "RECOVERY_SOURCE_MAIN_SHA")
+        : undefined;
+    expectedManagedCatalogDigest =
+      mode === "recover"
+        ? required(env, "EXPECTED_MANAGED_CATALOG_DIGEST")
+        : undefined;
     requireThat(
-      env.BOOTSTRAP_CONFIRMATION ===
-        `${CONTRACT}:${STAGING_PROJECT_REF}:${expectedMain}`,
+      mode === "apply"
+        ? env.BOOTSTRAP_CONFIRMATION ===
+            `${CONTRACT}:${STAGING_PROJECT_REF}:${expectedMain}`
+        : SHA.test(recoverySourceMain) &&
+            CATALOG_DIGEST.test(expectedManagedCatalogDigest) &&
+            env.BOOTSTRAP_CONFIRMATION ===
+              `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${recoverySourceMain}:${expectedMain}:${expectedStaging}:${expectedManagedCatalogDigest}`,
       "CONFIRMATION_INVALID",
     );
     requireThat(
@@ -62,7 +83,13 @@ export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
       "MIGRATION_PASSWORD_INVALID",
     );
   }
-  return { mode, expectedMain, expectedStaging };
+  return {
+    mode,
+    expectedMain,
+    expectedStaging,
+    recoverySourceMain,
+    expectedManagedCatalogDigest,
+  };
 }
 
 export function publicResult(config, status, additions = {}) {
@@ -74,7 +101,7 @@ export function publicResult(config, status, additions = {}) {
     operation: config.mode,
     expectedMainSha: config.expectedMain,
     expectedStagingSha: config.expectedStaging,
-    destructive: config.mode === "apply",
+    destructive: config.mode !== "plan",
     status,
     ...additions,
   };

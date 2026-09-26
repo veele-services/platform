@@ -100,6 +100,30 @@ Operator sequence after the bootstrap change has merged:
    green read-only plan authorizes considering the separately confirmed
    destructive rebuild.
 
+If apply reports `SAFE_STOPPED` after a commit acknowledgement error, do not
+rerun `apply`: the current service inventory describes the deliberately
+stopped state rather than the preserved pre-bootstrap baseline. Use
+`operation=recover` from the reviewed current `main`, set
+`recovery_source_main_sha` to the main SHA recorded in the private receipt, and
+set `expected_managed_catalog_digest` to the `managedCatalogDigest` in the
+original successful read-only plan evidence (which must equal the read-only
+post-failure plan), and confirm exactly:
+
+```text
+fieldgrid-staging-migration-admin-bootstrap-recover-v1:olyfmekyqozxrbrwwszu:<receipt-main-sha>:<current-main-sha>:<staging-sha>:<managed-catalog-digest>
+```
+
+Recovery proves that the receipt source is an ancestor of current main, the
+same staging ref is still live, re-fences every writer and proves it stopped,
+the current managed catalog still equals the independently captured plan
+digest, and a fresh real target login satisfies the complete role, ownership,
+catalog, provider and rollback-only rebuild contract. The recovery may restore
+only the target owner's `USAGE,CREATE` privileges on the three application
+schemas before that proof; it does not rerun ownership transfer or rotate the
+password. Only then may it restore the original service baseline and run the
+four exact-SHA health checks. A partial commit, changed receipt, catalog drift,
+active writer or failed target proof keeps staging safe-stopped.
+
 Never put the password in a workflow input, logs or an artifact. The bootstrap
 workflow does not modify secrets, refs, branch protection or production and it
 must not be used as evidence to move `staging`.

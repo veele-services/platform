@@ -54,16 +54,20 @@ test("bootstrap workflow is manual, exact-ref verified before checkout and stagi
   assert.doesNotMatch(jobEnvironment, /secrets\.DATABASE_URL/u);
 });
 
-test("plan has only the legacy credential and apply receives the new password step-locally", () => {
+test("plan has only the legacy credential while apply and recovery receive the new password step-locally", () => {
   const workflow = read(
     ".github/workflows/fieldgrid-staging-migration-admin-bootstrap.yml",
   );
   const plan = workflow.slice(
     workflow.indexOf("- name: Produce read-only bootstrap plan"),
-    workflow.indexOf("- name: Reverify exact refs immediately before apply"),
+    workflow.indexOf(
+      "- name: Reverify exact refs immediately before mutation or recovery",
+    ),
   );
   const apply = workflow.slice(
-    workflow.indexOf("- name: Apply one-time migration-admin bootstrap"),
+    workflow.indexOf(
+      "- name: Apply or recover one-time migration-admin bootstrap",
+    ),
     workflow.indexOf("- name: Upload secret-free bootstrap evidence"),
   );
   assert.match(plan, /DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/u);
@@ -74,7 +78,18 @@ test("plan has only the legacy credential and apply receives the new password st
     /FIELDGRID_MIGRATION_DATABASE_PASSWORD: \$\{\{ secrets\.FIELDGRID_MIGRATION_DATABASE_PASSWORD \}\}/u,
   );
   assert.match(workflow, /--plan/u);
-  assert.match(workflow, /--apply/u);
+  assert.match(workflow, /mode_flag="--\$BOOTSTRAP_OPERATION"/u);
+  assert.match(
+    workflow,
+    /fieldgrid-staging-migration-admin-bootstrap-recover-v1/u,
+  );
+  assert.match(workflow, /recovery_source_main_sha:/u);
+  assert.match(workflow, /expected_managed_catalog_digest:/u);
+  assert.match(
+    workflow,
+    /EXPECTED_MANAGED_CATALOG_DIGEST.*\^\[0-9a-f\]\{64\}\$/su,
+  );
+  assert.match(workflow, /compare\/\$\{source\}\.\.\.\$\{current\}/u);
   assert.match(
     workflow,
     /fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:\$EXPECTED_MAIN_SHA/u,
@@ -101,7 +116,7 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /WITH INHERIT FALSE, SET FALSE, ADMIN TRUE/u);
   assert.match(database, /WITH INHERIT TRUE, SET FALSE, ADMIN FALSE/u);
   assert.match(database, /REVOKE[\s\S]*FROM postgres GRANTED BY postgres/u);
-  assert.match(database, /TARGET_ROLE_MEMBERSHIP_INVALID/u);
+  assert.match(database, /RUNTIME_MEMBERSHIP_TOPOLOGY_INVALID/u);
   assert.match(database, /bootstrapCommitAttempted/u);
   assert.match(database, /has_function_privilege/u);
   const planImplementation = database.slice(
@@ -132,6 +147,17 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(runner, /RECOVERY_REQUIRED/u);
   assert.match(runner, /servicesSafeStopped = true/u);
   assert.match(runner, /originalServices: baseline\.map/u);
+  assert.match(runner, /BOOTSTRAP_RECOVERY_MODE_REQUIRED/u);
+  assert.match(runner, /committedBootstrapMetadata/u);
+  assert.match(runner, /resumedFromSafeStopped/u);
+  assert.match(
+    runner,
+    /plan\.managedCatalogDigest === expectedManagedCatalogDigest/u,
+  );
+  assert.doesNotMatch(
+    runner,
+    /committedBootstrapMetadata\(plan, plan\.managedCatalogDigest\)/u,
+  );
   assert.match(
     runner,
     /requireThat\(servicesRestored, "WRITER_RESTORE_FAILED"\)/u,
