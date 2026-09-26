@@ -319,8 +319,10 @@ export async function runApply({
   let mayUpdateReceipt = false;
   let writersTouched = false;
   let expectedManagedCatalogDigest = config.expectedManagedCatalogDigest;
+  let failureStage = "service-inventory";
   try {
     const currentServices = await services.inventory();
+    failureStage = "receipt-validation";
     const recovery = await recoveryState(receiptPath, config, currentServices);
     baseline = recovery.baseline;
     resumedFromSafeStopped = recovery.resume;
@@ -331,12 +333,15 @@ export async function runApply({
       (resumedFromSafeStopped || recovery.commitAmbiguous === true) &&
       !recovery.writersAlreadyStopped
     ) {
+      failureStage = "writer-fencing";
       mayUpdateReceipt = true;
       writersTouched = true;
       await services.stop(currentServices);
       await (deps.drainApplicationWriters ?? drainApplicationWriters)(database);
+      failureStage = "legacy-catalog-plan";
       plan = await (deps.bootstrapPlan ?? bootstrapPlan)(database);
     } else {
+      failureStage = "legacy-catalog-plan";
       plan = await (deps.bootstrapPlan ?? bootstrapPlan)(database);
     }
     expectedManagedCatalogDigest ??= plan.managedCatalogDigest;
@@ -346,6 +351,7 @@ export async function runApply({
       "MANAGED_CATALOG_CHANGED",
     );
     if (!resumedFromSafeStopped) {
+      failureStage = "preflight-receipt-write";
       await writeJson(receiptPath, {
         contract: CONTRACT,
         repository: REPOSITORY,
@@ -370,6 +376,7 @@ export async function runApply({
       (!resumedFromSafeStopped && recovery.commitAmbiguous !== true) ||
       recovery.writersAlreadyStopped
     ) {
+      failureStage = "writer-fencing";
       mayUpdateReceipt = true;
       writersTouched = true;
       await services.stop(currentServices);
@@ -377,9 +384,11 @@ export async function runApply({
     }
     let applied;
     if (resumedFromSafeStopped) {
+      failureStage = "committed-state-validation";
       applied = committedBootstrapMetadata(plan, expectedManagedCatalogDigest);
     } else {
       try {
+        failureStage = "bootstrap-apply";
         applied = await (deps.applyBootstrap ?? applyBootstrap)(
           database,
           env.FIELDGRID_MIGRATION_DATABASE_PASSWORD,
@@ -389,6 +398,7 @@ export async function runApply({
       } catch (error) {
         if (error?.bootstrapCommitAttempted !== true) throw error;
         committed = true;
+        failureStage = "commit-acknowledgement-proof";
         const recoveryDatabase = await connect(
           (
             deps.createRecoveryClient ??
@@ -413,6 +423,7 @@ export async function runApply({
         }
       }
     }
+    failureStage = "target-login";
     const target = await connect(
       (deps.createTargetClient ?? createDatabaseClient)(
         targetConnection(connection, env.FIELDGRID_MIGRATION_DATABASE_PASSWORD),
@@ -422,12 +433,14 @@ export async function runApply({
     let proof;
     try {
       if (resumedFromSafeStopped) {
+        failureStage = "target-schema-privilege-repair";
         await (
           deps.repairCommittedTargetSchemaPrivileges ??
           repairCommittedTargetSchemaPrivileges
         )(target);
         targetSchemaPrivilegesRepaired = true;
       }
+      failureStage = "target-capability-proof";
       proof = await (deps.verifyTargetLogin ?? verifyTargetLogin)(
         target,
         applied.managedCatalogDigest,
@@ -435,6 +448,7 @@ export async function runApply({
     } finally {
       await target.end();
     }
+    failureStage = "service-restore";
     await services.restore(baseline);
     const restored = await services.inventory();
     const servicesRestored = baseline.every((expected) =>
@@ -444,6 +458,7 @@ export async function runApply({
       ),
     );
     requireThat(servicesRestored, "WRITER_RESTORE_FAILED");
+    failureStage = "restored-health-proof";
     const health = await (
       deps.verifyRestoredHealth ?? verifyRestoredStagingHealth
     )({ expectedSha: config.expectedStaging });
@@ -513,6 +528,7 @@ export async function runApply({
       mutationsPerformed: stateMayHaveCommitted,
       phase,
       failureCode: error?.code ?? "OPERATION_FAILED",
+      failureStage,
       recoveryFailureCode,
       servicesSafeStopped,
     });
@@ -530,6 +546,7 @@ export async function runApply({
           mutationsPerformed: true,
           phase,
           failureCode: error?.code ?? "OPERATION_FAILED",
+          failureStage,
           recoveryFailureCode,
           servicesSafeStopped,
           lastRecoveryMainSha: config.expectedMain,

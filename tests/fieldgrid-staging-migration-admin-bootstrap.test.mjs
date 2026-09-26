@@ -701,6 +701,7 @@ test("failed recovery proof preserves the original SAFE_STOPPED baseline", async
   assert.ok(calls.includes("services.safeStop"));
   const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
   assert.equal(receipt.phase, "SAFE_STOPPED");
+  assert.equal(receipt.failureStage, "target-capability-proof");
   assert.equal(receipt.operation, "apply");
   assert.equal(receipt.expectedMainSha, RECOVERY_SOURCE_MAIN);
   assert.deepEqual(receipt.originalServices, [
