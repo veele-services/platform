@@ -524,11 +524,15 @@ export async function runApply({
         : stateMayHaveCommitted
           ? "SAFE_STOPPED"
           : "ROLLED_BACK";
+    const reportedFailureStage =
+      typeof error?.bootstrapFailureStage === "string"
+        ? error.bootstrapFailureStage
+        : failureStage;
     const result = publicResult(config, "failed", {
       mutationsPerformed: stateMayHaveCommitted,
       phase,
       failureCode: error?.code ?? "OPERATION_FAILED",
-      failureStage,
+      failureStage: reportedFailureStage,
       recoveryFailureCode,
       servicesSafeStopped,
     });
@@ -546,7 +550,7 @@ export async function runApply({
           mutationsPerformed: true,
           phase,
           failureCode: error?.code ?? "OPERATION_FAILED",
-          failureStage,
+          failureStage: reportedFailureStage,
           recoveryFailureCode,
           servicesSafeStopped,
           lastRecoveryMainSha: config.expectedMain,
