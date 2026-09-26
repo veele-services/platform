@@ -2,11 +2,16 @@
 
 import { resolve } from "node:path";
 
-import { runApply, runPlan } from "./staging-migration-admin/runner.mjs";
+import {
+  runApply,
+  runPlan,
+  runRecover,
+} from "./staging-migration-admin/runner.mjs";
 
 function parseArgs(argv) {
   const modes = argv.filter(
-    (value) => value === "--plan" || value === "--apply",
+    (value) =>
+      value === "--plan" || value === "--apply" || value === "--recover",
   );
   if (
     modes.length !== 1 ||
@@ -14,7 +19,7 @@ function parseArgs(argv) {
       (value) => !modes.includes(value) && !value.startsWith("--output-dir="),
     )
   ) {
-    throw new Error("choose exactly one of --plan or --apply");
+    throw new Error("choose exactly one of --plan, --apply or --recover");
   }
   return {
     mode: modes[0].slice(2),
@@ -27,7 +32,11 @@ function parseArgs(argv) {
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
   const result =
-    options.mode === "plan" ? await runPlan(options) : await runApply(options);
+    options.mode === "plan"
+      ? await runPlan(options)
+      : options.mode === "recover"
+        ? await runRecover(options)
+        : await runApply(options);
   process.stdout.write(
     `[fieldgrid:staging-migration-admin-bootstrap] PASS: ${result.operation}:${result.status}\n`,
   );

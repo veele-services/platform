@@ -8,6 +8,7 @@ import {
   bootstrapPlan,
   drainApplicationWriters,
   managedCatalogSnapshot,
+  repairCommittedTargetSchemaPrivileges,
   verifyTargetLogin,
 } from "./staging-migration-admin/database.mjs";
 
@@ -135,6 +136,9 @@ try {
   await rootBootstrap.query(
     "GRANT fieldgrid_runtime_data TO postgres WITH INHERIT FALSE, SET FALSE, ADMIN TRUE",
   );
+  await rootBootstrap.query(
+    "REVOKE fieldgrid_runtime_data FROM fieldgrid_runtime_app GRANTED BY supabase_admin",
+  );
   const publicOwner = await admin.query(
     "SELECT pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname='public'",
   );
@@ -241,7 +245,7 @@ try {
     ["app_private", "drizzle", "public"].map((nspname) => ({
       nspname,
       owner: "fieldgrid_migration_admin",
-      usage: nspname === "public",
+      usage: true,
     })),
   );
   const writerFence = await assertNoExternalWriters(target);
@@ -265,12 +269,61 @@ try {
   const proof = await verifyTargetLogin(target, before.digest);
   assert.equal(proof.principal, "fieldgrid_migration_admin");
   assert.equal(proof.dryRebuildCapability, true);
+  for (const schema of ["app_private", "drizzle", "public"]) {
+    await target.query(
+      `REVOKE ALL ON SCHEMA ${schema} FROM fieldgrid_migration_admin`,
+    );
+  }
+  await assert.rejects(
+    target.query("SELECT count(*) FROM public.tenants"),
+    (error) => error?.code === "42501",
+  );
+  assert.deepEqual(
+    (await repairCommittedTargetSchemaPrivileges(target)).repairedSchemas,
+    ["app_private", "drizzle", "public"],
+  );
+  assert.equal(
+    (await verifyTargetLogin(target, before.digest)).dryRebuildCapability,
+    true,
+  );
   await target.end();
   target = undefined;
 
   const second = await applyBootstrap(legacy, PASSWORD);
   assert.equal(second.managedCatalogDigest, before.digest);
   assert.equal((await managedCatalogSnapshot(legacy)).digest, before.digest);
+  const commitAmbiguousClient = {
+    async query(...args) {
+      const result = await legacy.query(...args);
+      if (String(args[0]).trim() === "COMMIT") {
+        const error = new Error(
+          "synthetic pooler commit acknowledgement failure",
+        );
+        error.code = "42501";
+        throw error;
+      }
+      return result;
+    },
+  };
+  await assert.rejects(
+    applyBootstrap(commitAmbiguousClient, PASSWORD),
+    (error) =>
+      error?.code === "42501" && error?.bootstrapCommitAttempted === true,
+  );
+  const committedPlan = await bootstrapPlan(legacy);
+  assert.equal(committedPlan.targetRoleExists, true);
+  assert.equal(committedPlan.managedCatalogDigest, before.digest);
+  target = await connected(
+    "fieldgrid_migration_admin",
+    PASSWORD,
+    "fieldgrid-bootstrap-pg17-commit-ambiguity-proof",
+  );
+  assert.equal(
+    (await verifyTargetLogin(target, before.digest)).dryRebuildCapability,
+    true,
+  );
+  await target.end();
+  target = undefined;
   const definer = await legacy.query(`
     SELECT pg_get_userbyid(p.proowner) AS owner
     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
@@ -302,7 +355,7 @@ try {
     await legacy.query("DROP ROLE fixture_unknown_writer");
   }
   process.stdout.write(
-    `${JSON.stringify({ status: "passed", postgresMajor: 17, retry: true, rollback: true })}\n`,
+    `${JSON.stringify({ status: "passed", postgresMajor: 17, retry: true, rollback: true, commitAmbiguity: true })}\n`,
   );
 } finally {
   await target?.end().catch(() => {});

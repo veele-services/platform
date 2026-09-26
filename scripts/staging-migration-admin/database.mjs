@@ -462,14 +462,22 @@ async function verifyCatalogState(client, managedExpectation) {
      ORDER BY 1,2,3`,
     [[...APP_SCHEMAS]],
   );
+  const schemaOwners = owners.rows.filter(({ kind }) => kind === "schema");
   requireThat(
-    owners.rows.every(
-      (item) =>
-        item.owner === MIGRATION_ROLE ||
-        (item.kind === "routine" &&
-          item.security_definer === true &&
-          item.owner === "postgres"),
-    ),
+    schemaOwners.length === APP_SCHEMAS.length &&
+      APP_SCHEMAS.every((schema) =>
+        schemaOwners.some(
+          ({ schema_name: schemaName, owner }) =>
+            schemaName === schema && owner === MIGRATION_ROLE,
+        ),
+      ) &&
+      owners.rows.every(
+        (item) =>
+          item.owner === MIGRATION_ROLE ||
+          (item.kind === "routine" &&
+            item.security_definer === true &&
+            item.owner === "postgres"),
+      ),
     "APPLICATION_OWNERSHIP_INVALID",
   );
   const typeOwners = await client.query(
@@ -486,65 +494,42 @@ async function verifyCatalogState(client, managedExpectation) {
     "APPLICATION_TYPE_OWNERSHIP_INVALID",
   );
   const membership = await runtimeMembership(client);
-  const targetMembership = membership.filter(
-    ({ role_name: roleName, member_name: memberName }) =>
-      roleName === MIGRATION_ROLE || memberName === MIGRATION_ROLE,
-  );
+  const expectedMembership = [
+    [MIGRATION_ROLE, "postgres", "supabase_admin", true, false, false],
+    ["fieldgrid_runtime_app", MIGRATION_ROLE, "postgres", true, false, false],
+    ["fieldgrid_runtime_app", "postgres", "supabase_admin", true, false, false],
+    ["fieldgrid_runtime_data", MIGRATION_ROLE, "postgres", true, false, false],
+    [
+      "fieldgrid_runtime_data",
+      "fieldgrid_runtime_app",
+      "postgres",
+      false,
+      true,
+      false,
+    ],
+    [
+      "fieldgrid_runtime_data",
+      "postgres",
+      "supabase_admin",
+      true,
+      false,
+      false,
+    ],
+  ];
   requireThat(
-    targetMembership.every(
-      ({
-        role_name: roleName,
-        member_name: memberName,
-        grantor_name: grantorName,
-        admin_option: admin,
-        inherit_option: inherit,
-        set_option: set,
-      }) =>
-        (memberName === MIGRATION_ROLE && RUNTIME_ROLES.includes(roleName)) ||
-        (roleName === MIGRATION_ROLE &&
-          memberName === "postgres" &&
-          grantorName === "supabase_admin" &&
-          admin === true &&
-          inherit === false &&
-          set === false),
-    ),
-    "TARGET_ROLE_MEMBERSHIP_INVALID",
-  );
-  for (const runtimeRole of RUNTIME_ROLES) {
-    const edges = membership.filter(
-      ({ role_name: roleName, member_name: memberName }) =>
-        roleName === runtimeRole && memberName === MIGRATION_ROLE,
-    );
-    requireThat(
-      edges.length >= 1 &&
-        edges.some(({ admin_option: admin }) => admin === true) &&
-        edges.every(
-          ({ inherit_option: inherit, set_option: set }) =>
-            inherit === false && set === false,
+    membership.length === expectedMembership.length &&
+      expectedMembership.every(([role, member, grantor, admin, inherit, set]) =>
+        membership.some(
+          (edge) =>
+            edge.role_name === role &&
+            edge.member_name === member &&
+            edge.grantor_name === grantor &&
+            edge.admin_option === admin &&
+            edge.inherit_option === inherit &&
+            edge.set_option === set,
         ),
-      "RUNTIME_ADMIN_TOPOLOGY_INVALID",
-    );
-  }
-  const capabilityEdges = membership.filter(
-    ({ role_name: roleName, member_name: memberName }) =>
-      roleName === "fieldgrid_runtime_data" &&
-      memberName === "fieldgrid_runtime_app",
-  );
-  requireThat(
-    capabilityEdges.length >= 1 &&
-      capabilityEdges.every(
-        ({ admin_option: admin, inherit_option: inherit, set_option: set }) =>
-          admin === false && inherit === true && set === false,
       ),
-    "RUNTIME_CAPABILITY_TOPOLOGY_INVALID",
-  );
-  requireThat(
-    !membership.some(
-      ({ member_name: member, role_name: granted }) =>
-        member === MIGRATION_ROLE &&
-        (granted === "postgres" || granted === "supabase_admin"),
-    ),
-    "PRIVILEGED_ROLE_MEMBERSHIP_INVALID",
+    "RUNTIME_MEMBERSHIP_TOPOLOGY_INVALID",
   );
   const publication = await client.query(
     `SELECT pg_get_userbyid(pubowner) AS owner FROM pg_publication
@@ -635,7 +620,7 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
         );
       }
       await client.query(
-        `REVOKE ALL ON SCHEMA ${identifier(schema)} FROM ${identifier(MIGRATION_ROLE)}`,
+        `GRANT USAGE,CREATE ON SCHEMA ${identifier(schema)} TO ${identifier(MIGRATION_ROLE)}`,
       );
     }
     const publication = await client.query(
@@ -682,6 +667,58 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
     }
     throw error;
   }
+}
+
+export async function repairCommittedTargetSchemaPrivileges(client) {
+  const identity = await client.query(
+    `SELECT current_user::text AS current_user,session_user::text AS session_user
+     FROM pg_roles WHERE rolname=current_user`,
+  );
+  requireThat(
+    identity.rows.length === 1 &&
+      identity.rows[0].current_user === MIGRATION_ROLE &&
+      identity.rows[0].session_user === MIGRATION_ROLE,
+    "TARGET_LOGIN_INVALID",
+  );
+  const schemas = await client.query(
+    `SELECT n.nspname,pg_get_userbyid(n.nspowner) AS owner
+     FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
+    [[...APP_SCHEMAS]],
+  );
+  requireThat(
+    schemas.rows.length === APP_SCHEMAS.length &&
+      schemas.rows.every(({ owner }) => owner === MIGRATION_ROLE),
+    "APPLICATION_OWNERSHIP_INVALID",
+  );
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL lock_timeout='10s'");
+    for (const schema of APP_SCHEMAS) {
+      await client.query(
+        `GRANT USAGE,CREATE ON SCHEMA ${identifier(schema)} TO ${identifier(MIGRATION_ROLE)}`,
+      );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  }
+  const proof = await client.query(
+    `SELECT n.nspname,
+       has_schema_privilege(current_user,n.oid,'USAGE') AS usage,
+       has_schema_privilege(current_user,n.oid,'CREATE') AS create_privilege
+     FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
+    [[...APP_SCHEMAS]],
+  );
+  requireThat(
+    proof.rows.length === APP_SCHEMAS.length &&
+      proof.rows.every(
+        ({ usage, create_privilege: createPrivilege }) =>
+          usage === true && createPrivilege === true,
+      ),
+    "TARGET_SCHEMA_CAPABILITY_INVALID",
+  );
+  return { repairedSchemas: proof.rows.map(({ nspname }) => nspname) };
 }
 
 export async function drainApplicationWriters(client) {

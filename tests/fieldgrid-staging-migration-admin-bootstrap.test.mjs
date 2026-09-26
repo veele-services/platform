@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -7,17 +7,21 @@ import { test } from "node:test";
 import {
   CONTRACT,
   PRODUCTION_PROJECT_REF,
+  RECOVERY_CONTRACT,
   STAGING_PROJECT_REF,
   validateBootstrapDispatch,
 } from "../scripts/staging-migration-admin/contract.mjs";
 import {
   runApply,
   runPlan,
+  runRecover,
 } from "../scripts/staging-migration-admin/runner.mjs";
 import { verifyRestoredStagingHealth } from "../scripts/staging-migration-admin/health.mjs";
 
 const MAIN = "a".repeat(40);
 const STAGING = "b".repeat(40);
+const RECOVERY_SOURCE_MAIN = "c".repeat(40);
+const MANAGED_CATALOG_DIGEST = "a".repeat(64);
 const SECRET = "0123456789abcdef".repeat(4);
 
 function environment(mode = "apply") {
@@ -33,9 +37,16 @@ function environment(mode = "apply") {
     TARGET_ENVIRONMENT: "staging",
     EXPECTED_SUPABASE_PROJECT_REF: STAGING_PROJECT_REF,
     FORBIDDEN_SUPABASE_PROJECT_REF: PRODUCTION_PROJECT_REF,
-    BOOTSTRAP_CONFIRMATION: `${CONTRACT}:${STAGING_PROJECT_REF}:${MAIN}`,
+    BOOTSTRAP_CONFIRMATION:
+      mode === "recover"
+        ? `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${RECOVERY_SOURCE_MAIN}:${MAIN}:${STAGING}:${MANAGED_CATALOG_DIGEST}`
+        : `${CONTRACT}:${STAGING_PROJECT_REF}:${MAIN}`,
+    RECOVERY_SOURCE_MAIN_SHA:
+      mode === "recover" ? RECOVERY_SOURCE_MAIN : undefined,
+    EXPECTED_MANAGED_CATALOG_DIGEST:
+      mode === "recover" ? MANAGED_CATALOG_DIGEST : undefined,
     FIELDGRID_MIGRATION_DATABASE_PASSWORD:
-      mode === "apply" ? SECRET : undefined,
+      mode === "apply" || mode === "recover" ? SECRET : undefined,
   };
 }
 
@@ -46,8 +57,16 @@ function fixtures({
   healthFailure = false,
   safeStopFailure = false,
   restoreFailure = false,
+  initiallyStopped = false,
+  planFailure = false,
+  inventoryFailure = false,
+  committedState,
+  stopFailure = false,
+  managedCatalogDigest = MANAGED_CATALOG_DIGEST,
 } = {}) {
   const calls = [];
+  let currentActive = !initiallyStopped;
+  let planCalls = 0;
   const legacy = {
     async connect() {
       calls.push("legacy.connect");
@@ -64,22 +83,33 @@ function fixtures({
       calls.push("target.end");
     },
   };
-  const states = [{ unit: "veele-staging.service", active: true, pid: 17 }];
+  const states = () => [
+    {
+      unit: "veele-staging.service",
+      active: currentActive,
+      pid: currentActive ? 17 : 0,
+    },
+  ];
   const services = {
     async inventory() {
       calls.push("services.inventory");
-      return states;
+      if (inventoryFailure) throw new Error("synthetic inventory failure");
+      return states();
     },
     async stop() {
       calls.push("services.stop");
+      currentActive = false;
+      if (stopFailure) throw new Error("synthetic stop failure");
     },
-    async restore() {
+    async restore(baseline) {
       calls.push("services.restore");
       if (restoreFailure) throw new Error("synthetic restore failure");
+      currentActive = baseline[0].active;
     },
     async safeStop() {
       calls.push("services.safeStop");
       if (safeStopFailure) throw new Error("synthetic safe-stop failure");
+      currentActive = false;
     },
   };
   return {
@@ -96,10 +126,58 @@ function fixtures({
       },
       async bootstrapPlan() {
         calls.push("database.plan");
+        if (planFailure) throw new Error("synthetic plan failure");
+        planCalls += 1;
+        const committed =
+          (commitAmbiguous && planCalls > 1) ||
+          (committedState ?? initiallyStopped);
         return {
           principal: { name: "postgres" },
-          targetRoleExists: false,
-          managedCatalogDigest: "a".repeat(64),
+          applicationSchemas: ["app_private", "drizzle", "public"].map(
+            (schemaName) => ({
+              schema_name: schemaName,
+              owner: committed ? "fieldgrid_migration_admin" : "postgres",
+            }),
+          ),
+          applicationRelationOwners: [
+            {
+              schema_name: "public",
+              relkind: "r",
+              owner: committed ? "fieldgrid_migration_admin" : "postgres",
+              count: 1,
+            },
+          ],
+          applicationRoutineOwners: [
+            {
+              schema_name: "public",
+              prokind: "f",
+              prosecdef: false,
+              owner: committed ? "fieldgrid_migration_admin" : "postgres",
+              count: 1,
+            },
+            {
+              schema_name: "public",
+              prokind: "f",
+              prosecdef: true,
+              owner: "postgres",
+              count: 1,
+            },
+          ],
+          targetRoleExists: committed,
+          targetRole: committed
+            ? {
+                rolname: "fieldgrid_migration_admin",
+                rolsuper: false,
+                rolbypassrls: false,
+                rolcreaterole: true,
+                rolcreatedb: false,
+                rolreplication: false,
+                rolinherit: false,
+                rolcanlogin: true,
+              }
+            : null,
+          runtimeMembership: [],
+          managedCatalogDigest,
         };
       },
       async drainApplicationWriters() {
@@ -116,7 +194,7 @@ function fixtures({
         }
         return {
           legacyPrincipal: "postgres",
-          managedCatalogDigest: "a".repeat(64),
+          managedCatalogDigest,
           runtimeMembershipDigest: "b".repeat(64),
           applicationObjectCount: 9,
           securityDefinerCompatibilityOwner: "postgres",
@@ -134,6 +212,12 @@ function fixtures({
             authSchemaUsage: true,
             authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
           },
+        };
+      },
+      async repairCommittedTargetSchemaPrivileges() {
+        calls.push("database.repairTargetSchemaPrivileges");
+        return {
+          repairedSchemas: ["app_private", "drizzle", "public"],
         };
       },
       async verifyRestoredHealth({ expectedSha }) {
@@ -161,6 +245,20 @@ test("dispatch is exact-main, staging-only and apply confirmation is fail-closed
     const env = environment();
     env[key] = value;
     assert.throws(() => validateBootstrapDispatch(env, { mode: "apply" }));
+  }
+  assert.equal(
+    validateBootstrapDispatch(environment("recover"), { mode: "recover" })
+      .recoverySourceMain,
+    RECOVERY_SOURCE_MAIN,
+  );
+  for (const [key, value] of [
+    ["RECOVERY_SOURCE_MAIN_SHA", "not-a-sha"],
+    ["EXPECTED_MANAGED_CATALOG_DIGEST", "not-a-digest"],
+    ["BOOTSTRAP_CONFIRMATION", "wrong"],
+  ]) {
+    const env = environment("recover");
+    env[key] = value;
+    assert.throws(() => validateBootstrapDispatch(env, { mode: "recover" }));
   }
 });
 
@@ -198,8 +296,8 @@ test("apply quiesces writers, proves the real target login and restores the base
   });
   assert.deepEqual(calls, [
     "legacy.connect",
-    "database.plan",
     "services.inventory",
+    "database.plan",
     "services.stop",
     "database.drain",
     "database.apply",
@@ -214,6 +312,400 @@ test("apply quiesces writers, proves the real target login and restores the base
   const evidence = await readFile(join(directory, "result.json"), "utf8");
   assert.doesNotMatch(evidence, new RegExp(SECRET, "u"));
   assert.doesNotMatch(evidence, /postgresql:\/\//u);
+});
+
+test("recover resumes only an exact SAFE_STOPPED receipt and never reruns ownership DDL", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+  );
+  const receiptPath = join(directory, "private", "receipt.json");
+  await mkdir(join(directory, "private"), { recursive: true });
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify({
+      contract: CONTRACT,
+      repository: "veele-services/platform",
+      environment: "staging",
+      project: STAGING_PROJECT_REF,
+      operation: "apply",
+      expectedMainSha: RECOVERY_SOURCE_MAIN,
+      expectedStagingSha: STAGING,
+      destructive: true,
+      status: "failed",
+      mutationsPerformed: true,
+      phase: "SAFE_STOPPED",
+      failureCode: "42501",
+      servicesSafeStopped: true,
+      originalServices: [{ unit: "veele-staging.service", active: true }],
+    })}\n`,
+    { mode: 0o600 },
+  );
+  const { calls, deps } = fixtures({ initiallyStopped: true });
+  const result = await runRecover({
+    env: environment("recover"),
+    outputDir: directory,
+    receiptPath,
+    deps,
+  });
+  assert.equal(result.status, "passed");
+  assert.equal(result.resumedFromSafeStopped, true);
+  assert.equal(result.servicesRestored, true);
+  assert.equal(result.targetSchemaPrivilegesRepaired, true);
+  assert.equal(calls.includes("database.apply"), false);
+  assert.ok(calls.includes("database.repairTargetSchemaPrivileges"));
+  assert.ok(calls.includes("database.targetProof"));
+  assert.ok(calls.includes("services.restore"));
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(receipt.phase, "COMPLETE");
+  assert.deepEqual(receipt.originalServices, [
+    { unit: "veele-staging.service", active: true },
+  ]);
+});
+
+test("recover re-fences an unexpectedly restarted writer before catalog proof", async (t) => {
+  for (const stopFailure of [false, true]) {
+    await t.test(stopFailure ? "stop failure" : "writer stopped", async () => {
+      const directory = await mkdtemp(
+        join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+      );
+      const receiptPath = join(directory, "receipt.json");
+      await writeFile(
+        receiptPath,
+        `${JSON.stringify({
+          contract: CONTRACT,
+          repository: "veele-services/platform",
+          environment: "staging",
+          project: STAGING_PROJECT_REF,
+          operation: "apply",
+          expectedMainSha: RECOVERY_SOURCE_MAIN,
+          expectedStagingSha: STAGING,
+          destructive: true,
+          status: "failed",
+          mutationsPerformed: true,
+          phase: "SAFE_STOPPED",
+          failureCode: "42501",
+          servicesSafeStopped: true,
+          originalServices: [{ unit: "veele-staging.service", active: true }],
+        })}\n`,
+        { mode: 0o600 },
+      );
+      const { calls, deps } = fixtures({
+        committedState: true,
+        stopFailure,
+      });
+      if (stopFailure) {
+        await assert.rejects(
+          runRecover({ env: environment("recover"), receiptPath, deps }),
+          /synthetic stop failure/u,
+        );
+        assert.ok(calls.includes("services.safeStop"));
+        assert.equal(calls.includes("database.plan"), false);
+        assert.equal(calls.includes("database.targetProof"), false);
+        const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+        assert.equal(receipt.phase, "SAFE_STOPPED");
+        assert.deepEqual(receipt.originalServices, [
+          { unit: "veele-staging.service", active: true },
+        ]);
+      } else {
+        const result = await runRecover({
+          env: environment("recover"),
+          receiptPath,
+          deps,
+        });
+        assert.equal(result.status, "passed");
+        assert.ok(
+          calls.indexOf("services.stop") < calls.indexOf("database.plan"),
+        );
+        assert.ok(
+          calls.indexOf("database.plan") <
+            calls.indexOf("database.targetProof"),
+        );
+        assert.equal(calls.includes("database.apply"), false);
+      }
+    });
+  }
+});
+
+test("recover rejects a mismatched receipt without restoring services", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify({
+      contract: CONTRACT,
+      expectedMainSha: "d".repeat(40),
+      expectedStagingSha: STAGING,
+      status: "failed",
+      mutationsPerformed: true,
+      phase: "SAFE_STOPPED",
+      servicesSafeStopped: true,
+      originalServices: [{ unit: "veele-staging.service", active: true }],
+    })}\n`,
+    { mode: 0o600 },
+  );
+  const { calls, deps } = fixtures({ initiallyStopped: true });
+  await assert.rejects(
+    runRecover({
+      env: environment("recover"),
+      receiptPath,
+      deps,
+    }),
+    /BOOTSTRAP_RECEIPT_BINDING_INVALID/u,
+  );
+  assert.equal(calls.includes("services.restore"), false);
+  assert.equal(calls.includes("database.apply"), false);
+});
+
+test("apply refuses to overwrite a SAFE_STOPPED receipt baseline", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  const originalReceipt = `${JSON.stringify({
+    contract: CONTRACT,
+    repository: "veele-services/platform",
+    environment: "staging",
+    project: STAGING_PROJECT_REF,
+    operation: "apply",
+    expectedMainSha: MAIN,
+    expectedStagingSha: STAGING,
+    destructive: true,
+    status: "failed",
+    mutationsPerformed: true,
+    phase: "SAFE_STOPPED",
+    failureCode: "42501",
+    servicesSafeStopped: true,
+    originalServices: [{ unit: "veele-staging.service", active: true }],
+  })}\n`;
+  await writeFile(receiptPath, originalReceipt, { mode: 0o600 });
+  const { calls, deps } = fixtures({ initiallyStopped: true });
+  await assert.rejects(
+    runApply({ env: environment(), outputDir: directory, receiptPath, deps }),
+    /BOOTSTRAP_RECOVERY_MODE_REQUIRED/u,
+  );
+  assert.equal(calls.includes("services.stop"), false);
+  assert.equal(calls.includes("database.apply"), false);
+  assert.equal(calls.includes("services.restore"), false);
+  assert.equal(await readFile(receiptPath, "utf8"), originalReceipt);
+  const result = JSON.parse(
+    await readFile(join(directory, "result.json"), "utf8"),
+  );
+  assert.equal(result.phase, "SAFE_STOPPED");
+  assert.equal(result.mutationsPerformed, true);
+});
+
+test("recovery preflight failures preserve the SAFE_STOPPED receipt byte-for-byte", async (t) => {
+  for (const failure of ["planFailure", "inventoryFailure"]) {
+    await t.test(failure, async () => {
+      const directory = await mkdtemp(
+        join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+      );
+      const receiptPath = join(directory, "receipt.json");
+      const originalReceipt = `${JSON.stringify({
+        contract: CONTRACT,
+        repository: "veele-services/platform",
+        environment: "staging",
+        project: STAGING_PROJECT_REF,
+        operation: "apply",
+        expectedMainSha: RECOVERY_SOURCE_MAIN,
+        expectedStagingSha: STAGING,
+        destructive: true,
+        status: "failed",
+        mutationsPerformed: true,
+        phase: "SAFE_STOPPED",
+        failureCode: "42501",
+        servicesSafeStopped: true,
+        originalServices: [{ unit: "veele-staging.service", active: true }],
+      })}\n`;
+      await writeFile(receiptPath, originalReceipt, { mode: 0o600 });
+      const { calls, deps } = fixtures({
+        initiallyStopped: true,
+        [failure]: true,
+      });
+      await assert.rejects(
+        runRecover({ env: environment("recover"), receiptPath, deps }),
+        /synthetic/u,
+      );
+      assert.equal(await readFile(receiptPath, "utf8"), originalReceipt);
+      assert.equal(calls.includes("services.restore"), false);
+      assert.equal(calls.includes("services.safeStop"), false);
+    });
+  }
+});
+
+test("recover rejects managed catalog drift against independent plan evidence", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  const originalReceipt = `${JSON.stringify({
+    contract: CONTRACT,
+    repository: "veele-services/platform",
+    environment: "staging",
+    project: STAGING_PROJECT_REF,
+    operation: "apply",
+    expectedMainSha: RECOVERY_SOURCE_MAIN,
+    expectedStagingSha: STAGING,
+    destructive: true,
+    status: "failed",
+    mutationsPerformed: true,
+    phase: "SAFE_STOPPED",
+    failureCode: "42501",
+    servicesSafeStopped: true,
+    originalServices: [{ unit: "veele-staging.service", active: true }],
+  })}\n`;
+  await writeFile(receiptPath, originalReceipt, { mode: 0o600 });
+  const { calls, deps } = fixtures({
+    initiallyStopped: true,
+    managedCatalogDigest: "e".repeat(64),
+  });
+  await assert.rejects(
+    runRecover({
+      env: environment("recover"),
+      outputDir: directory,
+      receiptPath,
+      deps,
+    }),
+    /MANAGED_CATALOG_CHANGED/u,
+  );
+  assert.equal(calls.includes("services.stop"), false);
+  assert.equal(calls.includes("database.targetProof"), false);
+  assert.equal(await readFile(receiptPath, "utf8"), originalReceipt);
+  const result = JSON.parse(
+    await readFile(join(directory, "result.json"), "utf8"),
+  );
+  assert.equal(result.phase, "SAFE_STOPPED");
+  assert.equal(result.mutationsPerformed, true);
+});
+
+test("apply resumes a fully bound PREFLIGHT receipt without losing the original baseline", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-preflight-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify({
+      contract: CONTRACT,
+      repository: "veele-services/platform",
+      environment: "staging",
+      project: STAGING_PROJECT_REF,
+      operation: "apply",
+      expectedMainSha: MAIN,
+      expectedStagingSha: STAGING,
+      destructive: true,
+      status: "pending",
+      mutationsPerformed: false,
+      phase: "PREFLIGHT",
+      managedCatalogDigest: MANAGED_CATALOG_DIGEST,
+      originalServices: [{ unit: "veele-staging.service", active: true }],
+    })}\n`,
+    { mode: 0o600 },
+  );
+  const { calls, deps } = fixtures();
+  const result = await runApply({
+    env: environment(),
+    receiptPath,
+    deps,
+  });
+  assert.equal(result.status, "passed");
+  assert.ok(calls.includes("database.apply"));
+  assert.ok(calls.includes("services.restore"));
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(receipt.phase, "COMPLETE");
+  assert.deepEqual(receipt.originalServices, [
+    { unit: "veele-staging.service", active: true },
+  ]);
+});
+
+test("an existing PREFLIGHT receipt stays commit-ambiguous until target proof", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-preflight-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify({
+      contract: CONTRACT,
+      repository: "veele-services/platform",
+      environment: "staging",
+      project: STAGING_PROJECT_REF,
+      operation: "apply",
+      expectedMainSha: MAIN,
+      expectedStagingSha: STAGING,
+      destructive: true,
+      status: "pending",
+      mutationsPerformed: false,
+      phase: "PREFLIGHT",
+      managedCatalogDigest: MANAGED_CATALOG_DIGEST,
+      originalServices: [{ unit: "veele-staging.service", active: true }],
+    })}\n`,
+    { mode: 0o600 },
+  );
+  const { calls, deps } = fixtures({ applyFailure: true });
+  await assert.rejects(
+    runApply({ env: environment(), receiptPath, deps }),
+    /synthetic precommit failure/u,
+  );
+  assert.ok(calls.includes("services.stop"));
+  assert.ok(calls.includes("services.safeStop"));
+  assert.equal(calls.includes("services.restore"), false);
+  assert.equal(calls.includes("database.targetProof"), false);
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(receipt.phase, "SAFE_STOPPED");
+  assert.equal(receipt.mutationsPerformed, true);
+  assert.deepEqual(receipt.originalServices, [
+    { unit: "veele-staging.service", active: true },
+  ]);
+});
+
+test("failed recovery proof preserves the original SAFE_STOPPED baseline", async () => {
+  const directory = await mkdtemp(
+    join(tmpdir(), "fieldgrid-bootstrap-recover-"),
+  );
+  const receiptPath = join(directory, "receipt.json");
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify({
+      contract: CONTRACT,
+      repository: "veele-services/platform",
+      environment: "staging",
+      project: STAGING_PROJECT_REF,
+      operation: "apply",
+      expectedMainSha: RECOVERY_SOURCE_MAIN,
+      expectedStagingSha: STAGING,
+      destructive: true,
+      status: "failed",
+      mutationsPerformed: true,
+      phase: "SAFE_STOPPED",
+      failureCode: "42501",
+      servicesSafeStopped: true,
+      originalServices: [{ unit: "veele-staging.service", active: true }],
+    })}\n`,
+    { mode: 0o600 },
+  );
+  const { calls, deps } = fixtures({
+    initiallyStopped: true,
+    targetFailure: true,
+  });
+  await assert.rejects(
+    runRecover({
+      env: environment("recover"),
+      receiptPath,
+      deps,
+    }),
+  );
+  assert.equal(calls.includes("services.restore"), false);
+  assert.ok(calls.includes("services.safeStop"));
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+  assert.equal(receipt.phase, "SAFE_STOPPED");
+  assert.equal(receipt.operation, "apply");
+  assert.equal(receipt.expectedMainSha, RECOVERY_SOURCE_MAIN);
+  assert.deepEqual(receipt.originalServices, [
+    { unit: "veele-staging.service", active: true },
+  ]);
 });
 
 test("precommit failure restores services; postcommit proof failure remains safe-stopped", async (t) => {
@@ -275,19 +767,22 @@ test("precommit failure restores services; postcommit proof failure remains safe
       join(tmpdir(), "fieldgrid-bootstrap-fail-"),
     );
     const { calls, deps } = fixtures({ commitAmbiguous: true });
-    await assert.rejects(
-      runApply({
-        env: environment(),
-        receiptPath: join(directory, "receipt.json"),
-        deps,
-      }),
-    );
-    assert.ok(calls.includes("services.safeStop"));
-    assert.equal(calls.includes("services.restore"), false);
+    const result = await runApply({
+      env: environment(),
+      receiptPath: join(directory, "receipt.json"),
+      deps,
+    });
+    assert.equal(result.status, "passed");
+    assert.equal(result.commitAcknowledgementRecovered, true);
+    assert.equal(result.servicesRestored, true);
+    assert.equal(calls.filter((call) => call === "database.plan").length, 2);
+    assert.ok(calls.includes("database.targetProof"));
+    assert.ok(calls.includes("services.restore"));
+    assert.equal(calls.includes("services.safeStop"), false);
     const receipt = JSON.parse(
       await readFile(join(directory, "receipt.json"), "utf8"),
     );
-    assert.equal(receipt.phase, "SAFE_STOPPED");
+    assert.equal(receipt.phase, "COMPLETE");
     assert.equal(receipt.mutationsPerformed, true);
   });
   await t.test("restored-but-unhealthy staging", async () => {

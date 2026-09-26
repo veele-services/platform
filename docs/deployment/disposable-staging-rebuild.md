@@ -69,6 +69,19 @@ safe-stopped. A result says `SAFE_STOPPED` only after that stop is positively
 verified; `RECOVERY_REQUIRED` means the stop or baseline restore itself failed
 and requires immediate operator recovery.
 
+For a `SAFE_STOPPED` commit-acknowledgement ambiguity, use the bootstrap
+workflow's explicit `recover` operation; never retry `apply`. Bind
+`recovery_source_main_sha` to the SHA stored in the private receipt and use the
+original read-only plan's `managedCatalogDigest` as
+`expected_managed_catalog_digest`; the confirmation binds both values as
+documented in the promotion runbook. Recovery performs no ownership DDL: it
+accepts only the exact private receipt, rejects any managed-catalog drift,
+validates the committed ownership state, restores only the target owner's
+`USAGE,CREATE` schema privileges needed after the historical commit, proves
+the complete state through a fresh target-pooler login, restores the receipt's
+original service baseline and then requires all four exact-staging-SHA health
+identities. Any mismatch remains fail-closed with writers stopped.
+
 ## Run
 
 Dispatch `Fieldgrid Disposable Staging Rebuild` on `main` with the exact live
