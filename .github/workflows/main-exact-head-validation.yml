@@ -297,6 +297,7 @@ jobs:
           --health-retries 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      FIELDGRID_MIGRATION_DATABASE_URL: postgresql://fieldgrid_migration_admin:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef@127.0.0.1:5432/postgres
       FIELDGRID_BOOTSTRAP_ROOT_DATABASE_URL: postgresql://supabase_admin:supabase-admin-fixture-password@127.0.0.1:5432/postgres
       FIELDGRID_BOOTSTRAP_POSTGRES17_TEST: "1"
     steps:
@@ -322,6 +323,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: node scripts/fieldgrid-staging-migration-admin-bootstrap-postgres17.mjs
+      - run: node scripts/fieldgrid-staging-migration-admin-disposable-postgres17.mjs
       - run: >-
           node --test
           tests/fieldgrid-staging-migration-admin-bootstrap.test.mjs

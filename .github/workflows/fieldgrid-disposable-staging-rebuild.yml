@@ -49,7 +49,6 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: https://olyfmekyqozxrbrwwszu.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
-      FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
       FIELDGRID_STAGING_DATABASE_POOLER_HOST: ${{ vars.FIELDGRID_STAGING_DATABASE_POOLER_HOST }}
       DB_SSL: "true"
       DB_SSL_REJECT_UNAUTHORIZED: "true"
@@ -106,6 +105,30 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Construct least-privilege staging migration URL
+        id: migration-database-url
+        env:
+          FIELDGRID_MIGRATION_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_MIGRATION_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import { appendFileSync } from "node:fs";
+          const password = process.env.FIELDGRID_MIGRATION_DATABASE_PASSWORD ?? "";
+          const host = process.env.FIELDGRID_STAGING_DATABASE_POOLER_HOST ?? "";
+          if (!/^[0-9a-f]{64}$/u.test(password)) {
+            throw new Error("Migration-admin password is invalid");
+          }
+          if (!/^[a-z0-9.-]+\.supabase\.(?:com|net)$/u.test(host)) {
+            throw new Error("Staging pooler host is invalid");
+          }
+          const url = new URL("postgresql://fieldgrid_migration_admin.olyfmekyqozxrbrwwszu@invalid/postgres");
+          url.password = password;
+          url.hostname = host;
+          url.port = "5432";
+          process.stdout.write(`::add-mask::${url.href}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `url=${url.href}\n`, { encoding: "utf8" });
+          NODE
+
       - name: Install pinned Supabase database root certificate
         env:
           FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64: ${{ secrets.FIELDGRID_DATABASE_SSL_ROOT_CERT_BASE64 }}
@@ -123,6 +146,7 @@ jobs:
       - name: Produce read-only rebuild plan
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           mkdir -p disposable-staging-plan

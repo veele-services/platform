@@ -338,6 +338,7 @@ export async function runApply({
   let legacyPrivilegesRepaired = false;
   let legacyBootstrapAuthAclRevoked = false;
   let targetSchemaPrivilegesRepaired = false;
+  let hostedMigrationBridgeReady = false;
   let mayUpdateReceipt = false;
   let writersTouched = false;
   let expectedManagedCatalogDigest = config.expectedManagedCatalogDigest;
@@ -501,6 +502,8 @@ export async function runApply({
         target,
         applied.managedCatalogDigest,
       );
+      hostedMigrationBridgeReady =
+        proof.hostedMigrationBridge?.temporaryPrivilegesRevoked === true;
     } finally {
       await target.end();
     }
@@ -530,6 +533,7 @@ export async function runApply({
       targetApplicationSchemas: proof.applicationSchemas,
       dryRebuildCapability: proof.dryRebuildCapability,
       authorizedProviderCompatibility: proof.authorizedProviderCompatibility,
+      hostedMigrationBridge: proof.hostedMigrationBridge,
       servicesRestored,
       restoredHealth: health,
       resumedFromSafeStopped,
@@ -540,6 +544,7 @@ export async function runApply({
       legacyPrivilegesRepaired,
       legacyBootstrapAuthAclRevoked,
       targetSchemaPrivilegesRepaired,
+      hostedMigrationBridgeReady,
     });
     await writeJson(receiptPath, {
       ...result,
@@ -593,6 +598,7 @@ export async function runApply({
       failureStage: reportedFailureStage,
       recoveryFailureCode,
       servicesSafeStopped,
+      hostedMigrationBridgeReady,
     });
     const privateResult = resumedFromSafeStopped
       ? {

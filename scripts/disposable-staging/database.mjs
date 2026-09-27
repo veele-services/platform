@@ -10,6 +10,11 @@ import {
   fail,
   requireThat,
 } from "./contract.mjs";
+import {
+  STORAGE_POLICIES,
+  SUPERSEDED_STORAGE_POLICIES,
+  verifyHostedMigrationBridgeFinalState,
+} from "../staging-migration-admin/bridge-contract.mjs";
 
 const MIGRATION_LOCK = "fieldgrid:database-migrations:v1";
 const INVENTORY_APPLICATION_TABLES = Object.freeze([
@@ -174,9 +179,31 @@ export async function resetRuntimePrincipalsForCanonicalRebuild(client) {
     "SCHEMAS_CLEAN",
     true,
   );
+  const principal = await client.query(
+    "SELECT current_user::text AS current_user",
+  );
+  const hostedMigrationPrincipal =
+    principal.rows[0]?.current_user === "fieldgrid_migration_admin";
+  if (hostedMigrationPrincipal) {
+    const bridge = await verifyHostedMigrationBridgeFinalState(client, {
+      includeStorage: false,
+      allowRuntimeAdaptersAbsent: true,
+    }).catch(() => null);
+    requireThat(
+      bridge?.functionCount === 9,
+      "HOSTED_MIGRATION_BRIDGE_INVALID",
+      "SCHEMAS_CLEAN",
+      true,
+    );
+  }
   await client.query("BEGIN");
   try {
     await client.query("SET LOCAL lock_timeout='5s'");
+    if (hostedMigrationPrincipal) {
+      await client.query(
+        "SELECT fieldgrid_migration_bridge.prepare_disposable_rebuild()",
+      );
+    }
     await client.query("DROP ROLE IF EXISTS fieldgrid_runtime_app");
     await client.query("DROP ROLE IF EXISTS fieldgrid_runtime_data");
     await client.query("COMMIT");
@@ -428,6 +455,7 @@ function migrationChildEnvironment(env) {
     FORBIDDEN_SUPABASE_PROJECT_REF: env.FORBIDDEN_SUPABASE_PROJECT_REF,
     DATABASE_URL: env.DATABASE_URL,
     FIELDGRID_MIGRATION_DATABASE_URL: env.FIELDGRID_MIGRATION_DATABASE_URL,
+    FIELDGRID_HOSTED_MIGRATION_BRIDGE: "disposable-rebuild-v1",
     FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
     FIELDGRID_DATABASE_SSL_ROOT_CERT: env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
     FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING: "disabled",
@@ -707,6 +735,20 @@ export async function resetApplicationSchemas(client) {
       "AUTH_EMPTY",
       true,
     );
+    const unknownStoragePolicies = await client.query(
+      `SELECT policyname
+       FROM pg_catalog.pg_policies
+       WHERE schemaname='storage' AND tablename='objects'
+         AND policyname<>ALL($1::text[])
+       ORDER BY policyname`,
+      [[...STORAGE_POLICIES, ...SUPERSEDED_STORAGE_POLICIES]],
+    );
+    requireThat(
+      unknownStoragePolicies.rows.length === 0,
+      "HOSTED_MIGRATION_BRIDGE_UNKNOWN_STORAGE_POLICY",
+      "AUTH_EMPTY",
+      true,
+    );
     await client.query("DROP SCHEMA IF EXISTS app_private CASCADE");
     await client.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
     await client.query("DROP SCHEMA IF EXISTS public CASCADE");
@@ -922,6 +964,97 @@ export async function verifyRebuiltDatabase(client) {
     "BOOTSTRAPPED",
     true,
   );
+  const hostedAuth = await client.query(`
+    WITH required(table_name,constraint_name,definition) AS (VALUES
+      ('personnel','personnel_user_id_fkey','FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL'),
+      ('customers','customers_created_by_fkey','FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL'),
+      ('objects','objects_created_by_fkey','FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL'),
+      ('customer_notes','customer_notes_updated_by_fkey','FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL'),
+      ('credential_recovery_challenges','credential_recovery_challenges_subject_fk','FOREIGN KEY (subject_user_id) REFERENCES auth.users(id) ON DELETE CASCADE')
+    )
+    SELECT required.table_name,required.constraint_name,
+      pg_get_constraintdef(constraint_row.oid,true) AS definition
+    FROM required
+    LEFT JOIN pg_class relation ON relation.oid=to_regclass('public.' || required.table_name)
+    LEFT JOIN pg_constraint constraint_row
+      ON constraint_row.conrelid=relation.oid
+     AND constraint_row.conname=required.constraint_name
+    ORDER BY required.table_name,required.constraint_name
+  `);
+  requireThat(
+    hostedAuth.rows.length === 5 &&
+      hostedAuth.rows.every((row) => row.definition != null) &&
+      hostedAuth.rows.every((row) => {
+        const expected = {
+          credential_recovery_challenges_subject_fk:
+            "FOREIGN KEY (subject_user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          customer_notes_updated_by_fkey:
+            "FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          customers_created_by_fkey:
+            "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          objects_created_by_fkey:
+            "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          personnel_user_id_fkey:
+            "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+        }[row.constraint_name];
+        return row.definition === expected;
+      }),
+    "HOSTED_AUTH_FOREIGN_KEY_INVALID",
+    "BOOTSTRAPPED",
+    true,
+  );
+  const hostedBridge = await client.query(`
+    SELECT
+      (SELECT pg_get_userbyid(p.proowner)
+         FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+        WHERE n.nspname='app_private'
+          AND p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_owner,
+      (SELECT p.prosecdef
+         FROM pg_proc p
+        WHERE p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_security_definer,
+      has_schema_privilege('fieldgrid_migration_admin','auth','USAGE') AS auth_usage,
+      (SELECT count(*)::int
+         FROM pg_auth_members membership
+         JOIN pg_roles role_row ON role_row.oid=membership.roleid
+         JOIN pg_roles member_row ON member_row.oid=membership.member
+         JOIN pg_roles grantor_row ON grantor_row.oid=membership.grantor
+        WHERE role_row.rolname='fieldgrid_migration_admin'
+          AND member_row.rolname='postgres'
+          AND grantor_row.rolname='postgres') AS temporary_membership_count,
+      (SELECT count(*)::int
+         FROM pg_trigger trigger_row
+         JOIN pg_class relation ON relation.oid=trigger_row.tgrelid
+         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname='auth' AND relation.relname='users'
+          AND trigger_row.tgname='on_auth_user_created'
+          AND NOT trigger_row.tgisinternal) AS obsolete_trigger_count
+  `);
+  requireThat(
+    hostedBridge.rows.length === 1 &&
+      hostedBridge.rows[0]?.snapshot_owner === "postgres" &&
+      hostedBridge.rows[0]?.snapshot_security_definer === true &&
+      hostedBridge.rows[0]?.auth_usage === false &&
+      hostedBridge.rows[0]?.temporary_membership_count === 0 &&
+      hostedBridge.rows[0]?.obsolete_trigger_count === 0,
+    "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
+    "BOOTSTRAPPED",
+    true,
+  );
+  const exactHostedBridge = await verifyHostedMigrationBridgeFinalState(
+    client,
+  ).catch(() => null);
+  requireThat(
+    exactHostedBridge !== null &&
+      exactHostedBridge.functionCount === 9 &&
+      exactHostedBridge.runtimeAdaptersInstalled === true &&
+      exactHostedBridge.authSnapshot !== null &&
+      exactHostedBridge.storage?.policyCount === 21 &&
+      exactHostedBridge.storage?.bucketCount === 7 &&
+      exactHostedBridge.storage?.objectCount === 0,
+    "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
+    "BOOTSTRAPPED",
+    true,
+  );
   const realtime = await client.query(`
     SELECT count(*)::int AS count FROM pg_publication_tables
     WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='portal_realtime_events'
@@ -949,5 +1082,8 @@ export async function verifyRebuiltDatabase(client) {
     realtimePublication: true,
     operationalQueuesEmpty: true,
     publicRls: true,
+    hostedAuthForeignKeys: hostedAuth.rows.length,
+    hostedMigrationBridgeFinalized: true,
+    hostedMigrationBridge: exactHostedBridge,
   };
 }

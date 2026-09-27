@@ -1599,7 +1599,27 @@ test("staging release paths separate runtime and migration principals with verif
     "scripts/fieldgrid-object-security-legacy-backfill.mts",
   );
 
+  const migrationUrlIndex = deploy.indexOf(
+    "- name: Construct least-privilege staging migration URL",
+  );
+  assert.ok(migrationUrlIndex >= 0);
   assert.match(
+    deploy,
+    /FIELDGRID_MIGRATION_DATABASE_PASSWORD:\s*\$\{\{\s*secrets\.FIELDGRID_MIGRATION_DATABASE_PASSWORD\s*\}\}/u,
+  );
+  assert.match(
+    deploy,
+    /postgresql:\/\/fieldgrid_migration_admin\.olyfmekyqozxrbrwwszu@invalid\/postgres/u,
+  );
+  assert.match(
+    deploy,
+    /appendFileSync\(process\.env\.GITHUB_OUTPUT, `url=\$\{url\.href\}\\n`/u,
+  );
+  assert.match(
+    deploy,
+    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*steps\.migration-database-url\.outputs\.url\s*\}\}/u,
+  );
+  assert.doesNotMatch(
     deploy,
     /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
   );
@@ -1671,9 +1691,10 @@ test("staging release paths separate runtime and migration principals with verif
       runtimePrincipalIndex < activationIndex,
     "admin ownership, idempotent runtime provisioning and runtime proof must all finish in fail-closed order before activation",
   );
+  assert.ok(migrationUrlIndex < migrationIndex);
   assert.match(
     deploy,
-    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}[\s\S]*FIELDGRID_W00_STAGING_DATABASE_URL="\$FIELDGRID_MIGRATION_DATABASE_URL"/u,
+    /FIELDGRID_W00_STAGING_DATABASE_URL="\$FIELDGRID_MIGRATION_DATABASE_URL"/u,
   );
   assert.doesNotMatch(
     deploy,
@@ -1684,10 +1705,7 @@ test("staging release paths separate runtime and migration principals with verif
     runtimeProvisionIndex,
     runtimePrincipalIndex,
   );
-  assert.match(
-    runtimeProvisionStep,
-    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
-  );
+  assert.doesNotMatch(runtimeProvisionStep, /secrets\.DATABASE_URL/u);
   assert.match(
     runtimeProvisionStep,
     /FIELDGRID_RUNTIME_DATABASE_PASSWORD:\s*\$\{\{\s*secrets\.FIELDGRID_RUNTIME_DATABASE_PASSWORD\s*\}\}/u,

@@ -14,6 +14,7 @@ const runtimeRoots = [
   "artifacts/api-server/src",
   "lib/db/src",
 ];
+const nonRuntimeSourceFiles = new Set(["lib/db/src/migrate.ts"]);
 const excludedSegments = new Set([
   "node_modules",
   ".next",
@@ -253,6 +254,7 @@ function scanRuntimeFunctions() {
   const direct = new Set();
   for (const runtimeRoot of runtimeRoots) {
     for (const file of collectSourceFiles(path.join(repoRoot, runtimeRoot), { exclude: true })) {
+      if (nonRuntimeSourceFiles.has(normalize(path.relative(repoRoot, file)))) continue;
       const source = fs.readFileSync(file, "utf8");
       for (const match of source.matchAll(/\b(public|app_private)\.([a-z][a-z0-9_]*)\s*\(/gi)) {
         const identity = `${match[1].toLowerCase()}.${match[2]}`;
@@ -316,6 +318,7 @@ function scanRuntimeSources(tables) {
   for (const runtimeRoot of runtimeRoots) {
     const absoluteRoot = path.join(repoRoot, runtimeRoot);
     for (const file of collectSourceFiles(absoluteRoot, { exclude: true })) {
+      if (nonRuntimeSourceFiles.has(normalize(path.relative(repoRoot, file)))) continue;
       const source = parseSource(file);
       const aliases = collectTableAliases(source, tables);
       const relative = normalize(path.relative(repoRoot, file));

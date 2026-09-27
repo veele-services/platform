@@ -269,6 +269,12 @@ function fixtures({
             realtimePublicationOwner: "fieldgrid_migration_admin",
             authDirectAccess: false,
           },
+          hostedMigrationBridge: {
+            schema: "fieldgrid_migration_bridge",
+            functionCount: 9,
+            authAdapterCount: 4,
+            temporaryPrivilegesRevoked: true,
+          },
         };
       },
       async repairCommittedTargetSchemaPrivileges() {
