@@ -62,6 +62,10 @@ const PERSISTENT_PROVIDER_ADAPTER_ROLES = Object.freeze([
   "service_role",
 ]);
 const STORAGE_OWNER = "supabase_storage_admin";
+const STORAGE_SCHEMA_OWNERS = Object.freeze([
+  "supabase_admin",
+  STORAGE_OWNER,
+]);
 const EXPECTED_BRIDGE_DEFINITION_DIGEST =
   "40ffaffe8aba873229e1d4fe950503546602c6cb57ca564059eeab35bcd5ad16";
 const EXPECTED_STORAGE_POLICY_DIGEST =
@@ -375,7 +379,7 @@ async function verifyStorageFinalState(client) {
   const state = topology.rows[0];
   requireProof(
     topology.rows.length === 1 &&
-      state?.schema_owner === STORAGE_OWNER &&
+      STORAGE_SCHEMA_OWNERS.includes(state?.schema_owner) &&
       state?.buckets_owner === STORAGE_OWNER &&
       state?.objects_owner === STORAGE_OWNER &&
       state?.objects_rls === true &&

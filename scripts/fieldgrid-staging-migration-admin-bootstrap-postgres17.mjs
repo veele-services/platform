@@ -162,7 +162,8 @@ try {
     ALTER FUNCTION storage.foldername(text) OWNER TO supabase_storage_admin;
     ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
     ALTER TABLE storage.buckets OWNER TO supabase_storage_admin;
-    ALTER SCHEMA storage OWNER TO supabase_storage_admin;
+    ALTER SCHEMA storage OWNER TO supabase_admin;
+    GRANT USAGE ON SCHEMA storage TO supabase_storage_admin;
     GRANT USAGE ON SCHEMA storage TO postgres;
     CREATE SCHEMA app_private;
     CREATE SCHEMA drizzle;
@@ -276,6 +277,37 @@ try {
       auth_references: true,
       auth_trigger: true,
       auth_no_grant_option: true,
+    },
+  ]);
+  const hostedStorageTopology = await legacy.query(`
+    SELECT
+      pg_get_userbyid(namespace_row.nspowner) AS storage_schema_owner,
+      pg_get_userbyid(buckets.relowner) AS buckets_owner,
+      pg_get_userbyid(objects.relowner) AS objects_owner,
+      pg_get_userbyid(foldername.proowner) AS foldername_owner,
+      has_schema_privilege(
+        'supabase_storage_admin',namespace_row.oid,'USAGE'
+      ) AS storage_admin_usage,
+      pg_has_role(
+        current_user,'supabase_storage_admin','SET'
+      ) AS postgres_can_set_storage_role
+    FROM pg_namespace namespace_row
+    JOIN pg_class buckets
+      ON buckets.relnamespace=namespace_row.oid AND buckets.relname='buckets'
+    JOIN pg_class objects
+      ON objects.relnamespace=namespace_row.oid AND objects.relname='objects'
+    JOIN pg_proc foldername
+      ON foldername.oid='storage.foldername(text)'::regprocedure
+    WHERE namespace_row.nspname='storage'
+  `);
+  assert.deepEqual(hostedStorageTopology.rows, [
+    {
+      storage_schema_owner: "supabase_admin",
+      buckets_owner: "supabase_storage_admin",
+      objects_owner: "supabase_storage_admin",
+      foldername_owner: "supabase_storage_admin",
+      storage_admin_usage: true,
+      postgres_can_set_storage_role: true,
     },
   ]);
 

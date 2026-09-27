@@ -133,6 +133,30 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /ALTER PUBLICATION supabase_realtime OWNER TO/u);
   assert.match(database, /authorizedProviderCompatibility/u);
   assert.match(database, /authDirectAccess: false/u);
+  assert.match(
+    hostedBridge,
+    /\["supabase_admin", "supabase_storage_admin"\]\.includes/u,
+  );
+  assert.match(
+    hostedBridge,
+    /foldername_owner === "supabase_storage_admin"/u,
+  );
+  assert.match(hostedBridge, /storage_admin_usage === true/u);
+  assert.match(
+    hostedBridge,
+    /postgres_can_set_storage_role === true/u,
+  );
+  assert.match(
+    bridgeContract,
+    /STORAGE_SCHEMA_OWNERS = Object\.freeze\(\[\s+"supabase_admin",\s+STORAGE_OWNER,\s+\]\)/u,
+  );
+  assert.match(
+    bridgeContract,
+    /STORAGE_SCHEMA_OWNERS\.includes\(state\?\.schema_owner\)/u,
+  );
+  assert.match(bridgeContract, /state\?\.buckets_owner === STORAGE_OWNER/u);
+  assert.match(bridgeContract, /state\?\.objects_owner === STORAGE_OWNER/u);
+  assert.match(bridgeContract, /state\?\.objects_rls === true/u);
   assert.match(database, /prosecdef/u);
   assert.match(database, /WITH INHERIT FALSE, SET FALSE, ADMIN TRUE/u);
   assert.match(database, /WITH INHERIT TRUE, SET FALSE, ADMIN FALSE/u);

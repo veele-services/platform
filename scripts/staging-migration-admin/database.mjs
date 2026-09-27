@@ -856,15 +856,23 @@ async function installHostedMigrationBridge(client) {
          JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
         WHERE namespace_row.nspname='storage' AND relation.relname='objects'
           AND relation.relkind IN ('r','p')) AS objects_owner,
-      pg_catalog.to_regprocedure('storage.foldername(text)') IS NOT NULL AS foldername,
+      (SELECT pg_get_userbyid(routine.proowner)
+         FROM pg_proc routine
+        WHERE routine.oid=pg_catalog.to_regprocedure('storage.foldername(text)')) AS foldername_owner,
+      pg_catalog.has_schema_privilege(
+        'supabase_storage_admin','storage','USAGE'
+      ) AS storage_admin_usage,
       pg_has_role(current_user,'supabase_storage_admin','SET') AS postgres_can_set_storage_role
   `);
   requireThat(
     providerStorage.rows.length === 1 &&
-      providerStorage.rows[0]?.schema_owner === "supabase_storage_admin" &&
+      ["supabase_admin", "supabase_storage_admin"].includes(
+        providerStorage.rows[0]?.schema_owner,
+      ) &&
       providerStorage.rows[0]?.buckets_owner === "supabase_storage_admin" &&
       providerStorage.rows[0]?.objects_owner === "supabase_storage_admin" &&
-      providerStorage.rows[0]?.foldername === true &&
+      providerStorage.rows[0]?.foldername_owner === "supabase_storage_admin" &&
+      providerStorage.rows[0]?.storage_admin_usage === true &&
       providerStorage.rows[0]?.postgres_can_set_storage_role === true,
     "HOSTED_PROVIDER_STORAGE_TOPOLOGY_INVALID",
   );
