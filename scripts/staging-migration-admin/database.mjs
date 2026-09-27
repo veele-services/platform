@@ -883,7 +883,32 @@ export async function hostedProviderCompatibilityInventory(client) {
         WHERE granted_role.rolname='supabase_storage_admin'
           AND member_role.rolname='supabase_admin'
           AND membership.admin_option
-      ) AS supabase_admin_storage_admin_option
+      ) AS supabase_admin_storage_admin_option,
+      COALESCE(
+        (
+          NULLIF(
+            pg_catalog.current_setting('supautils.policy_grants',true),''
+          )::jsonb -> current_user
+        ) ? 'storage.objects',
+        false
+      ) AS postgres_can_manage_storage_policies,
+      COALESCE(pg_catalog.has_table_privilege(
+        current_user,pg_catalog.to_regclass('storage.buckets'),'SELECT'
+      ),false) AS postgres_can_select_storage_buckets,
+      COALESCE(pg_catalog.has_table_privilege(
+        current_user,pg_catalog.to_regclass('storage.buckets'),'INSERT'
+      ),false) AS postgres_can_insert_storage_buckets,
+      COALESCE(pg_catalog.has_table_privilege(
+        current_user,pg_catalog.to_regclass('storage.buckets'),'UPDATE'
+      ),false) AS postgres_can_update_storage_buckets,
+      COALESCE(pg_catalog.has_table_privilege(
+        current_user,pg_catalog.to_regclass('storage.objects'),'SELECT'
+      ),false) AS postgres_can_select_storage_objects,
+      COALESCE(pg_catalog.has_function_privilege(
+        current_user,
+        pg_catalog.to_regprocedure('storage.foldername(text)'),
+        'EXECUTE'
+      ),false) AS postgres_can_execute_storage_foldername
   `);
   requireThat(
     providerStorage.rows.length === 1,

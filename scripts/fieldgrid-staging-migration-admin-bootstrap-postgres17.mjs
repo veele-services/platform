@@ -315,6 +315,24 @@ try {
           AND member_role.rolname='supabase_admin'
           AND membership.admin_option
       ) AS supabase_admin_storage_admin_option
+      ,COALESCE(
+        (
+          NULLIF(
+            pg_catalog.current_setting('supautils.policy_grants',true),''
+          )::jsonb -> current_user
+        ) ? 'storage.objects',
+        false
+      ) AS postgres_can_manage_storage_policies
+      ,has_table_privilege(current_user,buckets.oid,'SELECT')
+        AS postgres_can_select_storage_buckets
+      ,has_table_privilege(current_user,buckets.oid,'INSERT')
+        AS postgres_can_insert_storage_buckets
+      ,has_table_privilege(current_user,buckets.oid,'UPDATE')
+        AS postgres_can_update_storage_buckets
+      ,has_table_privilege(current_user,objects.oid,'SELECT')
+        AS postgres_can_select_storage_objects
+      ,has_function_privilege(current_user,foldername.oid,'EXECUTE')
+        AS postgres_can_execute_storage_foldername
     FROM pg_namespace namespace_row
     JOIN pg_class buckets
       ON buckets.relnamespace=namespace_row.oid AND buckets.relname='buckets'
@@ -336,6 +354,12 @@ try {
       postgres_can_set_storage_role: true,
       postgres_can_set_supabase_admin: true,
       supabase_admin_storage_admin_option: true,
+      postgres_can_manage_storage_policies: false,
+      postgres_can_select_storage_buckets: false,
+      postgres_can_insert_storage_buckets: false,
+      postgres_can_update_storage_buckets: false,
+      postgres_can_select_storage_objects: false,
+      postgres_can_execute_storage_foldername: true,
     },
   ]);
 
@@ -355,6 +379,12 @@ try {
     postgres_can_set_storage_role: true,
     postgres_can_set_supabase_admin: true,
     supabase_admin_storage_admin_option: true,
+    postgres_can_manage_storage_policies: false,
+    postgres_can_select_storage_buckets: false,
+    postgres_can_insert_storage_buckets: false,
+    postgres_can_update_storage_buckets: false,
+    postgres_can_select_storage_objects: false,
+    postgres_can_execute_storage_foldername: true,
   });
   assert.equal(
     (await managedCatalogSnapshot(legacy)).digest,
