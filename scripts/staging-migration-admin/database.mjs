@@ -25,6 +25,21 @@ function qualified(schema, name) {
   return `${identifier(schema)}.${identifier(name)}`;
 }
 
+async function staged(stage, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      typeof error.bootstrapFailureStage !== "string"
+    ) {
+      error.bootstrapFailureStage = stage;
+    }
+    throw error;
+  }
+}
+
 export async function assertLegacyPrincipal(client) {
   const result = await client.query(`
     SELECT current_user::text AS current_user,session_user::text AS session_user,
@@ -670,9 +685,11 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
 }
 
 export async function repairCommittedTargetSchemaPrivileges(client) {
-  const identity = await client.query(
-    `SELECT current_user::text AS current_user,session_user::text AS session_user
-     FROM pg_roles WHERE rolname=current_user`,
+  const identity = await staged("target-repair-identity", () =>
+    client.query(
+      `SELECT current_user::text AS current_user,session_user::text AS session_user
+       FROM pg_roles WHERE rolname=current_user`,
+    ),
   );
   requireThat(
     identity.rows.length === 1 &&
@@ -680,10 +697,12 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
       identity.rows[0].session_user === MIGRATION_ROLE,
     "TARGET_LOGIN_INVALID",
   );
-  const schemas = await client.query(
-    `SELECT n.nspname,pg_get_userbyid(n.nspowner) AS owner
-     FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
-    [[...APP_SCHEMAS]],
+  const schemas = await staged("target-repair-schema-inventory", () =>
+    client.query(
+      `SELECT n.nspname,pg_get_userbyid(n.nspowner) AS owner
+       FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
+      [[...APP_SCHEMAS]],
+    ),
   );
   requireThat(
     schemas.rows.length === APP_SCHEMAS.length &&
@@ -694,8 +713,10 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
   try {
     await client.query("SET LOCAL lock_timeout='10s'");
     for (const schema of APP_SCHEMAS) {
-      await client.query(
-        `GRANT USAGE,CREATE ON SCHEMA ${identifier(schema)} TO ${identifier(MIGRATION_ROLE)}`,
+      await staged(`target-repair-schema-grant-${schema}`, () =>
+        client.query(
+          `GRANT USAGE,CREATE ON SCHEMA ${identifier(schema)} TO ${identifier(MIGRATION_ROLE)}`,
+        ),
       );
     }
     await client.query("COMMIT");
@@ -703,12 +724,14 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;
   }
-  const proof = await client.query(
-    `SELECT n.nspname,
-       has_schema_privilege(current_user,n.oid,'USAGE') AS usage,
-       has_schema_privilege(current_user,n.oid,'CREATE') AS create_privilege
-     FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
-    [[...APP_SCHEMAS]],
+  const proof = await staged("target-repair-schema-proof", () =>
+    client.query(
+      `SELECT n.nspname,
+         has_schema_privilege(current_user,n.oid,'USAGE') AS usage,
+         has_schema_privilege(current_user,n.oid,'CREATE') AS create_privilege
+       FROM pg_namespace n WHERE n.nspname=ANY($1::text[]) ORDER BY n.nspname`,
+      [[...APP_SCHEMAS]],
+    ),
   );
   requireThat(
     proof.rows.length === APP_SCHEMAS.length &&
@@ -789,12 +812,14 @@ export async function drainApplicationWriters(client) {
 }
 
 export async function verifyTargetLogin(client, managedDigest) {
-  const identity = await client.query(`
-    SELECT current_user::text AS current_user,session_user::text AS session_user,
-      current_database() AS database_name,rolsuper,rolbypassrls,rolcreaterole,
-      rolcreatedb,rolreplication,rolinherit,rolcanlogin
-    FROM pg_roles WHERE rolname=current_user
-  `);
+  const identity = await staged("target-proof-identity", () =>
+    client.query(`
+      SELECT current_user::text AS current_user,session_user::text AS session_user,
+        current_database() AS database_name,rolsuper,rolbypassrls,rolcreaterole,
+        rolcreatedb,rolreplication,rolinherit,rolcanlogin
+      FROM pg_roles WHERE rolname=current_user
+    `),
+  );
   const row = identity.rows[0];
   requireThat(
     identity.rows.length === 1 &&
@@ -810,48 +835,62 @@ export async function verifyTargetLogin(client, managedDigest) {
       row.rolcanlogin === true,
     "TARGET_LOGIN_INVALID",
   );
-  await verifyCatalogState(client, managedDigest);
-  const capabilities = await client.query(`
-    SELECT has_database_privilege(current_user,current_database(),'CONNECT') AS connect,
-      has_database_privilege(current_user,current_database(),'CREATE') AS create,
-      has_database_privilege(current_user,current_database(),'TEMPORARY') AS temporary,
-      has_schema_privilege(current_user,'auth','USAGE') AS auth_usage,
-      NOT has_table_privilege(current_user,'auth.users','SELECT') AS auth_no_table_select,
-      has_column_privilege(current_user,'auth.users','id','SELECT') AS auth_id,
-      has_column_privilege(current_user,'auth.users','email','SELECT') AS auth_email,
-      has_column_privilege(current_user,'auth.users','raw_app_meta_data','SELECT') AS auth_metadata
-  `);
+  await staged("target-proof-catalog", () =>
+    verifyCatalogState(client, managedDigest),
+  );
+  const capabilities = await staged("target-proof-capability-inventory", () =>
+    client.query(`
+      SELECT has_database_privilege(current_user,current_database(),'CONNECT') AS connect,
+        has_database_privilege(current_user,current_database(),'CREATE') AS create,
+        has_database_privilege(current_user,current_database(),'TEMPORARY') AS temporary,
+        has_schema_privilege(current_user,'auth','USAGE') AS auth_usage,
+        NOT has_table_privilege(current_user,'auth.users','SELECT') AS auth_no_table_select,
+        has_column_privilege(current_user,'auth.users','id','SELECT') AS auth_id,
+        has_column_privilege(current_user,'auth.users','email','SELECT') AS auth_email,
+        has_column_privilege(current_user,'auth.users','raw_app_meta_data','SELECT') AS auth_metadata
+    `),
+  );
   requireThat(
     Object.values(capabilities.rows[0] ?? {}).every((value) => value === true),
     "TARGET_CAPABILITY_INVALID",
   );
-  const selectedAuthColumns = await client.query(`
-    SELECT COALESCE(jsonb_agg(a.attname ORDER BY a.attname),'[]'::jsonb) AS columns
-    FROM pg_attribute a
-    WHERE a.attrelid='auth.users'::regclass AND a.attnum>0 AND NOT a.attisdropped
-      AND has_column_privilege(current_user,a.attrelid,a.attnum,'SELECT')
-  `);
+  const selectedAuthColumns = await staged("target-proof-auth-columns", () =>
+    client.query(`
+      SELECT COALESCE(jsonb_agg(a.attname ORDER BY a.attname),'[]'::jsonb) AS columns
+      FROM pg_attribute a
+      WHERE a.attrelid='auth.users'::regclass AND a.attnum>0 AND NOT a.attisdropped
+        AND has_column_privilege(current_user,a.attrelid,a.attnum,'SELECT')
+    `),
+  );
   requireThat(
     JSON.stringify(selectedAuthColumns.rows[0]?.columns) ===
       JSON.stringify(["email", "id", "raw_app_meta_data"]),
     "TARGET_AUTH_COLUMN_SCOPE_INVALID",
   );
-  const inventory = await databaseInventory(client, {
-    expectedDatabaseName: "postgres",
-    expectedPrincipalName: MIGRATION_ROLE,
-  });
+  const inventory = await staged("target-proof-database-inventory", () =>
+    databaseInventory(client, {
+      expectedDatabaseName: "postgres",
+      expectedPrincipalName: MIGRATION_ROLE,
+    }),
+  );
   await client.query("BEGIN");
   try {
     await client.query("SET LOCAL lock_timeout='10s'");
     await client.query("SET LOCAL statement_timeout='120s'");
-    await client.query("DROP SCHEMA IF EXISTS app_private CASCADE");
-    await client.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
-    await client.query("DROP SCHEMA IF EXISTS public CASCADE");
-    await client.query(
-      `CREATE SCHEMA public AUTHORIZATION ${identifier(MIGRATION_ROLE)}`,
+    for (const schema of APP_SCHEMAS) {
+      await staged(`target-proof-drop-schema-${schema}`, () =>
+        client.query(`DROP SCHEMA IF EXISTS ${identifier(schema)} CASCADE`),
+      );
+    }
+    await staged("target-proof-create-public", () =>
+      client.query(
+        `CREATE SCHEMA public AUTHORIZATION ${identifier(MIGRATION_ROLE)}`,
+      ),
     );
-    await client.query(
-      "CREATE TEMP TABLE fieldgrid_bootstrap_capability_proof(id int)",
+    await staged("target-proof-create-temp-table", () =>
+      client.query(
+        "CREATE TEMP TABLE fieldgrid_bootstrap_capability_proof(id int)",
+      ),
     );
     await client.query("ROLLBACK");
   } catch (error) {

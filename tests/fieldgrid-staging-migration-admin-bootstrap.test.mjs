@@ -16,6 +16,7 @@ import {
   runPlan,
   runRecover,
 } from "../scripts/staging-migration-admin/runner.mjs";
+import { repairCommittedTargetSchemaPrivileges } from "../scripts/staging-migration-admin/database.mjs";
 import { verifyRestoredStagingHealth } from "../scripts/staging-migration-admin/health.mjs";
 
 const MAIN = "a".repeat(40);
@@ -49,6 +50,48 @@ function environment(mode = "apply") {
       mode === "apply" || mode === "recover" ? SECRET : undefined,
   };
 }
+
+test("target SQL failures carry an exact secret-free recovery stage", async () => {
+  const client = {
+    async query(sql) {
+      if (sql.includes("FROM pg_roles WHERE rolname=current_user")) {
+        return {
+          rows: [
+            {
+              current_user: "fieldgrid_migration_admin",
+              session_user: "fieldgrid_migration_admin",
+            },
+          ],
+        };
+      }
+      if (sql.includes("FROM pg_namespace n WHERE n.nspname=ANY")) {
+        return {
+          rows: ["app_private", "drizzle", "public"].map((nspname) => ({
+            nspname,
+            owner: "fieldgrid_migration_admin",
+          })),
+        };
+      }
+      if (sql.includes('GRANT USAGE,CREATE ON SCHEMA "drizzle"')) {
+        const error = new Error("synthetic permission failure");
+        error.code = "42501";
+        throw error;
+      }
+      return { rows: [] };
+    },
+  };
+  await assert.rejects(
+    repairCommittedTargetSchemaPrivileges(client),
+    (error) => {
+      assert.equal(error.code, "42501");
+      assert.equal(
+        error.bootstrapFailureStage,
+        "target-repair-schema-grant-drizzle",
+      );
+      return true;
+    },
+  );
+});
 
 function fixtures({
   targetFailure = false,
@@ -701,6 +744,7 @@ test("failed recovery proof preserves the original SAFE_STOPPED baseline", async
   assert.ok(calls.includes("services.safeStop"));
   const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
   assert.equal(receipt.phase, "SAFE_STOPPED");
+  assert.equal(receipt.failureStage, "target-capability-proof");
   assert.equal(receipt.operation, "apply");
   assert.equal(receipt.expectedMainSha, RECOVERY_SOURCE_MAIN);
   assert.deepEqual(receipt.originalServices, [
