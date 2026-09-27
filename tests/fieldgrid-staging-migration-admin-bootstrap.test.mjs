@@ -22,6 +22,7 @@ import { verifyRestoredStagingHealth } from "../scripts/staging-migration-admin/
 const MAIN = "a".repeat(40);
 const STAGING = "b".repeat(40);
 const RECOVERY_SOURCE_MAIN = "c".repeat(40);
+const ACTIVE_STAGING_RELEASE = "d".repeat(40);
 const MANAGED_CATALOG_DIGEST = "a".repeat(64);
 const SECRET = "0123456789abcdef".repeat(4);
 
@@ -34,14 +35,18 @@ function environment(mode = "apply") {
     GITHUB_SHA: MAIN,
     EXPECTED_MAIN_SHA: MAIN,
     EXPECTED_STAGING_SHA: STAGING,
+    EXPECTED_ACTIVE_STAGING_RELEASE_SHA:
+      mode === "apply" || mode === "recover"
+        ? ACTIVE_STAGING_RELEASE
+        : undefined,
     APP_ENV: "staging",
     TARGET_ENVIRONMENT: "staging",
     EXPECTED_SUPABASE_PROJECT_REF: STAGING_PROJECT_REF,
     FORBIDDEN_SUPABASE_PROJECT_REF: PRODUCTION_PROJECT_REF,
     BOOTSTRAP_CONFIRMATION:
       mode === "recover"
-        ? `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${RECOVERY_SOURCE_MAIN}:${MAIN}:${STAGING}:${MANAGED_CATALOG_DIGEST}`
-        : `${CONTRACT}:${STAGING_PROJECT_REF}:${MAIN}`,
+        ? `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${RECOVERY_SOURCE_MAIN}:${MAIN}:${STAGING}:${ACTIVE_STAGING_RELEASE}:${MANAGED_CATALOG_DIGEST}`
+        : `${CONTRACT}:${STAGING_PROJECT_REF}:${MAIN}:${STAGING}:${ACTIVE_STAGING_RELEASE}`,
     RECOVERY_SOURCE_MAIN_SHA:
       mode === "recover" ? RECOVERY_SOURCE_MAIN : undefined,
     EXPECTED_MANAGED_CATALOG_DIGEST:
@@ -286,7 +291,7 @@ function fixtures({
       },
       async verifyRestoredHealth({ expectedSha }) {
         calls.push("services.health");
-        assert.equal(expectedSha, STAGING);
+        assert.equal(expectedSha, ACTIVE_STAGING_RELEASE);
         if (healthFailure) throw new Error("synthetic health failure");
         return { endpointCount: 4, releaseSha: expectedSha };
       },
@@ -300,9 +305,20 @@ test("dispatch is exact-main, staging-only and apply confirmation is fail-closed
     validateBootstrapDispatch(environment(), { mode: "apply" }).expectedMain,
     MAIN,
   );
+  assert.equal(
+    validateBootstrapDispatch(environment(), { mode: "apply" })
+      .expectedActiveStagingRelease,
+    ACTIVE_STAGING_RELEASE,
+  );
+  const staleStagingConfirmation = environment();
+  staleStagingConfirmation.EXPECTED_STAGING_SHA = "e".repeat(40);
+  assert.throws(() =>
+    validateBootstrapDispatch(staleStagingConfirmation, { mode: "apply" }),
+  );
   for (const [key, value] of [
     ["GITHUB_REF", "refs/heads/staging"],
     ["EXPECTED_SUPABASE_PROJECT_REF", PRODUCTION_PROJECT_REF],
+    ["EXPECTED_ACTIVE_STAGING_RELEASE_SHA", "not-a-sha"],
     ["BOOTSTRAP_CONFIRMATION", "wrong"],
     ["FIELDGRID_MIGRATION_DATABASE_PASSWORD", "not-64-hex"],
   ]) {
@@ -318,6 +334,7 @@ test("dispatch is exact-main, staging-only and apply confirmation is fail-closed
   for (const [key, value] of [
     ["RECOVERY_SOURCE_MAIN_SHA", "not-a-sha"],
     ["EXPECTED_MANAGED_CATALOG_DIGEST", "not-a-digest"],
+    ["EXPECTED_ACTIVE_STAGING_RELEASE_SHA", "not-a-sha"],
     ["BOOTSTRAP_CONFIRMATION", "wrong"],
   ]) {
     const env = environment("recover");
@@ -353,6 +370,7 @@ test("apply quiesces writers, proves the real target login and restores the base
   });
   assert.equal(result.status, "passed");
   assert.equal(result.servicesRestored, true);
+  assert.equal(result.expectedActiveStagingReleaseSha, ACTIVE_STAGING_RELEASE);
   assert.deepEqual(result.authorizedProviderCompatibility, {
     realtimePublicationOwner: "fieldgrid_migration_admin",
     authDirectAccess: false,
@@ -550,8 +568,14 @@ test("recover rejects a mismatched receipt without restoring services", async ()
     receiptPath,
     `${JSON.stringify({
       contract: CONTRACT,
-      expectedMainSha: "d".repeat(40),
+      repository: "veele-services/platform",
+      environment: "staging",
+      project: STAGING_PROJECT_REF,
+      operation: "apply",
+      expectedMainSha: RECOVERY_SOURCE_MAIN,
       expectedStagingSha: STAGING,
+      expectedActiveStagingReleaseSha: "e".repeat(40),
+      destructive: true,
       status: "failed",
       mutationsPerformed: true,
       phase: "SAFE_STOPPED",

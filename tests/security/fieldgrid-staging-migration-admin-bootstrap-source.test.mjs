@@ -45,6 +45,10 @@ test("bootstrap workflow is manual, exact-ref verified before checkout and stagi
     preCheckout,
     /test "\$live_staging" = "\$EXPECTED_STAGING_SHA"/u,
   );
+  assert.match(
+    preCheckout,
+    /EXPECTED_ACTIVE_STAGING_RELEASE_SHA.*\^\[0-9a-f\]\{40\}\$/su,
+  );
   assert.doesNotMatch(workflow.slice(0, checkout), /uses: actions\/checkout@/u);
   assert.doesNotMatch(workflow, /(?:^|\s)(?:gh|curl|jq)(?:\s|$)/mu);
   const jobEnvironment = workflow.slice(
@@ -85,6 +89,7 @@ test("plan has only the legacy credential while apply and recovery receive the n
   );
   assert.match(workflow, /recovery_source_main_sha:/u);
   assert.match(workflow, /expected_managed_catalog_digest:/u);
+  assert.match(workflow, /expected_active_staging_release_sha:/u);
   assert.match(
     workflow,
     /EXPECTED_MANAGED_CATALOG_DIGEST.*\^\[0-9a-f\]\{64\}\$/su,
@@ -92,7 +97,7 @@ test("plan has only the legacy credential while apply and recovery receive the n
   assert.match(workflow, /compare\/\$\{source\}\.\.\.\$\{current\}/u);
   assert.match(
     workflow,
-    /fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:\$EXPECTED_MAIN_SHA/u,
+    /fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:\$EXPECTED_MAIN_SHA:\$EXPECTED_STAGING_SHA:\$EXPECTED_ACTIVE_STAGING_RELEASE_SHA/u,
   );
   assert.doesNotMatch(workflow, /secrets\.(?:create|update)|gh secret/u);
 });
@@ -192,6 +197,7 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     /requireThat\(servicesRestored, "WRITER_RESTORE_FAILED"\)/u,
   );
   assert.match(runner, /verifyRestoredStagingHealth/u);
+  assert.match(runner, /expectedSha: config\.expectedActiveStagingRelease/u);
   assert.match(health, /staging\.fieldgrid\.nl\/admin\/healthz/u);
   assert.match(health, /staging\.fieldgrid\.nl\/personeel\/healthz/u);
   assert.match(health, /staging\.fieldgrid\.nl\/klant\/healthz/u);
