@@ -124,6 +124,15 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /bootstrapCommitAttempted/u);
   assert.match(database, /has_function_privilege/u);
   assert.match(database, /repairCommittedLegacyPrivileges/u);
+  assert.match(database, /legacyBootstrapAuthAclCompatible/u);
+  assert.match(
+    database,
+    /REVOKE USAGE ON SCHEMA auth FROM.*GRANTED BY postgres/su,
+  );
+  assert.match(
+    database,
+    /REVOKE SELECT \(.*\) ON TABLE auth\.users FROM.*GRANTED BY postgres/su,
+  );
   assert.match(
     database,
     /has_schema_privilege\(current_user,n\.oid,'USAGE'\)/u,
@@ -164,6 +173,12 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     runner,
     /plan\.managedCatalogDigest === expectedManagedCatalogDigest/u,
   );
+  assert.match(
+    runner,
+    /plan\.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest/u,
+  );
+  assert.match(runner, /legacyBootstrapAuthAclCount === 4/u);
+  assert.match(runner, /post-repair-catalog-validation/u);
   assert.doesNotMatch(
     runner,
     /committedBootstrapMetadata\(plan, plan\.managedCatalogDigest\)/u,
@@ -215,5 +230,7 @@ test("PostgreSQL 17 regression covers absent role, wrong attributes, rollback, r
   assert.match(regression, /provider_member: false/u);
   assert.match(regression, /usage: false/u);
   assert.match(regression, /repairCommittedLegacyPrivileges\(legacy\)/u);
+  assert.match(regression, /legacyBootstrapAuthAclCompatible/u);
+  assert.match(regression, /revokeLegacyBootstrapAuthAcl: true/u);
   assert.match(regression, /retry: true, rollback: true/u);
 });

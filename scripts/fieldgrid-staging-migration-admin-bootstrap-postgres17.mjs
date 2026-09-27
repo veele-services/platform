@@ -273,6 +273,62 @@ try {
   assert.equal(afterFirst.targetRole.rolinherit, false);
   assert.equal(afterFirst.targetRole.rolcanlogin, true);
 
+  await root.query("SET ROLE supabase_auth_admin");
+  try {
+    await root.query(
+      "GRANT USAGE ON SCHEMA auth TO postgres WITH GRANT OPTION",
+    );
+    await root.query(
+      "GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO postgres WITH GRANT OPTION",
+    );
+  } finally {
+    await root.query("RESET ROLE");
+  }
+  const legacyGrantOptionBaseline = await managedCatalogSnapshot(legacy);
+  await legacy.query("GRANT USAGE ON SCHEMA auth TO fieldgrid_migration_admin");
+  await legacy.query(
+    "GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO fieldgrid_migration_admin",
+  );
+  const legacyAclPlan = await bootstrapPlan(legacy);
+  assert.notEqual(
+    legacyAclPlan.managedCatalogDigest,
+    legacyGrantOptionBaseline.digest,
+  );
+  assert.equal(
+    legacyAclPlan.legacyBootstrapCatalogDigest,
+    legacyGrantOptionBaseline.digest,
+  );
+  assert.equal(legacyAclPlan.legacyBootstrapAuthAclCompatible, true);
+  assert.equal(legacyAclPlan.legacyBootstrapAuthAclCount, 4);
+  assert.deepEqual(
+    await repairCommittedLegacyPrivileges(legacy, {
+      revokeLegacyBootstrapAuthAcl: true,
+    }),
+    {
+      databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+      legacyBootstrapAuthAclRevoked: true,
+    },
+  );
+  const repairedLegacyAclPlan = await bootstrapPlan(legacy);
+  assert.equal(
+    repairedLegacyAclPlan.managedCatalogDigest,
+    legacyGrantOptionBaseline.digest,
+  );
+  assert.equal(repairedLegacyAclPlan.legacyBootstrapAuthAclCompatible, false);
+  assert.equal(repairedLegacyAclPlan.legacyBootstrapAuthAclCount, 0);
+  await root.query("SET ROLE supabase_auth_admin");
+  try {
+    await root.query(
+      "REVOKE SELECT (id,email,raw_app_meta_data) ON TABLE auth.users FROM postgres",
+    );
+    await root.query(
+      "REVOKE GRANT OPTION FOR USAGE ON SCHEMA auth FROM postgres",
+    );
+  } finally {
+    await root.query("RESET ROLE");
+  }
+  assert.equal((await managedCatalogSnapshot(legacy)).digest, before.digest);
+
   target = await connected(
     "fieldgrid_migration_admin",
     PASSWORD,
@@ -333,6 +389,7 @@ try {
   );
   assert.deepEqual(await repairCommittedLegacyPrivileges(legacy), {
     databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+    legacyBootstrapAuthAclRevoked: false,
   });
   assert.deepEqual(
     (await repairCommittedTargetSchemaPrivileges(target)).repairedSchemas,
