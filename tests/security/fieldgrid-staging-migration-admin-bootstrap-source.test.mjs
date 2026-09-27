@@ -146,6 +146,13 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /postgres_inherits_storage_role/u);
   assert.match(database, /postgres_can_set_supabase_admin/u);
   assert.match(database, /supabase_admin_storage_admin_option/u);
+  assert.match(database, /supautils\.policy_grants/u);
+  assert.match(database, /postgres_can_manage_storage_policies/u);
+  assert.match(database, /postgres_can_select_storage_buckets/u);
+  assert.match(database, /postgres_can_insert_storage_buckets/u);
+  assert.match(database, /postgres_can_update_storage_buckets/u);
+  assert.match(database, /postgres_can_select_storage_objects/u);
+  assert.match(database, /postgres_can_execute_storage_foldername/u);
   assert.match(
     hostedBridge,
     /postgres_can_set_storage_role === true/u,
