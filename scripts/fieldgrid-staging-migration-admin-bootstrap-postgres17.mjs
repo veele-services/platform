@@ -289,6 +289,12 @@ try {
         'supabase_storage_admin',namespace_row.oid,'USAGE'
       ) AS storage_admin_usage,
       pg_has_role(
+        current_user,'supabase_storage_admin','MEMBER'
+      ) AS postgres_is_storage_role_member,
+      pg_has_role(
+        current_user,'supabase_storage_admin','USAGE'
+      ) AS postgres_inherits_storage_role,
+      pg_has_role(
         current_user,'supabase_storage_admin','SET'
       ) AS postgres_can_set_storage_role
     FROM pg_namespace namespace_row
@@ -307,6 +313,8 @@ try {
       objects_owner: "supabase_storage_admin",
       foldername_owner: "supabase_storage_admin",
       storage_admin_usage: true,
+      postgres_is_storage_role_member: true,
+      postgres_inherits_storage_role: false,
       postgres_can_set_storage_role: true,
     },
   ]);
@@ -322,6 +330,8 @@ try {
     objects_owner: "supabase_storage_admin",
     foldername_owner: "supabase_storage_admin",
     storage_admin_usage: true,
+    postgres_is_storage_role_member: true,
+    postgres_inherits_storage_role: false,
     postgres_can_set_storage_role: true,
   });
   assert.equal(

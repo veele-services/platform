@@ -852,6 +852,20 @@ export async function hostedProviderCompatibilityInventory(client) {
           WHERE role_row.rolname=current_user),
         (SELECT role_row.oid FROM pg_roles role_row
           WHERE role_row.rolname='supabase_storage_admin'),
+        'MEMBER'
+      ),false) AS postgres_is_storage_role_member,
+      COALESCE(pg_has_role(
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname=current_user),
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname='supabase_storage_admin'),
+        'USAGE'
+      ),false) AS postgres_inherits_storage_role,
+      COALESCE(pg_has_role(
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname=current_user),
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname='supabase_storage_admin'),
         'SET'
       ),false) AS postgres_can_set_storage_role
   `);
