@@ -48,10 +48,7 @@ test("managed migration SQL removes only a matching outer transaction wrapper", 
       "",
     ].join("\n"),
   );
-  assert.equal(
-    sqlForManagedMigrationTransaction("SELECT 1;\n"),
-    "SELECT 1;\n",
-  );
+  assert.equal(sqlForManagedMigrationTransaction("SELECT 1;\n"), "SELECT 1;\n");
 });
 
 test("managed migration SQL rejects unmatched file-level transaction control", () => {
@@ -127,8 +124,7 @@ test("managed migration SQL retains SQL-standard atomic routine bodies", () => {
     "END;",
   ].join("\n");
   assert.throws(
-    () =>
-      sqlForManagedMigrationTransaction(quotedBodyWithMisleadingParameter),
+    () => sqlForManagedMigrationTransaction(quotedBodyWithMisleadingParameter),
     /unsupported file-level transaction control/u,
   );
 });
@@ -643,11 +639,18 @@ test("the required unit lane binds every migration stage to the lock-holding cli
 
   const orderedStages = [
     "await withDatabaseMigrationLock(client, async () => {",
-    "await ensureHistoryTables(client);",
-    "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
-    "await runDrizzleGeneratedMigrations(client);",
-    "await ensureLegacySqlPrerequisites(client);",
-    "await runSqlMigrations(client, sqlMigrations, {",
+    'await runMigrationStage(\n      "prepare-bridge",',
+    "prepareHostedMigrationBridge(client)",
+    'await runMigrationStage("ensure-history",',
+    "ensureHistoryTables(client)",
+    'await runMigrationStage("schema-guard",',
+    "assertNoUnbaselinedExistingSchema(client, expectedTables)",
+    'await runMigrationStage("drizzle",',
+    "runDrizzleGeneratedMigrations(client)",
+    'await runMigrationStage("legacy-prerequisites",',
+    "ensureLegacySqlPrerequisites(client)",
+    'await runMigrationStage("sql",',
+    "runSqlMigrations(client, sqlMigrations, {",
     "hostedAuthCompatibility,",
   ];
   let previousIndex = -1;
