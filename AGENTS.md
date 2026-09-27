@@ -4,8 +4,8 @@
 
 - `main` is the development/integration source branch and has no shared live database.
 - `staging` is only for deployed database, migrations, and live acceptance.
-- Never commit directly to `main` or `staging`.
-- Create feature branches from `main` and target `main` in pull requests.
+- Direct commits to `main` are allowed when the user has explicitly authorized autonomous work; `staging` remains promotion-only.
+- Feature branches and pull requests are optional for explicitly authorized autonomous work.
 - Promote the exact validated `main` commit to staging before deploying it to production.
 - Never merge staging-only fixes back implicitly. Recreate every fix from main and re-promote.
 
