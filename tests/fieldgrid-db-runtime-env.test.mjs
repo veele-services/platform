@@ -98,14 +98,14 @@ test("migration runner installs legacy updated-at helper before SQL migrations",
       "NEW.updated_at = now();",
       "async function ensureLegacySqlPrerequisites",
       "await ensureLegacySqlPrerequisites(client);",
-      "await runSqlMigrations(client, sqlMigrations);",
+      "await runSqlMigrations(client, sqlMigrations, {",
     ],
     "migration runner legacy SQL prerequisites",
   );
 
   assert.ok(
     migrate.indexOf("await ensureLegacySqlPrerequisites(client);") <
-      migrate.indexOf("await runSqlMigrations(client, sqlMigrations);"),
+      migrate.indexOf("await runSqlMigrations(client, sqlMigrations, {"),
     "legacy SQL prerequisites should run before hand-written SQL migrations",
   );
 
@@ -145,7 +145,7 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
       "pg_catalog.pg_advisory_unlock",
       "await withDatabaseMigrationLock(client, async () => {",
       "await runSqlMigrationTransaction(",
-      "() => client.query(sqlForManagedMigrationTransaction(migration.sql))",
+      "() => client.query(sqlForManagedMigrationTransaction(migrationSql))",
       "() => recordSqlMigration(client, migration, false)",
       "prepareMigration: async () =>",
       "await sqlMigrationIsRecorded(client, migration)",
@@ -181,7 +181,8 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
       "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
       'console.log("[db:migrate] Applying Drizzle generated migrations.");',
       "await runDrizzleGeneratedMigrations(client);",
-      "await runSqlMigrations(client, sqlMigrations);",
+      "await runSqlMigrations(client, sqlMigrations, {",
+      "hostedAuthCompatibility,",
     ],
     "migrate function session-lock scope",
   );
@@ -208,7 +209,7 @@ test("migration runner retries only a fully rolled-back SQL deadlock", () => {
         'console.log("[db:migrate] Applying Drizzle generated migrations.");',
       ) <
         migrateFunction.indexOf(
-          "await runSqlMigrations(client, sqlMigrations);",
+          "await runSqlMigrations(client, sqlMigrations, {",
         ),
     "the session lock should cover generated and hand-written migrations",
   );
