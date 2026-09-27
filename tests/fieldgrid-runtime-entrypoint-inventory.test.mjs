@@ -295,6 +295,46 @@ test("scanner fixtures prove representative detections and exclusions", () => {
   assert.ok(!pairs.some((pair) => pair.includes("names-only")));
 });
 
+test("migration tooling is excluded from application runtime callsites", () => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "fieldgrid-entrypoint-migration-tooling-"),
+  );
+  try {
+    writeFixture(
+      root,
+      "lib/db/src/migrate.ts",
+      "export async function migrate(db) { await db.execute('select 1'); }",
+    );
+    writeFixture(
+      root,
+      "lib/db/src/runtime.ts",
+      "export async function query(db) { await db.execute('select 1'); }",
+    );
+    const inventory = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          script,
+          "--root",
+          root,
+          "--runtime-roots",
+          "lib/db/src",
+          "--full-json",
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    assert.ok(
+      inventory.entries.some((entry) => entry.file === "lib/db/src/runtime.ts"),
+    );
+    assert.ok(
+      inventory.entries.every((entry) => entry.file !== "lib/db/src/migrate.ts"),
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("scanner fixtures prove kind-specific risk severity", () => {
   const inventory = fixtureInventory();
   assert.equal(inventory.counts.total, inventory.counts.classifications);
