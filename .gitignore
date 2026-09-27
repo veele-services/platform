@@ -1,78 +1,10 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
-tmp
-out-tsc
-*.tsbuildinfo
-.expo
-.expo-shared
-
-# Next.js
+node_modules/
 .next/
-out/
-
-# dependencies
-node_modules
-
-# IDEs and editors
-/.idea
-**/.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/artifacts/final-gate/
-/artifacts/migration-smoke/
-/artifacts/platform-admin-final-gate/
-/artifacts/platform-mobile-polish/
-/artifacts/staging-promotion-gate/
-/artifacts/staging-smoke/
-/artifacts/visual-regression/
-/outputs/**/auth/
-/outputs/current-main-baseline-2026-07-14/
-/outputs/invoice-sprint10-release-gate/
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+.turbo/
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
 .DS_Store
-Thumbs.db
-
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
-.cache/
-.local/
-/artifacts/runtime-entrypoints/*.full.json
-
-# Fieldgrid Playwright local artifacts
-/artifacts/fieldgrid-playwright/
-/artifacts/fieldgrid-phase2-runtime/
-/artifacts/runtime-safety-harness/
-/artifacts/dependency-security/
-/test-results/
-
-# Android signing material must never enter source control
-*.jks
-*.keystore
-*.p12
-android-signing.properties

@@ -1,5 +1,5 @@
-# platform
+# Fieldgrid
 
-- Product and codebase canon: [replit.md](./replit.md)
-- Handleiding en analyse v1.0: [docs/handleiding-veele-platform-v1.0.md](./docs/handleiding-veele-platform-v1.0.md)
-- Self-hosted deploy flow: [docs/deployment/self-hosted-runner.md](./docs/deployment/self-hosted-runner.md)
+Fresh rebuild started September 2026.
+
+Previous implementation is preserved in the archive/pre-rebuild-20260928-* branches.
