@@ -285,7 +285,6 @@ try {
     await root.query("RESET ROLE");
   }
   const legacyGrantOptionBaseline = await managedCatalogSnapshot(legacy);
-  await legacy.query("GRANT USAGE ON SCHEMA auth TO fieldgrid_migration_admin");
   await legacy.query(
     "GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO fieldgrid_migration_admin",
   );
@@ -299,7 +298,7 @@ try {
     legacyGrantOptionBaseline.digest,
   );
   assert.equal(legacyAclPlan.legacyBootstrapAuthAclCompatible, true);
-  assert.equal(legacyAclPlan.legacyBootstrapAuthAclCount, 4);
+  assert.equal(legacyAclPlan.legacyBootstrapAuthAclCount, 3);
   assert.deepEqual(
     await repairCommittedLegacyPrivileges(legacy, {
       revokeLegacyBootstrapAuthAcl: true,
@@ -316,6 +315,24 @@ try {
   );
   assert.equal(repairedLegacyAclPlan.legacyBootstrapAuthAclCompatible, false);
   assert.equal(repairedLegacyAclPlan.legacyBootstrapAuthAclCount, 0);
+  await legacy.query("GRANT USAGE ON SCHEMA auth TO fieldgrid_migration_admin");
+  await legacy.query(
+    "GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO fieldgrid_migration_admin",
+  );
+  const legacyAclWithSchemaPlan = await bootstrapPlan(legacy);
+  assert.equal(
+    legacyAclWithSchemaPlan.legacyBootstrapCatalogDigest,
+    legacyGrantOptionBaseline.digest,
+  );
+  assert.equal(legacyAclWithSchemaPlan.legacyBootstrapAuthAclCompatible, true);
+  assert.equal(legacyAclWithSchemaPlan.legacyBootstrapAuthAclCount, 4);
+  await repairCommittedLegacyPrivileges(legacy, {
+    revokeLegacyBootstrapAuthAcl: true,
+  });
+  assert.equal(
+    (await managedCatalogSnapshot(legacy)).digest,
+    legacyGrantOptionBaseline.digest,
+  );
   await root.query("SET ROLE supabase_auth_admin");
   try {
     await root.query(

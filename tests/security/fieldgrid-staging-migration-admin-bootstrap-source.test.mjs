@@ -177,7 +177,11 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     runner,
     /plan\.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest/u,
   );
-  assert.match(runner, /legacyBootstrapAuthAclCount === 4/u);
+  assert.match(
+    runner,
+    /legacyBootstrapAuthAclCountIsCompatible\([\s\S]*legacyBootstrapAuthAclCount/u,
+  );
+  assert.match(runner, /count === 3 \|\| count === 4/u);
   assert.match(runner, /post-repair-catalog-validation/u);
   assert.doesNotMatch(
     runner,
