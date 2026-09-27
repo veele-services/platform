@@ -19,9 +19,25 @@ const client = new Client({
   application_name: "fieldgrid-disposable-staging-migration-worker",
 });
 
-function report(value: Record<string, unknown>): void {
-  if (process.send) process.send(value);
-  else process.stdout.write(`FIELDGRID_WORKER:${JSON.stringify(value)}\n`);
+async function report(value: Record<string, unknown>): Promise<void> {
+  if (process.send) {
+    await new Promise<void>((resolve, reject) => {
+      process.send?.(value, (error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+    return;
+  }
+  await new Promise<void>((resolve, reject) => {
+    process.stdout.write(
+      `FIELDGRID_WORKER:${JSON.stringify(value)}\n`,
+      (error) => {
+        if (error) reject(error);
+        else resolve();
+      },
+    );
+  });
 }
 
 const SAFE_MIGRATION_FAILURE_STAGES = new Set([
@@ -130,7 +146,7 @@ const row = identity.rows[0];
 if (!row) {
   throw new Error("MIGRATION_WORKER_ROLE_INVALID");
 }
-report({
+await report({
   state: "ready",
   pid: row.pid,
   role: row.role_name,
@@ -174,7 +190,7 @@ try {
         ) {
           recoveryPassword = (message as { originalPassword: string })
             .originalPassword;
-          report({ state: "armed" });
+          await report({ state: "armed" });
         } else if (command === "run") {
           const database = drizzle(client, { schema });
           activeFailureStage = "migrate";
@@ -183,14 +199,14 @@ try {
           await seedRbac(database);
           activeFailureStage = "seed-sectors";
           await seedSectors(database);
-          report({ state: "migrated" });
+          await report({ state: "migrated" });
         } else if (command === "release") {
           recoveryPassword = undefined;
-          report({ state: "released" });
+          await report({ state: "released" });
           resolve();
         } else if (command === "recover-release") {
           await restoreCredential();
-          report({ state: "released" });
+          await report({ state: "released" });
           resolve();
         } else {
           throw new Error("MIGRATION_WORKER_COMMAND_INVALID");
@@ -202,7 +218,7 @@ try {
     process.once("disconnect", resolve);
   });
 } catch (error) {
-  report({
+  await report({
     state: "failed",
     failureStage: safeFailureStage(error, activeFailureStage),
     sqlState: safeSqlState(error),

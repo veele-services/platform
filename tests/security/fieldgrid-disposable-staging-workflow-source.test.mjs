@@ -249,6 +249,10 @@ test("migration worker reports only bounded hosted failure diagnostics", () => {
   assert.match(worker, /failureCode: safeDatabaseFailureCode\(error\)/u);
   assert.match(worker, /SAFE_DATABASE_FAILURE_CODES = new Set/u);
   assert.match(worker, /\^\[0-9A-Z\]\{5\}\$/u);
+  assert.match(worker, /async function report/u);
+  assert.match(worker, /await new Promise<void>/u);
+  assert.match(worker, /process\.send\?\.\(value, \(error\) =>/u);
+  assert.match(worker, /await report\(\{\s+state: "failed"/u);
   assert.doesNotMatch(worker, /error\.stack/u);
   assert.doesNotMatch(worker, /message:\s*error/u);
   assert.match(database, /MIGRATION_WORKER_FAILED:\$\{failureStage\}/u);
