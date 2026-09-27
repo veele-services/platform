@@ -70,6 +70,12 @@ await rootBootstrap.query(
 await rootBootstrap.query(
   "GRANT supabase_storage_admin TO postgres WITH INHERIT FALSE, SET TRUE, ADMIN FALSE",
 );
+await rootBootstrap.query(
+  "GRANT supabase_storage_admin TO supabase_admin WITH INHERIT FALSE, SET TRUE, ADMIN TRUE",
+);
+await rootBootstrap.query(
+  "GRANT supabase_admin TO postgres WITH INHERIT FALSE, SET TRUE, ADMIN FALSE",
+);
 await rootBootstrap.query("ALTER DATABASE postgres OWNER TO postgres");
 const admin = await connected(
   "postgres",
@@ -296,7 +302,19 @@ try {
       ) AS postgres_inherits_storage_role,
       pg_has_role(
         current_user,'supabase_storage_admin','SET'
-      ) AS postgres_can_set_storage_role
+      ) AS postgres_can_set_storage_role,
+      pg_has_role(
+        current_user,'supabase_admin','SET'
+      ) AS postgres_can_set_supabase_admin,
+      EXISTS (
+        SELECT 1
+        FROM pg_auth_members membership
+        JOIN pg_roles granted_role ON granted_role.oid=membership.roleid
+        JOIN pg_roles member_role ON member_role.oid=membership.member
+        WHERE granted_role.rolname='supabase_storage_admin'
+          AND member_role.rolname='supabase_admin'
+          AND membership.admin_option
+      ) AS supabase_admin_storage_admin_option
     FROM pg_namespace namespace_row
     JOIN pg_class buckets
       ON buckets.relnamespace=namespace_row.oid AND buckets.relname='buckets'
@@ -316,6 +334,8 @@ try {
       postgres_is_storage_role_member: true,
       postgres_inherits_storage_role: false,
       postgres_can_set_storage_role: true,
+      postgres_can_set_supabase_admin: true,
+      supabase_admin_storage_admin_option: true,
     },
   ]);
 
@@ -333,6 +353,8 @@ try {
     postgres_is_storage_role_member: true,
     postgres_inherits_storage_role: false,
     postgres_can_set_storage_role: true,
+    postgres_can_set_supabase_admin: true,
+    supabase_admin_storage_admin_option: true,
   });
   assert.equal(
     (await managedCatalogSnapshot(legacy)).digest,

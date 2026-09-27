@@ -144,6 +144,8 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(hostedBridge, /storage_admin_usage === true/u);
   assert.match(database, /postgres_is_storage_role_member/u);
   assert.match(database, /postgres_inherits_storage_role/u);
+  assert.match(database, /postgres_can_set_supabase_admin/u);
+  assert.match(database, /supabase_admin_storage_admin_option/u);
   assert.match(
     hostedBridge,
     /postgres_can_set_storage_role === true/u,

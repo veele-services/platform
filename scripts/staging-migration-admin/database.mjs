@@ -867,7 +867,23 @@ export async function hostedProviderCompatibilityInventory(client) {
         (SELECT role_row.oid FROM pg_roles role_row
           WHERE role_row.rolname='supabase_storage_admin'),
         'SET'
-      ),false) AS postgres_can_set_storage_role
+      ),false) AS postgres_can_set_storage_role,
+      COALESCE(pg_has_role(
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname=current_user),
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname='supabase_admin'),
+        'SET'
+      ),false) AS postgres_can_set_supabase_admin,
+      EXISTS (
+        SELECT 1
+        FROM pg_auth_members membership
+        JOIN pg_roles granted_role ON granted_role.oid=membership.roleid
+        JOIN pg_roles member_role ON member_role.oid=membership.member
+        WHERE granted_role.rolname='supabase_storage_admin'
+          AND member_role.rolname='supabase_admin'
+          AND membership.admin_option
+      ) AS supabase_admin_storage_admin_option
   `);
   requireThat(
     providerStorage.rows.length === 1,
