@@ -128,7 +128,10 @@ async function recoveryState(receiptPath, config, currentServices) {
       receipt.operation === "apply" &&
       receipt.destructive === true &&
       /^[0-9a-f]{40}$/u.test(receipt.expectedMainSha ?? "") &&
-      receipt.expectedStagingSha === config.expectedStaging,
+      receipt.expectedStagingSha === config.expectedStaging &&
+      (receipt.expectedActiveStagingReleaseSha === undefined ||
+        receipt.expectedActiveStagingReleaseSha ===
+          config.expectedActiveStagingRelease),
     "BOOTSTRAP_RECEIPT_BINDING_INVALID",
   );
   if (receipt.phase === "ROLLED_BACK") {
@@ -386,6 +389,7 @@ export async function runApply({
         operation: "apply",
         expectedMainSha: config.expectedMain,
         expectedStagingSha: config.expectedStaging,
+        expectedActiveStagingReleaseSha: config.expectedActiveStagingRelease,
         destructive: true,
         status: "pending",
         mutationsPerformed: false,
@@ -513,7 +517,7 @@ export async function runApply({
     failureStage = "restored-health-proof";
     const health = await (
       deps.verifyRestoredHealth ?? verifyRestoredStagingHealth
-    )({ expectedSha: config.expectedStaging });
+    )({ expectedSha: config.expectedActiveStagingRelease });
     const result = publicResult(config, "passed", {
       mutationsPerformed: true,
       legacyPrincipal: applied.legacyPrincipal,
@@ -599,6 +603,7 @@ export async function runApply({
           operation: "apply",
           expectedMainSha: config.recoverySourceMain,
           expectedStagingSha: config.expectedStaging,
+          expectedActiveStagingReleaseSha: config.expectedActiveStagingRelease,
           destructive: true,
           status: "failed",
           mutationsPerformed: true,

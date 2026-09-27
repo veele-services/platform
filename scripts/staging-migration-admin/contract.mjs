@@ -59,6 +59,7 @@ export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
   );
   let recoverySourceMain;
   let expectedManagedCatalogDigest;
+  let expectedActiveStagingRelease;
   if (mode === "apply" || mode === "recover") {
     recoverySourceMain =
       mode === "recover"
@@ -68,15 +69,23 @@ export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
       mode === "recover"
         ? required(env, "EXPECTED_MANAGED_CATALOG_DIGEST")
         : undefined;
+    expectedActiveStagingRelease = required(
+      env,
+      "EXPECTED_ACTIVE_STAGING_RELEASE_SHA",
+    );
     requireThat(
       mode === "apply"
         ? env.BOOTSTRAP_CONFIRMATION ===
-            `${CONTRACT}:${STAGING_PROJECT_REF}:${expectedMain}`
+            `${CONTRACT}:${STAGING_PROJECT_REF}:${expectedMain}:${expectedStaging}:${expectedActiveStagingRelease}`
         : SHA.test(recoverySourceMain) &&
             CATALOG_DIGEST.test(expectedManagedCatalogDigest) &&
             env.BOOTSTRAP_CONFIRMATION ===
-              `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${recoverySourceMain}:${expectedMain}:${expectedStaging}:${expectedManagedCatalogDigest}`,
+              `${RECOVERY_CONTRACT}:${STAGING_PROJECT_REF}:${recoverySourceMain}:${expectedMain}:${expectedStaging}:${expectedActiveStagingRelease}:${expectedManagedCatalogDigest}`,
       "CONFIRMATION_INVALID",
+    );
+    requireThat(
+      SHA.test(expectedActiveStagingRelease),
+      "ACTIVE_RELEASE_SHA_INVALID",
     );
     requireThat(
       PASSWORD.test(required(env, "FIELDGRID_MIGRATION_DATABASE_PASSWORD")),
@@ -89,6 +98,7 @@ export function validateBootstrapDispatch(env = process.env, { mode } = {}) {
     expectedStaging,
     recoverySourceMain,
     expectedManagedCatalogDigest,
+    expectedActiveStagingRelease,
   };
 }
 
@@ -101,6 +111,11 @@ export function publicResult(config, status, additions = {}) {
     operation: config.mode,
     expectedMainSha: config.expectedMain,
     expectedStagingSha: config.expectedStaging,
+    ...(config.expectedActiveStagingRelease
+      ? {
+          expectedActiveStagingReleaseSha: config.expectedActiveStagingRelease,
+        }
+      : {}),
     destructive: config.mode !== "plan",
     status,
     ...additions,

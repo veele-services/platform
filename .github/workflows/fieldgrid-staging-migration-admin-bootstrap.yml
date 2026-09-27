@@ -20,6 +20,11 @@ on:
         description: "Exact current staging SHA"
         required: true
         type: string
+      expected_active_staging_release_sha:
+        description: "For apply/recover: exact currently deployed staging release SHA"
+        required: false
+        default: ""
+        type: string
       confirmation:
         description: "Exact apply or recovery confirmation"
         required: false
@@ -54,6 +59,7 @@ jobs:
       TARGET_ENVIRONMENT: staging
       EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
       EXPECTED_STAGING_SHA: ${{ inputs.expected_staging_sha }}
+      EXPECTED_ACTIVE_STAGING_RELEASE_SHA: ${{ inputs.expected_active_staging_release_sha }}
       EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
       FORBIDDEN_SUPABASE_PROJECT_REF: ckdtiuemeygrnujjibnw
       BOOTSTRAP_CONFIRMATION: ${{ inputs.confirmation }}
@@ -102,13 +108,15 @@ jobs:
           test "$live_main" = "$EXPECTED_MAIN_SHA"
           test "$live_staging" = "$EXPECTED_STAGING_SHA"
           if [ "$BOOTSTRAP_OPERATION" = "apply" ]; then
-            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA"
+            [[ "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
             test -z "$RECOVERY_SOURCE_MAIN_SHA"
             test -z "$EXPECTED_MANAGED_CATALOG_DIGEST"
           elif [ "$BOOTSTRAP_OPERATION" = "recover" ]; then
             [[ "$RECOVERY_SOURCE_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
             [[ "$EXPECTED_MANAGED_CATALOG_DIGEST" =~ ^[0-9a-f]{64}$ ]]
-            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-recover-v1:olyfmekyqozxrbrwwszu:$RECOVERY_SOURCE_MAIN_SHA:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_MANAGED_CATALOG_DIGEST"
+            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-recover-v1:olyfmekyqozxrbrwwszu:$RECOVERY_SOURCE_MAIN_SHA:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_ACTIVE_STAGING_RELEASE_SHA:$EXPECTED_MANAGED_CATALOG_DIGEST"
             node --input-type=module - <<'NODE'
           const source = process.env.RECOVERY_SOURCE_MAIN_SHA;
           const current = process.env.EXPECTED_MAIN_SHA;
@@ -134,6 +142,7 @@ jobs:
           NODE
           else
             test "$BOOTSTRAP_OPERATION" = "plan"
+            test -z "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
             test -z "$RECOVERY_SOURCE_MAIN_SHA"
             test -z "$EXPECTED_MANAGED_CATALOG_DIGEST"
           fi
@@ -177,11 +186,13 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$BOOTSTRAP_OPERATION" = "apply" ]; then
-            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA"
+            [[ "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-v1:olyfmekyqozxrbrwwszu:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_ACTIVE_STAGING_RELEASE_SHA"
           else
             test "$BOOTSTRAP_OPERATION" = "recover"
+            [[ "$EXPECTED_ACTIVE_STAGING_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
             [[ "$EXPECTED_MANAGED_CATALOG_DIGEST" =~ ^[0-9a-f]{64}$ ]]
-            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-recover-v1:olyfmekyqozxrbrwwszu:$RECOVERY_SOURCE_MAIN_SHA:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_MANAGED_CATALOG_DIGEST"
+            test "$BOOTSTRAP_CONFIRMATION" = "fieldgrid-staging-migration-admin-bootstrap-recover-v1:olyfmekyqozxrbrwwszu:$RECOVERY_SOURCE_MAIN_SHA:$EXPECTED_MAIN_SHA:$EXPECTED_STAGING_SHA:$EXPECTED_ACTIVE_STAGING_RELEASE_SHA:$EXPECTED_MANAGED_CATALOG_DIGEST"
           fi
           node --input-type=module - <<'NODE'
           for (const [branch, expected] of [["main", process.env.EXPECTED_MAIN_SHA], ["staging", process.env.EXPECTED_STAGING_SHA]]) {
