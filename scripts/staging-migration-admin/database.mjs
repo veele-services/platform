@@ -25,6 +25,8 @@ const LEGACY_BOOTSTRAP_AUTH_COLUMNS = Object.freeze([
   "id",
   "raw_app_meta_data",
 ]);
+const HOSTED_STORAGE_POLICY_CAPABILITY_PROBE =
+  "fieldgrid_bootstrap_policy_capability_probe";
 export const HOSTED_MIGRATION_BRIDGE_SCHEMA = BRIDGE_SCHEMA;
 export const HOSTED_MIGRATION_BRIDGE_FUNCTIONS = BRIDGE_FUNCTIONS;
 const HOSTED_MIGRATION_PROVIDER_ADAPTERS = BRIDGE_ADAPTERS;
@@ -61,10 +63,6 @@ async function staged(stage, operation) {
 
 async function installHostedStorageReconciler(client) {
   await client.query(`
-    GRANT USAGE,CREATE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
-      TO supabase_storage_admin;
-    SET LOCAL ROLE supabase_storage_admin;
-
     CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}()
     RETURNS void
     LANGUAGE plpgsql
@@ -373,6 +371,8 @@ async function installHostedStorageReconciler(client) {
     END;
     $fieldgrid_storage_state$;
 
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}() OWNER TO postgres;
     REVOKE ALL ON FUNCTION
       ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}(),
       ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}()
@@ -381,9 +381,45 @@ async function installHostedStorageReconciler(client) {
       TO postgres;
     GRANT EXECUTE ON FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}()
       TO ${identifier(MIGRATION_ROLE)};
-    RESET ROLE;
-    REVOKE CREATE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
+    REVOKE USAGE,CREATE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
       FROM supabase_storage_admin;
+  `);
+}
+
+async function proveHostedStoragePolicyCapability(client) {
+  await client.query(`
+    DO $fieldgrid_policy_probe_preflight$
+    BEGIN
+      IF pg_catalog.to_regclass('storage.objects') IS NULL THEN
+        RAISE EXCEPTION 'hosted_storage_policy_probe_table_missing';
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM pg_catalog.pg_policies
+        WHERE schemaname='storage' AND tablename='objects'
+          AND policyname='${HOSTED_STORAGE_POLICY_CAPABILITY_PROBE}'
+      ) THEN
+        RAISE EXCEPTION 'hosted_storage_policy_probe_collision';
+      END IF;
+    END
+    $fieldgrid_policy_probe_preflight$;
+
+    CREATE POLICY ${identifier(HOSTED_STORAGE_POLICY_CAPABILITY_PROBE)}
+      ON storage.objects FOR SELECT TO ${identifier(MIGRATION_ROLE)}
+      USING (false);
+    DROP POLICY ${identifier(HOSTED_STORAGE_POLICY_CAPABILITY_PROBE)}
+      ON storage.objects;
+
+    DO $fieldgrid_policy_probe_cleanup$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_catalog.pg_policies
+        WHERE schemaname='storage' AND tablename='objects'
+          AND policyname='${HOSTED_STORAGE_POLICY_CAPABILITY_PROBE}'
+      ) THEN
+        RAISE EXCEPTION 'hosted_storage_policy_probe_cleanup_failed';
+      END IF;
+    END
+    $fieldgrid_policy_probe_cleanup$;
   `);
 }
 
@@ -908,7 +944,21 @@ export async function hostedProviderCompatibilityInventory(client) {
         current_user,
         pg_catalog.to_regprocedure('storage.foldername(text)'),
         'EXECUTE'
-      ),false) AS postgres_can_execute_storage_foldername
+      ),false) AS postgres_can_execute_storage_foldername,
+      (SELECT pg_get_userbyid(namespace_row.nspowner)
+         FROM pg_namespace namespace_row
+        WHERE namespace_row.nspname='${HOSTED_MIGRATION_BRIDGE_SCHEMA}')
+        AS existing_bridge_schema_owner,
+      (SELECT pg_get_userbyid(routine.proowner)
+         FROM pg_proc routine
+        WHERE routine.oid=pg_catalog.to_regprocedure(
+          '${HOSTED_MIGRATION_BRIDGE_SCHEMA}.reconcile_storage()'
+        )) AS existing_reconcile_storage_owner,
+      (SELECT pg_get_userbyid(routine.proowner)
+         FROM pg_proc routine
+        WHERE routine.oid=pg_catalog.to_regprocedure(
+          '${HOSTED_MIGRATION_BRIDGE_SCHEMA}.storage_state()'
+        )) AS existing_storage_state_owner
   `);
   requireThat(
     providerStorage.rows.length === 1,
@@ -926,6 +976,19 @@ async function installHostedMigrationBridge(client) {
   requireThat(
     existing.rows.length === 0 || existing.rows[0]?.owner === "postgres",
     "HOSTED_MIGRATION_BRIDGE_OWNER_INVALID",
+  );
+  const existingStorageFunctions = await client.query(
+    `SELECT routine.proname,pg_get_userbyid(routine.proowner) AS owner
+     FROM pg_proc routine
+     JOIN pg_namespace namespace_row ON namespace_row.oid=routine.pronamespace
+     WHERE namespace_row.nspname=$1
+       AND routine.proname=ANY($2::text[])
+     ORDER BY routine.proname`,
+    [HOSTED_MIGRATION_BRIDGE_SCHEMA, ["reconcile_storage", "storage_state"]],
+  );
+  requireThat(
+    existingStorageFunctions.rows.every(({ owner }) => owner === "postgres"),
+    "HOSTED_MIGRATION_BRIDGE_STORAGE_FUNCTION_OWNER_INVALID",
   );
   const providerAuth = await client.query(`
     SELECT
@@ -961,9 +1024,30 @@ async function installHostedMigrationBridge(client) {
     "HOSTED_PROVIDER_STORAGE_USAGE_INVALID",
   );
   requireThat(
-    providerStorage.postgres_can_set_storage_role === true,
-    "HOSTED_PROVIDER_STORAGE_SET_ROLE_INVALID",
+    providerStorage.postgres_can_manage_storage_policies === true,
+    "HOSTED_PROVIDER_STORAGE_POLICY_MANAGEMENT_INVALID",
   );
+  requireThat(
+    providerStorage.postgres_can_select_storage_buckets === true,
+    "HOSTED_PROVIDER_STORAGE_BUCKET_SELECT_INVALID",
+  );
+  requireThat(
+    providerStorage.postgres_can_insert_storage_buckets === true,
+    "HOSTED_PROVIDER_STORAGE_BUCKET_INSERT_INVALID",
+  );
+  requireThat(
+    providerStorage.postgres_can_update_storage_buckets === true,
+    "HOSTED_PROVIDER_STORAGE_BUCKET_UPDATE_INVALID",
+  );
+  requireThat(
+    providerStorage.postgres_can_select_storage_objects === true,
+    "HOSTED_PROVIDER_STORAGE_OBJECT_SELECT_INVALID",
+  );
+  requireThat(
+    providerStorage.postgres_can_execute_storage_foldername === true,
+    "HOSTED_PROVIDER_STORAGE_FOLDERNAME_EXECUTE_INVALID",
+  );
+  await proveHostedStoragePolicyCapability(client);
   await client.query(`
     CREATE SCHEMA IF NOT EXISTS ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} AUTHORIZATION postgres;
     REVOKE ALL ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} FROM PUBLIC;
@@ -1065,21 +1149,12 @@ async function installHostedMigrationBridge(client) {
     DECLARE
       constraint_row record;
       existing_definition text;
-      storage_public_usage_checked boolean := false;
-      storage_public_usage_preexisting boolean := false;
     BEGIN
       IF session_user <> '${MIGRATION_ROLE}' THEN
         RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
       END IF;
       GRANT ${identifier(MIGRATION_ROLE)} TO postgres
         WITH INHERIT TRUE, SET TRUE, ADMIN FALSE;
-      SELECT pg_catalog.has_schema_privilege(
-        'supabase_storage_admin','public','USAGE'
-      ) INTO storage_public_usage_preexisting;
-      storage_public_usage_checked := true;
-      IF NOT storage_public_usage_preexisting THEN
-        GRANT USAGE ON SCHEMA public TO supabase_storage_admin;
-      END IF;
       IF pg_catalog.to_regclass('drizzle.veele_sql_migrations') IS NULL
          OR NOT EXISTS (SELECT 1 FROM drizzle.veele_sql_migrations) THEN
         RAISE EXCEPTION 'hosted_migration_bridge_history_missing';
@@ -1107,9 +1182,6 @@ async function installHostedMigrationBridge(client) {
         TO anon, authenticated, service_role,
            fieldgrid_runtime_app, fieldgrid_runtime_data;
       PERFORM ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}();
-      IF NOT storage_public_usage_preexisting THEN
-        REVOKE USAGE ON SCHEMA public FROM supabase_storage_admin;
-      END IF;
 
       FOR constraint_row IN
         SELECT * FROM (VALUES
@@ -1176,9 +1248,6 @@ async function installHostedMigrationBridge(client) {
         TO fieldgrid_runtime_data;
       REVOKE ${identifier(MIGRATION_ROLE)} FROM postgres GRANTED BY postgres;
     EXCEPTION WHEN OTHERS THEN
-      IF storage_public_usage_checked AND NOT storage_public_usage_preexisting THEN
-        REVOKE USAGE ON SCHEMA public FROM supabase_storage_admin;
-      END IF;
       REVOKE ${identifier(MIGRATION_ROLE)} FROM postgres GRANTED BY postgres;
       RAISE;
     END;
@@ -1226,10 +1295,7 @@ async function installHostedMigrationBridge(client) {
         proof.rows.some(
           (row) =>
             row.proname === name &&
-            row.owner ===
-              (["reconcile_storage", "storage_state"].includes(name)
-                ? "supabase_storage_admin"
-                : "postgres") &&
+            row.owner === "postgres" &&
             row.prosecdef === true &&
             row.target_execute === (name !== "reconcile_storage") &&
             row.public_execute === false,

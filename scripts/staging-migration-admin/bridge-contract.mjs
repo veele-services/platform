@@ -67,7 +67,7 @@ const STORAGE_SCHEMA_OWNERS = Object.freeze([
   STORAGE_OWNER,
 ]);
 const EXPECTED_BRIDGE_DEFINITION_DIGEST =
-  "40ffaffe8aba873229e1d4fe950503546602c6cb57ca564059eeab35bcd5ad16";
+  "d4e6ca30721e1beb4f453c31aa4cb41f791387a5f7c7c0730e86e5998a7d6cb6";
 const EXPECTED_STORAGE_POLICY_DIGEST =
   "11c73d50bf91d753bb11ea462c99014ba12b689ff12a7beb34e5aaa3b8907809";
 const EXPECTED_BUCKET_DIGEST =
@@ -94,15 +94,10 @@ function directAcl(functionName, grantee, grantor) {
 function expectedFunctionAcl(adapterGrantees) {
   const rows = [];
   for (const functionName of BRIDGE_FUNCTIONS) {
-    const storageOwned = ["reconcile_storage", "storage_state"].includes(
-      functionName,
-    );
-    const owner = storageOwned ? STORAGE_OWNER : "postgres";
+    const owner = "postgres";
     rows.push(directAcl(functionName, owner, owner));
     if (functionName !== "reconcile_storage") {
       rows.push(directAcl(functionName, MIGRATION_ROLE, owner));
-    } else {
-      rows.push(directAcl(functionName, "postgres", owner));
     }
     if (BRIDGE_ADAPTERS.includes(functionName)) {
       for (const role of adapterGrantees) {
@@ -127,12 +122,6 @@ function expectedSchemaAcl(adapterGrantees) {
     })),
     {
       grantee: MIGRATION_ROLE,
-      grantor: "postgres",
-      privilege_type: "USAGE",
-      is_grantable: false,
-    },
-    {
-      grantee: STORAGE_OWNER,
       grantor: "postgres",
       privilege_type: "USAGE",
       is_grantable: false,
@@ -304,7 +293,7 @@ async function verifyBridgeCatalog(
         const adapter = adapterGrantees.includes(row.role_name);
         const expectedUsage =
           adapter ||
-          [MIGRATION_ROLE, STORAGE_OWNER, "postgres"].includes(row.role_name);
+          [MIGRATION_ROLE, "postgres"].includes(row.role_name);
         const expectedCreate = row.role_name === "postgres";
         let expectedExecute = false;
         if (row.role_name === MIGRATION_ROLE) {
@@ -312,12 +301,8 @@ async function verifyBridgeCatalog(
         } else if (adapter) {
           expectedExecute =
             BRIDGE_ADAPTERS.includes(row.function_name);
-        } else if (row.role_name === STORAGE_OWNER) {
-          expectedExecute = ["reconcile_storage", "storage_state"].includes(
-            row.function_name,
-          );
         } else if (row.role_name === "postgres") {
-          expectedExecute = row.function_name !== "storage_state";
+          expectedExecute = true;
         }
         return (
           row.schema_usage === expectedUsage &&
@@ -337,14 +322,20 @@ async function verifyBridgeCatalog(
           JOIN pg_roles member_row ON member_row.oid=membership.member
           JOIN pg_roles grantor_row ON grantor_row.oid=membership.grantor
          WHERE role_row.rolname=$1 AND member_row.rolname='postgres'
-           AND grantor_row.rolname='postgres') AS temporary_membership_count`,
+           AND grantor_row.rolname='postgres') AS temporary_membership_count,
+       (SELECT count(*)::int
+          FROM pg_catalog.pg_policies
+         WHERE schemaname='storage' AND tablename='objects'
+           AND policyname='fieldgrid_bootstrap_policy_capability_probe')
+         AS policy_probe_count`,
     [MIGRATION_ROLE],
   );
   requireProof(
     cleanup.rows.length === 1 &&
       cleanup.rows[0]?.auth_usage === false &&
       cleanup.rows[0]?.storage_usage === false &&
-      cleanup.rows[0]?.temporary_membership_count === 0,
+      cleanup.rows[0]?.temporary_membership_count === 0 &&
+      cleanup.rows[0]?.policy_probe_count === 0,
     "HOSTED_MIGRATION_BRIDGE_TEMPORARY_PRIVILEGE_INVALID",
   );
   return {

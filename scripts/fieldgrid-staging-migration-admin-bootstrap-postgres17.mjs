@@ -68,13 +68,7 @@ await rootBootstrap.query(
   "CREATE ROLE supabase_storage_admin NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",
 );
 await rootBootstrap.query(
-  "GRANT supabase_storage_admin TO postgres WITH INHERIT FALSE, SET TRUE, ADMIN FALSE",
-);
-await rootBootstrap.query(
-  "GRANT supabase_storage_admin TO supabase_admin WITH INHERIT FALSE, SET TRUE, ADMIN TRUE",
-);
-await rootBootstrap.query(
-  "GRANT supabase_admin TO postgres WITH INHERIT FALSE, SET TRUE, ADMIN FALSE",
+  "GRANT supabase_storage_admin TO postgres WITH INHERIT TRUE, SET FALSE, ADMIN FALSE",
 );
 await rootBootstrap.query("ALTER DATABASE postgres OWNER TO postgres");
 const admin = await connected(
@@ -171,6 +165,10 @@ try {
     ALTER SCHEMA storage OWNER TO supabase_admin;
     GRANT USAGE ON SCHEMA storage TO supabase_storage_admin;
     GRANT USAGE ON SCHEMA storage TO postgres;
+    GRANT SELECT,INSERT,UPDATE ON TABLE storage.buckets TO postgres;
+    GRANT SELECT ON TABLE storage.objects TO postgres;
+    REVOKE EXECUTE ON FUNCTION storage.foldername(text) FROM PUBLIC;
+    GRANT EXECUTE ON FUNCTION storage.foldername(text) TO postgres;
     CREATE SCHEMA app_private;
     CREATE SCHEMA drizzle;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY);
@@ -227,6 +225,9 @@ try {
   assert.equal(publicOwner.rows[0].owner, "pg_database_owner");
   await admin.query(
     "ALTER ROLE postgres NOSUPERUSER BYPASSRLS CREATEROLE CREATEDB REPLICATION LOGIN",
+  );
+  await rootBootstrap.query(
+    `ALTER ROLE postgres SET "supautils.policy_grants" TO '{"postgres":["storage.objects"]}'`,
   );
   await admin.end();
 
@@ -350,15 +351,15 @@ try {
       foldername_owner: "supabase_storage_admin",
       storage_admin_usage: true,
       postgres_is_storage_role_member: true,
-      postgres_inherits_storage_role: false,
-      postgres_can_set_storage_role: true,
-      postgres_can_set_supabase_admin: true,
-      supabase_admin_storage_admin_option: true,
-      postgres_can_manage_storage_policies: false,
-      postgres_can_select_storage_buckets: false,
-      postgres_can_insert_storage_buckets: false,
-      postgres_can_update_storage_buckets: false,
-      postgres_can_select_storage_objects: false,
+      postgres_inherits_storage_role: true,
+      postgres_can_set_storage_role: false,
+      postgres_can_set_supabase_admin: false,
+      supabase_admin_storage_admin_option: false,
+      postgres_can_manage_storage_policies: true,
+      postgres_can_select_storage_buckets: true,
+      postgres_can_insert_storage_buckets: true,
+      postgres_can_update_storage_buckets: true,
+      postgres_can_select_storage_objects: true,
       postgres_can_execute_storage_foldername: true,
     },
   ]);
@@ -375,16 +376,19 @@ try {
     foldername_owner: "supabase_storage_admin",
     storage_admin_usage: true,
     postgres_is_storage_role_member: true,
-    postgres_inherits_storage_role: false,
-    postgres_can_set_storage_role: true,
-    postgres_can_set_supabase_admin: true,
-    supabase_admin_storage_admin_option: true,
-    postgres_can_manage_storage_policies: false,
-    postgres_can_select_storage_buckets: false,
-    postgres_can_insert_storage_buckets: false,
-    postgres_can_update_storage_buckets: false,
-    postgres_can_select_storage_objects: false,
+    postgres_inherits_storage_role: true,
+    postgres_can_set_storage_role: false,
+    postgres_can_set_supabase_admin: false,
+    supabase_admin_storage_admin_option: false,
+    postgres_can_manage_storage_policies: true,
+    postgres_can_select_storage_buckets: true,
+    postgres_can_insert_storage_buckets: true,
+    postgres_can_update_storage_buckets: true,
+    postgres_can_select_storage_objects: true,
     postgres_can_execute_storage_foldername: true,
+    existing_bridge_schema_owner: null,
+    existing_reconcile_storage_owner: null,
+    existing_storage_state_owner: null,
   });
   assert.equal(
     (await managedCatalogSnapshot(legacy)).digest,
@@ -404,6 +408,25 @@ try {
   await assert.rejects(
     applyBootstrap(legacy, PASSWORD, { injectFailure: "after-objects" }),
     /INJECTED_FAILURE/u,
+  );
+  assert.equal(
+    (
+      await legacy.query(
+        `SELECT count(*)::int AS count FROM pg_catalog.pg_policies
+         WHERE schemaname='storage' AND tablename='objects'
+           AND policyname='fieldgrid_bootstrap_policy_capability_probe'`,
+      )
+    ).rows[0].count,
+    0,
+  );
+  assert.equal(
+    (
+      await legacy.query(
+        `SELECT count(*)::int AS count FROM pg_catalog.pg_namespace
+         WHERE nspname='fieldgrid_migration_bridge'`,
+      )
+    ).rows[0].count,
+    0,
   );
   assert.equal(
     (
@@ -430,6 +453,33 @@ try {
     functionCount: 9,
     authAdapterCount: 4,
   });
+  assert.deepEqual(
+    (
+      await legacy.query(`
+        SELECT routine.proname,pg_get_userbyid(routine.proowner) AS owner
+        FROM pg_catalog.pg_proc routine
+        JOIN pg_catalog.pg_namespace namespace_row
+          ON namespace_row.oid=routine.pronamespace
+        WHERE namespace_row.nspname='fieldgrid_migration_bridge'
+          AND routine.proname=ANY(ARRAY['reconcile_storage','storage_state'])
+        ORDER BY routine.proname
+      `)
+    ).rows,
+    [
+      { proname: "reconcile_storage", owner: "postgres" },
+      { proname: "storage_state", owner: "postgres" },
+    ],
+  );
+  assert.equal(
+    (
+      await legacy.query(
+        `SELECT count(*)::int AS count FROM pg_catalog.pg_policies
+         WHERE schemaname='storage' AND tablename='objects'
+           AND policyname='fieldgrid_bootstrap_policy_capability_probe'`,
+      )
+    ).rows[0].count,
+    0,
+  );
   const afterFirst = await applicationOwnershipInventory(legacy);
   assert.equal(afterFirst.targetRoleExists, true);
   assert.equal(afterFirst.targetRole.rolsuper, false);

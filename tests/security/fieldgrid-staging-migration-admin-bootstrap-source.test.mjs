@@ -153,9 +153,43 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /postgres_can_update_storage_buckets/u);
   assert.match(database, /postgres_can_select_storage_objects/u);
   assert.match(database, /postgres_can_execute_storage_foldername/u);
-  assert.match(
+  for (const capability of [
+    "postgres_can_manage_storage_policies",
+    "postgres_can_select_storage_buckets",
+    "postgres_can_insert_storage_buckets",
+    "postgres_can_update_storage_buckets",
+    "postgres_can_select_storage_objects",
+    "postgres_can_execute_storage_foldername",
+  ]) {
+    assert.match(hostedBridge, new RegExp(`${capability} === true`, "u"));
+  }
+  assert.doesNotMatch(
+    database,
+    /SET(?: LOCAL)? ROLE supabase_storage_admin/u,
+  );
+  assert.doesNotMatch(
+    database,
+    /GRANT USAGE,CREATE ON SCHEMA[\s\S]{0,160}TO supabase_storage_admin/u,
+  );
+  assert.doesNotMatch(
     hostedBridge,
-    /postgres_can_set_storage_role === true/u,
+    /GRANT USAGE ON SCHEMA public TO supabase_storage_admin/u,
+  );
+  assert.match(
+    database,
+    /CREATE POLICY \$\{identifier\(HOSTED_STORAGE_POLICY_CAPABILITY_PROBE\)\}[\s\S]*USING \(false\);[\s\S]*DROP POLICY \$\{identifier\(HOSTED_STORAGE_POLICY_CAPABILITY_PROBE\)\}/u,
+  );
+  assert.match(
+    database,
+    /policyname='\$\{HOSTED_STORAGE_POLICY_CAPABILITY_PROBE\}'/u,
+  );
+  assert.match(
+    database,
+    /ALTER FUNCTION \$\{qualified\(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage"\)\}\(\) OWNER TO postgres/u,
+  );
+  assert.match(
+    database,
+    /ALTER FUNCTION \$\{qualified\(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state"\)\}\(\) OWNER TO postgres/u,
   );
   assert.match(database, /hostedProviderCompatibilityInventory/u);
   assert.match(database, /hostedProviderCompatibility,/u);
@@ -172,7 +206,22 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     /HOSTED_PROVIDER_STORAGE_HELPER_OWNER_INVALID/u,
   );
   assert.match(database, /HOSTED_PROVIDER_STORAGE_USAGE_INVALID/u);
-  assert.match(database, /HOSTED_PROVIDER_STORAGE_SET_ROLE_INVALID/u);
+  assert.match(
+    database,
+    /HOSTED_PROVIDER_STORAGE_POLICY_MANAGEMENT_INVALID/u,
+  );
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_BUCKET_SELECT_INVALID/u);
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_BUCKET_INSERT_INVALID/u);
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_BUCKET_UPDATE_INVALID/u);
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_OBJECT_SELECT_INVALID/u);
+  assert.match(
+    database,
+    /HOSTED_PROVIDER_STORAGE_FOLDERNAME_EXECUTE_INVALID/u,
+  );
+  assert.match(
+    bridgeContract,
+    /policyname='fieldgrid_bootstrap_policy_capability_probe'/u,
+  );
   assert.match(
     bridgeContract,
     /STORAGE_SCHEMA_OWNERS = Object\.freeze\(\[\s+"supabase_admin",\s+STORAGE_OWNER,\s+\]\)/u,
