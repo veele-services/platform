@@ -252,8 +252,7 @@ function fixtures({
           dryRebuildCapability: true,
           authorizedProviderCompatibility: {
             realtimePublicationOwner: "fieldgrid_migration_admin",
-            authSchemaUsage: true,
-            authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+            authDirectAccess: false,
           },
         };
       },
@@ -267,8 +266,6 @@ function fixtures({
         calls.push("database.repairLegacyPrivileges");
         return {
           databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
-          authSchemaUsage: true,
-          authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
         };
       },
       async verifyRestoredHealth({ expectedSha }) {
@@ -342,8 +339,7 @@ test("apply quiesces writers, proves the real target login and restores the base
   assert.equal(result.servicesRestored, true);
   assert.deepEqual(result.authorizedProviderCompatibility, {
     realtimePublicationOwner: "fieldgrid_migration_admin",
-    authSchemaUsage: true,
-    authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+    authDirectAccess: false,
   });
   assert.deepEqual(calls, [
     "legacy.connect",
