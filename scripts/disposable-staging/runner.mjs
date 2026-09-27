@@ -314,7 +314,10 @@ export async function runRebuild({
 
     const databaseProof = await (
       deps.verifyRebuiltDatabase ?? verifyRebuiltDatabase
-    )(database);
+    )(database, {
+      requireHostedMigrationBridge:
+        env.FIELDGRID_HOSTED_MIGRATION_BRIDGE === "disposable-rebuild-v1",
+    });
     const bootstrapProof = await (deps.verifyBootstrap ?? verifyBootstrap)(
       database,
       bootstrap,

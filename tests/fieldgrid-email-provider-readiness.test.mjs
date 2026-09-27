@@ -24,6 +24,10 @@ test("staging deployment verifies transactional email readiness before activatio
   const readinessBlock = workflow.slice(readinessIndex, migrationAdminIndex);
   assert.match(
     readinessBlock,
+    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*steps\.migration-database-url\.outputs\.url\s*\}\}/u,
+  );
+  assert.doesNotMatch(
+    readinessBlock,
     /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
   );
   assert.match(

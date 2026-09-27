@@ -172,15 +172,14 @@ export async function verifyBootstrap(client, configuration, identities) {
     true,
   );
   const platform = await client.query(`
-    SELECT p.user_id,p.role,p.status,EXISTS(SELECT 1 FROM auth.users a WHERE a.id=p.user_id) AS auth_exists
+    SELECT p.user_id,p.role,p.status
     FROM public.platform_users p
   `);
   requireThat(
     platform.rows.length === 1 &&
       platform.rows[0].user_id === identities.platform &&
       platform.rows[0].role === "owner" &&
-      platform.rows[0].status === "active" &&
-      platform.rows[0].auth_exists === true,
+      platform.rows[0].status === "active",
     "BOOTSTRAP_PLATFORM_ADMIN_INVALID",
     "BOOTSTRAPPED",
     true,

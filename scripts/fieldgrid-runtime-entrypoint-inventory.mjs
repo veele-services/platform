@@ -14,6 +14,9 @@ const DEFAULT_RUNTIME_ROOTS = [
   'artifacts/api-server/src',
   'lib/db/src',
 ];
+const NON_RUNTIME_SOURCE_FILES = new Set([
+  'lib/db/src/migrate.ts',
+]);
 const EXCLUDED_SEGMENTS = new Set([
   'node_modules', '.next', 'dist', 'build', 'coverage', 'out', 'out-tsc',
   'tests', 'test', '__tests__', 'docs', 'fixtures', 'e2e', 'playwright-report',
@@ -130,7 +133,8 @@ function collectSourceFiles(directory, root) {
 }
 
 function isExcluded(relative) {
-  return relative.split('/').some((segment) => EXCLUDED_SEGMENTS.has(segment));
+  return NON_RUNTIME_SOURCE_FILES.has(relative)
+    || relative.split('/').some((segment) => EXCLUDED_SEGMENTS.has(segment));
 }
 
 function scanSourceFile(root, file, entries) {

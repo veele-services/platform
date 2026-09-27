@@ -228,6 +228,10 @@ test("SCRAM provisioning and runtime endpoint validators are deterministic and s
 });
 
 test("runtime source capability inventory matches the migration manifest", () => {
+  const inventorySource = read("scripts/fieldgrid-runtime-database-capability-inventory.mjs");
+  assert.match(inventorySource, /nonRuntimeSourceFiles/u);
+  assert.match(inventorySource, /lib\/db\/src\/migrate\.ts/u);
+
   const result = JSON.parse(execFileSync(
     process.execPath,
     ["scripts/fieldgrid-runtime-database-capability-inventory.mjs", "--check"],

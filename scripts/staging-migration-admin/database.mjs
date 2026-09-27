@@ -1,6 +1,14 @@
 import { buildScramVerifier } from "../fieldgrid-w00-runtime-principal.mjs";
 import { databaseInventory } from "../disposable-staging/database.mjs";
 import {
+  BRIDGE_ADAPTERS,
+  BRIDGE_FUNCTIONS,
+  BRIDGE_SCHEMA,
+  STORAGE_POLICIES,
+  SUPERSEDED_STORAGE_POLICIES,
+  verifyHostedMigrationBridgeFinalState,
+} from "./bridge-contract.mjs";
+import {
   APP_SCHEMAS,
   MANAGED_SCHEMAS,
   MIGRATION_ROLE,
@@ -17,6 +25,12 @@ const LEGACY_BOOTSTRAP_AUTH_COLUMNS = Object.freeze([
   "id",
   "raw_app_meta_data",
 ]);
+export const HOSTED_MIGRATION_BRIDGE_SCHEMA = BRIDGE_SCHEMA;
+export const HOSTED_MIGRATION_BRIDGE_FUNCTIONS = BRIDGE_FUNCTIONS;
+const HOSTED_MIGRATION_PROVIDER_ADAPTERS = BRIDGE_ADAPTERS;
+export const HOSTED_STORAGE_POLICY_NAMES = STORAGE_POLICIES;
+export const HOSTED_STORAGE_SUPERSEDED_POLICY_NAMES =
+  SUPERSEDED_STORAGE_POLICIES;
 
 function identifier(value) {
   requireThat(
@@ -43,6 +57,334 @@ async function staged(stage, operation) {
     }
     throw error;
   }
+}
+
+async function installHostedStorageReconciler(client) {
+  await client.query(`
+    GRANT USAGE,CREATE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
+      TO supabase_storage_admin;
+    SET LOCAL ROLE supabase_storage_admin;
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}()
+    RETURNS void
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, public, ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}, pg_temp
+    AS $fieldgrid_storage_reconcile$
+    DECLARE
+      policy_row record;
+    BEGIN
+      IF session_user <> '${MIGRATION_ROLE}' THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
+      END IF;
+      IF pg_catalog.to_regclass('storage.buckets') IS NULL
+         OR pg_catalog.to_regclass('storage.objects') IS NULL THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_storage_catalog_missing';
+      END IF;
+      IF EXISTS (SELECT 1 FROM storage.objects LIMIT 1) THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_storage_not_empty';
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM pg_catalog.pg_policies
+        WHERE schemaname='storage' AND tablename='objects'
+          AND policyname::text<>ALL(ARRAY[${[
+            ...HOSTED_STORAGE_POLICY_NAMES,
+            ...HOSTED_STORAGE_SUPERSEDED_POLICY_NAMES,
+          ]
+            .map((name) => `'${name}'`)
+            .join(",")}]::text[])
+      ) THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_unknown_storage_policy';
+      END IF;
+
+      INSERT INTO storage.buckets(
+        id,name,owner,owner_id,public,file_size_limit,allowed_mime_types
+      )
+      VALUES
+        ('assignment-photos','assignment-photos',NULL,NULL,false,26214400,
+          ARRAY['image/jpeg','image/png','image/webp','video/mp4','video/webm','video/quicktime']::text[]),
+        ('documents','documents',NULL,NULL,false,52428800,
+          ARRAY['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation','image/jpeg','image/png','image/gif','image/webp']::text[]),
+        ('knowledgebase-media','knowledgebase-media',NULL,NULL,false,52428800,
+          ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','application/pdf']::text[]),
+        ('news-hero','news-hero',NULL,NULL,true,5242880,
+          ARRAY['image/jpeg','image/png','image/webp','image/gif']::text[]),
+        ('org-assets','org-assets',NULL,NULL,true,3145728,
+          ARRAY['image/jpeg','image/png','image/webp','image/svg+xml']::text[]),
+        ('personnel-avatars','personnel-avatars',NULL,NULL,true,3145728,
+          ARRAY['image/jpeg','image/png','image/webp']::text[]),
+        ('release-media','release-media',NULL,NULL,false,52428800,
+          ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','application/pdf']::text[])
+      ON CONFLICT(id) DO UPDATE SET
+        name=excluded.name,
+        owner=NULL,
+        owner_id=NULL,
+        public=excluded.public,
+        file_size_limit=excluded.file_size_limit,
+        allowed_mime_types=excluded.allowed_mime_types;
+
+      FOR policy_row IN
+        SELECT policyname FROM pg_catalog.pg_policies
+        WHERE schemaname='storage' AND tablename='objects'
+          AND policyname::text=ANY(ARRAY[${[
+            ...HOSTED_STORAGE_POLICY_NAMES,
+            ...HOSTED_STORAGE_SUPERSEDED_POLICY_NAMES,
+          ]
+            .map((name) => `'${name}'`)
+            .join(",")}]::text[])
+        ORDER BY policyname
+      LOOP
+        EXECUTE pg_catalog.format(
+          'DROP POLICY %I ON storage.objects',policy_row.policyname
+        );
+      END LOOP;
+
+      EXECUTE $fieldgrid_policy$CREATE POLICY assignment_checklist_evidence_insert
+        ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id='assignment-photos' AND name LIKE '%/checklists/%'
+          AND EXISTS (
+            SELECT 1 FROM public.assignment_checklists checklist
+            WHERE pg_catalog.split_part(name,'/',1)='tenant'
+              AND checklist.tenant_id::text=pg_catalog.split_part(name,'/',2)
+              AND pg_catalog.split_part(name,'/',3)='assignments'
+              AND checklist.assignment_id::text=pg_catalog.split_part(name,'/',4)
+              AND pg_catalog.split_part(name,'/',5)='checklists'
+              AND checklist.id::text=pg_catalog.split_part(name,'/',6)
+              AND checklist.status='active'
+              AND (
+                public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(checklist.tenant_id)
+                OR public.personnel_assigned_to_assignment(checklist.assignment_id)
+              )
+          )
+        )$fieldgrid_policy$;
+      EXECUTE $fieldgrid_policy$CREATE POLICY assignment_checklist_evidence_read
+        ON storage.objects FOR SELECT TO authenticated
+        USING (
+          bucket_id='assignment-photos' AND name LIKE '%/checklists/%'
+          AND EXISTS (
+            SELECT 1 FROM public.assignment_checklists checklist
+            WHERE pg_catalog.split_part(name,'/',1)='tenant'
+              AND checklist.tenant_id::text=pg_catalog.split_part(name,'/',2)
+              AND pg_catalog.split_part(name,'/',3)='assignments'
+              AND checklist.assignment_id::text=pg_catalog.split_part(name,'/',4)
+              AND pg_catalog.split_part(name,'/',5)='checklists'
+              AND checklist.id::text=pg_catalog.split_part(name,'/',6)
+              AND (
+                public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(checklist.tenant_id)
+                OR public.personnel_assigned_to_assignment(checklist.assignment_id)
+              )
+          )
+        )$fieldgrid_policy$;
+      CREATE POLICY assignment_photos_assigned_personnel
+        ON storage.objects FOR SELECT TO authenticated
+        USING (
+          bucket_id='assignment-photos'
+          AND public.personnel_can_access_assignment_storage(
+            public.fieldgrid_storage_assignment_id_from_path(name),
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        );
+      CREATE POLICY assignment_photos_assigned_personnel_delete
+        ON storage.objects FOR DELETE TO authenticated
+        USING (
+          bucket_id='assignment-photos'
+          AND owner=${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}()
+          AND public.personnel_can_access_assignment_storage(
+            public.fieldgrid_storage_assignment_id_from_path(name),
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        );
+      CREATE POLICY assignment_photos_assigned_personnel_insert
+        ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id='assignment-photos'
+          AND owner=${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}()
+          AND public.personnel_can_access_assignment_storage(
+            public.fieldgrid_storage_assignment_id_from_path(name),
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        );
+      CREATE POLICY assignment_photos_assigned_personnel_update
+        ON storage.objects FOR UPDATE TO authenticated
+        USING (
+          bucket_id='assignment-photos'
+          AND owner=${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}()
+          AND public.personnel_can_access_assignment_storage(
+            public.fieldgrid_storage_assignment_id_from_path(name),
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        )
+        WITH CHECK (
+          bucket_id='assignment-photos'
+          AND owner=${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}()
+          AND public.personnel_can_access_assignment_storage(
+            public.fieldgrid_storage_assignment_id_from_path(name),
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        );
+      EXECUTE $fieldgrid_policy$CREATE POLICY assignment_photos_management_all
+        ON storage.objects TO authenticated
+        USING (
+          bucket_id='assignment-photos'
+          AND public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        )
+        WITH CHECK (
+          bucket_id='assignment-photos'
+          AND public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        )$fieldgrid_policy$;
+      EXECUTE $fieldgrid_policy$CREATE POLICY documents_management_all
+        ON storage.objects TO authenticated
+        USING (
+          bucket_id='documents'
+          AND public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        )
+        WITH CHECK (
+          bucket_id='documents'
+          AND public.is_management_for_$fieldgrid_policy$ || $fieldgrid_policy$tenant(
+            public.fieldgrid_storage_tenant_id_from_path(name)
+          )
+        )$fieldgrid_policy$;
+      CREATE POLICY knowledgebase_media_management_delete
+        ON storage.objects FOR DELETE TO authenticated
+        USING (
+          bucket_id='knowledgebase-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY knowledgebase_media_management_update
+        ON storage.objects FOR UPDATE TO authenticated
+        USING (
+          bucket_id='knowledgebase-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        )
+        WITH CHECK (
+          bucket_id='knowledgebase-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY knowledgebase_media_management_write
+        ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id='knowledgebase-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY news_hero_delete_management
+        ON storage.objects FOR DELETE TO authenticated
+        USING (
+          bucket_id='news-hero'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY news_hero_insert_management
+        ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id='news-hero'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY news_hero_public_read
+        ON storage.objects FOR SELECT TO anon,authenticated
+        USING (bucket_id='news-hero');
+      CREATE POLICY news_hero_update_management
+        ON storage.objects FOR UPDATE TO authenticated
+        USING (
+          bucket_id='news-hero'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        )
+        WITH CHECK (
+          bucket_id='news-hero'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY org_assets_management_write
+        ON storage.objects TO authenticated
+        USING (
+          bucket_id='org-assets'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        )
+        WITH CHECK (
+          bucket_id='org-assets'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY org_assets_public_read
+        ON storage.objects FOR SELECT TO anon,authenticated
+        USING (bucket_id='org-assets');
+      CREATE POLICY personnel_avatars_public_read
+        ON storage.objects FOR SELECT TO anon,authenticated
+        USING (bucket_id='personnel-avatars');
+      CREATE POLICY release_media_management_delete
+        ON storage.objects FOR DELETE TO authenticated
+        USING (
+          bucket_id='release-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY release_media_management_update
+        ON storage.objects FOR UPDATE TO authenticated
+        USING (
+          bucket_id='release-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        )
+        WITH CHECK (
+          bucket_id='release-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+      CREATE POLICY release_media_management_write
+        ON storage.objects FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id='release-media'
+          AND public.fieldgrid_has_platform_permission('global.content.manage')
+        );
+    END;
+    $fieldgrid_storage_reconcile$;
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}()
+    RETURNS jsonb
+    LANGUAGE plpgsql
+    STABLE
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS $fieldgrid_storage_state$
+    BEGIN
+      IF session_user <> '${MIGRATION_ROLE}' THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
+      END IF;
+      RETURN (
+        SELECT pg_catalog.jsonb_build_object(
+          'buckets',COALESCE(
+            pg_catalog.jsonb_agg(
+              pg_catalog.jsonb_build_object(
+                'id',bucket.id,
+                'name',bucket.name,
+                'owner',bucket.owner,
+                'ownerId',bucket.owner_id,
+                'public',bucket.public,
+                'fileSizeLimit',bucket.file_size_limit::text,
+                'allowedMimeTypes',bucket.allowed_mime_types
+              ) ORDER BY bucket.id
+            ),
+            '[]'::jsonb
+          ),
+          'objectCount',(SELECT pg_catalog.count(*) FROM storage.objects)
+        )
+        FROM storage.buckets AS bucket
+      );
+    END;
+    $fieldgrid_storage_state$;
+
+    REVOKE ALL ON FUNCTION
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}()
+      FROM PUBLIC;
+    GRANT EXECUTE ON FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}()
+      TO postgres;
+    GRANT EXECUTE ON FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "storage_state")}()
+      TO ${identifier(MIGRATION_ROLE)};
+    RESET ROLE;
+    REVOKE CREATE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
+      FROM supabase_storage_admin;
+  `);
 }
 
 export async function assertLegacyPrincipal(client) {
@@ -476,6 +818,336 @@ async function ensureRole(client, verifier) {
   `);
 }
 
+async function installHostedMigrationBridge(client) {
+  const existing = await client.query(
+    `SELECT pg_get_userbyid(nspowner) AS owner
+     FROM pg_namespace WHERE nspname=$1`,
+    [HOSTED_MIGRATION_BRIDGE_SCHEMA],
+  );
+  requireThat(
+    existing.rows.length === 0 || existing.rows[0]?.owner === "postgres",
+    "HOSTED_MIGRATION_BRIDGE_OWNER_INVALID",
+  );
+  const providerAuth = await client.query(`
+    SELECT
+      pg_catalog.to_regprocedure('auth.uid()') IS NOT NULL AS uid,
+      pg_catalog.to_regprocedure('auth.jwt()') IS NOT NULL AS jwt,
+      pg_catalog.to_regprocedure('auth.role()') IS NOT NULL AS role
+  `);
+  requireThat(
+    providerAuth.rows.length === 1 &&
+      Object.values(providerAuth.rows[0] ?? {}).every(
+        (value) => value === true,
+      ),
+    "HOSTED_PROVIDER_AUTH_HELPERS_MISSING",
+  );
+  const providerStorage = await client.query(`
+    SELECT
+      (SELECT pg_get_userbyid(namespace_row.nspowner)
+         FROM pg_namespace namespace_row
+        WHERE namespace_row.nspname='storage') AS schema_owner,
+      (SELECT pg_get_userbyid(relation.relowner)
+         FROM pg_class relation
+         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname='storage' AND relation.relname='buckets'
+          AND relation.relkind IN ('r','p')) AS buckets_owner,
+      (SELECT pg_get_userbyid(relation.relowner)
+         FROM pg_class relation
+         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname='storage' AND relation.relname='objects'
+          AND relation.relkind IN ('r','p')) AS objects_owner,
+      pg_catalog.to_regprocedure('storage.foldername(text)') IS NOT NULL AS foldername,
+      pg_has_role(current_user,'supabase_storage_admin','SET') AS postgres_can_set_storage_role
+  `);
+  requireThat(
+    providerStorage.rows.length === 1 &&
+      providerStorage.rows[0]?.schema_owner === "supabase_storage_admin" &&
+      providerStorage.rows[0]?.buckets_owner === "supabase_storage_admin" &&
+      providerStorage.rows[0]?.objects_owner === "supabase_storage_admin" &&
+      providerStorage.rows[0]?.foldername === true &&
+      providerStorage.rows[0]?.postgres_can_set_storage_role === true,
+    "HOSTED_PROVIDER_STORAGE_TOPOLOGY_INVALID",
+  );
+  await client.query(`
+    CREATE SCHEMA IF NOT EXISTS ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} AUTHORIZATION postgres;
+    REVOKE ALL ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} FROM PUBLIC;
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}()
+    RETURNS uuid
+    LANGUAGE sql
+    STABLE
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS 'SELECT auth.uid()';
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}()
+    RETURNS jsonb
+    LANGUAGE sql
+    STABLE
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS 'SELECT auth.jwt()';
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}()
+    RETURNS text
+    LANGUAGE sql
+    STABLE
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS 'SELECT auth.role()';
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(p_name text)
+    RETURNS text[]
+    LANGUAGE sql
+    IMMUTABLE
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS 'SELECT storage.foldername(p_name)';
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "prepare_disposable_rebuild")}()
+    RETURNS void
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS $fieldgrid_bridge_prepare$
+    DECLARE
+      runtime_role name;
+    BEGIN
+      IF session_user <> '${MIGRATION_ROLE}' THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
+      END IF;
+      IF EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_class relation
+        JOIN pg_catalog.pg_namespace namespace_row
+          ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname IN ('public','app_private','drizzle')
+          AND relation.relkind IN ('r','p','S','v','m','f')
+      ) THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_requires_empty_application_schemas';
+      END IF;
+      FOR runtime_role IN
+        SELECT role_row.rolname
+        FROM pg_catalog.pg_roles role_row
+        WHERE role_row.rolname IN (
+          'fieldgrid_runtime_app','fieldgrid_runtime_data'
+        )
+        ORDER BY role_row.rolname
+      LOOP
+        EXECUTE pg_catalog.format(
+          'REVOKE USAGE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} FROM %I',
+          runtime_role
+        );
+        EXECUTE pg_catalog.format(
+          'REVOKE EXECUTE ON FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}(), ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}(), ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}(), ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(text) FROM %I',
+          runtime_role
+        );
+      END LOOP;
+    END;
+    $fieldgrid_bridge_prepare$;
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "abort_disposable_rebuild")}()
+    RETURNS void
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS $fieldgrid_bridge_abort$
+    BEGIN
+      IF session_user <> '${MIGRATION_ROLE}' THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
+      END IF;
+      REVOKE ${identifier(MIGRATION_ROLE)} FROM postgres GRANTED BY postgres;
+    END;
+    $fieldgrid_bridge_abort$;
+
+    CREATE OR REPLACE FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "finalize_disposable_rebuild")}()
+    RETURNS void
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path TO pg_catalog, pg_temp
+    AS $fieldgrid_bridge_finalize$
+    DECLARE
+      constraint_row record;
+      existing_definition text;
+      storage_public_usage_checked boolean := false;
+      storage_public_usage_preexisting boolean := false;
+    BEGIN
+      IF session_user <> '${MIGRATION_ROLE}' THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_principal_invalid';
+      END IF;
+      GRANT ${identifier(MIGRATION_ROLE)} TO postgres
+        WITH INHERIT TRUE, SET TRUE, ADMIN FALSE;
+      SELECT pg_catalog.has_schema_privilege(
+        'supabase_storage_admin','public','USAGE'
+      ) INTO storage_public_usage_preexisting;
+      storage_public_usage_checked := true;
+      IF NOT storage_public_usage_preexisting THEN
+        GRANT USAGE ON SCHEMA public TO supabase_storage_admin;
+      END IF;
+      IF pg_catalog.to_regclass('drizzle.veele_sql_migrations') IS NULL
+         OR NOT EXISTS (SELECT 1 FROM drizzle.veele_sql_migrations) THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_history_missing';
+      END IF;
+      IF pg_catalog.to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)') IS NULL THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_auth_snapshot_missing';
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM pg_catalog.pg_trigger trigger_row
+        WHERE trigger_row.tgrelid='auth.users'::pg_catalog.regclass
+          AND trigger_row.tgname='on_auth_user_created'
+          AND NOT trigger_row.tgisinternal
+      ) THEN
+        RAISE EXCEPTION 'hosted_migration_bridge_obsolete_auth_trigger_present';
+      END IF;
+
+      GRANT USAGE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)}
+        TO anon, authenticated, service_role,
+           fieldgrid_runtime_app, fieldgrid_runtime_data;
+      GRANT EXECUTE ON FUNCTION
+        ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}(),
+        ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}(),
+        ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}(),
+        ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(text)
+        TO anon, authenticated, service_role,
+           fieldgrid_runtime_app, fieldgrid_runtime_data;
+      PERFORM ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "reconcile_storage")}();
+      IF NOT storage_public_usage_preexisting THEN
+        REVOKE USAGE ON SCHEMA public FROM supabase_storage_admin;
+      END IF;
+
+      FOR constraint_row IN
+        SELECT * FROM (VALUES
+          ('public','personnel','personnel_user_id_fkey','user_id','SET NULL'),
+          ('public','customers','customers_created_by_fkey','created_by','SET NULL'),
+          ('public','objects','objects_created_by_fkey','created_by','SET NULL'),
+          ('public','customer_notes','customer_notes_updated_by_fkey','updated_by','SET NULL'),
+          ('public','credential_recovery_challenges','credential_recovery_challenges_subject_fk','subject_user_id','CASCADE')
+        ) AS required(schema_name,table_name,constraint_name,column_name,delete_action)
+      LOOP
+        IF pg_catalog.to_regclass(
+          pg_catalog.format('%I.%I',constraint_row.schema_name,constraint_row.table_name)
+        ) IS NULL THEN
+          RAISE EXCEPTION 'hosted_migration_bridge_required_table_missing';
+        END IF;
+        SELECT pg_catalog.pg_get_constraintdef(constraint_oid.oid,true)
+          INTO existing_definition
+        FROM pg_catalog.pg_constraint constraint_oid
+        WHERE constraint_oid.conrelid=pg_catalog.to_regclass(
+                pg_catalog.format('%I.%I',constraint_row.schema_name,constraint_row.table_name)
+              )
+          AND constraint_oid.conname=constraint_row.constraint_name;
+        IF existing_definition IS NULL THEN
+          EXECUTE pg_catalog.format(
+            'ALTER TABLE %I.%I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES auth.users(id) ON DELETE %s',
+            constraint_row.schema_name,
+            constraint_row.table_name,
+            constraint_row.constraint_name,
+            constraint_row.column_name,
+            constraint_row.delete_action
+          );
+        ELSIF existing_definition <> pg_catalog.format(
+          'FOREIGN KEY (%s) REFERENCES auth.users(id) ON DELETE %s',
+          constraint_row.column_name,
+          constraint_row.delete_action
+        ) THEN
+          RAISE EXCEPTION 'hosted_migration_bridge_constraint_drift';
+        END IF;
+      END LOOP;
+      CREATE OR REPLACE FUNCTION app_private.fieldgrid_auth_user_snapshot(
+        p_user_id uuid
+      )
+      RETURNS TABLE (
+        id uuid,
+        email text,
+        raw_app_meta_data jsonb
+      )
+      LANGUAGE sql
+      STABLE
+      SECURITY DEFINER
+      SET search_path TO pg_catalog
+      AS $fieldgrid_auth_user_snapshot$
+        SELECT
+          auth_user.id,
+          auth_user.email::text,
+          auth_user.raw_app_meta_data
+        FROM auth.users AS auth_user
+        WHERE auth_user.id = p_user_id
+        LIMIT 1
+      $fieldgrid_auth_user_snapshot$;
+      ALTER FUNCTION app_private.fieldgrid_auth_user_snapshot(uuid) OWNER TO postgres;
+      REVOKE ALL ON FUNCTION app_private.fieldgrid_auth_user_snapshot(uuid) FROM PUBLIC;
+      GRANT EXECUTE ON FUNCTION app_private.fieldgrid_auth_user_snapshot(uuid)
+        TO fieldgrid_runtime_data;
+      REVOKE ${identifier(MIGRATION_ROLE)} FROM postgres GRANTED BY postgres;
+    EXCEPTION WHEN OTHERS THEN
+      IF storage_public_usage_checked AND NOT storage_public_usage_preexisting THEN
+        REVOKE USAGE ON SCHEMA public FROM supabase_storage_admin;
+      END IF;
+      REVOKE ${identifier(MIGRATION_ROLE)} FROM postgres GRANTED BY postgres;
+      RAISE;
+    END;
+    $fieldgrid_bridge_finalize$;
+
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "prepare_disposable_rebuild")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "abort_disposable_rebuild")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "finalize_disposable_rebuild")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}() OWNER TO postgres;
+    ALTER FUNCTION ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(text) OWNER TO postgres;
+    REVOKE ALL ON FUNCTION
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "prepare_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "abort_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "finalize_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(text)
+      FROM PUBLIC;
+    GRANT USAGE ON SCHEMA ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} TO ${identifier(MIGRATION_ROLE)};
+    GRANT EXECUTE ON FUNCTION
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "prepare_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "abort_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "finalize_disposable_rebuild")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "uid")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "jwt")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "role")}(),
+      ${qualified(HOSTED_MIGRATION_BRIDGE_SCHEMA, "foldername")}(text)
+      TO ${identifier(MIGRATION_ROLE)};
+  `);
+  await installHostedStorageReconciler(client);
+  const proof = await client.query(
+    `SELECT p.proname,pg_get_userbyid(p.proowner) AS owner,p.prosecdef,
+       has_function_privilege($1,p.oid,'EXECUTE') AS target_execute,
+       has_function_privilege('public',p.oid,'EXECUTE') AS public_execute
+     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname=$2 ORDER BY p.proname`,
+    [MIGRATION_ROLE, HOSTED_MIGRATION_BRIDGE_SCHEMA],
+  );
+  requireThat(
+    proof.rows.length === HOSTED_MIGRATION_BRIDGE_FUNCTIONS.length &&
+      HOSTED_MIGRATION_BRIDGE_FUNCTIONS.every((name) =>
+        proof.rows.some(
+          (row) =>
+            row.proname === name &&
+            row.owner ===
+              (["reconcile_storage", "storage_state"].includes(name)
+                ? "supabase_storage_admin"
+                : "postgres") &&
+            row.prosecdef === true &&
+            row.target_execute === (name !== "reconcile_storage") &&
+            row.public_execute === false,
+        ),
+      ),
+    "HOSTED_MIGRATION_BRIDGE_INVALID",
+  );
+  return {
+    schema: HOSTED_MIGRATION_BRIDGE_SCHEMA,
+    functionCount: proof.rows.length,
+    authAdapterCount: HOSTED_MIGRATION_PROVIDER_ADAPTERS.length,
+  };
+}
+
 async function verifyCatalogState(client, managedExpectation) {
   const managedDigest =
     typeof managedExpectation === "string"
@@ -633,6 +1305,7 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
     await verifyRuntimeRolesSafe(client);
     await assertNoUnsupportedOwnedObjects(client);
     await ensureRole(client, verifier);
+    const hostedMigrationBridge = await installHostedMigrationBridge(client);
     await client.query(
       `GRANT ${identifier(MIGRATION_ROLE)} TO postgres WITH INHERIT TRUE, SET TRUE`,
     );
@@ -705,6 +1378,7 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
       securityDefinerCompatibilityOwner: "postgres",
       applicationObjectCount: proof.ownership.length,
       runtimeMembershipDigest: digest(proof.runtimeMembership),
+      hostedMigrationBridge,
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -787,6 +1461,7 @@ export async function repairCommittedLegacyPrivileges(
     inventory.rows.length === 1 && inventory.rows[0]?.oid != null,
     "TARGET_ROLE_MISSING",
   );
+  let hostedMigrationBridge;
   await client.query("BEGIN");
   try {
     await client.query("SET LOCAL lock_timeout='10s'");
@@ -807,6 +1482,10 @@ export async function repairCommittedLegacyPrivileges(
         ),
       );
     }
+    hostedMigrationBridge = await staged(
+      "legacy-repair-hosted-migration-bridge",
+      () => installHostedMigrationBridge(client),
+    );
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -844,6 +1523,7 @@ export async function repairCommittedLegacyPrivileges(
   return {
     databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
     legacyBootstrapAuthAclRevoked: revokeLegacyBootstrapAuthAcl,
+    hostedMigrationBridge,
   };
 }
 
@@ -952,6 +1632,12 @@ export async function verifyTargetLogin(client, managedDigest) {
     Object.values(capabilities.rows[0] ?? {}).every((value) => value === true),
     "TARGET_CAPABILITY_INVALID",
   );
+  const bridge = await staged("target-proof-hosted-migration-bridge", () =>
+    verifyHostedMigrationBridgeFinalState(client, {
+      includeStorage: false,
+      allowRuntimeAdaptersAbsent: true,
+    }),
+  );
   const inventory = await staged("target-proof-database-inventory", () =>
     databaseInventory(client, {
       expectedDatabaseName: "postgres",
@@ -991,6 +1677,12 @@ export async function verifyTargetLogin(client, managedDigest) {
     authorizedProviderCompatibility: {
       realtimePublicationOwner: MIGRATION_ROLE,
       authDirectAccess: false,
+    },
+    hostedMigrationBridge: {
+      schema: HOSTED_MIGRATION_BRIDGE_SCHEMA,
+      functionCount: bridge.functionCount,
+      authAdapterCount: HOSTED_MIGRATION_PROVIDER_ADAPTERS.length,
+      temporaryPrivilegesRevoked: true,
     },
   };
 }

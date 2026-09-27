@@ -64,6 +64,12 @@ await rootBootstrap.query(
 await rootBootstrap.query(
   "CREATE ROLE supabase_auth_admin NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",
 );
+await rootBootstrap.query(
+  "CREATE ROLE supabase_storage_admin NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",
+);
+await rootBootstrap.query(
+  "GRANT supabase_storage_admin TO postgres WITH INHERIT FALSE, SET TRUE, ADMIN FALSE",
+);
 await rootBootstrap.query("ALTER DATABASE postgres OWNER TO postgres");
 const admin = await connected(
   "postgres",
@@ -101,9 +107,63 @@ try {
       raw_app_meta_data jsonb,
       internal_note text
     );
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
+      select nullif(
+        coalesce(
+          nullif(current_setting('request.jwt.claim.sub', true), ''),
+          nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+        ),
+        ''
+      )::uuid
+    $$;
+    CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$
+      SELECT coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)
+    $$;
+    CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
+      SELECT coalesce(
+        nullif(current_setting('request.jwt.claim.role',true),''),
+        nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role'
+      )
+    $$;
     REVOKE ALL ON SCHEMA auth FROM PUBLIC;
     ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+    ALTER FUNCTION auth.uid() OWNER TO supabase_auth_admin;
+    ALTER FUNCTION auth.jwt() OWNER TO supabase_auth_admin;
+    ALTER FUNCTION auth.role() OWNER TO supabase_auth_admin;
     ALTER SCHEMA auth OWNER TO supabase_auth_admin;
+    CREATE SCHEMA storage;
+    CREATE FUNCTION storage.foldername(name text) RETURNS text[]
+      LANGUAGE sql IMMUTABLE AS $$
+        SELECT string_to_array(coalesce(name,''),'/')
+      $$;
+    CREATE TABLE storage.buckets(
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      owner uuid,
+      owner_id text,
+      public boolean NOT NULL DEFAULT false,
+      file_size_limit bigint,
+      allowed_mime_types text[],
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE storage.objects(
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      bucket_id text NOT NULL REFERENCES storage.buckets(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      owner uuid,
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      last_accessed_at timestamptz,
+      version text
+    );
+    ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+    ALTER FUNCTION storage.foldername(text) OWNER TO supabase_storage_admin;
+    ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
+    ALTER TABLE storage.buckets OWNER TO supabase_storage_admin;
+    ALTER SCHEMA storage OWNER TO supabase_storage_admin;
+    GRANT USAGE ON SCHEMA storage TO postgres;
     CREATE SCHEMA app_private;
     CREATE SCHEMA drizzle;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY);
@@ -135,7 +195,6 @@ try {
     await root.query("RESET ROLE");
   }
   for (const schema of [
-    "storage",
     "extensions",
     "realtime",
     "graphql",
@@ -264,6 +323,11 @@ try {
 
   const first = await applyBootstrap(legacy, PASSWORD);
   assert.equal(first.managedCatalogDigest, before.digest);
+  assert.deepEqual(first.hostedMigrationBridge, {
+    schema: "fieldgrid_migration_bridge",
+    functionCount: 9,
+    authAdapterCount: 4,
+  });
   const afterFirst = await applicationOwnershipInventory(legacy);
   assert.equal(afterFirst.targetRoleExists, true);
   assert.equal(afterFirst.targetRole.rolsuper, false);
@@ -306,6 +370,11 @@ try {
     {
       databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
       legacyBootstrapAuthAclRevoked: true,
+      hostedMigrationBridge: {
+        schema: "fieldgrid_migration_bridge",
+        functionCount: 9,
+        authAdapterCount: 4,
+      },
     },
   );
   const repairedLegacyAclPlan = await bootstrapPlan(legacy);
@@ -388,6 +457,12 @@ try {
   const proof = await verifyTargetLogin(target, before.digest);
   assert.equal(proof.principal, "fieldgrid_migration_admin");
   assert.equal(proof.dryRebuildCapability, true);
+  assert.deepEqual(proof.hostedMigrationBridge, {
+    schema: "fieldgrid_migration_bridge",
+    functionCount: 9,
+    authAdapterCount: 4,
+    temporaryPrivilegesRevoked: true,
+  });
   for (const schema of ["app_private", "drizzle", "public"]) {
     await target.query(
       `REVOKE ALL ON SCHEMA ${schema} FROM fieldgrid_migration_admin`,
@@ -407,6 +482,11 @@ try {
   assert.deepEqual(await repairCommittedLegacyPrivileges(legacy), {
     databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
     legacyBootstrapAuthAclRevoked: false,
+    hostedMigrationBridge: {
+      schema: "fieldgrid_migration_bridge",
+      functionCount: 9,
+      authAdapterCount: 4,
+    },
   });
   assert.deepEqual(
     (await repairCommittedTargetSchemaPrivileges(target)).repairedSchemas,

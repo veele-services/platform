@@ -145,11 +145,56 @@ test("deploy builds before rebuilding and never rolls old code back after the de
     deploy,
     /disposable-staging-rebuild-\$\{\{ github\.run_id \}\}-\$\{\{ github\.sha \}\}/u,
   );
+  assert.match(
+    deploy,
+    /FIELDGRID_MIGRATION_DATABASE_PASSWORD: \$\{\{ secrets\.FIELDGRID_MIGRATION_DATABASE_PASSWORD \}\}/u,
+  );
+  assert.match(
+    deploy,
+    /postgresql:\/\/fieldgrid_migration_admin\.olyfmekyqozxrbrwwszu@invalid\/postgres/u,
+  );
+  assert.doesNotMatch(
+    deploy,
+    /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
+  );
+});
+
+test("plan and deploy construct only the canonical migration-admin session URL", () => {
+  const workflow = read(
+    ".github/workflows/fieldgrid-disposable-staging-rebuild.yml",
+  );
+  const deploy = read(".github/workflows/deploy.yml");
+  for (const source of [workflow, deploy]) {
+    assert.match(
+      source,
+      /FIELDGRID_MIGRATION_DATABASE_PASSWORD: \$\{\{ secrets\.FIELDGRID_MIGRATION_DATABASE_PASSWORD \}\}/u,
+    );
+    assert.match(source, /\^\[0-9a-f\]\{64\}\$/u);
+    assert.match(
+      source,
+      /url\.hostname = host;[\s\S]*url\.port = "5432";[\s\S]*GITHUB_OUTPUT[\s\S]*url=\$\{url\.href\}/u,
+    );
+    assert.doesNotMatch(
+      source,
+      /GITHUB_ENV, `FIELDGRID_MIGRATION_DATABASE_URL/u,
+    );
+    assert.doesNotMatch(
+      source,
+      /FIELDGRID_MIGRATION_DATABASE_URL:\s*\$\{\{\s*secrets\.DATABASE_URL\s*\}\}/u,
+    );
+  }
+  assert.ok(
+    workflow.indexOf("- name: Checkout exact main candidate") <
+      workflow.indexOf(
+        "- name: Construct least-privilege staging migration URL",
+      ),
+  );
 });
 
 test("rebuild code uses provider APIs, canonical migration and fixed application schemas", () => {
   const providers = read("scripts/disposable-staging/providers.mjs");
   const database = read("scripts/disposable-staging/database.mjs");
+  const deploy = read(".github/workflows/deploy.yml");
   const contract = read("scripts/disposable-staging/contract.mjs");
   const runner = read("scripts/disposable-staging/runner.mjs");
   assert.match(providers, /admin\.storage\s*\.from\(bucket\)\s*\.remove/u);
@@ -169,6 +214,18 @@ test("rebuild code uses provider APIs, canonical migration and fixed application
   assert.match(database, /has_schema_privilege/u);
   assert.doesNotMatch(database, /REVOKE EXECUTE ON ALL FUNCTIONS/u);
   assert.match(database, /expectedPrincipalName/u);
+  assert.match(
+    database,
+    /FIELDGRID_HOSTED_MIGRATION_BRIDGE:\s*env\.FIELDGRID_HOSTED_MIGRATION_BRIDGE/u,
+  );
+  assert.match(
+    deploy,
+    /FIELDGRID_HOSTED_MIGRATION_BRIDGE: disposable-rebuild-v1/u,
+  );
+  assert.match(
+    runner,
+    /requireHostedMigrationBridge:\s*env\.FIELDGRID_HOSTED_MIGRATION_BRIDGE === "disposable-rebuild-v1"/u,
+  );
   assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_app/u);
   assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_data/u);
   assert.match(runner, /resetRuntimePrincipalsForCanonicalRebuild/u);
@@ -230,4 +287,38 @@ test("main exact-head gate executes a real PostgreSQL 17 clean migrate/bootstrap
   assert.match(runner, /secondaryWriter/u);
   assert.match(runner, /reentry-after-admission/u);
   assert.match(runner, /assert\.rejects\(reentrantWriter\.connect\(\)\)/u);
+  assert.match(
+    workflow,
+    /node scripts\/fieldgrid-staging-migration-admin-disposable-postgres17\.mjs/u,
+  );
+  const hostedRunner = read(
+    "scripts/fieldgrid-staging-migration-admin-disposable-postgres17.mjs",
+  );
+  const database = read("scripts/disposable-staging/database.mjs");
+  const resetStart = database.indexOf(
+    "export async function resetApplicationSchemas",
+  );
+  const storagePolicyCheck = database.indexOf(
+    "HOSTED_MIGRATION_BRIDGE_UNKNOWN_STORAGE_POLICY",
+    resetStart,
+  );
+  const firstSchemaDrop = database.indexOf(
+    'DROP SCHEMA IF EXISTS app_private CASCADE',
+    resetStart,
+  );
+  assert.match(hostedRunner, /FIELDGRID_SQL_MIGRATION_MAX_NAME/u);
+  assert.match(hostedRunner, /expectFailure: true/u);
+  assert.ok(
+    storagePolicyCheck > resetStart && firstSchemaDrop > storagePolicyCheck,
+  );
+  assert.match(
+    hostedRunner,
+    /public\.fieldgrid_unexpected_storage_policy_guard\(\)/u,
+  );
+  assert.match(hostedRunner, /retainedUnknownPolicy/u);
+  assert.match(hostedRunner, /owner_id=excluded\.owner_id/u);
+  assert.match(hostedRunner, /completedRetry: true/u);
+  assert.match(hostedRunner, /temporaryPrivileges/u);
+  assert.match(hostedRunner, /verifyRebuiltDatabase/u);
+  assert.match(hostedRunner, /verifyPlatformOnlyDatabaseState/u);
 });

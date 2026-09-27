@@ -105,9 +105,13 @@ test("plan has only the legacy credential while apply and recovery receive the n
 test("bootstrap implementation is least-privilege, scoped and secret-safe", () => {
   const contract = read("scripts/staging-migration-admin/contract.mjs");
   const database = read("scripts/staging-migration-admin/database.mjs");
+  const bridgeContract = read(
+    "scripts/staging-migration-admin/bridge-contract.mjs",
+  );
   const runner = read("scripts/staging-migration-admin/runner.mjs");
   const environment = read("scripts/staging-migration-admin/environment.mjs");
   const health = read("scripts/staging-migration-admin/health.mjs");
+  const migrationRunner = read("lib/db/src/migrate.ts");
   assert.match(contract, /MIGRATION_ROLE = "fieldgrid_migration_admin"/u);
   assert.match(contract, /\^\[0-9a-f\]\{64\}\$/u);
   assert.match(contract, /FORBIDDEN_SUPABASE_PROJECT_REF/u);
@@ -116,7 +120,15 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     database,
     /GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres/u,
   );
-  assert.doesNotMatch(database, /GRANT [^\n;]* ON SCHEMA auth/u);
+  const hostedBridge = database.slice(
+    database.indexOf("async function installHostedMigrationBridge"),
+    database.indexOf("async function verifyCatalogState"),
+  );
+  assert.doesNotMatch(hostedBridge, /GRANT [^\n;]* ON SCHEMA auth/u);
+  assert.match(hostedBridge, /AS 'SELECT auth\.uid\(\)'/u);
+  assert.match(hostedBridge, /AS 'SELECT auth\.jwt\(\)'/u);
+  assert.match(hostedBridge, /AS 'SELECT auth\.role\(\)'/u);
+  assert.doesNotMatch(hostedBridge, /GRANT [^\n;]* ON (?:TABLE )?auth\.users/u);
   assert.doesNotMatch(database, /GRANT [^\n;]* ON (?:TABLE )?auth\.users/u);
   assert.match(database, /ALTER PUBLICATION supabase_realtime OWNER TO/u);
   assert.match(database, /authorizedProviderCompatibility/u);
@@ -128,6 +140,33 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /RUNTIME_MEMBERSHIP_TOPOLOGY_INVALID/u);
   assert.match(database, /bootstrapCommitAttempted/u);
   assert.match(database, /has_function_privilege/u);
+  assert.match(
+    database,
+    /REVOKE ALL ON FUNCTION[\s\S]*prepare_disposable_rebuild[\s\S]*foldername/u,
+  );
+  assert.match(bridgeContract, /HOSTED_MIGRATION_BRIDGE_FUNCTION_ACL_INVALID/u);
+  assert.match(bridgeContract, /EXPECTED_BRIDGE_DEFINITION_DIGEST/u);
+  assert.match(bridgeContract, /PERSISTENT_PROVIDER_ADAPTER_ROLES/u);
+  assert.match(bridgeContract, /permittedIncompleteAdapterState/u);
+  assert.match(database, /owner=NULL,\s*owner_id=NULL/u);
+  assert.match(database, /'owner',bucket\.owner/u);
+  assert.match(database, /'ownerId',bucket\.owner_id/u);
+  assert.match(bridgeContract, /EXPECTED_BUCKET_DIGEST/u);
+  assert.match(database, /has_function_privilege\('public'/u);
+  assert.match(database, /session_user <> '\$\{MIGRATION_ROLE\}'/u);
+  assert.match(
+    database,
+    /hosted_migration_bridge_requires_empty_application_schemas/u,
+  );
+  assert.match(migrationRunner, /hostedAuthMigrationHashes = new Map/u);
+  assert.match(
+    migrationRunner,
+    /Hosted auth migration compatibility hash drifted/u,
+  );
+  assert.match(migrationRunner, /prepare_disposable_rebuild\(\)/u);
+  assert.match(migrationRunner, /finalize_disposable_rebuild\(\)/u);
+  assert.match(migrationRunner, /abort_disposable_rebuild\(\)/u);
+  assert.match(migrationRunner, /AggregateError/u);
   assert.match(database, /repairCommittedLegacyPrivileges/u);
   assert.match(database, /legacyBootstrapAuthAclCompatible/u);
   assert.match(

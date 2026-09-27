@@ -311,6 +311,30 @@ jobs:
           fi
           test "$live_staging" = "$EXPECTED_STAGING_SHA"
 
+      - name: Construct least-privilege staging migration URL
+        id: migration-database-url
+        env:
+          FIELDGRID_MIGRATION_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_MIGRATION_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import { appendFileSync } from "node:fs";
+          const password = process.env.FIELDGRID_MIGRATION_DATABASE_PASSWORD ?? "";
+          const host = process.env.FIELDGRID_STAGING_DATABASE_POOLER_HOST ?? "";
+          if (!/^[0-9a-f]{64}$/u.test(password)) {
+            throw new Error("Migration-admin password is invalid");
+          }
+          if (!/^[a-z0-9.-]+\.supabase\.(?:com|net)$/u.test(host)) {
+            throw new Error("Staging pooler host is invalid");
+          }
+          const url = new URL("postgresql://fieldgrid_migration_admin.olyfmekyqozxrbrwwszu@invalid/postgres");
+          url.password = password;
+          url.hostname = host;
+          url.port = "5432";
+          process.stdout.write(`::add-mask::${url.href}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `url=${url.href}\n`, { encoding: "utf8" });
+          NODE
+
       - name: Verify reviewed recovery preflight before activation
         if: env.DEPLOYMENT_MODE == 'staging-recovery'
         env:
@@ -547,7 +571,7 @@ jobs:
 
       - name: Validate environment isolation
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: >-
           node scripts/fieldgrid-environment-isolation-preflight.mjs
           --validate
@@ -719,7 +743,7 @@ jobs:
         if: env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           pnpm run db:migrate
@@ -729,7 +753,8 @@ jobs:
         working-directory: ${{ env.RELEASE }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
+          FIELDGRID_HOSTED_MIGRATION_BRIDGE: disposable-rebuild-v1
           REBUILD_CONFIRMATION: ${{ inputs.confirmation }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
@@ -745,7 +770,7 @@ jobs:
         if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           FIELDGRID_SMTP_BACKFILL_CONFIRM: smtp-encrypted-at-rest-v1
           # Recovery is dispatched from main so the reviewed workflow fix is
           # available, while this data mutation remains staging-only. The
@@ -760,7 +785,7 @@ jobs:
         if: env.TARGET == 'staging' && env.FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED == 'true'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           FIELDGRID_OBJECT_SECURITY_BACKFILL_CONFIRM: object-security-encrypted-v1
         run: |
           set -euo pipefail
@@ -770,7 +795,7 @@ jobs:
         if: env.TARGET == 'staging' && env.FIELDGRID_OBJECT_SECURITY_LEGACY_BACKFILL_ENABLED == 'true'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:object-security-legacy-backfill
@@ -778,7 +803,7 @@ jobs:
         if: env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:smtp-credential-backfill
@@ -787,10 +812,7 @@ jobs:
         if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          # This server-only pre-activation check must run with the migration
-          # principal. The runtime principal is provisioned immediately after
-          # this check and must not be used as an implicit bootstrap path.
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           pnpm fieldgrid:email-provider-readiness --migration-database
@@ -799,11 +821,11 @@ jobs:
         if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE != 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           # The existing W00 ownership proof describes the migration principal,
           # not the zero-ownership application runtime principal. Keep this
           # credential step-scoped and run any runtime-role provisioning/proof
           # after this preflight. Never fall back to the admin URL at runtime.
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM: fieldgrid-w00-staging-principal-read-only-v1
           FIELDGRID_W00_STAGING_TENANT_A_HOST: ${{ vars.FIELDGRID_W00_STAGING_TENANT_A_HOST }}
           FIELDGRID_W00_STAGING_TENANT_A_ID: ${{ secrets.FIELDGRID_W00_STAGING_TENANT_A_ID }}
@@ -831,7 +853,7 @@ jobs:
         if: env.TARGET == 'staging' && env.DEPLOYMENT_MODE == 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           FIELDGRID_W00_STAGING_PRINCIPAL_CONFIRM: fieldgrid-w00-staging-principal-platform-only-read-only-v1
         run: |
           set -euo pipefail
@@ -852,7 +874,7 @@ jobs:
         if: env.TARGET == 'staging'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           FIELDGRID_RUNTIME_DATABASE_PASSWORD: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_PASSWORD }}
           FIELDGRID_RUNTIME_DATABASE_URL: ${{ secrets.FIELDGRID_RUNTIME_DATABASE_URL }}
           FIELDGRID_RUNTIME_EXPECTED_SHA: ${{ github.sha }}
@@ -998,7 +1020,7 @@ jobs:
         if: env.DEPLOYMENT_MODE == 'disposable-rebuild'
         working-directory: ${{ env.RELEASE }}
         env:
-          FIELDGRID_MIGRATION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME: ${{ vars.FIELDGRID_REBUILD_PLATFORM_ADMIN_NAME }}
@@ -1011,6 +1033,8 @@ jobs:
       - name: Recover disposable staging safely after failure
         if: ${{ (failure() || cancelled()) && env.DEPLOYMENT_MODE == 'disposable-rebuild' }}
         working-directory: ${{ env.RELEASE }}
+        env:
+          FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
         run: |
           set -euo pipefail
           node scripts/fieldgrid-disposable-staging-rebuild.mjs \
