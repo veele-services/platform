@@ -107,6 +107,7 @@ function fixtures({
   stopFailure = false,
   managedCatalogDigest = MANAGED_CATALOG_DIGEST,
   legacyBootstrapAuthAcl = false,
+  legacyBootstrapAuthAclCount = legacyBootstrapAuthAcl ? 4 : 0,
 } = {}) {
   const calls = [];
   let currentActive = !initiallyStopped;
@@ -227,7 +228,9 @@ function fixtures({
             : managedCatalogDigest,
           legacyBootstrapCatalogDigest: managedCatalogDigest,
           legacyBootstrapAuthAclCompatible: legacyBootstrapAuthAclPresent,
-          legacyBootstrapAuthAclCount: legacyBootstrapAuthAclPresent ? 4 : 0,
+          legacyBootstrapAuthAclCount: legacyBootstrapAuthAclPresent
+            ? legacyBootstrapAuthAclCount
+            : 0,
         };
       },
       async drainApplicationWriters() {
@@ -424,49 +427,54 @@ test("recover resumes only an exact SAFE_STOPPED receipt and never reruns owners
   ]);
 });
 
-test("recover removes only the exact legacy bootstrap Auth ACL set before target proof", async () => {
-  const directory = await mkdtemp(
-    join(tmpdir(), "fieldgrid-bootstrap-legacy-auth-acl-"),
-  );
-  const receiptPath = join(directory, "receipt.json");
-  await writeFile(
-    receiptPath,
-    `${JSON.stringify({
-      contract: CONTRACT,
-      repository: "veele-services/platform",
-      environment: "staging",
-      project: STAGING_PROJECT_REF,
-      operation: "apply",
-      expectedMainSha: RECOVERY_SOURCE_MAIN,
-      expectedStagingSha: STAGING,
-      destructive: true,
-      status: "failed",
-      mutationsPerformed: true,
-      phase: "SAFE_STOPPED",
-      failureCode: "MANAGED_CATALOG_CHANGED",
-      servicesSafeStopped: true,
-      originalServices: [{ unit: "veele-staging.service", active: true }],
-    })}\n`,
-    { mode: 0o600 },
-  );
-  const { calls, deps } = fixtures({
-    initiallyStopped: true,
-    legacyBootstrapAuthAcl: true,
-  });
-  const result = await runRecover({
-    env: environment("recover"),
-    outputDir: directory,
-    receiptPath,
-    deps,
-  });
-  assert.equal(result.status, "passed");
-  assert.equal(result.legacyBootstrapAuthAclRevoked, true);
-  assert.equal(calls.filter((call) => call === "database.plan").length, 2);
-  assert.ok(
-    calls.indexOf("database.repairLegacyPrivileges") <
-      calls.indexOf("database.targetProof"),
-  );
-  assert.equal(calls.includes("database.apply"), false);
+test("recover removes either exact legacy bootstrap Auth ACL set before target proof", async (t) => {
+  for (const legacyBootstrapAuthAclCount of [3, 4]) {
+    await t.test(`${legacyBootstrapAuthAclCount} exact ACL items`, async () => {
+      const directory = await mkdtemp(
+        join(tmpdir(), "fieldgrid-bootstrap-legacy-auth-acl-"),
+      );
+      const receiptPath = join(directory, "receipt.json");
+      await writeFile(
+        receiptPath,
+        `${JSON.stringify({
+          contract: CONTRACT,
+          repository: "veele-services/platform",
+          environment: "staging",
+          project: STAGING_PROJECT_REF,
+          operation: "apply",
+          expectedMainSha: RECOVERY_SOURCE_MAIN,
+          expectedStagingSha: STAGING,
+          destructive: true,
+          status: "failed",
+          mutationsPerformed: true,
+          phase: "SAFE_STOPPED",
+          failureCode: "MANAGED_CATALOG_CHANGED",
+          servicesSafeStopped: true,
+          originalServices: [{ unit: "veele-staging.service", active: true }],
+        })}\n`,
+        { mode: 0o600 },
+      );
+      const { calls, deps } = fixtures({
+        initiallyStopped: true,
+        legacyBootstrapAuthAcl: true,
+        legacyBootstrapAuthAclCount,
+      });
+      const result = await runRecover({
+        env: environment("recover"),
+        outputDir: directory,
+        receiptPath,
+        deps,
+      });
+      assert.equal(result.status, "passed");
+      assert.equal(result.legacyBootstrapAuthAclRevoked, true);
+      assert.equal(calls.filter((call) => call === "database.plan").length, 2);
+      assert.ok(
+        calls.indexOf("database.repairLegacyPrivileges") <
+          calls.indexOf("database.targetProof"),
+      );
+      assert.equal(calls.includes("database.apply"), false);
+    });
+  }
 });
 
 test("recover re-fences an unexpectedly restarted writer before catalog proof", async (t) => {

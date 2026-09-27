@@ -217,19 +217,23 @@ export async function managedCatalogSnapshot(client) {
     ({ object_kind: kind, subobject_name: column }) =>
       kind === "schema" ? "schema:auth" : `column:auth.users.${column}`,
   );
-  const expectedLegacyAclKeys = [
+  const expectedColumnAclKeys = LEGACY_BOOTSTRAP_AUTH_COLUMNS.map(
+    (column) => `column:auth.users.${column}`,
+  );
+  const allowedLegacyAclKeys = new Set([
     "schema:auth",
-    ...LEGACY_BOOTSTRAP_AUTH_COLUMNS.map(
-      (column) => `column:auth.users.${column}`,
-    ),
-  ];
+    ...expectedColumnAclKeys,
+  ]);
+  const uniqueLegacyAclKeys = new Set(legacyAclKeys);
   return {
     ...value,
     digest: digest(value),
     legacyBootstrapDigest: digest(legacyValue),
     legacyBootstrapAuthAclCompatible:
-      legacyAclKeys.length === expectedLegacyAclKeys.length &&
-      expectedLegacyAclKeys.every((key) => legacyAclKeys.includes(key)),
+      uniqueLegacyAclKeys.size === legacyAclKeys.length &&
+      (legacyAclKeys.length === 3 || legacyAclKeys.length === 4) &&
+      legacyAclKeys.every((key) => allowedLegacyAclKeys.has(key)) &&
+      expectedColumnAclKeys.every((key) => uniqueLegacyAclKeys.has(key)),
     legacyBootstrapAuthAclCount: legacyAclKeys.length,
   };
 }

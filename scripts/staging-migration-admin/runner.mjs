@@ -34,6 +34,10 @@ export const DEFAULT_RECEIPT =
   "/var/www/veele/staging/.fieldgrid-migration-admin-bootstrap-receipt.json";
 const CATALOG_DIGEST = /^[0-9a-f]{64}$/u;
 
+function legacyBootstrapAuthAclCountIsCompatible(count) {
+  return count === 3 || count === 4;
+}
+
 async function writeJson(path, value) {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
@@ -226,7 +230,9 @@ function committedBootstrapMetadata(
     (allowLegacyBootstrapAuthAcl &&
       inventory.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest &&
       inventory.legacyBootstrapAuthAclCompatible === true &&
-      inventory.legacyBootstrapAuthAclCount === 4);
+      legacyBootstrapAuthAclCountIsCompatible(
+        inventory.legacyBootstrapAuthAclCount,
+      ));
   requireThat(
     inventory.targetRoleExists === true &&
       target?.rolname === MIGRATION_ROLE &&
@@ -363,7 +369,7 @@ export async function runApply({
       plan.managedCatalogDigest !== expectedManagedCatalogDigest &&
       plan.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest &&
       plan.legacyBootstrapAuthAclCompatible === true &&
-      plan.legacyBootstrapAuthAclCount === 4;
+      legacyBootstrapAuthAclCountIsCompatible(plan.legacyBootstrapAuthAclCount);
     requireThat(
       CATALOG_DIGEST.test(expectedManagedCatalogDigest) &&
         (plan.managedCatalogDigest === expectedManagedCatalogDigest ||
