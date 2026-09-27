@@ -12,6 +12,11 @@ const RUNTIME_ROLES = Object.freeze([
   "fieldgrid_runtime_app",
   "fieldgrid_runtime_data",
 ]);
+const LEGACY_BOOTSTRAP_AUTH_COLUMNS = Object.freeze([
+  "email",
+  "id",
+  "raw_app_meta_data",
+]);
 
 function identifier(value) {
   requireThat(
@@ -188,7 +193,45 @@ export async function managedCatalogSnapshot(client) {
     extensions: extensions.rows,
     accessControl: accessControl.rows,
   };
-  return { ...value, digest: digest(value) };
+  const legacyBootstrapAuthAcl = accessControl.rows.filter((entry) => {
+    const [grantee, grant] = entry.acl_entry.split("=", 2);
+    const [privileges, grantor] = (grant ?? "").split("/", 2);
+    return (
+      grantee === MIGRATION_ROLE &&
+      grantor === "postgres" &&
+      entry.schema_name === "auth" &&
+      ((entry.object_kind === "schema" && privileges === "U") ||
+        (entry.object_kind === "column" &&
+          entry.object_name === "users" &&
+          LEGACY_BOOTSTRAP_AUTH_COLUMNS.includes(entry.subobject_name) &&
+          privileges === "r"))
+    );
+  });
+  const legacyValue = {
+    ...value,
+    accessControl: accessControl.rows.filter(
+      (entry) => !legacyBootstrapAuthAcl.includes(entry),
+    ),
+  };
+  const legacyAclKeys = legacyBootstrapAuthAcl.map(
+    ({ object_kind: kind, subobject_name: column }) =>
+      kind === "schema" ? "schema:auth" : `column:auth.users.${column}`,
+  );
+  const expectedLegacyAclKeys = [
+    "schema:auth",
+    ...LEGACY_BOOTSTRAP_AUTH_COLUMNS.map(
+      (column) => `column:auth.users.${column}`,
+    ),
+  ];
+  return {
+    ...value,
+    digest: digest(value),
+    legacyBootstrapDigest: digest(legacyValue),
+    legacyBootstrapAuthAclCompatible:
+      legacyAclKeys.length === expectedLegacyAclKeys.length &&
+      expectedLegacyAclKeys.every((key) => legacyAclKeys.includes(key)),
+    legacyBootstrapAuthAclCount: legacyAclKeys.length,
+  };
 }
 
 export async function applicationOwnershipInventory(client) {
@@ -246,6 +289,10 @@ export async function bootstrapPlan(client) {
       targetRole: ownership.targetRole,
       runtimeMembership: ownership.runtimeMembership,
       managedCatalogDigest: managed.digest,
+      legacyBootstrapCatalogDigest: managed.legacyBootstrapDigest,
+      legacyBootstrapAuthAclCompatible:
+        managed.legacyBootstrapAuthAclCompatible,
+      legacyBootstrapAuthAclCount: managed.legacyBootstrapAuthAclCount,
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -724,7 +771,10 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
   return { repairedSchemas: proof.rows.map(({ nspname }) => nspname) };
 }
 
-export async function repairCommittedLegacyPrivileges(client) {
+export async function repairCommittedLegacyPrivileges(
+  client,
+  { revokeLegacyBootstrapAuthAcl = false } = {},
+) {
   await staged("legacy-repair-identity", () => assertLegacyPrincipal(client));
   const inventory = await staged("legacy-repair-target-inventory", () =>
     client.query("SELECT oid FROM pg_roles WHERE rolname=$1", [MIGRATION_ROLE]),
@@ -741,6 +791,18 @@ export async function repairCommittedLegacyPrivileges(client) {
         `GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
       ),
     );
+    if (revokeLegacyBootstrapAuthAcl) {
+      await staged("legacy-repair-auth-schema-revoke", () =>
+        client.query(
+          `REVOKE USAGE ON SCHEMA auth FROM ${identifier(MIGRATION_ROLE)} GRANTED BY postgres`,
+        ),
+      );
+      await staged("legacy-repair-auth-columns-revoke", () =>
+        client.query(
+          `REVOKE SELECT (${LEGACY_BOOTSTRAP_AUTH_COLUMNS.map(identifier).join(",")}) ON TABLE auth.users FROM ${identifier(MIGRATION_ROLE)} GRANTED BY postgres`,
+        ),
+      );
+    }
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -759,8 +821,25 @@ export async function repairCommittedLegacyPrivileges(client) {
     Object.values(proof.rows[0] ?? {}).every((value) => value === true),
     "TARGET_DATABASE_CAPABILITY_INVALID",
   );
+  if (revokeLegacyBootstrapAuthAcl) {
+    const authProof = await staged("legacy-repair-auth-proof", () =>
+      client.query(
+        `SELECT
+           has_schema_privilege($1,'auth','USAGE') AS schema_usage,
+           has_column_privilege($1,'auth.users','id','SELECT') AS id_select,
+           has_column_privilege($1,'auth.users','email','SELECT') AS email_select,
+           has_column_privilege($1,'auth.users','raw_app_meta_data','SELECT') AS metadata_select`,
+        [MIGRATION_ROLE],
+      ),
+    );
+    requireThat(
+      Object.values(authProof.rows[0] ?? {}).every((value) => value === false),
+      "LEGACY_BOOTSTRAP_AUTH_ACL_REVOKE_INVALID",
+    );
+  }
   return {
     databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+    legacyBootstrapAuthAclRevoked: revokeLegacyBootstrapAuthAcl,
   };
 }
 

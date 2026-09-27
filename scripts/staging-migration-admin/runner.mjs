@@ -215,8 +215,18 @@ async function recoveryState(receiptPath, config, currentServices) {
   };
 }
 
-function committedBootstrapMetadata(inventory, expectedManagedCatalogDigest) {
+function committedBootstrapMetadata(
+  inventory,
+  expectedManagedCatalogDigest,
+  { allowLegacyBootstrapAuthAcl = false } = {},
+) {
   const target = inventory.targetRole;
+  const managedCatalogMatches =
+    inventory.managedCatalogDigest === expectedManagedCatalogDigest ||
+    (allowLegacyBootstrapAuthAcl &&
+      inventory.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest &&
+      inventory.legacyBootstrapAuthAclCompatible === true &&
+      inventory.legacyBootstrapAuthAclCount === 4);
   requireThat(
     inventory.targetRoleExists === true &&
       target?.rolname === MIGRATION_ROLE &&
@@ -227,7 +237,7 @@ function committedBootstrapMetadata(inventory, expectedManagedCatalogDigest) {
       target.rolreplication === false &&
       target.rolinherit === false &&
       target.rolcanlogin === true &&
-      inventory.managedCatalogDigest === expectedManagedCatalogDigest &&
+      managedCatalogMatches &&
       inventory.applicationSchemas.length === APP_SCHEMAS.length &&
       APP_SCHEMAS.every((schema) =>
         inventory.applicationSchemas.some(
@@ -258,7 +268,7 @@ function committedBootstrapMetadata(inventory, expectedManagedCatalogDigest) {
     );
   return {
     legacyPrincipal: inventory.principal.name,
-    managedCatalogDigest: inventory.managedCatalogDigest,
+    managedCatalogDigest: expectedManagedCatalogDigest,
     runtimeMembershipDigest: digest(inventory.runtimeMembership ?? []),
     applicationObjectCount,
     securityDefinerCompatibilityOwner: "postgres",
@@ -317,6 +327,7 @@ export async function runApply({
   let resumedFromSafeStopped = false;
   let commitAcknowledgementRecovered = false;
   let legacyPrivilegesRepaired = false;
+  let legacyBootstrapAuthAclRevoked = false;
   let targetSchemaPrivilegesRepaired = false;
   let mayUpdateReceipt = false;
   let writersTouched = false;
@@ -347,9 +358,16 @@ export async function runApply({
       plan = await (deps.bootstrapPlan ?? bootstrapPlan)(database);
     }
     expectedManagedCatalogDigest ??= plan.managedCatalogDigest;
+    const recoveringLegacyBootstrapAuthAcl =
+      resumedFromSafeStopped &&
+      plan.managedCatalogDigest !== expectedManagedCatalogDigest &&
+      plan.legacyBootstrapCatalogDigest === expectedManagedCatalogDigest &&
+      plan.legacyBootstrapAuthAclCompatible === true &&
+      plan.legacyBootstrapAuthAclCount === 4;
     requireThat(
       CATALOG_DIGEST.test(expectedManagedCatalogDigest) &&
-        plan.managedCatalogDigest === expectedManagedCatalogDigest,
+        (plan.managedCatalogDigest === expectedManagedCatalogDigest ||
+          recoveringLegacyBootstrapAuthAcl),
       "MANAGED_CATALOG_CHANGED",
     );
     if (!resumedFromSafeStopped) {
@@ -387,7 +405,9 @@ export async function runApply({
     let applied;
     if (resumedFromSafeStopped) {
       failureStage = "committed-state-validation";
-      applied = committedBootstrapMetadata(plan, expectedManagedCatalogDigest);
+      applied = committedBootstrapMetadata(plan, expectedManagedCatalogDigest, {
+        allowLegacyBootstrapAuthAcl: recoveringLegacyBootstrapAuthAcl,
+      });
     } else {
       try {
         failureStage = "bootstrap-apply";
@@ -429,8 +449,25 @@ export async function runApply({
       failureStage = "legacy-privilege-repair";
       await (
         deps.repairCommittedLegacyPrivileges ?? repairCommittedLegacyPrivileges
-      )(database);
+      )(database, {
+        revokeLegacyBootstrapAuthAcl: recoveringLegacyBootstrapAuthAcl,
+      });
       legacyPrivilegesRepaired = true;
+      legacyBootstrapAuthAclRevoked = recoveringLegacyBootstrapAuthAcl;
+      failureStage = "post-repair-catalog-validation";
+      const repairedPlan = await (deps.bootstrapPlan ?? bootstrapPlan)(
+        database,
+      );
+      requireThat(
+        repairedPlan.managedCatalogDigest === expectedManagedCatalogDigest &&
+          repairedPlan.legacyBootstrapAuthAclCompatible === false &&
+          repairedPlan.legacyBootstrapAuthAclCount === 0,
+        "MANAGED_CATALOG_CHANGED",
+      );
+      applied = committedBootstrapMetadata(
+        repairedPlan,
+        expectedManagedCatalogDigest,
+      );
     }
     failureStage = "target-login";
     const target = await connect(
@@ -491,6 +528,7 @@ export async function runApply({
         : undefined,
       commitAcknowledgementRecovered,
       legacyPrivilegesRepaired,
+      legacyBootstrapAuthAclRevoked,
       targetSchemaPrivilegesRepaired,
     });
     await writeJson(receiptPath, {
