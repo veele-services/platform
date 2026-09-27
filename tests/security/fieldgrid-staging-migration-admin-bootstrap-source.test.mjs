@@ -107,11 +107,15 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(contract, /\^\[0-9a-f\]\{64\}\$/u);
   assert.match(contract, /FORBIDDEN_SUPABASE_PROJECT_REF/u);
   assert.match(database, /NOSUPERUSER NOBYPASSRLS NOREPLICATION NOINHERIT/u);
-  assert.match(database, /GRANT CONNECT,CREATE ON DATABASE postgres/u);
-  assert.match(database, /GRANT USAGE ON SCHEMA auth/u);
-  assert.match(database, /SELECT \(id,email,raw_app_meta_data\)/u);
+  assert.match(
+    database,
+    /GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres/u,
+  );
+  assert.doesNotMatch(database, /GRANT [^\n;]* ON SCHEMA auth/u);
+  assert.doesNotMatch(database, /GRANT [^\n;]* ON (?:TABLE )?auth\.users/u);
   assert.match(database, /ALTER PUBLICATION supabase_realtime OWNER TO/u);
   assert.match(database, /authorizedProviderCompatibility/u);
+  assert.match(database, /authDirectAccess: false/u);
   assert.match(database, /prosecdef/u);
   assert.match(database, /WITH INHERIT FALSE, SET FALSE, ADMIN TRUE/u);
   assert.match(database, /WITH INHERIT TRUE, SET FALSE, ADMIN FALSE/u);
@@ -119,6 +123,12 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
   assert.match(database, /RUNTIME_MEMBERSHIP_TOPOLOGY_INVALID/u);
   assert.match(database, /bootstrapCommitAttempted/u);
   assert.match(database, /has_function_privilege/u);
+  assert.match(database, /repairCommittedLegacyPrivileges/u);
+  assert.match(
+    database,
+    /has_schema_privilege\(current_user,n\.oid,'USAGE'\)/u,
+  );
+  assert.doesNotMatch(database, /'auth\.users'::regclass/u);
   const planImplementation = database.slice(
     database.indexOf("export async function bootstrapPlan"),
     database.indexOf("async function runtimeMembership"),
@@ -200,5 +210,10 @@ test("PostgreSQL 17 regression covers absent role, wrong attributes, rollback, r
   assert.match(regression, /const plan = await bootstrapPlan\(legacy\)/u);
   assert.match(regression, /fixture_unknown_writer/u);
   assert.match(regression, /internal_note: false/u);
+  assert.match(regression, /supabase_auth_admin/u);
+  assert.match(regression, /auth_no_grant_option/u);
+  assert.match(regression, /provider_member: false/u);
+  assert.match(regression, /usage: false/u);
+  assert.match(regression, /repairCommittedLegacyPrivileges\(legacy\)/u);
   assert.match(regression, /retry: true, rollback: true/u);
 });

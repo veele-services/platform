@@ -169,27 +169,13 @@ export async function managedCatalogSnapshot(client) {
        WHERE n.nspname=ANY($1::text[])
      ) entries
      WHERE NOT (
-       (
-         split_part(acl_entry,'=',1)=owner_name
-         AND object_kind='schema'
-         AND split_part(split_part(acl_entry,'=',2),'/',1)='UC'
-       )
-       OR (
-         split_part(acl_entry,'=',1)=$2
-         AND (
-           (object_kind='schema' AND schema_name='auth'
-             AND split_part(split_part(acl_entry,'=',2),'/',1)='U')
-           OR (
-             object_kind='column' AND schema_name='auth' AND object_name='users'
-             AND subobject_name IN ('id','email','raw_app_meta_data')
-             AND split_part(split_part(acl_entry,'=',2),'/',1)='r'
-           )
-         )
-       )
+       split_part(acl_entry,'=',1)=owner_name
+       AND object_kind='schema'
+       AND split_part(split_part(acl_entry,'=',2),'/',1)='UC'
      )
      ORDER BY object_kind,schema_name,object_name,subobject_name,
        acl_entry`,
-    [[...MANAGED_SCHEMAS], MIGRATION_ROLE],
+    [[...MANAGED_SCHEMAS]],
   );
   const value = {
     schemas: schemas.rows,
@@ -600,13 +586,7 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
       `GRANT ${identifier(MIGRATION_ROLE)} TO postgres WITH INHERIT TRUE, SET TRUE`,
     );
     await client.query(
-      `GRANT CONNECT,CREATE ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
-    );
-    await client.query(
-      `GRANT USAGE ON SCHEMA auth TO ${identifier(MIGRATION_ROLE)}`,
-    );
-    await client.query(
-      `GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO ${identifier(MIGRATION_ROLE)}`,
+      `GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
     );
     for (const schema of APP_SCHEMAS) {
       await client.query(
@@ -744,6 +724,46 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
   return { repairedSchemas: proof.rows.map(({ nspname }) => nspname) };
 }
 
+export async function repairCommittedLegacyPrivileges(client) {
+  await staged("legacy-repair-identity", () => assertLegacyPrincipal(client));
+  const inventory = await staged("legacy-repair-target-inventory", () =>
+    client.query("SELECT oid FROM pg_roles WHERE rolname=$1", [MIGRATION_ROLE]),
+  );
+  requireThat(
+    inventory.rows.length === 1 && inventory.rows[0]?.oid != null,
+    "TARGET_ROLE_MISSING",
+  );
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL lock_timeout='10s'");
+    await staged("legacy-repair-database-grant", () =>
+      client.query(
+        `GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
+      ),
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  }
+  const proof = await staged("legacy-repair-database-proof", () =>
+    client.query(
+      `SELECT
+         has_database_privilege($1,current_database(),'CONNECT') AS connect,
+         has_database_privilege($1,current_database(),'CREATE') AS create,
+         has_database_privilege($1,current_database(),'TEMPORARY') AS temporary`,
+      [MIGRATION_ROLE],
+    ),
+  );
+  requireThat(
+    Object.values(proof.rows[0] ?? {}).every((value) => value === true),
+    "TARGET_DATABASE_CAPABILITY_INVALID",
+  );
+  return {
+    databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+  };
+}
+
 export async function drainApplicationWriters(client) {
   const unknown = await client.query(
     `SELECT role.rolname
@@ -842,30 +862,12 @@ export async function verifyTargetLogin(client, managedDigest) {
     client.query(`
       SELECT has_database_privilege(current_user,current_database(),'CONNECT') AS connect,
         has_database_privilege(current_user,current_database(),'CREATE') AS create,
-        has_database_privilege(current_user,current_database(),'TEMPORARY') AS temporary,
-        has_schema_privilege(current_user,'auth','USAGE') AS auth_usage,
-        NOT has_table_privilege(current_user,'auth.users','SELECT') AS auth_no_table_select,
-        has_column_privilege(current_user,'auth.users','id','SELECT') AS auth_id,
-        has_column_privilege(current_user,'auth.users','email','SELECT') AS auth_email,
-        has_column_privilege(current_user,'auth.users','raw_app_meta_data','SELECT') AS auth_metadata
+        has_database_privilege(current_user,current_database(),'TEMPORARY') AS temporary
     `),
   );
   requireThat(
     Object.values(capabilities.rows[0] ?? {}).every((value) => value === true),
     "TARGET_CAPABILITY_INVALID",
-  );
-  const selectedAuthColumns = await staged("target-proof-auth-columns", () =>
-    client.query(`
-      SELECT COALESCE(jsonb_agg(a.attname ORDER BY a.attname),'[]'::jsonb) AS columns
-      FROM pg_attribute a
-      WHERE a.attrelid='auth.users'::regclass AND a.attnum>0 AND NOT a.attisdropped
-        AND has_column_privilege(current_user,a.attrelid,a.attnum,'SELECT')
-    `),
-  );
-  requireThat(
-    JSON.stringify(selectedAuthColumns.rows[0]?.columns) ===
-      JSON.stringify(["email", "id", "raw_app_meta_data"]),
-    "TARGET_AUTH_COLUMN_SCOPE_INVALID",
   );
   const inventory = await staged("target-proof-database-inventory", () =>
     databaseInventory(client, {
@@ -905,8 +907,7 @@ export async function verifyTargetLogin(client, managedDigest) {
     dryRebuildCapability: true,
     authorizedProviderCompatibility: {
       realtimePublicationOwner: MIGRATION_ROLE,
-      authSchemaUsage: true,
-      authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+      authDirectAccess: false,
     },
   };
 }

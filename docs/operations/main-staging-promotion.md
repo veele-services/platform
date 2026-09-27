@@ -118,10 +118,11 @@ same staging ref is still live, re-fences every writer and proves it stopped,
 the current managed catalog still equals the independently captured plan
 digest, and a fresh real target login satisfies the complete role, ownership,
 catalog, provider and rollback-only rebuild contract. The recovery may restore
-only the target owner's `USAGE,CREATE` privileges on the three application
-schemas before that proof; it does not rerun ownership transfer or rotate the
-password. Only then may it restore the original service baseline and run the
-four exact-SHA health checks. A partial commit, changed receipt, catalog drift,
+only database `CONNECT,CREATE,TEMPORARY` and the target owner's `USAGE,CREATE`
+privileges on the three application schemas before that proof; it does not
+grant direct access to `auth`, rerun ownership transfer or rotate the password.
+Only then may it restore the original service baseline and run the four
+exact-SHA health checks. A partial commit, changed receipt, catalog drift,
 active writer or failed target proof keeps staging safe-stopped.
 
 Never put the password in a workflow input, logs or an artifact. The bootstrap

@@ -252,8 +252,7 @@ function fixtures({
           dryRebuildCapability: true,
           authorizedProviderCompatibility: {
             realtimePublicationOwner: "fieldgrid_migration_admin",
-            authSchemaUsage: true,
-            authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+            authDirectAccess: false,
           },
         };
       },
@@ -261,6 +260,12 @@ function fixtures({
         calls.push("database.repairTargetSchemaPrivileges");
         return {
           repairedSchemas: ["app_private", "drizzle", "public"],
+        };
+      },
+      async repairCommittedLegacyPrivileges() {
+        calls.push("database.repairLegacyPrivileges");
+        return {
+          databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
         };
       },
       async verifyRestoredHealth({ expectedSha }) {
@@ -334,8 +339,7 @@ test("apply quiesces writers, proves the real target login and restores the base
   assert.equal(result.servicesRestored, true);
   assert.deepEqual(result.authorizedProviderCompatibility, {
     realtimePublicationOwner: "fieldgrid_migration_admin",
-    authSchemaUsage: true,
-    authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+    authDirectAccess: false,
   });
   assert.deepEqual(calls, [
     "legacy.connect",
@@ -393,8 +397,10 @@ test("recover resumes only an exact SAFE_STOPPED receipt and never reruns owners
   assert.equal(result.status, "passed");
   assert.equal(result.resumedFromSafeStopped, true);
   assert.equal(result.servicesRestored, true);
+  assert.equal(result.legacyPrivilegesRepaired, true);
   assert.equal(result.targetSchemaPrivilegesRepaired, true);
   assert.equal(calls.includes("database.apply"), false);
+  assert.ok(calls.includes("database.repairLegacyPrivileges"));
   assert.ok(calls.includes("database.repairTargetSchemaPrivileges"));
   assert.ok(calls.includes("database.targetProof"));
   assert.ok(calls.includes("services.restore"));

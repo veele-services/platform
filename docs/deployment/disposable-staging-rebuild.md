@@ -39,18 +39,19 @@ NOINHERIT`, and transfers only the Fieldgrid application surface in `public`,
 `SECURITY DEFINER` routines remain temporarily owned by legacy `postgres` so
 the live pre-rebuild policy/configuration contract is not changed; ownership of
 the application schemas still lets the new principal remove and canonically
-recreate them during the rebuild. Two reviewed provider-bound capabilities are
-also installed: ownership of publication `supabase_realtime`, and only `USAGE`
-on `auth` plus column-level `SELECT` on
-`auth.users(id,email,raw_app_meta_data)`. All other managed-schema catalog
-state must retain the same digest. PostgreSQL 17 records an unavoidable
+recreate them during the rebuild. The one reviewed provider-bound capability
+installed by the bootstrap is ownership of publication `supabase_realtime`.
+The role receives no direct `auth` schema or `auth.users` privileges: modern
+hosted Supabase owns those objects as `supabase_auth_admin`, while legacy
+`postgres` is neither that role's member nor a grant-option holder. The entire
+managed Auth ACL therefore remains inside the unchanged catalog digest.
+PostgreSQL 17 records an unavoidable
 creator-admin edge on the new role for member `postgres`, with
 `supabase_admin` as grantor; the bootstrap verifies that edge remains `ADMIN`
 only with both `INHERIT` and `SET` disabled. The migration admin itself is
 never a member of `postgres` or `supabase_admin`. The result artifact reports
-the publication owner and exact three Auth columns separately as
-`authorizedProviderCompatibility`; they are not presented as unchanged managed
-catalog state.
+the publication owner and `authDirectAccess=false` as
+`authorizedProviderCompatibility`.
 
 On success, manually replace staging environment secret `DATABASE_URL` with:
 
@@ -76,8 +77,9 @@ original read-only plan's `managedCatalogDigest` as
 `expected_managed_catalog_digest`; the confirmation binds both values as
 documented in the promotion runbook. Recovery performs no ownership DDL: it
 accepts only the exact private receipt, rejects any managed-catalog drift,
-validates the committed ownership state, restores only the target owner's
-`USAGE,CREATE` schema privileges needed after the historical commit, proves
+validates the committed ownership state, restores only database
+`CONNECT,CREATE,TEMPORARY` and the target owner's `USAGE,CREATE` application
+schema privileges needed after the historical commit, proves
 the complete state through a fresh target-pooler login, restores the receipt's
 original service baseline and then requires all four exact-staging-SHA health
 identities. Any mismatch remains fail-closed with writers stopped.

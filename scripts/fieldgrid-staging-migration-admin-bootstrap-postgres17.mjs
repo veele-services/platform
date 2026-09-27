@@ -8,6 +8,7 @@ import {
   bootstrapPlan,
   drainApplicationWriters,
   managedCatalogSnapshot,
+  repairCommittedLegacyPrivileges,
   repairCommittedTargetSchemaPrivileges,
   verifyTargetLogin,
 } from "./staging-migration-admin/database.mjs";
@@ -60,6 +61,9 @@ await rootBootstrap.connect();
 await rootBootstrap.query(
   "CREATE ROLE postgres LOGIN SUPERUSER PASSWORD 'postgres'",
 );
+await rootBootstrap.query(
+  "CREATE ROLE supabase_auth_admin NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS",
+);
 await rootBootstrap.query("ALTER DATABASE postgres OWNER TO postgres");
 const admin = await connected(
   "postgres",
@@ -97,6 +101,9 @@ try {
       raw_app_meta_data jsonb,
       internal_note text
     );
+    REVOKE ALL ON SCHEMA auth FROM PUBLIC;
+    ALTER TABLE auth.users OWNER TO supabase_auth_admin;
+    ALTER SCHEMA auth OWNER TO supabase_auth_admin;
     CREATE SCHEMA app_private;
     CREATE SCHEMA drizzle;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY);
@@ -118,6 +125,15 @@ try {
     CREATE ROLE fieldgrid_runtime_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION NOBYPASSRLS;
     GRANT fieldgrid_runtime_data TO fieldgrid_runtime_app WITH INHERIT TRUE, SET FALSE, ADMIN FALSE;
   `);
+  await root.query("SET ROLE supabase_auth_admin");
+  try {
+    await root.query("GRANT USAGE ON SCHEMA auth TO postgres");
+    await root.query(
+      "GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER ON TABLE auth.users TO postgres",
+    );
+  } finally {
+    await root.query("RESET ROLE");
+  }
   for (const schema of [
     "storage",
     "extensions",
@@ -171,6 +187,36 @@ try {
       rolreplication: true,
       rolinherit: true,
       rolcanlogin: true,
+    },
+  ]);
+  const hostedProviderTopology = await legacy.query(`
+    SELECT
+      pg_get_userbyid(n.nspowner) AS auth_schema_owner,
+      pg_get_userbyid(c.relowner) AS auth_users_owner,
+      pg_has_role(current_user,'supabase_auth_admin','MEMBER') AS provider_member,
+      has_schema_privilege(current_user,n.oid,'USAGE') AS auth_usage,
+      has_table_privilege(current_user,c.oid,'SELECT') AS auth_select,
+      has_table_privilege(current_user,c.oid,'REFERENCES') AS auth_references,
+      has_table_privilege(current_user,c.oid,'TRIGGER') AS auth_trigger,
+      NOT EXISTS (
+        SELECT 1 FROM aclexplode(COALESCE(c.relacl,'{}'::aclitem[])) acl
+        JOIN pg_roles grantee ON grantee.oid=acl.grantee
+        WHERE grantee.rolname=current_user AND acl.is_grantable
+      ) AS auth_no_grant_option
+    FROM pg_namespace n
+    JOIN pg_class c ON c.relnamespace=n.oid
+    WHERE n.nspname='auth' AND c.relname='users'
+  `);
+  assert.deepEqual(hostedProviderTopology.rows, [
+    {
+      auth_schema_owner: "supabase_auth_admin",
+      auth_users_owner: "supabase_auth_admin",
+      provider_member: false,
+      auth_usage: true,
+      auth_select: true,
+      auth_references: true,
+      auth_trigger: true,
+      auth_no_grant_option: true,
     },
   ]);
 
@@ -274,10 +320,20 @@ try {
       `REVOKE ALL ON SCHEMA ${schema} FROM fieldgrid_migration_admin`,
     );
   }
+  await legacy.query(
+    "REVOKE CREATE ON DATABASE postgres FROM fieldgrid_migration_admin",
+  );
   await assert.rejects(
     target.query("SELECT count(*) FROM public.tenants"),
     (error) => error?.code === "42501",
   );
+  await assert.rejects(
+    verifyTargetLogin(target, before.digest),
+    /TARGET_CAPABILITY_INVALID/u,
+  );
+  assert.deepEqual(await repairCommittedLegacyPrivileges(legacy), {
+    databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+  });
   assert.deepEqual(
     (await repairCommittedTargetSchemaPrivileges(target)).repairedSchemas,
     ["app_private", "drizzle", "public"],
@@ -285,6 +341,10 @@ try {
   assert.equal(
     (await verifyTargetLogin(target, before.digest)).dryRebuildCapability,
     true,
+  );
+  await assert.rejects(
+    target.query("SELECT id,email,raw_app_meta_data FROM auth.users LIMIT 1"),
+    (error) => error?.code === "42501",
   );
   await target.end();
   target = undefined;
@@ -339,10 +399,10 @@ try {
       has_column_privilege('fieldgrid_migration_admin','auth.users','internal_note','SELECT') AS internal_note
   `);
   assert.deepEqual(authPrivileges.rows[0], {
-    usage: true,
-    id: true,
-    email: true,
-    metadata: true,
+    usage: false,
+    id: false,
+    email: false,
+    metadata: false,
     internal_note: false,
   });
   await legacy.query("CREATE ROLE fixture_unknown_writer LOGIN");

@@ -7,6 +7,7 @@ import {
   applyBootstrap,
   bootstrapPlan,
   drainApplicationWriters,
+  repairCommittedLegacyPrivileges,
   repairCommittedTargetSchemaPrivileges,
   verifyTargetLogin,
 } from "./database.mjs";
@@ -315,6 +316,7 @@ export async function runApply({
   let committed = false;
   let resumedFromSafeStopped = false;
   let commitAcknowledgementRecovered = false;
+  let legacyPrivilegesRepaired = false;
   let targetSchemaPrivilegesRepaired = false;
   let mayUpdateReceipt = false;
   let writersTouched = false;
@@ -423,6 +425,13 @@ export async function runApply({
         }
       }
     }
+    if (resumedFromSafeStopped) {
+      failureStage = "legacy-privilege-repair";
+      await (
+        deps.repairCommittedLegacyPrivileges ?? repairCommittedLegacyPrivileges
+      )(database);
+      legacyPrivilegesRepaired = true;
+    }
     failureStage = "target-login";
     const target = await connect(
       (deps.createTargetClient ?? createDatabaseClient)(
@@ -481,6 +490,7 @@ export async function runApply({
         ? config.recoverySourceMain
         : undefined,
       commitAcknowledgementRecovered,
+      legacyPrivilegesRepaired,
       targetSchemaPrivilegesRepaired,
     });
     await writeJson(receiptPath, {
