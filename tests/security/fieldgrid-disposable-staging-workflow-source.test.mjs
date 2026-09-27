@@ -194,6 +194,7 @@ test("plan and deploy construct only the canonical migration-admin session URL",
 test("rebuild code uses provider APIs, canonical migration and fixed application schemas", () => {
   const providers = read("scripts/disposable-staging/providers.mjs");
   const database = read("scripts/disposable-staging/database.mjs");
+  const deploy = read(".github/workflows/deploy.yml");
   const contract = read("scripts/disposable-staging/contract.mjs");
   const runner = read("scripts/disposable-staging/runner.mjs");
   assert.match(providers, /admin\.storage\s*\.from\(bucket\)\s*\.remove/u);
@@ -215,7 +216,15 @@ test("rebuild code uses provider APIs, canonical migration and fixed application
   assert.match(database, /expectedPrincipalName/u);
   assert.match(
     database,
-    /FIELDGRID_HOSTED_MIGRATION_BRIDGE: "disposable-rebuild-v1"/u,
+    /FIELDGRID_HOSTED_MIGRATION_BRIDGE:\s*env\.FIELDGRID_HOSTED_MIGRATION_BRIDGE/u,
+  );
+  assert.match(
+    deploy,
+    /FIELDGRID_HOSTED_MIGRATION_BRIDGE: disposable-rebuild-v1/u,
+  );
+  assert.match(
+    runner,
+    /requireHostedMigrationBridge:\s*env\.FIELDGRID_HOSTED_MIGRATION_BRIDGE === "disposable-rebuild-v1"/u,
   );
   assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_app/u);
   assert.match(database, /DROP ROLE IF EXISTS fieldgrid_runtime_data/u);

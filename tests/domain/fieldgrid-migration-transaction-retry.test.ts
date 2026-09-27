@@ -626,7 +626,7 @@ test("the required unit lane binds every migration stage to the lock-holding cli
   const orderedSqlCallbacks = [
     "await runSqlMigrationTransaction(",
     "client,",
-    "() => client.query(sqlForManagedMigrationTransaction(migration.sql))",
+    "() => client.query(sqlForManagedMigrationTransaction(migrationSql))",
     "() => recordSqlMigration(client, migration, false)",
     "prepareMigration: async () =>",
     "await sqlMigrationIsRecorded(client, migration)",
@@ -647,7 +647,8 @@ test("the required unit lane binds every migration stage to the lock-holding cli
     "await assertNoUnbaselinedExistingSchema(client, expectedTables);",
     "await runDrizzleGeneratedMigrations(client);",
     "await ensureLegacySqlPrerequisites(client);",
-    "await runSqlMigrations(client, sqlMigrations);",
+    "await runSqlMigrations(client, sqlMigrations, {",
+    "hostedAuthCompatibility,",
   ];
   let previousIndex = -1;
   for (const stage of orderedStages) {

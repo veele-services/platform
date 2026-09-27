@@ -754,6 +754,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FIELDGRID_MIGRATION_DATABASE_URL: ${{ steps.migration-database-url.outputs.url }}
+          FIELDGRID_HOSTED_MIGRATION_BRIDGE: disposable-rebuild-v1
           REBUILD_CONFIRMATION: ${{ inputs.confirmation }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_EMAIL }}
           FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_REBUILD_PLATFORM_ADMIN_PASSWORD }}

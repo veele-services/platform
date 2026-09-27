@@ -234,7 +234,9 @@ try {
     ],
   );
   await bootstrapDatabase(migration, bootstrap, { platform: platformId });
-  const database = await verifyRebuiltDatabase(migration);
+  const database = await verifyRebuiltDatabase(migration, {
+    requireHostedMigrationBridge: true,
+  });
   const bootstrapProof = await verifyBootstrap(migration, bootstrap, {
     platform: platformId,
   });
@@ -293,7 +295,9 @@ try {
     migrationEnvironment(),
   );
   await bootstrapDatabase(migration, bootstrap, { platform: platformId });
-  const retryDatabase = await verifyRebuiltDatabase(migration);
+  const retryDatabase = await verifyRebuiltDatabase(migration, {
+    requireHostedMigrationBridge: true,
+  });
   const finalState = await verifyPlatformOnlyDatabaseState(
     migration,
     platformId,

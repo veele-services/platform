@@ -455,7 +455,8 @@ function migrationChildEnvironment(env) {
     FORBIDDEN_SUPABASE_PROJECT_REF: env.FORBIDDEN_SUPABASE_PROJECT_REF,
     DATABASE_URL: env.DATABASE_URL,
     FIELDGRID_MIGRATION_DATABASE_URL: env.FIELDGRID_MIGRATION_DATABASE_URL,
-    FIELDGRID_HOSTED_MIGRATION_BRIDGE: "disposable-rebuild-v1",
+    FIELDGRID_HOSTED_MIGRATION_BRIDGE:
+      env.FIELDGRID_HOSTED_MIGRATION_BRIDGE,
     FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
     FIELDGRID_DATABASE_SSL_ROOT_CERT: env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
     FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING: "disabled",
@@ -931,7 +932,10 @@ export async function verifyPlatformOnlyDatabaseState(
   };
 }
 
-export async function verifyRebuiltDatabase(client) {
+export async function verifyRebuiltDatabase(
+  client,
+  { requireHostedMigrationBridge = false } = {},
+) {
   const missingRls = await client.query(`
     SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind IN ('r','p') AND NOT c.relrowsecurity
@@ -1003,58 +1007,61 @@ export async function verifyRebuiltDatabase(client) {
     "BOOTSTRAPPED",
     true,
   );
-  const hostedBridge = await client.query(`
-    SELECT
-      (SELECT pg_get_userbyid(p.proowner)
-         FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-        WHERE n.nspname='app_private'
-          AND p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_owner,
-      (SELECT p.prosecdef
-         FROM pg_proc p
-        WHERE p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_security_definer,
-      has_schema_privilege('fieldgrid_migration_admin','auth','USAGE') AS auth_usage,
-      (SELECT count(*)::int
-         FROM pg_auth_members membership
-         JOIN pg_roles role_row ON role_row.oid=membership.roleid
-         JOIN pg_roles member_row ON member_row.oid=membership.member
-         JOIN pg_roles grantor_row ON grantor_row.oid=membership.grantor
-        WHERE role_row.rolname='fieldgrid_migration_admin'
-          AND member_row.rolname='postgres'
-          AND grantor_row.rolname='postgres') AS temporary_membership_count,
-      (SELECT count(*)::int
-         FROM pg_trigger trigger_row
-         JOIN pg_class relation ON relation.oid=trigger_row.tgrelid
-         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
-        WHERE namespace_row.nspname='auth' AND relation.relname='users'
-          AND trigger_row.tgname='on_auth_user_created'
-          AND NOT trigger_row.tgisinternal) AS obsolete_trigger_count
-  `);
-  requireThat(
-    hostedBridge.rows.length === 1 &&
-      hostedBridge.rows[0]?.snapshot_owner === "postgres" &&
-      hostedBridge.rows[0]?.snapshot_security_definer === true &&
-      hostedBridge.rows[0]?.auth_usage === false &&
-      hostedBridge.rows[0]?.temporary_membership_count === 0 &&
-      hostedBridge.rows[0]?.obsolete_trigger_count === 0,
-    "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
-    "BOOTSTRAPPED",
-    true,
-  );
-  const exactHostedBridge = await verifyHostedMigrationBridgeFinalState(
-    client,
-  ).catch(() => null);
-  requireThat(
-    exactHostedBridge !== null &&
-      exactHostedBridge.functionCount === 9 &&
-      exactHostedBridge.runtimeAdaptersInstalled === true &&
-      exactHostedBridge.authSnapshot !== null &&
-      exactHostedBridge.storage?.policyCount === 21 &&
-      exactHostedBridge.storage?.bucketCount === 7 &&
-      exactHostedBridge.storage?.objectCount === 0,
-    "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
-    "BOOTSTRAPPED",
-    true,
-  );
+  let exactHostedBridge = null;
+  if (requireHostedMigrationBridge) {
+    const hostedBridge = await client.query(`
+      SELECT
+        (SELECT pg_get_userbyid(p.proowner)
+           FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+          WHERE n.nspname='app_private'
+            AND p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_owner,
+        (SELECT p.prosecdef
+           FROM pg_proc p
+          WHERE p.oid=to_regprocedure('app_private.fieldgrid_auth_user_snapshot(uuid)')) AS snapshot_security_definer,
+        has_schema_privilege('fieldgrid_migration_admin','auth','USAGE') AS auth_usage,
+        (SELECT count(*)::int
+           FROM pg_auth_members membership
+           JOIN pg_roles role_row ON role_row.oid=membership.roleid
+           JOIN pg_roles member_row ON member_row.oid=membership.member
+           JOIN pg_roles grantor_row ON grantor_row.oid=membership.grantor
+          WHERE role_row.rolname='fieldgrid_migration_admin'
+            AND member_row.rolname='postgres'
+            AND grantor_row.rolname='postgres') AS temporary_membership_count,
+        (SELECT count(*)::int
+           FROM pg_trigger trigger_row
+           JOIN pg_class relation ON relation.oid=trigger_row.tgrelid
+           JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+          WHERE namespace_row.nspname='auth' AND relation.relname='users'
+            AND trigger_row.tgname='on_auth_user_created'
+            AND NOT trigger_row.tgisinternal) AS obsolete_trigger_count
+    `);
+    requireThat(
+      hostedBridge.rows.length === 1 &&
+        hostedBridge.rows[0]?.snapshot_owner === "postgres" &&
+        hostedBridge.rows[0]?.snapshot_security_definer === true &&
+        hostedBridge.rows[0]?.auth_usage === false &&
+        hostedBridge.rows[0]?.temporary_membership_count === 0 &&
+        hostedBridge.rows[0]?.obsolete_trigger_count === 0,
+      "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
+      "BOOTSTRAPPED",
+      true,
+    );
+    exactHostedBridge = await verifyHostedMigrationBridgeFinalState(
+      client,
+    ).catch(() => null);
+    requireThat(
+      exactHostedBridge !== null &&
+        exactHostedBridge.functionCount === 9 &&
+        exactHostedBridge.runtimeAdaptersInstalled === true &&
+        exactHostedBridge.authSnapshot !== null &&
+        exactHostedBridge.storage?.policyCount === 21 &&
+        exactHostedBridge.storage?.bucketCount === 7 &&
+        exactHostedBridge.storage?.objectCount === 0,
+      "HOSTED_MIGRATION_BRIDGE_FINAL_STATE_INVALID",
+      "BOOTSTRAPPED",
+      true,
+    );
+  }
   const realtime = await client.query(`
     SELECT count(*)::int AS count FROM pg_publication_tables
     WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='portal_realtime_events'
@@ -1083,7 +1090,7 @@ export async function verifyRebuiltDatabase(client) {
     operationalQueuesEmpty: true,
     publicRls: true,
     hostedAuthForeignKeys: hostedAuth.rows.length,
-    hostedMigrationBridgeFinalized: true,
+    hostedMigrationBridgeFinalized: requireHostedMigrationBridge,
     hostedMigrationBridge: exactHostedBridge,
   };
 }
