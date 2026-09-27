@@ -600,7 +600,7 @@ export async function applyBootstrap(client, password, { injectFailure } = {}) {
       `GRANT ${identifier(MIGRATION_ROLE)} TO postgres WITH INHERIT TRUE, SET TRUE`,
     );
     await client.query(
-      `GRANT CONNECT,CREATE ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
+      `GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
     );
     await client.query(
       `GRANT USAGE ON SCHEMA auth TO ${identifier(MIGRATION_ROLE)}`,
@@ -744,6 +744,78 @@ export async function repairCommittedTargetSchemaPrivileges(client) {
   return { repairedSchemas: proof.rows.map(({ nspname }) => nspname) };
 }
 
+export async function repairCommittedLegacyPrivileges(client) {
+  await staged("legacy-repair-identity", () => assertLegacyPrincipal(client));
+  const inventory = await staged("legacy-repair-provider-inventory", () =>
+    client.query(
+      `SELECT target.oid AS role_oid,auth_schema.oid AS auth_schema_oid,
+         auth_users.oid AS auth_users_oid
+       FROM pg_roles target
+       LEFT JOIN pg_namespace auth_schema ON auth_schema.nspname='auth'
+       LEFT JOIN pg_class auth_users
+         ON auth_users.relnamespace=auth_schema.oid
+        AND auth_users.relname='users'
+        AND auth_users.relkind IN ('r','p')
+       WHERE target.rolname=$1`,
+      [MIGRATION_ROLE],
+    ),
+  );
+  const provider = inventory.rows[0];
+  requireThat(
+    inventory.rows.length === 1 &&
+      provider.role_oid != null &&
+      provider.auth_schema_oid != null &&
+      provider.auth_users_oid != null,
+    "TARGET_PROVIDER_OBJECT_MISSING",
+  );
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL lock_timeout='10s'");
+    await staged("legacy-repair-database-grant", () =>
+      client.query(
+        `GRANT CONNECT,CREATE,TEMPORARY ON DATABASE postgres TO ${identifier(MIGRATION_ROLE)}`,
+      ),
+    );
+    await staged("legacy-repair-auth-schema-grant", () =>
+      client.query(
+        `GRANT USAGE ON SCHEMA auth TO ${identifier(MIGRATION_ROLE)}`,
+      ),
+    );
+    await staged("legacy-repair-auth-column-grant", () =>
+      client.query(
+        `GRANT SELECT (id,email,raw_app_meta_data) ON TABLE auth.users TO ${identifier(MIGRATION_ROLE)}`,
+      ),
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  }
+  const proof = await staged("legacy-repair-provider-proof", () =>
+    client.query(
+      `SELECT
+         has_database_privilege($1,current_database(),'CONNECT') AS connect,
+         has_database_privilege($1,current_database(),'CREATE') AS create,
+         has_database_privilege($1,current_database(),'TEMPORARY') AS temporary,
+         has_schema_privilege($1,$2::oid,'USAGE') AS auth_usage,
+         NOT has_table_privilege($1,$3::oid,'SELECT') AS auth_no_table_select,
+         has_column_privilege($1,$3::oid,'id','SELECT') AS auth_id,
+         has_column_privilege($1,$3::oid,'email','SELECT') AS auth_email,
+         has_column_privilege($1,$3::oid,'raw_app_meta_data','SELECT') AS auth_metadata`,
+      [MIGRATION_ROLE, provider.auth_schema_oid, provider.auth_users_oid],
+    ),
+  );
+  requireThat(
+    Object.values(proof.rows[0] ?? {}).every((value) => value === true),
+    "TARGET_PROVIDER_CAPABILITY_INVALID",
+  );
+  return {
+    databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+    authSchemaUsage: true,
+    authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+  };
+}
+
 export async function drainApplicationWriters(client) {
   const unknown = await client.query(
     `SELECT role.rolname
@@ -843,11 +915,30 @@ export async function verifyTargetLogin(client, managedDigest) {
       SELECT has_database_privilege(current_user,current_database(),'CONNECT') AS connect,
         has_database_privilege(current_user,current_database(),'CREATE') AS create,
         has_database_privilege(current_user,current_database(),'TEMPORARY') AS temporary,
-        has_schema_privilege(current_user,'auth','USAGE') AS auth_usage,
-        NOT has_table_privilege(current_user,'auth.users','SELECT') AS auth_no_table_select,
-        has_column_privilege(current_user,'auth.users','id','SELECT') AS auth_id,
-        has_column_privilege(current_user,'auth.users','email','SELECT') AS auth_email,
-        has_column_privilege(current_user,'auth.users','raw_app_meta_data','SELECT') AS auth_metadata
+        COALESCE((
+          SELECT has_schema_privilege(current_user,n.oid,'USAGE')
+          FROM pg_namespace n WHERE n.nspname='auth'
+        ),false) AS auth_usage,
+        COALESCE((
+          SELECT NOT has_table_privilege(current_user,c.oid,'SELECT')
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='auth' AND c.relname='users' AND c.relkind IN ('r','p')
+        ),false) AS auth_no_table_select,
+        COALESCE((
+          SELECT has_column_privilege(current_user,c.oid,'id','SELECT')
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='auth' AND c.relname='users' AND c.relkind IN ('r','p')
+        ),false) AS auth_id,
+        COALESCE((
+          SELECT has_column_privilege(current_user,c.oid,'email','SELECT')
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='auth' AND c.relname='users' AND c.relkind IN ('r','p')
+        ),false) AS auth_email,
+        COALESCE((
+          SELECT has_column_privilege(current_user,c.oid,'raw_app_meta_data','SELECT')
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='auth' AND c.relname='users' AND c.relkind IN ('r','p')
+        ),false) AS auth_metadata
     `),
   );
   requireThat(
@@ -858,7 +949,10 @@ export async function verifyTargetLogin(client, managedDigest) {
     client.query(`
       SELECT COALESCE(jsonb_agg(a.attname ORDER BY a.attname),'[]'::jsonb) AS columns
       FROM pg_attribute a
-      WHERE a.attrelid='auth.users'::regclass AND a.attnum>0 AND NOT a.attisdropped
+      JOIN pg_class c ON c.oid=a.attrelid
+      JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='auth' AND c.relname='users' AND c.relkind IN ('r','p')
+        AND a.attnum>0 AND NOT a.attisdropped
         AND has_column_privilege(current_user,a.attrelid,a.attnum,'SELECT')
     `),
   );

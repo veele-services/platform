@@ -263,6 +263,14 @@ function fixtures({
           repairedSchemas: ["app_private", "drizzle", "public"],
         };
       },
+      async repairCommittedLegacyPrivileges() {
+        calls.push("database.repairLegacyPrivileges");
+        return {
+          databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+          authSchemaUsage: true,
+          authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+        };
+      },
       async verifyRestoredHealth({ expectedSha }) {
         calls.push("services.health");
         assert.equal(expectedSha, STAGING);
@@ -393,8 +401,10 @@ test("recover resumes only an exact SAFE_STOPPED receipt and never reruns owners
   assert.equal(result.status, "passed");
   assert.equal(result.resumedFromSafeStopped, true);
   assert.equal(result.servicesRestored, true);
+  assert.equal(result.legacyPrivilegesRepaired, true);
   assert.equal(result.targetSchemaPrivilegesRepaired, true);
   assert.equal(calls.includes("database.apply"), false);
+  assert.ok(calls.includes("database.repairLegacyPrivileges"));
   assert.ok(calls.includes("database.repairTargetSchemaPrivileges"));
   assert.ok(calls.includes("database.targetProof"));
   assert.ok(calls.includes("services.restore"));

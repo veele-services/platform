@@ -8,6 +8,7 @@ import {
   bootstrapPlan,
   drainApplicationWriters,
   managedCatalogSnapshot,
+  repairCommittedLegacyPrivileges,
   repairCommittedTargetSchemaPrivileges,
   verifyTargetLogin,
 } from "./staging-migration-admin/database.mjs";
@@ -274,10 +275,26 @@ try {
       `REVOKE ALL ON SCHEMA ${schema} FROM fieldgrid_migration_admin`,
     );
   }
+  await legacy.query(
+    "REVOKE USAGE ON SCHEMA auth FROM fieldgrid_migration_admin",
+  );
+  await legacy.query(
+    `REVOKE SELECT (id,email,raw_app_meta_data)
+     ON TABLE auth.users FROM fieldgrid_migration_admin`,
+  );
   await assert.rejects(
     target.query("SELECT count(*) FROM public.tenants"),
     (error) => error?.code === "42501",
   );
+  await assert.rejects(
+    verifyTargetLogin(target, before.digest),
+    /TARGET_CAPABILITY_INVALID/u,
+  );
+  assert.deepEqual(await repairCommittedLegacyPrivileges(legacy), {
+    databasePrivileges: ["CONNECT", "CREATE", "TEMPORARY"],
+    authSchemaUsage: true,
+    authUsersSelectColumns: ["email", "id", "raw_app_meta_data"],
+  });
   assert.deepEqual(
     (await repairCommittedTargetSchemaPrivileges(target)).repairedSchemas,
     ["app_private", "drizzle", "public"],
