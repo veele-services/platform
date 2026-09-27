@@ -625,6 +625,8 @@ export async function bootstrapPlan(client) {
   try {
     const ownership = await applicationOwnershipInventory(client);
     const managed = await managedCatalogSnapshot(client);
+    const hostedProviderCompatibility =
+      await hostedProviderCompatibilityInventory(client);
     await client.query("COMMIT");
     return {
       principal: legacy,
@@ -639,6 +641,7 @@ export async function bootstrapPlan(client) {
       legacyBootstrapAuthAclCompatible:
         managed.legacyBootstrapAuthAclCompatible,
       legacyBootstrapAuthAclCount: managed.legacyBootstrapAuthAclCount,
+      hostedProviderCompatibility,
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -818,6 +821,47 @@ async function ensureRole(client, verifier) {
   `);
 }
 
+export async function hostedProviderCompatibilityInventory(client) {
+  const providerStorage = await client.query(`
+    SELECT
+      (SELECT pg_get_userbyid(namespace_row.nspowner)
+         FROM pg_namespace namespace_row
+        WHERE namespace_row.nspname='storage') AS schema_owner,
+      (SELECT pg_get_userbyid(relation.relowner)
+         FROM pg_class relation
+         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname='storage' AND relation.relname='buckets'
+          AND relation.relkind IN ('r','p')) AS buckets_owner,
+      (SELECT pg_get_userbyid(relation.relowner)
+         FROM pg_class relation
+         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
+        WHERE namespace_row.nspname='storage' AND relation.relname='objects'
+          AND relation.relkind IN ('r','p')) AS objects_owner,
+      (SELECT pg_get_userbyid(routine.proowner)
+         FROM pg_proc routine
+        WHERE routine.oid=pg_catalog.to_regprocedure('storage.foldername(text)')) AS foldername_owner,
+      COALESCE(pg_catalog.has_schema_privilege(
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname='supabase_storage_admin'),
+        (SELECT namespace_row.oid FROM pg_namespace namespace_row
+          WHERE namespace_row.nspname='storage'),
+        'USAGE'
+      ),false) AS storage_admin_usage,
+      COALESCE(pg_has_role(
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname=current_user),
+        (SELECT role_row.oid FROM pg_roles role_row
+          WHERE role_row.rolname='supabase_storage_admin'),
+        'SET'
+      ),false) AS postgres_can_set_storage_role
+  `);
+  requireThat(
+    providerStorage.rows.length === 1,
+    "HOSTED_PROVIDER_STORAGE_INVENTORY_INVALID",
+  );
+  return providerStorage.rows[0];
+}
+
 async function installHostedMigrationBridge(client) {
   const existing = await client.query(
     `SELECT pg_get_userbyid(nspowner) AS owner
@@ -841,40 +885,29 @@ async function installHostedMigrationBridge(client) {
       ),
     "HOSTED_PROVIDER_AUTH_HELPERS_MISSING",
   );
-  const providerStorage = await client.query(`
-    SELECT
-      (SELECT pg_get_userbyid(namespace_row.nspowner)
-         FROM pg_namespace namespace_row
-        WHERE namespace_row.nspname='storage') AS schema_owner,
-      (SELECT pg_get_userbyid(relation.relowner)
-         FROM pg_class relation
-         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
-        WHERE namespace_row.nspname='storage' AND relation.relname='buckets'
-          AND relation.relkind IN ('r','p')) AS buckets_owner,
-      (SELECT pg_get_userbyid(relation.relowner)
-         FROM pg_class relation
-         JOIN pg_namespace namespace_row ON namespace_row.oid=relation.relnamespace
-        WHERE namespace_row.nspname='storage' AND relation.relname='objects'
-          AND relation.relkind IN ('r','p')) AS objects_owner,
-      (SELECT pg_get_userbyid(routine.proowner)
-         FROM pg_proc routine
-        WHERE routine.oid=pg_catalog.to_regprocedure('storage.foldername(text)')) AS foldername_owner,
-      pg_catalog.has_schema_privilege(
-        'supabase_storage_admin','storage','USAGE'
-      ) AS storage_admin_usage,
-      pg_has_role(current_user,'supabase_storage_admin','SET') AS postgres_can_set_storage_role
-  `);
+  const providerStorage = await hostedProviderCompatibilityInventory(client);
   requireThat(
-    providerStorage.rows.length === 1 &&
-      ["supabase_admin", "supabase_storage_admin"].includes(
-        providerStorage.rows[0]?.schema_owner,
-      ) &&
-      providerStorage.rows[0]?.buckets_owner === "supabase_storage_admin" &&
-      providerStorage.rows[0]?.objects_owner === "supabase_storage_admin" &&
-      providerStorage.rows[0]?.foldername_owner === "supabase_storage_admin" &&
-      providerStorage.rows[0]?.storage_admin_usage === true &&
-      providerStorage.rows[0]?.postgres_can_set_storage_role === true,
-    "HOSTED_PROVIDER_STORAGE_TOPOLOGY_INVALID",
+    ["supabase_admin", "supabase_storage_admin"].includes(
+      providerStorage.schema_owner,
+    ),
+    "HOSTED_PROVIDER_STORAGE_SCHEMA_OWNER_INVALID",
+  );
+  requireThat(
+    providerStorage.buckets_owner === "supabase_storage_admin" &&
+      providerStorage.objects_owner === "supabase_storage_admin",
+    "HOSTED_PROVIDER_STORAGE_RELATION_OWNER_INVALID",
+  );
+  requireThat(
+    providerStorage.foldername_owner === "supabase_storage_admin",
+    "HOSTED_PROVIDER_STORAGE_HELPER_OWNER_INVALID",
+  );
+  requireThat(
+    providerStorage.storage_admin_usage === true,
+    "HOSTED_PROVIDER_STORAGE_USAGE_INVALID",
+  );
+  requireThat(
+    providerStorage.postgres_can_set_storage_role === true,
+    "HOSTED_PROVIDER_STORAGE_SET_ROLE_INVALID",
   );
   await client.query(`
     CREATE SCHEMA IF NOT EXISTS ${identifier(HOSTED_MIGRATION_BRIDGE_SCHEMA)} AUTHORIZATION postgres;

@@ -146,6 +146,22 @@ test("bootstrap implementation is least-privilege, scoped and secret-safe", () =
     hostedBridge,
     /postgres_can_set_storage_role === true/u,
   );
+  assert.match(database, /hostedProviderCompatibilityInventory/u);
+  assert.match(database, /hostedProviderCompatibility,/u);
+  assert.match(
+    database,
+    /HOSTED_PROVIDER_STORAGE_SCHEMA_OWNER_INVALID/u,
+  );
+  assert.match(
+    database,
+    /HOSTED_PROVIDER_STORAGE_RELATION_OWNER_INVALID/u,
+  );
+  assert.match(
+    database,
+    /HOSTED_PROVIDER_STORAGE_HELPER_OWNER_INVALID/u,
+  );
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_USAGE_INVALID/u);
+  assert.match(database, /HOSTED_PROVIDER_STORAGE_SET_ROLE_INVALID/u);
   assert.match(
     bridgeContract,
     /STORAGE_SCHEMA_OWNERS = Object\.freeze\(\[\s+"supabase_admin",\s+STORAGE_OWNER,\s+\]\)/u,

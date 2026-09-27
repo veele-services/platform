@@ -316,6 +316,14 @@ try {
   assert.equal(plan.principal.name, "postgres");
   assert.equal(plan.targetRoleExists, false);
   assert.equal(plan.managedCatalogDigest, beforePlan.digest);
+  assert.deepEqual(plan.hostedProviderCompatibility, {
+    schema_owner: "supabase_admin",
+    buckets_owner: "supabase_storage_admin",
+    objects_owner: "supabase_storage_admin",
+    foldername_owner: "supabase_storage_admin",
+    storage_admin_usage: true,
+    postgres_can_set_storage_role: true,
+  });
   assert.equal(
     (await managedCatalogSnapshot(legacy)).digest,
     beforePlan.digest,
