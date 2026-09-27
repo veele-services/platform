@@ -34,6 +34,16 @@ const { Client } = pg;
 
 type Mode = "migrate" | "baseline";
 
+type MigrationFailureStage =
+  | "prepare-bridge"
+  | "ensure-history"
+  | "schema-guard"
+  | "drizzle"
+  | "legacy-prerequisites"
+  | "sql"
+  | "finalize-bridge"
+  | "abort-bridge-cleanup";
+
 type JournalEntry = {
   tag: string;
   when: number;
@@ -997,22 +1007,40 @@ async function runSqlMigrations(
     const migrationSql = hostedAuthCompatibility
       ? hostedAuthCompatibleSql(migration)
       : migration.sql;
-    const result = await runSqlMigrationTransaction(
-      client,
-      () => client.query(sqlForManagedMigrationTransaction(migrationSql)),
-      () => recordSqlMigration(client, migration, false),
-      {
-        prepareMigration: async () =>
-          (await sqlMigrationIsRecorded(client, migration))
-            ? "already-applied"
-            : "apply",
-        onDeadlockRetry: ({ sqlState, nextAttempt, maxAttempts, delayMs }) => {
-          console.warn(
-            `[db:migrate] SQL deadlock retry: ${migration.name} (SQLSTATE ${sqlState}, attempt ${nextAttempt}/${maxAttempts}, delay ${delayMs}ms).`,
-          );
+    let result;
+    try {
+      result = await runSqlMigrationTransaction(
+        client,
+        () => client.query(sqlForManagedMigrationTransaction(migrationSql)),
+        () => recordSqlMigration(client, migration, false),
+        {
+          prepareMigration: async () =>
+            (await sqlMigrationIsRecorded(client, migration))
+              ? "already-applied"
+              : "apply",
+          onDeadlockRetry: ({
+            sqlState,
+            nextAttempt,
+            maxAttempts,
+            delayMs,
+          }) => {
+            console.warn(
+              `[db:migrate] SQL deadlock retry: ${migration.name} (SQLSTATE ${sqlState}, attempt ${nextAttempt}/${maxAttempts}, delay ${delayMs}ms).`,
+            );
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      if (error && typeof error === "object" && Object.isExtensible(error)) {
+        Object.defineProperty(error, "migrationFailureName", {
+          configurable: false,
+          enumerable: false,
+          value: migration.name,
+          writable: false,
+        });
+      }
+      throw error;
+    }
     if (result === "already-applied") {
       console.log(
         `[db:migrate] SQL skipped after transaction recheck: ${migration.name}`,
@@ -1054,6 +1082,30 @@ async function finalizeHostedMigrationBridge(client: pg.Client): Promise<void> {
   );
 }
 
+async function runMigrationStage<T>(
+  stage: MigrationFailureStage,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      Object.isExtensible(error) &&
+      !("migrationFailureStage" in error)
+    ) {
+      Object.defineProperty(error, "migrationFailureStage", {
+        configurable: false,
+        enumerable: false,
+        value: stage,
+        writable: false,
+      });
+    }
+    throw error;
+  }
+}
+
 async function baseline(): Promise<void> {
   const allDrizzleMigrations = readDrizzleMigrations();
   const allSqlMigrations = readSqlMigrations();
@@ -1088,32 +1140,56 @@ export async function migrateWithClient(client: pg.Client): Promise<void> {
     expectedTablesFromGeneratedMigrations(drizzleMigrations);
 
   await withDatabaseMigrationLock(client, async () => {
-    const hostedAuthCompatibility = await prepareHostedMigrationBridge(client);
+    const hostedAuthCompatibility = await runMigrationStage(
+      "prepare-bridge",
+      () => prepareHostedMigrationBridge(client),
+    );
     try {
-      await ensureHistoryTables(client);
-      await assertNoUnbaselinedExistingSchema(client, expectedTables);
+      await runMigrationStage("ensure-history", () =>
+        ensureHistoryTables(client),
+      );
+      await runMigrationStage("schema-guard", () =>
+        assertNoUnbaselinedExistingSchema(client, expectedTables),
+      );
 
       console.log("[db:migrate] Applying Drizzle generated migrations.");
-      await runDrizzleGeneratedMigrations(client);
+      await runMigrationStage("drizzle", () =>
+        runDrizzleGeneratedMigrations(client),
+      );
 
-      await ensureHistoryTables(client);
-      await ensureLegacySqlPrerequisites(client);
-      await runSqlMigrations(client, sqlMigrations, {
-        hostedAuthCompatibility,
-      });
+      await runMigrationStage("ensure-history", () =>
+        ensureHistoryTables(client),
+      );
+      await runMigrationStage("legacy-prerequisites", () =>
+        ensureLegacySqlPrerequisites(client),
+      );
+      await runMigrationStage("sql", () =>
+        runSqlMigrations(client, sqlMigrations, {
+          hostedAuthCompatibility,
+        }),
+      );
       if (hostedAuthCompatibility) {
-        await finalizeHostedMigrationBridge(client);
+        await runMigrationStage("finalize-bridge", () =>
+          finalizeHostedMigrationBridge(client),
+        );
       }
     } catch (error) {
       if (hostedAuthCompatibility) {
         try {
           await abortHostedMigrationBridge(client);
         } catch (abortError) {
-          throw new AggregateError(
+          const aggregate = new AggregateError(
             [error, abortError],
             "Hosted migration failed and bridge cleanup could not be proven.",
             { cause: error },
           );
+          Object.defineProperty(aggregate, "migrationFailureStage", {
+            configurable: false,
+            enumerable: false,
+            value: "abort-bridge-cleanup",
+            writable: false,
+          });
+          throw aggregate;
         }
       }
       throw error;

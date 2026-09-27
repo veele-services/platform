@@ -455,8 +455,7 @@ function migrationChildEnvironment(env) {
     FORBIDDEN_SUPABASE_PROJECT_REF: env.FORBIDDEN_SUPABASE_PROJECT_REF,
     DATABASE_URL: env.DATABASE_URL,
     FIELDGRID_MIGRATION_DATABASE_URL: env.FIELDGRID_MIGRATION_DATABASE_URL,
-    FIELDGRID_HOSTED_MIGRATION_BRIDGE:
-      env.FIELDGRID_HOSTED_MIGRATION_BRIDGE,
+    FIELDGRID_HOSTED_MIGRATION_BRIDGE: env.FIELDGRID_HOSTED_MIGRATION_BRIDGE,
     FIELDGRID_DATABASE_CONNECTION_PURPOSE: "migration",
     FIELDGRID_DATABASE_SSL_ROOT_CERT: env.FIELDGRID_DATABASE_SSL_ROOT_CERT,
     FIELDGRID_DB_RUNTIME_ENV_FILE_LOADING: "disabled",
@@ -499,12 +498,38 @@ async function startMigrationWorker({ repoRoot, env }) {
     const state = message?.state;
     if (typeof state !== "string") return;
     if (state === "failed") {
-      const suffix =
+      const localSuffix =
         env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET === "1" &&
         typeof message.localCode === "string"
           ? `:${message.localCode}`
           : "";
-      rejectWaiters(new Error(`MIGRATION_WORKER_FAILED${suffix}`));
+      const failureStage =
+        typeof message.failureStage === "string" &&
+        /^(?:prepare-bridge|ensure-history|schema-guard|drizzle|legacy-prerequisites|sql|finalize-bridge|abort-bridge-cleanup|seed-rbac|seed-sectors|migrate|command)$/u.test(
+          message.failureStage,
+        )
+          ? message.failureStage
+          : "unknown";
+      const sqlState =
+        typeof message.sqlState === "string" &&
+        /^[0-9A-Z]{5}$/u.test(message.sqlState)
+          ? `:${message.sqlState}`
+          : "";
+      const migrationName =
+        typeof message.migrationName === "string" &&
+        /^[0-9A-Za-z][0-9A-Za-z._-]{0,127}\.sql$/u.test(message.migrationName)
+          ? `:${message.migrationName}`
+          : "";
+      const failureCode =
+        typeof message.failureCode === "string" &&
+        /^HOSTED_MIGRATION_BRIDGE_[A-Z0-9_]+$/u.test(message.failureCode)
+          ? `:${message.failureCode}`
+          : "";
+      rejectWaiters(
+        new Error(
+          `MIGRATION_WORKER_FAILED:${failureStage}${sqlState}${migrationName}${failureCode}${localSuffix}`,
+        ),
+      );
       return;
     }
     const waiter = waiters.get(state);

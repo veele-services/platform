@@ -24,6 +24,100 @@ function report(value: Record<string, unknown>): void {
   else process.stdout.write(`FIELDGRID_WORKER:${JSON.stringify(value)}\n`);
 }
 
+const SAFE_MIGRATION_FAILURE_STAGES = new Set([
+  "prepare-bridge",
+  "ensure-history",
+  "schema-guard",
+  "drizzle",
+  "legacy-prerequisites",
+  "sql",
+  "finalize-bridge",
+  "abort-bridge-cleanup",
+  "seed-rbac",
+  "seed-sectors",
+]);
+const SAFE_DATABASE_FAILURE_CODES = new Set([
+  "hosted_migration_bridge_principal_invalid",
+  "hosted_migration_bridge_requires_empty_application_schemas",
+  "hosted_migration_bridge_history_missing",
+  "hosted_migration_bridge_auth_snapshot_missing",
+  "hosted_migration_bridge_obsolete_auth_trigger_present",
+  "hosted_migration_bridge_storage_catalog_missing",
+  "hosted_migration_bridge_storage_not_empty",
+  "hosted_migration_bridge_unknown_storage_policy",
+  "hosted_migration_bridge_required_table_missing",
+  "hosted_migration_bridge_constraint_drift",
+  "Hosted migration bridge mode is invalid.",
+  "Hosted migration bridge is missing.",
+]);
+
+function errorChain(error: unknown): unknown[] {
+  const queue: unknown[] = [error];
+  const result: unknown[] = [];
+  const visited = new Set<unknown>();
+  while (queue.length > 0) {
+    const candidate = queue.shift();
+    if (!candidate || typeof candidate !== "object" || visited.has(candidate)) {
+      continue;
+    }
+    visited.add(candidate);
+    result.push(candidate);
+    if (candidate instanceof AggregateError) queue.push(...candidate.errors);
+    if ("cause" in candidate)
+      queue.push((candidate as { cause?: unknown }).cause);
+  }
+  return result;
+}
+
+function safeFailureStage(error: unknown, fallback: string): string {
+  const reported =
+    error && typeof error === "object" && "migrationFailureStage" in error
+      ? (error as { migrationFailureStage?: unknown }).migrationFailureStage
+      : undefined;
+  return typeof reported === "string" &&
+    SAFE_MIGRATION_FAILURE_STAGES.has(reported)
+    ? reported
+    : fallback;
+}
+
+function safeSqlState(error: unknown): string | undefined {
+  for (const candidate of errorChain(error)) {
+    const code = (candidate as { code?: unknown }).code;
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/u.test(code)) return code;
+  }
+  return undefined;
+}
+
+function safeMigrationName(error: unknown): string | undefined {
+  for (const candidate of errorChain(error)) {
+    const name = (candidate as { migrationFailureName?: unknown })
+      .migrationFailureName;
+    if (
+      typeof name === "string" &&
+      /^[0-9A-Za-z][0-9A-Za-z._-]{0,127}\.sql$/u.test(name)
+    ) {
+      return name;
+    }
+  }
+  return undefined;
+}
+
+function safeDatabaseFailureCode(error: unknown): string | undefined {
+  for (const candidate of errorChain(error)) {
+    const message = (candidate as { message?: unknown }).message;
+    if (
+      typeof message === "string" &&
+      SAFE_DATABASE_FAILURE_CODES.has(message)
+    ) {
+      return message
+        .replaceAll(/[.]/gu, "")
+        .replaceAll(/[ -]/gu, "_")
+        .toUpperCase();
+    }
+  }
+  return undefined;
+}
+
 await client.connect();
 const identity = await client.query<{
   pid: number;
@@ -43,6 +137,7 @@ report({
 });
 
 let recoveryPassword: string | undefined;
+let activeFailureStage = "command";
 async function restoreCredential(): Promise<void> {
   if (!recoveryPassword) return;
   await client.query(
@@ -82,8 +177,11 @@ try {
           report({ state: "armed" });
         } else if (command === "run") {
           const database = drizzle(client, { schema });
+          activeFailureStage = "migrate";
           await migrateWithClient(client);
+          activeFailureStage = "seed-rbac";
           await seedRbac(database);
+          activeFailureStage = "seed-sectors";
           await seedSectors(database);
           report({ state: "migrated" });
         } else if (command === "release") {
@@ -106,6 +204,10 @@ try {
 } catch (error) {
   report({
     state: "failed",
+    failureStage: safeFailureStage(error, activeFailureStage),
+    sqlState: safeSqlState(error),
+    migrationName: safeMigrationName(error),
+    failureCode: safeDatabaseFailureCode(error),
     localCode:
       process.env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET === "1" &&
       error instanceof Error

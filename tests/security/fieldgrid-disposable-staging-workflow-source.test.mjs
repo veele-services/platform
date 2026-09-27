@@ -235,6 +235,29 @@ test("rebuild code uses provider APIs, canonical migration and fixed application
   assert.match(contract, /"realtime"/u);
 });
 
+test("migration worker reports only bounded hosted failure diagnostics", () => {
+  const worker = read("scripts/disposable-staging/migration-worker.mts");
+  const database = read("scripts/disposable-staging/database.mjs");
+  const migrate = read("lib/db/src/migrate.ts");
+
+  assert.match(
+    worker,
+    /failureStage: safeFailureStage\(error, activeFailureStage\)/u,
+  );
+  assert.match(worker, /sqlState: safeSqlState\(error\)/u);
+  assert.match(worker, /migrationName: safeMigrationName\(error\)/u);
+  assert.match(worker, /failureCode: safeDatabaseFailureCode\(error\)/u);
+  assert.match(worker, /SAFE_DATABASE_FAILURE_CODES = new Set/u);
+  assert.match(worker, /\^\[0-9A-Z\]\{5\}\$/u);
+  assert.doesNotMatch(worker, /error\.stack/u);
+  assert.doesNotMatch(worker, /message:\s*error/u);
+  assert.match(database, /MIGRATION_WORKER_FAILED:\$\{failureStage\}/u);
+  assert.match(database, /\^\[0-9A-Z\]\{5\}\$/u);
+  assert.match(migrate, /runMigrationStage\("drizzle"/u);
+  assert.match(migrate, /runMigrationStage\("sql"/u);
+  assert.match(migrate, /runMigrationStage\("finalize-bridge"/u);
+});
+
 test("rebuilt administrators match stored metadata and existing activation routes", () => {
   const runner = read("scripts/disposable-staging/runner.mjs");
   const providers = read("scripts/disposable-staging/providers.mjs");
@@ -303,7 +326,7 @@ test("main exact-head gate executes a real PostgreSQL 17 clean migrate/bootstrap
     resetStart,
   );
   const firstSchemaDrop = database.indexOf(
-    'DROP SCHEMA IF EXISTS app_private CASCADE',
+    "DROP SCHEMA IF EXISTS app_private CASCADE",
     resetStart,
   );
   assert.match(hostedRunner, /FIELDGRID_SQL_MIGRATION_MAX_NAME/u);
