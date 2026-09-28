@@ -2,4 +2,5 @@
 
 Fresh rebuild started September 2026.
 
-Previous implementation is preserved in the archive/pre-rebuild-20260928-* branches.
+The previous implementation is preserved in the
+`archive/pre-rebuild-20260928-*` branches.
