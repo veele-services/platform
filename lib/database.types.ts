@@ -650,7 +650,7 @@ isOneToOne: false
                     "created_at": string,"email": string | null,"emergency_contact": NonNullable<Json>,"employee_number": string,"end_date": string | null,"full_name": string,"home_address": NonNullable<Json>,"id": string,"phone": string | null,"start_date": string | null,"status": string,"tenant_id": string,"updated_at": string,"user_id": string | null,"version": number
                   }
                   Insert: {
-                    "created_at"?: string,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number": string,"end_date"?: string | null,"full_name": string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
+                    "created_at"?: string,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name": string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
                   }
                   Update: {
                     "created_at"?: string,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name"?: string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
@@ -1188,13 +1188,13 @@ isOneToOne: false
                   ]
                 },"tenant_settings": {
                   Row: {
-                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"updated_at": string,"white_label_enabled": boolean
+                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"personnel_number_prefix": string,"personnel_number_start": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"updated_at": string,"white_label_enabled": boolean
                   }
                   Insert: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"updated_at"?: string,"white_label_enabled"?: boolean
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Update: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"updated_at"?: string,"white_label_enabled"?: boolean
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Relationships: [
                     {
@@ -1779,6 +1779,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"suggest_personnel_number":
+{ Args: { "target_tenant_id": string }; Returns: string
+                           },
 "transition_work_order":
 { Args: { "action": string,"expected_version": number,"idempotency_key": string,"note"?: string,"reason_code"?: string,"target_work_order_id": string }; Returns: {
               "actual_end_at": string | null,

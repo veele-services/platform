@@ -16,13 +16,14 @@ import type { ActionResult } from "@/lib/actions/result";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
 import { BrandPalettePreview } from "@/components/fieldgrid/brand-palette-preview";
 import { brandThemeStyle } from "@/lib/branding/palette";
+import { formatPersonnelNumber, PERSONNEL_NUMBER_MAX } from "@/lib/personnel/numbering";
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
   createAnnouncement, createQuote, createRequest,
   createTask, dispatchWorkOrder,
   updateTenantBranding, withdrawAnnouncement, createBookingLink,
-  uploadTenantLogo,
+  uploadTenantLogo, updatePersonnelNumberSettings,
   rescheduleWorkOrder, recordQuoteDecision, sendQuoteEmail,
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
@@ -170,8 +171,9 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
     </>;
 
     return <>
-      <PageIntro eyebrow="BEHEER" title="Instellingen" description="Tenantbranding, logo en afzendergegevens voor alle operationele schermen." />
+      <PageIntro eyebrow="BEHEER" title="Instellingen" description="Huisstijl, afzendergegevens en nummering voor jouw organisatie." />
       <TenantBrandingSettings key={tenant.id} tenant={tenant} data={data}/>
+      {tenant.enabledServices.includes("personeel") && (context.isPlatformAdmin || tenant.roles.some((role) => ["tenant_admin", "management"].includes(role))) && <PersonnelNumberSettings key={`${tenant.id}:${data.settings?.personnel_number_prefix}:${data.settings?.personnel_number_start}`} settings={data.settings}/>}
     </>;
   })();
 
@@ -179,6 +181,21 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
     <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
     <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
+}
+
+function PersonnelNumberSettings({ settings }: { settings: WorkspaceData["settings"] }) {
+  const [prefix, setPrefix] = useState(settings?.personnel_number_prefix ?? "P-");
+  const [start, setStart] = useState(String(settings?.personnel_number_start ?? 1));
+  const validStart = Number.isInteger(Number(start)) && Number(start) >= 1 && Number(start) <= PERSONNEL_NUMBER_MAX;
+  return <section className="panel personnel-number-settings" aria-labelledby="personnel-number-settings-title">
+    <div className="section-heading"><div><span className="eyebrow">PERSONEEL</span><h2 id="personnel-number-settings-title">Personeelsnummering</h2></div></div>
+    <p className="form-note">Nieuwe medewerkers krijgen automatisch een nummer. In de wizard kun je dit per medewerker aanpassen. Bestaande nummers blijven gelijk.</p>
+    <ActionForm action={updatePersonnelNumberSettings} className="workspace-form" success="Nummering opslaan">
+      <label>Voorvoegsel (prefix)<input name="prefix" value={prefix} onChange={(event) => setPrefix(event.target.value)} maxLength={20} pattern="[A-Za-z0-9_\-]*" placeholder="P-"/><small>Bijvoorbeeld P- of MW-. Leeg laten mag ook.</small></label>
+      <label>Startnummer<input name="startNumber" type="number" min={1} max={PERSONNEL_NUMBER_MAX} step={1} value={start} onChange={(event) => setStart(event.target.value)} required/><small>We tellen vanaf dit nummer verder; al gebruikte nummers slaan we over.</small></label>
+      <div className="wizard-note wide" aria-live="polite"><UsersRound size={18}/><span>Voorbeeld bij dit startnummer: <strong>{validStart ? formatPersonnelNumber(prefix.trim(), Number(start)) : "—"}</strong>. De reeks gebruikt minimaal vier cijfers en loopt verder na het hoogste gebruikte nummer.</span></div>
+    </ActionForm>
+  </section>;
 }
 
 function TenantBrandingSettings({ tenant, data }: { tenant: NonNullable<AuthContext["tenant"]>; data: WorkspaceData }) {

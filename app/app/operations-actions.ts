@@ -14,6 +14,7 @@ import { sendEmail } from "@/lib/providers/sendgrid";
 import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
 import { CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
+import { personnelNumberInputSchema, personnelNumberSettingsSchema } from "@/lib/personnel/numbering";
 
 async function authorized(roles: AppRole[], services: string[] = []): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
@@ -371,13 +372,47 @@ export async function createAnnouncement(formData: FormData): Promise<ActionResu
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 
-export async function invitePersonnel(formData: FormData): Promise<ActionResult> {
+export async function suggestPersonnelNumber(): Promise<ActionResult<{ employeeNumber: string }>> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"], ["personeel"]);
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("suggest_personnel_number", { target_tenant_id: context.tenant.id });
+    if (error) throw new Error(error.message);
+    return { ok: true, employeeNumber: data };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updatePersonnelNumberSettings(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"], ["personeel"]);
+    const input = personnelNumberSettingsSchema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("tenant_settings").update({
+      personnel_number_prefix: input.prefix, personnel_number_start: input.startNumber,
+    }).eq("tenant_id", context.tenant.id).select("tenant_id").single();
+    if (error || !data) throw new Error(error?.message ?? "De nummering kon niet worden opgeslagen.");
+    revalidatePath("/app", "layout");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function invitePersonnel(formData: FormData): Promise<ActionResult<{ employeeNumber: string }>> {
   try {
     const context = await authorized(["tenant_admin", "management", "hr"], ["personeel"]);
     const input = z.object({
-      name: z.string().trim().min(2).max(160), email: z.string().email(), employeeNumber: z.string().trim().min(1).max(80),
+      name: z.string().trim().min(2).max(160), email: z.string().email(),
       phone: z.string().trim().max(40).optional(), startDate: z.string().date().or(z.literal("")),
     }).parse(Object.fromEntries(formData));
+    const numbering = personnelNumberInputSchema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    // Validate a manual override before sending an invitation. The unique database
+    // constraint remains the final guard if two requests race after this check.
+    if (numbering.employeeNumberMode === "manual") {
+      const { data: existing, error } = await supabase.from("personnel").select("id")
+        .eq("tenant_id", context.tenant.id).eq("employee_number", numbering.employeeNumber).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (existing) throw new Error("Dit personeelsnummer is al in gebruik. Kies een ander nummer.");
+    }
     const admin = createAdminClient();
     let userId: string | undefined;
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(input.email, { redirectTo: tenantAppUrl(context.tenant.slug, "/auth/confirm") });
@@ -391,13 +426,12 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult>
       }
     }
     if (!userId) throw inviteError ?? new Error("De gebruiker kon niet worden uitgenodigd");
-    const supabase = await createClient();
     const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: userId, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
     if (membershipError) throw membershipError;
-    const { error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: input.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null });
-    if (personnelError) throw personnelError;
-    revalidatePath("/app");
-    return { ok: true };
+    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null }).select("employee_number").single();
+    if (personnelError) throw new Error(personnelError.code === "23505" ? "Deze medewerker of dit personeelsnummer bestaat al. Controleer de personeelslijst." : personnelError.message);
+    revalidatePath("/app", "layout");
+    return { ok: true, employeeNumber: person.employee_number };
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 
@@ -415,7 +449,7 @@ export async function updatePersonnel(formData: FormData): Promise<ActionResult>
       full_name: input.name, email: input.email || null, employee_number: input.employeeNumber,
       phone: input.phone || null, start_date: input.startDate || null, status: input.status, version: input.version + 1,
     }).eq("tenant_id", context.tenant.id).eq("id", input.personnelId).eq("version", input.version).select("id").maybeSingle();
-    if (error) throw error;
+    if (error) throw new Error(error.code === "23505" ? "Dit personeelsnummer is al in gebruik. Kies een ander nummer." : error.message);
     if (!data) throw new Error("Deze medewerker is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
     revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
