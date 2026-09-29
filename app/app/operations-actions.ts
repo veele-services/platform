@@ -15,6 +15,7 @@ import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
 import { CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
 import { personnelNumberInputSchema, personnelNumberSettingsSchema } from "@/lib/personnel/numbering";
+import { deliverPersonnelInvitation, preparePersonnelAccount, requirePersonnelEmail } from "@/lib/personnel/invitations";
 
 async function authorized(roles: AppRole[], services: string[] = []): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
@@ -396,15 +397,21 @@ export async function updatePersonnelNumberSettings(formData: FormData): Promise
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 
-export async function invitePersonnel(formData: FormData): Promise<ActionResult<{ employeeNumber: string }>> {
+export async function invitePersonnel(formData: FormData): Promise<ActionResult<{ employeeNumber: string; warning?: string }>> {
   try {
     const context = await authorized(["tenant_admin", "management", "hr"], ["personeel"]);
     const input = z.object({
-      name: z.string().trim().min(2).max(160), email: z.string().email(),
+      name: z.string().trim().min(2).max(160), email: z.string().trim().email().toLowerCase(),
       phone: z.string().trim().max(40).optional(), startDate: z.string().date().or(z.literal("")),
     }).parse(Object.fromEntries(formData));
     const numbering = personnelNumberInputSchema.parse(Object.fromEntries(formData));
+    requirePersonnelEmail();
     const supabase = await createClient();
+    // Reject repeat submissions before rotating an outstanding activation link.
+    const { data: sameEmail, error: emailLookupError } = await supabase.from("personnel").select("id")
+      .eq("tenant_id", context.tenant.id).ilike("email", input.email.replace(/[\\%_]/g, "\\$&")).limit(1);
+    if (emailLookupError) throw new Error("De personeelsgegevens konden niet worden gecontroleerd.");
+    if (sameEmail?.length) throw new Error("Deze medewerker bestaat al. Gebruik ‘Meer → Uitnodiging opnieuw versturen’ in de personeelslijst.");
     // Validate a manual override before sending an invitation. The unique database
     // constraint remains the final guard if two requests race after this check.
     if (numbering.employeeNumberMode === "manual") {
@@ -413,25 +420,44 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult<
       if (error) throw new Error(error.message);
       if (existing) throw new Error("Dit personeelsnummer is al in gebruik. Kies een ander nummer.");
     }
-    const admin = createAdminClient();
-    let userId: string | undefined;
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(input.email, { redirectTo: tenantAppUrl(context.tenant.slug, "/auth/confirm") });
-    if (!inviteError) userId = invited.user.id;
-    if (!userId) {
-      for (let page = 1; page <= 100 && !userId; page += 1) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
-        if (error) throw error;
-        userId = data.users.find((user) => user.email?.toLowerCase() === input.email.toLowerCase())?.id;
-        if (data.users.length < 100) break;
-      }
-    }
-    if (!userId) throw inviteError ?? new Error("De gebruiker kon niet worden uitgenodigd");
-    const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: userId, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
+    const account = await preparePersonnelAccount(input.email);
+    const { data: existingPerson, error: personLookupError } = await supabase.from("personnel").select("id").eq("tenant_id", context.tenant.id).eq("user_id", account.userId).maybeSingle();
+    if (personLookupError) throw new Error("De personeelsgegevens konden niet worden gecontroleerd.");
+    if (existingPerson) throw new Error("Deze medewerker bestaat al. Gebruik ‘Meer → Uitnodiging opnieuw versturen’ in de personeelslijst.");
+    const { data: membership, error: membershipLookupError } = await supabase.from("tenant_memberships").select("roles,status").eq("tenant_id", context.tenant.id).eq("user_id", account.userId).maybeSingle();
+    if (membershipLookupError) throw new Error("De toegangsrechten konden niet worden gecontroleerd.");
+    if (membership && membership.status !== "active") throw new Error("Dit account is niet actief binnen jouw organisatie. Laat de beheerder dit eerst controleren.");
+    const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: account.userId, roles: [...new Set<AppRole>([...(membership?.roles ?? []), "staff"])], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
     if (membershipError) throw membershipError;
-    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null }).select("employee_number").single();
+    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: account.userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null }).select("id,employee_number").single();
     if (personnelError) throw new Error(personnelError.code === "23505" ? "Deze medewerker of dit personeelsnummer bestaat al. Controleer de personeelslijst." : personnelError.message);
     revalidatePath("/app", "layout");
-    return { ok: true, employeeNumber: person.employee_number };
+    try {
+      const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, email: input.email, full_name: input.name }, tokenHash: account.tokenHash });
+      return { ok: true, employeeNumber: person.employee_number, ...delivery };
+    } catch (error) {
+      return { ok: true, employeeNumber: person.employee_number, warning: `De medewerker is aangemaakt. ${message(error)}` };
+    }
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function repeatPersonnelInvitation(formData: FormData): Promise<ActionResult<{ warning?: string }>> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"], ["personeel"]);
+    const personnelId = z.string().uuid().parse(formData.get("personnelId"));
+    requirePersonnelEmail();
+    const supabase = await createClient();
+    const { data: person, error } = await supabase.from("personnel").select("id,user_id,email,full_name,employee_number,status").eq("tenant_id", context.tenant.id).eq("id", personnelId).single();
+    if (error || !person.email || !person.user_id || !["invited", "active"].includes(person.status)) throw new Error("Deze medewerker kan niet worden uitgenodigd. Controleer het account, e-mailadres en de status.");
+    const { data: membership } = await supabase.from("tenant_memberships").select("roles,status").eq("tenant_id", context.tenant.id).eq("user_id", person.user_id).single();
+    if (membership?.status !== "active" || !membership.roles.includes("staff")) throw new Error("Dit account heeft geen actieve toegang tot het personeelsportaal.");
+    const admin = createAdminClient();
+    const { data: user } = await admin.auth.admin.getUserById(person.user_id);
+    if (user.user?.email?.toLowerCase() !== person.email.toLowerCase()) throw new Error("Het e-mailadres wijkt af van het account. Laat de beheerder dit eerst controleren.");
+    const account = await preparePersonnelAccount(person.email);
+    if (account.userId !== person.user_id) throw new Error("Het account kon niet worden gecontroleerd.");
+    const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, email: person.email }, tokenHash: account.tokenHash });
+    return { ok: true, ...delivery };
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 

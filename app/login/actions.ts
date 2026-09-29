@@ -50,5 +50,5 @@ export async function updatePassword(_: AuthState, formData: FormData): Promise<
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password: password.data });
   if (error) return { error: "Het wachtwoord kon niet worden gewijzigd." };
-  redirect("/app");
+  redirect(formData.get("next") === "/staff" ? "/staff" : "/app");
 }

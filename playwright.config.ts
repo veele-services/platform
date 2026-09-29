@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { loadEnvConfig } from "@next/env";
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 loadEnvConfig(process.cwd());
 if ((process.env.SUPABASE_URL ?? "").includes("127.0.0.1")) {
@@ -24,5 +26,11 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure", screenshot: "only-on-failure", locale: "nl-NL", timezoneId: "Europe/Amsterdam" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: { command: "pnpm dev", url: "http://127.0.0.1:3000/login", reuseExistingServer: !process.env.CI, timeout: 120_000 },
+  webServer: [
+    { command: "node tests/e2e/sendgrid-server.mjs", url: "http://127.0.0.1:59329/health", reuseExistingServer: false },
+    { command: "pnpm dev", url: "http://127.0.0.1:3000/login", reuseExistingServer: false, timeout: 120_000,
+      env: { DEPLOY_TARGET: "local", FIELDGRID_TEST_SENDGRID: "1", SENDGRID_API_KEY: "SG.fieldgrid-local-e2e-placeholder", SENDGRID_FROM_EMAIL: "noreply@fieldgrid.test",
+        NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${pathToFileURL(resolve("tests/e2e/sendgrid-interceptor.mjs")).href}` },
+    },
+  ],
 });

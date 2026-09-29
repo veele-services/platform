@@ -50,9 +50,9 @@ function safeWebsiteUrl(value: string) {
   return safeHttpsUrl(domain.includes("://") ? domain : `https://${domain}`);
 }
 
-function safeEmailLogoUrl(value: string | null | undefined, mode: EmailRenderMode) {
+function safeEmailLogoUrl(value: string | null | undefined, mode: EmailRenderMode, allowLocalLinks = false) {
   const secure = safeHttpsUrl(value);
-  if (secure || mode !== "preview" || !value) return secure;
+  if (secure || (mode !== "preview" && !allowLocalLinks) || !value) return secure;
   try {
     const url = new URL(value);
     return url.protocol === "http:" && ["127.0.0.1", "localhost"].includes(url.hostname) ? url.href : null;
@@ -67,11 +67,13 @@ function paragraphHtml(value: string) {
 
 export function renderTenantEmailHtml(input: {
   brand: EmailBrand;
-  kind: Extract<TemplateKey, "invoice" | "quote">;
+  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation";
   message: EmailMessage;
   values?: TemplateValues;
   targetUrl?: string;
   mode?: EmailRenderMode;
+  existingAccount?: boolean;
+  allowLocalLinks?: boolean;
 }) {
   const mode = input.mode ?? "delivery";
   const company = input.brand.company.trim() || "Uw organisatie";
@@ -84,16 +86,17 @@ export function renderTenantEmailHtml(input: {
   const primary = validColor(input.brand.primary, FIELDGRID_PRIMARY);
   const accent = validColor(input.brand.accent, FIELDGRID_SECONDARY);
   const onAccent = textOn(accent);
-  const preheader = input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
-  const eyebrow = input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
-  const cta = input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
-  const targetToken = input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
+  const personnelInvitation = input.kind === "personnel_invitation";
+  const preheader = personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
+  const eyebrow = personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
+  const cta = personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
+  const targetToken = personnelInvitation ? "{portaallink}" : input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
   const target = mode === "template"
     ? targetToken
     : mode === "preview"
       ? "https://voorbeeld.invalid/voorbeeld"
-      : safeHttpsUrl(input.targetUrl) ?? (() => { throw new Error("De transactielink is geen geldige HTTPS-URL"); })();
-  const logoUrl = safeEmailLogoUrl(input.brand.emailLogoUrl, mode);
+      : safeEmailLogoUrl(input.targetUrl, "delivery", input.allowLocalLinks) ?? (() => { throw new Error("De transactielink is geen geldige HTTPS-URL"); })();
+  const logoUrl = safeEmailLogoUrl(input.brand.emailLogoUrl, mode, input.allowLocalLinks);
   const headerBrand = logoUrl
     ? `<img src="${escapeHtml(logoUrl)}" width="110" alt="${escapeHtml(company)}" style="display:block;max-width:110px;max-height:44px;width:auto;height:auto;border:0;outline:none;text-decoration:none;">`
     : `<span style="display:block;color:${primary};font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;line-height:1.35;">${escapeHtml(company)}</span>`;
@@ -103,7 +106,7 @@ export function renderTenantEmailHtml(input: {
     : "";
   const senderEmail = input.brand.senderEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.brand.senderEmail) ? input.brand.senderEmail : null;
   const sender = senderEmail ? `<a href="mailto:${escapeHtml(senderEmail)}" style="color:#567384;text-decoration:underline;">${escapeHtml(senderEmail)}</a>` : "Neem contact op met onze administratie.";
-  const visibleTarget = mode === "preview" ? "Voorbeeldlink · geen echte betaling of aanvraag" : target;
+  const visibleTarget = mode === "preview" ? (personnelInvitation ? "Voorbeeldlink · geen echte uitnodiging" : "Voorbeeldlink · geen echte betaling of aanvraag") : target;
 
   return `<!doctype html>
 <html lang="nl">

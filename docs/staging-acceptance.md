@@ -49,6 +49,23 @@ naar het productieproject of de productie-VPS wijzen.
 
 ## Functionele acceptatie
 
+- Maak via **Personeel → Nieuwe medewerker** een testmedewerker aan met een eigen
+  testmailbox. De wizard legt de uitnodiging uit zonder technische providertermen.
+  Controleer dat één uitnodigingsmail via SendGrid aankomt, met tenantlogo (of
+  tenantnaam als er geen logo is), kleuren, personeelsnummer en een duidelijke
+  uitnodiging voor het **personeelsportaal**. Open de link, accepteer de uitnodiging,
+  kies een wachtwoord en controleer dat je op de juiste tenanthost in `/staff` komt.
+  Een bestaand account krijgt een portaallink en behoudt het bestaande wachtwoord.
+  Test **Meer → Uitnodiging opnieuw versturen**; er mag geen tweede medewerker of
+  personeelsnummer worden aangemaakt. Een gebruikte link of ingetrokken toegang
+  mag geen nieuwe portalsessie opleveren.
+  Personeelsuitnodigingen gebruiken de bestaande `SENDGRID_API_KEY` en
+  `SENDGRID_FROM_EMAIL`, de ingestelde tenant-afzendernaam en het gedeelde
+  huisstijlsjabloon; er is geen nieuwe secret, migratie of Supabase-mailtemplate nodig.
+  Klik-/open-tracking staat voor deze mails uit. Activatietokens staan niet in
+  verzendlogs en worden pas verbruikt bij bevestiging, niet door een GET van een
+  mailscanner. Echte inboxbezorging blijft een stagingacceptatiepunt: de lokale
+  browsertests gebruiken uitsluitend een in-memory SendGrid-testontvanger.
 - Open **Klanten → Bekijk** en controleer de tabbladen **Overzicht**, **Contactpersonen**,
   **Objecten**, **Notities** en **Documenten**, ook op mobiel en met het toetsenbord.
   Voeg een contact, interne notitie en een PDF/JPG/PNG-document (maximaal 10 MB) toe;

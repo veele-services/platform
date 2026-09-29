@@ -19,7 +19,10 @@ export type TemplateToken =
   | "offertelink"
   | "bonnummer"
   | "datum"
-  | "locatie";
+  | "locatie"
+  | "medewerkernaam"
+  | "personeelsnummer"
+  | "portaallink";
 
 export type TemplateValues = Partial<Record<TemplateToken, string>>;
 
@@ -74,6 +77,9 @@ export const PREVIEW_VALUES: Record<TemplateToken, string> = {
   bonnummer: "WB-2026-00581",
   datum: "30 september 2026",
   locatie: "Strandweg 18, Den Haag",
+  medewerkernaam: "Robin de Vries",
+  personeelsnummer: "P-0001",
+  portaallink: "https://voorbeeld.invalid/staff",
 };
 
 export function templateDefinition(key: TemplateKey): TemplateDefinition {

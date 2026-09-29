@@ -67,4 +67,13 @@ describe("SendGrid provider", () => {
 
     await expect(sendEmail(input)).rejects.toThrow("Afzender is niet geverifieerd");
   });
+
+  it("disables tracking for personal activation links", async () => {
+    const request = vi.fn<(url: string | URL | Request, init?: RequestInit) => Promise<Response>>();
+    request.mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", request);
+    await sendEmail({ ...input, disableTracking: true });
+    const body = JSON.parse(String(request.mock.calls[0][1]?.body));
+    expect(body.tracking_settings).toEqual({ click_tracking: { enable: false, enable_text: false }, open_tracking: { enable: false }, subscription_tracking: { enable: false }, ganalytics: { enable: false } });
+  });
 });
