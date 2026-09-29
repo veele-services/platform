@@ -192,6 +192,90 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
   }
 });
 
+test("klantdossier heeft vijf tabs en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
+  const openCustomer = async () => {
+    await page.getByRole("row").filter({ hasText: "Noordhaven Vastgoed" }).getByRole("button", { name: "Bekijk", exact: true }).click();
+  };
+  await openCustomer();
+  const dialog = page.getByRole("dialog", { name: "Noordhaven Vastgoed" });
+  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Notities", "Documenten"]);
+  await expect(dialog.getByRole("heading", { name: "Hoofdgegevens" })).toBeVisible();
+  await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();
+  await expect(dialog).toHaveScreenshot("customer-dossier-overview-1440.png");
+  await dialog.getByRole("tab", { name: "Overzicht", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog.getByRole("tab", { name: "Contactpersonen", exact: true })).toHaveAttribute("aria-selected", "true");
+  const unique = Date.now().toString(36);
+  await dialog.getByLabel("Naam", { exact: true }).fill(`Contact ${unique}`);
+  await dialog.getByLabel("E-mail", { exact: true }).fill("contact@customer.test");
+  await dialog.getByRole("button", { name: "Contact toevoegen" }).click();
+  await expect(dialog.getByText(`Contact ${unique}`, { exact: true })).toBeVisible();
+  await dialog.getByRole("tab", { name: "Objecten", exact: true }).click();
+  await expect(dialog.getByText("Noordhaven Kantoor", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Contact toevoegen" })).toBeHidden();
+  await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
+  const note = `Dossierafspraak ${unique}\nGraag aanmelden bij de receptie.`;
+  await dialog.getByLabel("Nieuwe notitie").fill(note);
+  await dialog.getByRole("button", { name: "Notitie toevoegen" }).click();
+  await expect(dialog.getByText(note, { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("Nieuwe notitie")).toHaveValue("");
+
+  await dialog.getByRole("tab", { name: "Documenten", exact: true }).click();
+  const title = `Overeenkomst ${unique}`;
+  await dialog.getByLabel("Titel", { exact: true }).fill(title);
+  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "too-large.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  await expect.poll(() => dialog.getByLabel("Bestand", { exact: true }).evaluate((element: HTMLInputElement) => element.validationMessage)).toBe("Gebruik een bestand van maximaal 10 MB");
+  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "invalid.pdf", mimeType: "application/pdf", buffer: Buffer.from("<html>not a PDF</html>") });
+  await dialog.getByRole("button", { name: "Document uploaden" }).click();
+  await expect(page.getByText("De bestandsinhoud komt niet overeen met PDF, JPG of PNG")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: `${title} downloaden` })).toHaveCount(0);
+  const { PDFDocument } = await import("pdf-lib");
+  const pdf = await PDFDocument.create();
+  pdf.addPage().drawText("Fieldgrid customer document test");
+  const bytes = Buffer.from(await pdf.save());
+  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "overeenkomst.pdf", mimeType: "application/pdf", buffer: bytes });
+  await dialog.getByRole("button", { name: "Document uploaden" }).click();
+  const downloadLink = dialog.getByRole("link", { name: `${title} downloaden` });
+  await expect(downloadLink).toBeVisible();
+  await dialog.screenshot({ path: "test-results/customer-dossier-documents.png" });
+  const downloadPath = await downloadLink.getAttribute("href");
+  const response = await page.request.get(downloadPath!);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-disposition"]).toContain("attachment");
+  expect(await response.body()).toEqual(bytes);
+
+  await page.reload();
+  await openCustomer();
+  await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
+  await expect(dialog.getByText(note, { exact: true })).toBeVisible();
+  await dialog.getByRole("tab", { name: "Documenten", exact: true }).click();
+  await expect(downloadLink).toBeVisible();
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const tab of ["Overzicht", "Contactpersonen", "Objecten", "Notities", "Documenten"]) {
+      await dialog.getByRole("tab", { name: tab, exact: true }).click();
+      await expect(dialog.getByRole("tabpanel")).toBeVisible();
+      await expect.poll(() => dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await dialog.getByRole("tab", { name: "Overzicht", exact: true }).click();
+  await expect(dialog).toHaveScreenshot("customer-dossier-overview-390.png");
+
+  const staffContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  try {
+    const staffPage = await staffContext.newPage();
+    await login(staffPage, "field-worker@fieldgrid.test", "/staff");
+    const denied = await staffContext.request.get(downloadPath!);
+    expect(denied.status()).toBe(404);
+  } finally {
+    await staffContext.close();
+  }
+});
+
 test("personeels-PWA opent een vrijgegeven bon, zet gezien en toont de echte checklist", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, "field-worker@fieldgrid.test", "/staff");

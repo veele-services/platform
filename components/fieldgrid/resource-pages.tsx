@@ -4,18 +4,20 @@ import { useMemo, useState, useTransition, type FormEvent, type MouseEvent as Re
 import { useRouter } from "next/navigation";
 import {
   ArrowDownAZ, ArrowUpAZ, Building2, CheckCircle2, ChevronLeft, ChevronRight,
-  Eye, MoreHorizontal, Pencil, Plus, Search,
+  Download, Eye, FileText, LayoutDashboard, MoreHorizontal, Pencil, Plus, Search, StickyNote,
   Send, SlidersHorizontal, Trash2, UserRoundPlus, UsersRound, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CUSTOMER_DOCUMENT_ACCEPT, CUSTOMER_DOCUMENT_MAX_BYTES } from "@/lib/customers/documents";
 import type { ActionResult } from "@/lib/actions/result";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import {
   addAvailability, addQualification, archiveCustomer, archiveObject, archivePersonnel,
-  assignPersonnelFunction, createCustomer, createCustomerContact, createObject,
+  assignPersonnelFunction, createCustomer, createCustomerContact, createCustomerNote, createObject,
   invitePersonnel, reviewWorkOrder, updateCustomer, updateObject, updatePersonnel,
-  uploadPersonnelDocument,
+  uploadCustomerDocument, uploadPersonnelDocument,
 } from "@/app/app/operations-actions";
 import {
   createInvoice, createPaymentBundle, registerManualPayment, sendInvoice,
@@ -159,7 +161,92 @@ function CustomerEdit({ customer, onClose }: { customer: Customer; onClose: () =
 function CustomerDetail({ customer, data, onClose }: { customer: Customer; data: WorkspaceData; onClose: () => void }) {
   const contacts = data.contacts.filter((item) => item.customer_id === customer.id);
   const objects = data.objects.filter((item) => item.customer_id === customer.id);
-  return <Modal title={customer.name} eyebrow={customer.customer_number} onClose={onClose} wide><div className="detail-grid"><div><span>Status</span><strong>{customer.status}</strong></div><div><span>Factuurmail</span><strong>{customer.billing_email ?? "—"}</strong></div><div><span>Telefoon</span><strong>{customer.phone ?? "—"}</strong></div><div><span>Adres</span><strong>{addressLine(customer.billing_address)}</strong></div></div><div className="modal-columns"><section><h3>Objecten</h3>{objects.length ? objects.map((item) => <div className="detail-row" key={item.id}><Building2 size={15}/><span><strong>{item.name}</strong><small>{addressLine(item.address)}</small></span></div>) : <p className="muted-p">Nog geen objecten gekoppeld.</p>}</section><section><h3>Contactpersonen</h3>{contacts.map((item) => <div className="detail-row" key={item.id}><UsersRound size={15}/><span><strong>{item.full_name}</strong><small>{item.email ?? item.phone ?? "Geen contactgegevens"}</small></span></div>)}<ServerForm action={createCustomerContact} success="Contactpersoon toegevoegd" submitLabel="Contact toevoegen"><input type="hidden" name="customerId" value={customer.id}/><label className="wide">Naam<input name="fullName" required/></label><label>E-mail<input name="email" type="email"/></label><label>Telefoon<input name="phone"/></label><label>Rol<input name="role"/></label><label className="check wide"><input name="primary" type="checkbox"/>Primair contact</label></ServerForm></section></div></Modal>;
+  const notes = data.customerNotes.filter((item) => item.customer_id === customer.id);
+  const documents = data.customerDocuments.filter((item) => item.customer_id === customer.id);
+  return <Modal title={customer.name} eyebrow={customer.customer_number} onClose={onClose} wide>
+    <Tabs defaultValue="overview" className="customer-detail-tabs">
+      <div className="customer-tabs-scroll">
+        <TabsList aria-label="Klantdossier" className="customer-tabs-list">
+          <TabsTrigger value="overview"><LayoutDashboard size={16}/>Overzicht</TabsTrigger>
+          <TabsTrigger value="contacts"><UsersRound size={16}/>Contactpersonen</TabsTrigger>
+          <TabsTrigger value="objects"><Building2 size={16}/>Objecten</TabsTrigger>
+          <TabsTrigger value="notes"><StickyNote size={16}/>Notities</TabsTrigger>
+          <TabsTrigger value="documents"><FileText size={16}/>Documenten</TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="overview" className="customer-tab-panel">
+        <div className="customer-section-heading"><h3>Hoofdgegevens</h3><p>De belangrijkste gegevens van deze klant op één plek.</p></div>
+        <div className="detail-grid">
+          <div><span>Status</span><strong>{customer.status === "active" ? "Actief" : customer.status === "lead" ? "Lead" : "Inactief"}</strong></div>
+          <div><span>Klantnummer</span><strong>{customer.customer_number}</strong></div>
+          <div><span>Factuurmail</span><strong>{customer.billing_email ?? "—"}</strong></div>
+          <div><span>Telefoon</span><strong>{customer.phone ?? "—"}</strong></div>
+          <div><span>Factuuradres</span><strong>{addressLine(customer.billing_address)}</strong></div>
+          <div><span>Betaaltermijn</span><strong>{customer.payment_terms_days ?? data.settings?.payment_terms_days ?? 14} dagen</strong></div>
+        </div>
+      </TabsContent>
+      <TabsContent value="contacts" className="customer-tab-panel">
+        <div className="modal-columns customer-dossier-columns">
+          <section><div className="customer-section-heading"><h3>Contactpersonen <span>{contacts.length}</span></h3><p>Aanspreekpunten binnen deze organisatie.</p></div>
+            {contacts.length ? contacts.map((item) => <article className="customer-dossier-card" key={item.id}>
+              <UsersRound size={18}/><div><strong>{item.full_name}</strong>{item.is_primary && <small className="customer-primary-contact">Primair contact</small>}
+                {item.role && <small>{item.role}</small>}{item.email && <small>{item.email}</small>}{item.phone && <small>{item.phone}</small>}
+                {!item.email && !item.phone && <small>Geen contactgegevens</small>}
+              </div>
+            </article>) : <p className="customer-dossier-empty">Nog geen contactpersonen toegevoegd.</p>}
+          </section>
+          <section className="customer-dossier-form"><h3>Contactpersoon toevoegen</h3>
+            <ServerForm action={createCustomerContact} success="Contactpersoon toegevoegd" submitLabel="Contact toevoegen">
+              <input type="hidden" name="customerId" value={customer.id}/>
+              <label className="wide">Naam<input name="fullName" required minLength={2}/></label>
+              <label>E-mail<input name="email" type="email"/></label><label>Telefoon<input name="phone" type="tel"/></label>
+              <label className="wide">Rol<input name="role"/></label>
+              <label className="check wide"><input name="primary" type="checkbox"/>Primair contact</label>
+            </ServerForm>
+          </section>
+        </div>
+      </TabsContent>
+      <TabsContent value="objects" className="customer-tab-panel">
+        <div className="customer-section-heading"><h3>Objecten <span>{objects.length}</span></h3><p>De uitvoeringslocaties die aan deze klant zijn gekoppeld.</p></div>
+        <div className="customer-dossier-list">{objects.length ? objects.map((item) => <article className="customer-dossier-card" key={item.id}>
+          <Building2 size={18}/><div><strong>{item.name}</strong><small>{item.object_number} · {item.active ? "Actief" : "Inactief"}</small><small>{addressLine(item.address)}</small>
+            {item.access_instructions && <p>{item.access_instructions}</p>}
+          </div>
+        </article>) : <p className="customer-dossier-empty">Nog geen objecten gekoppeld. Voeg een locatie toe via de pagina Objecten.</p>}</div>
+      </TabsContent>
+      <TabsContent value="notes" className="customer-tab-panel">
+        <div className="customer-section-heading"><h3>Notities <span>{notes.length}</span></h3><p>Interne afspraken en aandachtspunten voor de backoffice.</p></div>
+        <section className="customer-dossier-form">
+          <ServerForm action={createCustomerNote} success="Notitie toegevoegd" submitLabel="Notitie toevoegen">
+            <input type="hidden" name="customerId" value={customer.id}/>
+            <label className="wide">Nieuwe notitie<textarea name="body" rows={3} required maxLength={10000} placeholder="Leg een afspraak of aandachtspunt vast…"/></label>
+          </ServerForm>
+        </section>
+        <div className="customer-dossier-list">{notes.length ? notes.map((item) => <article className="customer-dossier-card customer-note" key={item.id}>
+          <StickyNote size={18}/><div><time dateTime={item.created_at}>{date(item.created_at)}</time><p>{item.body}</p></div>
+        </article>) : <p className="customer-dossier-empty">Nog geen notities toegevoegd.</p>}</div>
+      </TabsContent>
+      <TabsContent value="documents" className="customer-tab-panel">
+        <div className="customer-section-heading"><h3>Documenten <span>{documents.length}</span></h3><p>Privé opgeslagen bij deze klant, alleen toegankelijk voor de bevoegde backoffice.</p></div>
+        <section className="customer-dossier-form">
+          <ServerForm action={uploadCustomerDocument} success="Document geüpload" submitLabel="Document uploaden">
+            <input type="hidden" name="customerId" value={customer.id}/>
+            <label>Titel<input name="title" required minLength={2} maxLength={160} placeholder="Bijvoorbeeld: serviceovereenkomst"/></label>
+            <label>Bestand<input name="document" type="file" accept={CUSTOMER_DOCUMENT_ACCEPT} aria-describedby="customer-document-help" required onChange={(event) => {
+              const input = event.currentTarget;
+              input.setCustomValidity((input.files?.[0]?.size ?? 0) > CUSTOMER_DOCUMENT_MAX_BYTES ? "Gebruik een bestand van maximaal 10 MB" : "");
+              input.reportValidity();
+            }}/></label>
+            <p id="customer-document-help" className="muted-p wide">PDF, JPG of PNG · maximaal 10 MB per bestand.</p>
+          </ServerForm>
+        </section>
+        <div className="customer-dossier-list">{documents.length ? documents.map((item) => <article className="customer-dossier-card customer-document" key={item.id}>
+          <FileText size={18}/><div><strong>{item.title}</strong><small>{item.file_name} · {item.size_bytes >= 1024 * 1024 ? `${(item.size_bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.ceil(item.size_bytes / 1024))} KB`}</small><small>Toegevoegd op {date(item.created_at)}</small></div>
+          <a className="resource-action" href={`/api/files/customer-document/${item.id}`} aria-label={`${item.title} downloaden`}><Download size={14}/><span>Download</span></a>
+        </article>) : <p className="customer-dossier-empty">Nog geen documenten geüpload.</p>}</div>
+      </TabsContent>
+    </Tabs>
+  </Modal>;
 }
 
 export function CustomersPage({ data }: { data: WorkspaceData }) {

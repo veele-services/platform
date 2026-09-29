@@ -13,6 +13,7 @@ import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import { sendEmail } from "@/lib/providers/sendgrid";
 import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
+import { CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
 
 async function authorized(roles: AppRole[], services: string[] = []): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
@@ -549,6 +550,53 @@ export async function createCustomerContact(formData: FormData): Promise<ActionR
     const { error } = await supabase.from("customer_contacts").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, full_name: input.fullName, email: input.email || null, phone: input.phone || null, role: input.role || null, is_primary: input.primary === "on" });
     if (error) throw error;
     revalidatePath("/app"); return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createCustomerNote(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"], ["planning"]);
+    const input = z.object({ customerId: z.string().uuid(), body: z.string().trim().min(1).max(10000) }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("customer_notes").insert({
+      tenant_id: context.tenant.id, customer_id: input.customerId, body: input.body, created_by: context.user.id,
+    });
+    if (error) throw error;
+    revalidatePath("/app/klanten");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function uploadCustomerDocument(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"], ["planning"]);
+    const input = z.object({ customerId: z.string().uuid(), title: z.string().trim().min(2).max(160) }).parse(Object.fromEntries(formData));
+    const file = formData.get("document");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Selecteer een document");
+    if (file.size > CUSTOMER_DOCUMENT_MAX_BYTES) throw new Error("Gebruik PDF, JPG of PNG van maximaal 10 MB");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const extension = customerDocumentExtension(file.type, bytes);
+    const supabase = await createClient();
+    const { data: customer, error: customerError } = await supabase.from("customers").select("id")
+      .eq("tenant_id", context.tenant.id).eq("id", input.customerId).maybeSingle();
+    if (customerError) throw customerError;
+    if (!customer) throw new Error("Klant niet gevonden binnen deze tenant");
+    const path = `${context.tenant.id}/${customer.id}/${randomBytes(16).toString("hex")}.${extension}`;
+    const bucket = supabase.storage.from("customer-documents");
+    const { error: uploadError } = await bucket.upload(path, bytes, { contentType: file.type, upsert: false });
+    if (uploadError) throw uploadError;
+    const { error } = await supabase.from("customer_documents").insert({
+      tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path,
+      file_name: customerDocumentFileName(file.name), mime_type: file.type, size_bytes: file.size,
+      sha256: createHash("sha256").update(bytes).digest("hex"), created_by: context.user.id,
+    });
+    if (error) {
+      const { error: cleanupError } = await bucket.remove([path]);
+      if (cleanupError) throw new Error("Documentregistratie mislukt; het losse bestand kon niet worden opgeruimd. Neem contact op met de beheerder.");
+      throw error;
+    }
+    revalidatePath("/app/klanten");
+    return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 

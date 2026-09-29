@@ -206,6 +206,56 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
+                },"customer_documents": {
+                  Row: {
+                    "created_at": string,"created_by": string,"customer_id": string,"file_name": string,"id": string,"mime_type": string,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"customer_id": string,"file_name": string,"id"?: string,"mime_type": string,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"customer_id"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_documents_tenant_id_customer_id_fkey"
+      columns: ["tenant_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_documents_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_notes": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string,"customer_id": string,"id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by": string,"customer_id": string,"id"?: string,"tenant_id": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_notes_tenant_id_customer_id_fkey"
+      columns: ["tenant_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_notes_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"customers": {
                   Row: {
                     "billing_address": NonNullable<Json>,"billing_email": string | null,"created_at": string,"customer_number": string,"id": string,"name": string,"payment_terms_days": number | null,"phone": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number

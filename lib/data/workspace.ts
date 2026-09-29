@@ -8,6 +8,8 @@ type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tab
 export type WorkspaceData = {
   customers: Row<"customers">[];
   contacts: Row<"customer_contacts">[];
+  customerNotes: Row<"customer_notes">[];
+  customerDocuments: Row<"customer_documents">[];
   objects: Row<"objects">[];
   requests: Row<"requests">[];
   quotes: Row<"quotes">[];
@@ -91,6 +93,8 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     supabase.from("work_order_allowed_extra_work").select("*").eq("tenant_id", tenantId),
     supabase.from("travel_legs").select("*").eq("tenant_id", tenantId),
     supabase.from("personnel_functions").select("*").eq("tenant_id", tenantId),
+    supabase.from("customer_notes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+    supabase.from("customer_documents").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
   ]);
   const singleton = <T>(result: { data: T | null; error: { message: string } | null }): T | null => {
     if (result.error) throw new Error(result.error.message);
@@ -114,5 +118,7 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     extraWorkRules: rows(results[33]), allowedExtraWork: rows(results[34]),
     travelLegs: rows(results[35]),
     personnelFunctions: rows(results[36]),
+    customerNotes: rows(results[37]),
+    customerDocuments: rows(results[38]),
   };
 }

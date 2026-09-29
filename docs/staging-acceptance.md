@@ -49,6 +49,15 @@ naar het productieproject of de productie-VPS wijzen.
 
 ## Functionele acceptatie
 
+- Open **Klanten → Bekijk** en controleer de tabbladen **Overzicht**, **Contactpersonen**,
+  **Objecten**, **Notities** en **Documenten**, ook op mobiel en met het toetsenbord.
+  Voeg een contact, interne notitie en een PDF/JPG/PNG-document (maximaal 10 MB) toe;
+  controleer na herladen dat alles blijft staan en dat de download werkt.
+  Klantdossiers gebruiken de migratie `20260929214421_customer_dossier.sql` en de private
+  bucket `customer-documents`; geen handmatige bucketconfiguratie of extra secrets nodig.
+  Notities/documenten zijn alleen beschikbaar voor tenantbeheer, management, planning
+  en finance met de planningmodule actief. Controleer dat medewerkers en andere
+  tenants geen toegang hebben. Bestaande notities/documenten zijn niet overschrijfbaar.
 - Maak een aanvraag en offerte, verstuur de SendGrid-testmail en accepteer de offerte
   via de externe link.
 - Boek een tijdslot en controleer capaciteit, tijdzone en eenmaligheid van de link.
