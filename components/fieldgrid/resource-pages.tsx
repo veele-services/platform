@@ -263,8 +263,41 @@ export function CustomersPage({ data }: { data: WorkspaceData }) {
 
 function ObjectWizard({ customers, onClose }: { customers: Customer[]; onClose: () => void }) {
   const router = useRouter(); const [step, setStep] = useState(1); const [pending, startTransition] = useTransition();
+  const [review, setReview] = useState({ customer: "", name: "", address: "", instructions: "" });
+  const nextStep = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form;
+    validateWizardStep(event, () => {
+      if (form && step === 2) {
+        const fields = new FormData(form);
+        setReview({
+          customer: customers.find((customer) => customer.id === fields.get("customerId"))?.name ?? "Gekozen klant",
+          name: String(fields.get("name") ?? ""),
+          address: addressLine({ street: fields.get("street"), postal_code: fields.get("postalCode"), city: fields.get("city") }),
+          instructions: String(fields.get("instructions") ?? "").trim(),
+        });
+      }
+      setStep((value) => Math.min(3, value + 1));
+    });
+  };
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; startTransition(async () => { const result = await createObject(new FormData(form)); if (!result.ok) toast.error(result.error); else { toast.success("Object aangemaakt"); onClose(); router.refresh(); } }); };
-  return <Modal title="Nieuw object" eyebrow="STAPSGEWIJS" onClose={onClose}><WizardProgress step={step} labels={["Klant", "Locatie", "Controle"]}/><form className="wizard-form" onSubmit={submit}><fieldset hidden={step !== 1}><legend>Bij welke klant hoort het object?</legend><label className="wide">Klant<select name="customerId" required defaultValue="" autoFocus><option value="" disabled>Kies een bestaande klant</option>{customers.filter((item) => item.status !== "inactive").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="wide">Objectnaam<input name="name" required placeholder="Bijv. Hoofdkantoor"/></label></fieldset><fieldset hidden={step !== 2}><legend>Waar bevindt het object zich?</legend><label className="wide">Straat en huisnummer<input name="street" required/></label><label>Postcode<input name="postalCode" required/></label><label>Plaats<input name="city" required/></label><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} placeholder="Toegang, parkeren, melden bij…"/></label></fieldset><fieldset hidden={step !== 3}><legend>Controleer en maak het object aan</legend><div className="wizard-summary wide"><CheckCircle2 size={23}/><div><strong>Klantkoppeling verplicht</strong><p>Fieldgrid controleert de gekozen klant opnieuw op de server en binnen deze tenant.</p></div></div></fieldset><WizardFooter step={step} steps={3} onBack={() => step === 1 ? onClose() : setStep((value) => value - 1)} onNext={(event) => validateWizardStep(event, () => setStep((value) => Math.min(3, value + 1)))} pending={pending} submitLabel="Object aanmaken"/></form></Modal>;
+  return <Modal title="Nieuw object" eyebrow="STAPSGEWIJS" onClose={onClose}>
+    <WizardProgress step={step} labels={["Klant", "Locatie", "Controle"]}/>
+    <form className="wizard-form" onSubmit={submit}>
+      <fieldset hidden={step !== 1}><legend>Bij welke klant hoort het object?</legend><label className="wide">Klant<select name="customerId" required defaultValue="" autoFocus><option value="" disabled>Kies een bestaande klant</option>{customers.filter((item) => item.status !== "inactive").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="wide">Objectnaam<input name="name" required placeholder="Bijv. Hoofdkantoor"/></label></fieldset>
+      <fieldset hidden={step !== 2}><legend>Waar bevindt het object zich?</legend><label className="wide">Straat en huisnummer<input name="street" required/></label><label>Postcode<input name="postalCode" required/></label><label>Plaats<input name="city" required/></label><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} placeholder="Toegang, parkeren, melden bij…"/></label></fieldset>
+      <fieldset hidden={step !== 3}>
+        <legend>Controleer je gegevens</legend>
+        <div className="detail-grid wide" role="group" aria-label="Samenvatting object">
+          <div><span>Klant</span><strong>{review.customer}</strong></div>
+          <div><span>Objectnaam</span><strong>{review.name}</strong></div>
+          <div className="wide"><span>Adres</span><strong>{review.address}</strong></div>
+          {review.instructions && <div className="wide"><span>Bezoekinstructies</span><strong>{review.instructions}</strong></div>}
+        </div>
+        <div className="wizard-summary wide"><CheckCircle2 size={23}/><div><strong>Klopt alles?</strong><p>Klik op ‘Object aanmaken’ om deze locatie bij de gekozen klant op te slaan. Wil je nog iets wijzigen? Ga dan terug met ‘Vorige’.</p></div></div>
+      </fieldset>
+      <WizardFooter step={step} steps={3} onBack={() => step === 1 ? onClose() : setStep((value) => value - 1)} onNext={nextStep} pending={pending} submitLabel="Object aanmaken"/>
+    </form>
+  </Modal>;
 }
 
 function ObjectEdit({ object, customers, onClose }: { object: ObjectRow; customers: Customer[]; onClose: () => void }) {
