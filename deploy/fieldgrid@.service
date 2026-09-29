@@ -1,0 +1,25 @@
+[Unit]
+Description=Fieldgrid web application (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fieldgrid
+Group=fieldgrid
+WorkingDirectory=/opt/fieldgrid/%i/current
+EnvironmentFile=/opt/fieldgrid/%i/shared/fieldgrid.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/env node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/fieldgrid/%i
+
+[Install]
+WantedBy=multi-user.target

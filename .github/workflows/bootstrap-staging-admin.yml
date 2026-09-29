@@ -1,0 +1,37 @@
+name: Bootstrap staging platform administrator
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldgrid-staging-admin-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: [self-hosted, Linux, X64, fieldgrid-staging]
+    environment: staging
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+      FIELDGRID_ADMIN_EMAIL: ${{ secrets.FIELDGRID_ADMIN_EMAIL }}
+      FIELDGRID_ADMIN_PASSWORD: ${{ secrets.FIELDGRID_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create the platform administrator without logging credentials
+        run: pnpm bootstrap:admin

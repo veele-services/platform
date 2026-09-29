@@ -23,9 +23,10 @@ Fixed staging values:
 
 Tenant portals remain on one tenant hostname:
 
-- `https://{slug}.staging.fieldgrid.nl/personeel`
-- `https://{slug}.staging.fieldgrid.nl/backoffice`
-- `https://{slug}.staging.fieldgrid.nl/klant`
+- `https://{slug}.staging.fieldgrid.nl/app` (backoffice)
+- `https://{slug}.staging.fieldgrid.nl/staff` (personnel)
+
+The customer portal is not part of the current V1 route contract.
 
 Tenant resolution is hostname-only and fail-closed. The platform hostname never
 silently selects a tenant, and an unknown tenant hostname never falls back to a
@@ -36,16 +37,23 @@ different tenant.
 - `main` is the development and source branch; it never deploys automatically.
 - `staging` contains deliberate staging promotions from reviewed `main`
   commits. Direct development on `staging` is not allowed.
-- A later push or merge to `staging` may start the staging deployment after its
-  workflow has been designed and approved.
+- A push to `staging` first runs the complete CI suite and deploys that exact
+  commit only after every check succeeds.
 - There is currently no production branch or production deployment flow.
 
-## Current phase
+## Deploying staging
 
-This phase records architecture only. It does not install services, alter
-Caddy, create VPS directories, start a runner, create a Supabase project, run
-migrations or add deployment automation. `.env.example` records the public
-configuration contract with placeholders and contains no secret values.
+The GitHub Environment `staging` now contains the required staging variables
+and secrets. It is the only configuration source for staging; legacy code, old
+branches and old environments are never fallbacks. The expected Supabase ref
+identifies the new staging project and the forbidden ref identifies production.
+
+Secret values remain exclusively in GitHub and their providers. `.env.example`
+records fixed non-secret values and placeholders only. Follow
+[`docs/deployment/staging-runbook.md`](docs/deployment/staging-runbook.md) to
+prepare the runner and VPS, promote an accepted `main` SHA to `staging`, and
+bootstrap the first platform administrator. The workflow never falls back to
+legacy configuration.
 
 The previous implementation is preserved in the
 `archive/pre-rebuild-20260928-*` branches.

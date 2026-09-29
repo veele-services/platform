@@ -1,0 +1,2 @@
+-- Fieldgrid deliberately has no tenant seed. Create the platform administrator
+-- with `pnpm bootstrap:admin`, then provision the first tenant in Fieldgrid.

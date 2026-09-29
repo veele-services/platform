@@ -25,7 +25,7 @@ architecture decision and a corresponding documentation update first.
 | Branch | Responsibility | Deployment behaviour |
 |---|---|---|
 | `main` | Development and stable source history | Never deploys automatically |
-| `staging` | Explicit promotions of reviewed `main` commits | May later trigger staging deployment |
+| `staging` | Explicit promotions of reviewed `main` commits | Runs full CI, then deploys that exact commit |
 | `production` | Not present in this phase | Must not be created or deployed |
 
 Development happens on `main` or short-lived branches merged into `main`.
@@ -33,7 +33,10 @@ Development happens on `main` or short-lived branches merged into `main`.
 `staging` to a selected commit that is already contained in `main`. The initial
 `staging` branch starts at exactly the same commit as the documented `main`.
 
-No deployment workflow is introduced in this architecture-only phase.
+`main` runs CI but never deploys. The `staging` workflow runs the same reusable
+verification suite, including the required Playwright flows, before its deploy
+job can start. It also proves that the branch tip equals the workflow SHA and
+that this SHA is contained in `origin/main`.
 
 ## 3. Runtime contract
 
@@ -80,12 +83,12 @@ must bind to `127.0.0.1`, not to all interfaces.
 |---|---|
 | `https://staging.fieldgrid.nl` | Public Fieldgrid staging/platform page; no tenant context |
 | `https://{slug}.staging.fieldgrid.nl` | Public page for exactly one tenant |
-| `https://{slug}.staging.fieldgrid.nl/personeel` | Personnel portal for that tenant |
-| `https://{slug}.staging.fieldgrid.nl/backoffice` | Backoffice for that tenant |
-| `https://{slug}.staging.fieldgrid.nl/klant` | Customer portal for that tenant |
+| `https://{slug}.staging.fieldgrid.nl/app` | Backoffice for that tenant |
+| `https://{slug}.staging.fieldgrid.nl/staff` | Personnel portal for that tenant |
 
-The three portals are paths on the same tenant origin. Separate backoffice,
-personnel or customer subdomains must not be introduced.
+Both workspaces are paths on the same tenant origin. A customer portal is not
+part of the current V1 route contract. Separate backoffice or personnel
+subdomains must not be introduced.
 
 Tenant context is determined exclusively from the validated request hostname:
 
@@ -104,22 +107,24 @@ Path parameters, query parameters, cookies and request bodies cannot override
 the hostname-derived tenant. Proxy host headers may only be trusted from the
 known local reverse proxy.
 
-## 5. Future Caddy boundary
+## 5. Caddy boundary
 
 The currently installed Caddy configuration and its legacy port range
 3301–3306 are not canonical and must not be copied.
 
-When implementation is explicitly authorized, one new staging configuration
-will terminate TLS for:
+The repository contains a staging-only reference configuration that terminates
+TLS for:
 
 - `staging.fieldgrid.nl`;
 - `*.staging.fieldgrid.nl`.
 
 Both route to `127.0.0.1:3301`. Wildcard DNS and certificate issuance must be
-validated as part of that later phase. No old website-runtime or origin
-hostnames are reintroduced without an explicit architecture decision.
+configured and validated by the VPS operator. Caddy requires a DNS challenge
+and the matching DNS-provider module for the wildcard certificate. No old
+website-runtime or origin hostnames are reintroduced without an explicit
+architecture decision.
 
-This phase does not modify Caddy.
+Repository changes do not modify the live Caddy installation.
 
 ## 6. Healthcheck contract
 
@@ -151,7 +156,7 @@ legacy project is used as its starting point.
 
 | Guard | Value |
 |---|---|
-| `EXPECTED_SUPABASE_PROJECT_REF` | Set only after the dedicated staging project exists |
+| `EXPECTED_SUPABASE_PROJECT_REF` | Present in GitHub Environment `staging`; identifies the new staging project and remains out of Git |
 | `FORBIDDEN_SUPABASE_PROJECT_REF` | `ckdtiuemeygrnujjibnw` |
 
 Starting the runtime, running migrations and creating backups must all fail
@@ -167,12 +172,56 @@ Staging uses its own publishable key, server secret, database credentials, Auth
 configuration and Storage configuration. Production credentials must never be
 available to the staging runner or runtime.
 
-No Supabase project is created and no migration is executed in this phase.
+The dedicated staging project has been created and its connection material is
+available only through GitHub Environment `staging`. No project value is copied
+into the repository and no migration is executed in this documentation update.
 
 ## 8. Configuration contract
 
-The future GitHub Environment is named `staging`. Fixed non-secret values and
-placeholders are recorded in `.env.example`.
+GitHub Environment `staging` exists and is the sole staging configuration
+source. The repository owner has confirmed its values; a name-only GitHub CLI
+inventory confirms that the keys below exist. Secret values were not read.
+
+Legacy code, old branches, old environments and local `.env` files are not
+fallback sources. Implementations must consume the environment entries by their
+exact names and fail closed when required configuration is absent.
+
+### Confirmed staging variables
+
+| Key | Canonical value or status |
+|---|---|
+| `APP_URL` | `https://staging.fieldgrid.nl` |
+| `DEPLOY_ROOT` | `/opt/fieldgrid/staging` |
+| `PORT` | `3301` |
+| `SERVICE_NAME` | `fieldgrid@staging.service` |
+| `HEALTHCHECK_URL` | `https://staging.fieldgrid.nl/api/healthz` |
+| `SENDGRID_FROM_EMAIL` | `noreply@fieldgrid.nl` |
+| `SENDGRID_FROM_NAME` | `Fieldgrid` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Present in GitHub; value remains out of Git |
+| `VAPID_SUBJECT` | `mailto:services@fieldgrid.nl` |
+| `EXPECTED_SUPABASE_PROJECT_REF` | Present in GitHub; identifies the new staging project |
+| `FORBIDDEN_SUPABASE_PROJECT_REF` | `ckdtiuemeygrnujjibnw` |
+| `GOOGLE_ROUTES_ENABLED` | `false` |
+| `LOG_LEVEL` | `info` |
+
+### Confirmed staging secret names
+
+- `ADMIN_API_SECRET`
+- `BACKUP_DATABASE_URL`
+- `DATABASE_URL`
+- `FIELDGRID_ADMIN_EMAIL`
+- `FIELDGRID_ADMIN_PASSWORD`
+- `MIGRATION_DATABASE_URL`
+- `MOLLIE_API_KEY`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`
+- `SENDGRID_API_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `VAPID_PRIVATE_KEY`
+
+Fixed non-secret values and unmistakable placeholders are recorded in
+`.env.example`; actual GitHub values are never copied there.
 
 | Key | Contract |
 |---|---|
@@ -190,17 +239,28 @@ SendGrid, VAPID, Supabase and all other providers use staging-specific
 credentials. Secret values belong in the future GitHub Environment or the
 provider itself, never in source, examples, logs or committed service files.
 
-## 9. Deferred implementation
+## 9. Deployment implementation and operator boundary
 
-The following work is explicitly outside this architecture-only phase:
+The repository provides:
+
+- reusable CI for `main`, pull requests and staging promotions;
+- an explicit `staging` deployment workflow using the exclusive
+  `fieldgrid-staging` runner label and GitHub Environment `staging`;
+- staging preflight and Supabase project-ref guards for runtime, database,
+  migrations and backups;
+- build-before-migrate ordering, pre-migration backup, atomic activation,
+  exact-release health validation and code rollback;
+- reference Caddy and systemd configuration plus an operator runbook.
+
+The following actions remain external and are never performed merely by
+committing these files:
 
 - changing Caddy;
 - installing systemd units;
 - creating `/opt/fieldgrid/staging` on the VPS;
-- registering or starting a runner;
-- building a deployment workflow;
-- creating or changing a Supabase project;
-- running migrations;
+- registering or starting the `fieldgrid-staging` runner;
+- configuring wildcard DNS and certificate issuance;
 - creating a production branch, environment or deployment flow.
 
-These activities begin only after an explicit follow-up request.
+Migrations run only after the operator deliberately promotes a verified `main`
+commit to `staging` and the staging workflow passes its own full CI job.

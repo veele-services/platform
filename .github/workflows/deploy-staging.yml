@@ -1,0 +1,90 @@
+name: Verify and deploy staging
+
+on:
+  push:
+    branches: [staging]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldgrid-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_verify.yml
+
+  deploy:
+    needs: verify
+    runs-on: [self-hosted, Linux, X64, fieldgrid-staging]
+    environment: staging
+    timeout-minutes: 30
+    env:
+      NODE_ENV: production
+      DEPLOY_TARGET: staging
+      APP_ENV: development
+      APP_URL: ${{ vars.APP_URL }}
+      HOSTNAME: 127.0.0.1
+      PORT: ${{ vars.PORT }}
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+      MOLLIE_WEBHOOK_URL: ${{ format('{0}/api/mollie/webhook', vars.APP_URL) }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      SENDGRID_FROM_EMAIL: ${{ vars.SENDGRID_FROM_EMAIL }}
+      SENDGRID_FROM_NAME: ${{ vars.SENDGRID_FROM_NAME }}
+      SENDGRID_API_BASE: https://api.sendgrid.com/
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+      ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+      GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+      GOOGLE_ROUTES_ENABLED: ${{ vars.GOOGLE_ROUTES_ENABLED }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      RELEASE_SHA: ${{ github.sha }}
+      DEPLOYMENT_VERSION: ${{ github.sha }}
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - name: Verify this staging commit is the branch tip and comes from main
+        run: |
+          git fetch origin main staging
+          test "$(git rev-parse origin/staging)" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+      - run: pnpm install --frozen-lockfile
+      - name: Environment preflight
+        run: pnpm deploy:preflight
+      - name: Refuse an unrelated database history
+        run: pnpm db:verify-target
+      - name: Build the exact release before touching the database
+        run: pnpm build
+      - name: Create a staging database backup
+        run: scripts/backup-database.sh
+      - name: Apply forward-only migrations
+        run: pnpm supabase db push --db-url "$MIGRATION_DATABASE_URL" --include-all
+      - name: Write least-privilege runtime environment
+        run: scripts/write-runtime-env.sh
+      - name: Activate the exact staging release
+        run: scripts/deploy-local.sh

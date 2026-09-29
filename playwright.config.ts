@@ -1,0 +1,28 @@
+import { defineConfig, devices } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+import { execFileSync } from "node:child_process";
+
+loadEnvConfig(process.cwd());
+if ((process.env.SUPABASE_URL ?? "").includes("127.0.0.1")) {
+  const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) as Record<string, string>;
+  process.env.SUPABASE_URL = local.API_URL;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = local.API_URL;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = local.ANON_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = local.SERVICE_ROLE_KEY;
+  process.env.DATABASE_URL = local.DB_URL;
+}
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: false,
+  timeout: 30_000,
+  expect: { timeout: 8_000, toHaveScreenshot: { maxDiffPixelRatio: 0.015, animations: "disabled" } },
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 1 : 0,
+  workers: 1,
+  reporter: [["list"], ["html", { open: "never" }]],
+  globalSetup: "./tests/e2e/global-setup.ts",
+  use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure", screenshot: "only-on-failure", locale: "nl-NL", timezoneId: "Europe/Amsterdam" },
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  webServer: { command: "pnpm dev", url: "http://127.0.0.1:3000/login", reuseExistingServer: !process.env.CI, timeout: 120_000 },
+});

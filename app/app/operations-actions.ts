@@ -1,0 +1,504 @@
+"use server";
+
+import { randomBytes, createHash } from "node:crypto";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { getAuthContext, hasAnyRole, type AppRole, type AuthContext, type TenantContext } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { ActionResult } from "@/lib/actions/result";
+import { message } from "@/lib/actions/result";
+import { tenantAppUrl } from "@/lib/tenancy/hostname";
+
+async function authorized(roles: AppRole[]): Promise<AuthContext & { tenant: TenantContext }> {
+  const context = await getAuthContext();
+  if (!context.tenant || !hasAnyRole(context, roles)) throw new Error("Onvoldoende rechten voor deze actie");
+  return context as AuthContext & { tenant: TenantContext };
+}
+
+function optionalUuid(value: FormDataEntryValue | null): string | null {
+  const text = typeof value === "string" ? value : "";
+  return text ? z.string().uuid().parse(text) : null;
+}
+
+function generatedNumber(prefix: string): string {
+  const stamp = Date.now().toString(36).toUpperCase();
+  return `${prefix}-${new Date().getFullYear()}-${stamp.slice(-7)}`;
+}
+
+export async function createCustomer(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const schema = z.object({ name: z.string().trim().min(2), email: z.string().email().or(z.literal("")), phone: z.string().trim().optional(), objectName: z.string().trim().min(2), street: z.string().trim().min(2), postalCode: z.string().trim().min(4), city: z.string().trim().min(2) });
+    const input = schema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data: customer, error } = await supabase.from("customers").insert({
+      tenant_id: context.tenant.id, customer_number: generatedNumber("KL"), name: input.name,
+      billing_email: input.email || null, phone: input.phone || null,
+      billing_address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+    }).select().single();
+    if (error) throw error;
+    const { error: objectError } = await supabase.from("objects").insert({
+      tenant_id: context.tenant.id, customer_id: customer.id, object_number: generatedNumber("OB"), name: input.objectName,
+      address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+    });
+    if (objectError) {
+      await supabase.from("customers").delete().eq("id", customer.id);
+      throw objectError;
+    }
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createTask(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const schema = z.object({ code: z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9-]{1,31}$/), name: z.string().trim().min(2), discipline: z.string().trim().min(2), duration: z.coerce.number().int().min(1).max(1440), price: z.coerce.number().nonnegative(), vat: z.coerce.number().int().min(0).max(100) });
+    const input = schema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data: task, error } = await supabase.from("task_catalog").insert({ tenant_id: context.tenant.id, code: input.code, name: input.name, discipline: input.discipline }).select().single();
+    if (error) throw error;
+    const { error: revisionError } = await supabase.from("task_revisions").insert({ tenant_id: context.tenant.id, task_id: task.id, revision: 1, duration_minutes: input.duration, price_cents: Math.round(input.price * 100), vat_basis_points: input.vat * 100, unit: "task" });
+    if (revisionError) {
+      await supabase.from("task_catalog").delete().eq("id", task.id);
+      throw revisionError;
+    }
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createRequest(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const schema = z.object({ customerId: z.string().uuid(), objectId: z.string().uuid(), discipline: z.string().trim().min(2), description: z.string().trim().min(3), priority: z.enum(["low", "normal", "high", "urgent"]) });
+    const input = schema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("requests").insert({ tenant_id: context.tenant.id, request_number: generatedNumber("AAN"), customer_id: input.customerId, object_id: input.objectId, discipline: input.discipline, description: input.description, priority: input.priority, created_by: context.user.id });
+    if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createQuote(formData: FormData): Promise<ActionResult<{ previewUrl?: string }>> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const schema = z.object({ requestId: z.string().uuid(), amount: z.coerce.number().positive(), validDays: z.coerce.number().int().min(1).max(90).default(14) });
+    const input = schema.parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data: request, error: requestError } = await supabase.from("requests").select("*").eq("id", input.requestId).single();
+    if (requestError || !request.customer_id) throw requestError ?? new Error("Koppel eerst een klant aan de aanvraag");
+    const subtotal = Math.round(input.amount * 100);
+    const vat = Math.round(subtotal * 0.21);
+    const quoteNumber = generatedNumber("OFF");
+    const expiresAt = new Date(Date.now() + input.validDays * 86_400_000).toISOString();
+    const { data: quote, error } = await supabase.from("quotes").insert({ tenant_id: context.tenant.id, request_id: request.id, customer_id: request.customer_id, object_id: request.object_id, quote_number: quoteNumber, status: "awaiting_acceptance", subtotal_cents: subtotal, vat_cents: vat, total_cents: subtotal + vat, snapshot: { description: request.description, discipline: request.discipline }, sent_at: new Date().toISOString(), expires_at: expiresAt }).select().single();
+    if (error) throw error;
+    await supabase.from("requests").update({ status: "awaiting_acceptance" }).eq("id", request.id);
+    const rawToken = randomBytes(32).toString("base64url");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const admin = createAdminClient();
+    const { error: tokenError } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "quote_acceptance", subject_id: quote.id, token_hash: tokenHash, expires_at: expiresAt });
+    if (tokenError) throw tokenError;
+    revalidatePath("/app");
+    return { ok: true, previewUrl: tenantAppUrl(context.tenant.slug, `/quote/${rawToken}`) };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createWorkOrder(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const schema = z.object({ customerId: z.string().uuid(), objectId: z.string().uuid(), personnelId: z.string().uuid(), discipline: z.string().trim().min(2), taskIds: z.string().min(1), start: z.string().min(10), appointmentStart: z.string().optional(), appointmentEnd: z.string().optional(), signatureRequired: z.string().optional() });
+    const input = schema.parse(Object.fromEntries(formData));
+    const taskIds = input.taskIds.split(",").filter(Boolean).map((value) => z.string().uuid().parse(value));
+    if (!taskIds.length) throw new Error("Selecteer minimaal één taak");
+    const supabase = await createClient();
+    const { data: taskRows, error: taskError } = await supabase.from("task_catalog").select("*").in("id", taskIds).eq("active", true);
+    if (taskError || taskRows.length !== taskIds.length) throw taskError ?? new Error("Een geselecteerde taak bestaat niet meer");
+    const { data: revisions, error: revisionError } = await supabase.from("task_revisions").select("*").in("task_id", taskIds).is("valid_until", null);
+    if (revisionError) throw revisionError;
+    const latest = taskIds.map((taskId) => revisions.filter((revision) => revision.task_id === taskId).sort((a, b) => b.revision - a.revision)[0]);
+    if (latest.some((revision) => !revision)) throw new Error("Een taak heeft geen actuele tariefversie");
+    const duration = latest.reduce((sum, revision) => sum + revision.duration_minutes, 0);
+    const start = new Date(input.start);
+    if (Number.isNaN(start.getTime())) throw new Error("Ongeldige starttijd");
+    const end = new Date(start.getTime() + duration * 60_000);
+    const { data: overlap, error: overlapError } = await supabase.from("work_order_assignments").select("id").eq("personnel_id", input.personnelId).lt("projected_start_at", end.toISOString()).gt("projected_end_at", start.toISOString()).not("status", "in", "(completed,returned,cancelled)").limit(1);
+    if (overlapError) throw overlapError;
+    if (overlap.length) throw new Error("Deze medewerker heeft al een overlappende opdracht");
+    let slotId: string | null = null;
+    if (input.appointmentStart && input.appointmentEnd) {
+      const { data: slot, error: slotError } = await supabase.from("appointment_slots").insert({ tenant_id: context.tenant.id, starts_at: input.appointmentStart, ends_at: input.appointmentEnd, capacity: 1, booked_count: 1, status: "full" }).select().single();
+      if (slotError) throw slotError;
+      slotId = slot.id;
+    }
+    const { data: order, error } = await supabase.from("work_orders").insert({ tenant_id: context.tenant.id, work_order_number: generatedNumber("WB"), customer_id: input.customerId, object_id: input.objectId, appointment_slot_id: slotId, discipline: input.discipline, planned_start_at: start.toISOString(), planned_end_at: end.toISOString(), projected_start_at: start.toISOString(), projected_end_at: end.toISOString(), signature_required: input.signatureRequired === "on", created_by: context.user.id }).select().single();
+    if (error) throw error;
+    const taskById = new Map(taskRows.map((task) => [task.id, task]));
+    const taskPayload = latest.map((revision) => ({ tenant_id: context.tenant!.id, work_order_id: order.id, task_revision_id: revision.id, task_code: taskById.get(revision.task_id)!.code, task_name: taskById.get(revision.task_id)!.name, duration_minutes: revision.duration_minutes, unit: revision.unit, unit_price_cents: revision.price_cents, vat_basis_points: revision.vat_basis_points }));
+    const { error: tasksInsertError } = await supabase.from("work_order_tasks").insert(taskPayload);
+    const { error: assignmentError } = await supabase.from("work_order_assignments").insert({ tenant_id: context.tenant.id, work_order_id: order.id, personnel_id: input.personnelId, planned_start_at: start.toISOString(), planned_end_at: end.toISOString(), projected_start_at: start.toISOString(), projected_end_at: end.toISOString() });
+    if (tasksInsertError || assignmentError) {
+      await supabase.from("work_orders").delete().eq("id", order.id);
+      throw tasksInsertError ?? assignmentError;
+    }
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function dispatchWorkOrder(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ workOrderId: z.string().uuid(), personnelId: z.string().uuid(), version: z.coerce.number().int() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("dispatch_work_order", { target_work_order_id: input.workOrderId, target_personnel_id: input.personnelId, expected_version: input.version, idempotency_key: `dispatch-${input.workOrderId}-${input.version}` });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function reviewWorkOrder(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management", "finance"]);
+    const input = z.object({ workOrderId: z.string().uuid(), decision: z.enum(["approved", "returned"]), reason: z.string().optional() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("review_work_order", { target_work_order_id: input.workOrderId, decision: input.decision, reason: input.reason || undefined });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createAnnouncement(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const input = z.object({ title: z.string().trim().min(2), body: z.string().trim().min(3), sendPush: z.string().optional() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("announcements").insert({ tenant_id: context.tenant.id, title: input.title, body: input.body, send_push: input.sendPush === "on", audience_roles: ["staff"], created_by: context.user.id }).select().single();
+    if (error) throw error;
+    const { error: publishError } = await supabase.rpc("publish_announcement", { target_announcement_id: data.id });
+    if (publishError) throw publishError;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function invitePersonnel(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({ name: z.string().trim().min(2), email: z.string().email(), employeeNumber: z.string().trim().min(1) }).parse(Object.fromEntries(formData));
+    const admin = createAdminClient();
+    let userId: string | undefined;
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(input.email, { redirectTo: tenantAppUrl(context.tenant.slug, "/auth/confirm") });
+    if (!inviteError) userId = invited.user.id;
+    if (!userId) {
+      for (let page = 1; page <= 100 && !userId; page += 1) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
+        if (error) throw error;
+        userId = data.users.find((user) => user.email?.toLowerCase() === input.email.toLowerCase())?.id;
+        if (data.users.length < 100) break;
+      }
+    }
+    if (!userId) throw inviteError ?? new Error("De gebruiker kon niet worden uitgenodigd");
+    const supabase = await createClient();
+    const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: userId, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
+    if (membershipError) throw membershipError;
+    const { error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: input.employeeNumber, full_name: input.name, email: input.email });
+    if (personnelError) throw personnelError;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updateTenantBranding(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const input = z.object({ primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/), accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/), senderName: z.string().trim().min(2), senderEmail: z.string().email().or(z.literal("")) }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("tenant_branding").update({ primary_color: input.primaryColor, accent_color: input.accentColor, sender_name: input.senderName, sender_email: input.senderEmail || null }).eq("tenant_id", context.tenant.id);
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function uploadTenantLogo(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const file = formData.get("logo");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Kies een logo om te uploaden");
+    if (file.size > 2 * 1024 * 1024) throw new Error("Het logo mag maximaal 2 MB zijn");
+    const extensions: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+    const extension = extensions[file.type];
+    if (!extension) throw new Error("Gebruik een PNG-, JPG- of WebP-logo");
+
+    const supabase = await createClient();
+    const { data: branding, error: brandingError } = await supabase.from("tenant_branding").select("logo_path").eq("tenant_id", context.tenant.id).single();
+    if (brandingError) throw brandingError;
+    const path = `${context.tenant.id}/logo.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("branding").upload(path, file, { contentType: file.type, upsert: true, cacheControl: "3600" });
+    if (uploadError) throw uploadError;
+    const { error: updateError } = await supabase.from("tenant_branding").update({ logo_path: path }).eq("tenant_id", context.tenant.id);
+    if (updateError) throw updateError;
+    if (branding.logo_path && branding.logo_path !== path) await supabase.storage.from("branding").remove([branding.logo_path]);
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function withdrawAnnouncement(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management"]);
+    const announcementId = z.string().uuid().parse(formData.get("announcementId"));
+    const supabase = await createClient();
+    const { error } = await supabase.from("announcements").update({ withdrawn_at: new Date().toISOString() }).eq("id", announcementId);
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createOpenShift(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ workOrderId: z.string().uuid(), functionId: z.string().uuid(), start: z.string().min(10), end: z.string().min(10) }).parse(Object.fromEntries(formData));
+    const start = new Date(input.start); const end = new Date(input.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) throw new Error("Ongeldige dienstperiode");
+    const supabase = await createClient();
+    const { data: job, error: jobError } = await supabase.from("function_catalog").select("required_certificate_codes").eq("id", input.functionId).single();
+    if (jobError) throw jobError;
+    const { error } = await supabase.from("open_shifts").insert({ tenant_id: context.tenant.id, work_order_id: input.workOrderId, function_id: input.functionId, starts_at: start.toISOString(), ends_at: end.toISOString(), required_certificate_codes: job.required_certificate_codes, created_by: context.user.id });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function setActiveTenant(formData: FormData): Promise<ActionResult> {
+  try {
+    optionalUuid(formData.get("tenantId"));
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createBookingLink(formData: FormData): Promise<ActionResult<{ previewUrl: string }>> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ requestId: z.string().uuid(), start: z.string().min(10), end: z.string().min(10), capacity: z.coerce.number().int().min(1).max(20).default(1) }).parse(Object.fromEntries(formData));
+    const start = new Date(input.start); const end = new Date(input.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start || start <= new Date()) throw new Error("Kies een geldig toekomstig tijdvak");
+    const supabase = await createClient();
+    const { data: request, error: requestError } = await supabase.from("requests").select("id").eq("id", input.requestId).single();
+    if (requestError || !request) throw requestError ?? new Error("Aanvraag niet gevonden");
+    const { data: slot, error: slotError } = await supabase.from("appointment_slots").insert({ tenant_id: context.tenant.id, starts_at: start.toISOString(), ends_at: end.toISOString(), capacity: input.capacity }).select().single();
+    if (slotError) throw slotError;
+    const rawToken = randomBytes(32).toString("base64url");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const admin = createAdminClient();
+    const { data: token, error } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "booking", subject_id: request.id, token_hash: tokenHash, expires_at: new Date(Date.now() + 14 * 86_400_000).toISOString() }).select().single();
+    if (error) throw error;
+    const { error: optionError } = await admin.from("booking_options").insert({ tenant_id: context.tenant.id, token_id: token.id, slot_id: slot.id });
+    if (optionError) throw optionError;
+    revalidatePath("/app");
+    return { ok: true, previewUrl: tenantAppUrl(context.tenant.slug, `/booking/${rawToken}`) };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function confirmShiftInterest(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ shiftId: z.string().uuid(), personnelId: z.string().uuid() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("confirm_shift_interest", { target_shift_id: input.shiftId, target_personnel_id: input.personnelId });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createCustomerContact(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const input = z.object({ customerId: z.string().uuid(), fullName: z.string().trim().min(2), email: z.string().email().or(z.literal("")), phone: z.string().trim().optional(), role: z.string().trim().optional(), primary: z.string().optional() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("customer_contacts").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, full_name: input.fullName, email: input.email || null, phone: input.phone || null, role: input.role || null, is_primary: input.primary === "on" });
+    if (error) throw error;
+    revalidatePath("/app"); return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createObject(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const input = z.object({ customerId: z.string().uuid(), name: z.string().trim().min(2), street: z.string().trim().min(2), postalCode: z.string().trim().min(4), city: z.string().trim().min(2), instructions: z.string().trim().max(2000).optional() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("objects").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, object_number: generatedNumber("OB"), name: input.name, address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" }, access_instructions: input.instructions || null });
+    if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function recordQuoteDecision(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const input = z.object({ quoteId: z.string().uuid(), decision: z.enum(["accepted", "rejected"]), name: z.string().trim().min(2).max(160), evidence: z.string().trim().min(3).max(1000) }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data: quote, error } = await supabase.from("quotes").update({ status: input.decision, accepted_at: input.decision === "accepted" ? new Date().toISOString() : null, accepted_by_name: input.name, acceptance_channel: "backoffice", acceptance_evidence: input.evidence }).eq("id", input.quoteId).eq("status", "awaiting_acceptance").select("request_id").single();
+    if (error) throw error;
+    const { error: requestError } = await supabase.from("requests").update({ status: input.decision }).eq("id", quote.request_id);
+    if (requestError) throw requestError;
+    const admin = createAdminClient();
+    await admin.from("external_action_tokens").update({ consumed_at: new Date().toISOString() }).eq("tenant_id", context.tenant.id).eq("subject_id", input.quoteId).eq("purpose", "quote_acceptance").is("consumed_at", null);
+    const { error: auditError } = await admin.from("audit_events").insert({ tenant_id: context.tenant.id, actor_user_id: context.user.id, action: `quote.${input.decision}`, entity_type: "quote", entity_id: input.quoteId, after_data: { name: input.name, channel: "backoffice", evidence: input.evidence } });
+    if (auditError) throw auditError;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createPersonnelFunction(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const input = z.object({
+      name: z.string().trim().min(2).max(120),
+      discipline: z.string().trim().min(2).max(120),
+      certificateCodes: z.string().trim().max(500).optional(),
+    }).parse(Object.fromEntries(formData));
+    const requiredCertificateCodes = (input.certificateCodes ?? "").split(",").map((code) => code.trim().toUpperCase()).filter(Boolean);
+    if (requiredCertificateCodes.some((code) => !/^[A-Z0-9][A-Z0-9_.-]{0,31}$/.test(code))) throw new Error("Gebruik geldige certificaatcodes, gescheiden door komma’s");
+    const supabase = await createClient();
+    const { error } = await supabase.from("function_catalog").insert({ tenant_id: context.tenant.id, name: input.name, discipline: input.discipline, required_certificate_codes: [...new Set(requiredCertificateCodes)] });
+    if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function assignPersonnelFunction(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({ personnelId: z.string().uuid(), functionId: z.string().uuid() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("personnel_functions").upsert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, function_id: input.functionId }, { onConflict: "tenant_id,personnel_id,function_id" });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function addQualification(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({
+      personnelId: z.string().uuid(), code: z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_.-]{0,31}$/),
+      name: z.string().trim().min(2).max(160), issuedAt: z.string().date().or(z.literal("")), validUntil: z.string().date().or(z.literal("")),
+    }).parse(Object.fromEntries(formData));
+    if (input.issuedAt && input.validUntil && input.validUntil < input.issuedAt) throw new Error("De geldigheidsdatum ligt voor de uitgiftedatum");
+    const supabase = await createClient();
+    const { data: qualification, error } = await supabase.from("qualifications").upsert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, code: input.code, name: input.name, issued_at: input.issuedAt || null, valid_until: input.validUntil || null, verified_at: new Date().toISOString() }, { onConflict: "tenant_id,personnel_id,code" }).select().single();
+    if (error) throw error;
+    if (input.validUntil) {
+      const dueAt = new Date(`${input.validUntil}T09:00:00.000Z`);
+      dueAt.setUTCDate(dueAt.getUTCDate() - 30);
+      const { error: reminderError } = await supabase.from("reminders").upsert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, kind: "qualification_expiry", source_id: qualification.id, title: `${input.name} verloopt op ${input.validUntil}`, due_at: dueAt.toISOString(), assigned_user_id: context.user.id, deduplication_key: `qualification:${qualification.id}:${input.validUntil}` }, { onConflict: "tenant_id,deduplication_key" });
+      if (reminderError) throw reminderError;
+    }
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function addAvailability(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({ personnelId: z.string().uuid(), start: z.string().min(10), end: z.string().min(10), kind: z.enum(["available", "unavailable", "leave", "sick"]), note: z.string().trim().max(500).optional() }).parse(Object.fromEntries(formData));
+    const start = new Date(input.start); const end = new Date(input.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) throw new Error("Ongeldige beschikbaarheidsperiode");
+    const supabase = await createClient();
+    const { error } = await supabase.from("availability").insert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, starts_at: start.toISOString(), ends_at: end.toISOString(), kind: input.kind, note: input.note || null, approved_at: new Date().toISOString() });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function uploadPersonnelDocument(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({ personnelId: z.string().uuid(), title: z.string().trim().min(2).max(160), documentType: z.string().trim().min(2).max(80), visibleToEmployee: z.string().optional() }).parse(Object.fromEntries(formData));
+    const file = formData.get("document");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Selecteer een document");
+    const allowed = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" } as const;
+    const extension = allowed[file.type as keyof typeof allowed];
+    if (!extension || file.size > 20 * 1024 * 1024) throw new Error("Gebruik PDF, JPG of PNG van maximaal 20 MB");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const documentId = randomBytes(16).toString("hex");
+    const path = `${context.tenant.id}/${input.personnelId}/${documentId}.${extension}`;
+    const supabase = await createClient();
+    const { error: uploadError } = await supabase.storage.from("personnel-documents").upload(path, bytes, { contentType: file.type, upsert: false });
+    if (uploadError) throw uploadError;
+    const { error } = await supabase.from("personnel_documents").insert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, title: input.title, document_type: input.documentType, storage_path: path, visible_to_employee: input.visibleToEmployee === "on", created_by: context.user.id, file_name: file.name, mime_type: file.type, size_bytes: file.size, sha256: createHash("sha256").update(bytes).digest("hex") });
+    if (error) { await supabase.storage.from("personnel-documents").remove([path]); throw error; }
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function rescheduleWorkOrder(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management", "planner"]);
+    const raw = Object.fromEntries(formData);
+    if (typeof raw.workOrderKey === "string" && raw.workOrderKey.includes(":")) {
+      const [workOrderId, version] = raw.workOrderKey.split(":"); raw.workOrderId = workOrderId; raw.version = version;
+    }
+    const input = z.object({ workOrderId: z.string().uuid(), personnelId: z.string().uuid(), start: z.string().min(10), version: z.coerce.number().int().positive() }).parse(raw);
+    const start = new Date(input.start);
+    if (Number.isNaN(start.getTime())) throw new Error("Ongeldige starttijd");
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("reschedule_work_order", { target_work_order_id: input.workOrderId, target_personnel_id: input.personnelId, target_start_at: start.toISOString(), expected_version: input.version });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function completeReminder(formData: FormData): Promise<ActionResult> {
+  try {
+    await authorized(["tenant_admin", "management", "hr"]);
+    const reminderId = z.string().uuid().parse(formData.get("reminderId"));
+    const supabase = await createClient();
+    const { error } = await supabase.from("reminders").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", reminderId).eq("status", "open");
+    if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function createExtraWorkRule(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ taskRevisionId: z.string().uuid(), requiresPhoto: z.string().optional() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("extra_work_rules").upsert({ tenant_id: context.tenant.id, task_revision_id: input.taskRevisionId, requires_photo: input.requiresPhoto === "on", requires_review: true, active: true }, { onConflict: "tenant_id,task_revision_id" });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function allowExtraWork(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner"]);
+    const input = z.object({ workOrderId: z.string().uuid(), ruleId: z.string().uuid() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { error } = await supabase.from("work_order_allowed_extra_work").upsert({ tenant_id: context.tenant.id, work_order_id: input.workOrderId, extra_work_rule_id: input.ruleId }, { onConflict: "tenant_id,work_order_id,extra_work_rule_id" });
+    if (error) throw error;
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}

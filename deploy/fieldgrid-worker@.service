@@ -1,0 +1,14 @@
+[Unit]
+Description=Fieldgrid outbox worker trigger (%i)
+After=fieldgrid@%i.service
+
+[Service]
+Type=oneshot
+User=fieldgrid
+Group=fieldgrid
+EnvironmentFile=/opt/fieldgrid/%i/shared/fieldgrid.env
+ExecStart=/usr/bin/curl --fail --silent --show-error -X POST -H "Authorization: Bearer ${ADMIN_API_SECRET}" http://127.0.0.1:${PORT}/api/worker
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

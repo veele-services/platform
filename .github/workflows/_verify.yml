@@ -1,0 +1,49 @@
+name: Reusable Fieldgrid verification
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      APP_ENV: development
+      DEPLOY_TARGET: local
+      APP_URL: http://127.0.0.1:3000
+      HOSTNAME: 127.0.0.1
+      PORT: 3000
+      SUPABASE_URL: http://127.0.0.1:59321
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:59321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: local-ci-key-with-at-least-twenty-characters
+      SUPABASE_SERVICE_ROLE_KEY: local-ci-service-role-key-with-at-least-twenty-characters
+      GOOGLE_ROUTES_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Start clean local Supabase
+        run: pnpm supabase start
+      - run: pnpm db:reset
+      - run: pnpm test:db
+      - run: pnpm supabase db lint --local --level warning
+      - run: pnpm supabase db advisors --local --level warn
+      - run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run required browser flows
+        run: pnpm test:e2e
+      - name: Ensure no retired tenant or mail-provider naming
+        run: if rg -i 'v[e]ele|r[e]send' --glob '!pnpm-lock.yaml' .; then exit 1; fi

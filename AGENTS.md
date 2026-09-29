@@ -34,8 +34,8 @@ the architecture in a later request.
 - Tenant origin: `https://{slug}.staging.fieldgrid.nl`.
 - A tenant is resolved only from the hostname. Unknown, malformed or inactive
   tenant slugs fail closed and must never fall back to another tenant.
-- Tenant portals live on the same tenant origin at `/personeel`,
-  `/backoffice` and `/klant`.
+- Tenant workspaces live on the same tenant origin at `/app` (backoffice) and
+  `/staff` (personnel). A customer portal is deferred beyond the current V1.
 - Next.js listens only on `127.0.0.1:3301`.
 - The deploy root is `/opt/fieldgrid/staging`; releases, shared configuration
   and the atomic `current` symlink live below that root.
@@ -48,6 +48,13 @@ the architecture in a later request.
 
 ## Environment isolation
 
+- GitHub Environment `staging` is the sole configuration source for staging.
+  Its required variables and secrets are configured. Never derive fallback
+  values from legacy code, old branches, old environments or local `.env`
+  files, and never ask for these values to be copied into the repository.
+- When configuration inventory must be checked, inspect names only with
+  `gh variable list --env staging` and `gh secret list --env staging`. Never
+  retrieve, print or log secret values.
 - Staging uses its own Supabase project and provider credentials.
 - Production Supabase project ref `ckdtiuemeygrnujjibnw` is forbidden from
   staging. Starting, migrating and backing up must fail closed when the
@@ -55,6 +62,6 @@ the architecture in a later request.
   the actual connection.
 - Never commit credentials or secret values. Public configuration examples may
   contain only fixed non-secret values and unmistakable placeholders.
-- Do not modify Caddy, install systemd units, create VPS directories, start a
-  runner, create a Supabase project or add a deployment workflow unless the
-  repository owner explicitly begins that implementation phase.
+- Repository deployment automation and reference service/proxy configuration
+  may be maintained here. Actual Caddy, systemd, VPS, runner and Supabase
+  mutations remain deliberate operator actions documented by the runbook.
