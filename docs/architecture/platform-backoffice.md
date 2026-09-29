@@ -26,6 +26,21 @@ The default Fieldgrid palette is:
 Existing custom tenant colours are preserved. Only the exact former Fieldgrid
 default pair is migrated.
 
+The two saved colours are brand **seeds**, not literal backgrounds for every UI
+surface. `lib/branding/palette.ts` derives semantic screen colours from them:
+neutral-dark navigation, tinted canvas/surfaces/borders, soft active states,
+readable action/link colours, focus rings and a layered hero gradient. The hero
+combines a light glow with static rings and fine lines; operational page headers
+use a quiet light surface. Status/warning colours retain their semantic meaning.
+Contrast tests cover light, dark and saturated inputs; invalid/incomplete preview
+input falls back to Fieldgrid defaults, without changing the saved input.
+
+Tenant backoffice, personnel screens and platform brand previews share these
+tokens. Platform chrome always derives its own Fieldgrid-default palette, never
+the selected tenant's palette. Both tenant settings and platform Huisstijl show
+the derived palette live. No additional colour settings or migration are needed;
+existing document and mail brand colours are unchanged.
+
 The palette applies to the complete tenant workspace, including navigation,
 page headers, controls, focus states and action accents. A tenant logo replaces
 the textual brand lock-up; without a logo the tenant name is the fallback.

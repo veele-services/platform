@@ -14,6 +14,8 @@ import type { AuthContext } from "@/lib/auth/context";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import type { ActionResult } from "@/lib/actions/result";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
+import { BrandPalettePreview } from "@/components/fieldgrid/brand-palette-preview";
+import { brandThemeStyle } from "@/lib/branding/palette";
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
@@ -61,11 +63,6 @@ const statusLabel: Record<string, string> = {
 const money = (cents: number | null | undefined) => new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format((cents ?? 0) / 100);
 const dateTime = (value: string | null | undefined, timezone = "Europe/Amsterdam") => value ? new Intl.DateTimeFormat("nl-NL", { dateStyle: "short", timeStyle: "short", timeZone: timezone }).format(new Date(value)) : "—";
 const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-const textOnBrand = (color: string) => {
-  const hex = /^#[0-9a-f]{6}$/i.test(color) ? color : "#222c35";
-  const [red, green, blue] = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16));
-  return (red * 299 + green * 587 + blue * 114) / 1000 > 150 ? "#172C3A" : "#FFFFFF";
-};
 
 function ActionForm({ action, children, className, success = "Opgeslagen", onSuccess }: { action: (data: FormData) => Promise<ActionResult<Record<string, unknown>>> | Promise<ActionResult>; children: ReactNode; className?: string; success?: string; onSuccess?: (result: ActionResult<Record<string, unknown>> | ActionResult) => void }) {
   const router = useRouter();
@@ -174,14 +171,31 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
 
     return <>
       <PageIntro eyebrow="BEHEER" title="Instellingen" description="Tenantbranding, logo en afzendergegevens voor alle operationele schermen." />
-      <section className="panel settings-panel"><div className="brand-preview" style={{ background: tenant.primaryColor }}><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><div className="settings-forms"><ActionForm action={uploadTenantLogo} className="workspace-form logo-upload-form" success="Logo uploaden"><label className="wide">Tenantlogo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required/><small>PNG, JPG of WebP · maximaal 2 MB</small></label></ActionForm><ActionForm action={updateTenantBranding} className="workspace-form" success="Instellingen opslaan"><label>Primaire kleur<input name="primaryColor" type="color" defaultValue={data.branding?.primary_color ?? tenant.primaryColor}/></label><label>Accentkleur<input name="accentColor" type="color" defaultValue={data.branding?.accent_color ?? tenant.accentColor}/></label><label>Afzendernaam<input name="senderName" defaultValue={data.branding?.sender_name ?? tenant.name} required/></label><label>Afzendermail<input name="senderEmail" type="email" defaultValue={data.branding?.sender_email ?? ""}/></label></ActionForm></div></section>
+      <TenantBrandingSettings key={tenant.id} tenant={tenant} data={data}/>
     </>;
   })();
 
-  return <div className="workspace-shell" style={{ "--tenant-primary": tenant.primaryColor, "--tenant-accent": tenant.accentColor, "--tenant-primary-foreground": textOnBrand(tenant.primaryColor), "--tenant-accent-foreground": textOnBrand(tenant.accentColor) } as React.CSSProperties}>
+  return <div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
     <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
     <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
+}
+
+function TenantBrandingSettings({ tenant, data }: { tenant: NonNullable<AuthContext["tenant"]>; data: WorkspaceData }) {
+  const [primary, setPrimary] = useState(tenant.primaryColor);
+  const [accent, setAccent] = useState(tenant.accentColor);
+  return <section className="panel settings-panel">
+    <div className="brand-settings-preview" style={brandThemeStyle(primary, accent)}><div className="brand-preview"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><div className="brand-settings-hero"><span>JOUW WERKOMGEVING</span><strong>Rust, overzicht en eigenheid.</strong><p>Een subtiel palet, herkenbaar voor jouw organisatie.</p></div></div>
+    <div className="settings-forms">
+      <ActionForm action={uploadTenantLogo} className="workspace-form logo-upload-form" success="Logo uploaden"><label className="wide">Tenantlogo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required/><small>PNG, JPG of WebP · maximaal 2 MB</small></label></ActionForm>
+      <ActionForm action={updateTenantBranding} className="workspace-form" success="Instellingen opslaan">
+        <label>Primaire kleur<input name="primaryColor" type="color" value={primary} onChange={(event) => setPrimary(event.target.value)}/></label>
+        <label>Secundaire kleur<input name="accentColor" type="color" value={accent} onChange={(event) => setAccent(event.target.value)}/></label>
+        <div className="wide"><BrandPalettePreview primary={primary} accent={accent}/></div>
+        <label>Afzendernaam<input name="senderName" defaultValue={data.branding?.sender_name ?? tenant.name} required/></label><label>Afzendermail<input name="senderEmail" type="email" defaultValue={data.branding?.sender_email ?? ""}/></label>
+      </ActionForm>
+    </div>
+  </section>;
 }
 
 function Metric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) { return <article className="metric"><span className={`metric-icon ${tone}`}>{icon}</span><div><span>{label}</span><strong>{value}</strong></div></article>; }

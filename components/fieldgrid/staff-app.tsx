@@ -13,6 +13,7 @@ import type { WorkspaceData } from "@/lib/data/workspace";
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
+import { brandThemeStyle } from "@/lib/branding/palette";
 import { clientEnv } from "@/lib/env/client";
 import {
   addExtraWork, addReportEntry, captureSignature, markAnnouncementRead, requestTimeCorrection,
@@ -68,7 +69,7 @@ export function StaffApp({ context, data, personnel }: { context: AuthContext & 
 
   if (!personnel) return <main className="staff-blocked"><span className="product-brand">Fieldgrid</span><UserRound size={36}/><h1>Personeelsprofiel ontbreekt</h1><p>Je account heeft een personeelsrol, maar is nog niet aan een personeelskaart gekoppeld. Vraag de tenantbeheerder dit te herstellen.</p><form method="post" action="/auth/signout"><button className="secondary-button">Uitloggen</button></form></main>;
 
-  return <div className="staff-app" style={{ "--tenant-primary": tenant.primaryColor, "--tenant-accent": tenant.accentColor } as React.CSSProperties}>
+  return <div className="staff-app" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
     <header className="staff-header"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/><button className="staff-avatar" onClick={() => setTab("meer")}>{initials(personnel.full_name)}</button></header>
     <main className="staff-content">
       {tab === "planning" && <Schedule orders={orders} data={data} timezone={tenant.timezone} onOpen={openOrder}/>}

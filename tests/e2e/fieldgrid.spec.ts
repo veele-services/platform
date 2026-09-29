@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
 
 const PASSWORD = "Fieldgrid-E2E-2026";
+const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
 async function login(page: Page, email: string, next = "/app") {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
@@ -74,10 +76,56 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await expect(page).toHaveScreenshot("backoffice-768.png", { fullPage: true });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("link", { name: "Aanvragen & offertes" }).click();
-  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", "rgb(33, 78, 114)");
-  await expect(page.locator(".view-aanvragen > .page-intro")).toHaveCSS("background-image", /rgb\(33, 78, 114\)/);
-  await expect(page.locator(".view-aanvragen .primary-button").first()).toHaveCSS("background-color", "rgb(198, 93, 33)");
+  const palette = createBrandPalette("#214E72", "#C65D21");
+  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(palette.sidebar));
+  await expect(page.locator(".view-aanvragen > .page-intro h1")).toHaveCSS("color", rgb(palette.ink));
+  await expect(page.locator(".view-aanvragen .primary-button").first()).toHaveCSS("background-color", rgb(palette.action));
   await expect(page).toHaveScreenshot("tenant-themed-request-page-1440.png", { fullPage: true });
+});
+
+test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder opslaan", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, "platform-admin@fieldgrid.test", "/app");
+  const tenantPalette = createBrandPalette("#214E72", "#C65D21");
+  const hero = page.locator(".view-overzicht > .page-intro");
+  await expect(hero).toHaveCSS("background-image", /radial-gradient.*linear-gradient/);
+  expect(await hero.evaluate((element) => getComputedStyle(element, "::after").backgroundImage)).toContain("repeating-linear-gradient");
+  expect(await hero.evaluate((element) => getComputedStyle(element, "::before").content)).toBe('""');
+  // Exercise the screenshot's blue/turquoise family without changing stored branding.
+  await page.locator(".workspace-shell").evaluate((element, styles) => {
+    for (const [name, value] of Object.entries(styles)) (element as HTMLElement).style.setProperty(name, String(value));
+  }, brandThemeStyle("#315794", "#52B3B7"));
+  await expect(page).toHaveScreenshot("tenant-palette-blue-turquoise-1440.png", { fullPage: true });
+  for (const path of ["aanvragen", "taken", "klanten", "objecten", "personeel", "rapporten", "facturen", "instellingen"]) {
+    await page.goto(`/app/${path}`);
+    await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
+    await expect(page.locator(".page-intro h1")).toHaveCSS("color", rgb(tenantPalette.ink));
+  }
+  const palettePreview = page.getByRole("region", { name: "Afgeleid kleurenpalet" });
+  await expect(palettePreview).toBeVisible();
+  await page.getByLabel("Primaire kleur", { exact: true }).fill("#ffffff");
+  await page.getByLabel("Secundaire kleur", { exact: true }).fill("#ffff00");
+  const draft = createBrandPalette("#ffffff", "#ffff00");
+  await expect(palettePreview.getByText(draft.action.toUpperCase(), { exact: true })).toBeVisible();
+  await expect(page.locator(".brand-settings-hero")).toHaveCSS("background-color", rgb(draft.heroStart));
+  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
+  await page.reload();
+  await expect(page.getByLabel("Primaire kleur", { exact: true })).toHaveValue("#214e72");
+  await expect(page.getByLabel("Secundaire kleur", { exact: true })).toHaveValue("#c65d21");
+
+  await page.goto("/platform");
+  await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
+  await page.getByRole("button", { name: "Huisstijl", exact: true }).click();
+  await page.getByLabel("Primaire kleur").last().fill("#315794");
+  await page.getByLabel("Secundaire kleur").last().fill("#52b3b7");
+  await expect(page.locator(".fg-preview-sidebar")).toHaveCSS("background-image", new RegExp(rgb(createBrandPalette("#315794", "#52b3b7").sidebar).replace(/[()]/g, "\\$&")));
+  await expect(page.locator(".fg-console")).toHaveCSS("--brand-primary", "#222c35");
+  await expect(page.getByRole("region", { name: "Afgeleid kleurenpalet" })).toBeVisible();
+  await expect(page).toHaveScreenshot("platform-palette-preview-1440.png", { fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect(page).toHaveScreenshot("platform-palette-preview-390.png", { fullPage: true });
 });
 
 test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare viewport", async ({ page }) => {
