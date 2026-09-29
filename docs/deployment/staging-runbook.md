@@ -81,8 +81,9 @@ self-hosted, Linux, X64, fieldgrid-staging
 ```
 
 Do not attach `fieldgrid-staging` to a production or legacy runner. Install the
-runner as a boot-enabled service and verify in GitHub that it is online and
-idle. The existing generic/offline legacy runner is not a fallback.
+current GitHub Actions runner release (compatible with Node 24 actions) as a
+boot-enabled service and verify in GitHub that it is online and idle. The
+existing generic/offline legacy runner is not a fallback.
 
 ## 5. Supabase provider checks
 
