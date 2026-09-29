@@ -4,7 +4,6 @@ import type { TenantContext } from "@/lib/auth/context";
 import { getWorkspaceData } from "@/lib/data/workspace";
 import { BackofficeShell, type BackofficeView } from "@/components/fieldgrid/backoffice-shell";
 import { NoAccess } from "../no-access";
-import { ProvisionForm } from "../provision-form";
 
 const viewBySegment: Record<string, BackofficeView> = {
   aanvragen: "aanvragen",
@@ -20,6 +19,12 @@ const viewBySegment: Record<string, BackofficeView> = {
   instellingen: "instellingen",
 };
 
+const serviceByView: Partial<Record<BackofficeView, string>> = {
+  aanvragen: "planning", planning: "planning", werkbonnen: "planning", taken: "planning",
+  klanten: "planning", objecten: "planning", personeel: "personeel", nieuws: "personeel",
+  controle: "rapportage", facturen: "finance",
+};
+
 export default async function BackofficeViewPage({ params }: { params: Promise<{ view: string }> }) {
   const { view: segment } = await params;
   const view = viewBySegment[segment];
@@ -27,9 +32,12 @@ export default async function BackofficeViewPage({ params }: { params: Promise<{
 
   const context = await getAuthContext();
   if (!context.tenant) {
-    return context.isPlatformAdmin ? <ProvisionForm email={context.user.email} /> : <NoAccess email={context.user.email} />;
+    if (context.isPlatformAdmin) redirect("/platform");
+    return <NoAccess email={context.user.email} />;
   }
   if (context.tenant.roles.length === 1 && context.tenant.roles[0] === "staff") redirect("/staff");
+  const requiredService = serviceByView[view];
+  if (requiredService && !context.tenant.enabledServices.includes(requiredService)) notFound();
 
   const data = await getWorkspaceData(context.tenant.id);
   return <BackofficeShell context={{ ...context, tenant: context.tenant as TenantContext }} data={data} initialView={view} />;

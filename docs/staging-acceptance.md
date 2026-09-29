@@ -31,10 +31,12 @@ naar het productieproject of de productie-VPS wijzen.
 ## Eerste platformbeheerder en tenant
 
 - Voer de handmatige workflow **Bootstrap staging platform administrator** eenmaal uit.
-- Log in als platformbeheerder en maak de eerste tenant via **Eerste tenant** aan.
+- Log in als platformbeheerder, open `/platform` en maak de eerste tenant via
+  **Nieuwe tenant** aan. Controleer dat platformbeheer niet stilzwijgend
+  tenantlid wordt en dat de gekozen beheerder een uitnodiging ontvangt.
 - Controleer dat er geen voorbeeldtenant, voorbeeldklant of hardcoded merkdata bestaat.
-- Upload in **Instellingen** het goedgekeurde tenantlogo en stel kleuren,
-  afzendernaam en afzendermail in.
+- Upload in de platform-backoffice het goedgekeurde tenantlogo en stel kleuren,
+  modules, afzendernaam, afzendermail en de vier berichttemplates in.
 - Verifieer dat `/app`, `/staff`, offerte-, boekings- en betaalpagina het
   echte tenantlogo en de ingestelde kleuren tonen. Een zichtbare `LOGO`-placeholder
   betekent dat de visuele acceptatie niet is geslaagd.

@@ -28,9 +28,9 @@ export default async function HomePage() {
   const logoUrl = await getBrandingLogoUrl(admin, branding?.logo_path);
 
   return (
-    <main className="auth-page" style={{ "--tenant-primary": branding?.primary_color ?? "#0b1d3a", "--tenant-accent": branding?.accent_color ?? "#00b7b3" } as React.CSSProperties}>
+    <main className="auth-page" style={{ "--tenant-primary": branding?.primary_color ?? "#222c35", "--tenant-accent": branding?.accent_color ?? "#41ac42" } as React.CSSProperties}>
       <section className="auth-card">
-        <div className="external-brand" style={{ background: branding?.primary_color ?? "#0b1d3a" }}>
+        <div className="external-brand" style={{ background: branding?.primary_color ?? "#222c35" }}>
           <FieldgridBrand tenantName={tenant.name} logoUrl={logoUrl} />
         </div>
         <span className="eyebrow">VEILIGE WERKOMGEVING</span>

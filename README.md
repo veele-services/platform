@@ -9,6 +9,9 @@ source of truth for this repository.
 Staging is the first and only deployment environment currently being designed.
 The complete, normative specification is
 [`docs/architecture/staging.md`](docs/architecture/staging.md).
+The platform workspace, onboarding, module-entitlement and template contracts
+are documented in
+[`docs/architecture/platform-backoffice.md`](docs/architecture/platform-backoffice.md).
 
 Fixed staging values:
 

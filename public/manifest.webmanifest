@@ -5,7 +5,7 @@
   "start_url": "/staff",
   "display": "standalone",
   "background_color": "#f3f6f9",
-  "theme_color": "#0b1d3a",
+  "theme_color": "#222c35",
   "lang": "nl-NL",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }

@@ -16,6 +16,7 @@ const input = {
   to: "klant@example.test",
   subject: "Factuur FG-1",
   text: "Bijgevoegd staat factuur FG-1.",
+  html: "<!doctype html><html lang=\"nl\"><body>Factuur FG-1</body></html>",
   attachment: { filename: "FG-1.pdf", bytes: new Uint8Array([37, 80, 68, 70]) },
   deliveryKey: "invoice-1-version-1",
 };
@@ -42,6 +43,20 @@ describe("SendGrid provider", () => {
       custom_args: { fieldgrid_delivery: "invoice-1-version-1" },
     });
     expect(body.attachments[0]).toMatchObject({ filename: "FG-1.pdf", content: "JVBERg==", type: "application/pdf" });
+    expect(body.content).toEqual([
+      { type: "text/plain", value: "Bijgevoegd staat factuur FG-1." },
+      { type: "text/html", value: input.html },
+    ]);
+  });
+
+  it("ondersteunt HTML zonder bijlage voor een prijsopgave", async () => {
+    const request = vi.fn<(url: string | URL | Request, init?: RequestInit) => Promise<Response>>();
+    request.mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", request);
+    await sendEmail({ ...input, attachment: undefined, deliveryKey: "quote-1-version-1" });
+    const body = JSON.parse(String(request.mock.calls[0][1]?.body));
+    expect(body.attachments).toBeUndefined();
+    expect(body.content).toHaveLength(2);
   });
 
   it("accepteert uitsluitend SendGrid HTTP 202", async () => {

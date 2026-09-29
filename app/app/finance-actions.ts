@@ -12,10 +12,13 @@ import { sendEmail } from "@/lib/providers/sendgrid";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
+import { renderTenantEmailHtml } from "@/lib/communications/email";
+import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
+import type { Json } from "@/lib/database.types";
 
 async function financeContext(): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
-  if (!context.tenant || !hasAnyRole(context, ["tenant_admin", "management", "finance"])) throw new Error("Financiële rol vereist");
+  if (!context.tenant || !context.tenant.enabledServices.includes("finance") || !hasAnyRole(context, ["tenant_admin", "management", "finance"])) throw new Error("De module Facturatie en een financiële rol zijn vereist");
   return context as AuthContext & { tenant: TenantContext };
 }
 
@@ -52,7 +55,7 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       billingAddress: (customer.billing_address ?? {}) as Record<string, unknown>,
       lines: lines.map((line) => ({ description: line.description, quantity: line.quantity, unitPriceCents: line.unit_price_cents, vatBasisPoints: line.vat_basis_points, totalCents: line.total_cents })),
       subtotalCents: finalized.subtotal_cents, vatCents: finalized.vat_cents, totalCents: finalized.total_cents,
-      accentColor: String(branding.accent_color ?? "#00B7B3"), footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
+      accentColor: String(branding.accent_color ?? "#41ac42"), footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
     });
     const digest = createHash("sha256").update(pdf).digest("hex");
     const path = `${context.tenant.id}/${invoice.id}/${finalized.invoice_number}.pdf`;
@@ -96,6 +99,32 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     const fromName = tenantSenderVerified ? branding?.sender_name ?? context.tenant.name : env.SENDGRID_FROM_NAME;
     const { data: file, error: downloadError } = await supabase.storage.from("invoices").download(invoice.pdf_storage_path);
     if (downloadError) throw downloadError;
+    const { data: storedTemplate, error: templateError } = await admin.from("tenant_message_templates").select("subject,body,revision").eq("tenant_id", context.tenant.id).eq("template_key", "invoice").single();
+    if (templateError) throw templateError;
+    const customerSnapshot = (invoice.customer_snapshot ?? {}) as Record<string, unknown>;
+    const brandingSnapshot = (invoice.branding_snapshot ?? {}) as Record<string, unknown>;
+    const values: TemplateValues = {
+      bedrijfsnaam: String(brandingSnapshot.tenant_name ?? context.tenant.name),
+      klantnaam: String(customerSnapshot.name ?? customer.name),
+      factuurnummer: invoice.invoice_number,
+      betaallink: paymentUrl,
+    };
+    const plain = renderPlainEmail({ subject: storedTemplate.subject, body: storedTemplate.body, values, targetUrl: paymentUrl, targetLabel: "Veilig betalen" });
+    const html = renderTenantEmailHtml({
+      brand: {
+        company: values.bedrijfsnaam!,
+        domain: new URL(tenantAppUrl(context.tenant.slug)).hostname,
+        primary: String(brandingSnapshot.primary_color ?? context.tenant.primaryColor),
+        accent: String(brandingSnapshot.accent_color ?? context.tenant.accentColor),
+        senderEmail: fromEmail,
+        emailLogoUrl: brandingSnapshot.logo_path ? `${env.APP_URL}/api/branding/${context.tenant.id}/email-logo` : null,
+      },
+      kind: "invoice",
+      message: { subject: storedTemplate.subject, body: storedTemplate.body },
+      values,
+      targetUrl: paymentUrl,
+      mode: "delivery",
+    });
     const deliveryKey = `invoice-${invoice.id}-${invoice.version}`;
     const { data: claim, error: claimError } = await admin.rpc("claim_mail_delivery", { target_tenant_id: context.tenant.id, target_recipient: customer.billing_email, target_template: "invoice", target_idempotency_key: deliveryKey }).maybeSingle();
     if (claimError || !claim) throw claimError ?? new Error("E-mailclaim mislukt");
@@ -109,12 +138,22 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     let sent: { id: string } | null = null; let sendError: Error | null = null;
     try { sent = await sendEmail({
       fromEmail, fromName, to: customer.billing_email,
-      subject: `Factuur ${invoice.invoice_number}`,
-      text: `Bijgevoegd staat factuur ${invoice.invoice_number}. Veilig betalen: ${paymentUrl}`,
+      subject: plain.subject,
+      text: plain.text,
+      html,
       attachment: { filename: `${invoice.invoice_number}.pdf`, bytes: new Uint8Array(await file.arrayBuffer()) },
       deliveryKey,
     }); } catch (error) { sendError = error instanceof Error ? error : new Error("E-mailverzending mislukt"); }
-    await admin.from("mail_deliveries").update({ provider_message_id: sent?.id ?? null, status: sendError ? "failed" : "sent", last_error: sendError?.message ?? null, sent_at: sendError ? null : new Date().toISOString(), locked_until: null }).eq("id", claim.delivery_id);
+    await admin.from("mail_deliveries").update({
+      provider_message_id: sent?.id ?? null,
+      status: sendError ? "failed" : "sent",
+      last_error: sendError?.message ?? null,
+      sent_at: sendError ? null : new Date().toISOString(),
+      locked_until: null,
+      template_revision: storedTemplate.revision,
+      render_snapshot: { subject: plain.subject, text: plain.text, html, target_url: paymentUrl },
+      branding_snapshot: brandingSnapshot as Json,
+    }).eq("id", claim.delivery_id);
     if (sendError) throw sendError;
     await supabase.from("invoices").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", invoice.id);
     revalidatePath("/app");

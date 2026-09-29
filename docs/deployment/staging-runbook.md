@@ -127,12 +127,14 @@ before another promotion.
 
 After the first healthy deployment, select branch `staging` in GitHub Actions
 and run **Bootstrap staging platform administrator** once. Sign in at the base
-staging origin, create the first tenant manually, and use its chosen slug at:
+staging origin, open `/platform`, create the first tenant with **Nieuwe tenant**
+and use its chosen slug at:
 
 - `https://{slug}.staging.fieldgrid.nl/app`
 - `https://{slug}.staging.fieldgrid.nl/staff`
 
-Upload the approved tenant logo and set its branding before visual acceptance.
+Use the platform tenant detail to upload the approved tenant logo, set branding,
+select modules and review the four message templates before visual acceptance.
 A remaining `LOGO` placeholder means branding acceptance is incomplete.
 
 Complete `docs/staging-acceptance.md`. Only after explicit staging acceptance

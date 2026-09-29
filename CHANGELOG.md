@@ -18,4 +18,9 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
   `/app` en `/staff` als werkruimtes en projectref-guards rond iedere
   stagingdatabaseverbinding.
 - Private tenantlogo-upload en -weergave in backoffice, personeels-PWA en veilige externe flows.
+- Aparte platform-backoffice op `/platform` met tenantoverzicht, herstelbare zesstaps-onboarding, huisstijl-, module- en communicatiebeheer.
+- Vier tenantgebonden, versievaste berichttemplates voor facturen, prijsopgaven, nieuwe werkbonnen en planningswijzigingen, inclusief live HTML- en pushpreview.
+- HTML- en tekstmail via SendGrid voor facturen en prijsopgaven, met veilige transactielinks en vastgelegde template- en brandingsnapshot per verzending.
+- Fieldgrid-basishuisstijl met `#222C35` als primaire kleur en `#41AC42` als secundaire kleur voor platform en nieuwe tenants.
+- Module-entitlements als autorisatiegrens in navigatie, server actions, RLS en database-triggers, inclusief security-definer RPC-bescherming.
 - Unit-, databasecontract-, RLS-, browser- en visuele regressietests.

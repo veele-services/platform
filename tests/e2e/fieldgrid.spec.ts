@@ -19,6 +19,34 @@ test("beschermde routes vereisen een sessie en foutieve login lekt geen accounts
   await expect(page.getByText("Inloggen is niet gelukt. Controleer je gegevens.")).toBeVisible();
 });
 
+test("platform backoffice beheert tenants, huisstijl en berichttemplates professioneel", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, "platform-admin@fieldgrid.test", "/platform");
+  await expect(page.getByRole("heading", { name: "Grip op iedere tenant." })).toBeVisible();
+  await expect(page.getByText("FIELDGRID PLATFORM", { exact: true })).toBeVisible();
+  await expect(page.getByText("Demo Organisatie").first()).toBeVisible();
+  await expect(page).toHaveScreenshot("platform-overview-1440.png", { fullPage: true });
+
+  await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Demo Organisatie" })).toBeVisible();
+  await page.getByRole("button", { name: "Huisstijl", exact: true }).click();
+  await expect(page.getByLabel("Primaire kleur").last()).toHaveValue("#222c35");
+  await expect(page.getByLabel("Secundaire kleur").last()).toHaveValue("#41ac42");
+  await page.getByRole("button", { name: "Communicatie", exact: true }).click();
+  await page.getByRole("button", { name: /Templates beheren/ }).click();
+  await expect(page.getByRole("heading", { name: "Templates", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Factuur verzonden" })).toBeVisible();
+  await expect(page.getByTitle("Voorbeeld e-mail")).toBeVisible();
+  const emailPreview = page.frameLocator('iframe[title="Voorbeeld e-mail"]');
+  await expect(emailPreview.getByRole("heading", { name: /Factuur FACT-2026-00481/ })).toBeVisible();
+  await expect(page).toHaveScreenshot("platform-templates-1440.png", { fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect(emailPreview.getByRole("heading", { name: /Factuur FACT-2026-00481/ })).toBeVisible();
+  await expect(page).toHaveScreenshot("platform-templates-390.png", { fullPage: true });
+});
+
 test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedtes", async ({ page }) => {
   await login(page, "platform-admin@fieldgrid.test");
   await expect(page.getByRole("heading", { name: /Demo Organisatie/ })).toBeVisible();

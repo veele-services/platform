@@ -21,7 +21,7 @@ import {
   createTask, dispatchWorkOrder,
   updateTenantBranding, withdrawAnnouncement, createBookingLink,
   uploadTenantLogo,
-  rescheduleWorkOrder, recordQuoteDecision,
+  rescheduleWorkOrder, recordQuoteDecision, sendQuoteEmail,
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
@@ -41,6 +41,12 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "instellingen", label: "Instellingen", icon: Settings, href: "/app/instellingen" },
 ];
+
+const serviceByView: Partial<Record<BackofficeView, string>> = {
+  aanvragen: "planning", planning: "planning", werkbonnen: "planning", taken: "planning",
+  klanten: "planning", objecten: "planning", personeel: "personeel", nieuws: "personeel",
+  controle: "rapportage", facturen: "finance",
+};
 
 const statusLabel: Record<string, string> = {
   planned: "Gepland", released: "Vrijgegeven", seen: "Gezien", travelling: "Onderweg",
@@ -66,7 +72,9 @@ function ActionForm({ action, children, className, success = "Opgeslagen", onSuc
     startTransition(async () => {
       const result = await action(data);
       if (!result.ok) { toast.error(result.error); return; }
-      toast.success(success);
+      if ("warning" in result && result.warning) toast.warning(String(result.warning));
+      else if ("alreadySent" in result && result.alreadySent) toast.info("Deze prijsopgave is al verzonden");
+      else toast.success(success);
       form.reset();
       onSuccess?.(result);
       router.refresh();
@@ -86,6 +94,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
   const tenant = context.tenant;
+  const visibleNav = nav.filter((item) => !serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!));
   const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const objectById = useMemo(() => new Map(data.objects.map((item) => [item.id, item])), [data.objects]);
   const current = nav.find((item) => item.id === view)!;
@@ -119,7 +128,10 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
           <label>Bedrag excl. btw<input name="amount" type="number" min="0.01" step="0.01" required /></label><label>Geldig (dagen)<input name="validDays" type="number" min="1" max="90" defaultValue="14" required /></label>
         </ActionForm><p className="form-note">De veilige acceptatielink wordt na aanmaken naar het klembord gekopieerd.</p><hr className="form-divider"/><div className="section-heading"><h2>Boekingslink maken</h2></div><ActionForm action={createBookingLink} className="workspace-form" success="Boekingslink maken" onSuccess={(result) => { if (result.ok && "previewUrl" in result && result.previewUrl) navigator.clipboard.writeText(String(result.previewUrl)); }}><label className="wide">Aanvraag<select name="requestId" required defaultValue=""><option value="" disabled>Kies aanvraag</option>{data.requests.filter((item) => !["closed", "rejected"].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.request_number}</option>)}</select></label><label>Start tijdvak<input name="start" type="datetime-local" required/></label><label>Einde tijdvak<input name="end" type="datetime-local" required/></label><label>Capaciteit<input name="capacity" type="number" min="1" max="20" defaultValue="1"/></label></ActionForm></section>
       </div>
-      {data.quotes.some((item) => item.status === "awaiting_acceptance") && <section className="panel"><div className="section-heading"><h2>Telefonisch of per e-mail akkoord registreren</h2></div><ActionForm action={recordQuoteDecision} className="workspace-form" success="Besluit registreren"><label>Offerte<select name="quoteId" required defaultValue=""><option value="" disabled>Kies verzonden offerte</option>{data.quotes.filter((item) => item.status === "awaiting_acceptance").map((item) => <option key={item.id} value={item.id}>{item.quote_number}</option>)}</select></label><label>Besluit<select name="decision" defaultValue="accepted"><option value="accepted">Akkoord</option><option value="rejected">Afgewezen</option></select></label><label>Naam klant<input name="name" required/></label><label>Bewijs/notitie<input name="evidence" required placeholder="Bijv. e-mail ontvangen op…"/></label></ActionForm></section>}
+      {data.quotes.some((item) => item.status === "awaiting_acceptance") && <div className="workspace-split">
+        <section className="panel"><div className="section-heading"><h2>Prijsopgave e-mailen</h2></div><ActionForm action={sendQuoteEmail} className="workspace-form" success="Prijsopgave verzenden" onSuccess={(result) => { if (result.ok && "previewUrl" in result && result.previewUrl) navigator.clipboard.writeText(String(result.previewUrl)); }}><label className="wide">Prijsopgave<select name="quoteId" required defaultValue=""><option value="" disabled>Kies prijsopgave</option>{data.quotes.filter((item) => item.status === "awaiting_acceptance").map((item) => <option key={item.id} value={item.id}>{item.quote_number} · {customerById.get(item.customer_id)?.name}</option>)}</select></label></ActionForm><p className="form-note">De tenanttemplate, actuele huisstijl en veilige acceptatielink worden in één versievaste verzending vastgelegd.</p></section>
+        <section className="panel"><div className="section-heading"><h2>Akkoord registreren</h2></div><ActionForm action={recordQuoteDecision} className="workspace-form" success="Besluit registreren"><label>Prijsopgave<select name="quoteId" required defaultValue=""><option value="" disabled>Kies verzonden prijsopgave</option>{data.quotes.filter((item) => item.status === "awaiting_acceptance").map((item) => <option key={item.id} value={item.id}>{item.quote_number}</option>)}</select></label><label>Besluit<select name="decision" defaultValue="accepted"><option value="accepted">Akkoord</option><option value="rejected">Afgewezen</option></select></label><label>Naam klant<input name="name" required/></label><label>Bewijs/notitie<input name="evidence" required placeholder="Bijv. e-mail ontvangen op…"/></label></ActionForm></section>
+      </div>}
       <DataTable headers={["Nummer", "Klant", "Omschrijving", "Prioriteit", "Status"]}>{data.requests.map((item) => <tr key={item.id}><td><strong>{item.request_number}</strong><small>{dateTime(item.created_at, tenant.timezone)}</small></td><td>{item.customer_id ? customerById.get(item.customer_id)?.name : "—"}</td><td>{item.description}</td><td>{item.priority}</td><td><Pill status={item.status}/></td></tr>)}</DataTable>
     </>;
 
@@ -162,7 +174,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
   })();
 
   return <div className="workspace-shell" style={{ "--tenant-primary": tenant.primaryColor, "--tenant-accent": tenant.accentColor } as React.CSSProperties}>
-    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{nav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small></footer></aside>
+    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small></footer></aside>
     <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
 }

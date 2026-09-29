@@ -428,13 +428,13 @@ isOneToOne: false
                   ]
                 },"mail_deliveries": {
                   Row: {
-                    "attempts": number,"created_at": string,"id": string,"idempotency_key": string,"last_error": string | null,"locked_until": string | null,"outbox_event_id": string | null,"provider_message_id": string | null,"recipient": string,"sent_at": string | null,"status": Database["public"]['Enums']["delivery_status"],"template": string,"tenant_id": string
+                    "attempts": number,"branding_snapshot": Json | null,"created_at": string,"id": string,"idempotency_key": string,"last_error": string | null,"locked_until": string | null,"outbox_event_id": string | null,"provider_message_id": string | null,"recipient": string,"render_snapshot": Json | null,"sent_at": string | null,"status": Database["public"]['Enums']["delivery_status"],"template": string,"template_revision": number | null,"tenant_id": string
                   }
                   Insert: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key": string,"last_error"?: string | null,"locked_until"?: string | null,"outbox_event_id"?: string | null,"provider_message_id"?: string | null,"recipient": string,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"template": string,"tenant_id": string
+                    "attempts"?: number,"branding_snapshot"?: Json | null,"created_at"?: string,"id"?: string,"idempotency_key": string,"last_error"?: string | null,"locked_until"?: string | null,"outbox_event_id"?: string | null,"provider_message_id"?: string | null,"recipient": string,"render_snapshot"?: Json | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"template": string,"template_revision"?: number | null,"tenant_id": string
                   }
                   Update: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"last_error"?: string | null,"locked_until"?: string | null,"outbox_event_id"?: string | null,"provider_message_id"?: string | null,"recipient"?: string,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"template"?: string,"tenant_id"?: string
+                    "attempts"?: number,"branding_snapshot"?: Json | null,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"last_error"?: string | null,"locked_until"?: string | null,"outbox_event_id"?: string | null,"provider_message_id"?: string | null,"recipient"?: string,"render_snapshot"?: Json | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"template"?: string,"template_revision"?: number | null,"tenant_id"?: string
                   }
                   Relationships: [
                     {
@@ -1003,6 +1003,25 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
+                },"tenant_admin_invitations": {
+                  Row: {
+                    "auth_user_id": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"invited_at": string | null,"last_error": string | null,"status": string,"tenant_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "auth_user_id"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id"?: string,"invited_at"?: string | null,"last_error"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "auth_user_id"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"invited_at"?: string | null,"last_error"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tenant_admin_invitations_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tenant_branding": {
                   Row: {
                     "accent_color": string,"logo_path": string | null,"pdf_footer": string | null,"primary_color": string,"sender_email": string | null,"sender_name": string | null,"surface_color": string,"tenant_id": string,"updated_at": string
@@ -1060,6 +1079,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"tenant_message_template_revisions": {
+                  Row: {
+                    "actor_user_id": string | null,"body": string,"channel": string,"created_at": string,"customized": boolean,"id": string,"revision": number,"subject": string,"template_key": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "actor_user_id"?: string | null,"body": string,"channel": string,"created_at"?: string,"customized": boolean,"id"?: string,"revision": number,"subject": string,"template_key": string,"tenant_id": string
+                  }
+                  Update: {
+                    "actor_user_id"?: string | null,"body"?: string,"channel"?: string,"created_at"?: string,"customized"?: boolean,"id"?: string,"revision"?: number,"subject"?: string,"template_key"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tenant_message_template_revisions_tenant_id_template_key_fkey"
+      columns: ["tenant_id","template_key"]
+isOneToOne: false
+      referencedRelation: "tenant_message_templates"
+      referencedColumns: ["tenant_id","template_key"]
+    }
+                  ]
+                },"tenant_message_templates": {
+                  Row: {
+                    "body": string,"channel": string,"created_at": string,"customized": boolean,"default_body": string,"default_subject": string,"revision": number,"subject": string,"template_key": string,"tenant_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "body": string,"channel": string,"created_at"?: string,"customized"?: boolean,"default_body": string,"default_subject": string,"revision"?: number,"subject": string,"template_key": string,"tenant_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "body"?: string,"channel"?: string,"created_at"?: string,"customized"?: boolean,"default_body"?: string,"default_subject"?: string,"revision"?: number,"subject"?: string,"template_key"?: string,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tenant_message_templates_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tenant_provider_connections": {
                   Row: {
                     "active": boolean,"created_at": string,"id": string,"mode": string,"provider": string,"public_config": NonNullable<Json>,"secret_reference": string | null,"tenant_id": string,"updated_at": string,"verified_at": string | null
@@ -1100,13 +1157,13 @@ isOneToOne: true
                   ]
                 },"tenants": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"slug": string,"status": string,"timezone": string,"updated_at": string,"version": number
+                    "created_at": string,"id": string,"name": string,"onboarding_key": string | null,"slug": string,"status": string,"timezone": string,"updated_at": string,"version": number
                   }
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"slug": string,"status"?: string,"timezone"?: string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"id"?: string,"name": string,"onboarding_key"?: string | null,"slug": string,"status"?: string,"timezone"?: string,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"slug"?: string,"status"?: string,"timezone"?: string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"id"?: string,"name"?: string,"onboarding_key"?: string | null,"slug"?: string,"status"?: string,"timezone"?: string,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
 
@@ -1527,6 +1584,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"provision_platform_tenant":
+{ Args: { "accent_color": string,"actor_user_id": string,"admin_email": string,"admin_name": string,"enabled_services": (string)[],"primary_color": string,"request_key": string,"sender_email"?: string,"tenant_domain"?: string,"tenant_name": string,"tenant_slug": string }; Returns: string
+                           },
 "provision_tenant":
 { Args: { "actor_user_id": string,"owner_user_id": string,"tenant_name": string,"tenant_slug": string }; Returns: string
                            },
@@ -1612,7 +1672,7 @@ isOneToOne: false
       } },
 "resolve_tenant_context":
 { Args: { "requested_host"?: string,"requested_tenant_id"?: string }; Returns: {
-              "accent_color": string,"logo_path": string,"primary_color": string,"roles": (Database["public"]['Enums']["app_role"])[],"tenant_id": string,"tenant_name": string,"tenant_slug": string,"timezone": string
+              "accent_color": string,"enabled_services": (string)[],"logo_path": string,"primary_color": string,"roles": (Database["public"]['Enums']["app_role"])[],"tenant_id": string,"tenant_name": string,"tenant_slug": string,"timezone": string
             }[]
                            },
 "review_work_order":
@@ -1645,6 +1705,27 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "work_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"save_tenant_message_template":
+{ Args: { "actor_user_id": string,"reset_to_default": boolean,"target_body": string,"target_subject": string,"target_template_key": string,"target_tenant_id": string }; Returns: {
+              "body": string,
+"channel": string,
+"created_at": string,
+"customized": boolean,
+"default_body": string,
+"default_subject": string,
+"revision": number,
+"subject": string,
+"template_key": string,
+"tenant_id": string,
+"updated_at": string,
+"updated_by": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tenant_message_templates"
         isOneToOne: true
         isSetofReturn: false
       } },

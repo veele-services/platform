@@ -42,7 +42,7 @@ const styles = {
   logo: {
     display: "inline-flex",
     marginBottom: "32px",
-    color: "#0b1d3a",
+    color: "#222c35",
     fontSize: "13px",
     fontWeight: 800,
     letterSpacing: ".16em",
@@ -57,7 +57,7 @@ const styles = {
   },
   title: {
     marginBottom: "12px",
-    color: "#0b1d3a",
+    color: "#222c35",
     fontSize: "clamp(27px, 6vw, 38px)",
     lineHeight: 1.15,
   },

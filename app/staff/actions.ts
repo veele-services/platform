@@ -8,15 +8,16 @@ import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
 
-async function staffContext() {
+async function staffContext(services: string[] = []) {
   const context = await getAuthContext();
-  if (!context.tenant || !context.tenant.roles.includes("staff")) throw new Error("Personeelstoegang vereist");
+  if (!context.tenant || !context.tenant.enabledServices.includes("personeel") || !context.tenant.roles.includes("staff")) throw new Error("Personeelstoegang vereist");
+  if (services.some((service) => !context.tenant!.enabledServices.includes(service))) throw new Error("Deze module is niet actief voor de tenant");
   return { ...context, tenant: context.tenant };
 }
 
 export async function transitionWorkOrder(input: { workOrderId: string; action: "open" | "travel" | "start" | "complete" | "resubmit" | "return"; version: number; reason?: string; note?: string; idempotencyKey: string }): Promise<ActionResult> {
   try {
-    await staffContext();
+    await staffContext(["planning"]);
     const parsed = z.object({ workOrderId: z.string().uuid(), action: z.enum(["open", "travel", "start", "complete", "resubmit", "return"]), version: z.number().int(), reason: z.string().optional(), note: z.string().optional(), idempotencyKey: z.string().min(8) }).parse(input);
     const supabase = await createClient();
     const { error } = await supabase.rpc("transition_work_order", { target_work_order_id: parsed.workOrderId, action: parsed.action, expected_version: parsed.version, idempotency_key: parsed.idempotencyKey, reason_code: parsed.reason, note: parsed.note });
@@ -28,7 +29,7 @@ export async function transitionWorkOrder(input: { workOrderId: string; action: 
 
 export async function setTaskCompletion(input: { taskId: string; completed: boolean; note?: string }): Promise<ActionResult> {
   try {
-    await staffContext();
+    await staffContext(["planning"]);
     const parsed = z.object({ taskId: z.string().uuid(), completed: z.boolean(), note: z.string().optional() }).parse(input);
     const supabase = await createClient();
     const { error } = await supabase.rpc("complete_work_order_task", { target_task_id: parsed.taskId, completed: parsed.completed, completion_note: parsed.note });
@@ -40,7 +41,7 @@ export async function setTaskCompletion(input: { taskId: string; completed: bool
 
 export async function addReportEntry(formData: FormData): Promise<ActionResult> {
   try {
-    const context = await staffContext();
+    const context = await staffContext(["rapportage"]);
     const workOrderId = z.string().uuid().parse(formData.get("workOrderId"));
     const body = z.string().trim().min(1).max(5000).parse(formData.get("body"));
     const severityValue = formData.get("severity");
@@ -75,7 +76,7 @@ export async function addReportEntry(formData: FormData): Promise<ActionResult> 
 
 export async function updateReportEntry(input: { entryId: string; body: string }): Promise<ActionResult> {
   try {
-    await staffContext();
+    await staffContext(["rapportage"]);
     const parsed = z.object({ entryId: z.string().uuid(), body: z.string().trim().min(1).max(5000) }).parse(input);
     const supabase = await createClient();
     const { error } = await supabase.from("report_entries").update({ body: parsed.body }).eq("id", parsed.entryId);
@@ -86,7 +87,7 @@ export async function updateReportEntry(input: { entryId: string; body: string }
 
 export async function deleteReportEntry(entryId: string): Promise<ActionResult> {
   try {
-    await staffContext();
+    await staffContext(["rapportage"]);
     z.string().uuid().parse(entryId);
     const supabase = await createClient();
     const deletedAt = new Date().toISOString();
@@ -100,7 +101,7 @@ export async function deleteReportEntry(entryId: string): Promise<ActionResult> 
 
 export async function captureSignature(input: { workOrderId: string; signerName: string; dataUrl: string; reportVersion: number }): Promise<ActionResult> {
   try {
-    const context = await staffContext();
+    const context = await staffContext(["rapportage"]);
     const parsed = z.object({ workOrderId: z.string().uuid(), signerName: z.string().trim().min(2).max(120), dataUrl: z.string().startsWith("data:image/png;base64,"), reportVersion: z.number().int().positive() }).parse(input);
     const bytes = Buffer.from(parsed.dataUrl.split(",")[1], "base64");
     if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new Error("Ongeldige handtekening");
@@ -150,7 +151,7 @@ export async function requestTimeCorrection(input: { timeEntryId: string; reason
 
 export async function addExtraWork(input: { workOrderId: string; ruleId: string; idempotencyKey: string }): Promise<ActionResult> {
   try {
-    await staffContext();
+    await staffContext(["planning", "rapportage"]);
     const parsed = z.object({ workOrderId: z.string().uuid(), ruleId: z.string().uuid(), idempotencyKey: z.string().min(8) }).parse(input);
     const supabase = await createClient();
     const { error } = await supabase.rpc("add_extra_work", { target_work_order_id: parsed.workOrderId, target_extra_work_rule_id: parsed.ruleId, idempotency_key: parsed.idempotencyKey });

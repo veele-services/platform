@@ -48,7 +48,7 @@ const styles = {
   logo: {
     display: "inline-flex",
     marginBottom: "32px",
-    color: "#0b1d3a",
+    color: "#222c35",
     fontSize: "13px",
     fontWeight: 800,
     letterSpacing: ".16em",
@@ -63,7 +63,7 @@ const styles = {
   },
   title: {
     margin: "0 0 12px",
-    color: "#0b1d3a",
+    color: "#222c35",
     fontSize: "clamp(27px, 6vw, 38px)",
     lineHeight: 1.15,
   },
@@ -79,7 +79,7 @@ const styles = {
     padding: "11px 17px",
     border: 0,
     borderRadius: "9px",
-    background: "#00a7a5",
+    background: "#41ac42",
     color: "#fff",
     font: "inherit",
     fontWeight: 800,

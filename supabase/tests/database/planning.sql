@@ -6,6 +6,7 @@ insert into auth.users (instance_id, id, aud, role, email, encrypted_password, e
   ('00000000-0000-0000-0000-000000000000', 'e0000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'planner@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'e0000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'worker@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
 insert into public.tenants (id, slug, name) values ('e1000000-0000-4000-8000-000000000001', 'planning-test', 'Planning Test');
+insert into public.tenant_settings (tenant_id) values ('e1000000-0000-4000-8000-000000000001');
 insert into public.tenant_memberships (tenant_id, user_id, roles, status, activated_at) values
   ('e1000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', array['planner']::public.app_role[], 'active', now()),
   ('e1000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000002', array['staff']::public.app_role[], 'active', now());

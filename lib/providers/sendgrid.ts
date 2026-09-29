@@ -2,7 +2,7 @@ import "server-only";
 
 import { getServerEnv, requireProvider } from "@/lib/env/server";
 
-export async function sendEmail(input: { fromEmail: string; fromName: string; to: string; subject: string; text: string; attachment: { filename: string; bytes: Uint8Array }; deliveryKey: string }) {
+export async function sendEmail(input: { fromEmail: string; fromName: string; to: string; subject: string; text: string; html: string; attachment?: { filename: string; bytes: Uint8Array }; deliveryKey: string }) {
   const endpoint = new URL("v3/mail/send", getServerEnv().SENDGRID_API_BASE);
   const response = await fetch(endpoint, {
     method: "POST",
@@ -10,8 +10,8 @@ export async function sendEmail(input: { fromEmail: string; fromName: string; to
     body: JSON.stringify({
       personalizations: [{ to: [{ email: input.to }], custom_args: { fieldgrid_delivery: input.deliveryKey.slice(0, 100) } }],
       from: { email: input.fromEmail, name: input.fromName }, subject: input.subject,
-      content: [{ type: "text/plain", value: input.text }],
-      attachments: [{ filename: input.attachment.filename, content: Buffer.from(input.attachment.bytes).toString("base64"), type: "application/pdf", disposition: "attachment" }],
+      content: [{ type: "text/plain", value: input.text }, { type: "text/html", value: input.html }],
+      ...(input.attachment ? { attachments: [{ filename: input.attachment.filename, content: Buffer.from(input.attachment.bytes).toString("base64"), type: "application/pdf", disposition: "attachment" }] } : {}),
     }),
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),

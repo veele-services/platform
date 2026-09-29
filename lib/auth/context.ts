@@ -17,6 +17,7 @@ export type TenantContext = {
   primaryColor: string;
   accentColor: string;
   logoPath: string | null;
+  enabledServices: string[];
 };
 
 export type AuthContext = {
@@ -74,6 +75,7 @@ export async function getAuthContext(): Promise<AuthContext> {
         primaryColor: resolved.primary_color,
         accentColor: resolved.accent_color,
         logoPath: resolved.logo_path,
+        enabledServices: resolved.enabled_services,
       };
     }
   }
@@ -87,4 +89,8 @@ export async function getAuthContext(): Promise<AuthContext> {
 
 export function hasAnyRole(context: AuthContext, roles: AppRole[]): boolean {
   return Boolean(context.tenant?.roles.some((role) => roles.includes(role)));
+}
+
+export function hasService(context: AuthContext, service: string): boolean {
+  return Boolean(context.tenant?.enabledServices.includes(service));
 }

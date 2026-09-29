@@ -4,6 +4,7 @@ import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env/server";
 import type { Database } from "@/lib/database.types";
+import { renderTemplateText, templateDefinition, type TemplateValues } from "@/lib/communications/templates";
 
 type Event = Database["public"]["Tables"]["outbox_events"]["Row"];
 
@@ -14,9 +15,35 @@ function secretMatches(header: string | null, expected: string | undefined) {
   return supplied.length === wanted.length && timingSafeEqual(supplied, wanted);
 }
 
-function notificationFor(event: Event) {
+async function notificationFor(event: Event) {
   const payload = event.payload as Record<string, unknown>;
-  if (event.event_type === "work_order.dispatched") return { title: "Nieuwe werkbon", body: "Er staat een nieuwe opdracht in je planning.", target: `/staff?workOrder=${event.aggregate_id}`, personnelId: String(payload.personnel_id ?? "") };
+  if (event.event_type === "work_order.dispatched" || event.event_type === "work_order.rescheduled") {
+    const admin = createAdminClient();
+    const templateKey = event.event_type === "work_order.dispatched" ? "workorder" : "schedule";
+    const [{ data: tenant, error: tenantError }, { data: workOrder, error: orderError }, { data: template, error: templateError }] = await Promise.all([
+      admin.from("tenants").select("name,timezone").eq("id", event.tenant_id).single(),
+      admin.from("work_orders").select("work_order_number,object_id,projected_start_at").eq("tenant_id", event.tenant_id).eq("id", event.aggregate_id).single(),
+      admin.from("tenant_message_templates").select("subject,body").eq("tenant_id", event.tenant_id).eq("template_key", templateKey).single(),
+    ]);
+    if (tenantError || orderError) throw tenantError ?? orderError;
+    const { data: object, error: objectError } = await admin.from("objects").select("name,address").eq("tenant_id", event.tenant_id).eq("id", workOrder.object_id).single();
+    if (objectError) throw objectError;
+    const address = (object.address ?? {}) as Record<string, unknown>;
+    const location = [address.street, address.postal_code, address.city].filter((part) => typeof part === "string" && part).join(", ") || object.name;
+    const values: TemplateValues = {
+      bedrijfsnaam: tenant.name,
+      bonnummer: workOrder.work_order_number,
+      datum: new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short", timeZone: tenant.timezone }).format(new Date(workOrder.projected_start_at)),
+      locatie: location,
+    };
+    const fallback = templateDefinition(templateKey);
+    return {
+      title: renderTemplateText(templateError ? fallback.subject : template.subject, values),
+      body: renderTemplateText(templateError ? fallback.body : template.body, values),
+      target: `/staff?workOrder=${event.aggregate_id}`,
+      personnelId: String(payload.personnel_id ?? ""),
+    };
+  }
   if (event.event_type === "work_order.reviewed" && payload.decision === "returned") return { title: "Rapport teruggestuurd", body: String(payload.reason ?? "Je rapport heeft een correctie nodig."), target: `/staff?workOrder=${event.aggregate_id}`, personnelId: "" };
   if (event.event_type === "announcement.published" && payload.send_push === true) return { title: "Nieuw bericht", body: "Er is een nieuw teambericht gepubliceerd.", target: "/staff?tab=nieuws", personnelId: "" };
   return null;
@@ -41,7 +68,7 @@ async function recipients(event: Event, personnelId: string) {
 
 async function processEvent(event: Event) {
   const admin = createAdminClient();
-  const notification = notificationFor(event);
+  const notification = await notificationFor(event);
   if (!notification) {
     await admin.from("outbox_events").update({ status: "sent", processed_at: new Date().toISOString(), locked_until: null }).eq("id", event.id);
     return;
