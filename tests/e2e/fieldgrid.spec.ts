@@ -143,6 +143,55 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await expect(page).toHaveScreenshot("planboard-full-1440.png", { fullPage: true });
 });
 
+test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", async ({ page }) => {
+  await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const view of ["klanten", "objecten", "personeel"]) {
+      await page.goto(`/app/${view}`);
+      const table = page.locator(".resource-table-panel .table-scroll");
+      const trigger = table.getByRole("button", { name: "Meer", exact: true }).last();
+      await trigger.scrollIntoViewIfNeeded();
+      const scrollHeight = await table.evaluate((element) => element.scrollHeight);
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+
+      const overlay = page.getByRole("dialog", { name: "Meer informatie en acties" });
+      await expect(overlay).toBeVisible();
+      await expect(trigger).toHaveAttribute("aria-expanded", "true");
+      // Opening the last row must not add vertical scrolling to the table.
+      await expect.poll(() => table.evaluate((element) => element.scrollHeight)).toBe(scrollHeight);
+      await expect.poll(() => overlay.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const inset = 4;
+        return rect.left >= 0 && rect.right <= window.innerWidth && rect.top >= 0 && rect.bottom <= window.innerHeight
+          && [[rect.left + inset, rect.top + inset], [rect.right - inset, rect.bottom - inset]]
+            .every(([x, y]) => element.contains(document.elementFromPoint(x, y)));
+      })).toBe(true);
+      if (width === 1440) {
+        const tableBottom = await table.evaluate((element) => element.getBoundingClientRect().bottom);
+        expect(await overlay.evaluate((element) => element.getBoundingClientRect().bottom)).toBeGreaterThan(tableBottom);
+      }
+
+      await page.keyboard.press("Escape");
+      await expect(overlay).toBeHidden();
+      await expect(trigger).toBeFocused();
+      await trigger.click();
+      await expect(overlay).toBeVisible();
+      if (view === "personeel") {
+        await overlay.getByRole("button", { name: "Functies, kwalificaties en documenten" }).click();
+        await expect(overlay).toBeHidden();
+        await expect(page.getByRole("dialog").getByRole("heading", { name: "Functie en kwalificatie" })).toBeVisible();
+        await page.getByRole("button", { name: "Sluiten", exact: true }).click();
+      } else {
+        await page.locator(".page-intro h1").click();
+        await expect(overlay).toBeHidden();
+      }
+    }
+  }
+});
+
 test("personeels-PWA opent een vrijgegeven bon, zet gezien en toont de echte checklist", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, "field-worker@fieldgrid.test", "/staff");

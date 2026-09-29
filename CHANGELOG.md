@@ -2,6 +2,10 @@
 
 Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
+## Nog niet uitgebracht
+
+- Alle ‘Meer’-overlays in klanten, objecten, personeel en facturen openen boven de tabelcontainer, met schermranddetectie en ondersteuning voor toetsenbordbediening.
+
 ## 1.0.0 - 2026-09-29
 
 ### Toegevoegd
