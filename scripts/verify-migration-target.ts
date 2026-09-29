@@ -1,17 +1,22 @@
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import { Client } from "pg";
-
-const expected = [
-  ["20260928202819", "fieldgrid_v1_core"],
-  ["20260928202927", "fieldgrid_v1_rls_storage"],
-  ["20260928202928", "fieldgrid_v1_domain_functions"],
-  ["20260928211620", "fieldgrid_v1_booking_and_workflows"],
-  ["20260928223000", "fieldgrid_v1_operational_completeness"],
-] as const;
 
 const connectionString = process.env.MIGRATION_DATABASE_URL;
 if (!connectionString) throw new Error("MIGRATION_DATABASE_URL ontbreekt");
 
 async function main() {
+  const migrationDirectory = path.resolve(process.cwd(), "supabase/migrations");
+  const expected = (await readdir(migrationDirectory, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
+    .map((entry) => {
+      const match = /^(\d{14})_(.+)\.sql$/.exec(entry.name);
+      if (!match) throw new Error(`Ongeldige migratiebestandsnaam: ${entry.name}`);
+      return { version: match[1], name: match[2] };
+    })
+    .sort((left, right) => left.version.localeCompare(right.version));
+  if (expected.length === 0) throw new Error("Repository bevat geen Fieldgrid-migraties");
+
   const client = new Client({ connectionString, connectionTimeoutMillis: 10_000, query_timeout: 15_000 });
   await client.connect();
   try {
@@ -38,7 +43,7 @@ async function main() {
     if (remote.length > expected.length) throw new Error("Migratiedoel bevat migraties buiten de Fieldgrid V1-baseline");
     remote.forEach((migration, index) => {
       const wanted = expected[index];
-      if (!wanted || migration.version !== wanted[0] || migration.name !== wanted[1]) {
+      if (!wanted || migration.version !== wanted.version || migration.name !== wanted.name) {
         throw new Error(`Migratiegeschiedenis wijkt af bij positie ${index + 1}`);
       }
     });
