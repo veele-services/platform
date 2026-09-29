@@ -13,5 +13,5 @@ export default async function BackofficePage() {
   }
   if (context.tenant.roles.length === 1 && context.tenant.roles[0] === "staff") redirect("/staff");
   const data = await getWorkspaceData(context.tenant.id);
-  return <BackofficeShell context={{ ...context, tenant: context.tenant as TenantContext }} data={data} />;
+  return <BackofficeShell context={{ ...context, tenant: context.tenant as TenantContext }} data={data} initialView="overzicht" />;
 }

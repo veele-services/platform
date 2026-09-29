@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
-  Clock3, CreditCard, FileCheck2, FileText, LayoutDashboard, LogOut, Megaphone,
-  Menu, PackageCheck, Search, Send, Settings, ShieldCheck,
+  Clock3, CreditCard, FileText, LayoutDashboard, LogOut, Megaphone,
+  Menu, PackageCheck, Search, Settings,
   UsersRound, Wrench,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
@@ -13,34 +14,32 @@ import type { AuthContext } from "@/lib/auth/context";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import type { ActionResult } from "@/lib/actions/result";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
+import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
-  createAnnouncement, createCustomer, createOpenShift, createQuote, createRequest,
-  createTask, createWorkOrder, dispatchWorkOrder, invitePersonnel, reviewWorkOrder,
-  updateTenantBranding, withdrawAnnouncement, createBookingLink, createCustomerContact,
+  createAnnouncement, createQuote, createRequest,
+  createTask, dispatchWorkOrder,
+  updateTenantBranding, withdrawAnnouncement, createBookingLink,
   uploadTenantLogo,
-  confirmShiftInterest, createPersonnelFunction, assignPersonnelFunction, addQualification,
-  addAvailability, uploadPersonnelDocument, rescheduleWorkOrder,
-  createObject, recordQuoteDecision,
-  completeReminder,
+  rescheduleWorkOrder, recordQuoteDecision,
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
-import { createInvoice, createPaymentBundle, registerManualPayment, sendInvoice } from "@/app/app/finance-actions";
 
-type View = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen";
 
-const nav: Array<{ id: View; label: string; icon: typeof LayoutDashboard }> = [
-  { id: "overzicht", label: "Overzicht", icon: LayoutDashboard },
-  { id: "aanvragen", label: "Aanvragen & offertes", icon: FileText },
-  { id: "planning", label: "Planbord", icon: CalendarDays },
-  { id: "werkbonnen", label: "Werkbonnen", icon: BriefcaseBusiness },
-  { id: "taken", label: "Taken & tarieven", icon: Wrench },
-  { id: "klanten", label: "Klanten & objecten", icon: Building2 },
-  { id: "personeel", label: "Personeel", icon: UsersRound },
-  { id: "controle", label: "Rapportcontrole", icon: ClipboardCheck },
-  { id: "facturen", label: "Facturen", icon: CreditCard },
-  { id: "nieuws", label: "Nieuws", icon: Megaphone },
-  { id: "instellingen", label: "Instellingen", icon: Settings },
+const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
+  { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
+  { id: "aanvragen", label: "Aanvragen & offertes", icon: FileText, href: "/app/aanvragen" },
+  { id: "planning", label: "Planbord", icon: CalendarDays, href: "/app/planning" },
+  { id: "werkbonnen", label: "Werkbonnen", icon: BriefcaseBusiness, href: "/app/werkbonnen" },
+  { id: "taken", label: "Taken & tarieven", icon: Wrench, href: "/app/taken" },
+  { id: "klanten", label: "Klanten", icon: Building2, href: "/app/klanten" },
+  { id: "objecten", label: "Objecten", icon: Building2, href: "/app/objecten" },
+  { id: "personeel", label: "Personeel", icon: UsersRound, href: "/app/personeel" },
+  { id: "controle", label: "Rapportcontrole", icon: ClipboardCheck, href: "/app/rapporten" },
+  { id: "facturen", label: "Facturen", icon: CreditCard, href: "/app/facturen" },
+  { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
+  { id: "instellingen", label: "Instellingen", icon: Settings, href: "/app/instellingen" },
 ];
 
 const statusLabel: Record<string, string> = {
@@ -56,11 +55,6 @@ const statusLabel: Record<string, string> = {
 const money = (cents: number | null | undefined) => new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format((cents ?? 0) / 100);
 const dateTime = (value: string | null | undefined, timezone = "Europe/Amsterdam") => value ? new Intl.DateTimeFormat("nl-NL", { dateStyle: "short", timeStyle: "short", timeZone: timezone }).format(new Date(value)) : "—";
 const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-function groupBy<T>(items: T[], key: (item: T) => string) { return items.reduce<Map<string, T[]>>((map, item) => { const value = key(item); map.set(value, [...(map.get(value) ?? []), item]); return map; }, new Map()); }
-const addressLine = (address: unknown) => {
-  const value = (address ?? {}) as Record<string, unknown>;
-  return [value.street, value.postal_code, value.city].filter(Boolean).join(", ") || "Geen adres";
-};
 
 function ActionForm({ action, children, className, success = "Opgeslagen", onSuccess }: { action: (data: FormData) => Promise<ActionResult<Record<string, unknown>>> | Promise<ActionResult>; children: ReactNode; className?: string; success?: string; onSuccess?: (result: ActionResult<Record<string, unknown>> | ActionResult) => void }) {
   const router = useRouter();
@@ -87,20 +81,17 @@ function PageIntro({ eyebrow, title, description, children }: { eyebrow: string;
 
 function Empty({ children }: { children: ReactNode }) { return <div className="workspace-empty"><PackageCheck size={28}/><p>{children}</p></div>; }
 
-export function BackofficeShell({ context, data }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData }) {
-  const [view, setView] = useState<View>("overzicht");
+export function BackofficeShell({ context, data, initialView = "overzicht" }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView }) {
+  const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
   const tenant = context.tenant;
   const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const objectById = useMemo(() => new Map(data.objects.map((item) => [item.id, item])), [data.objects]);
-  const personnelById = useMemo(() => new Map(data.personnel.map((item) => [item.id, item])), [data.personnel]);
   const current = nav.find((item) => item.id === view)!;
   const q = search.trim().toLowerCase();
   const visibleOrders = q ? data.workOrders.filter((order) => [order.work_order_number, order.discipline, customerById.get(order.customer_id)?.name, objectById.get(order.object_id)?.name].some((value) => value?.toLowerCase().includes(q))) : data.workOrders;
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
-  const invoiceReadyGroups = Array.from(groupBy(data.workOrders.filter((item) => item.status === "invoice_ready"), (item) => item.customer_id).entries());
-  const openInvoiceGroups = Array.from(groupBy(data.invoices.filter((item) => item.status !== "draft" && item.paid_cents < item.total_cents), (item) => item.customer_id).entries());
 
   const content = (() => {
     if (view === "overzicht") return <>
@@ -111,10 +102,7 @@ export function BackofficeShell({ context, data }: { context: AuthContext & { te
         <Metric icon={<ClipboardCheck/>} label="Aandacht nodig" value={attention.length} tone="amber" />
         <Metric icon={<CreditCard/>} label="Openstaand" value={money(data.invoices.reduce((sum, item) => sum + (item.total_cents - item.paid_cents), 0))} tone="navy" />
       </div>
-      <div className="dashboard-grid">
-        <section className="panel"><div className="section-heading"><div><span className="eyebrow">VANDAAG</span><h2>Planning</h2></div><button className="text-link" onClick={() => setView("planning")}>Open planbord <ChevronRight size={15}/></button></div><Planboard data={data} timezone={tenant.timezone}/></section>
-        <section className="panel"><div className="section-heading"><div><span className="eyebrow">SIGNALEN</span><h2>Aandacht</h2></div></div>{attention.length ? <div className="attention-list">{attention.slice(0, 7).map((order) => <button key={order.id} onClick={() => setView("controle")}><span className="attention-icon orange"><Bell size={16}/></span><span><strong>{order.work_order_number}</strong><small>{statusLabel[order.status]} · {customerById.get(order.customer_id)?.name}</small></span><ChevronRight size={15}/></button>)}</div> : <Empty>Er zijn geen open signalen.</Empty>}</section>
-      </div>
+      <section className="panel dashboard-attention"><div className="section-heading"><div><span className="eyebrow">SIGNALEN</span><h2>Aandacht</h2></div><Link className="text-link" href="/app/rapporten">Open rapportcontrole <ChevronRight size={15}/></Link></div>{attention.length ? <div className="attention-list">{attention.slice(0, 7).map((order) => <Link key={order.id} href="/app/rapporten"><span className="attention-icon orange"><Bell size={16}/></span><span><strong>{order.work_order_number}</strong><small>{statusLabel[order.status]} · {customerById.get(order.customer_id)?.name}</small></span><ChevronRight size={15}/></Link>)}</div> : <Empty>Er zijn geen open signalen.</Empty>}</section>
     </>;
 
     if (view === "aanvragen") return <>
@@ -137,17 +125,7 @@ export function BackofficeShell({ context, data }: { context: AuthContext & { te
 
     if (view === "planning") return <>
       <PageIntro eyebrow="OPERATIE" title="Planbord" description="Planning in echte minuten, per medewerker en met de avatarrail vast in beeld." />
-      <section className="panel large-plan"><Planboard data={data} timezone={tenant.timezone} editable/></section>
-      <TravelEstimator data={data}/>
-      <section className="panel"><div className="section-heading"><h2>Werkbon plannen</h2></div><ActionForm action={createWorkOrder} className="workspace-form" success="Werkbon plannen">
-        <label>Klant<select name="customerId" required defaultValue=""><option value="" disabled>Kies klant</option>{data.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Object<select name="objectId" required defaultValue=""><option value="" disabled>Kies object</option>{data.objects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.filter((item) => item.status === "active").map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label>
-        <label>Discipline<input name="discipline" required /></label><label>Start<input name="start" type="datetime-local" required/></label>
-        <label className="wide">Taken<select name="taskIds" required defaultValue=""><option value="" disabled>Kies één taak</option>{data.tasks.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
-        <label className="check wide"><input name="signatureRequired" type="checkbox"/> Handtekening van opdrachtgever vereist</label>
-      </ActionForm></section>
-      <section className="panel"><div className="section-heading"><h2>Bestaande planning exact aanpassen</h2></div><ActionForm action={rescheduleWorkOrder} className="workspace-form" success="Planning verplaatsen"><label>Werkbon<select name="workOrderKey" required defaultValue=""><option value="" disabled>Kies geplande werkbon</option>{data.workOrders.filter((item) => item.status === "planned").map((item) => <option key={item.id} value={`${item.id}:${item.version}`}>{item.work_order_number}</option>)}</select></label><label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.filter((item) => item.status === "active").map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label><label className="wide">Exacte start<input name="start" type="datetime-local" required/></label></ActionForm><p className="form-note">Je kunt een geplande bon ook naar een medewerkerregel slepen; Fieldgrid rondt dan af op de exacte minuut en blokkeert overlap of afwezigheid.</p></section>
+      <section className="panel planboard-viewport"><Planboard data={data} timezone={tenant.timezone} editable/></section>
     </>;
 
     if (view === "werkbonnen") return <>
@@ -162,37 +140,14 @@ export function BackofficeShell({ context, data }: { context: AuthContext & { te
       <DataTable headers={["Code", "Taak", "Discipline", "Duur", "Tarief", "Status"]}>{data.tasks.map((task) => { const revision = data.taskRevisions.find((item) => item.task_id === task.id && !item.valid_until); return <tr key={task.id}><td><span className="code">{task.code}</span></td><td><strong>{task.name}</strong></td><td>{task.discipline}</td><td>{revision?.duration_minutes ?? 0} min</td><td>{money(revision?.price_cents)}</td><td><Pill status={task.active ? "active" : "inactive"}/></td></tr>; })}</DataTable>
     </>;
 
-    if (view === "klanten") return <>
-      <PageIntro eyebrow="RELATIES" title="Klanten & objecten" description="Klantgegevens en uitvoeringslocaties, strikt binnen deze tenant." />
-      <div className="workspace-split"><section className="panel"><div className="section-heading"><h2>Klant met eerste object</h2></div><ActionForm action={createCustomer} className="workspace-form" success="Klant toevoegen"><label>Naam<input name="name" required /></label><label>Factuurmail<input name="email" type="email" /></label><label>Telefoon<input name="phone" /></label><label>Objectnaam<input name="objectName" required /></label><label>Straat en huisnummer<input name="street" required /></label><label>Postcode<input name="postalCode" required /></label><label>Plaats<input name="city" required /></label></ActionForm></section><section className="panel"><div className="section-heading"><h2>Contactpersoon toevoegen</h2></div><ActionForm action={createCustomerContact} className="workspace-form" success="Contact toevoegen"><label className="wide">Klant<select name="customerId" required defaultValue=""><option value="" disabled>Kies klant</option>{data.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Naam<input name="fullName" required/></label><label>Rol<input name="role"/></label><label>E-mail<input name="email" type="email"/></label><label>Telefoon<input name="phone"/></label><label className="check wide"><input name="primary" type="checkbox"/> Primair contact</label></ActionForm><hr className="form-divider"/><div className="section-heading"><h2>Extra object toevoegen</h2></div><ActionForm action={createObject} className="workspace-form" success="Object toevoegen"><label>Klant<select name="customerId" required defaultValue=""><option value="" disabled>Kies klant</option>{data.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Objectnaam<input name="name" required/></label><label>Straat en huisnummer<input name="street" required/></label><label>Postcode<input name="postalCode" required/></label><label>Plaats<input name="city" required/></label><label>Bezoekinstructies<input name="instructions"/></label></ActionForm></section></div>
-      <div className="customer-grid">{data.customers.map((customer) => <article className="panel customer-card" key={customer.id}><div className="customer-head"><span className="avatar avatar-mint">{initials(customer.name)}</span><span><h3>{customer.name}</h3><small>{customer.customer_number}</small></span><Pill status={customer.status}/></div><div className="object-list">{data.objects.filter((item) => item.customer_id === customer.id).map((object) => <div key={object.id}><Building2 size={15}/><strong>{object.name}</strong><small>{addressLine(object.address)}</small></div>)}</div><div className="customer-foot"><small>{customer.billing_email ?? "Geen factuurmail"}</small><strong>{data.workOrders.filter((item) => item.customer_id === customer.id).length} bonnen</strong></div></article>)}</div>
-    </>;
+    if (view === "klanten") return <CustomersPage data={data}/>;
+    if (view === "objecten") return <ObjectsPage data={data}/>;
 
-    if (view === "personeel") return <>
-      <PageIntro eyebrow="TEAM" title="Personeel" description="Uitnodigingen, inzetbaarheid, documenten en kwalificaties." />
-      <div className="workspace-split"><section className="panel"><div className="section-heading"><h2>Medewerker uitnodigen</h2></div><ActionForm action={invitePersonnel} className="workspace-form" success="Uitnodiging versturen"><label>Volledige naam<input name="name" required /></label><label>E-mail<input name="email" type="email" required /></label><label>Personeelsnummer<input name="employeeNumber" required /></label></ActionForm></section>
-      <section className="panel"><div className="section-heading"><h2>Open dienst publiceren</h2></div><ActionForm action={createOpenShift} className="workspace-form" success="Dienst publiceren"><label className="wide">Werkbon<select name="workOrderId" required defaultValue=""><option value="" disabled>Kies werkbon</option>{data.workOrders.map((item) => <option key={item.id} value={item.id}>{item.work_order_number}</option>)}</select></label><label>Functie<select name="functionId" required defaultValue=""><option value="" disabled>Kies functie</option>{data.functions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Start<input name="start" type="datetime-local" required /></label><label>Einde<input name="end" type="datetime-local" required /></label></ActionForm></section></div>
-      <div className="workspace-split"><section className="panel"><div className="section-heading"><h2>Beroepsfuncties</h2></div><ActionForm action={createPersonnelFunction} className="workspace-form" success="Functie toevoegen"><label>Functienaam<input name="name" required placeholder="Servicemedewerker"/></label><label>Discipline<input name="discipline" required/></label><label className="wide">Vereiste certificaatcodes<input name="certificateCodes" placeholder="VCA, BHV (optioneel)"/></label></ActionForm><hr className="form-divider"/><ActionForm action={assignPersonnelFunction} className="workspace-form" success="Functie koppelen"><label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label><label>Functie<select name="functionId" required defaultValue=""><option value="" disabled>Kies functie</option>{data.functions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></ActionForm></section>
-      <section className="panel"><div className="section-heading"><h2>Kwalificatie registreren</h2></div><ActionForm action={addQualification} className="workspace-form" success="Kwalificatie opslaan"><label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label><label>Code<input name="code" required placeholder="VCA"/></label><label className="wide">Naam<input name="name" required/></label><label>Uitgegeven<input name="issuedAt" type="date"/></label><label>Geldig tot<input name="validUntil" type="date"/></label></ActionForm></section></div>
-      <div className="workspace-split"><section className="panel"><div className="section-heading"><h2>Privédocument uploaden</h2></div><ActionForm action={uploadPersonnelDocument} className="workspace-form" success="Document uploaden"><label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label><label>Type<input name="documentType" required placeholder="Contract"/></label><label className="wide">Titel<input name="title" required/></label><label className="wide">Bestand<input name="document" type="file" accept="application/pdf,image/jpeg,image/png" required/></label><label className="check wide"><input name="visibleToEmployee" type="checkbox"/> Zichtbaar voor deze medewerker</label></ActionForm></section>
-      <section className="panel"><div className="section-heading"><h2>Beschikbaarheid of afwezigheid</h2></div><ActionForm action={addAvailability} className="workspace-form" success="Periode opslaan"><label>Medewerker<select name="personnelId" required defaultValue=""><option value="" disabled>Kies medewerker</option>{data.personnel.map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></label><label>Soort<select name="kind" defaultValue="unavailable"><option value="available">Beschikbaar</option><option value="unavailable">Niet beschikbaar</option><option value="leave">Verlof</option><option value="sick">Ziek</option></select></label><label>Start<input name="start" type="datetime-local" required/></label><label>Einde<input name="end" type="datetime-local" required/></label><label className="wide">Toelichting<input name="note"/></label></ActionForm></section></div>
-      {data.shiftInterests.some((item) => item.status === "interested") && <section className="panel"><div className="section-heading"><h2>Interesse in open diensten</h2></div><div className="interest-list">{data.shiftInterests.filter((item) => item.status === "interested").map((interest) => <ActionForm action={confirmShiftInterest} key={interest.id} success="Toewijzen"><input type="hidden" name="shiftId" value={interest.open_shift_id}/><input type="hidden" name="personnelId" value={interest.personnel_id}/><span><strong>{personnelById.get(interest.personnel_id)?.full_name}</strong><small>{data.openShifts.find((item) => item.id === interest.open_shift_id)?.starts_at ? dateTime(data.openShifts.find((item) => item.id === interest.open_shift_id)!.starts_at, tenant.timezone) : ""}</small></span></ActionForm>)}</div></section>}
-      {data.reminders.some((item) => item.status === "open") && <section className="panel"><div className="section-heading"><h2>HR-reminders</h2></div><div className="interest-list">{data.reminders.filter((item) => item.status === "open").map((reminder) => <ActionForm action={completeReminder} key={reminder.id} success="Afhandelen"><input type="hidden" name="reminderId" value={reminder.id}/><span><strong>{reminder.title}</strong><small>{personnelById.get(reminder.personnel_id ?? "")?.full_name ?? "Algemeen"} · uiterlijk {dateTime(reminder.due_at, tenant.timezone)}</small></span></ActionForm>)}</div></section>}
-      <div className="people-grid">{data.personnel.map((person) => <article className="panel person-card" key={person.id}><div className="person-top"><span className="avatar avatar-blue">{initials(person.full_name)}</span><Pill status={person.status}/></div><h3>{person.full_name}</h3><p>{person.employee_number} · {person.email ?? "geen e-mail"}</p><div className="person-facts"><span><CalendarDays size={15}/>{data.assignments.filter((item) => item.personnel_id === person.id).length} geplande opdrachten</span><span><ShieldCheck size={15}/>{data.qualifications.filter((item) => item.personnel_id === person.id).map((item) => item.code).join(" · ") || "geen kwalificaties"}</span><span><BriefcaseBusiness size={15}/>{data.personnelFunctions.filter((item) => item.personnel_id === person.id).map((item) => data.functions.find((fn) => fn.id === item.function_id)?.name).filter(Boolean).join(" · ") || "geen functie"}</span>{data.personnelDocuments.filter((item) => item.personnel_id === person.id).map((document) => <a key={document.id} href={`/api/files/personnel-document/${document.id}`} target="_blank" rel="noreferrer"><FileCheck2 size={15}/>{document.title}</a>)}</div></article>)}</div>
-    </>;
+    if (view === "personeel") return <PersonnelPage data={data}/>;
 
-    if (view === "controle") return <>
-      <PageIntro eyebrow="KWALITEIT" title="Rapportcontrole" description="Controleer verslag, checklist, incidenten en handtekening voordat je factureert." />
-      <div className="review-grid">{data.workOrders.filter((item) => ["completed", "under_review", "correction_required", "approved", "invoice_ready"].includes(item.status)).map((order) => <article className="panel review-card" key={order.id}><div className="review-head"><Pill status={order.status}/><small>{order.work_order_number}</small></div><h3>{objectById.get(order.object_id)?.name}</h3><p>{customerById.get(order.customer_id)?.name} · {data.reports.filter((item) => item.work_order_id === order.id).length} rapportregels · {data.workOrderTasks.filter((item) => item.work_order_id === order.id && item.is_extra_work && item.extra_work_status === "awaiting_review").length} meerwerkregels · {data.signatures.some((item) => item.work_order_id === order.id) ? "ondertekend" : "geen handtekening"}</p><blockquote>{data.reports.find((item) => item.work_order_id === order.id)?.body ?? "Geen rapportnotitie"}</blockquote>{data.attachments.filter((item) => item.work_order_id === order.id).length > 0 && <div className="review-attachments">{data.attachments.filter((item) => item.work_order_id === order.id).map((item) => <a key={item.id} href={`/api/files/attachment/${item.id}`} target="_blank" rel="noreferrer">{item.file_name}</a>)}</div>}{["completed", "under_review"].includes(order.status) && <div className="review-actions"><ActionForm action={reviewWorkOrder} success="Goedkeuren"><input type="hidden" name="workOrderId" value={order.id}/><input type="hidden" name="decision" value="approved"/></ActionForm><ActionForm action={reviewWorkOrder} success="Terugsturen"><input type="hidden" name="workOrderId" value={order.id}/><input type="hidden" name="decision" value="returned"/><input name="reason" required placeholder="Reden voor correctie"/></ActionForm></div>}</article>)}</div>
-    </>;
+    if (view === "controle") return <ReportsPage data={data} timezone={tenant.timezone}/>;
 
-    if (view === "facturen") return <>
-      <PageIntro eyebrow="FINANCE" title="Facturen & betalingen" description="Definitieve PDF’s, veilige betaallinks, Mollie-status en handmatige boekingen." />
-      <div className="finance-grid"><Metric icon={<CreditCard/>} label="Gefactureerd" value={money(data.invoices.reduce((sum, item) => sum + item.total_cents, 0))} tone="blue"/><Metric icon={<Clock3/>} label="Openstaand" value={money(data.invoices.reduce((sum, item) => sum + item.total_cents - item.paid_cents, 0))} tone="amber"/><Metric icon={<ShieldCheck/>} label="Ontvangen" value={money(data.invoices.reduce((sum, item) => sum + item.paid_cents, 0))} tone="mint"/></div>
-      <section className="panel"><div className="section-heading"><h2>Factureerbare werkbonnen</h2></div><div className="invoice-ready-grid">{invoiceReadyGroups.map(([customerId, orders]) => <ActionForm key={customerId} action={createInvoice} className="invoice-ready" success={orders.length > 1 ? "Verzamelfactuur maken" : "Factuur maken"}><input type="hidden" name="workOrderIds" value={orders.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{orders.map((item) => item.work_order_number).join(" · ")}</small></span></ActionForm>)}</div></section>
-      {openInvoiceGroups.some(([, invoices]) => invoices.length > 1) && <section className="panel"><div className="section-heading"><h2>Gecombineerde betaallink</h2></div><div className="invoice-ready-grid">{openInvoiceGroups.filter(([, invoices]) => invoices.length > 1).map(([customerId, invoices]) => <ActionForm key={customerId} action={createPaymentBundle} className="invoice-ready" success="Link kopiëren" onSuccess={(result) => { if (result.ok && "paymentUrl" in result) navigator.clipboard.writeText(String(result.paymentUrl)); }}><input type="hidden" name="invoiceIds" value={invoices.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{invoices.map((item) => item.invoice_number).join(" · ")}</small></span></ActionForm>)}</div></section>}
-      <DataTable headers={["Factuur", "Klant", "Datum", "Totaal", "Betaald", "Status", "Actie"]}>{data.invoices.map((invoice) => <tr key={invoice.id}><td><strong>{invoice.invoice_number ?? "Concept"}</strong></td><td>{customerById.get(invoice.customer_id)?.name}</td><td>{invoice.issued_on ?? "—"}</td><td>{money(invoice.total_cents)}</td><td>{money(invoice.paid_cents)}</td><td><Pill status={invoice.status}/></td><td><div className="table-actions">{invoice.status !== "draft" && <ActionForm action={sendInvoice} success="Link gekopieerd" onSuccess={(result) => { if (result.ok && "paymentUrl" in result) navigator.clipboard.writeText(String(result.paymentUrl)); }}><input type="hidden" name="invoiceId" value={invoice.id}/><Send size={14}/></ActionForm>}{invoice.paid_cents < invoice.total_cents && <details><summary>Boek betaling</summary><ActionForm action={registerManualPayment} className="popover-form" success="Betaling boeken"><input type="hidden" name="invoiceId" value={invoice.id}/><input name="amount" type="number" step=".01" max={(invoice.total_cents - invoice.paid_cents) / 100} required placeholder="Bedrag"/><input name="reference" required placeholder="Referentie"/><input name="date" type="date" required/></ActionForm></details>}</div></td></tr>)}</DataTable>
-    </>;
+    if (view === "facturen") return <InvoicesPage data={data}/>;
 
     if (view === "nieuws") return <>
       <PageIntro eyebrow="COMMUNICATIE" title="Nieuws" description="Publiceer tenantnieuws en stuur optioneel een pushmelding." />
@@ -207,31 +162,14 @@ export function BackofficeShell({ context, data }: { context: AuthContext & { te
   })();
 
   return <div className="workspace-shell" style={{ "--tenant-primary": tenant.primaryColor, "--tenant-accent": tenant.accentColor } as React.CSSProperties}>
-    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{nav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMobileNav(false); }}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</button>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small></footer></aside>
+    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{nav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small></footer></aside>
     <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
 }
 
-function Metric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) { return <article className="metric"><span className={`metric-icon ${tone}`}>{icon}</span><div><span>{label}</span><strong>{value}</strong><small>Actuele tenantdata</small></div></article>; }
+function Metric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) { return <article className="metric"><span className={`metric-icon ${tone}`}>{icon}</span><div><span>{label}</span><strong>{value}</strong></div></article>; }
 function Pill({ status }: { status: string }) { const tone = ["paid", "accepted", "approved", "invoice_ready", "active"].includes(status) ? "green" : ["returned", "correction_required", "overdue", "urgent"].includes(status) ? "orange" : ["released", "seen", "travelling", "in_progress", "sent"].includes(status) ? "blue" : "neutral"; return <span className={`pill pill-${tone}`}>{statusLabel[status] ?? status.replaceAll("_", " ")}</span>; }
 function DataTable({ headers, children }: { headers: string[]; children: ReactNode }) { return <section className="panel table-panel"><div className="table-scroll"><table><thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead><tbody>{children}</tbody></table></div></section>; }
-
-function TravelEstimator({ data }: { data: WorkspaceData }) {
-  const [pending, setPending] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setPending(true); setResult(null);
-    const form = new FormData(event.currentTarget);
-    try {
-      const response = await fetch("/api/routes/estimate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.fromEntries(form)) });
-      const payload = await response.json() as { known?: boolean; minutes?: number; reason?: string; error?: string };
-      setResult(payload.known ? `${payload.minutes} minuten` : payload.reason ?? payload.error ?? "Reistijd onbekend");
-      if (response.ok) toast.success("Reistijd bijgewerkt"); else toast.warning(payload.reason ?? "Reistijd onbekend");
-    } catch { setResult("Reistijd onbekend"); toast.error("Routeprovider niet bereikbaar"); }
-    finally { setPending(false); }
-  };
-  return <section className="panel travel-panel"><div className="section-heading"><div><span className="eyebrow">ROUTE-ETA</span><h2>Reistijd berekenen</h2></div>{result && <strong>{result}</strong>}</div><form className="workspace-form" onSubmit={submit}><label>Toewijzing<select name="assignmentId" required defaultValue=""><option value="" disabled>Kies werkbon en medewerker</option>{data.assignments.map((assignment) => <option key={assignment.id} value={assignment.id}>{data.workOrders.find((item) => item.id === assignment.work_order_id)?.work_order_number} · {data.personnel.find((item) => item.id === assignment.personnel_id)?.full_name}</option>)}</select></label><label>Richting<select name="direction" defaultValue="before"><option value="before">Naar opdracht</option><option value="after">Na opdracht</option></select></label><label>Vertrekadres<input name="origin" required placeholder="Straat 1, 1234 AB Plaats"/></label><label>Bestemming<input name="destination" required placeholder="Straat 2, 5678 CD Plaats"/></label><label>Vervoer<select name="mode" defaultValue="driving"><option value="driving">Auto</option><option value="bicycling">Fiets</option><option value="walking">Lopen</option><option value="transit">OV</option></select></label><button className="primary-button" disabled={pending}>{pending ? "Berekenen…" : "Bereken reistijd"}</button></form></section>;
-}
 
 function Planboard({ data, timezone, editable = false }: { data: WorkspaceData; timezone: string; editable?: boolean }) {
   const router = useRouter();

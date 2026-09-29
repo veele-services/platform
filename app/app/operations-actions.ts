@@ -29,23 +29,62 @@ function generatedNumber(prefix: string): string {
 export async function createCustomer(formData: FormData): Promise<ActionResult> {
   try {
     const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
-    const schema = z.object({ name: z.string().trim().min(2), email: z.string().email().or(z.literal("")), phone: z.string().trim().optional(), objectName: z.string().trim().min(2), street: z.string().trim().min(2), postalCode: z.string().trim().min(4), city: z.string().trim().min(2) });
+    const schema = z.object({
+      name: z.string().trim().min(2).max(160),
+      email: z.string().email().or(z.literal("")),
+      phone: z.string().trim().max(40).optional(),
+      street: z.string().trim().min(2).max(200),
+      postalCode: z.string().trim().min(4).max(16),
+      city: z.string().trim().min(2).max(120),
+      paymentTermsDays: z.coerce.number().int().min(0).max(365).default(30),
+      status: z.enum(["lead", "active", "inactive"]).default("active"),
+    });
     const input = schema.parse(Object.fromEntries(formData));
     const supabase = await createClient();
-    const { data: customer, error } = await supabase.from("customers").insert({
+    const { error } = await supabase.from("customers").insert({
       tenant_id: context.tenant.id, customer_number: generatedNumber("KL"), name: input.name,
       billing_email: input.email || null, phone: input.phone || null,
       billing_address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
-    }).select().single();
-    if (error) throw error;
-    const { error: objectError } = await supabase.from("objects").insert({
-      tenant_id: context.tenant.id, customer_id: customer.id, object_number: generatedNumber("OB"), name: input.objectName,
-      address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      payment_terms_days: input.paymentTermsDays, status: input.status,
     });
-    if (objectError) {
-      await supabase.from("customers").delete().eq("id", customer.id);
-      throw objectError;
-    }
+    if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updateCustomer(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const input = z.object({
+      customerId: z.string().uuid(), version: z.coerce.number().int().positive(),
+      name: z.string().trim().min(2).max(160), email: z.string().email().or(z.literal("")),
+      phone: z.string().trim().max(40).optional(), street: z.string().trim().min(2).max(200),
+      postalCode: z.string().trim().min(4).max(16), city: z.string().trim().min(2).max(120),
+      paymentTermsDays: z.coerce.number().int().min(0).max(365), status: z.enum(["lead", "active", "inactive"]),
+    }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("customers").update({
+      name: input.name, billing_email: input.email || null, phone: input.phone || null,
+      billing_address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      payment_terms_days: input.paymentTermsDays, status: input.status, version: input.version + 1,
+    }).eq("tenant_id", context.tenant.id).eq("id", input.customerId).eq("version", input.version).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Deze klant is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function archiveCustomer(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const input = z.object({ customerId: z.string().uuid(), version: z.coerce.number().int().positive() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("customers").update({ status: "inactive", version: input.version + 1 })
+      .eq("tenant_id", context.tenant.id).eq("id", input.customerId).eq("version", input.version).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Deze klant is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
     revalidatePath("/app");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
@@ -190,7 +229,10 @@ export async function createAnnouncement(formData: FormData): Promise<ActionResu
 export async function invitePersonnel(formData: FormData): Promise<ActionResult> {
   try {
     const context = await authorized(["tenant_admin", "management", "hr"]);
-    const input = z.object({ name: z.string().trim().min(2), email: z.string().email(), employeeNumber: z.string().trim().min(1) }).parse(Object.fromEntries(formData));
+    const input = z.object({
+      name: z.string().trim().min(2).max(160), email: z.string().email(), employeeNumber: z.string().trim().min(1).max(80),
+      phone: z.string().trim().max(40).optional(), startDate: z.string().date().or(z.literal("")),
+    }).parse(Object.fromEntries(formData));
     const admin = createAdminClient();
     let userId: string | undefined;
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(input.email, { redirectTo: tenantAppUrl(context.tenant.slug, "/auth/confirm") });
@@ -207,9 +249,44 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult>
     const supabase = await createClient();
     const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: userId, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
     if (membershipError) throw membershipError;
-    const { error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: input.employeeNumber, full_name: input.name, email: input.email });
+    const { error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: userId, employee_number: input.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null });
     if (personnelError) throw personnelError;
     revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updatePersonnel(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({
+      personnelId: z.string().uuid(), version: z.coerce.number().int().positive(),
+      name: z.string().trim().min(2).max(160), email: z.string().email().or(z.literal("")),
+      employeeNumber: z.string().trim().min(1).max(80), phone: z.string().trim().max(40).optional(),
+      startDate: z.string().date().or(z.literal("")), status: z.enum(["invited", "active", "inactive", "former"]),
+    }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("personnel").update({
+      full_name: input.name, email: input.email || null, employee_number: input.employeeNumber,
+      phone: input.phone || null, start_date: input.startDate || null, status: input.status, version: input.version + 1,
+    }).eq("tenant_id", context.tenant.id).eq("id", input.personnelId).eq("version", input.version).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Deze medewerker is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
+    revalidatePath("/app"); revalidatePath("/staff");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function archivePersonnel(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "hr"]);
+    const input = z.object({ personnelId: z.string().uuid(), version: z.coerce.number().int().positive() }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("personnel").update({ status: "inactive", version: input.version + 1 })
+      .eq("tenant_id", context.tenant.id).eq("id", input.personnelId).eq("version", input.version).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Deze medewerker is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
+    revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
 }
@@ -336,8 +413,50 @@ export async function createObject(formData: FormData): Promise<ActionResult> {
     const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
     const input = z.object({ customerId: z.string().uuid(), name: z.string().trim().min(2), street: z.string().trim().min(2), postalCode: z.string().trim().min(4), city: z.string().trim().min(2), instructions: z.string().trim().max(2000).optional() }).parse(Object.fromEntries(formData));
     const supabase = await createClient();
+    const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("tenant_id", context.tenant.id).eq("id", input.customerId).maybeSingle();
+    if (customerError) throw customerError;
+    if (!customer) throw new Error("Selecteer een bestaande klant binnen deze tenant");
     const { error } = await supabase.from("objects").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, object_number: generatedNumber("OB"), name: input.name, address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" }, access_instructions: input.instructions || null });
     if (error) throw error;
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updateObject(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management", "planner", "finance"]);
+    const input = z.object({
+      objectId: z.string().uuid(), customerId: z.string().uuid(), name: z.string().trim().min(2).max(160),
+      street: z.string().trim().min(2).max(200), postalCode: z.string().trim().min(4).max(16),
+      city: z.string().trim().min(2).max(120), instructions: z.string().trim().max(2000).optional(),
+      active: z.enum(["true", "false"]),
+    }).parse(Object.fromEntries(formData));
+    const supabase = await createClient();
+    const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("tenant_id", context.tenant.id).eq("id", input.customerId).maybeSingle();
+    if (customerError) throw customerError;
+    if (!customer) throw new Error("Selecteer een bestaande klant binnen deze tenant");
+    const { data, error } = await supabase.from("objects").update({
+      customer_id: input.customerId, name: input.name,
+      address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      access_instructions: input.instructions || null, active: input.active === "true",
+    }).eq("tenant_id", context.tenant.id).eq("id", input.objectId).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Object niet gevonden binnen deze tenant");
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function archiveObject(formData: FormData): Promise<ActionResult> {
+  try {
+    const context = await authorized(["tenant_admin", "management"]);
+    const objectId = z.string().uuid().parse(formData.get("objectId"));
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("objects").update({ active: false })
+      .eq("tenant_id", context.tenant.id).eq("id", objectId).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Object niet gevonden binnen deze tenant");
     revalidatePath("/app");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
