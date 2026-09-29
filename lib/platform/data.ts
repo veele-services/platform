@@ -35,6 +35,7 @@ export type PlatformTenant = {
   logoUrl: string | null;
   senderName: string;
   senderEmail: string;
+  whiteLabelEnabled: boolean;
   enabledServices: string[];
   templates: PlatformTemplate[];
 };
@@ -60,7 +61,7 @@ export async function getPlatformData(): Promise<PlatformData> {
   const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult] = await Promise.all([
     admin.from("tenants").select("id,name,slug,status,timezone,created_at").order("created_at", { ascending: false }),
     admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email"),
-    admin.from("tenant_settings").select("tenant_id,enabled_services"),
+    admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled"),
     admin.from("tenant_domains").select("tenant_id,host,verified_at").order("created_at"),
     admin.from("personnel").select("tenant_id,id").eq("status", "active"),
     admin.from("tenant_memberships").select("tenant_id,user_id,roles,status").eq("status", "active").contains("roles", ["tenant_admin"]),
@@ -106,6 +107,7 @@ export async function getPlatformData(): Promise<PlatformData> {
       logoUrl: await getBrandingLogoUrl(admin, branding?.logo_path),
       senderName: branding?.sender_name ?? tenant.name,
       senderEmail: branding?.sender_email ?? "",
+      whiteLabelEnabled: settings?.white_label_enabled ?? false,
       enabledServices: settings?.enabled_services ?? [],
       templates: templateRows.map((template) => ({
         key: template.template_key as TemplateKey,

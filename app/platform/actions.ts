@@ -160,6 +160,31 @@ export async function updatePlatformTenantBranding(input: unknown): Promise<Plat
   }
 }
 
+export async function updatePlatformTenantWhiteLabel(input: unknown): Promise<PlatformMutationResult> {
+  try {
+    const context = await requirePlatformAdmin();
+    const data = z.object({ tenantId: z.string().uuid(), enabled: z.boolean() }).parse(input);
+    const admin = createAdminClient();
+    const { data: current, error: currentError } = await admin.from("tenant_settings").select("white_label_enabled").eq("tenant_id", data.tenantId).single();
+    if (currentError) throw currentError;
+    const { error } = await admin.from("tenant_settings").update({ white_label_enabled: data.enabled }).eq("tenant_id", data.tenantId);
+    if (error) throw error;
+    await admin.from("audit_events").insert({
+      tenant_id: data.tenantId,
+      actor_user_id: context.user.id,
+      action: "tenant.whitelabel.updated",
+      entity_type: "tenant_settings",
+      entity_id: data.tenantId,
+      before_data: { white_label_enabled: current.white_label_enabled },
+      after_data: { white_label_enabled: data.enabled },
+    });
+    revalidatePath("/platform");
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+}
+
 export async function uploadPlatformTenantLogo(formData: FormData): Promise<PlatformMutationResult<{ logoUrl: string }>> {
   try {
     const context = await requirePlatformAdmin();

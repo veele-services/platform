@@ -23,4 +23,6 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 - HTML- en tekstmail via SendGrid voor facturen en prijsopgaven, met veilige transactielinks en vastgelegde template- en brandingsnapshot per verzending.
 - Fieldgrid-basishuisstijl met `#222C35` als primaire kleur en `#41AC42` als secundaire kleur voor platform en nieuwe tenants.
 - Module-entitlements als autorisatiegrens in navigatie, server actions, RLS en database-triggers, inclusief security-definer RPC-bescherming.
+- Platformbeheerde whitelabel-entitlement: tenantlogo's staan zonder dubbele naam/subtitel, Fieldgrid-attributie staat onderin de sidebar zolang whitelabel uitstaat en tenantkleuren gelden in de volledige werkruimte.
+- E-mailheaders tonen uitsluitend het tenantlogo of, zonder logo, de tenantnaam; de veilige tenantwebsitelink staat in de voettekst.
 - Unit-, databasecontract-, RLS-, browser- en visuele regressietests.

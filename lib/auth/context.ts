@@ -17,6 +17,7 @@ export type TenantContext = {
   primaryColor: string;
   accentColor: string;
   logoPath: string | null;
+  whiteLabelEnabled: boolean;
   enabledServices: string[];
 };
 
@@ -75,6 +76,7 @@ export async function getAuthContext(): Promise<AuthContext> {
         primaryColor: resolved.primary_color,
         accentColor: resolved.accent_color,
         logoPath: resolved.logo_path,
+        whiteLabelEnabled: resolved.white_label_enabled,
         enabledServices: resolved.enabled_services,
       };
     }

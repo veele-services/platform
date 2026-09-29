@@ -1,6 +1,6 @@
 begin;
 
-select plan(22);
+select plan(26);
 
 select has_table('public', 'tenant_admin_invitations', 'tenant administrator invitations exist');
 select has_table('public', 'tenant_message_templates', 'tenant message templates exist');
@@ -38,11 +38,16 @@ select lives_ok(
 
 select is((select count(*)::integer from public.tenants where slug = 'testorganisatie'), 1, 'one tenant is provisioned');
 select is((select enabled_services from public.tenant_settings s join public.tenants t on t.id = s.tenant_id where t.slug = 'testorganisatie'), array['planning']::text[], 'selected module entitlements are stored');
+select is((select white_label_enabled from public.tenant_settings s join public.tenants t on t.id = s.tenant_id where t.slug = 'testorganisatie'), false, 'Fieldgrid attribution is enabled by default');
 select is((select primary_color || '/' || accent_color from public.tenant_branding b join public.tenants t on t.id = b.tenant_id where t.slug = 'testorganisatie'), '#222C35/#41AC42', 'Fieldgrid default colors are stored');
 select is((select count(*)::integer from public.tenant_message_templates mt join public.tenants t on t.id = mt.tenant_id where t.slug = 'testorganisatie'), 4, 'all four templates are initialized');
 select is((select count(*)::integer from public.tenant_message_template_revisions mr join public.tenants t on t.id = mr.tenant_id where t.slug = 'testorganisatie'), 4, 'initial template versions are immutable history');
 select is((select i.status from public.tenant_admin_invitations i join public.tenants t on t.id = i.tenant_id where t.slug = 'testorganisatie'), 'pending', 'first administrator invitation starts pending');
 select is((select count(*)::integer from public.tenant_memberships m join public.tenants t on t.id = m.tenant_id where t.slug = 'testorganisatie'), 0, 'platform administrator is not silently made a tenant member');
+
+update public.tenant_settings set white_label_enabled = true
+where tenant_id = (select id from public.tenants where slug = 'testorganisatie');
+select is((select white_label_enabled from public.tenant_settings s join public.tenants t on t.id = s.tenant_id where t.slug = 'testorganisatie'), true, 'service role can grant the whitelabel entitlement');
 
 select public.provision_platform_tenant(
   tenant_name => 'Testorganisatie', tenant_slug => 'testorganisatie',
@@ -113,6 +118,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 
 select is((select count(*)::integer from public.tenant_message_templates), 4, 'tenant administrator can read own templates');
+select is((select white_label_enabled from public.resolve_tenant_context((select id from public.tenants where slug = 'testorganisatie'), null)), true, 'resolved tenant context contains the whitelabel entitlement');
 select lives_ok(
   $$insert into public.customers (tenant_id, customer_number, name)
     select id, 'TEST-K002', 'Nieuwe testklant' from public.tenants where slug = 'testorganisatie'$$,
@@ -124,6 +130,13 @@ select throws_ok(
   '42501',
   'Module entitlements are managed by the platform',
   'tenant administrator cannot enable a paid module through the Data API'
+);
+select throws_ok(
+  $$update public.tenant_settings set white_label_enabled = false
+    where tenant_id = (select id from public.tenants where slug = 'testorganisatie')$$,
+  '42501',
+  'Whitelabel entitlement is managed by the platform',
+  'tenant administrator cannot grant or revoke whitelabel through the Data API'
 );
 select throws_ok(
   $$insert into public.personnel (tenant_id, employee_number, full_name)

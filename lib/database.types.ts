@@ -1138,13 +1138,13 @@ isOneToOne: false
                   ]
                 },"tenant_settings": {
                   Row: {
-                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"updated_at": string
+                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"updated_at": string,"white_label_enabled": boolean
                   }
                   Insert: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"updated_at"?: string
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Update: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"updated_at"?: string
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Relationships: [
                     {
@@ -1672,7 +1672,7 @@ isOneToOne: false
       } },
 "resolve_tenant_context":
 { Args: { "requested_host"?: string,"requested_tenant_id"?: string }; Returns: {
-              "accent_color": string,"enabled_services": (string)[],"logo_path": string,"primary_color": string,"roles": (Database["public"]['Enums']["app_role"])[],"tenant_id": string,"tenant_name": string,"tenant_slug": string,"timezone": string
+              "accent_color": string,"enabled_services": (string)[],"logo_path": string,"primary_color": string,"roles": (Database["public"]['Enums']["app_role"])[],"tenant_id": string,"tenant_name": string,"tenant_slug": string,"timezone": string,"white_label_enabled": boolean
             }[]
                            },
 "review_work_order":

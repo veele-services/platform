@@ -20,9 +20,10 @@ naar het productieproject of de productie-VPS wijzen.
 ## Deploybewijs
 
 - De verplichte CI-run voor de actuele `main`-SHA is volledig groen, inclusief pgTAP,
-  database-lint, build en alle vier Playwright-flows.
+  database-lint, build en alle verplichte Playwright-flows.
 - De stagingdeploy gebruikt exact dezelfde SHA als de geslaagde CI-run.
-- De migratiedoelcontrole accepteert alleen nul of de exacte vijf V1-migraties.
+- De migratiedoelcontrole accepteert alleen een leeg schema of de exacte
+  migratiegeschiedenis van de repository.
 - De premigratiebackup bestaat en `pg_restore --list` kan hem lezen.
 - `/api/healthz?release=<sha>` retourneert `status=ok`,
   `environment=staging`, `database=ready` en de verwachte release-SHA.
@@ -40,6 +41,11 @@ naar het productieproject of de productie-VPS wijzen.
 - Verifieer dat `/app`, `/staff`, offerte-, boekings- en betaalpagina het
   echte tenantlogo en de ingestelde kleuren tonen. Een zichtbare `LOGO`-placeholder
   betekent dat de visuele acceptatie niet is geslaagd.
+- Controleer dat een tenantlogo zonder dubbele titel/subtitel wordt getoond, dat
+  alle tenantpagina's de ingestelde kleuren gebruiken en dat `Powered by Fieldgrid`
+  uitsluitend zichtbaar is zolang **Volledig whitelabel** uitstaat.
+- Controleer in de factuur- en offertemail dat de header alleen het logo (of zonder
+  logo de tenantnaam) toont en dat de tenantwebsite onderin als HTTPS-link staat.
 
 ## Functionele acceptatie
 

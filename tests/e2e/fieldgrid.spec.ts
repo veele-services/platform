@@ -30,8 +30,10 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
   await expect(page.getByRole("heading", { name: "Demo Organisatie" })).toBeVisible();
   await page.getByRole("button", { name: "Huisstijl", exact: true }).click();
-  await expect(page.getByLabel("Primaire kleur").last()).toHaveValue("#222c35");
-  await expect(page.getByLabel("Secundaire kleur").last()).toHaveValue("#41ac42");
+  await expect(page.getByLabel("Primaire kleur").last()).toHaveValue("#214e72");
+  await expect(page.getByLabel("Secundaire kleur").last()).toHaveValue("#c65d21");
+  await expect(page.getByRole("button", { name: "Volledig whitelabel" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page).toHaveScreenshot("platform-branding-1440.png", { fullPage: true });
   await page.getByRole("button", { name: "Communicatie", exact: true }).click();
   await page.getByRole("button", { name: /Templates beheren/ }).click();
   await expect(page.getByRole("heading", { name: "Templates", exact: true })).toBeVisible();
@@ -39,6 +41,12 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   await expect(page.getByTitle("Voorbeeld e-mail")).toBeVisible();
   const emailPreview = page.frameLocator('iframe[title="Voorbeeld e-mail"]');
   await expect(emailPreview.getByRole("heading", { name: /Factuur FACT-2026-00481/ })).toBeVisible();
+  const emailHeader = emailPreview.locator(".mail-shell > tbody > tr").nth(1);
+  await expect(emailHeader.getByRole("img", { name: "Demo Organisatie" })).toBeVisible();
+  await expect(emailHeader.getByText("Demo Organisatie", { exact: true })).toHaveCount(0);
+  const emailWebsiteLink = emailPreview.locator(".mail-shell > tbody > tr").last().locator('a[href^="https://"]');
+  await expect(emailWebsiteLink).toBeVisible();
+  await expect(emailWebsiteLink).not.toHaveText("");
   await expect(page).toHaveScreenshot("platform-templates-1440.png", { fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -51,6 +59,8 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await login(page, "platform-admin@fieldgrid.test");
   await expect(page.getByRole("heading", { name: /Demo Organisatie/ })).toBeVisible();
   await expect(page.getByRole("img", { name: "Logo van Demo Organisatie" })).toBeVisible();
+  await expect(page.locator(".workspace-brand").getByText("Demo Organisatie", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".workspace-sidebar").getByText("Powered by Fieldgrid", { exact: true })).toBeVisible();
   await expect(page.getByText("LOGO", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Actuele tenantdata", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Planning", exact: true })).toHaveCount(0);
@@ -62,6 +72,12 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await expect(page).toHaveScreenshot("backoffice-1440.png", { fullPage: true });
   await page.setViewportSize({ width: 768, height: 900 });
   await expect(page).toHaveScreenshot("backoffice-768.png", { fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("link", { name: "Aanvragen & offertes" }).click();
+  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", "rgb(33, 78, 114)");
+  await expect(page.locator(".view-aanvragen > .page-intro")).toHaveCSS("background-image", /rgb\(33, 78, 114\)/);
+  await expect(page.locator(".view-aanvragen .primary-button").first()).toHaveCSS("background-color", "rgb(198, 93, 33)");
+  await expect(page).toHaveScreenshot("tenant-themed-request-page-1440.png", { fullPage: true });
 });
 
 test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare viewport", async ({ page }) => {

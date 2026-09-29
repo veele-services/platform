@@ -417,3 +417,29 @@ body{background:#edf2f5;color:#102947}
 .plan-lane.editable{box-shadow:inset 0 0 0 1px rgba(0,169,167,.08)}.plan-lane.editable:has(.plan-bon:active){background-color:#edf9f7}
 .review-attachments{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.review-attachments a{border:1px solid #d8e5e9;border-radius:8px;padding:7px 9px;color:#087f7d;background:#f4fbfa;font-size:10px;font-weight:750;text-decoration:none}
 .signature-confirmed{display:flex;align-items:center;gap:8px;border:1px solid #b8ded7;border-radius:11px;background:#eaf8f3;color:#26765f;padding:12px;font-size:12px;font-weight:750}
+
+/* Tenant branding applies to the complete tenant workspace. Platform pages are intentionally excluded. */
+.brand-name-fallback{display:block;max-width:190px;overflow:hidden;color:#fff;font:700 15px/1.35 Poppins,Inter,sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.workspace-brand .brand-logo-image{width:100px;min-width:100px;height:42px;border-radius:0}.workspace-brand .brand-name-fallback{font-size:16px}
+.workspace-powered{display:block;margin-top:13px;color:color-mix(in srgb,var(--tenant-primary-foreground,#fff) 68%,transparent);font-size:9px;font-weight:700;letter-spacing:.04em}
+.workspace-shell .workspace-sidebar{background:var(--tenant-primary,#222c35);color:var(--tenant-primary-foreground,#fff)}
+.workspace-shell .workspace-brand,.workspace-shell .workspace-sidebar footer{border-color:color-mix(in srgb,var(--tenant-primary-foreground,#fff) 16%,transparent)}
+.workspace-shell .workspace-sidebar nav a{color:color-mix(in srgb,var(--tenant-primary-foreground,#fff) 83%,transparent)}
+.workspace-shell .workspace-sidebar nav a:hover{background:color-mix(in srgb,var(--tenant-accent,#41ac42) 20%,transparent);color:var(--tenant-primary-foreground,#fff)}
+.workspace-shell .workspace-sidebar nav a.active{background:var(--tenant-accent,#41ac42);color:var(--tenant-accent-foreground,#fff);box-shadow:inset 3px 0 color-mix(in srgb,var(--tenant-accent-foreground,#fff) 55%,transparent)}
+.workspace-shell .workspace-sidebar nav a em,.workspace-shell .live-dot{background:var(--tenant-accent,#41ac42);color:var(--tenant-accent-foreground,#fff)}
+.workspace-shell .workspace-sidebar footer,.workspace-shell .workspace-sidebar footer small{color:color-mix(in srgb,var(--tenant-primary-foreground,#fff) 72%,transparent)}
+.workspace-shell .backoffice-content>.page-intro,.workspace-shell .backoffice-content:not(.view-overzicht)>.page-intro{border-color:color-mix(in srgb,var(--tenant-accent,#41ac42) 38%,transparent);background:linear-gradient(118deg,var(--tenant-primary,#222c35),color-mix(in srgb,var(--tenant-primary,#222c35) 78%,var(--tenant-accent,#41ac42)));color:var(--tenant-primary-foreground,#fff);box-shadow:0 15px 34px color-mix(in srgb,var(--tenant-primary,#222c35) 18%,transparent)}
+.workspace-shell .backoffice-content>.page-intro h1,.workspace-shell .backoffice-content:not(.view-overzicht)>.page-intro h1{color:var(--tenant-primary-foreground,#fff)}
+.workspace-shell .backoffice-content>.page-intro p,.workspace-shell .backoffice-content:not(.view-overzicht)>.page-intro p{color:color-mix(in srgb,var(--tenant-primary-foreground,#fff) 78%,transparent)}
+.workspace-shell .backoffice-content>.page-intro .eyebrow,.workspace-shell .backoffice-content:not(.view-overzicht)>.page-intro .eyebrow{color:var(--tenant-accent,#41ac42)}
+.workspace-shell .primary-button{background:var(--tenant-accent,#41ac42);color:var(--tenant-accent-foreground,#fff);box-shadow:0 5px 14px color-mix(in srgb,var(--tenant-accent,#41ac42) 24%,transparent)}
+.workspace-shell .primary-button:hover{background:color-mix(in srgb,var(--tenant-accent,#41ac42) 86%,#000);color:var(--tenant-accent-foreground,#fff)}
+.workspace-shell .eyebrow,.workspace-shell .text-link,.workspace-shell .inline-action,.workspace-shell .table-actions summary,.workspace-shell .resource-table th button.active{color:var(--tenant-accent,#41ac42)}
+.workspace-shell .workspace-form input:focus,.workspace-shell .workspace-form select:focus,.workspace-shell .workspace-form textarea:focus,.workspace-shell .resource-form input:focus,.workspace-shell .resource-form select:focus,.workspace-shell .resource-form textarea:focus,.workspace-shell .wizard-form input:focus,.workspace-shell .wizard-form select:focus,.workspace-shell .wizard-form textarea:focus,.workspace-shell .resource-toolbar label:focus-within{border-color:var(--tenant-accent,#41ac42);box-shadow:0 0 0 3px color-mix(in srgb,var(--tenant-accent,#41ac42) 16%,transparent)}
+.workspace-shell input[type="checkbox"],.workspace-shell input[type="radio"]{accent-color:var(--tenant-accent,#41ac42)}
+.workspace-shell .resource-icon{background:color-mix(in srgb,var(--tenant-accent,#41ac42) 12%,#fff);color:var(--tenant-accent,#41ac42)}
+.workspace-shell .resource-action:hover,.workspace-shell .resource-more>summary:hover{border-color:color-mix(in srgb,var(--tenant-accent,#41ac42) 55%,#fff);background:color-mix(in srgb,var(--tenant-accent,#41ac42) 10%,#fff);color:var(--tenant-primary,#222c35)}
+.workspace-shell .wizard-progress li.active{border-color:var(--tenant-accent,#41ac42);color:var(--tenant-primary,#222c35)}.workspace-shell .wizard-progress li.active span{background:color-mix(in srgb,var(--tenant-accent,#41ac42) 15%,#fff);color:var(--tenant-primary,#222c35)}
+.workspace-shell .plan-bon{border-left-color:var(--tenant-accent,#41ac42)}.workspace-shell .legend.teal{background:var(--tenant-accent,#41ac42)}
+.workspace-shell .top-avatar{background:color-mix(in srgb,var(--tenant-accent,#41ac42) 14%,#fff);color:var(--tenant-primary,#222c35);box-shadow:0 0 0 3px color-mix(in srgb,var(--tenant-accent,#41ac42) 11%,transparent)}

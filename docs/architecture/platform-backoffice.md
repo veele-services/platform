@@ -26,6 +26,13 @@ The default Fieldgrid palette is:
 Existing custom tenant colours are preserved. Only the exact former Fieldgrid
 default pair is migrated.
 
+The palette applies to the complete tenant workspace, including navigation,
+page headers, controls, focus states and action accents. A tenant logo replaces
+the textual brand lock-up; without a logo the tenant name is the fallback.
+`tenant_settings.white_label_enabled` is a platform-managed entitlement. When
+it is false, the sidebar retains a bottom-aligned `Powered by Fieldgrid`
+attribution. Tenant roles cannot change this entitlement through the Data API.
+
 ## Module entitlements
 
 The V1 module keys are `planning`, `personeel`, `rapportage` and `finance`.
@@ -55,10 +62,12 @@ allowed variables per template and provides an inert live preview. Actual
 e-mail delivery produces HTML and plain text from the same revision and stores
 the rendered content plus branding snapshot with the delivery record.
 
-The e-mail logo is served through the controlled HTTPS branding endpoint. A
-tenant sender is used only after its tenant domain is verified; that sender must
-also be activated in SendGrid. Otherwise the configured Fieldgrid sender remains
-the operational fallback.
+The e-mail logo is served through the controlled HTTPS branding endpoint. When
+a logo exists, the header contains only that logo; otherwise the tenant name is
+the header fallback. The tenant website remains available as an HTTPS link in
+the footer. A tenant sender is used only after its tenant domain is verified;
+that sender must also be activated in SendGrid. Otherwise the configured
+Fieldgrid sender remains the operational fallback.
 
 No secret, provider key or tenant-specific brand value belongs in this
 configuration contract or in repository history.

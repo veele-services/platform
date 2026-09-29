@@ -59,4 +59,35 @@ describe("HTML e-mailrenderer", () => {
     expect(html).toContain("{factuurnummer}");
     expect(html).toContain("{betaallink}");
   });
+
+  it("toont bij een logo geen bedrijfsnaam of domein ernaast en zet de website in de footer", () => {
+    const html = renderTenantEmailHtml({
+      brand: { ...brand, emailLogoUrl: "https://assets.fieldgrid.test/logo.png" },
+      kind: "invoice",
+      message: { subject: "Factuur", body: "Uw factuur staat klaar." },
+      mode: "preview",
+    });
+    const header = html.match(/padding:34px 42px 25px;">\s*([\s\S]*?)\s*<\/td><\/tr>/)?.[1];
+    const footer = html.match(/background:#F7F9FA;[\s\S]*?<\/td><\/tr>/)?.[0];
+
+    expect(header).toContain('<img src="https://assets.fieldgrid.test/logo.png"');
+    expect(header).not.toContain(">Fieldgrid Test<");
+    expect(header).not.toContain(brand.domain);
+    expect(footer).toContain(`href="https://${brand.domain}/"`);
+    expect(footer).toContain(`>${brand.domain}</a>`);
+  });
+
+  it("gebruikt zonder logo de bedrijfsnaam als merk in de header", () => {
+    const html = renderTenantEmailHtml({
+      brand,
+      kind: "quote",
+      message: { subject: "Prijsopgave", body: "Uw prijsopgave staat klaar." },
+      mode: "preview",
+    });
+    const header = html.match(/padding:34px 42px 25px;">\s*([\s\S]*?)\s*<\/td><\/tr>/)?.[1];
+
+    expect(header).toContain(">Fieldgrid Test</span>");
+    expect(header).not.toContain("<img");
+    expect(header).not.toContain(brand.domain);
+  });
 });

@@ -44,6 +44,23 @@ function safeHttpsUrl(value?: string | null) {
   }
 }
 
+function safeWebsiteUrl(value: string) {
+  const domain = value.trim();
+  if (!domain) return null;
+  return safeHttpsUrl(domain.includes("://") ? domain : `https://${domain}`);
+}
+
+function safeEmailLogoUrl(value: string | null | undefined, mode: EmailRenderMode) {
+  const secure = safeHttpsUrl(value);
+  if (secure || mode !== "preview" || !value) return secure;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" && ["127.0.0.1", "localhost"].includes(url.hostname) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function paragraphHtml(value: string) {
   return value.trim().split(/\n\s*\n/).filter(Boolean).map((paragraph) => `<p style="margin:0 0 17px;color:#40586B;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`).join("\n                  ");
 }
@@ -67,7 +84,6 @@ export function renderTenantEmailHtml(input: {
   const primary = validColor(input.brand.primary, FIELDGRID_PRIMARY);
   const accent = validColor(input.brand.accent, FIELDGRID_SECONDARY);
   const onAccent = textOn(accent);
-  const onPrimary = textOn(primary);
   const preheader = input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
   const eyebrow = input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
   const cta = input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
@@ -77,11 +93,14 @@ export function renderTenantEmailHtml(input: {
     : mode === "preview"
       ? "https://voorbeeld.invalid/voorbeeld"
       : safeHttpsUrl(input.targetUrl) ?? (() => { throw new Error("De transactielink is geen geldige HTTPS-URL"); })();
-  const logoUrl = safeHttpsUrl(input.brand.emailLogoUrl);
-  const initials = company.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase() ?? "").join("");
-  const logo = logoUrl
+  const logoUrl = safeEmailLogoUrl(input.brand.emailLogoUrl, mode);
+  const headerBrand = logoUrl
     ? `<img src="${escapeHtml(logoUrl)}" width="110" alt="${escapeHtml(company)}" style="display:block;max-width:110px;max-height:44px;width:auto;height:auto;border:0;outline:none;text-decoration:none;">`
-    : `<span style="display:inline-block;background:${primary};color:${onPrimary};border-radius:10px;padding:11px 12px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;line-height:22px;">${escapeHtml(initials || "OR")}</span>`;
+    : `<span style="display:block;color:${primary};font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;line-height:1.35;">${escapeHtml(company)}</span>`;
+  const websiteUrl = safeWebsiteUrl(input.brand.domain);
+  const website = websiteUrl
+    ? `<p style="margin:7px 0 0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;"><a href="${escapeHtml(websiteUrl)}" style="color:#567384;text-decoration:underline;">${escapeHtml(input.brand.domain)}</a></p>`
+    : "";
   const senderEmail = input.brand.senderEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.brand.senderEmail) ? input.brand.senderEmail : null;
   const sender = senderEmail ? `<a href="mailto:${escapeHtml(senderEmail)}" style="color:#567384;text-decoration:underline;">${escapeHtml(senderEmail)}</a>` : "Neem contact op met onze administratie.";
   const visibleTarget = mode === "preview" ? "Voorbeeldlink · geen echte betaling of aanvraag" : target;
@@ -102,10 +121,7 @@ export function renderTenantEmailHtml(input: {
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="mail-shell" style="width:100%;max-width:600px;border-collapse:separate;border-spacing:0;background:#FFFFFF;border:1px solid #E1E9ED;border-radius:16px;overflow:hidden;">
         <tr><td height="5" bgcolor="${accent}" style="height:5px;line-height:5px;font-size:1px;background:${accent};">&nbsp;</td></tr>
         <tr><td class="mail-pad" style="padding:34px 42px 25px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;"><tr>
-            <td width="123" valign="middle" style="width:123px;vertical-align:middle;">${logo}</td>
-            <td valign="middle" style="vertical-align:middle;"><span style="display:block;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;line-height:1.35;">${escapeHtml(company)}</span><span style="display:block;color:#8296A2;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;">${escapeHtml(input.brand.domain)}</span></td>
-          </tr></table>
+          ${headerBrand}
         </td></tr>
         <tr><td style="height:1px;background:#E9EFF2;font-size:1px;line-height:1px;">&nbsp;</td></tr>
         <tr><td class="mail-pad" style="padding:37px 42px 28px;">
@@ -115,7 +131,7 @@ export function renderTenantEmailHtml(input: {
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:25px 0 18px;"><tr><td align="center" bgcolor="${accent}" style="border-radius:9px;background:${accent};"><a href="${escapeHtml(target)}" style="display:inline-block;padding:15px 22px;color:${onAccent};font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.3;text-decoration:none;">${cta}</a></td></tr></table>
           <p style="margin:0;color:#91A2AA;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;word-break:break-word;">Werkt de knop niet? Open <a href="${escapeHtml(target)}" style="color:#457A8E;text-decoration:underline;">${escapeHtml(visibleTarget)}</a>.</p>
         </td></tr>
-        <tr><td class="mail-pad" style="padding:22px 42px;background:#F7F9FA;border-top:1px solid #E9EFF2;"><p style="margin:0 0 5px;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;line-height:1.5;">${escapeHtml(company)}</p><p style="margin:0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;">Dit bericht is voor u bestemd. Vragen? ${sender}</p></td></tr>
+        <tr><td class="mail-pad" style="padding:22px 42px;background:#F7F9FA;border-top:1px solid #E9EFF2;"><p style="margin:0 0 5px;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;line-height:1.5;">${escapeHtml(company)}</p><p style="margin:0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;">Dit bericht is voor u bestemd. Vragen? ${sender}</p>${website}</td></tr>
       </table>
     </td></tr>
   </table>
