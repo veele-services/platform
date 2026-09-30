@@ -268,6 +268,9 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
 });
 
 test("klantdossier heeft vijf tabs en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
+  // Uploads, ten mobile tab checks and a second login need a larger total
+  // budget on a cold CI runner; keep individual assertion timeouts unchanged.
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
   const openCustomer = async () => {
