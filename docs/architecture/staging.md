@@ -267,3 +267,14 @@ committing these files:
 
 Migrations run only after the operator deliberately promotes a verified `main`
 commit to `staging` and the staging workflow passes its own full CI job.
+
+
+## Address and basic-travel addition (2026-09-30)
+
+The PDOK / openrouteservice / OpenFreeMap contract is specified in
+[addresses-and-travel.md](addresses-and-travel.md). It reuses the existing staging
+runtime and requires no new VPS, systemd service or branch. Automatic travel
+requires the new environment secret `OPENROUTESERVICE_API_KEY`; without it,
+estimates are explicitly unknown and manual estimates remain usable. Optional
+routing variables and conservative rate limits are listed in that contract.
+Google Routes remains disabled; its key is never a fallback.

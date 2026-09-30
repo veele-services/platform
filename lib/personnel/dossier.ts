@@ -20,7 +20,7 @@ const followup: DossierField[] = [{ key: "ownerId", label: "Verantwoordelijke", 
 export const dossierDefinitions: Record<RecordKind, { title: string; tab: DossierTab; statuses: [string,string][]; fields: DossierField[]; steps?: string[] }> = {
  profile: { title: "Persoonsgegevens", tab: "persoon", statuses: opt("active:Actueel"), fields: [
   { key: "name", label: "Volledige naam", required: true }, { key: "employeeNumber", label: "Personeelsnummer", required: true }, { key: "email", label: "Zakelijk e-mailadres", type: "email" }, { key: "phone", label: "Zakelijke telefoon" },
-  { key: "street", label: "Straat en huisnummer" }, { key: "postalCode", label: "Postcode" }, { key: "city", label: "Woonplaats" }, { key: "privateEmail", label: "Privé e-mailadres (optioneel)", type: "email" }, { key: "privatePhone", label: "Privételefoon (optioneel)" },
+  { key: "privateEmail", label: "Privé e-mailadres (optioneel)", type: "email" }, { key: "privatePhone", label: "Privételefoon (optioneel)" },
   { key: "emergencyName", label: "Noodcontact (optioneel)" }, { key: "emergencyPhone", label: "Telefoon noodcontact" }, { key: "employmentStatus", label: "Dienstverbandstatus", type: "select", options: opt("preparation:In voorbereiding","active:Actief","leaving:Uitdiensttreding gepland","former:Uit dienst","archived:Gearchiveerd") }, { key: "lastDay", label: "Laatste werkdag", type: "date" },
  ] },
  contract: { title: "Overeenkomst", tab: "contracten", steps: ["Type & datums","Werkafspraken","Documenten","Opvolging","Controleren"], statuses: opt("draft:Concept","active:Vastgelegd","ended:Historisch"), fields: [
@@ -65,7 +65,7 @@ export function employmentStatus(personnelStatus:string, configured?:unknown):st
  if(personnelStatus==="former")return configured==="archived"?"archived":"former";
  return ["preparation","active","leaving"].includes(String(configured))?String(configured):personnelStatus==="invited"?"preparation":"active";
 }
-export function businessToday(now = new Date()) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit" }).format(now); }
+export function businessToday(now = new Date(), timeZone = "Europe/Amsterdam") { return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now); }
 export function shiftDays(value: string, days: number) { const d = new Date(`${value}T12:00:00Z`); d.setUTCDate(d.getUTCDate()+days); return d.toISOString().slice(0,10); }
 export function calendarMonths(value: string, months: number) {
  const [year, month, day] = value.split("-").map(Number); const result = new Date(Date.UTC(year,month-1+months,1,12));

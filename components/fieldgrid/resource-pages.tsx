@@ -1,5 +1,7 @@
 "use client";
 
+import { AddressInput } from "./address-input";
+import { WizardMobility } from "./travel-settings";
 import { useFormChanges, confirmDiscard } from "./unsaved-form";
 import { DossierChainPanel, type ChainView } from "./dossier-chain";
 import { useMemo, useState, useTransition, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
@@ -152,17 +154,16 @@ function CustomerWizard({ onClose }: { onClose: () => void }) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; startTransition(async () => { const result = await createCustomer(new FormData(form)); if (!result.ok) toast.error(result.error); else { toast.success("Klant aangemaakt"); onClose(); router.refresh(); } }); };
   return <Modal title="Nieuwe klant" eyebrow="STAPSGEWIJS" onClose={onClose}><WizardProgress step={step} labels={["Organisatie", "Facturatie", "Controle"]}/><form className="wizard-form" onSubmit={submit}>
     <fieldset hidden={step !== 1}><legend>Wie is de klant?</legend><label className="wide">Klantnaam<input name="name" required autoFocus placeholder="Bedrijfsnaam of organisatienaam"/></label><label>Factuurmail<input name="email" type="email" placeholder="facturen@klant.nl"/></label><label>Telefoon<input name="phone" type="tel" placeholder="+31…"/></label><label>Status<select name="status" defaultValue="active"><option value="lead">Lead</option><option value="active">Actief</option><option value="inactive">Inactief</option></select></label><label>Betaaltermijn<input name="paymentTermsDays" type="number" min="0" max="365" defaultValue="30" required/></label></fieldset>
-    <fieldset hidden={step !== 2}><legend>Wat is het factuuradres?</legend><label className="wide">Straat en huisnummer<input name="street" required/></label><label>Postcode<input name="postalCode" required/></label><label>Plaats<input name="city" required/></label><div className="wizard-note wide"><Building2 size={18}/><span>Objecten voeg je na het opslaan afzonderlijk toe. Zo kan een klant ook zonder uitvoeringslocatie bestaan.</span></div></fieldset>
+    <fieldset hidden={step !== 2}><legend>Wat is het factuuradres?</legend><AddressInput required legacyFields/><div className="wizard-note wide"><Building2 size={18}/><span>Objecten voeg je na het opslaan afzonderlijk toe. Zo kan een klant ook zonder uitvoeringslocatie bestaan.</span></div></fieldset>
     <fieldset hidden={step !== 3}><legend>Controleer en maak de klant aan</legend><div className="wizard-summary wide"><CheckCircle2 size={23}/><div><strong>Klantgegevens gereed</strong><p>Na het aanmaken kun je contactpersonen en één of meer objecten koppelen.</p></div></div></fieldset>
     <WizardFooter step={step} steps={3} onBack={() => step === 1 ? onClose() : setStep((value) => value - 1)} onNext={(event) => validateWizardStep(event, () => setStep((value) => Math.min(3, value + 1)))} pending={pending} submitLabel="Klant aanmaken"/>
   </form></Modal>;
 }
 
 function CustomerEdit({ customer, onClose }: { customer: Customer; onClose: () => void }) {
-  const address = jsonAddress(customer.billing_address);
   return <Modal title="Klant bewerken" eyebrow={customer.customer_number} onClose={onClose}><ServerForm action={updateCustomer} success="Klant bijgewerkt" onSuccess={onClose}>
     <input type="hidden" name="customerId" value={customer.id}/><input type="hidden" name="version" value={customer.version}/>
-    <label className="wide">Naam<input name="name" defaultValue={customer.name} required/></label><label>Factuurmail<input name="email" type="email" defaultValue={customer.billing_email ?? ""}/></label><label>Telefoon<input name="phone" defaultValue={customer.phone ?? ""}/></label><label>Status<select name="status" defaultValue={customer.status}><option value="lead">Lead</option><option value="active">Actief</option><option value="inactive">Inactief</option></select></label><label>Betaaltermijn<input name="paymentTermsDays" type="number" min="0" max="365" defaultValue={customer.payment_terms_days ?? 30}/></label><label className="wide">Straat en huisnummer<input name="street" defaultValue={address.street ?? ""} required/></label><label>Postcode<input name="postalCode" defaultValue={address.postal_code ?? ""} required/></label><label>Plaats<input name="city" defaultValue={address.city ?? ""} required/></label>
+    <label className="wide">Naam<input name="name" defaultValue={customer.name} required/></label><label>Factuurmail<input name="email" type="email" defaultValue={customer.billing_email ?? ""}/></label><label>Telefoon<input name="phone" defaultValue={customer.phone ?? ""}/></label><label>Status<select name="status" defaultValue={customer.status}><option value="lead">Lead</option><option value="active">Actief</option><option value="inactive">Inactief</option></select></label><label>Betaaltermijn<input name="paymentTermsDays" type="number" min="0" max="365" defaultValue={customer.payment_terms_days ?? 30}/></label><AddressInput initial={customer.billing_address} required legacyFields/>
   </ServerForm></Modal>;
 }
 
@@ -311,7 +312,7 @@ function ObjectWizard({ customers, onClose }: { customers: Customer[]; onClose: 
     <WizardProgress step={step} labels={["Klant", "Locatie", "Controle"]}/>
     <form className="wizard-form" onSubmit={submit}>
       <fieldset hidden={step !== 1}><legend>Bij welke klant hoort het object?</legend><label className="wide">Klant<select name="customerId" required defaultValue="" autoFocus><option value="" disabled>Kies een bestaande klant</option>{customers.filter((item) => item.status !== "inactive").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="wide">Objectnaam<input name="name" required placeholder="Bijv. Hoofdkantoor"/></label></fieldset>
-      <fieldset hidden={step !== 2}><legend>Waar bevindt het object zich?</legend><label className="wide">Straat en huisnummer<input name="street" required/></label><label>Postcode<input name="postalCode" required/></label><label>Plaats<input name="city" required/></label><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} placeholder="Toegang, parkeren, melden bij…"/></label></fieldset>
+      <fieldset hidden={step !== 2}><legend>Waar bevindt het object zich?</legend><AddressInput required legacyFields/><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} placeholder="Toegang, parkeren, melden bij…"/></label></fieldset>
       <fieldset hidden={step !== 3}>
         <legend>Controleer je gegevens</legend>
         <div className="detail-grid wide" role="group" aria-label="Samenvatting object">
@@ -328,8 +329,7 @@ function ObjectWizard({ customers, onClose }: { customers: Customer[]; onClose: 
 }
 
 function ObjectEdit({ object, customers, onClose }: { object: ObjectRow; customers: Customer[]; onClose: () => void }) {
-  const address = jsonAddress(object.address);
-  return <Modal title="Object bewerken" eyebrow={object.object_number} onClose={onClose}><ServerForm action={updateObject} success="Object bijgewerkt" onSuccess={onClose}><input type="hidden" name="objectId" value={object.id}/><label className="wide">Klant<select name="customerId" defaultValue={object.customer_id}>{customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="wide">Objectnaam<input name="name" defaultValue={object.name} required/></label><label className="wide">Straat en huisnummer<input name="street" defaultValue={address.street ?? ""} required/></label><label>Postcode<input name="postalCode" defaultValue={address.postal_code ?? ""} required/></label><label>Plaats<input name="city" defaultValue={address.city ?? ""} required/></label><label>Status<select name="active" defaultValue={String(object.active)}><option value="true">Actief</option><option value="false">Inactief</option></select></label><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} defaultValue={object.access_instructions ?? ""}/></label></ServerForm></Modal>;
+  return <Modal title="Object bewerken" eyebrow={object.object_number} onClose={onClose}><ServerForm action={updateObject} success="Object bijgewerkt" onSuccess={onClose}><input type="hidden" name="objectId" value={object.id}/><label className="wide">Klant<select name="customerId" defaultValue={object.customer_id}>{customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="wide">Objectnaam<input name="name" defaultValue={object.name} required/></label><AddressInput initial={object.address} required legacyFields/><label>Status<select name="active" defaultValue={String(object.active)}><option value="true">Actief</option><option value="false">Inactief</option></select></label><label className="wide">Bezoekinstructies<textarea name="instructions" rows={4} defaultValue={object.access_instructions ?? ""}/></label></ServerForm></Modal>;
 }
 
 function ObjectDetail({ object, customer, data, onClose, timezone }: { object: ObjectRow; customer?: Customer; data: WorkspaceData; onClose: () => void; timezone:string }) {
@@ -363,7 +363,7 @@ function PersonnelWizard({ onClose, suggestedNumber }: { onClose: () => void; su
         <div className="wide"><p className="form-note" id="personnel-number-hint">{automatic ? "Automatisch voorgesteld. Je mag dit nummer aanpassen. Als iemand je voor is, kiezen we bij het opslaan het volgende vrije nummer." : "Je gebruikt een eigen personeelsnummer. Dit nummer mag nog niet bij een andere medewerker in gebruik zijn."}</p>
           {!automatic && <button type="button" className="text-link" onClick={() => { setEmployeeNumber(suggestedNumber); setAutomatic(true); }}>Automatisch nummer gebruiken</button>}
         </div>
-        <div className="wizard-note wide"><UsersRound size={18}/><span>Functies, kwalificaties, beschikbaarheid en documenten voeg je daarna via ‘Meer’ toe.</span></div>
+        <WizardMobility/><div className="wizard-note wide"><UsersRound size={18}/><span>Functies, kwalificaties, beschikbaarheid en documenten voeg je daarna via ‘Meer’ toe.</span></div>
       </fieldset>
       <fieldset hidden={step !== 3}><legend>Verstuur de uitnodiging</legend><div className="wizard-summary wide"><Send size={23}/><div><strong>Een uitnodiging voor het personeelsportaal</strong><p>De medewerker ontvangt een e-mail in de huisstijl van jouw organisatie. Via de knop in die e-mail activeert de medewerker het account en kiest een eigen wachtwoord. Wie al een account heeft, logt in met de bestaande gegevens.</p><p>In het personeelsportaal kan de medewerker de eigen planning en werkbonnen bekijken.</p><p>Personeelsnummer: <strong>{employeeNumber}</strong>{automatic && " (automatisch voorstel)"}</p></div></div></fieldset>
       <WizardFooter step={step} steps={3} onBack={() => step === 1 ? onClose() : setStep((value) => value - 1)} onNext={(event) => validateWizardStep(event, () => setStep((value) => Math.min(3, value + 1)))} pending={pending} submitLabel="Uitnodiging versturen"/>

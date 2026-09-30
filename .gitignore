@@ -10,3 +10,5 @@ test-results/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+/public/maplibre/

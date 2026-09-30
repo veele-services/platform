@@ -943,13 +943,13 @@ isOneToOne: false
                   ]
                 },"objects": {
                   Row: {
-                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"created_at": string,"customer_id": string,"dossier_status": string,"id": string,"latitude": number | null,"location_description": string,"longitude": number | null,"name": string,"object_number": string,"object_type": string,"tenant_id": string,"updated_at": string,"version": number
+                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"arrival_instruction": string,"arrival_location": Json | null,"created_at": string,"customer_id": string,"dossier_status": string,"id": string,"latitude": number | null,"location_description": string,"longitude": number | null,"name": string,"object_number": string,"object_type": string,"tenant_id": string,"travel_margin_minutes": number | null,"updated_at": string,"version": number
                   }
                   Insert: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"created_at"?: string,"customer_id": string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name": string,"object_number": string,"object_type"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number
+                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id": string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name": string,"object_number": string,"object_type"?: string,"tenant_id": string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"created_at"?: string,"customer_id"?: string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name"?: string,"object_number"?: string,"object_type"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number
+                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id"?: string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name"?: string,"object_number"?: string,"object_type"?: string,"tenant_id"?: string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -1062,16 +1062,22 @@ isOneToOne: false
                   ]
                 },"personnel": {
                   Row: {
-                    "created_at": string,"email": string | null,"emergency_contact": NonNullable<Json>,"employee_number": string,"end_date": string | null,"full_name": string,"home_address": NonNullable<Json>,"id": string,"phone": string | null,"start_date": string | null,"status": string,"tenant_id": string,"updated_at": string,"user_id": string | null,"version": number
+                    "alternate_departure_address": NonNullable<Json>,"created_at": string,"departure_depot_id": string | null,"departure_kind": string | null,"email": string | null,"emergency_contact": NonNullable<Json>,"employee_number": string,"end_date": string | null,"full_name": string,"home_address": NonNullable<Json>,"id": string,"phone": string | null,"return_to_departure": boolean,"standard_vehicle": string | null,"start_date": string | null,"status": string,"tenant_id": string,"updated_at": string,"user_id": string | null,"version": number
                   }
                   Insert: {
-                    "created_at"?: string,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name": string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
+                    "alternate_departure_address"?: NonNullable<Json>,"created_at"?: string,"departure_depot_id"?: string | null,"departure_kind"?: string | null,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name": string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"return_to_departure"?: boolean,"standard_vehicle"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name"?: string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
+                    "alternate_departure_address"?: NonNullable<Json>,"created_at"?: string,"departure_depot_id"?: string | null,"departure_kind"?: string | null,"email"?: string | null,"emergency_contact"?: NonNullable<Json>,"employee_number"?: string,"end_date"?: string | null,"full_name"?: string,"home_address"?: NonNullable<Json>,"id"?: string,"phone"?: string | null,"return_to_departure"?: boolean,"standard_vehicle"?: string | null,"start_date"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"user_id"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "personnel_tenant_id_departure_depot_id_fkey"
+      columns: ["tenant_id","departure_depot_id"]
+isOneToOne: false
+      referencedRelation: "travel_depots"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "personnel_tenant_id_fkey"
       columns: ["tenant_id"]
 isOneToOne: false
@@ -1273,6 +1279,31 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     },{
       foreignKeyName: "personnel_notes_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"personnel_travel_days": {
+                  Row: {
+                    "day": string,"departure_address": Json | null,"departure_depot_id": string | null,"departure_kind": string | null,"personnel_id": string,"return_to_departure": boolean | null,"standard_vehicle": string | null,"tenant_id": string,"updated_at": string,"updated_by": string | null,"version": number
+                  }
+                  Insert: {
+                    "day": string,"departure_address"?: Json | null,"departure_depot_id"?: string | null,"departure_kind"?: string | null,"personnel_id": string,"return_to_departure"?: boolean | null,"standard_vehicle"?: string | null,"tenant_id": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "day"?: string,"departure_address"?: Json | null,"departure_depot_id"?: string | null,"departure_kind"?: string | null,"personnel_id"?: string,"return_to_departure"?: boolean | null,"standard_vehicle"?: string | null,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personnel_travel_days_tenant_id_departure_depot_id_fkey"
+      columns: ["tenant_id","departure_depot_id"]
+isOneToOne: false
+      referencedRelation: "travel_depots"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "personnel_travel_days_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
       referencedRelation: "personnel"
@@ -1784,13 +1815,13 @@ isOneToOne: false
                   ]
                 },"tenant_settings": {
                   Row: {
-                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"personnel_number_prefix": string,"personnel_number_start": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"updated_at": string,"white_label_enabled": boolean
+                    "appointment_blocks": NonNullable<Json>,"bill_travel_default": boolean,"contract_reminder_days": number,"enabled_services": (string)[],"invoice_prefix": string,"payment_terms_days": number,"personnel_number_prefix": string,"personnel_number_start": number,"settings": NonNullable<Json>,"signature_required_default": boolean,"task_code_prefix": string,"tenant_id": string,"travel_margin_minutes": number,"travel_vehicle_margins": NonNullable<Json>,"updated_at": string,"white_label_enabled": boolean
                   }
                   Insert: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"updated_at"?: string,"white_label_enabled"?: boolean
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id": string,"travel_margin_minutes"?: number,"travel_vehicle_margins"?: NonNullable<Json>,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Update: {
-                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"updated_at"?: string,"white_label_enabled"?: boolean
+                    "appointment_blocks"?: NonNullable<Json>,"bill_travel_default"?: boolean,"contract_reminder_days"?: number,"enabled_services"?: (string)[],"invoice_prefix"?: string,"payment_terms_days"?: number,"personnel_number_prefix"?: string,"personnel_number_start"?: number,"settings"?: NonNullable<Json>,"signature_required_default"?: boolean,"task_code_prefix"?: string,"tenant_id"?: string,"travel_margin_minutes"?: number,"travel_vehicle_margins"?: NonNullable<Json>,"updated_at"?: string,"white_label_enabled"?: boolean
                   }
                   Relationships: [
                     {
@@ -1839,15 +1870,34 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
-                },"travel_legs": {
+                },"travel_depots": {
                   Row: {
-                    "actual_ended_at": string | null,"actual_started_at": string | null,"assignment_id": string,"billable": boolean,"calculated_at": string | null,"created_at": string,"destination_address": NonNullable<Json>,"direction": string,"error_code": string | null,"estimated_distance_metres": number | null,"estimated_minutes": number | null,"id": string,"origin_address": NonNullable<Json>,"provider": string | null,"provider_reference": string | null,"tenant_id": string,"travel_mode": string
+                    "active": boolean,"address": NonNullable<Json>,"id": string,"name": string,"tenant_id": string,"updated_at": string,"version": number
                   }
                   Insert: {
-                    "actual_ended_at"?: string | null,"actual_started_at"?: string | null,"assignment_id": string,"billable"?: boolean,"calculated_at"?: string | null,"created_at"?: string,"destination_address": NonNullable<Json>,"direction": string,"error_code"?: string | null,"estimated_distance_metres"?: number | null,"estimated_minutes"?: number | null,"id"?: string,"origin_address": NonNullable<Json>,"provider"?: string | null,"provider_reference"?: string | null,"tenant_id": string,"travel_mode": string
+                    "active"?: boolean,"address"?: NonNullable<Json>,"id"?: string,"name": string,"tenant_id": string,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "actual_ended_at"?: string | null,"actual_started_at"?: string | null,"assignment_id"?: string,"billable"?: boolean,"calculated_at"?: string | null,"created_at"?: string,"destination_address"?: NonNullable<Json>,"direction"?: string,"error_code"?: string | null,"estimated_distance_metres"?: number | null,"estimated_minutes"?: number | null,"id"?: string,"origin_address"?: NonNullable<Json>,"provider"?: string | null,"provider_reference"?: string | null,"tenant_id"?: string,"travel_mode"?: string
+                    "active"?: boolean,"address"?: NonNullable<Json>,"id"?: string,"name"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "travel_depots_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"travel_legs": {
+                  Row: {
+                    "actual_ended_at": string | null,"actual_started_at": string | null,"assignment_id": string,"basis_calculated_at": string | null,"basis_distance_metres": number | null,"basis_seconds": number | null,"billable": boolean,"calculated_at": string | null,"created_at": string,"destination_address": NonNullable<Json>,"direction": string,"error_code": string | null,"estimate_snapshot": Json | null,"estimated_distance_metres": number | null,"estimated_minutes": number | null,"id": string,"manual_metres": number | null,"manual_reason": string | null,"manual_seconds": number | null,"manual_signature": string | null,"manual_updated_at": string | null,"manual_updated_by": string | null,"origin_address": NonNullable<Json>,"planning_day": string | null,"planning_margin_minutes": number,"planning_revision": number | null,"provider": string | null,"provider_reference": string | null,"route_signature": string | null,"routing_profile": string | null,"tenant_id": string,"travel_mode": string
+                  }
+                  Insert: {
+                    "actual_ended_at"?: string | null,"actual_started_at"?: string | null,"assignment_id": string,"basis_calculated_at"?: string | null,"basis_distance_metres"?: number | null,"basis_seconds"?: number | null,"billable"?: boolean,"calculated_at"?: string | null,"created_at"?: string,"destination_address": NonNullable<Json>,"direction": string,"error_code"?: string | null,"estimate_snapshot"?: Json | null,"estimated_distance_metres"?: number | null,"estimated_minutes"?: number | null,"id"?: string,"manual_metres"?: number | null,"manual_reason"?: string | null,"manual_seconds"?: number | null,"manual_signature"?: string | null,"manual_updated_at"?: string | null,"manual_updated_by"?: string | null,"origin_address": NonNullable<Json>,"planning_day"?: string | null,"planning_margin_minutes"?: number,"planning_revision"?: number | null,"provider"?: string | null,"provider_reference"?: string | null,"route_signature"?: string | null,"routing_profile"?: string | null,"tenant_id": string,"travel_mode": string
+                  }
+                  Update: {
+                    "actual_ended_at"?: string | null,"actual_started_at"?: string | null,"assignment_id"?: string,"basis_calculated_at"?: string | null,"basis_distance_metres"?: number | null,"basis_seconds"?: number | null,"billable"?: boolean,"calculated_at"?: string | null,"created_at"?: string,"destination_address"?: NonNullable<Json>,"direction"?: string,"error_code"?: string | null,"estimate_snapshot"?: Json | null,"estimated_distance_metres"?: number | null,"estimated_minutes"?: number | null,"id"?: string,"manual_metres"?: number | null,"manual_reason"?: string | null,"manual_seconds"?: number | null,"manual_signature"?: string | null,"manual_updated_at"?: string | null,"manual_updated_by"?: string | null,"origin_address"?: NonNullable<Json>,"planning_day"?: string | null,"planning_margin_minutes"?: number,"planning_revision"?: number | null,"provider"?: string | null,"provider_reference"?: string | null,"route_signature"?: string | null,"routing_profile"?: string | null,"tenant_id"?: string,"travel_mode"?: string
                   }
                   Relationships: [
                     {
@@ -2382,6 +2432,9 @@ isOneToOne: false
               "certificate_attention": boolean,"employment_status": string,"ends_on": string,"function_id": string,"open_actions": number,"personnel_id": string,"team": string
             }[]
                            },
+"personnel_mobility":
+{ Args: { "target_personnel": string,"target_tenant": string }; Returns: Json
+                           },
 "personnel_qualification_gaps":
 { Args: { "target_tenant": string }; Returns: {
               "assignment_id": string,"code": string,"hard_requirement": boolean,"personnel_id": string
@@ -2539,6 +2592,15 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"route_cache_claim":
+{ Args: { "day_limit": number,"keys": (string)[],"lease_id": string,"minute_limit": number,"provider_name": string,"request_kind": string }; Returns: Json
+                           },
+"route_cache_finish":
+{ Args: { "cache_key": string,"failure": string,"lease_id": string,"payload": Json,"ttl_days": number }; Returns: undefined
+                           },
+"route_cache_read":
+{ Args: { "keys": (string)[] }; Returns: Json
+                           },
 "save_object_dossier":
 { Args: { "input": Json,"target_tenant": string }; Returns: string
                            },
@@ -2563,6 +2625,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"store_travel_estimates":
+{ Args: { "actor"?: string,"legs": Json,"manual_action"?: string,"revision": number,"t": string }; Returns: boolean
+                           },
 "submit_object_visit_request":
 { Args: { "input": Json,"request_id": string,"target_object": string,"target_order": string,"target_tenant": string }; Returns: string
                            },
@@ -2607,6 +2672,15 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"travel_context":
+{ Args: { "d": string,"p"?: string,"s": string,"t": string,"u": string }; Returns: Json
+                           },
+"travel_day_departure":
+{ Args: { "d": string,"p": string,"t": string }; Returns: Json
+                           },
+"travel_session_active":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "update_object_visit_request":
 { Args: { "expected_version": number,"input": Json,"target_request": string,"target_tenant": string }; Returns: undefined
                            },

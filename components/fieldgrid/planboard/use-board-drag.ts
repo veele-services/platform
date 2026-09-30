@@ -20,7 +20,7 @@ import {
 } from "@/lib/planning/model";
 
 export const PERSONNEL_WIDTH = 230,
-  ROW_HEIGHT = 72,
+  ROW_HEIGHT = 96,
   HEADER_HEIGHT = 40;
 type Drag = {
   captureElement: Element;

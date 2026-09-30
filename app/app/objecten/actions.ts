@@ -1,5 +1,6 @@
 "use server";
 
+import { addressFromForm } from "@/lib/addresses/form";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -24,7 +25,8 @@ function refresh(id:string){revalidatePath("/app/objecten");revalidatePath(`/app
 
 export async function saveObject(form:FormData):Promise<ActionResult<{id:string}>>{
  try{const input=objectSchema.parse(Object.fromEntries(form));const {tenant,db}=await authorize(input.version?input.id:undefined);
- const r=await db.rpc("save_object_dossier",{target_tenant:tenant.id,input});if(r.error) return fail();refresh(r.data);return {ok:true,id:r.data};}catch{return fail();}
+ const address=await addressFromForm(form,"addressPayload",true);
+ const r=await db.rpc("save_object_dossier",{target_tenant:tenant.id,input:{...input,address}});if(r.error) return fail();refresh(r.data);return {ok:true,id:r.data};}catch{return fail();}
 }
 export async function archiveObjectDossier(form:FormData):Promise<ActionResult>{
  try{const id=z.string().uuid().parse(form.get("id"));const version=z.coerce.number().int().positive().parse(form.get("version"));const {db,tenant}=await authorize(id);

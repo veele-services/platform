@@ -279,10 +279,11 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   await dragTo(rect.x + 18 + 124 * ppm, rect.y + 28);
   await expect(card).toContainText("10:07–11:37");
   rect = (await card.boundingBox())!;
-  await dragTo(rect.x + 18, rect.y + 28 + 72);
+  const rowHeight = (await page.locator(".pb-person-row").first().boundingBox())!.height;
+  await dragTo(rect.x + 18, rect.y + 28 + rowHeight);
   await expect
     .poll(async () => (await card.boundingBox())?.y ?? -1)
-    .toBeCloseTo(rect.y + 72, 0);
+    .toBeCloseTo(rect.y + rowHeight, 0);
   await expect(page.getByRole("status")).not.toContainText("Planning opslaan");
   expect(
     (

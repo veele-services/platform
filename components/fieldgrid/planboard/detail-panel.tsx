@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type FormEvent, type CSSProperties } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import {
   Sheet,
@@ -33,6 +33,7 @@ export function PlanningDetail({
   theme,
   saveError,
   onRetry,
+  travel,
 }: {
   order: PlanningOrder;
   people: PlanningPerson[];
@@ -44,6 +45,7 @@ export function PlanningDetail({
   theme: CSSProperties;
   saveError?: string;
   onRetry?: () => void;
+  travel?: ReactNode;
 }) {
   const [start, setStart] = useState(
     order.start ? localDateTime(order.start, timezone) : `${day}T08:00`,
@@ -234,32 +236,7 @@ export function PlanningDetail({
               <small>Alleen deze bon; geen automatisch meerwerk.</small>
             </section>
           )}
-          <section className="pb-travel">
-            <h3>Reisinformatie</h3>
-            {order.assignments.map((a) => (
-              <p key={a.id}>
-                {people.find((p) => p.id === a.personnelId)?.name ??
-                  "Medewerker"}
-                :{" "}
-                {a.travel.length
-                  ? a.travel
-                      .map((t) =>
-                        t.state === "known"
-                          ? `${t.direction === "before" ? "Heen" : "Vervolg"}: ${t.minutes} min (bestaande berekening)`
-                          : t.state === "stale"
-                            ? "opnieuw berekenen na planningswijziging"
-                            : t.state === "failed"
-                              ? "berekening niet beschikbaar"
-                              : "onbekend",
-                      )
-                      .join(" · ")
-                  : "onbekend"}
-              </p>
-            ))}
-            {!order.assignments.length && (
-              <p>Reistijd onbekend. Er wordt geen vertrekbasis aangenomen.</p>
-            )}
-          </section>
+          <section className="pb-travel"><h3>Reisinformatie</h3>{travel}</section>
           <form
             className="pb-edit"
             onSubmit={submit}

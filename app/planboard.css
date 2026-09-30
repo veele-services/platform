@@ -160,8 +160,8 @@
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent 71px,
-      #e8eef1 72px
+      transparent 95px,
+      #e8eef1 96px
     );
 }
 .pb-ruler,
@@ -209,7 +209,7 @@
   box-shadow: 1px 0 #dde5e9;
 }
 .pb-person-row {
-  height: 72px;
+  height: 96px;
   border-bottom: 1px solid #e1e8ec;
 }
 .pb-avatar-rail {

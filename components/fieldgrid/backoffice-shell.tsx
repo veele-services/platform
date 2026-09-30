@@ -1,4 +1,5 @@
 "use client";
+import { TravelSettings } from "./travel-settings";
 
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
@@ -171,6 +172,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
     return <>
       <PageIntro eyebrow="BEHEER" title="Instellingen" description="Huisstijl, afzendergegevens en nummering voor jouw organisatie." />
       <TenantBrandingSettings key={tenant.id} tenant={tenant} data={data}/>
+      {tenant.roles.some(r=>["tenant_admin","management"].includes(r))&&<TravelSettings/>}
       {tenant.enabledServices.includes("personeel") && (context.isPlatformAdmin || tenant.roles.some((role) => ["tenant_admin", "management"].includes(role))) && <PersonnelNumberSettings key={`${tenant.id}:${data.settings?.personnel_number_prefix}:${data.settings?.personnel_number_start}`} settings={data.settings}/>}
     </>;
   })();

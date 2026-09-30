@@ -1,4 +1,6 @@
 "use client";
+import { useTravelDay, TravelBadge, TravelList, TravelDialog, VehicleIcon } from "../travel";
+import { vehicles } from "@/lib/travel/model";
 import {
   useCallback,
   useEffect,
@@ -138,6 +140,9 @@ export function DayPlanboard({
     status: "",
     page: 1,
   });
+  const planKey = JSON.stringify(data.board.map(w=>[w.id,w.version,w.assignments.map(a=>[a.id,a.version,a.personnelId,a.start,a.end])]));
+  const travel = useTravelDay(query.day, undefined, planKey);
+  const [travelSelection,setTravelSelection]=useState<{assignmentId?:string;personnelId?:string;mode?:string}|null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
@@ -709,6 +714,7 @@ export function DayPlanboard({
                 </div>
                 <div className="pb-person-name">
                   <strong>{person.name}</strong>
+                  <button className="travel-day-button" onClick={()=>setTravelSelection({personnelId:person.id})}><VehicleIcon vehicle={travel.data?.people.find(p=>p.id===person.id)?.vehicle||null}/>{(()=>{const p=travel.data?.people.find(p=>p.id===person.id);return p?.vehicle?vehicles[p.vehicle]+(p.overridden?" · dagafwijking":""):"Vervoer kiezen";})()}</button>
                   <small>
                     {person.status !== "active"
                       ? "Niet actief"
@@ -718,6 +724,7 @@ export function DayPlanboard({
                   </small>
                 </div>
                 <div className={`pb-lane ${hasHours ? "pb-has-hours" : ""}`}>
+                  {travel.data?.legs.filter(l=>l.personnelId===person.id&&l.totalMinutes!==null).map(l=>{const end=l.direction==="after"?Date.parse(l.previousEnd!)+l.totalMinutes!*60000:Date.parse(l.plannedStart);const left=Math.max(0,(end-l.totalMinutes!*60000-Date.parse(windowRange.start))/60000*pxPerMinute);const right=Math.min(windowRange.minutes*pxPerMinute,(end-Date.parse(windowRange.start))/60000*pxPerMinute);return right>left?<button key={l.assignmentId+l.direction} className={`pb-travel-leg ${l.shortageMinutes?"conflict":""}`} style={{left,width:right-left}} onClick={()=>setTravelSelection({assignmentId:l.assignmentId})} aria-label={`Reistijd ${l.totalMinutes} minuten${l.shortageMinutes?`, ${l.shortageMinutes} minuten tekort`:""}`}>{l.totalMinutes} min</button>:null;})}
                   {availability.map((a) => {
                     const left = Math.max(
                         0,
@@ -833,6 +840,7 @@ export function DayPlanboard({
                               : ""}
                           </strong>
                           <span>{order.object}</span>
+                          <TravelBadge leg={travel.data?.legs.find(l=>l.assignmentId===assignment.id&&l.direction==="before")}/>
                           <small>
                             {attention
                               ? "Vereiste controleren"
@@ -865,6 +873,9 @@ export function DayPlanboard({
                             <button onClick={() => open(order)}>
                               Bekijk werkbon
                             </button>
+                            <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id});}}>Bekijk reistijd</button>
+                            <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id,mode:"route"});}}>Bekijk route</button>
+                            <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id,mode:"manual"});}}>Handmatige reistijd</button>
                             <button
                               disabled={!editable}
                               onClick={() => open(order)}
@@ -1243,9 +1254,11 @@ export function DayPlanboard({
           </>
         )}
       </section>
+      {travelSelection&&<TravelDialog travel={travel} {...travelSelection} day={query.day} theme={theme} onClose={()=>setTravelSelection(null)} onSaved={()=>{travel.refresh();void refresh(query);}}/>}
       {selected && (
         <PlanningDetail
           key={`${selected.id}:${selected.version}`}
+          travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
           order={selected}
           people={data.people}
           timezone={data.timezone}

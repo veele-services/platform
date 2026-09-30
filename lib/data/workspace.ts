@@ -65,7 +65,7 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     supabase.from("quotes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(250),
     supabase.from("task_catalog").select("*").eq("tenant_id", tenantId).order("code"),
     supabase.from("task_revisions").select("*").eq("tenant_id", tenantId).order("revision", { ascending: false }),
-    supabase.from("personnel").select("*").eq("tenant_id", tenantId).order("full_name"),
+    supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,emergency_contact,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name"),
     supabase.from("function_catalog").select("*").eq("tenant_id", tenantId).order("name"),
     supabase.from("qualifications").select("*").eq("tenant_id", tenantId),
     supabase.from("work_orders").select("*").eq("tenant_id", tenantId).order("projected_start_at", { ascending: false }).limit(500),
@@ -110,7 +110,7 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
   return {
     customers: rows(results[0]), contacts: rows(results[1]), objects: rows(results[2]),
     requests: rows(results[3]), quotes: rows(results[4]), tasks: rows(results[5]), taskRevisions: rows(results[6]),
-    personnel: rows(results[7]), functions: rows(results[8]), qualifications: rows(results[9]),
+    personnel: rows(results[7]).map(p=>({...p,home_address:{},alternate_departure_address:{}})), functions: rows(results[8]), qualifications: rows(results[9]),
     workOrders: rows(results[10]), assignments: rows(results[11]), workOrderTasks: rows(results[12]), dispatches: rows(results[13]),
     reports: rows(results[14]), attachments: rows(results[15]), signatures: rows(results[16]), reviews: rows(results[17]),
     invoices: rows(results[18]), invoiceLines: rows(results[19]), payments: rows(results[20]), allocations: rows(results[21]),

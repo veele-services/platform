@@ -1,5 +1,7 @@
 "use server";
 
+import { addressFromForm } from "@/lib/addresses/form";
+import { mobilityFromForm } from "@/lib/travel/forms";
 import { randomBytes, createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -53,7 +55,7 @@ export async function createCustomer(formData: FormData): Promise<ActionResult> 
     const { error } = await supabase.from("customers").insert({
       tenant_id: context.tenant.id, customer_number: generatedNumber("KL"), name: input.name,
       billing_email: input.email || null, phone: input.phone || null,
-      billing_address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      billing_address: await addressFromForm(formData, "addressPayload", true),
       payment_terms_days: input.paymentTermsDays, status: input.status,
     });
     if (error) throw error;
@@ -75,7 +77,7 @@ export async function updateCustomer(formData: FormData): Promise<ActionResult> 
     const supabase = await createClient();
     const { data, error } = await supabase.from("customers").update({
       name: input.name, billing_email: input.email || null, phone: input.phone || null,
-      billing_address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      billing_address: await addressFromForm(formData, "addressPayload", true),
       payment_terms_days: input.paymentTermsDays, status: input.status, version: input.version + 1,
     }).eq("tenant_id", context.tenant.id).eq("id", input.customerId).eq("version", input.version).select("id").maybeSingle();
     if (error) throw error;
@@ -437,6 +439,7 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult<
       if (error) throw new Error(error.message);
       if (existing) throw new Error("Dit personeelsnummer is al in gebruik. Kies een ander nummer.");
     }
+    const mobility = await mobilityFromForm(formData);
     const account = await preparePersonnelAccount(input.email);
     const { data: existingPerson, error: personLookupError } = await supabase.from("personnel").select("id").eq("tenant_id", context.tenant.id).eq("user_id", account.userId).maybeSingle();
     if (personLookupError) throw new Error("De personeelsgegevens konden niet worden gecontroleerd.");
@@ -446,7 +449,7 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult<
     if (membership && membership.status !== "active") throw new Error("Dit account is niet actief binnen jouw organisatie. Laat de beheerder dit eerst controleren.");
     const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: account.userId, roles: [...new Set<AppRole>([...(membership?.roles ?? []), "staff"])], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
     if (membershipError) throw membershipError;
-    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: account.userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null }).select("id,employee_number").single();
+    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: account.userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null, ...mobility }).select("id,employee_number").single();
     if (personnelError) throw new Error(personnelError.code === "23505" ? "Deze medewerker of dit personeelsnummer bestaat al. Controleer de personeelslijst." : personnelError.message);
     revalidatePath("/app", "layout");
     try {
@@ -686,7 +689,7 @@ export async function createObject(formData: FormData): Promise<ActionResult> {
     const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("tenant_id", context.tenant.id).eq("id", input.customerId).maybeSingle();
     if (customerError) throw customerError;
     if (!customer) throw new Error("Selecteer een bestaande klant binnen deze tenant");
-    const { error } = await supabase.from("objects").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, object_number: generatedNumber("OB"), name: input.name, address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" }, access_instructions: input.instructions || null });
+    const { error } = await supabase.from("objects").insert({ tenant_id: context.tenant.id, customer_id: input.customerId, object_number: generatedNumber("OB"), name: input.name, address: await addressFromForm(formData, "addressPayload", true), access_instructions: input.instructions || null });
     if (error) throw error;
     revalidatePath("/app");
     return { ok: true };
@@ -708,7 +711,7 @@ export async function updateObject(formData: FormData): Promise<ActionResult> {
     if (!customer) throw new Error("Selecteer een bestaande klant binnen deze tenant");
     const { data, error } = await supabase.from("objects").update({
       customer_id: input.customerId, name: input.name,
-      address: { street: input.street, postal_code: input.postalCode, city: input.city, country: "NL" },
+      address: await addressFromForm(formData, "addressPayload", true),
       access_instructions: input.instructions || null, active: input.active === "true",
     }).eq("tenant_id", context.tenant.id).eq("id", input.objectId).select("id").maybeSingle();
     if (error) throw error;

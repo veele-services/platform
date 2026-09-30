@@ -129,6 +129,7 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
 });
 
 test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare viewport", async ({ page }) => {
+  page.on("dialog", dialog=>dialog.accept());
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
 
@@ -147,9 +148,10 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await customerWizard.getByLabel("Klantnaam").fill("Acceptatietest klant");
   await customerWizard.getByRole("button", { name: "Volgende" }).click();
   await expect(customerWizard.getByText("Wat is het factuuradres?")).toBeVisible();
-  await customerWizard.getByLabel("Straat en huisnummer").fill("Teststraat 1");
+  await customerWizard.getByLabel("Straatnaam").fill("Teststraat");
+  await customerWizard.getByLabel("Huisnummer",{exact:true}).fill("1");
   await customerWizard.getByLabel("Postcode").fill("1234 AB");
-  await customerWizard.getByLabel("Plaats").fill("Utrecht");
+  await customerWizard.getByLabel("Woonplaats").fill("Utrecht");
   await customerWizard.getByRole("button", { name: "Volgende" }).click();
   await expect(customerWizard.getByText("Controleer en maak de klant aan")).toBeVisible();
   await customerWizard.getByRole("button", { name: "Sluiten" }).click();
@@ -168,9 +170,10 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await objectWizard.locator('select[name="customerId"]').selectOption({ label: "Noordhaven Vastgoed" });
   await objectWizard.getByLabel("Objectnaam").fill("Nieuw kantoor");
   await objectWizard.getByRole("button", { name: "Volgende" }).click();
-  await objectWizard.getByLabel("Straat en huisnummer").fill("Teststraat 1");
+  await objectWizard.getByLabel("Straatnaam").fill("Teststraat");
+  await objectWizard.getByLabel("Huisnummer",{exact:true}).fill("1");
   await objectWizard.getByLabel("Postcode").fill("1234 AB");
-  await objectWizard.getByLabel("Plaats", { exact: true }).fill("Utrecht");
+  await objectWizard.getByLabel("Woonplaats", { exact: true }).fill("Utrecht");
   await objectWizard.getByLabel("Normale bezoekprocedure").fill("Melden bij de receptie.");
   for (let i=0;i<6;i++) await objectWizard.getByRole("button", { name: "Volgende" }).click();
   const summary = objectWizard.locator(".dossier-facts");
@@ -181,7 +184,7 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await expect(objectWizard.getByText(/Klantkoppeling verplicht|op de server|binnen deze tenant/)).toHaveCount(0);
   await expect(objectWizard).toHaveScreenshot("object-wizard-review-1440.png");
   for (let i=0;i<6;i++) await objectWizard.getByRole("button", { name: "Vorige" }).click();
-  await objectWizard.getByLabel("Straat en huisnummer").fill("Teststraat 2");
+  await objectWizard.getByLabel("Huisnummer",{exact:true}).fill("2");
   await objectWizard.getByLabel("Normale bezoekprocedure").fill("");
   for (let i=0;i<6;i++) await objectWizard.getByRole("button", { name: "Volgende" }).click();
   await expect(summary.getByText("Teststraat 2, 1234 AB, Utrecht", { exact: true })).toBeVisible();
